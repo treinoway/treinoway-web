@@ -24,6 +24,17 @@ const Layout = ({ children }) => {
 
   return (
     <div className="app-layout">
+      {/* Top App Bar — visible only on mobile */}
+      <div className="top-app-bar">
+        <img
+          src="/img/treino_way_transparente.png"
+          alt="Treinoway"
+          className="top-app-bar-logo"
+        />
+        <span className="top-app-bar-user">{user?.name}</span>
+      </div>
+
+      {/* Sidebar — visible only on tablet+ */}
       <aside className={`sidebar ${sidebarOpen ? 'sidebar--open' : 'sidebar--closed'}`}>
         <div className="sidebar-header">
           <div className="sidebar-header-inner">
@@ -96,6 +107,24 @@ const Layout = ({ children }) => {
       <main className="main-content">
         <div className="main-content-inner">{children}</div>
       </main>
+
+      {/* Bottom Navigation — visible only on mobile */}
+      <nav className="bottom-nav">
+        {navLinks.map((link) => (
+          <Link
+            key={link.path}
+            to={link.path}
+            className={`bottom-nav-item ${isActive(link.path) ? 'bottom-nav-item--active' : ''}`}
+          >
+            <span className="bottom-nav-item-icon">{link.icon}</span>
+            <span>{link.label}</span>
+          </Link>
+        ))}
+        <button onClick={handleLogout} className="bottom-nav-item bottom-nav-logout">
+          <span className="bottom-nav-item-icon">🚪</span>
+          <span>Sair</span>
+        </button>
+      </nav>
     </div>
   );
 };

@@ -110,6 +110,7 @@ All protected routes wrap components with `<ProtectedRoute>` and `<Layout>`.
 - **Design tokens**: Defined in `src/index.css` (`--color-*`, `--spacing-*`, `--radius-*`, `--font-*`)
 - **Utility classes**: `.card`, `.btn-primary`, `.btn-secondary`, `.form-input`, `.alert`, `.badge`
 - **Font**: Poppins from Google Fonts
+- **Mobile-first**: All UI must be designed mobile-first. Base styles target mobile screens; use `min-width` media queries to scale up to tablet (768px) and desktop (1024px). Never write desktop-first styles. Mobile navigation uses a bottom navigation bar — not a sidebar.
 
 ---
 
