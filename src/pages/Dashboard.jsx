@@ -1,21 +1,67 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import api from '../api/axios';
 
 const Dashboard = () => {
-  const { user, hasRole, refreshUser } = useAuth();
+  const { user, hasRole, refreshUser, updateTokens } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch fresh user data on mount (once)
+    // Fetch fresh user data on mount
     if (refreshUser) {
       refreshUser();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Log current state for debugging
+  console.log('Dashboard render - hasRole(TRAINER):', hasRole('TRAINER'), 'user roles:', user?.roles);
+
+  const handleBecomeTrainer = async () => {
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+    
+    try {
+      const response = await api.patch('/become-trainer');
+      
+      // API returns new tokens with updated roles
+      const newAccessToken = response.data.token?.accessToken || response.data.accessToken;
+      const newRefreshToken = response.data.refreshToken;
+      
+      // Update tokens in AuthContext AND localStorage
+      updateTokens(newAccessToken, newRefreshToken);
+      
+      setMessage({ type: 'success', text: '🎉 Parabéns! Você agora é um treinador!' });
+      
+      // Refresh user data to get new role
+      await refreshUser();
+      
+      // Redirect after showing success message
+      setTimeout(() => {
+        navigate('/trainer/protocol-templates');
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to become trainer:', error);
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.message || 'Falha ao se tornar treinador' 
+      });
+      setLoading(false);
+    }
+  };
+
   return (
     <div>
       <h1 className="page-title">Painel</h1>
+
+      {message.text && (
+        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`} style={{ marginBottom: 'var(--spacing-lg)' }}>
+          {message.text}
+        </div>
+      )}
 
       {user?.status === 'pending' ? (
         <Link to="/profile" className="complete-profile-card card--mb">
@@ -39,27 +85,24 @@ const Dashboard = () => {
         </Link>
 
         {!hasRole('TRAINER') && (
-          <Link to="/profile" className="card-gradient-link">
+          <button 
+            onClick={handleBecomeTrainer} 
+            disabled={loading}
+            className="card-gradient-link"
+            style={{ border: 'none', cursor: 'pointer', width: '100%' }}
+          >
             <div className="card-icon">💪</div>
-            <h3 className="card-subtitle">Seja um Treinador</h3>
+            <h3 className="card-subtitle">{loading ? 'Processando...' : 'Seja um Treinador'}</h3>
             <p className="text-sm opacity-90">Comece a criar e gerenciar protocolos de treino</p>
-          </Link>
+          </button>
         )}
 
         {hasRole('TRAINER') && (
-          <>
-            <Link to="/trainer" className="card-link">
-              <div className="card-icon">💪</div>
-              <h3 className="card-subtitle">Perfil do Treinador</h3>
-              <p className="card-description">Gerencie suas informações de treinador</p>
-            </Link>
-
-            <Link to="/trainer/protocol-templates" className="card-link">
-              <div className="card-icon">📊</div>
-              <h3 className="card-subtitle">Protocolos</h3>
-              <p className="card-description">Gerencie templates e protocolos de treino</p>
-            </Link>
-          </>
+          <Link to="/trainer/protocol-templates" className="card-link">
+            <div className="card-icon">📊</div>
+            <h3 className="card-subtitle">Protocolos</h3>
+            <p className="card-description">Gerencie templates e protocolos de treino</p>
+          </Link>
         )}
       </div>
     </div>

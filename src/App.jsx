@@ -12,7 +12,6 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 
 // Trainer pages
-import TrainerProfile from './pages/trainer/TrainerProfile';
 import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
 import TrainingTemplates from './pages/trainer/TrainingTemplates';
 import TrainingProtocols from './pages/trainer/TrainingProtocols';
@@ -54,16 +53,6 @@ function App() {
           />
 
           {/* Trainer routes */}
-          <Route
-            path="/trainer"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <TrainerProfile />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
           <Route
             path="/trainer/protocol-templates"
             element={

@@ -22,12 +22,6 @@ const Layout = ({ children }) => {
     { path: '/profile', label: 'Meu Perfil', icon: '👤' },
   ];
 
-  if (hasRole('TRAINER')) {
-    navLinks.push(
-      { path: '/trainer', label: 'Perfil do Treinador', icon: '💪', section: 'Treinador' }
-    );
-  }
-
   return (
     <div className="app-layout">
       <aside className={`sidebar ${sidebarOpen ? 'sidebar--open' : 'sidebar--closed'}`}>

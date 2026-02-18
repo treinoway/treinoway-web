@@ -137,6 +137,16 @@ export const AuthProvider = ({ children }) => {
     return user.roles.some(r => r.toUpperCase() === role.toUpperCase());
   };
 
+  const updateTokens = (newAccessToken, newRefreshToken) => {
+    if (newAccessToken) {
+      localStorage.setItem('accessToken', newAccessToken);
+      setAccessToken(newAccessToken);
+    }
+    if (newRefreshToken) {
+      localStorage.setItem('refreshToken', newRefreshToken);
+    }
+  };
+
   const value = {
     user,
     accessToken,
@@ -144,6 +154,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     logout,
     updateUser,
+    updateTokens,
     refreshUser,
     hasRole,
     isAuthenticated: !!accessToken,
