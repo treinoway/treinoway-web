@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
+// Debug: Log the base URL being used (always log in production to help debug)
+console.log('[API] Base URL:', BASE_URL);
+console.log('[API] Env var:', import.meta.env.VITE_API_BASE_URL);
+
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -21,9 +27,18 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh
+// Response interceptor to handle token refresh and detect HTML responses
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Check if response is HTML (shouldn't happen, but helps debug API URL issues)
+    if (typeof response.data === 'string' && (response.data.trim().startsWith('<!DOCTYPE') || response.data.trim().startsWith('<html'))) {
+      console.error('[API] Received HTML response instead of JSON. This means the API URL is incorrect.');
+      console.error('[API] Request URL:', response.config.url);
+      console.error('[API] Base URL:', BASE_URL);
+      console.error('[API] Full URL:', response.config.baseURL + response.config.url);
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 
@@ -49,7 +64,8 @@ api.interceptors.response.use(
 
       try {
         // Try to refresh the token
-        const response = await axios.post('http://localhost:3000/auth/refresh', {
+        // Use axios directly to avoid circular interceptor calls
+        const response = await axios.post(`${BASE_URL}/auth/refresh`, {
           refreshToken,
         });
 

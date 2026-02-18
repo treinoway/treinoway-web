@@ -1,0 +1,1323 @@
+{
+  "info": {
+    "name": "Treinoway API",
+    "description": "API collection for Treinoway Service - a wellness/training platform backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Check if the server is alive"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign Up",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.token.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signup"]
+            },
+            "description": "Sign up with email and password. Password must be at least 8 characters."
+          },
+          "response": []
+        },
+        {
+          "name": "Join Waitlist",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"waitlist@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/signup/waitlist",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signup", "waitlist"]
+            },
+            "description": "Join the waitlist with an email address. Rate limited to 3 requests per hour."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.token.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Log in with email and password. Rate limited to 5 requests per minute."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password"]
+            },
+            "description": "Request a password reset email. In non-production environments, the reset token is returned in the response."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.token.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"123456\",\n  \"password\": \"newpassword123\",\n  \"passwordConfirmation\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "description": "Reset password using the 6-digit token received via email. Token is valid for 15 minutes."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.token.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\",\n  \"newPasswordConfirmation\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            },
+            "description": "Change password for authenticated user. Requires current password. Rate limited to 5 requests per minute."
+          },
+          "response": []
+        },
+        {
+          "name": "Google OAuth Start",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/google/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "google", "start"]
+            },
+            "description": "Start Google OAuth flow for browser. Redirects to Google for authentication. New users start with no roles."
+          },
+          "response": []
+        },
+        {
+          "name": "Google Mobile Auth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.token.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"google-id-token-from-mobile-sdk\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/google/mobile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "google", "mobile"]
+            },
+            "description": "Log in with Google ID Token from mobile native SDK. Returns JWT tokens for mobile app authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.token.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "**Rotate refresh token and get new access token**\n\nExchanges a refresh token for a NEW access token AND a NEW refresh token. The old refresh token is revoked and cannot be used again (token rotation).\n\n**Important:** The NEW refreshToken returned in the response must be stored and used for subsequent refresh requests.\n\n**Token Rotation Flow:**\n1. Client sends old refresh token\n2. Server validates token (not revoked, not expired, user active)\n3. Server revokes old token (marks rotatedAt)\n4. Server issues new refresh token (valid for 7 days)\n5. Server issues new access token (valid for 15 minutes)\n6. Client must update stored refreshToken with new value\n\n**Security Benefits:**\n- Each refresh token can only be used once\n- Stolen tokens expire quickly when rotated\n- Sessions continue indefinitely while user active\n\n**Error Codes:**\n- `REFRESH_TOKEN_REQUIRED` (400): No token provided\n- `INVALID_REFRESH_TOKEN` (401): Token not found or malformed\n- `REFRESH_TOKEN_REVOKED` (401): Token already used/revoked\n- `REFRESH_TOKEN_EXPIRED` (401): Token expired (7 days)\n- `USER_DELETED` (403): Account deactivated\n- `REFRESH_FAILED` (500): Server error"
+          },
+          "response": [
+            {
+              "name": "Success - 200 (Token Rotated)",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"token\": {\n    \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n  },\n  \"refreshToken\": \"a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2\"\n}"
+            },
+            {
+              "name": "Bad Request - 400 (Missing Token)",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"REFRESH_TOKEN_REQUIRED\",\n  \"message\": \"Missing refresh token\"\n}"
+            },
+            {
+              "name": "Unauthorized - 401 (Invalid Token)",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"INVALID_REFRESH_TOKEN\",\n  \"message\": \"Invalid refresh token\"\n}"
+            },
+            {
+              "name": "Unauthorized - 401 (Token Revoked)",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"REFRESH_TOKEN_REVOKED\",\n  \"message\": \"Refresh token has been revoked. Please login again.\"\n}"
+            },
+            {
+              "name": "Unauthorized - 401 (Token Expired)",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"REFRESH_TOKEN_EXPIRED\",\n  \"message\": \"Refresh token expired. Please login again.\"\n}"
+            },
+            {
+              "name": "Forbidden - 403 (User Deleted)",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"USER_DELETED\",\n  \"message\": \"Account deactivated\"\n}"
+            },
+            {
+              "name": "Internal Server Error - 500",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"REFRESH_FAILED\",\n  \"message\": \"Failed to refresh token\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('accessToken', '');",
+                  "    pm.collectionVariables.set('refreshToken', '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Log out and revoke the refresh token."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["me"]
+            },
+            "description": "Get the current authenticated user's profile including address, socials, and preferences."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"gender\": \"male\",\n  \"birthDate\": \"1990-01-15\",\n  \"address\": {\n    \"line1\": \"123 Main St\",\n    \"line2\": \"Apt 4B\",\n    \"neighborhood\": \"Downtown\",\n    \"city\": \"São Paulo\",\n    \"state\": \"São Paulo\",\n    \"stateCode\": \"SP\",\n    \"country\": \"Brazil\",\n    \"countryCode\": \"BR\",\n    \"postalCode\": \"01310-100\"\n  },\n  \"socials\": {\n    \"instagram\": \"@johndoe\",\n    \"whatsapp\": \"+5511999999999\",\n    \"linkedin\": \"https://linkedin.com/in/johndoe\"\n  },\n  \"preferences\": {\n    \"rawPreferences\": {\n      \"theme\": \"dark\",\n      \"notifications\": true\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["me", "profile"]
+            },
+            "description": "Update user profile information including personal details, address, socials, and preferences. All fields are optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Image file (JPEG, PNG, or WebP). Max 5MB."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me/avatar",
+              "host": ["{{baseUrl}}"],
+              "path": ["me", "avatar"]
+            },
+            "description": "Upload or replace user avatar image. Accepts JPEG, PNG, or WebP. Maximum file size: 5MB. Old avatar is automatically deleted. Returns { avatarUrl } with a signed URL (expires in 7 days)."
+          },
+          "response": []
+        },
+        {
+          "name": "Become Trainer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.token.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/become-trainer",
+              "host": ["{{baseUrl}}"],
+              "path": ["become-trainer"]
+            },
+            "description": "Set the user's active profile to trainer. This adds the TRAINER role and creates a trainer profile if it doesn't exist. Returns new tokens with updated roles."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Trainer",
+      "item": [
+        {
+          "name": "Update Trainer Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trainer\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Trainer\",\n    \"birthDate\": \"1985-05-20\",\n    \"professionalDocument\": \"CREF 123456-G/SP\",\n    \"gymName\": \"Fitness Center\",\n    \"notes\": \"Specializes in strength training\",\n    \"serviceMode\": \"hybrid\"\n  },\n  \"address\": {\n    \"line1\": \"456 Gym Street\",\n    \"neighborhood\": \"Fitness District\",\n    \"city\": \"São Paulo\",\n    \"state\": \"São Paulo\",\n    \"stateCode\": \"SP\",\n    \"country\": \"Brazil\",\n    \"countryCode\": \"BR\",\n    \"postalCode\": \"01310-200\"\n  },\n  \"socials\": {\n    \"instagram\": \"@johntrainer\",\n    \"whatsapp\": \"+5511988888888\",\n    \"youtube\": \"https://youtube.com/@johntrainer\",\n    \"linkedin\": \"https://linkedin.com/in/johntrainer\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer"]
+            },
+            "description": "Update trainer profile, address, and social networks. Requires TRAINER role. Service mode can be: online, in_person, or hybrid."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Address",
+      "item": [
+        {
+          "name": "Lookup Postal Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/postal-code?code=01310100",
+              "host": ["{{baseUrl}}"],
+              "path": ["postal-code"],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "01310100",
+                  "description": "Brazilian postal code (CEP) with or without formatting"
+                }
+              ]
+            },
+            "description": "Get address information by Brazilian postal code (CEP). Uses ViaCEP API. Accepts formats like '01310-100' or '01310100'."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Training Protocols - Trainer",
+      "item": [
+        {
+          "name": "Create Protocol",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assigneeId\": \"uuid-here\",\n  \"name\": \"Full Body Protocol\",\n  \"description\": \"A comprehensive full body training protocol\",\n  \"availableWeekDays\": [\"monday\", \"wednesday\", \"friday\"],\n  \"status\": \"active\",\n  \"startDate\": \"2024-01-01\",\n  \"expirationDate\": \"2024-03-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocols",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocols"]
+            },
+            "description": "Create a training protocol for a user. Requires TRAINER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Trainer Protocols",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocols?status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocols"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status (active, paused, completed)",
+                  "disabled": true
+                },
+                {
+                  "key": "assigneeId",
+                  "value": "",
+                  "description": "Filter by assignee user ID",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all protocols created by the authenticated trainer. Supports filtering by status and assigneeId."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Protocol by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocols/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocols", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Protocol UUID"
+                }
+              ]
+            },
+            "description": "Get a specific protocol by ID. Only accessible by the protocol's trainer."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Protocol",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Protocol Name\",\n  \"description\": \"Updated description\",\n  \"availableWeekDays\": [\"monday\", \"tuesday\", \"thursday\"],\n  \"status\": \"paused\",\n  \"startDate\": \"2024-01-01\",\n  \"expirationDate\": \"2024-04-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocols/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocols", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Protocol UUID"
+                }
+              ]
+            },
+            "description": "Update a training protocol. All fields are optional. Only accessible by the protocol's trainer."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Protocol",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocols/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocols", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Protocol UUID"
+                }
+              ]
+            },
+            "description": "Delete a training protocol. Only accessible by the protocol's trainer."
+          },
+          "response": []
+        },
+        {
+          "name": "Import Protocol from Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"uuid-here\",\n  \"assigneeId\": \"uuid-here\",\n  \"name\": \"Protocol from Template\",\n  \"description\": \"Custom description\",\n  \"availableWeekDays\": [\"monday\", \"wednesday\", \"friday\"],\n  \"startDate\": \"2024-01-01\",\n  \"expirationDate\": \"2024-03-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocols/from-template",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocols", "from-template"]
+            },
+            "description": "Create a new protocol by importing from a template. Trainings from the template will be copied to the new protocol."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Training Protocols - My",
+      "item": [
+        {
+          "name": "Get My Protocols",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/my/protocols?status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["my", "protocols"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status (active, paused, completed)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all protocols assigned to the authenticated user. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Protocol by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/my/protocols/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["my", "protocols", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Protocol UUID"
+                }
+              ]
+            },
+            "description": "Get a specific protocol by ID. Only accessible if the protocol is assigned to this user."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Protocol Templates",
+      "item": [
+        {
+          "name": "Create Protocol Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Beginner Full Body\",\n  \"description\": \"A beginner-friendly full body template\",\n  \"availableWeekDays\": [\"monday\", \"wednesday\", \"friday\"],\n  \"defaultDurationWeeks\": 12\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocol-templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocol-templates"]
+            },
+            "description": "Create a reusable protocol template. Requires TRAINER role."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Protocol Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocol-templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocol-templates"]
+            },
+            "description": "Get all protocol templates created by the authenticated trainer."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Protocol Template by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocol-templates/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocol-templates", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Template UUID"
+                }
+              ]
+            },
+            "description": "Get a specific protocol template by ID. Only accessible by the template's trainer."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Protocol Template",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Template Name\",\n  \"description\": \"Updated description\",\n  \"availableWeekDays\": [\"monday\", \"tuesday\", \"thursday\", \"saturday\"],\n  \"defaultDurationWeeks\": 16\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocol-templates/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocol-templates", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Template UUID"
+                }
+              ]
+            },
+            "description": "Update a protocol template. All fields are optional. Only accessible by the template's trainer."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Protocol Template",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocol-templates/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocol-templates", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Template UUID"
+                }
+              ]
+            },
+            "description": "Soft delete a protocol template. Only accessible by the template's trainer."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Trainings - Trainer",
+      "item": [
+        {
+          "name": "Create Training",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Chest and Triceps\",\n  \"description\": \"Focus on chest and triceps exercises\",\n  \"category\": \"strength\",\n  \"bodySegment\": \"upper\",\n  \"order\": 1,\n  \"notes\": \"Progressive overload recommended\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocols/:protocolId/trainings",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocols", ":protocolId", "trainings"],
+              "variable": [
+                {
+                  "key": "protocolId",
+                  "value": "",
+                  "description": "Protocol UUID"
+                }
+              ]
+            },
+            "description": "Create a training within a protocol. Requires TRAINER role and protocol ownership."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Trainings by Protocol",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/protocols/:protocolId/trainings",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "protocols", ":protocolId", "trainings"],
+              "variable": [
+                {
+                  "key": "protocolId",
+                  "value": "",
+                  "description": "Protocol UUID"
+                }
+              ]
+            },
+            "description": "Get all trainings for a specific protocol. Requires protocol ownership."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Training by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/trainings/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "trainings", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Training UUID"
+                }
+              ]
+            },
+            "description": "Get a specific training by ID. Requires protocol ownership."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Training",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Training Name\",\n  \"description\": \"Updated description\",\n  \"category\": \"cardio\",\n  \"bodySegment\": \"full_body\",\n  \"order\": 2,\n  \"notes\": \"Updated notes\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer/trainings/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "trainings", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Training UUID"
+                }
+              ]
+            },
+            "description": "Update a training. All fields are optional. Requires protocol ownership."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Training",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/trainings/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "trainings", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Training UUID"
+                }
+              ]
+            },
+            "description": "Delete a training. Requires protocol ownership."
+          },
+          "response": []
+        },
+        {
+          "name": "Import Training from Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"protocolId\": \"uuid-here\",\n  \"templateId\": \"uuid-here\",\n  \"name\": \"Custom Training Name\",\n  \"description\": \"Custom description\",\n  \"order\": 1,\n  \"notes\": \"Additional notes\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer/trainings/from-template",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "trainings", "from-template"]
+            },
+            "description": "Create a training by importing from a template. Can access own templates or public templates."
+          },
+          "response": []
+        },
+        {
+          "name": "Schedule Training",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weekDays\": [\"monday\", \"wednesday\", \"friday\"],\n  \"order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer/trainings/:id/schedule",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "trainings", ":id", "schedule"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Training UUID"
+                }
+              ]
+            },
+            "description": "Schedule a training on specific weekdays. Creates TrainingSchedule entries."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Trainings - My",
+      "item": [
+        {
+          "name": "Get Trainings by Protocol",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/my/protocols/:protocolId/trainings",
+              "host": ["{{baseUrl}}"],
+              "path": ["my", "protocols", ":protocolId", "trainings"],
+              "variable": [
+                {
+                  "key": "protocolId",
+                  "value": "",
+                  "description": "Protocol UUID"
+                }
+              ]
+            },
+            "description": "Get all trainings for a specific protocol. Requires authentication and protocol must be assigned to this user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Training by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/my/trainings/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["my", "trainings", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Training UUID"
+                }
+              ]
+            },
+            "description": "Get a specific training by ID. Only accessible if the training belongs to a protocol assigned to this user."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Training Templates",
+      "item": [
+        {
+          "name": "Create Training Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Upper Body Strength\",\n  \"description\": \"Focus on upper body compound movements\",\n  \"category\": \"strength\",\n  \"bodySegment\": \"upper\",\n  \"tags\": [\"compound\", \"strength\", \"upper body\"],\n  \"isPublic\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer/training-templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "training-templates"]
+            },
+            "description": "Create a reusable training template. Requires TRAINER role. Can be private or public."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Training Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/training-templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "training-templates"]
+            },
+            "description": "Get all training templates (own templates + public templates)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Public Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/training-templates/public",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "training-templates", "public"]
+            },
+            "description": "Get only public training templates available to all trainers."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Training Template by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/training-templates/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "training-templates", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Template UUID"
+                }
+              ]
+            },
+            "description": "Get a specific training template by ID. Accessible if it's your own or if it's public."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Training Template",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Template Name\",\n  \"description\": \"Updated description\",\n  \"category\": \"cardio\",\n  \"bodySegment\": \"lower\",\n  \"tags\": [\"cardio\", \"endurance\"],\n  \"isPublic\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trainer/training-templates/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "training-templates", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Template UUID"
+                }
+              ]
+            },
+            "description": "Update a training template. All fields are optional. Only accessible by the template's trainer."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Training Template",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trainer/training-templates/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["trainer", "training-templates", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Template UUID"
+                }
+              ]
+            },
+            "description": "Delete a training template. Only accessible by the template's trainer."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

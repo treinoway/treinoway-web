@@ -29,14 +29,50 @@ function loadStoredUser() {
 }
 
 function extractAuthData(data) {
-  // Handle nested token format: { token: { accessToken: "..." } }
-  const token = data.token?.accessToken || data.accessToken || data.access_token;
-  const refresh = data.refreshToken || data.refresh_token;
-  const userData = data.user || null;
+  // API format: { token: { accessToken: "..." }, refreshToken: "..." }
+  // Based on Postman collection: jsonData.token.accessToken and jsonData.refreshToken
+  
+  // Handle case where data might be a string (shouldn't happen with Axios, but safety check)
+  let parsedData = data;
+  if (typeof data === 'string') {
+    // Check if it's HTML (common when API URL is wrong and returns frontend HTML)
+    if (data.trim().startsWith('<!DOCTYPE') || data.trim().startsWith('<html')) {
+      console.error('[Auth] Received HTML instead of JSON. This usually means the API URL is incorrect or pointing to the frontend.');
+      console.error('[Auth] Check VITE_API_BASE_URL environment variable.');
+      console.error('[Auth] Current BASE_URL:', import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000');
+      return { token: null, refresh: null, userData: null };
+    }
+    
+    try {
+      parsedData = JSON.parse(data);
+    } catch (e) {
+      console.error('[Auth] Failed to parse response as JSON:', e);
+      console.error('[Auth] Response preview:', data.substring(0, 200));
+      return { token: null, refresh: null, userData: null };
+    }
+  }
+
+  // Ensure it's an object
+  if (!parsedData || typeof parsedData !== 'object' || Array.isArray(parsedData)) {
+    console.error('[Auth] Invalid response format. Expected object, got:', typeof parsedData);
+    console.error('[Auth] Response:', parsedData);
+    return { token: null, refresh: null, userData: null };
+  }
+
+  // Access token: data.token.accessToken
+  const token = parsedData.token?.accessToken ?? null;
+
+  // Refresh token: data.refreshToken (top level, not nested)
+  const refresh = parsedData.refreshToken ?? null;
+
+  // User data (if present)
+  const userData = parsedData.user ?? null;
 
   if (!token) {
-    console.error('[Auth] Nenhum token encontrado na resposta da API. Campos recebidos:', Object.keys(data));
-    console.error('[Auth] Resposta completa:', data);
+    console.error('[Auth] No access token in API response. Expected format: { token: { accessToken: "..." }, refreshToken: "..." }');
+    console.error('[Auth] Response type:', typeof parsedData);
+    console.error('[Auth] Response keys:', Object.keys(parsedData));
+    console.error('[Auth] Full response:', parsedData);
   }
 
   return { token, refresh, userData };
@@ -49,6 +85,12 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password });
+      
+      // Debug: Log response structure
+      console.log('[Auth] Login response type:', typeof response.data);
+      console.log('[Auth] Login response:', response.data);
+      console.log('[Auth] Response headers:', response.headers);
+      
       const { token, refresh } = extractAuthData(response.data);
 
       if (!token) {
@@ -79,6 +121,12 @@ export const AuthProvider = ({ children }) => {
   const signup = async (email, password) => {
     try {
       const response = await api.post('/auth/signup', { email, password });
+      
+      // Debug: Log response structure
+      console.log('[Auth] Signup response type:', typeof response.data);
+      console.log('[Auth] Signup response:', response.data);
+      console.log('[Auth] Response headers:', response.headers);
+      
       const { token, refresh } = extractAuthData(response.data);
 
       if (!token) {

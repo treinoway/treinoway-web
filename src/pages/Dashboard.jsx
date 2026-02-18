@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import api from '../api/axios';
 
 const Dashboard = () => {
   const { user, hasRole, refreshUser, updateTokens } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Fetch fresh user data on mount
@@ -16,9 +15,6 @@ const Dashboard = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Log current state for debugging
-  console.log('Dashboard render - hasRole(TRAINER):', hasRole('TRAINER'), 'user roles:', user?.roles);
 
   const handleBecomeTrainer = async () => {
     setLoading(true);
@@ -38,17 +34,12 @@ const Dashboard = () => {
       
       // Refresh user data to get new role
       await refreshUser();
-      
-      // Redirect after showing success message
-      setTimeout(() => {
-        navigate('/trainer/protocol-templates');
-      }, 2000);
     } catch (error) {
-      console.error('Failed to become trainer:', error);
       setMessage({ 
         type: 'error', 
         text: error.response?.data?.message || 'Falha ao se tornar treinador' 
       });
+    } finally {
       setLoading(false);
     }
   };
