@@ -67,7 +67,7 @@ const TrainerProfile = () => {
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Informacoes do Treinador</h2>
+          <h2 className="card-title">Informações do Treinador</h2>
           {!editing && (
             <button onClick={() => setEditing(true)} className="btn-primary">
               Editar
@@ -97,7 +97,7 @@ const TrainerProfile = () => {
               >
                 <option value="ONLINE">Online</option>
                 <option value="IN_PERSON">Presencial</option>
-                <option value="HYBRID">Hibrido</option>
+                <option value="HYBRID">Híbrido</option>
               </select>
             </div>
 
@@ -148,7 +148,7 @@ const TrainerProfile = () => {
             <div className="info-item">
               <span className="info-label">Bio:</span>
               <p style={{ marginTop: '0.25rem', color: 'var(--color-gray-800)' }}>
-                {trainer?.bio || 'Nao informado'}
+                {trainer?.bio || 'Não informado'}
               </p>
             </div>
             <div>
@@ -156,20 +156,20 @@ const TrainerProfile = () => {
               <span className="info-value">
                 {trainer?.serviceMode === 'ONLINE' ? 'Online' :
                  trainer?.serviceMode === 'IN_PERSON' ? 'Presencial' :
-                 trainer?.serviceMode === 'HYBRID' ? 'Hibrido' : 'Nao informado'}
+                 trainer?.serviceMode === 'HYBRID' ? 'Híbrido' : 'Não informado'}
               </span>
             </div>
             <div>
               <span className="info-label info-inline">Instagram:</span>
-              <span className="info-value">{trainer?.instagram || 'Nao informado'}</span>
+              <span className="info-value">{trainer?.instagram || 'Não informado'}</span>
             </div>
             <div>
               <span className="info-label info-inline">Facebook:</span>
-              <span className="info-value">{trainer?.facebook || 'Nao informado'}</span>
+              <span className="info-value">{trainer?.facebook || 'Não informado'}</span>
             </div>
             <div>
               <span className="info-label info-inline">WhatsApp:</span>
-              <span className="info-value">{trainer?.whatsapp || 'Nao informado'}</span>
+              <span className="info-value">{trainer?.whatsapp || 'Não informado'}</span>
             </div>
           </div>
         )}

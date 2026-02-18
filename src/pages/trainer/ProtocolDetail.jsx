@@ -281,7 +281,7 @@ const ProtocolDetail = () => {
             </div>
 
             <div>
-              <label className="form-label">Descricao</label>
+              <label className="form-label">Descrição</label>
               <textarea
                 value={trainingFormData.description}
                 onChange={(e) =>

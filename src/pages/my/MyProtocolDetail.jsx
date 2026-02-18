@@ -55,7 +55,7 @@ const MyProtocolDetail = () => {
   if (!protocol) {
     return (
       <div className="empty-state">
-        <p className="empty-state-title">Protocolo nao encontrado</p>
+        <p className="empty-state-title">Protocolo não encontrado</p>
         <button
           onClick={() => navigate('/my/protocols')}
           className="btn-primary"

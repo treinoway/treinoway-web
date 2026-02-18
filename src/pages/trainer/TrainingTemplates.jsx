@@ -122,7 +122,7 @@ const TrainingTemplates = () => {
             </div>
 
             <div>
-              <label className="form-label">Descricao</label>
+              <label className="form-label">Descrição</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}

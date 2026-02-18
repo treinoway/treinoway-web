@@ -186,7 +186,7 @@ const Profile = () => {
 
       <div className="card card--mb">
         <div className="card-header">
-          <h2 className="card-title">Informacoes do Perfil</h2>
+          <h2 className="card-title">Informações do Perfil</h2>
           {!editing && (
             <button onClick={() => setEditing(true)} className="btn-primary">
               Editar
@@ -432,20 +432,6 @@ const Profile = () => {
                 <div>
                   <span className="info-label info-inline">Data de Nascimento:</span>
                   <span className="info-value">{formatDateForDisplay(user?.birthDate)}</span>
-                </div>
-                <div>
-                  <span className="info-label info-inline">Funcoes:</span>
-                  {user?.roles && user.roles.length > 0 ? (
-                    <div className="info-roles">
-                      {user.roles.map((role) => (
-                        <span key={role} className="badge-role">
-                          {role}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-lighter" style={{ marginLeft: '0.5rem' }}>Nenhuma funcao atribuida</span>
-                  )}
                 </div>
               </div>
             </div>

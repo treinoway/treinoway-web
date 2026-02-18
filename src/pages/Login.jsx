@@ -112,7 +112,7 @@ const Login = () => {
 
         <div className="auth-footer">
           <p>
-            Ainda nao tem uma conta?{' '}
+            Ainda não tem uma conta?{' '}
             <Link to="/signup" className="link">
               Cadastre-se
             </Link>

@@ -86,15 +86,6 @@ const Layout = ({ children }) => {
           <div className={!sidebarOpen ? 'hidden' : ''}>
             <div className="sidebar-user-name">{user?.name}</div>
             <div className="sidebar-user-email">{user?.email}</div>
-            {user?.roles && user.roles.length > 0 && (
-              <div className="sidebar-roles">
-                {user.roles.map((role) => (
-                  <span key={role} className="sidebar-role-badge">
-                    {role}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
           <button onClick={handleLogout} className="btn-logout">
             {sidebarOpen ? 'Sair' : '🚪'}
