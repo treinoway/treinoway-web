@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import api from '../../api/axios';
 
 const ProtocolDetail = () => {
@@ -126,7 +127,7 @@ const ProtocolDetail = () => {
 
     try {
       await api.delete(`/trainer/protocols/${id}/trainings/${trainingId}`);
-      setMessage({ type: 'success', text: 'Treino excluido com sucesso!' });
+      setMessage({ type: 'success', text: 'Treino excluído com sucesso!' });
       fetchTrainings();
     } catch (error) {
       setMessage({
@@ -146,7 +147,7 @@ const ProtocolDetail = () => {
 
     try {
       await api.delete(`/trainer/protocols/${id}/trainings/${trainingId}/schedule/${scheduleId}`);
-      setMessage({ type: 'success', text: 'Agendamento excluido com sucesso!' });
+      setMessage({ type: 'success', text: 'Agendamento excluído com sucesso!' });
       fetchTrainings();
     } catch (error) {
       setMessage({
@@ -178,11 +179,11 @@ const ProtocolDetail = () => {
 
   const weekdayLabels = {
     MONDAY: 'Segunda-feira',
-    TUESDAY: 'Terca-feira',
+    TUESDAY: 'Terça-feira',
     WEDNESDAY: 'Quarta-feira',
     THURSDAY: 'Quinta-feira',
     FRIDAY: 'Sexta-feira',
-    SATURDAY: 'Sabado',
+    SATURDAY: 'Sábado',
     SUNDAY: 'Domingo',
   };
 
@@ -195,7 +196,7 @@ const ProtocolDetail = () => {
   return (
     <div>
       <button onClick={() => navigate('/trainer/protocols')} className="btn-back">
-        &larr; Voltar para Protocolos
+        <ArrowLeft size={16} strokeWidth={1.6} /> Voltar para Protocolos
       </button>
 
       <div className="card card--mb">
@@ -208,13 +209,13 @@ const ProtocolDetail = () => {
             <span className="info-value">{protocol.status}</span>
           </div>
           <div>
-            <span className="info-label info-inline">Data de Inicio:</span>
+            <span className="info-label info-inline">Data de Início:</span>
             <span className="info-value">
               {new Date(protocol.startDate).toLocaleDateString('pt-BR')}
             </span>
           </div>
           <div>
-            <span className="info-label info-inline">Data de Termino:</span>
+            <span className="info-label info-inline">Data de Término:</span>
             <span className="info-value">
               {new Date(protocol.endDate).toLocaleDateString('pt-BR')}
             </span>
@@ -233,7 +234,7 @@ const ProtocolDetail = () => {
       )}
 
       <div className="page-header">
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-gray-800)' }}>Treinos</h2>
+        <h2 className="card-title">Treinos</h2>
         {!showTrainingForm && (
           <button onClick={() => setShowTrainingForm(true)} className="btn-primary">
             + Adicionar Treino
@@ -243,7 +244,7 @@ const ProtocolDetail = () => {
 
       {showTrainingForm && (
         <div className="card card--mb">
-          <h3 className="card-title" style={{ marginBottom: '1rem' }}>
+          <h3 className="card-title mb-md">
             {editingTrainingId ? 'Editar Treino' : 'Adicionar Novo Treino'}
           </h3>
           <form onSubmit={handleTrainingSubmit} className="form">
@@ -320,7 +321,7 @@ const ProtocolDetail = () => {
 
       {showScheduleForm && (
         <div className="card card--mb">
-          <h3 className="card-title" style={{ marginBottom: '1rem' }}>Agendar Treino</h3>
+          <h3 className="card-title mb-md">Agendar Treino</h3>
           <form onSubmit={handleScheduleSubmit} className="form">
             <div>
               <label className="form-label">Dia da Semana</label>
@@ -333,17 +334,17 @@ const ProtocolDetail = () => {
                 required
               >
                 <option value="MONDAY">Segunda-feira</option>
-                <option value="TUESDAY">Terca-feira</option>
+                <option value="TUESDAY">Terça-feira</option>
                 <option value="WEDNESDAY">Quarta-feira</option>
                 <option value="THURSDAY">Quinta-feira</option>
                 <option value="FRIDAY">Sexta-feira</option>
-                <option value="SATURDAY">Sabado</option>
+                <option value="SATURDAY">Sábado</option>
                 <option value="SUNDAY">Domingo</option>
               </select>
             </div>
 
             <div>
-              <label className="form-label">Numero da Semana</label>
+              <label className="form-label">Número da Semana</label>
               <input
                 type="number"
                 min="1"

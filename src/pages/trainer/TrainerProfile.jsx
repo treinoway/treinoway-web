@@ -84,7 +84,7 @@ const TrainerProfile = () => {
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 rows={4}
                 className="form-textarea"
-                placeholder="Conte aos alunos sobre voce..."
+                placeholder="Conte aos alunos sobre você..."
               />
             </div>
 
@@ -147,7 +147,7 @@ const TrainerProfile = () => {
           <div className="info-list">
             <div className="info-item">
               <span className="info-label">Bio:</span>
-              <p style={{ marginTop: '0.25rem', color: 'var(--color-gray-800)' }}>
+              <p className="info-value">
                 {trainer?.bio || 'Não informado'}
               </p>
             </div>

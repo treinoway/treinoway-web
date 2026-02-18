@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import api from '../../api/axios';
 
 const MyProtocolDetail = () => {
@@ -36,11 +37,11 @@ const MyProtocolDetail = () => {
 
   const weekdayLabels = {
     MONDAY: 'Segunda-feira',
-    TUESDAY: 'Terca-feira',
+    TUESDAY: 'Terça-feira',
     WEDNESDAY: 'Quarta-feira',
     THURSDAY: 'Quinta-feira',
     FRIDAY: 'Sexta-feira',
-    SATURDAY: 'Sabado',
+    SATURDAY: 'Sábado',
     SUNDAY: 'Domingo',
   };
 
@@ -58,8 +59,7 @@ const MyProtocolDetail = () => {
         <p className="empty-state-title">Protocolo não encontrado</p>
         <button
           onClick={() => navigate('/my/protocols')}
-          className="btn-primary"
-          style={{ marginTop: '1rem' }}
+          className="btn-primary mt-md"
         >
           Voltar para Meus Protocolos
         </button>
@@ -70,12 +70,12 @@ const MyProtocolDetail = () => {
   return (
     <div>
       <button onClick={() => navigate('/my/protocols')} className="btn-back">
-        &larr; Voltar para Meus Protocolos
+        <ArrowLeft size={16} strokeWidth={1.6} /> Voltar para Meus Protocolos
       </button>
 
       <div className="card card--mb">
         <div className="card-header-start">
-          <h1 className="page-title" style={{ marginBottom: 0 }}>Meu Protocolo de Treino</h1>
+          <h1 className="page-title mb-0">Meu Protocolo de Treino</h1>
           <span className={getStatusBadgeClass(protocol.status)}>
             {protocol.status}
           </span>
@@ -89,13 +89,13 @@ const MyProtocolDetail = () => {
             </span>
           </div>
           <div>
-            <span className="info-label info-inline">Data de Inicio:</span>
+            <span className="info-label info-inline">Data de Início:</span>
             <span className="info-value">
               {new Date(protocol.startDate).toLocaleDateString('pt-BR')}
             </span>
           </div>
           <div>
-            <span className="info-label info-inline">Data de Termino:</span>
+            <span className="info-label info-inline">Data de Término:</span>
             <span className="info-value">
               {new Date(protocol.endDate).toLocaleDateString('pt-BR')}
             </span>
@@ -107,14 +107,14 @@ const MyProtocolDetail = () => {
         </div>
       </div>
 
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-gray-800)', marginBottom: '1rem' }}>
+      <h2 className="card-title" style={{ marginBottom: 'var(--spacing-md)' }}>
         Treinos
       </h2>
 
       {trainings.length === 0 ? (
         <div className="empty-state">
           <p className="empty-state-title">Nenhum treino ainda</p>
-          <p>Seu treinador ira adicionar treinos a este protocolo</p>
+          <p>Seu treinador irá adicionar treinos a este protocolo</p>
         </div>
       ) : (
         <div className="stack-md">
@@ -123,14 +123,14 @@ const MyProtocolDetail = () => {
               <div className="training-card-header">
                 <div>
                   <h3 className="training-card-title">{training.name}</h3>
-                  <p className="training-card-desc" style={{ marginTop: '0.25rem' }}>{training.description}</p>
+                  <p className="training-card-desc mt-sm">{training.description}</p>
                   <div className="training-card-order">Ordem: {training.order}</div>
                 </div>
               </div>
 
               {training.schedules && training.schedules.length > 0 && (
                 <div className="schedule-section">
-                  <h4 className="schedule-title" style={{ color: 'var(--color-gray-700)' }}>Agendamento:</h4>
+                  <h4 className="schedule-title">Agendamento:</h4>
                   <div className="schedule-badges">
                     {training.schedules.map((schedule) => (
                       <div key={schedule.id} className="schedule-badge">

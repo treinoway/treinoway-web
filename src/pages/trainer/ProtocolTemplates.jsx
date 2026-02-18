@@ -119,7 +119,7 @@ const ProtocolTemplates = () => {
 
       {showForm && (
         <div className="card card--mb">
-          <h2 className="card-title" style={{ marginBottom: '1rem' }}>
+          <h2 className="card-title mb-md">
             {editingId ? 'Editar Modelo' : 'Criar Novo Modelo'}
           </h2>
           <form onSubmit={handleSubmit} className="form">
@@ -146,7 +146,7 @@ const ProtocolTemplates = () => {
 
             <div>
               <label className="form-label">Dias Disponíveis</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <div className="weekday-grid">
                 {[
                   { value: 'monday', label: 'Segunda' },
                   { value: 'tuesday', label: 'Terça' },
@@ -156,7 +156,7 @@ const ProtocolTemplates = () => {
                   { value: 'saturday', label: 'Sábado' },
                   { value: 'sunday', label: 'Domingo' },
                 ].map(day => (
-                  <label key={day.value} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <label key={day.value}>
                     <input
                       type="checkbox"
                       checked={formData.availableWeekDays.includes(day.value)}
@@ -166,7 +166,6 @@ const ProtocolTemplates = () => {
                           : formData.availableWeekDays.filter(d => d !== day.value);
                         setFormData({ ...formData, availableWeekDays: newDays });
                       }}
-                      style={{ cursor: 'pointer' }}
                     />
                     <span className="text-sm">{day.label}</span>
                   </label>
@@ -201,31 +200,18 @@ const ProtocolTemplates = () => {
       <div className="grid-cards">
         {templates.map((template) => (
           <div key={template.id} className="card">
-            <div style={{ marginBottom: 'var(--spacing-md)' }}>
-              <h3 className="card-subtitle" style={{ marginBottom: 'var(--spacing-xs)' }}>
+            <div className="mb-md">
+              <h3 className="card-subtitle mb-xs">
                 {template.name}
               </h3>
               {template.description && (
-                <p className="card-description" style={{ 
-                  marginBottom: 'var(--spacing-md)',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
-                }}>
+                <p className="card-description mb-md text-clamp-2">
                   {template.description}
                 </p>
               )}
             </div>
-            
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column',
-              gap: 'var(--spacing-xs)',
-              marginBottom: 'var(--spacing-md)',
-              paddingTop: 'var(--spacing-sm)',
-              borderTop: '1px solid var(--color-outline-variant)'
-            }}>
+
+            <div className="info-list mb-md" style={{ paddingTop: 'var(--spacing-sm)', borderTop: '1px solid var(--color-outline-variant)' }}>
               <div className="text-sm text-light">
                 <strong>Duração:</strong> {template.defaultDurationWeeks} semanas
               </div>

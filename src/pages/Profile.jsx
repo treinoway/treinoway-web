@@ -47,13 +47,10 @@ const Profile = () => {
     },
   });
 
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
+useEffect(() => {
+    refreshUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -140,41 +137,7 @@ const Profile = () => {
     }
   };
 
-  const handlePasswordChange = async (e) => {
-    e.preventDefault();
-    setMessage({ type: '', text: '' });
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage({ type: 'error', text: 'As senhas não coincidem' });
-      return;
-    }
-
-    if (passwordData.newPassword.length < 6) {
-      setMessage({ type: 'error', text: 'A senha deve ter pelo menos 6 caracteres' });
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      await api.post('/auth/change-password', {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-      });
-      setMessage({ type: 'success', text: 'Senha alterada com sucesso!' });
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setShowPasswordForm(false);
-    } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao alterar senha',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
+return (
     <div>
       <h1 className="page-title">Meu Perfil</h1>
 
@@ -224,7 +187,7 @@ const Profile = () => {
 
               <div className="grid-responsive-2col">
                 <div>
-                  <label className="form-label">Genero</label>
+                  <label className="form-label">Gênero</label>
                   <select
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
@@ -250,7 +213,7 @@ const Profile = () => {
             </div>
 
             <div className="profile-section">
-              <h3 className="profile-section-title">Endereco</h3>
+              <h3 className="profile-section-title">Endereço</h3>
               
               <div>
                 <label className="form-label">CEP</label>
@@ -424,7 +387,7 @@ const Profile = () => {
                   <span className="info-value">{user?.firstName || 'Não informado'} {user?.lastName || ''}</span>
                 </div>
                 <div>
-                  <span className="info-label info-inline">Genero:</span>
+                  <span className="info-label info-inline">Gênero:</span>
                   <span className="info-value">
                     {user?.gender === 'male' ? 'Masculino' : user?.gender === 'female' ? 'Feminino' : user?.gender === 'other' ? 'Outro' : 'Não informado'}
                   </span>
@@ -438,7 +401,7 @@ const Profile = () => {
 
             {user?.address && (
               <div className="profile-section">
-                <h3 className="profile-section-title">Endereco</h3>
+                <h3 className="profile-section-title">Endereço</h3>
                 <div className="info-list">
                   <div>
                     <span className="info-label info-inline">CEP:</span>
@@ -489,75 +452,6 @@ const Profile = () => {
         )}
       </div>
 
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">Alterar Senha</h2>
-          {!showPasswordForm && (
-            <button onClick={() => setShowPasswordForm(true)} className="btn-dark">
-              Alterar Senha
-            </button>
-          )}
-        </div>
-
-        {showPasswordForm && (
-          <form onSubmit={handlePasswordChange} className="form">
-            <div>
-              <label className="form-label">Senha Atual</label>
-              <input
-                type="password"
-                value={passwordData.currentPassword}
-                onChange={(e) =>
-                  setPasswordData({ ...passwordData, currentPassword: e.target.value })
-                }
-                className="form-input"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Nova Senha</label>
-              <input
-                type="password"
-                value={passwordData.newPassword}
-                onChange={(e) =>
-                  setPasswordData({ ...passwordData, newPassword: e.target.value })
-                }
-                className="form-input"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="form-label">Confirmar Nova Senha</label>
-              <input
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={(e) =>
-                  setPasswordData({ ...passwordData, confirmPassword: e.target.value })
-                }
-                className="form-input"
-                required
-              />
-            </div>
-
-            <div className="btn-group">
-              <button type="submit" disabled={loading} className="btn-primary">
-                {loading ? 'Alterando...' : 'Alterar Senha'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPasswordForm(false);
-                  setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-                }}
-                className="btn-secondary"
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
     </div>
   );
 };

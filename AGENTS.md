@@ -43,13 +43,9 @@ treinoway-web/
 │   │   ├── Profile.jsx           # Protected: User profile management
 │   │   ├── trainer/              # Trainer-only pages
 │   │   │   ├── TrainerProfile.jsx
-│   │   │   ├── ProtocolTemplates.jsx
 │   │   │   ├── TrainingTemplates.jsx
-│   │   │   ├── TrainingProtocols.jsx
+│   │   │   ├── TrainingProtocols.jsx  # Protocols + Protocol Templates (tabs)
 │   │   │   └── ProtocolDetail.jsx
-│   │   └── my/                   # Student pages
-│   │       ├── MyProtocols.jsx
-│   │       └── MyProtocolDetail.jsx
 │   ├── App.jsx                   # Main app component with routing
 │   ├── main.jsx                  # Entry point
 │   └── index.css                 # Global styles with Material 3 design tokens
@@ -72,14 +68,9 @@ treinoway-web/
 - `/profile` - User profile management
 
 ### Trainer Routes (require TRAINER role)
-- `/trainer/protocol-templates` - Protocol template CRUD
 - `/trainer/training-templates` - Training template CRUD
-- `/trainer/protocols` - Training protocol list
+- `/trainer/protocols` - Training protocols + protocol templates (tabs)
 - `/trainer/protocols/:id` - Protocol detail with trainings
-
-### Student Routes
-- `/my/protocols` - List of assigned protocols
-- `/my/protocols/:id` - Protocol detail view
 
 All protected routes wrap components with `<ProtectedRoute>` and `<Layout>`.
 
@@ -195,6 +186,187 @@ window.location.href = '/profile';
 
 ---
 
+## UI/UX Guidelines
+
+The UI follows a **clean, minimalist Material 3 design**. Every interface decision should prioritize clarity, consistency, and immediate user feedback.
+
+**Core Principles:**
+- Clean and minimalist — do not overload the screen with information
+- Clear visual hierarchy: page title > section title > body > caption
+- Generous spacing between sections (`--spacing-xl` between blocks, `--spacing-md` between items)
+- Immediate visual feedback on every user action (hover, click, loading, success, error)
+- **Never use hardcoded values** — always use design tokens (`--color-*`, `--spacing-*`, `--radius-*`, `--font-*`)
+- Transitions on all interactive elements: `0.2s ease` minimum
+
+### Typography Hierarchy
+
+| Level | Variable | Size/Weight | Usage |
+|-------|----------|-------------|-------|
+| H1 | `--font-h1-size` / `--font-h1-weight` | 24px / 700 | Page title only (1 per page) |
+| H2 | `--font-h2-size` / `--font-h2-weight` | 20px / 600 | Card titles, section titles |
+| H3 | `--font-h3-size` / `--font-h3-weight` | 18px / 500 | Subtitles within sections |
+| Body | `--font-body-size` | 16px / 400 | Default text |
+| Body Small | `--font-body-small-size` | 14px / 400 | Secondary text, metadata |
+| Caption | `--font-caption-size` | 12px / 400 | Auxiliary labels, timestamps |
+| Overline | `--font-overline-size` | 10px / 700 | Section labels (uppercase) |
+
+```jsx
+// ✅ CORRECT
+<h1 style={{ fontSize: 'var(--font-h1-size)', fontWeight: 'var(--font-h1-weight)' }}>Title</h1>
+
+// ❌ WRONG — never hardcode sizes
+<h1 style={{ fontSize: '1.875rem' }}>Title</h1>
+```
+
+### Color Usage
+
+| Purpose | Token |
+|---------|-------|
+| Primary text | `--color-on-surface` |
+| Secondary text | `--color-on-surface-variant` |
+| Disabled text | `--color-outline` |
+| Card backgrounds | `--color-surface` |
+| Page background | `--color-surface-container` |
+| Primary actions | `--color-primary` / `--color-on-primary` |
+| Error states | `--color-error` / `--color-error-container` |
+| Success states | `--color-success` / `--color-success-container` |
+| Borders | `--color-outline-variant` |
+| Gradients | `--color-primary` → `--color-tertiary` |
+
+```jsx
+// ✅ CORRECT
+color: 'var(--color-on-surface-variant)'
+
+// ❌ WRONG — these variables don't exist
+color: 'var(--color-gray-800)'
+color: '#60a5fa'
+```
+
+### Component Patterns
+
+**Buttons:**
+- Every button must have 4 distinct visual states: default, hover (darken 10%), active (darken 15%), disabled (`opacity: 0.6`, `cursor: not-allowed`)
+- Use existing classes: `.btn-primary`, `.btn-secondary`, `.btn-edit`, `.btn-delete`, `.btn-schedule-sm`
+- Destructive actions always use `--color-error`
+- Full-width variant: `.btn-primary-full`
+- Button groups: `.btn-group` (flex row with gap)
+
+**Cards:**
+- Clickable cards: `.card-link` (hover elevates shadow + subtle translateY)
+- Informational cards: `.card`
+- Gradient CTA cards: `.card-gradient` / `.card-gradient-link`
+- Internal padding: `--spacing-lg` (24px)
+- Card header: `.card-header` (flex, space-between)
+
+**Forms:**
+- Field structure: `.form-group` > `.form-label` + `.form-input` / `.form-select` / `.form-textarea`
+- 2-column layout: use `.grid-responsive-2col` (1 col mobile, 2 col tablet+)
+- Focus: blue glow with `--color-primary` (2px)
+- Error: border `--color-error` + error message below the field
+- Checkbox: `.form-checkbox-row` (inline with label)
+
+**Alerts:**
+- Success: `.alert-success` (green) — auto-dismiss after 3 seconds
+- Error: `.alert-error` (red) — persistent, with close button (×)
+- Compact variant: `.alert-compact`
+
+**Badges:**
+- Positive status: `.badge-green`
+- Informational: `.badge-blue`
+- Negative/destructive: `.badge-red`
+- Neutral/disabled: `.badge-gray`
+- Role display: `.badge-role`
+
+**Grids:**
+- 1→2→3 columns: `.grid-cards` (mobile → tablet → desktop)
+- 1→2 columns: `.grid-responsive-2col`
+- Auto-fill: `.templates-grid` (minmax 160px mobile, 250px tablet+)
+
+### Page Structure
+
+Every page must follow this structure:
+
+```
+1. .page-title or .page-header (title + action buttons)
+2. Alerts/messages (if any)
+3. Main content (cards, forms, lists)
+4. Empty state (when no data — use .empty-state with title + description)
+```
+
+```jsx
+// ✅ CORRECT page structure
+return (
+  <div>
+    <div className="page-header">
+      <h1 className="page-title">Page Title</h1>
+      <button className="btn-primary">Action</button>
+    </div>
+
+    {message.text && (
+      <div className={`alert alert-${message.type}`}>{message.text}</div>
+    )}
+
+    {data.length === 0 ? (
+      <div className="empty-state">
+        <div className="empty-state-title">No items found</div>
+        <p>Description of what to do next</p>
+      </div>
+    ) : (
+      <div className="grid-cards">{/* cards */}</div>
+    )}
+  </div>
+);
+```
+
+### Loading & Feedback States
+
+- **Page loading:** centered text "Carregando..." using `.loading-screen`
+- **Action loading:** button text changes to "Salvando..." + `disabled` attribute
+- **Success:** green alert with auto-dismiss (3 seconds)
+- **Error:** red alert, persistent, with close button
+- **Destructive actions:** always ask confirmation before executing (`window.confirm()`)
+- **Form submission:** disable submit button during request to prevent double-click
+
+### Responsive Design
+
+- **Mobile-first:** base styles are always for mobile; scale up with `min-width` media queries
+- **Breakpoints:** 768px (tablet), 1024px (desktop)
+- **Grids:** 1 col mobile → 2 cols tablet → 3 cols desktop
+- **Padding:** `--spacing-md` (16px) mobile, `--spacing-xl` (32px) tablet+
+- **Navigation:** bottom nav bar (mobile), sidebar (tablet+)
+- **`.page-header`:** always with `flex-wrap: wrap` to prevent overflow
+- **Never** use fixed widths that break on 375px screens
+- **Never** write `max-width` media queries — always `min-width`
+
+### Spacing Guidelines
+
+| Context | Token | Value |
+|---------|-------|-------|
+| Between page sections | `--spacing-xl` | 32px |
+| Between items in a card | `--spacing-md` | 16px |
+| Between inline elements (buttons, badges) | `--spacing-sm` | 8px |
+| Card internal padding | `--spacing-lg` | 24px |
+| Tight spacing (icon gaps, small elements) | `--spacing-xs` | 4px |
+
+```css
+/* ✅ CORRECT */
+margin-bottom: var(--spacing-lg);
+
+/* ❌ WRONG — never hardcode */
+margin-bottom: 1.5rem;
+```
+
+### Accessibility
+
+- Every interactive button and link must have descriptive text or `aria-label`
+- Do not use emoji as the sole indicator of an action — always pair with text
+- Minimum contrast ratio: 4.5:1 between text and background
+- Inputs must have visible labels (not just placeholder)
+- All interactive elements must have visible focus indicators
+- Color must not be the only way to convey status — pair with text or icons
+
+---
+
 ## API Endpoints
 
 ### Authentication
@@ -230,10 +402,6 @@ window.location.href = '/profile';
 - `DELETE /trainer/protocols/:id/trainings/:trainingId` - Delete training
 - `POST /trainer/protocols/:id/trainings/:trainingId/schedule` - Schedule training
 - `DELETE /trainer/protocols/:id/trainings/:trainingId/schedule/:scheduleId` - Delete schedule
-
-### Student
-- `GET /my/protocols` - List my assigned protocols
-- `GET /my/protocols/:id` - Get my protocol detail
 
 ### Utilities
 - `GET /postal-code/:cep` - Brazilian postal code (CEP) lookup

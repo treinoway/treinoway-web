@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import api from '../../api/axios';
 
 const MyProtocols = () => {
@@ -44,8 +45,8 @@ const MyProtocols = () => {
 
       {protocols.length === 0 ? (
         <div className="empty-state">
-          <p className="empty-state-title">Nenhum protocolo atribuido ainda</p>
-          <p>Seu treinador ira atribuir protocolos de treino a voce</p>
+          <p className="empty-state-title">Nenhum protocolo atribuído ainda</p>
+          <p>Seu treinador irá atribuir protocolos de treino a você</p>
         </div>
       ) : (
         <div className="grid-cards">
@@ -77,7 +78,7 @@ const MyProtocols = () => {
                 </div>
               </div>
 
-              <div className="protocol-detail-link">Ver Detalhes &rarr;</div>
+              <div className="protocol-detail-link">Ver Detalhes <ArrowRight size={14} strokeWidth={1.6} /></div>
             </Link>
           ))}
         </div>

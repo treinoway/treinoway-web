@@ -67,7 +67,7 @@ const TrainingTemplates = () => {
 
     try {
       await api.delete(`/trainer/training-templates/${id}`);
-      setMessage({ type: 'success', text: 'Modelo de treino excluido com sucesso!' });
+      setMessage({ type: 'success', text: 'Modelo de treino excluído com sucesso!' });
       fetchTemplates();
     } catch (error) {
       setMessage({
@@ -106,7 +106,7 @@ const TrainingTemplates = () => {
 
       {showForm && (
         <div className="card card--mb">
-          <h2 className="card-title" style={{ marginBottom: '1rem' }}>
+          <h2 className="card-title mb-md">
             {editingId ? 'Editar Modelo de Treino' : 'Criar Novo Modelo de Treino'}
           </h2>
           <form onSubmit={handleSubmit} className="form">
@@ -138,8 +138,8 @@ const TrainingTemplates = () => {
                 checked={formData.isPublic}
                 onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
               />
-              <label htmlFor="isPublic" className="form-label" style={{ marginBottom: 0 }}>
-                Tornar este modelo publico
+              <label htmlFor="isPublic" className="form-label mb-0">
+                Tornar este modelo público
               </label>
             </div>
 
@@ -161,10 +161,10 @@ const TrainingTemplates = () => {
             <div className="card-header-start">
               <h3 className="card-subtitle">{template.name}</h3>
               {template.isPublic && (
-                <span className="badge badge-green">Publico</span>
+                <span className="badge badge-green">Público</span>
               )}
             </div>
-            <p className="card-description" style={{ marginBottom: '1rem' }}>{template.description}</p>
+            <p className="card-description mb-md">{template.description}</p>
             <div className="btn-group">
               <button onClick={() => handleEdit(template)} className="btn-edit">
                 Editar
@@ -180,7 +180,7 @@ const TrainingTemplates = () => {
       {templates.length === 0 && !showForm && (
         <div className="empty-state">
           <p className="empty-state-title">Nenhum modelo de treino ainda</p>
-          <p>Crie seu primeiro modelo de treino para comecar</p>
+          <p>Crie seu primeiro modelo de treino para começar</p>
         </div>
       )}
     </div>

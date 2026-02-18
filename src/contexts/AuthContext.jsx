@@ -85,12 +85,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password });
-      
-      // Debug: Log response structure
-      console.log('[Auth] Login response type:', typeof response.data);
-      console.log('[Auth] Login response:', response.data);
-      console.log('[Auth] Response headers:', response.headers);
-      
+
       const { token, refresh } = extractAuthData(response.data);
 
       if (!token) {
@@ -103,7 +98,7 @@ export const AuthProvider = ({ children }) => {
       setAccessToken(token);
 
       // Fetch user data from /me
-      const meResponse = await api.get('/me');
+      const meResponse = await api.get('/me?include=address,socials');
       const userData = meResponse.data;
       
       localStorage.setItem('user', JSON.stringify(userData));
@@ -122,11 +117,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/auth/signup', { email, password });
       
-      // Debug: Log response structure
-      console.log('[Auth] Signup response type:', typeof response.data);
-      console.log('[Auth] Signup response:', response.data);
-      console.log('[Auth] Response headers:', response.headers);
-      
       const { token, refresh } = extractAuthData(response.data);
 
       if (!token) {
@@ -139,9 +129,9 @@ export const AuthProvider = ({ children }) => {
       setAccessToken(token);
 
       // Fetch user data from /me
-      const meResponse = await api.get('/me');
+      const meResponse = await api.get('/me?include=address,socials');
       const userData = meResponse.data;
-      
+
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
 
@@ -169,7 +159,7 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = async () => {
     try {
-      const response = await api.get('/me');
+      const response = await api.get('/me?include=address,socials');
       const userData = response.data;
       updateUser(userData);
       return userData;

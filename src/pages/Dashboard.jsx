@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { User, Dumbbell, ClipboardList, UserPen } from 'lucide-react';
 import api from '../api/axios';
 
 const Dashboard = () => {
@@ -30,7 +31,7 @@ const Dashboard = () => {
       // Update tokens in AuthContext AND localStorage
       updateTokens(newAccessToken, newRefreshToken);
       
-      setMessage({ type: 'success', text: '🎉 Parabéns! Você agora é um treinador!' });
+      setMessage({ type: 'success', text: 'Parabéns! Você agora é um treinador!' });
       
       // Refresh user data to get new role
       await refreshUser();
@@ -49,14 +50,14 @@ const Dashboard = () => {
       <h1 className="page-title">Painel</h1>
 
       {message.text && (
-        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`} style={{ marginBottom: 'var(--spacing-lg)' }}>
+        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'} mb-lg`}>
           {message.text}
         </div>
       )}
 
       {user?.status === 'pending' ? (
         <Link to="/profile" className="complete-profile-card card--mb">
-          <div className="card-icon">✏️</div>
+          <div className="card-icon"><UserPen size={48} strokeWidth={1.6} /></div>
           <h2 className="card-title">Complete seu perfil</h2>
           <p className="card-description">
             Adicione suas informações pessoais para começar a usar o Treinoway
@@ -70,7 +71,7 @@ const Dashboard = () => {
 
       <div className="grid-cards">
         <Link to="/profile" className="card-link">
-          <div className="card-icon">👤</div>
+          <div className="card-icon"><User size={36} strokeWidth={1.6} /></div>
           <h3 className="card-subtitle">Meu Perfil</h3>
           <p className="card-description">Atualize suas informações pessoais e configurações</p>
         </Link>
@@ -80,19 +81,19 @@ const Dashboard = () => {
             onClick={handleBecomeTrainer} 
             disabled={loading}
             className="card-gradient-link"
-            style={{ border: 'none', cursor: 'pointer', width: '100%' }}
+            style={{ border: 'none', width: '100%', textAlign: 'left' }}
           >
-            <div className="card-icon">💪</div>
+            <div className="card-icon"><Dumbbell size={36} strokeWidth={1.6} /></div>
             <h3 className="card-subtitle">{loading ? 'Processando...' : 'Seja um Treinador'}</h3>
             <p className="text-sm opacity-90">Comece a criar e gerenciar protocolos de treino</p>
           </button>
         )}
 
         {hasRole('TRAINER') && (
-          <Link to="/trainer/protocol-templates" className="card-link">
-            <div className="card-icon">📊</div>
+          <Link to="/trainer/protocols" className="card-link">
+            <div className="card-icon"><ClipboardList size={36} strokeWidth={1.6} /></div>
             <h3 className="card-subtitle">Protocolos</h3>
-            <p className="card-description">Gerencie templates e protocolos de treino</p>
+            <p className="card-description">Gerencie modelos e protocolos de treino</p>
           </Link>
         )}
       </div>

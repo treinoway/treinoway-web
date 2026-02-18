@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, User, ClipboardList, Dumbbell, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Layout = ({ children }) => {
@@ -14,12 +15,17 @@ const Layout = ({ children }) => {
   };
 
   const isActive = (path) => {
+    if (path === '/') return location.pathname === '/';
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
   const navLinks = [
-    { path: '/', label: 'Painel', icon: '🏠' },
-    { path: '/profile', label: 'Meu Perfil', icon: '👤' },
+    { path: '/', label: 'Painel', Icon: Home },
+    { path: '/profile', label: 'Meu Perfil', Icon: User },
+    ...(hasRole('TRAINER') ? [
+      { path: '/trainer/protocols', label: 'Protocolos', Icon: ClipboardList, section: 'Treinador' },
+      { path: '/trainer/training-templates', label: 'Treinos', Icon: Dumbbell, section: 'Treinador' },
+    ] : []),
   ];
 
   return (
@@ -54,52 +60,52 @@ const Layout = ({ children }) => {
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="sidebar-toggle"
+              aria-label={sidebarOpen ? 'Recolher menu lateral' : 'Expandir menu lateral'}
+              aria-expanded={sidebarOpen}
             >
-              {sidebarOpen ? '◀' : '▶'}
+              {sidebarOpen
+                ? <ChevronLeft size={16} strokeWidth={1.6} />
+                : <ChevronRight size={16} strokeWidth={1.6} />
+              }
             </button>
           </div>
         </div>
 
         <nav className="sidebar-nav">
           {navLinks.map((link, index) => {
-            if (link.section && sidebarOpen) {
-              return (
-                <div key={link.path}>
-                  {index > 0 && navLinks[index - 1].section !== link.section && (
-                    <div className="sidebar-section-label">
-                      {link.section}
-                    </div>
-                  )}
-                  <Link
-                    to={link.path}
-                    className={`sidebar-link ${isActive(link.path) ? 'sidebar-link--active' : ''}`}
-                  >
-                    <span className="sidebar-link-icon">{link.icon}</span>
-                    {sidebarOpen && <span className="sidebar-link-label">{link.label}</span>}
-                  </Link>
-                </div>
-              );
-            }
+            const showSection = link.section && sidebarOpen &&
+              (index === 0 || navLinks[index - 1].section !== link.section);
+
             return (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`sidebar-link ${isActive(link.path) ? 'sidebar-link--active' : ''}`}
-              >
-                <span className="sidebar-link-icon">{link.icon}</span>
-                {sidebarOpen && <span className="sidebar-link-label">{link.label}</span>}
-              </Link>
+              <div key={link.path}>
+                {showSection && (
+                  <div className="sidebar-section-label">
+                    {link.section}
+                  </div>
+                )}
+                <Link
+                  to={link.path}
+                  className={`sidebar-link ${isActive(link.path) ? 'sidebar-link--active' : ''}`}
+                  aria-label={link.label}
+                >
+                  <span className="sidebar-link-icon" aria-hidden="true">
+                    <link.Icon size={20} strokeWidth={1.6} />
+                  </span>
+                  {sidebarOpen && <span className="sidebar-link-label">{link.label}</span>}
+                </Link>
+              </div>
             );
           })}
         </nav>
 
         <div className="sidebar-footer">
-          <div className={!sidebarOpen ? 'hidden' : ''}>
+          <div className={!sidebarOpen ? 'hidden' : ''} aria-hidden={!sidebarOpen}>
             <div className="sidebar-user-name">{user?.name}</div>
             <div className="sidebar-user-email">{user?.email}</div>
           </div>
-          <button onClick={handleLogout} className="btn-logout">
-            {sidebarOpen ? 'Sair' : '🚪'}
+          <button onClick={handleLogout} className="btn-logout" aria-label="Sair da conta">
+            <LogOut size={18} strokeWidth={1.6} />
+            {sidebarOpen && <span>Sair</span>}
           </button>
         </div>
       </aside>
@@ -109,19 +115,24 @@ const Layout = ({ children }) => {
       </main>
 
       {/* Bottom Navigation — visible only on mobile */}
-      <nav className="bottom-nav">
-        {navLinks.map((link) => (
+      <nav className="bottom-nav" aria-label="Navegação principal">
+        {navLinks.filter(link => !link.section || link.path === '/trainer/protocols').map((link) => (
           <Link
             key={link.path}
             to={link.path}
             className={`bottom-nav-item ${isActive(link.path) ? 'bottom-nav-item--active' : ''}`}
+            aria-label={link.label}
           >
-            <span className="bottom-nav-item-icon">{link.icon}</span>
+            <span className="bottom-nav-item-icon" aria-hidden="true">
+              <link.Icon size={22} strokeWidth={1.6} />
+            </span>
             <span>{link.label}</span>
           </Link>
         ))}
-        <button onClick={handleLogout} className="bottom-nav-item bottom-nav-logout">
-          <span className="bottom-nav-item-icon">🚪</span>
+        <button onClick={handleLogout} className="bottom-nav-item bottom-nav-logout" aria-label="Sair da conta">
+          <span className="bottom-nav-item-icon" aria-hidden="true">
+            <LogOut size={22} strokeWidth={1.6} />
+          </span>
           <span>Sair</span>
         </button>
       </nav>

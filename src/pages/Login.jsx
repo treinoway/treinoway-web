@@ -48,25 +48,16 @@ const Login = () => {
         </div>
 
         {error && (
-          <div className="alert alert-error alert-compact" style={{ marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>{error}</span>
-              <button 
-                type="button"
-                onClick={() => setError('')}
-                style={{ 
-                  background: 'none', 
-                  border: 'none', 
-                  color: 'inherit', 
-                  cursor: 'pointer',
-                  fontSize: '1.2rem',
-                  padding: '0 0.5rem',
-                  marginLeft: '1rem'
-                }}
-              >
-                ×
-              </button>
-            </div>
+          <div className="alert alert-error alert-compact alert-dismissible mb-md">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => setError('')}
+              className="alert-close"
+              aria-label="Fechar alerta"
+            >
+              ×
+            </button>
           </div>
         )}
 
