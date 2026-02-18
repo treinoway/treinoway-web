@@ -29,7 +29,7 @@ const Login = () => {
         setLoading(false);
       }
     } catch (err) {
-      setError('Ocorreu um erro inesperado');
+      setError('Ocorreu um erro inesperado.');
       setLoading(false);
     }
   };

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useToast } from '../../contexts/ToastContext';
+import { getErrorMessage } from '../../utils/errorMessages';
 import api from '../../api/axios';
 
 const TrainerProfile = () => {
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [editing, setEditing] = useState(false);
   const [trainer, setTrainer] = useState(null);
 
@@ -38,18 +40,14 @@ const TrainerProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
       const response = await api.patch('/trainer', formData);
       setTrainer(response.data);
-      setMessage({ type: 'success', text: 'Perfil do treinador atualizado com sucesso!' });
+      showToast('Perfil do treinador atualizado com sucesso!', 'success');
       setEditing(false);
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao atualizar perfil do treinador',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao atualizar perfil do treinador.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -58,12 +56,6 @@ const TrainerProfile = () => {
   return (
     <div>
       <h1 className="page-title">Perfil do Treinador</h1>
-
-      {message.text && (
-        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-          {message.text}
-        </div>
-      )}
 
       <div className="card">
         <div className="card-header">

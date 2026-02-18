@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { getErrorMessage } from '../../utils/errorMessages';
 import api from '../../api/axios';
 
 const ProtocolDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [protocol, setProtocol] = useState(null);
   const [trainings, setTrainings] = useState([]);
   const [trainingTemplates, setTrainingTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [showTrainingForm, setShowTrainingForm] = useState(false);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [editingTrainingId, setEditingTrainingId] = useState(null);
@@ -40,7 +42,7 @@ const ProtocolDetail = () => {
       setProtocol(response.data);
     } catch (error) {
       console.error('Failed to fetch protocol:', error);
-      setMessage({ type: 'error', text: 'Falha ao carregar protocolo' });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao carregar protocolo.'), 'error');
     }
   };
 
@@ -65,24 +67,20 @@ const ProtocolDetail = () => {
   const handleTrainingSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
       if (editingTrainingId) {
         const { templateId, ...updateData } = trainingFormData;
         await api.patch(`/trainer/protocols/${id}/trainings/${editingTrainingId}`, updateData);
-        setMessage({ type: 'success', text: 'Treino atualizado com sucesso!' });
+        showToast('Treino atualizado com sucesso!', 'success');
       } else {
         await api.post(`/trainer/protocols/${id}/trainings`, trainingFormData);
-        setMessage({ type: 'success', text: 'Treino criado com sucesso!' });
+        showToast('Treino criado com sucesso!', 'success');
       }
       fetchTrainings();
       resetTrainingForm();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao salvar treino',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao salvar treino.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -91,21 +89,17 @@ const ProtocolDetail = () => {
   const handleScheduleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
       await api.post(
         `/trainer/protocols/${id}/trainings/${selectedTrainingForSchedule}/schedule`,
         scheduleFormData
       );
-      setMessage({ type: 'success', text: 'Treino agendado com sucesso!' });
+      showToast('Treino agendado com sucesso!', 'success');
       fetchTrainings();
       resetScheduleForm();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao agendar treino',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao agendar treino.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -127,13 +121,10 @@ const ProtocolDetail = () => {
 
     try {
       await api.delete(`/trainer/protocols/${id}/trainings/${trainingId}`);
-      setMessage({ type: 'success', text: 'Treino excluído com sucesso!' });
+      showToast('Treino excluído com sucesso!', 'success');
       fetchTrainings();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao excluir treino',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir treino.'), 'error');
     }
   };
 
@@ -147,13 +138,10 @@ const ProtocolDetail = () => {
 
     try {
       await api.delete(`/trainer/protocols/${id}/trainings/${trainingId}/schedule/${scheduleId}`);
-      setMessage({ type: 'success', text: 'Agendamento excluído com sucesso!' });
+      showToast('Agendamento excluído com sucesso!', 'success');
       fetchTrainings();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao excluir agendamento',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir agendamento.'), 'error');
     }
   };
 
@@ -226,12 +214,6 @@ const ProtocolDetail = () => {
           </div>
         </div>
       </div>
-
-      {message.text && (
-        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-          {message.text}
-        </div>
-      )}
 
       <div className="page-header">
         <h2 className="card-title">Treinos</h2>

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useToast } from '../../contexts/ToastContext';
+import { getErrorMessage } from '../../utils/errorMessages';
 import api from '../../api/axios';
 
 const TrainingTemplates = () => {
+  const { showToast } = useToast();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -30,23 +32,19 @@ const TrainingTemplates = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
       if (editingId) {
         await api.patch(`/trainer/training-templates/${editingId}`, formData);
-        setMessage({ type: 'success', text: 'Modelo de treino atualizado com sucesso!' });
+        showToast('Modelo de treino atualizado com sucesso!', 'success');
       } else {
         await api.post('/trainer/training-templates', formData);
-        setMessage({ type: 'success', text: 'Modelo de treino criado com sucesso!' });
+        showToast('Modelo de treino criado com sucesso!', 'success');
       }
       fetchTemplates();
       resetForm();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao salvar modelo de treino',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao salvar modelo de treino.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -67,13 +65,10 @@ const TrainingTemplates = () => {
 
     try {
       await api.delete(`/trainer/training-templates/${id}`);
-      setMessage({ type: 'success', text: 'Modelo de treino excluído com sucesso!' });
+      showToast('Modelo de treino excluído com sucesso!', 'success');
       fetchTemplates();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao excluir modelo de treino',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir modelo de treino.'), 'error');
     }
   };
 
@@ -97,12 +92,6 @@ const TrainingTemplates = () => {
           </button>
         )}
       </div>
-
-      {message.text && (
-        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-          {message.text}
-        </div>
-      )}
 
       {showForm && (
         <div className="card card--mb">

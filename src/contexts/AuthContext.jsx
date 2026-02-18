@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 import api from '../api/axios';
+import { getErrorMessage } from '../utils/errorMessages';
 
 const AuthContext = createContext(null);
 
@@ -89,7 +90,7 @@ export const AuthProvider = ({ children }) => {
       const { token, refresh } = extractAuthData(response.data);
 
       if (!token) {
-        return { success: false, error: 'Resposta da API sem token de acesso' };
+        return { success: false, error: 'Resposta da API sem token de acesso.' };
       }
 
       // Save tokens first
@@ -108,7 +109,9 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.message || 'Falha ao entrar',
+        error: error.response?.status === 401
+          ? 'E-mail ou senha incorretos.'
+          : getErrorMessage(error, 'Falha ao entrar.'),
       };
     }
   };
@@ -116,11 +119,11 @@ export const AuthProvider = ({ children }) => {
   const signup = async (email, password) => {
     try {
       const response = await api.post('/auth/signup', { email, password });
-      
+
       const { token, refresh } = extractAuthData(response.data);
 
       if (!token) {
-        return { success: false, error: 'Resposta da API sem token de acesso' };
+        return { success: false, error: 'Resposta da API sem token de acesso.' };
       }
 
       // Save tokens first
@@ -139,7 +142,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.message || 'Falha ao cadastrar',
+        error: getErrorMessage(error, 'Não foi possível criar a conta. Verifique os dados e tente novamente.'),
       };
     }
   };

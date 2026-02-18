@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { getErrorMessage } from '../utils/errorMessages';
 import { Link } from 'react-router-dom';
 import { User, Dumbbell, ClipboardList, UserPen } from 'lucide-react';
 import api from '../api/axios';
 
 const Dashboard = () => {
   const { user, hasRole, refreshUser, updateTokens } = useAuth();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
     // Fetch fresh user data on mount
@@ -19,8 +21,7 @@ const Dashboard = () => {
 
   const handleBecomeTrainer = async () => {
     setLoading(true);
-    setMessage({ type: '', text: '' });
-    
+
     try {
       const response = await api.patch('/become-trainer');
       
@@ -31,15 +32,12 @@ const Dashboard = () => {
       // Update tokens in AuthContext AND localStorage
       updateTokens(newAccessToken, newRefreshToken);
       
-      setMessage({ type: 'success', text: 'Parabéns! Você agora é um treinador!' });
-      
+      showToast('Parabéns! Você agora é um treinador!', 'success');
+
       // Refresh user data to get new role
       await refreshUser();
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Falha ao se tornar treinador' 
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao se tornar treinador.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -48,12 +46,6 @@ const Dashboard = () => {
   return (
     <div>
       <h1 className="page-title">Painel</h1>
-
-      {message.text && (
-        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'} mb-lg`}>
-          {message.text}
-        </div>
-      )}
 
       {user?.status === 'pending' ? (
         <Link to="/profile" className="complete-profile-card card--mb">

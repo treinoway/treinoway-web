@@ -20,12 +20,12 @@ const Signup = () => {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem');
+      setError('As senhas não coincidem.');
       return;
     }
 
     if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+      setError('A senha deve ter pelo menos 6 caracteres.');
       return;
     }
 
@@ -41,7 +41,7 @@ const Signup = () => {
         setLoading(false);
       }
     } catch (err) {
-      setError('Ocorreu um erro inesperado');
+      setError('Ocorreu um erro inesperado.');
       setLoading(false);
     }
   };

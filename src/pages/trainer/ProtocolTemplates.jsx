@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useToast } from '../../contexts/ToastContext';
+import { getErrorMessage } from '../../utils/errorMessages';
 import api from '../../api/axios';
 
 const ProtocolTemplates = () => {
+  const { showToast } = useToast();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -31,28 +33,19 @@ const ProtocolTemplates = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
       if (editingId) {
         await api.patch(`/trainer/protocol-templates/${editingId}`, formData);
-        setMessage({ type: 'success', text: 'Modelo atualizado com sucesso!' });
+        showToast('Modelo atualizado com sucesso!', 'success');
       } else {
         await api.post('/trainer/protocol-templates', formData);
-        setMessage({ type: 'success', text: 'Modelo criado com sucesso!' });
+        showToast('Modelo criado com sucesso!', 'success');
       }
-      await fetchTemplates(); // Force refresh
+      await fetchTemplates();
       resetForm();
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setMessage({ type: '', text: '' });
-      }, 3000);
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao salvar modelo',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao salvar modelo.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -74,18 +67,10 @@ const ProtocolTemplates = () => {
 
     try {
       await api.delete(`/trainer/protocol-templates/${id}`);
-      setMessage({ type: 'success', text: 'Modelo excluído com sucesso!' });
-      await fetchTemplates(); // Force refresh
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setMessage({ type: '', text: '' });
-      }, 3000);
+      showToast('Modelo excluído com sucesso!', 'success');
+      await fetchTemplates();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao excluir modelo',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir modelo.'), 'error');
     }
   };
 
@@ -110,12 +95,6 @@ const ProtocolTemplates = () => {
           </button>
         )}
       </div>
-
-      {message.text && (
-        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-          {message.text}
-        </div>
-      )}
 
       {showForm && (
         <div className="card card--mb">

@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useToast } from '../../contexts/ToastContext';
+import { getErrorMessage } from '../../utils/errorMessages';
 import api from '../../api/axios';
 
 const TrainingProtocols = () => {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('protocols');
   const [protocols, setProtocols] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
 
   // Protocol form state
   const [showForm, setShowForm] = useState(false);
@@ -56,24 +58,20 @@ const TrainingProtocols = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
       if (editingId) {
         const { assigneeEmail, templateId, ...updateData } = formData;
         await api.patch(`/trainer/protocols/${editingId}`, updateData);
-        setMessage({ type: 'success', text: 'Protocolo atualizado com sucesso!' });
+        showToast('Protocolo atualizado com sucesso!', 'success');
       } else {
         await api.post('/trainer/protocols', formData);
-        setMessage({ type: 'success', text: 'Protocolo criado com sucesso!' });
+        showToast('Protocolo criado com sucesso!', 'success');
       }
       fetchProtocols();
       resetForm();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao salvar protocolo',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao salvar protocolo.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -96,13 +94,10 @@ const TrainingProtocols = () => {
 
     try {
       await api.delete(`/trainer/protocols/${id}`);
-      setMessage({ type: 'success', text: 'Protocolo excluído com sucesso!' });
+      showToast('Protocolo excluído com sucesso!', 'success');
       fetchProtocols();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao excluir protocolo',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir protocolo.'), 'error');
     }
   };
 
@@ -121,23 +116,19 @@ const TrainingProtocols = () => {
   const handleTemplateSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
       if (editingTemplateId) {
         await api.patch(`/trainer/protocol-templates/${editingTemplateId}`, templateFormData);
-        setMessage({ type: 'success', text: 'Modelo atualizado com sucesso!' });
+        showToast('Modelo atualizado com sucesso!', 'success');
       } else {
         await api.post('/trainer/protocol-templates', templateFormData);
-        setMessage({ type: 'success', text: 'Modelo criado com sucesso!' });
+        showToast('Modelo criado com sucesso!', 'success');
       }
       await fetchTemplates();
       resetTemplateForm();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao salvar modelo',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao salvar modelo.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -160,13 +151,10 @@ const TrainingProtocols = () => {
 
     try {
       await api.delete(`/trainer/protocol-templates/${id}`);
-      setMessage({ type: 'success', text: 'Modelo excluído com sucesso!' });
+      showToast('Modelo excluído com sucesso!', 'success');
       await fetchTemplates();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao excluir modelo',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir modelo.'), 'error');
     }
   };
 
@@ -229,12 +217,6 @@ const TrainingProtocols = () => {
           )}
         </div>
       </div>
-
-      {message.text && (
-        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-          {message.text}
-        </div>
-      )}
 
       <div className="tabs-container">
         <button

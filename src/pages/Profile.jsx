@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { getErrorMessage } from '../utils/errorMessages';
 import api from '../api/axios';
 
 // Helper function to format date without timezone conversion
@@ -19,10 +21,10 @@ const formatDateForInput = (dateString) => {
 const Profile = () => {
   const navigate = useNavigate();
   const { user, updateUser, refreshUser } = useAuth();
+  const { showToast } = useToast();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -106,11 +108,8 @@ useEffect(() => {
         address: newAddress,
       }));
       
-      setMessage({ type: 'success', text: 'CEP encontrado!' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 2000);
     } catch (error) {
-      setMessage({ type: 'error', text: 'CEP não encontrado ou inválido' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      showToast('CEP não encontrado ou inválido.', 'error');
     } finally {
       setLoadingCep(false);
     }
@@ -119,19 +118,15 @@ useEffect(() => {
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
       const response = await api.patch('/me/profile', formData);
       updateUser(response.data);
-      setMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
+      showToast('Perfil atualizado com sucesso!', 'success');
       setEditing(false);
       await refreshUser();
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Falha ao atualizar perfil',
-      });
+      showToast(error.userMessage || getErrorMessage(error, 'Falha ao atualizar perfil.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -140,12 +135,6 @@ useEffect(() => {
 return (
     <div>
       <h1 className="page-title">Meu Perfil</h1>
-
-      {message.text && (
-        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-          {message.text}
-        </div>
-      )}
 
       <div className="card card--mb">
         <div className="card-header">

@@ -1,6 +1,17 @@
 import axios from 'axios';
+import { getErrorMessage } from '../utils/errorMessages';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
+// Event emitter for network errors (bridges Axios → React toast)
+const errorListeners = new Set();
+export const onNetworkError = (callback) => {
+  errorListeners.add(callback);
+  return () => errorListeners.delete(callback);
+};
+const emitNetworkError = (message) => {
+  errorListeners.forEach(cb => cb(message));
+};
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -39,8 +50,9 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Don't intercept auth endpoints (login/signup)
-    if (originalRequest.url?.includes('/auth/login') || 
+    if (originalRequest.url?.includes('/auth/login') ||
         originalRequest.url?.includes('/auth/signup')) {
+      error.userMessage = getErrorMessage(error);
       return Promise.reject(error);
     }
 
@@ -86,6 +98,14 @@ api.interceptors.response.use(
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
+    }
+
+    // Attach user-friendly message to error
+    error.userMessage = getErrorMessage(error);
+
+    // For network errors (no response), emit event for toast
+    if (!error.response) {
+      emitNetworkError(error.userMessage);
     }
 
     return Promise.reject(error);
