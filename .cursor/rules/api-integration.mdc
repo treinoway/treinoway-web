@@ -1,0 +1,302 @@
+---
+description: API integration patterns and Axios conventions
+globs: src/api/**/*.js
+alwaysApply: false
+---
+
+# API Integration Patterns for Treinoway Web
+
+## Centralized Axios Instance
+
+All HTTP requests must use the centralized Axios instance from `src/api/axios.js`:
+
+```javascript
+// ✅ CORRECT
+import api from '../api/axios';
+
+const fetchData = async () => {
+  const response = await api.get('/endpoint');
+  return response.data;
+};
+
+const createData = async (data) => {
+  const response = await api.post('/endpoint', data);
+  return response.data;
+};
+
+// ❌ WRONG - Never create new Axios instances
+import axios from 'axios';
+const response = await axios.get('http://localhost:3000/endpoint');
+
+// ❌ WRONG - Never use fetch
+const response = await fetch('http://localhost:3000/endpoint');
+```
+
+## Axios Instance Configuration
+
+The centralized instance provides:
+
+1. **Base URL**: Configured to `http://localhost:3000`
+2. **Request interceptor**: Automatically attaches JWT from localStorage
+3. **Response interceptor**: Handles 401 errors and auto-refreshes tokens
+
+```javascript
+// src/api/axios.js structure
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:3000',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor - attaches JWT
+api.interceptors.request.use((config) => {
+  const accessToken = localStorage.getItem('accessToken');
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
+
+// Response interceptor - handles token refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    // Auto-refresh token on 401
+    // Retry original request
+    // Redirect to login on failure
+  }
+);
+
+export default api;
+```
+
+## JWT Token Management
+
+Tokens are stored in localStorage and managed by interceptors:
+
+```javascript
+// ✅ CORRECT - Tokens are handled automatically
+import api from '../api/axios';
+const response = await api.get('/me'); // JWT attached automatically
+
+// ❌ WRONG - Never manually attach tokens in components
+const token = localStorage.getItem('accessToken');
+const response = await api.get('/me', {
+  headers: { Authorization: `Bearer ${token}` }
+});
+```
+
+### Token Storage Keys
+```javascript
+localStorage.getItem('accessToken')   // JWT access token
+localStorage.getItem('refreshToken')  // JWT refresh token
+localStorage.getItem('user')          // Serialized user object
+```
+
+## Token Refresh Flow
+
+The response interceptor automatically handles token refresh:
+
+1. Request returns 401 (Unauthorized)
+2. Interceptor catches error
+3. Calls `/auth/refresh` with refresh token
+4. Updates tokens in localStorage
+5. Retries original request with new token
+6. If refresh fails, clears storage and redirects to login
+
+```javascript
+// This happens automatically - DO NOT implement in components
+// Response interceptor handles this
+if (error.response?.status === 401 && !originalRequest._retry) {
+  originalRequest._retry = true;
+  
+  try {
+    const response = await axios.post('/auth/refresh', { refreshToken });
+    const newAccessToken = response.data.token?.accessToken;
+    
+    localStorage.setItem('accessToken', newAccessToken);
+    originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+    
+    return api(originalRequest);
+  } catch (refreshError) {
+    // Clear storage and redirect
+    localStorage.clear();
+    window.location.href = '/login';
+  }
+}
+```
+
+## API Endpoint Patterns
+
+Follow the backend REST patterns:
+
+### Authentication Endpoints
+```javascript
+// Login
+await api.post('/auth/login', { email, password });
+
+// Signup
+await api.post('/auth/signup', { email, password });
+
+// Refresh token
+await api.post('/auth/refresh', { refreshToken });
+
+// Change password
+await api.post('/auth/change-password', { currentPassword, newPassword });
+```
+
+### User Endpoints
+```javascript
+// Get current user
+await api.get('/me');
+
+// Update profile
+await api.patch('/me/profile', profileData);
+
+// Become trainer
+await api.patch('/become-trainer');
+```
+
+### Trainer Endpoints
+```javascript
+// Protocol templates
+await api.get('/trainer/protocol-templates');
+await api.post('/trainer/protocol-templates', data);
+await api.patch('/trainer/protocol-templates/:id', data);
+await api.delete('/trainer/protocol-templates/:id');
+
+// Training templates
+await api.get('/trainer/training-templates');
+await api.post('/trainer/training-templates', data);
+await api.patch('/trainer/training-templates/:id', data);
+await api.delete('/trainer/training-templates/:id');
+
+// Protocols
+await api.get('/trainer/protocols');
+await api.post('/trainer/protocols', data);
+await api.get('/trainer/protocols/:id');
+await api.patch('/trainer/protocols/:id', data);
+await api.delete('/trainer/protocols/:id');
+
+// Trainings within protocols
+await api.get('/trainer/protocols/:id/trainings');
+await api.post('/trainer/protocols/:id/trainings', data);
+await api.patch('/trainer/protocols/:id/trainings/:trainingId', data);
+await api.delete('/trainer/protocols/:id/trainings/:trainingId');
+```
+
+### Student Endpoints
+```javascript
+// My protocols
+await api.get('/my/protocols');
+await api.get('/my/protocols/:id');
+```
+
+## HTTP Methods Convention
+
+Follow REST conventions for HTTP methods:
+
+```javascript
+// ✅ CORRECT
+GET    - Fetch data (read)
+POST   - Create new resource
+PATCH  - Update existing resource (partial update)
+DELETE - Remove resource
+
+// Examples:
+await api.get('/trainer/protocols');           // List protocols
+await api.post('/trainer/protocols', data);    // Create protocol
+await api.patch('/trainer/protocols/123', data); // Update protocol
+await api.delete('/trainer/protocols/123');    // Delete protocol
+```
+
+## Error Response Format
+
+Backend returns errors in this format:
+
+```javascript
+{
+  message: 'Error message in Portuguese',
+  error: 'ERROR_CODE',
+  statusCode: 400
+}
+```
+
+Always extract the message from error responses:
+
+```javascript
+// ✅ CORRECT
+try {
+  await api.post('/endpoint', data);
+} catch (error) {
+  const errorMessage = error.response?.data?.message || 'Erro ao processar requisição';
+  setMessage({ type: 'error', text: errorMessage });
+}
+
+// ❌ WRONG
+catch (error) {
+  setMessage({ type: 'error', text: error.message }); // This is the HTTP error, not backend message
+}
+```
+
+## Request Payload Format
+
+Always send JSON payloads:
+
+```javascript
+// ✅ CORRECT
+await api.post('/trainer/protocols', {
+  name: 'Protocol Name',
+  description: 'Description',
+  studentId: 123
+});
+
+// ❌ WRONG - FormData not supported for most endpoints
+const formData = new FormData();
+formData.append('name', 'Protocol Name');
+await api.post('/trainer/protocols', formData);
+```
+
+## Environment Configuration
+
+The baseURL should eventually be configurable via environment variables:
+
+```javascript
+// Future implementation (not yet active)
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  // ...
+});
+```
+
+Currently, the baseURL is hardcoded to `http://localhost:3000`.
+
+## Interceptor Exclusions
+
+Auth endpoints should not trigger token refresh:
+
+```javascript
+// Response interceptor checks
+if (originalRequest.url?.includes('/auth/login') || 
+    originalRequest.url?.includes('/auth/signup')) {
+  return Promise.reject(error); // Don't intercept auth endpoints
+}
+```
+
+## Token Format Variations
+
+Handle both nested and flat token response formats:
+
+```javascript
+// ✅ CORRECT - Handle both formats
+const extractAuthData = (data) => {
+  // Handle nested: { token: { accessToken: "..." } }
+  // Handle flat: { accessToken: "..." }
+  const token = data.token?.accessToken || data.accessToken || data.access_token;
+  const refresh = data.refreshToken || data.refresh_token;
+  return { token, refresh };
+};
+```

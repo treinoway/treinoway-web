@@ -1,0 +1,305 @@
+---
+description: React component patterns and conventions for JSX files
+globs: src/**/*.jsx
+alwaysApply: false
+---
+
+# React Patterns for Treinoway Web
+
+## Component Structure
+
+Use functional components with arrow functions and `export default` at the end:
+
+```jsx
+// ✅ CORRECT
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../api/axios';
+
+const ComponentName = () => {
+  // Component logic here
+  return <div>...</div>;
+};
+
+export default ComponentName;
+
+// ❌ WRONG
+export default function ComponentName() {
+  return <div>...</div>;
+}
+
+// ❌ WRONG
+function ComponentName() {
+  return <div>...</div>;
+}
+export default ComponentName;
+```
+
+## State Management
+
+Use `useState` for local component state:
+
+```jsx
+// ✅ CORRECT - Loading state pattern
+const [loading, setLoading] = useState(false);
+
+// ✅ CORRECT - Message state pattern
+const [message, setMessage] = useState({ type: '', text: '' });
+
+// ✅ CORRECT - Data state
+const [protocols, setProtocols] = useState([]);
+const [formData, setFormData] = useState({ name: '', email: '' });
+```
+
+## Effects
+
+Use `useEffect` for side effects (data fetching, subscriptions):
+
+```jsx
+// ✅ CORRECT
+useEffect(() => {
+  fetchData();
+}, []);
+
+useEffect(() => {
+  if (user?.id) {
+    fetchUserData();
+  }
+}, [user?.id]);
+
+// ❌ WRONG - Missing dependency
+useEffect(() => {
+  fetchUserData(userId);
+}, []); // userId should be in dependency array
+```
+
+## API Error Handling
+
+Always use try/catch for API calls and display error messages:
+
+```jsx
+// ✅ CORRECT
+const handleSubmit = async () => {
+  setLoading(true);
+  setMessage({ type: '', text: '' });
+  
+  try {
+    const response = await api.post('/endpoint', formData);
+    setMessage({ type: 'success', text: 'Sucesso!' });
+  } catch (error) {
+    setMessage({ 
+      type: 'error', 
+      text: error.response?.data?.message || 'Erro ao processar requisição' 
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+// ❌ WRONG - No error handling
+const handleSubmit = async () => {
+  const response = await api.post('/endpoint', formData);
+  setData(response.data);
+};
+```
+
+## Navigation
+
+Use `useNavigate()` hook for programmatic navigation:
+
+```jsx
+// ✅ CORRECT
+import { useNavigate } from 'react-router-dom';
+
+const Component = () => {
+  const navigate = useNavigate();
+  
+  const handleSuccess = () => {
+    navigate('/dashboard');
+  };
+  
+  return <button onClick={handleSuccess}>Go</button>;
+};
+
+// ❌ WRONG
+window.location.href = '/dashboard';
+
+// ❌ WRONG
+<a href="/dashboard">Go</a>  // Use <Link> instead
+```
+
+## Authentication
+
+Use `useAuth()` hook for user data and role verification:
+
+```jsx
+// ✅ CORRECT
+import { useAuth } from '../contexts/AuthContext';
+
+const Component = () => {
+  const { user, hasRole, isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <div>Please log in</div>;
+  }
+  
+  if (hasRole('TRAINER')) {
+    return <TrainerView />;
+  }
+  
+  return <StudentView />;
+};
+
+// ❌ WRONG
+const user = JSON.parse(localStorage.getItem('user'));
+const hasTrainerRole = user?.roles?.includes('TRAINER');
+```
+
+## Event Handlers
+
+Name event handlers with `handle` prefix:
+
+```jsx
+// ✅ CORRECT
+const handleClick = () => { /* ... */ };
+const handleSubmit = async (e) => { 
+  e.preventDefault();
+  /* ... */ 
+};
+const handleInputChange = (e) => {
+  setFormData({ ...formData, [e.target.name]: e.target.value });
+};
+
+// ❌ WRONG
+const onClick = () => { /* ... */ };
+const submit = () => { /* ... */ };
+```
+
+## Conditional Rendering
+
+Use logical operators and ternaries for conditional rendering:
+
+```jsx
+// ✅ CORRECT
+{loading && <div>Carregando...</div>}
+{message.text && (
+  <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
+    {message.text}
+  </div>
+)}
+
+// ✅ CORRECT - Ternary for simple conditions
+{hasRole('TRAINER') ? <TrainerView /> : <StudentView />}
+
+// ❌ WRONG - Unnecessary conditional
+{loading === true && <div>Loading...</div>}
+
+// ❌ WRONG - Complex logic in JSX
+{loading ? <div>Loading...</div> : data.length > 0 ? <List /> : <Empty />}
+// Better: Extract to variable or early return
+```
+
+## Form Handling
+
+Use controlled components for forms:
+
+```jsx
+// ✅ CORRECT
+const [formData, setFormData] = useState({ email: '', password: '' });
+
+const handleChange = (e) => {
+  setFormData({ ...formData, [e.target.name]: e.target.value });
+};
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  // API call here
+};
+
+return (
+  <form onSubmit={handleSubmit}>
+    <input
+      type="email"
+      name="email"
+      value={formData.email}
+      onChange={handleChange}
+      className="form-input"
+    />
+    <button type="submit" disabled={loading}>
+      {loading ? 'Enviando...' : 'Enviar'}
+    </button>
+  </form>
+);
+```
+
+## Loading States
+
+Disable interactive elements during loading:
+
+```jsx
+// ✅ CORRECT
+<button onClick={handleSubmit} disabled={loading} className="btn-primary">
+  {loading ? 'Carregando...' : 'Salvar'}
+</button>
+
+<input
+  type="text"
+  disabled={loading}
+  value={formData.name}
+  onChange={handleChange}
+/>
+
+// ❌ WRONG - No loading state
+<button onClick={handleSubmit}>Salvar</button>
+```
+
+## Component Organization
+
+Organize component code in this order:
+
+1. Imports
+2. Component definition
+3. Hooks (useState, useEffect, custom hooks)
+4. Event handlers and helper functions
+5. Render/return
+
+```jsx
+// ✅ CORRECT
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../api/axios';
+
+const Component = () => {
+  // 1. Hooks
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState([]);
+  
+  useEffect(() => {
+    fetchData();
+  }, []);
+  
+  // 2. Event handlers
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/endpoint');
+      setData(response.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleDelete = async (id) => {
+    // Delete logic
+  };
+  
+  // 3. Render
+  return <div>...</div>;
+};
+
+export default Component;
+```

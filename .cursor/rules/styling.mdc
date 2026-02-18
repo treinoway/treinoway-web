@@ -1,0 +1,314 @@
+---
+description: CSS styling conventions and design token usage
+globs: src/**/*.css
+alwaysApply: false
+---
+
+# Styling Conventions for Treinoway Web
+
+## Use Existing CSS Variables
+
+Always use the CSS design tokens defined in `src/index.css`. Do not hardcode colors, spacing, or other values:
+
+```css
+/* ✅ CORRECT */
+.my-component {
+  color: var(--color-primary);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-body-size);
+  background-color: var(--color-surface);
+}
+
+/* ❌ WRONG */
+.my-component {
+  color: #0055FF;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: #F9FAFB;
+}
+```
+
+## Available Design Tokens
+
+### Colors
+```css
+/* Primary colors */
+--color-primary
+--color-on-primary
+--color-primary-container
+--color-on-primary-container
+
+/* Secondary colors */
+--color-secondary
+--color-on-secondary
+--color-secondary-container
+--color-on-secondary-container
+
+/* Tertiary colors */
+--color-tertiary
+--color-on-tertiary
+--color-tertiary-container
+--color-on-tertiary-container
+
+/* Surface colors */
+--color-surface
+--color-on-surface
+--color-surface-container
+--color-surface-container-high
+
+/* Error colors */
+--color-error
+--color-on-error
+--color-error-container
+--color-on-error-container
+
+/* Success colors (custom) */
+--color-success
+--color-on-success
+--color-success-container
+--color-on-success-container
+
+/* Outline */
+--color-outline
+--color-outline-variant
+```
+
+### Spacing
+```css
+--spacing-xs: 4px
+--spacing-sm: 8px
+--spacing-md: 16px
+--spacing-lg: 24px
+--spacing-xl: 32px
+--spacing-xxl: 48px
+```
+
+### Border Radius
+```css
+--radius-xs: 4px
+--radius-sm: 8px
+--radius-md: 12px
+--radius-lg: 16px
+--radius-xl: 24px
+--radius-full: 9999px
+```
+
+### Typography
+```css
+/* Font family */
+--font-family-base: "Poppins", sans-serif
+
+/* Headings */
+--font-h1-size: 24px
+--font-h1-weight: 700
+--font-h2-size: 20px
+--font-h2-weight: 600
+--font-h3-size: 18px
+--font-h3-weight: 500
+
+/* Body text */
+--font-body-size: 16px
+--font-body-weight: 400
+--font-body-large-size: 18px
+--font-body-small-size: 14px
+
+/* Button labels */
+--font-button-label-size: 14px
+--font-button-label-weight: 600
+--font-button-label-letter-spacing: 1.25px
+
+/* Caption */
+--font-caption-size: 12px
+--font-caption-weight: 400
+```
+
+### Shadows
+```css
+--shadow-sm: 0px 1px 2px rgba(0, 0, 0, 0.1)
+--shadow-md: 0px 2px 8px rgba(0, 0, 0, 0.1)
+--shadow-lg: 0px 4px 16px rgba(0, 0, 0, 0.15)
+```
+
+## Use Existing Utility Classes
+
+The project has predefined utility classes in `src/index.css`. Use them instead of creating new styles:
+
+### Cards
+```jsx
+// ✅ CORRECT
+<div className="card">
+  <h2 className="card-title">Title</h2>
+  <p className="card-description">Description</p>
+</div>
+
+<div className="card card--mb">Content with margin bottom</div>
+```
+
+### Buttons
+```jsx
+// ✅ CORRECT
+<button className="btn-primary">Primary Action</button>
+<button className="btn-secondary">Secondary Action</button>
+<button className="btn-logout">Logout</button>
+
+// Disabled state
+<button className="btn-primary" disabled={loading}>
+  {loading ? 'Loading...' : 'Submit'}
+</button>
+```
+
+### Form Inputs
+```jsx
+// ✅ CORRECT
+<input type="text" className="form-input" placeholder="Nome" />
+<textarea className="form-input" rows={4} />
+<select className="form-input">
+  <option>Select...</option>
+</select>
+```
+
+### Alerts
+```jsx
+// ✅ CORRECT
+<div className="alert alert-success">Success message!</div>
+<div className="alert alert-error">Error message!</div>
+```
+
+### Badges
+```jsx
+// ✅ CORRECT
+<span className="badge">New</span>
+<span className="badge badge-success">Active</span>
+<span className="badge badge-error">Inactive</span>
+```
+
+## No External CSS Frameworks
+
+Do not use Tailwind CSS, Bootstrap, Material-UI, or any other CSS framework:
+
+```jsx
+// ❌ WRONG
+<div className="bg-blue-500 p-4 rounded-lg">Content</div>
+<Button variant="contained" color="primary">Click</Button>
+
+// ✅ CORRECT
+<div className="card">Content</div>
+<button className="btn-primary">Click</button>
+```
+
+## No CSS-in-JS
+
+Do not use styled-components, emotion, or inline styles (except for exceptional cases):
+
+```jsx
+// ❌ WRONG
+import styled from 'styled-components';
+const Button = styled.button`
+  background: blue;
+  padding: 16px;
+`;
+
+// ❌ WRONG (except for dynamic values)
+<div style={{ color: 'blue', padding: '16px' }}>Content</div>
+
+// ✅ CORRECT
+<div className="card">Content</div>
+
+// ✅ CORRECT (dynamic values are acceptable)
+<div style={{ width: `${progress}%` }}>Progress bar</div>
+```
+
+## Font Usage
+
+The project uses **Poppins** from Google Fonts. Do not change the font family:
+
+```css
+/* ✅ CORRECT */
+body {
+  font-family: var(--font-family-base);
+}
+
+/* ❌ WRONG */
+body {
+  font-family: 'Roboto', sans-serif;
+}
+```
+
+## Responsive Design
+
+Use media queries for responsive design. Common breakpoints:
+
+```css
+/* Mobile first approach */
+.component {
+  /* Mobile styles */
+  padding: var(--spacing-sm);
+}
+
+/* Tablet */
+@media (min-width: 768px) {
+  .component {
+    padding: var(--spacing-md);
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .component {
+    padding: var(--spacing-lg);
+  }
+}
+```
+
+## BEM-like Naming Convention
+
+Use BEM-like naming for custom CSS classes:
+
+```css
+/* ✅ CORRECT */
+.card { }
+.card--highlighted { }
+.card__title { }
+.card__title--large { }
+
+.sidebar { }
+.sidebar--open { }
+.sidebar--closed { }
+.sidebar-link { }
+.sidebar-link--active { }
+
+/* ❌ WRONG */
+.cardHighlighted { }
+.Card-Title { }
+.card_title_large { }
+```
+
+## Material 3 Design System
+
+Follow Material 3 design principles:
+
+- Use elevation (shadows) sparingly
+- Prefer rounded corners with design tokens
+- Use semantic colors (primary, secondary, error, success)
+- Maintain consistent spacing scale
+- Follow typography hierarchy
+
+```css
+/* ✅ CORRECT - Material 3 style */
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-weight: var(--font-button-label-weight);
+}
+```

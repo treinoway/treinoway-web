@@ -1,0 +1,133 @@
+---
+description: Core project conventions and standards for Treinoway Web
+alwaysApply: true
+---
+
+# Treinoway Web - Project Conventions
+
+## UI Language
+
+All user-facing text must be in **Brazilian Portuguese (pt-BR)**:
+
+- Labels, buttons, placeholders
+- Error messages and success messages
+- Form validation messages
+- User notifications
+
+Code, comments, and technical documentation should be in English.
+
+## No External Component Libraries
+
+Do not use external component libraries. Use pure CSS with the existing design tokens defined in `src/index.css`:
+
+```jsx
+// ❌ WRONG
+import { Button } from '@mui/material';
+import { Card } from 'antd';
+
+// ✅ CORRECT
+<button className="btn-primary">Click me</button>
+<div className="card">...</div>
+```
+
+## Authentication
+
+Always use the `useAuth()` hook from `src/contexts/AuthContext.jsx`:
+
+```jsx
+// ✅ CORRECT
+import { useAuth } from '../contexts/AuthContext';
+
+const Component = () => {
+  const { user, isAuthenticated, hasRole, login, logout } = useAuth();
+  
+  if (hasRole('TRAINER')) {
+    // Trainer-only logic
+  }
+};
+
+// ❌ WRONG
+const token = localStorage.getItem('accessToken');
+const user = JSON.parse(localStorage.getItem('user'));
+```
+
+## HTTP Requests
+
+Always use the centralized Axios instance from `src/api/axios.js`. Never use `fetch` or create new Axios instances:
+
+```jsx
+// ✅ CORRECT
+import api from '../api/axios';
+
+const fetchData = async () => {
+  const response = await api.get('/endpoint');
+  return response.data;
+};
+
+// ❌ WRONG
+import axios from 'axios';
+const response = await axios.get('http://localhost:3000/endpoint');
+
+// ❌ WRONG
+const response = await fetch('http://localhost:3000/endpoint');
+```
+
+The centralized instance handles:
+- JWT token attachment
+- Token refresh on 401 errors
+- Request/response interceptors
+
+## Protected Routes
+
+All authenticated routes must be wrapped with `<ProtectedRoute>` and `<Layout>`:
+
+```jsx
+// ✅ CORRECT
+<Route
+  path="/profile"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <Profile />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+
+// ❌ WRONG
+<Route path="/profile" element={<Profile />} />
+```
+
+## Console Statements
+
+Do not leave `console.log` statements in final code. They are acceptable for temporary debugging only:
+
+```jsx
+// ❌ WRONG (in production code)
+console.log('User data:', user);
+
+// ✅ CORRECT (temporary debugging only)
+// console.log('DEBUG: User roles:', user?.roles);
+
+// ✅ CORRECT (for actual errors)
+console.error('Failed to fetch data:', error);
+```
+
+## Error Handling Pattern
+
+Always handle API errors with try/catch and display user-friendly messages in Portuguese:
+
+```jsx
+// ✅ CORRECT
+const [message, setMessage] = useState({ type: '', text: '' });
+
+try {
+  const response = await api.post('/endpoint', data);
+  setMessage({ type: 'success', text: 'Operação realizada com sucesso!' });
+} catch (error) {
+  setMessage({ 
+    type: 'error', 
+    text: error.response?.data?.message || 'Erro ao realizar operação' 
+  });
+}
+```
