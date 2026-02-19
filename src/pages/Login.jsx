@@ -28,7 +28,7 @@ const Login = () => {
         setError(result.error);
         setLoading(false);
       }
-    } catch (err) {
+    } catch {
       setError('Ocorreu um erro inesperado.');
       setLoading(false);
     }

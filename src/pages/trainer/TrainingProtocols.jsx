@@ -61,7 +61,7 @@ const TrainingProtocols = () => {
 
     try {
       if (editingId) {
-        const { assigneeEmail, templateId, ...updateData } = formData;
+        const { assigneeEmail: _assigneeEmail, templateId: _templateId, ...updateData } = formData;
         await api.patch(`/trainer/protocols/${editingId}`, updateData);
         showToast('Protocolo atualizado com sucesso!', 'success');
       } else {

@@ -42,7 +42,7 @@ const Dashboard = () => {
   return (
     <div>
       <div className="dashboard-hero">
-        <h1 className="dashboard-hero-greeting">Olá, {user?.firstName}! 👋</h1>
+        <h1 className="dashboard-hero-greeting">{user?.firstName ? `Olá, ${user.firstName}! 👋` : 'Bem-vindo! 👋'}</h1>
         <p className="dashboard-hero-subtitle">Pronto para o trabalho de hoje?</p>
         {user?.status === 'pending' && (
           <Link to="/profile" className="dashboard-hero-cta">

@@ -70,7 +70,7 @@ const ProtocolDetail = () => {
 
     try {
       if (editingTrainingId) {
-        const { templateId, ...updateData } = trainingFormData;
+        const { templateId: _templateId, ...updateData } = trainingFormData;
         await api.patch(`/trainer/protocols/${id}/trainings/${editingTrainingId}`, updateData);
         showToast('Treino atualizado com sucesso!', 'success');
       } else {

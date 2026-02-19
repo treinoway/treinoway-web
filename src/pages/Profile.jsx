@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { getErrorMessage } from '../utils/errorMessages';
@@ -19,7 +18,6 @@ const formatDateForInput = (dateString) => {
 };
 
 const Profile = () => {
-  const navigate = useNavigate();
   const { user, updateUser, refreshUser } = useAuth();
   const { showToast } = useToast();
   const [editing, setEditing] = useState(false);
@@ -124,7 +122,6 @@ useEffect(() => {
       updateUser(response.data);
       showToast('Perfil atualizado com sucesso!', 'success');
       setEditing(false);
-      await refreshUser();
     } catch (error) {
       showToast(error.userMessage || getErrorMessage(error, 'Falha ao atualizar perfil.'), 'error');
     } finally {
