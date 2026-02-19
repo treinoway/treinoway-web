@@ -37,7 +37,7 @@ const Layout = ({ children }) => {
           alt="Treinoway"
           className="top-app-bar-logo"
         />
-        <span className="top-app-bar-user">{user?.name}</span>
+        <span className="top-app-bar-user">{user?.firstName}</span>
       </div>
 
       {/* Sidebar — visible only on tablet+ */}
@@ -100,7 +100,7 @@ const Layout = ({ children }) => {
 
         <div className="sidebar-footer">
           <div className={!sidebarOpen ? 'hidden' : ''} aria-hidden={!sidebarOpen}>
-            <div className="sidebar-user-name">{user?.name}</div>
+            <div className="sidebar-user-name">{user?.firstName} {user?.lastName}</div>
             <div className="sidebar-user-email">{user?.email}</div>
           </div>
           <button onClick={handleLogout} className="btn-logout" aria-label="Sair da conta">
