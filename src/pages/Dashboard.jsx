@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { getErrorMessage } from '../utils/errorMessages';
+import { translateError } from '../i18n';
 import { Link } from 'react-router-dom';
 import { User, Dumbbell, ClipboardList, BookOpen } from 'lucide-react';
 import api from '../api/axios';
@@ -33,7 +33,7 @@ const Dashboard = () => {
 
       await refreshUser();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao se tornar treinador.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoading(false);
     }

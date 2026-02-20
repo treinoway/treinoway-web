@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
-import { getErrorMessage } from '../../utils/errorMessages';
+import { translateError } from '../../i18n';
 import api from '../../api/axios';
 
 const TrainingProtocols = () => {
@@ -71,7 +71,7 @@ const TrainingProtocols = () => {
       fetchProtocols();
       resetForm();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao salvar protocolo.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ const TrainingProtocols = () => {
       showToast('Protocolo excluído com sucesso!', 'success');
       fetchProtocols();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir protocolo.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     }
   };
 
@@ -128,7 +128,7 @@ const TrainingProtocols = () => {
       await fetchTemplates();
       resetTemplateForm();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao salvar modelo.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -154,7 +154,7 @@ const TrainingProtocols = () => {
       showToast('Modelo excluído com sucesso!', 'success');
       await fetchTemplates();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir modelo.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     }
   };
 

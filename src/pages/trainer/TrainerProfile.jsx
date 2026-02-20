@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
-import { getErrorMessage } from '../../utils/errorMessages';
+import { translateError } from '../../i18n';
 import api from '../../api/axios';
 
 const TrainerProfile = () => {
@@ -47,7 +47,7 @@ const TrainerProfile = () => {
       showToast('Perfil do treinador atualizado com sucesso!', 'success');
       setEditing(false);
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao atualizar perfil do treinador.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoading(false);
     }

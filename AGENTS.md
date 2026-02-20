@@ -31,8 +31,15 @@ treinoway-web/
 ├── src/
 │   ├── api/
 │   │   └── axios.js              # Axios instance with JWT interceptors
+│   ├── i18n/                     # Internationalization (error translations)
+│   │   ├── index.js              # Translation lookup (translateError, extractErrorInfo)
+│   │   └── locales/
+│   │       └── pt-BR.js          # Portuguese translations
+│   ├── utils/
+│   │   └── errorMessages.js      # Thin wrapper over i18n (backward compat)
 │   ├── contexts/
-│   │   └── AuthContext.jsx       # Auth state, login, logout, token refresh
+│   │   ├── AuthContext.jsx       # Auth state, login, logout, token refresh
+│   │   └── ToastContext.jsx      # Toast notification system
 │   ├── components/
 │   │   ├── Layout.jsx            # Sidebar + main content wrapper
 │   │   └── ProtectedRoute.jsx   # Route protection HOC
@@ -92,8 +99,17 @@ All protected routes wrap components with `<ProtectedRoute>` and `<Layout>`.
 ### API Integration
 - **Centralized Axios instance**: `src/api/axios.js` with configured baseURL
 - **Request interceptor**: Automatically attaches JWT from localStorage
-- **Response interceptor**: Handles 401 errors, refreshes tokens, redirects on auth failure
-- **Error handling**: Try/catch in components with user-friendly error messages
+- **Response interceptor**: Handles 401 errors, refreshes tokens, attaches translated `error.userMessage`
+- **Error handling**: i18n-based translation of backend `messageCode` values
+
+### Error Handling & i18n
+- **Backend error format**: `{ error, messageCode, message, details? }` — `messageCode` is the stable i18n key
+- **Translation system**: `src/i18n/` with locale files in `src/i18n/locales/` (currently pt-BR only)
+- **Resolution order**: error code → messageCode → HTTP status → fallback
+- **Validation errors**: `messageCode: "validation.failed"` with per-field `details[]` array, each with its own `messageCode`
+- **Axios interceptor**: Sets `error.userMessage` (translated) and `error.errorInfo` (structured) on every error
+- **Component pattern**: `error.userMessage || translateError(error)` — use `translateError` from `src/i18n`
+- **Adding translations**: Edit `src/i18n/locales/pt-BR.js` — sections: `errors`, `messageCodes`, `validation`, `fields`, `validationRules`
 
 ### Styling
 - **Pure CSS**: No Tailwind, Bootstrap, or CSS-in-JS
@@ -112,6 +128,8 @@ All protected routes wrap components with `<ProtectedRoute>` and `<Layout>`.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { translateError } from '../i18n';
 import api from '../api/axios';
 
 const ComponentName = () => {
@@ -131,10 +149,7 @@ const ComponentName = () => {
       const response = await api.get('/endpoint');
       setData(response.data);
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Erro ao carregar dados' 
-      });
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoading(false);
     }

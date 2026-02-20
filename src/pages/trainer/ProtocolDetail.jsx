@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
-import { getErrorMessage } from '../../utils/errorMessages';
+import { translateError } from '../../i18n';
 import api from '../../api/axios';
 
 const ProtocolDetail = () => {
@@ -42,7 +42,7 @@ const ProtocolDetail = () => {
       setProtocol(response.data);
     } catch (error) {
       console.error('Failed to fetch protocol:', error);
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao carregar protocolo.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     }
   };
 
@@ -80,7 +80,7 @@ const ProtocolDetail = () => {
       fetchTrainings();
       resetTrainingForm();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao salvar treino.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -99,7 +99,7 @@ const ProtocolDetail = () => {
       fetchTrainings();
       resetScheduleForm();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao agendar treino.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -124,7 +124,7 @@ const ProtocolDetail = () => {
       showToast('Treino excluído com sucesso!', 'success');
       fetchTrainings();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir treino.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     }
   };
 
@@ -141,7 +141,7 @@ const ProtocolDetail = () => {
       showToast('Agendamento excluído com sucesso!', 'success');
       fetchTrainings();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir agendamento.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     }
   };
 

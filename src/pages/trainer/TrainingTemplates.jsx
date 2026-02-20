@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
-import { getErrorMessage } from '../../utils/errorMessages';
+import { translateError } from '../../i18n';
 import api from '../../api/axios';
 
 const TrainingTemplates = () => {
@@ -44,7 +44,7 @@ const TrainingTemplates = () => {
       fetchTemplates();
       resetForm();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao salvar modelo de treino.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -68,7 +68,7 @@ const TrainingTemplates = () => {
       showToast('Modelo de treino excluído com sucesso!', 'success');
       fetchTemplates();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir modelo de treino.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     }
   };
 

@@ -215,32 +215,82 @@ await api.delete('/trainer/protocols/123');    // Delete protocol
 
 ## Error Response Format
 
-Backend returns errors in this format:
+Backend returns errors with a structured i18n-ready format:
 
 ```javascript
+// Standard error
 {
-  message: 'Error message in Portuguese',
-  error: 'ERROR_CODE',
-  statusCode: 400
+  error: 'INVALID_CREDENTIALS',     // Machine-readable error code
+  messageCode: 'auth.unauthorized', // Stable i18n key for translation
+  message: 'INVALID_CREDENTIALS'    // Fallback English message
+}
+
+// Validation error (400)
+{
+  error: 'VALIDATION_ERROR',
+  messageCode: 'validation.failed',
+  message: 'Validation failed',
+  details: [
+    {
+      field: 'email',
+      validations: ['format'],
+      messageCode: 'validation.email.format',
+      message: 'must match format "email"'
+    }
+  ]
 }
 ```
 
-Always extract the message from error responses:
+### Known messageCode values
+- `auth.unauthorized` — authentication failure (invalid credentials, expired token)
+- `auth.forbidden` — authorization failure (missing roles)
+- `resource.notFound` — resource not found (404)
+- `resource.conflict` — duplicate resource (409, e.g., email in use)
+- `request.badRequest` — generic bad request (e.g., password mismatch)
+- `validation.failed` — validation error with per-field details
+
+### Known error codes
+- `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `EMAIL_IN_USE`
+- `PASSWORD_MISMATCH`, `VALIDATION_ERROR`
+- `FILE_REQUIRED`, `INVALID_FILE_TYPE`, `FILE_TOO_LARGE`
+
+### Error handling in components
+
+Use the i18n translation system. The Axios interceptor automatically translates
+errors and attaches `error.userMessage`:
 
 ```javascript
-// ✅ CORRECT
+// ✅ CORRECT — use translateError from i18n
+import { translateError } from '../i18n';
+
 try {
   await api.post('/endpoint', data);
 } catch (error) {
-  const errorMessage = error.response?.data?.message || 'Erro ao processar requisição';
-  setMessage({ type: 'error', text: errorMessage });
+  // error.userMessage is set by the Axios interceptor (already translated)
+  showToast(error.userMessage || translateError(error), 'error');
 }
 
-// ❌ WRONG
-catch (error) {
-  setMessage({ type: 'error', text: error.message }); // This is the HTTP error, not backend message
+// ✅ CORRECT — for inline error state (Login/Signup via AuthContext)
+const result = await login(email, password);
+if (!result.success) {
+  setError(result.error); // Already translated by AuthContext
 }
+
+// ❌ WRONG — never extract raw backend message
+const errorMessage = error.response?.data?.message;
+
+// ❌ WRONG — never use getErrorMessage with hardcoded fallbacks
+getErrorMessage(error, 'Falha ao salvar protocolo.');
 ```
+
+### Adding new error translations
+
+Add translations to `src/i18n/locales/pt-BR.js`:
+- `errors` — maps error codes (e.g., `INVALID_CREDENTIALS`)
+- `messageCodes` — maps messageCode values (e.g., `auth.unauthorized`)
+- `validation` — maps field-level validation messageCodes
+- `fields` — maps field names to Portuguese labels
+- `validationRules` — maps generic validation rules with `{field}` placeholder
 
 ## Request Payload Format
 

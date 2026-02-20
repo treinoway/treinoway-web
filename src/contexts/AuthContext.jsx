@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 import api from '../api/axios';
-import { getErrorMessage } from '../utils/errorMessages';
+import { translateError } from '../i18n';
 
 const AuthContext = createContext(null);
 
@@ -109,9 +109,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.status === 401
-          ? 'E-mail ou senha incorretos.'
-          : getErrorMessage(error, 'Falha ao entrar.'),
+        error: translateError(error, 'Falha ao entrar.'),
       };
     }
   };
@@ -142,7 +140,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        error: getErrorMessage(error, 'Não foi possível criar a conta. Verifique os dados e tente novamente.'),
+        error: translateError(error, 'Não foi possível criar a conta. Verifique os dados e tente novamente.'),
       };
     }
   };

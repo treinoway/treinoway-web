@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getErrorMessage } from '../utils/errorMessages';
+import { extractErrorInfo } from '../i18n';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -53,6 +54,7 @@ api.interceptors.response.use(
     if (originalRequest.url?.includes('/auth/login') ||
         originalRequest.url?.includes('/auth/signup')) {
       error.userMessage = getErrorMessage(error);
+      error.errorInfo = extractErrorInfo(error);
       return Promise.reject(error);
     }
 
@@ -100,8 +102,9 @@ api.interceptors.response.use(
       }
     }
 
-    // Attach user-friendly message to error
+    // Attach user-friendly message and structured error info
     error.userMessage = getErrorMessage(error);
+    error.errorInfo = extractErrorInfo(error);
 
     // For network errors (no response), emit event for toast
     if (!error.response) {

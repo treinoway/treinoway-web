@@ -115,19 +115,28 @@ console.error('Failed to fetch data:', error);
 
 ## Error Handling Pattern
 
-Always handle API errors with try/catch and display user-friendly messages in Portuguese:
+Always handle API errors with try/catch and the i18n translation system. The backend returns structured errors with a `messageCode` field that maps to translations in `src/i18n/locales/pt-BR.js`:
 
 ```jsx
-// ✅ CORRECT
-const [message, setMessage] = useState({ type: '', text: '' });
+// ✅ CORRECT — use translateError from i18n
+import { translateError } from '../i18n';
+import { useToast } from '../contexts/ToastContext';
+
+const { showToast } = useToast();
 
 try {
   const response = await api.post('/endpoint', data);
-  setMessage({ type: 'success', text: 'Operação realizada com sucesso!' });
+  showToast('Operação realizada com sucesso!', 'success');
 } catch (error) {
-  setMessage({ 
-    type: 'error', 
-    text: error.response?.data?.message || 'Erro ao realizar operação' 
-  });
+  // error.userMessage is set by the Axios interceptor (already translated)
+  showToast(error.userMessage || translateError(error), 'error');
+}
+
+// ❌ WRONG — never extract raw backend message
+error.response?.data?.message || 'Erro ao realizar operação'
+
+// ❌ WRONG — never hardcode Portuguese error messages in catch blocks
+catch (error) {
+  showToast('Falha ao salvar protocolo.', 'error');
 }
 ```

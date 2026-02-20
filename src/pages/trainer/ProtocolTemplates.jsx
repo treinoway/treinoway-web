@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
-import { getErrorMessage } from '../../utils/errorMessages';
+import { translateError } from '../../i18n';
 import api from '../../api/axios';
 
 const ProtocolTemplates = () => {
@@ -45,7 +45,7 @@ const ProtocolTemplates = () => {
       await fetchTemplates();
       resetForm();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao salvar modelo.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ const ProtocolTemplates = () => {
       showToast('Modelo excluído com sucesso!', 'success');
       await fetchTemplates();
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao excluir modelo.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     }
   };
 

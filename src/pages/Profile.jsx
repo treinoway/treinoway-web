@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { getErrorMessage } from '../utils/errorMessages';
+import { translateError } from '../i18n';
 import api from '../api/axios';
 
 // Helper function to format date without timezone conversion
@@ -107,7 +107,7 @@ useEffect(() => {
       }));
       
     } catch (error) {
-      showToast('CEP não encontrado ou inválido.', 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoadingCep(false);
     }
@@ -123,7 +123,7 @@ useEffect(() => {
       showToast('Perfil atualizado com sucesso!', 'success');
       setEditing(false);
     } catch (error) {
-      showToast(error.userMessage || getErrorMessage(error, 'Falha ao atualizar perfil.'), 'error');
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoading(false);
     }
