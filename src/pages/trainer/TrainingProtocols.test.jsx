@@ -32,7 +32,7 @@ const mockProtocols = [
 ];
 
 const mockTemplates = [
-  { id: 1, name: 'Modelo Base', description: 'Desc', availableWeekDays: [], defaultDurationWeeks: 12 },
+  { id: 1, name: 'Modelo Base', description: 'Desc', availableWeekDays: [], defaultDurationWeeks: 12, genderOrdination: 'female', trainingLevel: 'beginner' },
 ];
 
 describe('TrainingProtocols', () => {

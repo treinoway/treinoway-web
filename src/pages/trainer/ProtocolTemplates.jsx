@@ -15,6 +15,8 @@ const ProtocolTemplates = () => {
     description: '',
     availableWeekDays: [],
     defaultDurationWeeks: 12,
+    genderOrdination: '',
+    trainingLevel: '',
   });
 
   useEffect(() => {
@@ -57,6 +59,8 @@ const ProtocolTemplates = () => {
       description: template.description || '',
       availableWeekDays: template.availableWeekDays || [],
       defaultDurationWeeks: template.defaultDurationWeeks || 12,
+      genderOrdination: template.genderOrdination || '',
+      trainingLevel: template.trainingLevel || '',
     });
     setEditingId(template.id);
     setShowForm(true);
@@ -80,6 +84,8 @@ const ProtocolTemplates = () => {
       description: '',
       availableWeekDays: [],
       defaultDurationWeeks: 12,
+      genderOrdination: '',
+      trainingLevel: '',
     });
     setEditingId(null);
     setShowForm(false);
@@ -152,6 +158,37 @@ const ProtocolTemplates = () => {
               </div>
             </div>
 
+            <div className="grid-responsive-2col">
+              <div>
+                <label className="form-label">Classificação</label>
+                <select
+                  value={formData.genderOrdination}
+                  onChange={(e) => setFormData({ ...formData, genderOrdination: e.target.value })}
+                  className="form-select"
+                >
+                  <option value="">Selecione...</option>
+                  <option value="male">Masculino</option>
+                  <option value="female">Feminino</option>
+                  <option value="other">Outro</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label">Nível de Treino</label>
+                <select
+                  value={formData.trainingLevel}
+                  onChange={(e) => setFormData({ ...formData, trainingLevel: e.target.value })}
+                  className="form-select"
+                >
+                  <option value="">Selecione...</option>
+                  <option value="beginner">Iniciante</option>
+                  <option value="intermediate">Intermediário</option>
+                  <option value="advanced">Avançado</option>
+                  <option value="athlete">Atleta</option>
+                </select>
+              </div>
+            </div>
+
             <div>
               <label className="form-label">Duração Padrão (semanas)</label>
               <input
@@ -208,6 +245,25 @@ const ProtocolTemplates = () => {
                     };
                     return dias[day] || day;
                   }).join(', ')}
+                </div>
+              )}
+              {template.genderOrdination && (
+                <div className="text-sm text-light">
+                  <strong>Classificação:</strong> {{
+                    male: 'Masculino',
+                    female: 'Feminino',
+                    other: 'Outro'
+                  }[template.genderOrdination] || template.genderOrdination}
+                </div>
+              )}
+              {template.trainingLevel && (
+                <div className="text-sm text-light">
+                  <strong>Nível:</strong> {{
+                    beginner: 'Iniciante',
+                    intermediate: 'Intermediário',
+                    advanced: 'Avançado',
+                    athlete: 'Atleta'
+                  }[template.trainingLevel] || template.trainingLevel}
                 </div>
               )}
             </div>

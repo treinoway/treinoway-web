@@ -28,6 +28,8 @@ const mockTemplates = [
     description: 'Protocolo de força',
     availableWeekDays: ['monday', 'wednesday', 'friday'],
     defaultDurationWeeks: 12,
+    genderOrdination: 'male',
+    trainingLevel: 'intermediate',
   },
 ];
 
