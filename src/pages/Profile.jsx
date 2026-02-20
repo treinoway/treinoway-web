@@ -11,12 +11,6 @@ const formatDateForDisplay = (dateString) => {
   return `${day}/${month}/${year}`;
 };
 
-// Helper function to format date for input[type="date"]
-const formatDateForInput = (dateString) => {
-  if (!dateString) return '';
-  return dateString.split('T')[0]; // Returns YYYY-MM-DD
-};
-
 const Profile = () => {
   const { user, updateUser, refreshUser } = useAuth();
   const { showToast } = useToast();
@@ -24,7 +18,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const emptyFormData = {
     firstName: '',
     lastName: '',
     gender: '',
@@ -36,8 +30,8 @@ const Profile = () => {
       city: '',
       state: '',
       stateCode: '',
-      country: 'Brazil',
-      countryCode: 'BR',
+      country: '',
+      countryCode: '',
       postalCode: '',
     },
     socials: {
@@ -45,7 +39,9 @@ const Profile = () => {
       whatsapp: '',
       linkedin: '',
     },
-  });
+  };
+
+  const [formData, setFormData] = useState(emptyFormData);
 
 useEffect(() => {
     refreshUser();
@@ -53,29 +49,8 @@ useEffect(() => {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        gender: user.gender || '',
-        birthDate: formatDateForInput(user.birthDate),
-        address: {
-          line1: user.address?.line1 || '',
-          line2: user.address?.line2 || '',
-          neighborhood: user.address?.neighborhood || '',
-          city: user.address?.city || '',
-          state: user.address?.state || '',
-          stateCode: user.address?.stateCode || '',
-          country: user.address?.country || 'Brazil',
-          countryCode: user.address?.countryCode || 'BR',
-          postalCode: user.address?.postalCode || '',
-        },
-        socials: {
-          instagram: user.socials?.instagram || '',
-          whatsapp: user.socials?.whatsapp || '',
-          linkedin: user.socials?.linkedin || '',
-        },
-      });
+    if (user && !editing) {
+      setFormData(emptyFormData);
     }
   }, [user]);
 
@@ -113,12 +88,47 @@ useEffect(() => {
     }
   };
 
+  const buildPatchPayload = () => {
+    const payload = {};
+
+    const trimmed = (val) => (typeof val === 'string' ? val.trim() : val);
+
+    if (trimmed(formData.firstName)) payload.firstName = trimmed(formData.firstName);
+    if (trimmed(formData.lastName)) payload.lastName = trimmed(formData.lastName);
+    if (formData.gender) payload.gender = formData.gender;
+    if (formData.birthDate) payload.birthDate = formData.birthDate;
+
+    const addr = formData.address;
+    const patchAddr = {};
+    for (const key of Object.keys(addr)) {
+      const val = trimmed(addr[key]);
+      if (val) patchAddr[key] = val;
+    }
+    if (Object.keys(patchAddr).length > 0) payload.address = patchAddr;
+
+    const soc = formData.socials;
+    const patchSoc = {};
+    for (const key of Object.keys(soc)) {
+      const val = trimmed(soc[key]);
+      if (val) patchSoc[key] = val;
+    }
+    if (Object.keys(patchSoc).length > 0) payload.socials = patchSoc;
+
+    return payload;
+  };
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
+    const payload = buildPatchPayload();
+    if (Object.keys(payload).length === 0) {
+      showToast('Preencha ao menos um campo para salvar.', 'error');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const response = await api.patch('/me/profile', formData);
+      const response = await api.patch('/me/profile', payload);
       updateUser(response.data);
       showToast('Perfil atualizado com sucesso!', 'success');
       setEditing(false);
@@ -156,7 +166,6 @@ return (
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     className="form-input"
-                    required
                   />
                 </div>
 

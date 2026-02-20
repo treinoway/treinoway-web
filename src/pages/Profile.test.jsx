@@ -43,6 +43,8 @@ describe('Profile', () => {
     mockRefreshUser.mockResolvedValue(null);
     mockUpdateUser.mockReset();
     mockShowToast.mockReset();
+    vi.mocked(api.patch).mockClear();
+    vi.mocked(api.get).mockClear();
 
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     vi.mocked(useAuth).mockReturnValue({
@@ -80,28 +82,39 @@ describe('Profile', () => {
     expect(screen.getByRole('button', { name: /^salvar$/i })).toBeInTheDocument();
   });
 
-  it('pre-fills form inputs with user data in edit mode', async () => {
+  it('form inputs start empty in edit mode', async () => {
     const user = userEvent.setup();
 
     renderWithRouter(<Profile />);
 
     await user.click(screen.getByRole('button', { name: /editar/i }));
 
-    expect(screen.getByDisplayValue('João')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Silva')).toBeInTheDocument();
+    const inputs = screen.getAllByRole('textbox');
+    const firstNameInput = inputs[0];
+    const lastNameInput = inputs[1];
+
+    expect(firstNameInput).toHaveValue('');
+    expect(lastNameInput).toHaveValue('');
   });
 
-  it('calls profile update API on form submission', async () => {
+  it('calls profile update API with only filled fields', async () => {
     const user = userEvent.setup();
     api.patch.mockResolvedValue({ data: mockUser });
 
     renderWithRouter(<Profile />);
 
     await user.click(screen.getByRole('button', { name: /editar/i }));
+    
+    const inputs = screen.getAllByRole('textbox');
+    const firstNameInput = inputs[0];
+    await user.type(firstNameInput, 'Maria');
+    
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
-      expect(api.patch).toHaveBeenCalledWith('/me/profile', expect.any(Object));
+      expect(api.patch).toHaveBeenCalledWith('/me/profile', {
+        firstName: 'Maria',
+      });
     });
   });
 
@@ -112,6 +125,11 @@ describe('Profile', () => {
     renderWithRouter(<Profile />);
 
     await user.click(screen.getByRole('button', { name: /editar/i }));
+    
+    const inputs = screen.getAllByRole('textbox');
+    const firstNameInput = inputs[0];
+    await user.type(firstNameInput, 'João');
+    
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -130,6 +148,11 @@ describe('Profile', () => {
     renderWithRouter(<Profile />);
 
     await user.click(screen.getByRole('button', { name: /editar/i }));
+    
+    const inputs = screen.getAllByRole('textbox');
+    const firstNameInput = inputs[0];
+    await user.type(firstNameInput, 'João');
+    
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -137,6 +160,76 @@ describe('Profile', () => {
         expect.stringContaining('Erro'),
         'error'
       );
+    });
+  });
+
+  it('shows error toast when submitting empty form', async () => {
+    const user = userEvent.setup();
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'Preencha ao menos um campo para salvar.',
+        'error'
+      );
+      expect(api.patch).not.toHaveBeenCalled();
+    });
+  });
+
+  it('trims string values before submitting', async () => {
+    const user = userEvent.setup();
+    api.patch.mockResolvedValue({ data: mockUser });
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+    
+    const inputs = screen.getAllByRole('textbox');
+    const firstNameInput = inputs[0];
+    await user.type(firstNameInput, '  João  ');
+    
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith('/me/profile', {
+        firstName: 'João',
+      });
+    });
+  });
+
+  it('does not include empty fields in payload', async () => {
+    const user = userEvent.setup();
+    api.patch.mockResolvedValue({ data: mockUser });
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+    
+    const inputs = screen.getAllByRole('textbox');
+    const firstNameInput = inputs[0];
+    const genderSelect = screen.getByRole('combobox');
+    
+    await user.type(firstNameInput, 'João');
+    await user.selectOptions(genderSelect, 'male');
+    
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledTimes(1);
+      const payload = vi.mocked(api.patch).mock.calls[0][1];
+      
+      expect(payload).toEqual({
+        firstName: 'João',
+        gender: 'male',
+      });
+      expect(payload).not.toHaveProperty('lastName');
+      expect(payload).not.toHaveProperty('birthDate');
+      expect(payload).not.toHaveProperty('address');
+      expect(payload).not.toHaveProperty('socials');
     });
   });
 
