@@ -52,7 +52,8 @@ api.interceptors.response.use(
 
     // Don't intercept auth endpoints (login/signup)
     if (originalRequest.url?.includes('/auth/login') ||
-        originalRequest.url?.includes('/auth/signup')) {
+        originalRequest.url?.includes('/auth/signup') ||
+        originalRequest.url?.includes('/auth/google')) {
       error.userMessage = getErrorMessage(error);
       error.errorInfo = extractErrorInfo(error);
       return Promise.reject(error);

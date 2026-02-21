@@ -9,14 +9,17 @@ vi.mock('../contexts/AuthContext', () => ({
 }));
 
 const mockLogin = vi.fn();
+const mockLoginWithGoogle = vi.fn();
 
 describe('Login', () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue({
       isAuthenticated: false,
       login: mockLogin,
+      loginWithGoogle: mockLoginWithGoogle,
     });
     mockLogin.mockReset();
+    mockLoginWithGoogle.mockReset();
   });
 
   it('renders email and password inputs and submit button', () => {

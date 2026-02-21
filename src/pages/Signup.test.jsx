@@ -9,14 +9,17 @@ vi.mock('../contexts/AuthContext', () => ({
 }));
 
 const mockSignup = vi.fn();
+const mockLoginWithGoogle = vi.fn();
 
 describe('Signup', () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue({
       isAuthenticated: false,
       signup: mockSignup,
+      loginWithGoogle: mockLoginWithGoogle,
     });
     mockSignup.mockReset();
+    mockLoginWithGoogle.mockReset();
   });
 
   it('renders all form inputs and submit button', () => {
@@ -25,7 +28,7 @@ describe('Signup', () => {
     expect(screen.getByLabelText(/e-mail/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^senha$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/confirmar senha/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /cadastrar/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^cadastrar$/i })).toBeInTheDocument();
   });
 
   it('renders a link to the login page', () => {
@@ -53,7 +56,7 @@ describe('Signup', () => {
     await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
     await user.type(screen.getByLabelText(/^senha$/i), 'pass123');
     await user.type(screen.getByLabelText(/confirmar senha/i), 'different');
-    await user.click(screen.getByRole('button', { name: /cadastrar/i }));
+    await user.click(screen.getByRole('button', { name: /^cadastrar$/i }));
 
     expect(screen.getByText('As senhas não coincidem.')).toBeInTheDocument();
     expect(mockSignup).not.toHaveBeenCalled();
@@ -67,7 +70,7 @@ describe('Signup', () => {
     await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
     await user.type(screen.getByLabelText(/^senha$/i), '12345');
     await user.type(screen.getByLabelText(/confirmar senha/i), '12345');
-    await user.click(screen.getByRole('button', { name: /cadastrar/i }));
+    await user.click(screen.getByRole('button', { name: /^cadastrar$/i }));
 
     expect(screen.getByText('A senha deve ter pelo menos 6 caracteres.')).toBeInTheDocument();
     expect(mockSignup).not.toHaveBeenCalled();
@@ -82,7 +85,7 @@ describe('Signup', () => {
     await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
     await user.type(screen.getByLabelText(/^senha$/i), 'pass123');
     await user.type(screen.getByLabelText(/confirmar senha/i), 'pass123');
-    await user.click(screen.getByRole('button', { name: /cadastrar/i }));
+    await user.click(screen.getByRole('button', { name: /^cadastrar$/i }));
 
     await waitFor(() => {
       expect(mockSignup).toHaveBeenCalledWith('user@example.com', 'pass123');
@@ -98,7 +101,7 @@ describe('Signup', () => {
     await user.type(screen.getByLabelText(/e-mail/i), 'existing@example.com');
     await user.type(screen.getByLabelText(/^senha$/i), 'pass123');
     await user.type(screen.getByLabelText(/confirmar senha/i), 'pass123');
-    await user.click(screen.getByRole('button', { name: /cadastrar/i }));
+    await user.click(screen.getByRole('button', { name: /^cadastrar$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('E-mail já cadastrado.')).toBeInTheDocument();
@@ -114,7 +117,7 @@ describe('Signup', () => {
     await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
     await user.type(screen.getByLabelText(/^senha$/i), 'pass123');
     await user.type(screen.getByLabelText(/confirmar senha/i), 'pass123');
-    await user.click(screen.getByRole('button', { name: /cadastrar/i }));
+    await user.click(screen.getByRole('button', { name: /^cadastrar$/i }));
 
     expect(screen.getByRole('button', { name: /criando conta/i })).toBeDisabled();
   });

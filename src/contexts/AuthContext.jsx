@@ -1,4 +1,6 @@
 import { createContext, useContext, useState } from 'react';
+import { signInWithPopup, signOut } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
 import api from '../api/axios';
 import { translateError } from '../i18n';
 
@@ -145,6 +147,45 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const idToken = await result.user.getIdToken();
+
+      // Firebase session is not needed — backend manages auth via JWT
+      await signOut(auth);
+
+      const response = await api.post('/auth/google/web', { idToken });
+
+      const { token, refresh } = extractAuthData(response.data);
+
+      if (!token) {
+        return { success: false, error: 'Resposta da API sem token de acesso.' };
+      }
+
+      localStorage.setItem('accessToken', token);
+      if (refresh) localStorage.setItem('refreshToken', refresh);
+      setAccessToken(token);
+
+      const meResponse = await api.get('/me?include=address,socials');
+      const userData = meResponse.data;
+
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+
+      return { success: true };
+    } catch (error) {
+      // Firebase popup closed by user
+      if (error.code === 'auth/popup-closed-by-user') {
+        return { success: false, error: null };
+      }
+      return {
+        success: false,
+        error: translateError(error, 'Falha na autenticação com Google.'),
+      };
+    }
+  };
+
   const logout = () => {
     setAccessToken(null);
     setUser(null);
@@ -190,6 +231,7 @@ export const AuthProvider = ({ children }) => {
     user,
     accessToken,
     login,
+    loginWithGoogle,
     signup,
     logout,
     updateUser,
