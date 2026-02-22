@@ -1,0 +1,49 @@
+---
+description: Never use window.confirm() — use a custom in-app confirmation dialog
+alwaysApply: true
+---
+
+# No Browser confirm() Dialogs
+
+Never use `window.confirm()` or `confirm()` for destructive action confirmations. Always use a custom in-app confirmation dialog that matches the app's design.
+
+## Pattern
+
+Use a `ConfirmDialog` component (or inline state) with `.overlay` + `.confirm-dialog` CSS classes:
+
+```jsx
+// ✅ CORRECT — custom in-app dialog
+const [confirmDialog, setConfirmDialog] = useState(null);
+
+const handleDelete = (item) => {
+  setConfirmDialog({
+    message: `Excluir "${item.name}"? Esta ação não pode ser desfeita.`,
+    onConfirm: async () => {
+      setConfirmDialog(null);
+      await api.delete(`/endpoint/${item.id}`);
+    },
+  });
+};
+
+// In JSX:
+{confirmDialog && (
+  <div className="overlay" onClick={() => setConfirmDialog(null)}>
+    <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+      <p className="confirm-dialog-message">{confirmDialog.message}</p>
+      <div className="btn-group">
+        <button onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>
+          Confirmar
+        </button>
+        <button onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+// ❌ WRONG
+if (!confirm('Tem certeza?')) return;
+```
+
+CSS classes `.confirm-dialog` and `.confirm-dialog-message` are defined in `src/index.css`.

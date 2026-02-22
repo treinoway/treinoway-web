@@ -11,6 +11,12 @@ const ptBR = {
     INVALID_RELATIONS: 'Parâmetro de consulta inválido.',
     ACCOUNT_SUSPENDED: 'Conta suspensa. Entre em contato com o suporte.',
     GOOGLE_AUTH_FAILED: 'Falha na autenticação com Google.',
+    TRAINING_TEMPLATE_NOT_FOUND: 'Modelo de treino não encontrado.',
+    FORBIDDEN_TRAINING_TEMPLATE_ACCESS: 'Você não tem acesso a este modelo de treino.',
+    INVALID_WEEK_DAY_FOR_SCHEDULE: 'Dia da semana inválido para este agendamento.',
+    STUDENT_NOT_FOUND: 'Nenhum usuário encontrado com este e-mail.',
+    STUDENT_ALREADY_LINKED: 'Este aluno já está vinculado à sua conta.',
+    CANNOT_LINK_SELF: 'Você não pode se vincular como seu próprio aluno.',
   },
 
   messageCodes: {
@@ -18,6 +24,9 @@ const ptBR = {
     'auth.forbidden': 'Você não tem permissão para esta ação.',
     'resource.notFound': 'Recurso não encontrado.',
     'resource.conflict': 'Este registro já existe.',
+    'student.notFound': 'Nenhum usuário encontrado com este e-mail.',
+    'student.alreadyLinked': 'Este aluno já está vinculado à sua conta.',
+    'student.cannotLinkSelf': 'Você não pode se vincular como seu próprio aluno.',
     'request.badRequest': 'Requisição inválida. Verifique os dados e tente novamente.',
     'validation.failed': 'Dados inválidos. Verifique os campos e tente novamente.',
     'server.error': 'Erro interno do servidor. Tente novamente mais tarde.',
@@ -85,6 +94,13 @@ const ptBR = {
     idToken: 'token de autenticação',
     refreshToken: 'token de atualização',
     code: 'CEP',
+    trainingTemplateId: 'modelo de treino',
+    weekDay: 'dia da semana',
+    order: 'ordem',
+    genderOrdination: 'classificação',
+    trainingLevel: 'nível de treino',
+    category: 'categoria',
+    bodySegment: 'segmento corporal',
   },
 
   validationRules: {

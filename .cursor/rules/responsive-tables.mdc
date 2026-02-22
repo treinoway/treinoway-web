@@ -1,0 +1,46 @@
+---
+description: Tables must be mobile-first and responsive — never overflow on small screens
+alwaysApply: true
+---
+
+# Responsive Tables
+
+All tables must be mobile-first. Never render a wide table that overflows on 375px screens.
+
+## Pattern
+
+Use `.table-col-mobile-only` and `.table-col-desktop-only` to progressively show columns:
+
+- **Mobile**: show only the essential column. Secondary data (e.g. email) is shown as sub-text inside the primary cell using `.table-col-mobile-only`
+- **Tablet+ (≥ 768px)**: show full columns using `.table-col-desktop-only`
+
+```jsx
+// ✅ CORRECT
+<thead>
+  <tr>
+    <th>Nome</th>
+    <th className="table-col-desktop-only">E-mail</th>
+    <th />
+  </tr>
+</thead>
+<tbody>
+  {items.map((item) => (
+    <tr key={item.id}>
+      <td>
+        <span className="item-name">{item.name}</span>
+        <span className="item-email table-col-mobile-only">{item.email}</span>
+      </td>
+      <td className="table-col-desktop-only">{item.email}</td>
+      <td><RowMenu /></td>
+    </tr>
+  ))}
+</tbody>
+
+// ❌ WRONG — fixed multi-column table with no mobile handling
+<table>
+  <thead><tr><th>Nome</th><th>E-mail</th><th>Data</th></tr></thead>
+  ...
+</table>
+```
+
+CSS classes `.table-col-mobile-only` and `.table-col-desktop-only` are defined in `src/index.css`.

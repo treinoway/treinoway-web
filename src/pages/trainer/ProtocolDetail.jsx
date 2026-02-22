@@ -351,7 +351,7 @@ const ProtocolDetail = () => {
         </div>
       )}
 
-      <div className="stack-md">
+      {!showTrainingForm && !showScheduleForm && <div className="stack-md">
         {trainings.map((training) => (
           <div key={training.id} className="training-card">
             <div className="training-card-header">
@@ -395,7 +395,7 @@ const ProtocolDetail = () => {
             )}
           </div>
         ))}
-      </div>
+      </div>}
 
       {trainings.length === 0 && !showTrainingForm && (
         <div className="empty-state">

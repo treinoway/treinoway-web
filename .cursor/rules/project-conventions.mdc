@@ -140,3 +140,30 @@ catch (error) {
   showToast('Falha ao salvar protocolo.', 'error');
 }
 ```
+
+## Form / List Mutual Exclusion
+
+When a page has both a form (create or edit) and a list of items as cards, the list must be hidden while the form is visible. This prevents visual clutter and keeps focus on the active action.
+
+```jsx
+// ✅ CORRECT — hide list while form is open
+{!showForm && (
+  <div className="grid-cards">
+    {items.map((item) => (
+      <div key={item.id} className="card">...</div>
+    ))}
+  </div>
+)}
+
+// ❌ WRONG — list visible at the same time as the form
+<>
+  {showForm && <form>...</form>}
+  <div className="grid-cards">
+    {items.map((item) => (
+      <div key={item.id} className="card">...</div>
+    ))}
+  </div>
+</>
+```
+
+This rule applies to all pages with inline forms (protocols, trainings, templates, etc.). If multiple forms exist on the same page (e.g., training form and schedule form), hide the list whenever **any** form is open.

@@ -13,6 +13,8 @@ const TrainingTemplates = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    category: '',
+    bodySegment: '',
     isPublic: false,
   });
 
@@ -54,6 +56,8 @@ const TrainingTemplates = () => {
     setFormData({
       name: template.name,
       description: template.description || '',
+      category: template.category || '',
+      bodySegment: template.bodySegment || '',
       isPublic: template.isPublic || false,
     });
     setEditingId(template.id);
@@ -76,6 +80,8 @@ const TrainingTemplates = () => {
     setFormData({
       name: '',
       description: '',
+      category: '',
+      bodySegment: '',
       isPublic: false,
     });
     setEditingId(null);
@@ -120,6 +126,36 @@ const TrainingTemplates = () => {
               />
             </div>
 
+            <div className="grid-responsive-2col">
+              <div>
+                <label className="form-label">Categoria</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="form-select"
+                  required
+                >
+                  <option value="">Selecione...</option>
+                  <option value="strength">Força</option>
+                  <option value="cardio">Cardio</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label">Segmento Corporal</label>
+                <select
+                  value={formData.bodySegment}
+                  onChange={(e) => setFormData({ ...formData, bodySegment: e.target.value })}
+                  className="form-select"
+                >
+                  <option value="">Selecione...</option>
+                  <option value="upper">Superior</option>
+                  <option value="lower">Inferior</option>
+                  <option value="full_body">Corpo Inteiro</option>
+                </select>
+              </div>
+            </div>
+
             <div className="form-checkbox-row">
               <input
                 type="checkbox"
@@ -144,7 +180,7 @@ const TrainingTemplates = () => {
         </div>
       )}
 
-      <div className="grid-cards">
+      {!showForm && <div className="grid-cards">
         {templates.map((template) => (
           <div key={template.id} className="card">
             <div className="card-header-start">
@@ -153,7 +189,21 @@ const TrainingTemplates = () => {
                 <span className="badge badge-green">Público</span>
               )}
             </div>
-            <p className="card-description mb-md">{template.description}</p>
+            {template.description && (
+              <p className="card-description mb-md">{template.description}</p>
+            )}
+            <div className="info-list mb-md" style={{ paddingTop: 'var(--spacing-sm)', borderTop: '1px solid var(--color-outline-variant)' }}>
+              {template.category && (
+                <div className="text-sm text-light">
+                  <strong>Categoria:</strong> {{ strength: 'Força', cardio: 'Cardio' }[template.category] || template.category}
+                </div>
+              )}
+              {template.bodySegment && (
+                <div className="text-sm text-light">
+                  <strong>Segmento:</strong> {{ upper: 'Superior', lower: 'Inferior', full_body: 'Corpo Inteiro' }[template.bodySegment] || template.bodySegment}
+                </div>
+              )}
+            </div>
             <div className="btn-group">
               <button onClick={() => handleEdit(template)} className="btn-edit">
                 Editar
@@ -164,7 +214,7 @@ const TrainingTemplates = () => {
             </div>
           </div>
         ))}
-      </div>
+      </div>}
 
       {templates.length === 0 && !showForm && (
         <div className="empty-state">

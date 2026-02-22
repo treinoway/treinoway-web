@@ -17,6 +17,7 @@ import Profile from './pages/Profile';
 import TrainingTemplates from './pages/trainer/TrainingTemplates';
 import TrainingProtocols from './pages/trainer/TrainingProtocols';
 import ProtocolDetail from './pages/trainer/ProtocolDetail';
+import Students from './pages/trainer/Students';
 
 function App() {
   return (
@@ -78,6 +79,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <ProtocolDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/students"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Students />
                 </Layout>
               </ProtectedRoute>
             }

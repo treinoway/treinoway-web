@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, ClipboardList, Dumbbell, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, User, ClipboardList, Dumbbell, Users, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Layout = ({ children }) => {
@@ -25,6 +25,7 @@ const Layout = ({ children }) => {
     ...(hasRole('TRAINER') ? [
       { path: '/trainer/protocols', label: 'Protocolos', Icon: ClipboardList, section: 'Treinador' },
       { path: '/trainer/training-templates', label: 'Treinos', Icon: Dumbbell, section: 'Treinador' },
+      { path: '/trainer/students', label: 'Alunos', Icon: Users, section: 'Treinador' },
     ] : []),
   ];
 
@@ -116,7 +117,7 @@ const Layout = ({ children }) => {
 
       {/* Bottom Navigation — visible only on mobile */}
       <nav className="bottom-nav" aria-label="Navegação principal">
-        {navLinks.filter(link => !link.section || link.path === '/trainer/protocols').map((link) => (
+        {navLinks.filter(link => !link.section || ['/trainer/protocols', '/trainer/students'].includes(link.path)).map((link) => (
           <Link
             key={link.path}
             to={link.path}

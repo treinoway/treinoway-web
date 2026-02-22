@@ -9,6 +9,7 @@ const TrainingProtocols = () => {
   const [activeTab, setActiveTab] = useState('protocols');
   const [protocols, setProtocols] = useState([]);
   const [templates, setTemplates] = useState([]);
+  const [trainingTemplates, setTrainingTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Protocol form state
@@ -31,11 +32,13 @@ const TrainingProtocols = () => {
     defaultDurationWeeks: 12,
     genderOrdination: '',
     trainingLevel: '',
+    trainings: [],
   });
 
   useEffect(() => {
     fetchProtocols();
     fetchTemplates();
+    fetchTrainingTemplates();
   }, []);
 
   const fetchProtocols = async () => {
@@ -56,6 +59,15 @@ const TrainingProtocols = () => {
     }
   };
 
+  const fetchTrainingTemplates = async () => {
+    try {
+      const response = await api.get('/trainer/training-templates');
+      setTrainingTemplates(response.data);
+    } catch (error) {
+      console.error('Failed to fetch training templates:', error);
+    }
+  };
+
   // Protocol handlers
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,8 +78,17 @@ const TrainingProtocols = () => {
         const { assigneeEmail: _assigneeEmail, templateId: _templateId, ...updateData } = formData;
         await api.patch(`/trainer/protocols/${editingId}`, updateData);
         showToast('Protocolo atualizado com sucesso!', 'success');
+      } else if (formData.templateId) {
+        await api.post('/trainer/protocols/import-from-template', {
+          templateId: formData.templateId,
+          assigneeEmail: formData.assigneeEmail,
+          startDate: formData.startDate,
+          expirationDate: formData.endDate,
+        });
+        showToast('Protocolo criado com sucesso!', 'success');
       } else {
-        await api.post('/trainer/protocols', formData);
+        const { templateId: _templateId, ...createData } = formData;
+        await api.post('/trainer/protocols', createData);
         showToast('Protocolo criado com sucesso!', 'success');
       }
       fetchProtocols();
@@ -136,18 +157,30 @@ const TrainingProtocols = () => {
     }
   };
 
-  const handleTemplateEdit = (template) => {
-    setTemplateFormData({
-      name: template.name,
-      description: template.description || '',
-      availableWeekDays: template.availableWeekDays || [],
-      defaultDurationWeeks: template.defaultDurationWeeks || 12,
-      genderOrdination: template.genderOrdination || '',
-      trainingLevel: template.trainingLevel || '',
-    });
+  const handleTemplateEdit = async (template) => {
     setEditingTemplateId(template.id);
     setActiveTab('templates');
     setShowTemplateForm(true);
+
+    try {
+      const response = await api.get(`/trainer/protocol-templates/${template.id}`);
+      const full = response.data;
+      setTemplateFormData({
+        name: full.name,
+        description: full.description || '',
+        availableWeekDays: full.availableWeekDays || [],
+        defaultDurationWeeks: full.defaultDurationWeeks || 12,
+        genderOrdination: full.genderOrdination || '',
+        trainingLevel: full.trainingLevel || '',
+        trainings: (full.scheduleTemplates || []).map((st) => ({
+          trainingTemplateId: st.trainingTemplate?.id || st.trainingTemplateId,
+          weekDay: st.weekDay,
+          order: st.order,
+        })),
+      });
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+    }
   };
 
   const handleTemplateDelete = async (id) => {
@@ -170,6 +203,7 @@ const TrainingProtocols = () => {
       defaultDurationWeeks: 12,
       genderOrdination: '',
       trainingLevel: '',
+      trainings: [],
     });
     setEditingTemplateId(null);
     setShowTemplateForm(false);
@@ -227,13 +261,13 @@ const TrainingProtocols = () => {
       <div className="tabs-container">
         <button
           className={`tab-button ${activeTab === 'protocols' ? 'tab-button--active' : ''}`}
-          onClick={() => setActiveTab('protocols')}
+          onClick={() => { setActiveTab('protocols'); resetTemplateForm(); }}
         >
           Protocolos
         </button>
         <button
           className={`tab-button ${activeTab === 'templates' ? 'tab-button--active' : ''}`}
-          onClick={() => setActiveTab('templates')}
+          onClick={() => { setActiveTab('templates'); resetForm(); }}
         >
           Modelos
         </button>
@@ -313,7 +347,7 @@ const TrainingProtocols = () => {
             </div>
           )}
 
-          <div className="grid-cards">
+          {!showForm && <div className="grid-cards">
             {protocols.map((protocol) => (
               <Link
                 key={protocol.id}
@@ -354,7 +388,7 @@ const TrainingProtocols = () => {
                 </div>
               </Link>
             ))}
-          </div>
+          </div>}
 
           {protocols.length === 0 && !showForm && (
             <div className="empty-state">
@@ -467,6 +501,124 @@ const TrainingProtocols = () => {
                   />
                 </div>
 
+                <div>
+                  <div className="schedule-template-section-header">
+                    <label className="form-label" style={{ margin: 0 }}>Treinos do Modelo</label>
+                    <button
+                      type="button"
+                      className="btn-edit-sm"
+                      onClick={() =>
+                        setTemplateFormData({
+                          ...templateFormData,
+                          trainings: [
+                            ...templateFormData.trainings,
+                            { trainingTemplateId: '', weekDay: '', order: templateFormData.trainings.length + 1 },
+                          ],
+                        })
+                      }
+                    >
+                      + Adicionar
+                    </button>
+                  </div>
+
+                  {templateFormData.trainings.length === 0 && (
+                    <p className="text-sm text-light" style={{ marginTop: 'var(--spacing-xs)' }}>
+                      Nenhum treino adicionado. Clique em &quot;+ Adicionar&quot; para incluir.
+                    </p>
+                  )}
+
+                  <div className="schedule-template-list">
+                    {templateFormData.trainings.map((training, index) => {
+                      const invalidDay = training.weekDay && !templateFormData.availableWeekDays.includes(training.weekDay);
+                      return (
+                        <div key={index} className="schedule-template-row">
+                          <div className="schedule-template-fields">
+                            <select
+                              value={training.trainingTemplateId}
+                              onChange={(e) => {
+                                const updated = [...templateFormData.trainings];
+                                updated[index] = { ...updated[index], trainingTemplateId: e.target.value };
+                                setTemplateFormData({ ...templateFormData, trainings: updated });
+                              }}
+                              className="form-select"
+                              required
+                            >
+                              <option value="">Modelo de treino...</option>
+                              {trainingTemplates.map((tt) => (
+                                <option key={tt.id} value={tt.id}>{tt.name}</option>
+                              ))}
+                            </select>
+
+                            <div>
+                              <select
+                                value={training.weekDay}
+                                onChange={(e) => {
+                                  const updated = [...templateFormData.trainings];
+                                  updated[index] = { ...updated[index], weekDay: e.target.value };
+                                  setTemplateFormData({ ...templateFormData, trainings: updated });
+                                }}
+                                className={`form-select${invalidDay ? ' form-select--error' : ''}`}
+                                required
+                              >
+                                <option value="">Dia da semana...</option>
+                                {[
+                                  { value: 'monday', label: 'Segunda' },
+                                  { value: 'tuesday', label: 'Terça' },
+                                  { value: 'wednesday', label: 'Quarta' },
+                                  { value: 'thursday', label: 'Quinta' },
+                                  { value: 'friday', label: 'Sexta' },
+                                  { value: 'saturday', label: 'Sábado' },
+                                  { value: 'sunday', label: 'Domingo' },
+                                ].map((day) => (
+                                  <option
+                                    key={day.value}
+                                    value={day.value}
+                                    disabled={!templateFormData.availableWeekDays.includes(day.value)}
+                                  >
+                                    {day.label}
+                                    {!templateFormData.availableWeekDays.includes(day.value) ? ' (indisponível)' : ''}
+                                  </option>
+                                ))}
+                              </select>
+                              {invalidDay && (
+                                <span className="schedule-template-error">
+                                  Este dia não está nos dias disponíveis do modelo.
+                                </span>
+                              )}
+                            </div>
+
+                            <input
+                              type="number"
+                              min="1"
+                              value={training.order}
+                              onChange={(e) => {
+                                const updated = [...templateFormData.trainings];
+                                updated[index] = { ...updated[index], order: parseInt(e.target.value) || 1 };
+                                setTemplateFormData({ ...templateFormData, trainings: updated });
+                              }}
+                              className="form-input schedule-template-order"
+                              placeholder="Ordem"
+                              required
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            className="btn-delete-sm"
+                            onClick={() => {
+                              const updated = templateFormData.trainings.filter((_, i) => i !== index);
+                              setTemplateFormData({ ...templateFormData, trainings: updated });
+                            }}
+                            aria-label="Remover treino"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="btn-group">
                   <button type="submit" disabled={loading} className="btn-primary">
                     {loading ? 'Salvando...' : 'Salvar'}
@@ -479,7 +631,7 @@ const TrainingProtocols = () => {
             </div>
           )}
 
-          <div className="grid-cards">
+          {!showTemplateForm && <div className="grid-cards">
             {templates.map((template) => (
               <div key={template.id} className="card">
                 <div className="mb-md">
@@ -496,6 +648,9 @@ const TrainingProtocols = () => {
                 <div className="info-list mb-md" style={{ paddingTop: 'var(--spacing-sm)', borderTop: '1px solid var(--color-outline-variant)' }}>
                   <div className="text-sm text-light">
                     <strong>Duração:</strong> {template.defaultDurationWeeks} semanas
+                  </div>
+                  <div className="text-sm text-light">
+                    <strong>Treinos:</strong> {template.scheduleTemplatesCount || 0}
                   </div>
                   {template.availableWeekDays && template.availableWeekDays.length > 0 && (
                     <div className="text-sm text-light">
@@ -535,7 +690,7 @@ const TrainingProtocols = () => {
                 </div>
               </div>
             ))}
-          </div>
+          </div>}
 
           {templates.length === 0 && !showTemplateForm && (
             <div className="empty-state">

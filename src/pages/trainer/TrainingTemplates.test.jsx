@@ -22,8 +22,8 @@ vi.mock('../../api/axios', () => ({
 const mockShowToast = vi.fn();
 
 const mockTemplates = [
-  { id: 1, name: 'Treino A', description: 'Descrição do treino A', isPublic: false },
-  { id: 2, name: 'Treino B', description: 'Descrição do treino B', isPublic: true },
+  { id: 1, name: 'Treino A', description: 'Descrição do treino A', isPublic: false, category: 'strength', bodySegment: 'upper' },
+  { id: 2, name: 'Treino B', description: 'Descrição do treino B', isPublic: true, category: 'cardio', bodySegment: 'lower' },
 ];
 
 describe('TrainingTemplates', () => {
@@ -110,6 +110,7 @@ describe('TrainingTemplates', () => {
 
     const nameInput = screen.getAllByRole('textbox')[0];
     await user.type(nameInput, 'Novo Treino');
+    await user.selectOptions(screen.getAllByRole('combobox')[0], 'strength');
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {

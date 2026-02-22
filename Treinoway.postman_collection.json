@@ -665,7 +665,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"assigneeId\": \"uuid-here\",\n  \"name\": \"Full Body Protocol\",\n  \"description\": \"A comprehensive full body training protocol\",\n  \"availableWeekDays\": [\"monday\", \"wednesday\", \"friday\"],\n  \"status\": \"active\",\n  \"startDate\": \"2024-01-01\",\n  \"expirationDate\": \"2024-03-01\"\n}"
+              "raw": "{\n  \"assigneeId\": \"uuid-here\",\n  \"name\": \"Full Body Protocol\",\n  \"description\": \"A comprehensive full body training protocol\",\n  \"availableWeekDays\": [\"monday\", \"wednesday\", \"friday\"],\n  \"status\": \"active\",\n  \"startDate\": \"2024-01-01\",\n  \"expirationDate\": \"2024-03-01\",\n  \"genderOrdination\": \"male\",\n  \"trainingLevel\": \"beginner\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/trainer/protocols",
@@ -689,7 +689,7 @@
                 {
                   "key": "status",
                   "value": "active",
-                  "description": "Filter by status (active, paused, completed)",
+                  "description": "Filter by status (active, completed, archived)",
                   "disabled": true
                 },
                 {
@@ -737,7 +737,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Protocol Name\",\n  \"description\": \"Updated description\",\n  \"availableWeekDays\": [\"monday\", \"tuesday\", \"thursday\"],\n  \"status\": \"paused\",\n  \"startDate\": \"2024-01-01\",\n  \"expirationDate\": \"2024-04-01\"\n}"
+              "raw": "{\n  \"name\": \"Updated Protocol Name\",\n  \"description\": \"Updated description\",\n  \"availableWeekDays\": [\"monday\", \"tuesday\", \"thursday\"],\n  \"status\": \"active\",\n  \"startDate\": \"2024-01-01\",\n  \"expirationDate\": \"2024-04-01\",\n  \"genderOrdination\": \"female\",\n  \"trainingLevel\": \"intermediate\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/trainer/protocols/:id",
@@ -788,12 +788,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"templateId\": \"uuid-here\",\n  \"assigneeId\": \"uuid-here\",\n  \"name\": \"Protocol from Template\",\n  \"description\": \"Custom description\",\n  \"availableWeekDays\": [\"monday\", \"wednesday\", \"friday\"],\n  \"startDate\": \"2024-01-01\",\n  \"expirationDate\": \"2024-03-01\"\n}"
+              "raw": "{\n  \"templateId\": \"uuid-here\",\n  \"assigneeId\": \"uuid-here\",\n  \"name\": \"Protocol from Template\",\n  \"description\": \"Custom description\",\n  \"availableWeekDays\": [\"monday\", \"wednesday\", \"friday\"],\n  \"startDate\": \"2024-01-01\",\n  \"expirationDate\": \"2024-03-01\",\n  \"genderOrdination\": \"other\",\n  \"trainingLevel\": \"advanced\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/trainer/protocols/from-template",
+              "raw": "{{baseUrl}}/trainer/protocols/import-from-template",
               "host": ["{{baseUrl}}"],
-              "path": ["trainer", "protocols", "from-template"]
+              "path": ["trainer", "protocols", "import-from-template"]
             },
             "description": "Create a new protocol by importing from a template. Trainings from the template will be copied to the new protocol."
           },
@@ -817,7 +817,7 @@
                 {
                   "key": "status",
                   "value": "active",
-                  "description": "Filter by status (active, paused, completed)",
+                  "description": "Filter by status (active, completed, archived)",
                   "disabled": true
                 }
               ]
@@ -864,14 +864,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Beginner Full Body\",\n  \"description\": \"A beginner-friendly full body template\",\n  \"availableWeekDays\": [\"monday\", \"wednesday\", \"friday\"],\n  \"defaultDurationWeeks\": 12\n}"
+              "raw": "{\n  \"name\": \"Beginner Full Body\",\n  \"description\": \"A beginner-friendly full body template\",\n  \"availableWeekDays\": [\"monday\", \"wednesday\", \"friday\"],\n  \"defaultDurationWeeks\": 12,\n  \"genderOrdination\": \"male\",\n  \"trainingLevel\": \"beginner\",\n  \"trainings\": [\n    { \"trainingTemplateId\": \"{{trainingTemplateId}}\", \"weekDay\": \"monday\", \"order\": 0 },\n    { \"trainingTemplateId\": \"{{trainingTemplateId}}\", \"weekDay\": \"wednesday\", \"order\": 0 }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/trainer/protocol-templates",
               "host": ["{{baseUrl}}"],
               "path": ["trainer", "protocol-templates"]
             },
-            "description": "Create a reusable protocol template. Requires TRAINER role."
+            "description": "Create a reusable protocol template. Optionally include a 'trainings' array to pre-populate schedule templates. Each item requires trainingTemplateId (uuid), weekDay, and optional order. Requires TRAINER role."
           },
           "response": []
         },
@@ -885,7 +885,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["trainer", "protocol-templates"]
             },
-            "description": "Get all protocol templates created by the authenticated trainer."
+            "description": "Get all protocol templates created by the authenticated trainer. Each template includes a 'scheduleTemplatesCount' integer showing how many training schedule entries it has."
           },
           "response": []
         },
@@ -906,7 +906,7 @@
                 }
               ]
             },
-            "description": "Get a specific protocol template by ID. Only accessible by the template's trainer."
+            "description": "Get a specific protocol template by ID. Response includes 'scheduleTemplates' array with nested training template info (id, name, category, bodySegment). Only accessible by the template's trainer."
           },
           "response": []
         },
@@ -922,7 +922,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Template Name\",\n  \"description\": \"Updated description\",\n  \"availableWeekDays\": [\"monday\", \"tuesday\", \"thursday\", \"saturday\"],\n  \"defaultDurationWeeks\": 16\n}"
+              "raw": "{\n  \"name\": \"Updated Template Name\",\n  \"description\": \"Updated description\",\n  \"availableWeekDays\": [\"monday\", \"tuesday\", \"thursday\", \"saturday\"],\n  \"defaultDurationWeeks\": 16,\n  \"genderOrdination\": \"female\",\n  \"trainingLevel\": \"intermediate\",\n  \"trainings\": [\n    { \"trainingTemplateId\": \"{{trainingTemplateId}}\", \"weekDay\": \"monday\", \"order\": 0 }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/trainer/protocol-templates/:id",
@@ -936,7 +936,7 @@
                 }
               ]
             },
-            "description": "Update a protocol template. All fields are optional. Only accessible by the template's trainer."
+            "description": "Update a protocol template. All fields are optional. If 'trainings' array is provided, it atomically replaces all existing schedule templates. Pass an empty array to clear all schedule templates. Only accessible by the template's trainer."
           },
           "response": []
         },
