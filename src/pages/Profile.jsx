@@ -50,7 +50,28 @@ useEffect(() => {
 
   useEffect(() => {
     if (user && !editing) {
-      setFormData(emptyFormData);
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        gender: user.gender || '',
+        birthDate: user.birthDate?.split('T')[0] || '',
+        address: {
+          line1: user.address?.line1 || '',
+          line2: user.address?.line2 || '',
+          neighborhood: user.address?.neighborhood || '',
+          city: user.address?.city || '',
+          state: user.address?.state || '',
+          stateCode: user.address?.stateCode || '',
+          country: user.address?.country || '',
+          countryCode: user.address?.countryCode || '',
+          postalCode: user.address?.postalCode || '',
+        },
+        socials: {
+          instagram: user.socials?.instagram || '',
+          whatsapp: user.socials?.whatsapp || '',
+          linkedin: user.socials?.linkedin || '',
+        },
+      });
     }
   }, [user]);
 

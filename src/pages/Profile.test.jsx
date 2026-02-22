@@ -37,6 +37,11 @@ const mockUser = {
   birthDate: '1990-05-15T00:00:00.000Z',
 };
 
+const mockEmptyUser = {
+  id: 1,
+  email: 'user@example.com',
+};
+
 describe('Profile', () => {
   beforeEach(() => {
     mockRefreshUser.mockClear();
@@ -82,7 +87,7 @@ describe('Profile', () => {
     expect(screen.getByRole('button', { name: /^salvar$/i })).toBeInTheDocument();
   });
 
-  it('form inputs start empty in edit mode', async () => {
+  it('form inputs are pre-filled with user data in edit mode', async () => {
     const user = userEvent.setup();
 
     renderWithRouter(<Profile />);
@@ -93,13 +98,18 @@ describe('Profile', () => {
     const firstNameInput = inputs[0];
     const lastNameInput = inputs[1];
 
-    expect(firstNameInput).toHaveValue('');
-    expect(lastNameInput).toHaveValue('');
+    expect(firstNameInput).toHaveValue('João');
+    expect(lastNameInput).toHaveValue('Silva');
   });
 
   it('calls profile update API with only filled fields', async () => {
     const user = userEvent.setup();
     api.patch.mockResolvedValue({ data: mockUser });
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockEmptyUser,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+    });
 
     renderWithRouter(<Profile />);
 
@@ -121,6 +131,11 @@ describe('Profile', () => {
   it('shows success toast and exits edit mode on successful update', async () => {
     const user = userEvent.setup();
     api.patch.mockResolvedValue({ data: mockUser });
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockEmptyUser,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+    });
 
     renderWithRouter(<Profile />);
 
@@ -144,6 +159,11 @@ describe('Profile', () => {
       response: { status: 500, data: { message: 'Internal server error' } },
       userMessage: 'Erro interno do servidor.',
     });
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockEmptyUser,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+    });
 
     renderWithRouter(<Profile />);
 
@@ -165,6 +185,11 @@ describe('Profile', () => {
 
   it('shows error toast when submitting empty form', async () => {
     const user = userEvent.setup();
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockEmptyUser,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+    });
 
     renderWithRouter(<Profile />);
 
@@ -183,6 +208,11 @@ describe('Profile', () => {
   it('trims string values before submitting', async () => {
     const user = userEvent.setup();
     api.patch.mockResolvedValue({ data: mockUser });
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockEmptyUser,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+    });
 
     renderWithRouter(<Profile />);
 
@@ -204,6 +234,11 @@ describe('Profile', () => {
   it('does not include empty fields in payload', async () => {
     const user = userEvent.setup();
     api.patch.mockResolvedValue({ data: mockUser });
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockEmptyUser,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+    });
 
     renderWithRouter(<Profile />);
 
