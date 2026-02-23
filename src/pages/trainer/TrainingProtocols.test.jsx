@@ -1,4 +1,4 @@
-import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter } from '../../test/test-utils';
 import TrainingProtocols from './TrainingProtocols';
@@ -32,7 +32,12 @@ const mockProtocols = [
 ];
 
 const mockTemplates = [
-  { id: 1, name: 'Modelo Base', description: 'Desc', availableWeekDays: [], defaultDurationWeeks: 12, genderOrdination: 'female', trainingLevel: 'beginner' },
+  { id: 1, name: 'Modelo Base', description: 'Desc', availableWeekDays: ['monday', 'wednesday'], defaultDurationWeeks: 12, genderOrdination: 'female', trainingLevel: 'beginner' },
+];
+
+const mockTrainingTemplates = [
+  { id: 10, name: 'Treino A', category: 'strength', bodySegment: 'upper' },
+  { id: 11, name: 'Treino B', category: 'cardio', bodySegment: 'lower' },
 ];
 
 describe('TrainingProtocols', () => {
@@ -43,6 +48,7 @@ describe('TrainingProtocols', () => {
     api.get.mockImplementation((url) => {
       if (url === '/trainer/protocols') return Promise.resolve({ data: mockProtocols });
       if (url === '/trainer/protocol-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
       return Promise.resolve({ data: [] });
     });
 
@@ -183,6 +189,7 @@ describe('TrainingProtocols', () => {
     api.get.mockImplementation((url) => {
       if (url === '/trainer/protocols') return Promise.resolve({ data: mockProtocols });
       if (url === '/trainer/protocol-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
       return Promise.resolve({ data: [] });
     });
 
@@ -198,6 +205,111 @@ describe('TrainingProtocols', () => {
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/protocol-templates/1');
       expect(mockShowToast).toHaveBeenCalledWith('Modelo excluído com sucesso!', 'success');
+    });
+  });
+
+  describe('inline Training Template creation', () => {
+    const openTemplateForm = async (user) => {
+      await user.click(screen.getByRole('button', { name: /^modelos$/i }));
+      await waitFor(() => screen.getByRole('button', { name: /\+ novo modelo/i }));
+      await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
+    };
+
+    it('shows action cards when no trainings were added yet', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<TrainingProtocols />);
+
+      await openTemplateForm(user);
+
+      expect(screen.getByRole('button', { name: /selecionar existente/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /criar novo modelo de treino/i })).toBeInTheDocument();
+    });
+
+    it('adds a training row from empty-state card and shows footer actions', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<TrainingProtocols />);
+
+      await openTemplateForm(user);
+      await user.click(screen.getByRole('button', { name: /selecionar existente/i }));
+
+      expect(screen.getByRole('button', { name: /\+ adicionar treino/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /criar novo modelo de treino/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /selecionar existente/i })).not.toBeInTheDocument();
+    });
+
+    it('opens modal when "+ Criar novo" is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<TrainingProtocols />);
+
+      await openTemplateForm(user);
+      await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
+
+      const modal = document.querySelector('.bottom-sheet');
+      expect(modal).toBeInTheDocument();
+      expect(within(modal).getByRole('heading', { name: /criar modelo de treino/i })).toBeInTheDocument();
+    });
+
+    it('closes modal when Cancelar is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<TrainingProtocols />);
+
+      await openTemplateForm(user);
+      await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
+
+      const modal = document.querySelector('.bottom-sheet');
+      expect(modal).toBeInTheDocument();
+
+      await user.click(within(modal).getByRole('button', { name: /cancelar/i }));
+
+      expect(document.querySelector('.bottom-sheet')).not.toBeInTheDocument();
+    });
+
+    it('creates training template and refreshes the list', async () => {
+      const user = userEvent.setup();
+      const createdTemplate = { id: 99, name: 'Novo Treino', category: 'strength', bodySegment: 'upper' };
+      api.post.mockResolvedValue({ data: createdTemplate });
+
+      renderWithRouter(<TrainingProtocols />);
+
+      await openTemplateForm(user);
+      await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
+
+      const modal = document.querySelector('.bottom-sheet');
+      await user.type(screen.getByLabelText('Nome', { selector: '#tt-modal-name' }), 'Novo Treino');
+      await user.selectOptions(within(modal).getByRole('combobox', { name: /categoria/i }), 'strength');
+
+      await user.click(within(modal).getByRole('button', { name: /criar modelo de treino/i }));
+
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith('/trainer/training-templates', expect.objectContaining({
+          name: 'Novo Treino',
+          category: 'strength',
+        }));
+        expect(mockShowToast).toHaveBeenCalledWith('Modelo de treino criado com sucesso!', 'success');
+      });
+
+      expect(document.querySelector('.bottom-sheet')).not.toBeInTheDocument();
+    });
+
+    it('shows error toast when creation fails', async () => {
+      const user = userEvent.setup();
+      const errorObj = { userMessage: 'Nome já existe' };
+      api.post.mockRejectedValue(errorObj);
+
+      renderWithRouter(<TrainingProtocols />);
+
+      await openTemplateForm(user);
+      await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
+
+      const modal = document.querySelector('.bottom-sheet');
+      await user.type(screen.getByLabelText('Nome', { selector: '#tt-modal-name' }), 'Duplicado');
+      await user.selectOptions(within(modal).getByRole('combobox', { name: /categoria/i }), 'cardio');
+
+      await user.click(within(modal).getByRole('button', { name: /criar modelo de treino/i }));
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith('Nome já existe', 'error');
+      });
     });
   });
 });

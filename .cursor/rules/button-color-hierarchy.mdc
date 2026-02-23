@@ -1,0 +1,33 @@
+---
+description: Enforce app-wide button color hierarchy and semantics
+alwaysApply: true
+---
+
+# Button Color Hierarchy
+
+Use this hierarchy for all user actions to keep visual consistency:
+
+- `btn-primary`: main action (save, create, confirm)
+- `btn-secondary`: neutral/secondary action (cancel, back, close) using tonal primary container
+- `btn-schedule-sm`: alternative accent action (add/schedule) using tertiary container
+- `btn-delete` / `btn-delete-sm` / `btn-danger`: destructive actions only
+
+## Rules
+
+- Do not use gray-only secondary buttons for cancel/secondary flows.
+- Do not create new one-off button colors when an existing class already matches the action semantic.
+- Prefer semantic class reuse over inline style color overrides.
+- Keep hover behavior subtle (`filter: brightness(...)`) and based on the same palette token family.
+
+## Examples
+
+```jsx
+// ✅ GOOD
+<button className="btn-primary">Salvar</button>
+<button className="btn-secondary">Cancelar</button>
+<button className="btn-schedule-sm">+ Adicionar treino</button>
+
+// ❌ BAD
+<button style={{ background: '#e5e7eb', color: '#111827' }}>Cancelar</button>
+<button className="btn-secondary custom-pink-btn">Adicionar</button>
+```
