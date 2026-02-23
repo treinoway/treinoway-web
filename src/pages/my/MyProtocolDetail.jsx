@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import api from '../../api/axios';
+import { formatDateForDisplay } from '../../utils/dateFormat';
 
 const MyProtocolDetail = () => {
   const { id } = useParams();
@@ -45,6 +46,13 @@ const MyProtocolDetail = () => {
     SUNDAY: 'Domingo',
   };
 
+  const trainerLabel = [protocol?.trainer?.firstName, protocol?.trainer?.lastName]
+    .filter(Boolean)
+    .join(' ')
+    || protocol?.trainer?.name
+    || protocol?.trainer?.email
+    || 'N/A';
+
   if (loading) {
     return (
       <div className="loading-screen">
@@ -85,19 +93,19 @@ const MyProtocolDetail = () => {
           <div>
             <span className="info-label info-inline">Treinador:</span>
             <span className="info-value">
-              {protocol.trainer?.user?.name || 'N/A'}
+              {trainerLabel}
             </span>
           </div>
           <div>
             <span className="info-label info-inline">Data de Início:</span>
             <span className="info-value">
-              {new Date(protocol.startDate).toLocaleDateString('pt-BR')}
+              {formatDateForDisplay(protocol.startDate)}
             </span>
           </div>
           <div>
             <span className="info-label info-inline">Data de Término:</span>
             <span className="info-value">
-              {new Date(protocol.endDate).toLocaleDateString('pt-BR')}
+              {formatDateForDisplay(protocol.expirationDate || protocol.endDate)}
             </span>
           </div>
           <div>

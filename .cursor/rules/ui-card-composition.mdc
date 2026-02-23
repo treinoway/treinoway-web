@@ -1,0 +1,33 @@
+---
+description: Enforce app-consistent card composition and hierarchy
+alwaysApply: true
+---
+
+# Card UI Composition
+
+When editing or creating card UIs, always follow the app design system and keep information hierarchy clear.
+
+## Required structure for data cards
+
+1. Primary title on its own line (`card-subtitle`), never merged with secondary metadata.
+2. Secondary metadata (ex.: aluno) on a separate line with subdued style (`text-sm text-light`).
+3. Status badge aligned in the header opposite the title (same row, no overlap/wrap collisions).
+4. Date/info block below header (`protocol-meta` or equivalent), one item per line.
+5. Actions in a dedicated footer row (`btn-group`) with existing semantic button classes.
+
+## Data fallback rules
+
+- Never show misleading placeholders when data exists in alternate contract fields.
+- For person labels, prefer composed full name from `firstName` + `lastName`, then fallback to email.
+- For date labels, never render `Invalid Date`; show a safe fallback (`-`) for missing/invalid values.
+
+## Do / Don't
+
+```jsx
+// ✅ Good: clear hierarchy
+<h3 className="card-subtitle">{protocol.name}</h3>
+<div className="text-sm text-light">Aluno: {studentLabel}</div>
+
+// ❌ Bad: mixed lines and broken hierarchy
+<h3 className="card-subtitle">{protocol.name} Aluno: {studentLabel}</h3>
+```

@@ -24,9 +24,9 @@ const mockShowToast = vi.fn();
 const mockProtocol = {
   id: 1,
   status: 'ACTIVE',
-  startDate: '2024-01-01T00:00:00.000Z',
-  endDate: '2024-03-31T00:00:00.000Z',
-  assignee: { name: 'Aluno Teste', email: 'aluno@example.com' },
+  startDate: '2024-01-01',
+  expirationDate: '2024-03-31',
+  assignee: { firstName: 'Aluno', lastName: 'Teste', email: 'aluno@example.com' },
 };
 
 const mockTrainings = [
@@ -34,6 +34,8 @@ const mockTrainings = [
     id: 10,
     name: 'Treino de Peito',
     description: 'Exercícios de peito',
+    category: 'strength',
+    bodySegment: 'upper',
     order: 1,
     schedules: [],
   },
@@ -80,6 +82,16 @@ describe('ProtocolDetail', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/aluno teste/i)).toBeInTheDocument();
+    });
+  });
+
+  it('renders expiration date without showing Invalid Date', async () => {
+    renderProtocolDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Data de Término:')).toBeInTheDocument();
+      expect(screen.getByText('31/03/2024')).toBeInTheDocument();
+      expect(screen.queryByText(/Invalid Date/i)).not.toBeInTheDocument();
     });
   });
 
@@ -151,8 +163,28 @@ describe('ProtocolDetail', () => {
     await user.click(screen.getByRole('button', { name: /confirmar/i }));
 
     await waitFor(() => {
-      expect(api.delete).toHaveBeenCalledWith('/trainer/protocols/1/trainings/10');
+      expect(api.delete).toHaveBeenCalledWith('/trainer/trainings/10');
       expect(mockShowToast).toHaveBeenCalledWith('Treino excluído com sucesso!', 'success');
+    });
+  });
+
+  it('calls PATCH on /trainer/trainings/:id when editing a training', async () => {
+    const user = userEvent.setup();
+    api.patch.mockResolvedValue({});
+
+    const { container } = renderProtocolDetail();
+
+    await waitFor(() => screen.getByText('Treino de Peito'));
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    fireEvent.submit(container.querySelector('form'));
+
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith(
+        '/trainer/trainings/10',
+        expect.objectContaining({ name: 'Treino de Peito', category: 'strength', bodySegment: 'upper' })
+      );
+      expect(mockShowToast).toHaveBeenCalledWith('Treino atualizado com sucesso!', 'success');
     });
   });
 

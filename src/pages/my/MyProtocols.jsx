@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import api from '../../api/axios';
+import { formatDateForDisplay } from '../../utils/dateFormat';
 
 const MyProtocols = () => {
   const [protocols, setProtocols] = useState([]);
@@ -29,6 +30,13 @@ const MyProtocols = () => {
       case 'CANCELLED': return 'badge badge-red';
       default: return 'badge badge-gray';
     }
+  };
+
+  const getTrainerLabel = (trainer) => {
+    return [trainer?.firstName, trainer?.lastName].filter(Boolean).join(' ')
+      || trainer?.name
+      || trainer?.email
+      || 'N/A';
   };
 
   if (loading) {
@@ -66,15 +74,15 @@ const MyProtocols = () => {
               <div className="protocol-meta">
                 <div>
                   <span className="font-medium">Treinador:</span>{' '}
-                  {protocol.trainer?.user?.name || 'N/A'}
+                  {getTrainerLabel(protocol.trainer)}
                 </div>
                 <div>
                   <span className="font-medium">Inicio:</span>{' '}
-                  {new Date(protocol.startDate).toLocaleDateString('pt-BR')}
+                  {formatDateForDisplay(protocol.startDate)}
                 </div>
                 <div>
                   <span className="font-medium">Termino:</span>{' '}
-                  {new Date(protocol.endDate).toLocaleDateString('pt-BR')}
+                  {formatDateForDisplay(protocol.expirationDate || protocol.endDate)}
                 </div>
               </div>
 

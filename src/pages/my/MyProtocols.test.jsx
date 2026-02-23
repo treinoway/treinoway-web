@@ -17,16 +17,16 @@ const mockProtocols = [
   {
     id: 1,
     status: 'ACTIVE',
-    startDate: '2024-01-01T00:00:00.000Z',
-    endDate: '2024-03-31T00:00:00.000Z',
-    trainer: { user: { name: 'Trainer Silva' } },
+    startDate: '2024-01-01',
+    expirationDate: '2024-03-31',
+    trainer: { firstName: 'Trainer', lastName: 'Silva' },
   },
   {
     id: 2,
     status: 'COMPLETED',
-    startDate: '2023-06-01T00:00:00.000Z',
-    endDate: '2023-08-31T00:00:00.000Z',
-    trainer: { user: { name: 'Trainer Costa' } },
+    startDate: '2023-06-01',
+    expirationDate: '2023-08-31',
+    trainer: { firstName: 'Trainer', lastName: 'Costa' },
   },
 ];
 
@@ -104,6 +104,18 @@ describe('MyProtocols', () => {
     await waitFor(() => {
       expect(screen.getByText('ACTIVE')).toBeInTheDocument();
       expect(screen.getByText('COMPLETED')).toBeInTheDocument();
+    });
+  });
+
+  it('renders expiration dates without showing Invalid Date', async () => {
+    api.get.mockResolvedValue({ data: mockProtocols });
+
+    renderWithRouter(<MyProtocols />);
+
+    await waitFor(() => {
+      expect(screen.getByText('31/03/2024')).toBeInTheDocument();
+      expect(screen.getByText('31/08/2023')).toBeInTheDocument();
+      expect(screen.queryByText(/Invalid Date/i)).not.toBeInTheDocument();
     });
   });
 });

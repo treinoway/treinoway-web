@@ -30,8 +30,8 @@ const mockProtocols = [
     defaultDurationWeeks: 12,
     genderOrdination: 'female',
     trainingLevel: 'beginner',
-    startDate: '2024-01-01T00:00:00.000Z',
-    endDate: '2024-03-31T00:00:00.000Z',
+    startDate: '2024-01-01T12:00:00.000Z',
+    expirationDate: '2024-03-31T12:00:00.000Z',
     status: 'ACTIVE',
     assignee: { id: 'student-1', email: 'aluno@example.com', firstName: 'Aluno', lastName: 'Exemplo' },
   },
@@ -63,6 +63,7 @@ describe('TrainingProtocols', () => {
 
     api.get.mockImplementation((url) => {
       if (url === '/trainer/protocols') return Promise.resolve({ data: mockProtocols });
+      if (url.match(/^\/trainer\/protocols\/\d+$/)) return Promise.resolve({ data: mockProtocols[0] });
       if (url === '/trainer/protocol-templates') return Promise.resolve({ data: mockTemplates });
       if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
       if (url === '/trainer/students/search') return Promise.resolve({ data: mockStudentSearchResults });
@@ -186,9 +187,10 @@ describe('TrainingProtocols', () => {
         genderOrdination: 'male',
         trainingLevel: 'advanced',
         startDate: '2024-01-01',
-        endDate: '2024-03-31',
         expirationDate: '2024-03-31',
       }));
+      const postPayload = api.post.mock.calls[0][1];
+      expect(postPayload.endDate).toBeUndefined();
       expect(mockShowToast).toHaveBeenCalledWith('Rotina criada com sucesso!', 'success');
     });
   });
@@ -201,6 +203,8 @@ describe('TrainingProtocols', () => {
 
     await waitFor(() => screen.getByRole('button', { name: /editar/i }));
     await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    await waitFor(() => expect(screen.getByLabelText('Nome da Rotina')).toHaveValue('Rotina Base'));
 
     await user.clear(screen.getByLabelText('Nome da Rotina'));
     await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina Editada');
@@ -219,11 +223,11 @@ describe('TrainingProtocols', () => {
         genderOrdination: 'other',
         trainingLevel: 'intermediate',
         startDate: '2024-01-02',
-        endDate: '2024-04-30',
         expirationDate: '2024-04-30',
       }));
       const patchPayload = api.patch.mock.calls[0][1];
       expect(patchPayload.assigneeId).toBeUndefined();
+      expect(patchPayload.endDate).toBeUndefined();
       expect(mockShowToast).toHaveBeenCalledWith('Rotina atualizada com sucesso!', 'success');
     });
   });
@@ -255,10 +259,21 @@ describe('TrainingProtocols', () => {
         genderOrdination: 'female',
         trainingLevel: 'beginner',
         startDate: '2024-01-01',
-        endDate: '2024-03-31',
         expirationDate: '2024-03-31',
       }));
       expect(mockShowToast).toHaveBeenCalledWith('Rotina criada com sucesso!', 'success');
+    });
+  });
+
+  it('renders expirationDate in protocol card without showing Invalid Date', async () => {
+    renderWithRouter(<TrainingProtocols />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Rotina Base')).toBeInTheDocument();
+      expect(screen.getByText('Aluno: Aluno Exemplo')).toBeInTheDocument();
+      expect(screen.getByText('Início: 01/01/2024')).toBeInTheDocument();
+      expect(screen.getByText('Término: 31/03/2024')).toBeInTheDocument();
+      expect(screen.queryByText(/Invalid Date/i)).not.toBeInTheDocument();
     });
   });
 
@@ -292,6 +307,7 @@ describe('TrainingProtocols', () => {
       expect(api.post).toHaveBeenCalledWith('/trainer/protocols/55/trainings', expect.objectContaining({
         templateId: '10',
         name: 'Treino A',
+        category: 'strength',
         order: 1,
       }));
     });
@@ -335,6 +351,7 @@ describe('TrainingProtocols', () => {
       expect(api.post).toHaveBeenCalledWith('/trainer/protocols/77/trainings', expect.objectContaining({
         templateId: 201,
         name: 'Treino novo',
+        category: 'strength',
       }));
     });
   });
@@ -352,11 +369,11 @@ describe('TrainingProtocols', () => {
             scheduleTemplates: [
               {
                 order: 1,
-                trainingTemplate: { id: 10, name: 'Treino A', description: 'Desc A' },
+                trainingTemplate: { id: 10, name: 'Treino A', description: 'Desc A', category: 'strength' },
               },
               {
                 order: 2,
-                trainingTemplate: { id: 11, name: 'Treino B', description: 'Desc B' },
+                trainingTemplate: { id: 11, name: 'Treino B', description: 'Desc B', category: 'cardio' },
               },
             ],
           },
@@ -390,11 +407,13 @@ describe('TrainingProtocols', () => {
       expect(api.post).toHaveBeenCalledWith('/trainer/protocols/91/trainings', expect.objectContaining({
         templateId: 10,
         name: 'Treino A',
+        category: 'strength',
         order: 1,
       }));
       expect(api.post).toHaveBeenCalledWith('/trainer/protocols/91/trainings', expect.objectContaining({
         templateId: 11,
         name: 'Treino B',
+        category: 'cardio',
         order: 2,
       }));
       expect(mockShowToast).toHaveBeenCalledWith('Treinos do modelo sincronizados automaticamente.', 'success');

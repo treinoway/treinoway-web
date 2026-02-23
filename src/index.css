@@ -1514,6 +1514,26 @@ a {
   margin-bottom: 1rem;
 }
 
+.protocol-card-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  flex: 1;
+}
+
+.protocol-card-status {
+  flex-shrink: 0;
+  align-self: flex-start;
+  text-transform: capitalize;
+}
+
+@media (min-width: 768px) {
+  .protocol-card-status {
+    align-self: center;
+  }
+}
+
 .protocol-detail-link {
   font-size: 0.875rem;
   color: var(--color-primary);

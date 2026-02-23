@@ -4,6 +4,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import DateInput from '../../components/DateInput';
+import { formatDateForDisplay } from '../../utils/dateFormat';
 
 const TrainingProtocols = () => {
   const { showToast } = useToast();
@@ -127,7 +128,6 @@ const TrainingProtocols = () => {
       availableWeekDays: data.availableWeekDays,
       defaultDurationWeeks: data.defaultDurationWeeks,
       startDate: data.startDate,
-      endDate: data.endDate,
       expirationDate: data.endDate,
       ...(data.genderOrdination && { genderOrdination: data.genderOrdination }),
       ...(data.trainingLevel && { trainingLevel: data.trainingLevel }),
@@ -176,10 +176,10 @@ const TrainingProtocols = () => {
       templateId,
       name: selectedTemplate.name || '',
       description: selectedTemplate.description || '',
-      availableWeekDays: selectedTemplate.availableWeekDays || [],
+      availableWeekDays: (selectedTemplate.availableWeekDays || []).map((d) => d.toLowerCase()),
       defaultDurationWeeks: selectedTemplate.defaultDurationWeeks || prev.defaultDurationWeeks,
-      genderOrdination: selectedTemplate.genderOrdination || '',
-      trainingLevel: selectedTemplate.trainingLevel || '',
+      genderOrdination: selectedTemplate.genderOrdination?.toLowerCase() || '',
+      trainingLevel: selectedTemplate.trainingLevel?.toLowerCase() || '',
     }));
   };
 
@@ -266,11 +266,13 @@ const TrainingProtocols = () => {
       const resolvedTemplateId = createdTemplateIdByTempId[training.templateId] || training.templateId;
       const existingTemplate = trainingTemplates.find((template) => String(template.id) === String(resolvedTemplateId));
       const pendingTemplate = pendingProtocolTrainingTemplates.find((template) => template.tempId === training.templateId);
+      const resolvedCategory = existingTemplate?.category || pendingTemplate?.data?.category;
 
       await api.post(`/trainer/protocols/${protocolId}/trainings`, {
         name: existingTemplate?.name || pendingTemplate?.data.name || 'Treino',
         description: existingTemplate?.description || pendingTemplate?.data.description || '',
         order: Number(training.order) || 1,
+        ...(resolvedCategory && { category: resolvedCategory }),
         ...(resolvedTemplateId && { templateId: resolvedTemplateId }),
       });
     }
@@ -303,6 +305,7 @@ const TrainingProtocols = () => {
         name: trainingTemplate.name || `Treino ${index + 1}`,
         description: trainingTemplate.description || '',
         order: scheduleTemplate.order || index + 1,
+        ...(trainingTemplate.category && { category: trainingTemplate.category }),
       });
       createdCount += 1;
     }
@@ -356,29 +359,37 @@ const TrainingProtocols = () => {
     }
   };
 
-  const handleEdit = (protocol) => {
-    const protocolEndDate = protocol.endDate || protocol.expirationDate;
-
-    setFormData({
-      assigneeId: protocol.assignee?.id || '',
-      name: protocol.name || '',
-      description: protocol.description || '',
-      availableWeekDays: protocol.availableWeekDays || [],
-      defaultDurationWeeks: protocol.defaultDurationWeeks || 12,
-      genderOrdination: protocol.genderOrdination || '',
-      trainingLevel: protocol.trainingLevel || '',
-      trainings: [],
-      startDate: protocol.startDate?.split('T')[0] || '',
-      endDate: protocolEndDate?.split('T')[0] || '',
-      templateId: '',
-    });
-    setSelectedStudent(protocol.assignee || null);
-    setStudentSearchQuery('');
-    setStudentSearchResults([]);
+  const handleEdit = async (protocol) => {
     setEditingId(protocol.id);
     setActiveTab('protocols');
     setPendingProtocolTrainingTemplates([]);
+    setSelectedStudent(protocol.assignee || null);
+    setStudentSearchQuery('');
+    setStudentSearchResults([]);
     setShowForm(true);
+
+    try {
+      const response = await api.get(`/trainer/protocols/${protocol.id}`);
+      const full = response.data;
+      const protocolEndDate = full.endDate || full.expirationDate;
+
+      setFormData({
+        assigneeId: full.assignee?.id || '',
+        name: full.name || '',
+        description: full.description || '',
+        availableWeekDays: (full.availableWeekDays || []).map((d) => d.toLowerCase()),
+        defaultDurationWeeks: full.defaultDurationWeeks || 12,
+        genderOrdination: full.genderOrdination?.toLowerCase() || '',
+        trainingLevel: full.trainingLevel?.toLowerCase() || '',
+        trainings: [],
+        startDate: full.startDate?.split('T')[0] || '',
+        endDate: protocolEndDate?.split('T')[0] || '',
+        templateId: '',
+      });
+      setSelectedStudent(full.assignee || null);
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+    }
   };
 
   const handleDelete = (id) => {
@@ -452,13 +463,13 @@ const TrainingProtocols = () => {
       setTemplateFormData({
         name: full.name,
         description: full.description || '',
-        availableWeekDays: full.availableWeekDays || [],
+        availableWeekDays: (full.availableWeekDays || []).map((d) => d.toLowerCase()),
         defaultDurationWeeks: full.defaultDurationWeeks || 12,
-        genderOrdination: full.genderOrdination || '',
-        trainingLevel: full.trainingLevel || '',
+        genderOrdination: full.genderOrdination?.toLowerCase() || '',
+        trainingLevel: full.trainingLevel?.toLowerCase() || '',
         trainings: (full.scheduleTemplates || []).map((st) => ({
           trainingTemplateId: st.trainingTemplate?.id || st.trainingTemplateId,
-          weekDay: st.weekDay,
+          weekDay: st.weekDay?.toLowerCase(),
           order: st.order,
         })),
       });
@@ -997,44 +1008,42 @@ const TrainingProtocols = () => {
 
           {!showForm && <div className="grid-cards">
             {protocols.map((protocol) => (
-              <Link
-                key={protocol.id}
-                to={`/trainer/protocols/${protocol.id}`}
-                className="card-link"
-              >
+              <div key={protocol.id} className="card">
                 <div className="card-header-start">
-                  <h3 className="card-subtitle">
-                    {protocol.assignee?.name || protocol.assignee?.email}
-                  </h3>
-                  <span className={getStatusBadgeClass(protocol.status)}>
+                  <div className="protocol-card-title-group">
+                    <h3 className="card-subtitle mb-0">
+                      {protocol.name || 'Rotina sem nome'}
+                    </h3>
+                    <div className="text-sm text-light">
+                      Aluno: {getStudentDisplayName(protocol.assignee) || 'Não informado'}
+                    </div>
+                  </div>
+                  <span className={`${getStatusBadgeClass(protocol.status)} protocol-card-status`}>
                     {protocol.status}
                   </span>
                 </div>
                 <div className="protocol-meta">
-                  <div>Início: {new Date(protocol.startDate).toLocaleDateString('pt-BR')}</div>
-                  <div>Término: {new Date(protocol.endDate).toLocaleDateString('pt-BR')}</div>
+                  <div>Início: {formatDateForDisplay(protocol.startDate)}</div>
+                  <div>Término: {formatDateForDisplay(protocol.expirationDate || protocol.endDate)}</div>
                 </div>
+                <Link to={`/trainer/protocols/${protocol.id}`} className="protocol-detail-link mb-md">
+                  Ver detalhes
+                </Link>
                 <div className="btn-group">
                   <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleEdit(protocol);
-                    }}
+                    onClick={() => handleEdit(protocol)}
                     className="btn-edit"
                   >
                     Editar
                   </button>
                   <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleDelete(protocol.id);
-                    }}
+                    onClick={() => handleDelete(protocol.id)}
                     className="btn-delete"
                   >
                     Excluir
                   </button>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>}
 
@@ -1445,6 +1454,10 @@ const TrainingProtocols = () => {
                       <option value="">Selecione...</option>
                       <option value="strength">Força</option>
                       <option value="cardio">Cardio</option>
+                      <option value="flexibility">Flexibilidade</option>
+                      <option value="functional">Funcional</option>
+                      <option value="mobility">Mobilidade</option>
+                      <option value="rest">Descanso</option>
                     </select>
                   </div>
 
@@ -1459,6 +1472,7 @@ const TrainingProtocols = () => {
                       <option value="">Selecione...</option>
                       <option value="upper">Superior</option>
                       <option value="lower">Inferior</option>
+                      <option value="core">Core</option>
                       <option value="full_body">Corpo Inteiro</option>
                     </select>
                   </div>

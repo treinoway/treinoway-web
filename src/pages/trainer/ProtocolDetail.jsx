@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import { formatDateForDisplay } from '../../utils/dateFormat';
 
 const ProtocolDetail = () => {
   const { id } = useParams();
@@ -22,13 +23,16 @@ const ProtocolDetail = () => {
   const [trainingFormData, setTrainingFormData] = useState({
     name: '',
     description: '',
+    category: '',
+    bodySegment: '',
+    notes: '',
     order: 1,
     templateId: '',
   });
 
   const [scheduleFormData, setScheduleFormData] = useState({
-    weekday: 'MONDAY',
-    weekNumber: 1,
+    weekday: 'monday',
+    order: 1,
   });
 
   useEffect(() => {
@@ -72,7 +76,7 @@ const ProtocolDetail = () => {
     try {
       if (editingTrainingId) {
         const { templateId: _templateId, ...updateData } = trainingFormData;
-        await api.patch(`/trainer/protocols/${id}/trainings/${editingTrainingId}`, updateData);
+        await api.patch(`/trainer/trainings/${editingTrainingId}`, updateData);
         showToast('Treino atualizado com sucesso!', 'success');
       } else {
         await api.post(`/trainer/protocols/${id}/trainings`, trainingFormData);
@@ -93,8 +97,8 @@ const ProtocolDetail = () => {
 
     try {
       await api.post(
-        `/trainer/protocols/${id}/trainings/${selectedTrainingForSchedule}/schedule`,
-        scheduleFormData
+        `/trainer/trainings/${selectedTrainingForSchedule}/schedule`,
+        { weekDays: [scheduleFormData.weekday], order: scheduleFormData.order }
       );
       showToast('Treino agendado com sucesso!', 'success');
       fetchTrainings();
@@ -110,6 +114,9 @@ const ProtocolDetail = () => {
     setTrainingFormData({
       name: training.name,
       description: training.description || '',
+      category: training.category || '',
+      bodySegment: training.bodySegment || '',
+      notes: training.notes || '',
       order: training.order,
       templateId: '',
     });
@@ -123,7 +130,7 @@ const ProtocolDetail = () => {
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
-          await api.delete(`/trainer/protocols/${id}/trainings/${trainingId}`);
+          await api.delete(`/trainer/trainings/${trainingId}`);
           showToast('Treino excluído com sucesso!', 'success');
           fetchTrainings();
         } catch (error) {
@@ -138,26 +145,13 @@ const ProtocolDetail = () => {
     setShowScheduleForm(true);
   };
 
-  const handleDeleteSchedule = (trainingId, scheduleId) => {
-    setConfirmDialog({
-      message: 'Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await api.delete(`/trainer/protocols/${id}/trainings/${trainingId}/schedule/${scheduleId}`);
-          showToast('Agendamento excluído com sucesso!', 'success');
-          fetchTrainings();
-        } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
-        }
-      },
-    });
-  };
-
   const resetTrainingForm = () => {
     setTrainingFormData({
       name: '',
       description: '',
+      category: '',
+      bodySegment: '',
+      notes: '',
       order: 1,
       templateId: '',
     });
@@ -167,8 +161,8 @@ const ProtocolDetail = () => {
 
   const resetScheduleForm = () => {
     setScheduleFormData({
-      weekday: 'MONDAY',
-      weekNumber: 1,
+      weekday: 'monday',
+      order: 1,
     });
     setSelectedTrainingForSchedule(null);
     setShowScheduleForm(false);
@@ -184,6 +178,13 @@ const ProtocolDetail = () => {
     SUNDAY: 'Domingo',
   };
 
+  const assigneeLabel = [protocol?.assignee?.firstName, protocol?.assignee?.lastName]
+    .filter(Boolean)
+    .join(' ')
+    || protocol?.assignee?.name
+    || protocol?.assignee?.email
+    || 'Aluno';
+
   if (!protocol) {
     return (
       <div className="empty-state">Carregando...</div>
@@ -198,7 +199,7 @@ const ProtocolDetail = () => {
 
       <div className="card card--mb">
         <h1 className="page-title">
-          Rotina de {protocol.assignee?.name || protocol.assignee?.email}
+          Rotina de {assigneeLabel}
         </h1>
         <div className="grid-2col text-sm">
           <div>
@@ -208,13 +209,13 @@ const ProtocolDetail = () => {
           <div>
             <span className="info-label info-inline">Data de Início:</span>
             <span className="info-value">
-              {new Date(protocol.startDate).toLocaleDateString('pt-BR')}
+              {formatDateForDisplay(protocol.startDate)}
             </span>
           </div>
           <div>
             <span className="info-label info-inline">Data de Término:</span>
             <span className="info-value">
-              {new Date(protocol.endDate).toLocaleDateString('pt-BR')}
+              {formatDateForDisplay(protocol.expirationDate || protocol.endDate)}
             </span>
           </div>
           <div>
@@ -284,6 +285,58 @@ const ProtocolDetail = () => {
               />
             </div>
 
+            <div className="grid-responsive-2col">
+              <div>
+                <label className="form-label">Categoria</label>
+                <select
+                  value={trainingFormData.category}
+                  onChange={(e) =>
+                    setTrainingFormData({ ...trainingFormData, category: e.target.value })
+                  }
+                  className="form-select"
+                  required
+                >
+                  <option value="">Selecione...</option>
+                  <option value="strength">Força</option>
+                  <option value="cardio">Cardio</option>
+                  <option value="flexibility">Flexibilidade</option>
+                  <option value="functional">Funcional</option>
+                  <option value="mobility">Mobilidade</option>
+                  <option value="rest">Descanso</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label">Segmento Corporal</label>
+                <select
+                  value={trainingFormData.bodySegment}
+                  onChange={(e) =>
+                    setTrainingFormData({ ...trainingFormData, bodySegment: e.target.value })
+                  }
+                  className="form-select"
+                >
+                  <option value="">Selecione...</option>
+                  <option value="upper">Superior</option>
+                  <option value="lower">Inferior</option>
+                  <option value="core">Core</option>
+                  <option value="full_body">Corpo Inteiro</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="form-label">Observações</label>
+              <textarea
+                value={trainingFormData.notes}
+                onChange={(e) =>
+                  setTrainingFormData({ ...trainingFormData, notes: e.target.value })
+                }
+                rows={2}
+                className="form-textarea"
+                placeholder="Orientações adicionais para este treino"
+              />
+            </div>
+
             <div>
               <label className="form-label">Ordem</label>
               <input
@@ -324,24 +377,24 @@ const ProtocolDetail = () => {
                 className="form-select"
                 required
               >
-                <option value="MONDAY">Segunda-feira</option>
-                <option value="TUESDAY">Terça-feira</option>
-                <option value="WEDNESDAY">Quarta-feira</option>
-                <option value="THURSDAY">Quinta-feira</option>
-                <option value="FRIDAY">Sexta-feira</option>
-                <option value="SATURDAY">Sábado</option>
-                <option value="SUNDAY">Domingo</option>
+                <option value="monday">Segunda-feira</option>
+                <option value="tuesday">Terça-feira</option>
+                <option value="wednesday">Quarta-feira</option>
+                <option value="thursday">Quinta-feira</option>
+                <option value="friday">Sexta-feira</option>
+                <option value="saturday">Sábado</option>
+                <option value="sunday">Domingo</option>
               </select>
             </div>
 
             <div>
-              <label className="form-label">Número da Semana</label>
+              <label className="form-label">Ordem</label>
               <input
                 type="number"
                 min="1"
-                value={scheduleFormData.weekNumber}
+                value={scheduleFormData.order}
                 onChange={(e) =>
-                  setScheduleFormData({ ...scheduleFormData, weekNumber: parseInt(e.target.value) })
+                  setScheduleFormData({ ...scheduleFormData, order: parseInt(e.target.value) })
                 }
                 className="form-input"
                 required
@@ -389,14 +442,8 @@ const ProtocolDetail = () => {
                   {training.schedules.map((schedule) => (
                     <div key={schedule.id} className="schedule-item">
                       <span className="schedule-item-text">
-                        Semana {schedule.weekNumber} - {weekdayLabels[schedule.weekday] || schedule.weekday}
+                        {weekdayLabels[schedule.weekday?.toUpperCase()] || schedule.weekday}
                       </span>
-                      <button
-                        onClick={() => handleDeleteSchedule(training.id, schedule.id)}
-                        className="link-remove"
-                      >
-                        Remover
-                      </button>
                     </div>
                   ))}
                 </div>

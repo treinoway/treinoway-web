@@ -16,9 +16,9 @@ vi.mock('../../api/axios', () => ({
 const mockProtocolData = {
   id: 1,
   status: 'ACTIVE',
-  startDate: '2024-01-01T00:00:00.000Z',
-  endDate: '2024-03-31T00:00:00.000Z',
-  trainer: { user: { name: 'Trainer Silva' } },
+  startDate: '2024-01-01',
+  expirationDate: '2024-03-31',
+  trainer: { firstName: 'Trainer', lastName: 'Silva' },
   trainings: [
     {
       id: 10,
@@ -77,6 +77,17 @@ describe('MyProtocolDetail', () => {
     await waitFor(() => {
       expect(screen.getByText('Minha Rotina de Treino')).toBeInTheDocument();
       expect(screen.getByText('Trainer Silva')).toBeInTheDocument();
+    });
+  });
+
+  it('renders expiration date without showing Invalid Date', async () => {
+    api.get.mockResolvedValue({ data: mockProtocolData });
+
+    renderMyProtocolDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('31/03/2024')).toBeInTheDocument();
+      expect(screen.queryByText(/Invalid Date/i)).not.toBeInTheDocument();
     });
   });
 
