@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
+import DateInput from '../components/DateInput';
 
 // Helper function to format date without timezone conversion
 const formatDateForDisplay = (dateString) => {
@@ -218,8 +219,7 @@ return (
 
                 <div>
                   <label className="form-label">Data de Nascimento</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.birthDate}
                     onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                     className="form-input"

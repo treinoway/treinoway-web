@@ -1178,6 +1178,22 @@ a {
   border-color: transparent;
 }
 
+.form-input--error {
+  border-color: var(--color-error);
+}
+
+.form-input--error:focus {
+  box-shadow: 0 0 0 2px var(--color-error);
+  border-color: transparent;
+}
+
+.form-error {
+  display: block;
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-caption-size);
+  color: var(--color-error);
+}
+
 .form-checkbox-row {
   display: flex;
   align-items: center;

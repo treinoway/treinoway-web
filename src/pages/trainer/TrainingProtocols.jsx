@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import DateInput from '../../components/DateInput';
 
 const TrainingProtocols = () => {
   const { showToast } = useToast();
@@ -389,8 +390,7 @@ const TrainingProtocols = () => {
 
                 <div>
                   <label className="form-label">Data de Início</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                     className="form-input"
@@ -400,8 +400,7 @@ const TrainingProtocols = () => {
 
                 <div>
                   <label className="form-label">Data de Término</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.endDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                     className="form-input"
