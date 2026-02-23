@@ -184,12 +184,12 @@ const ProtocolDetail = () => {
   return (
     <div>
       <button onClick={() => navigate('/trainer/protocols')} className="btn-back">
-        <ArrowLeft size={16} strokeWidth={1.6} /> Voltar para Protocolos
+        <ArrowLeft size={16} strokeWidth={1.6} /> Voltar para Rotinas
       </button>
 
       <div className="card card--mb">
         <h1 className="page-title">
-          Protocolo de {protocol.assignee?.name || protocol.assignee?.email}
+          Rotina de {protocol.assignee?.name || protocol.assignee?.email}
         </h1>
         <div className="grid-2col text-sm">
           <div>
@@ -400,7 +400,7 @@ const ProtocolDetail = () => {
       {trainings.length === 0 && !showTrainingForm && (
         <div className="empty-state">
           <p className="empty-state-title">Nenhum treino ainda</p>
-          <p>Adicione treinos a este protocolo</p>
+          <p>Adicione treinos a esta rotina</p>
         </div>
       )}
     </div>

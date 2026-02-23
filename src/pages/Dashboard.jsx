@@ -59,7 +59,7 @@ const Dashboard = () => {
               <User size={20} strokeWidth={1.6} />
             </div>
             <span className="quick-action-label">Meu Perfil</span>
-            <p className="quick-action-desc">Informações pessoais e configurações</p>
+            <p className="quick-action-desc">Atualize seus dados pessoais, foto e informações de contato</p>
           </Link>
 
           {hasRole('TRAINER') && (
@@ -67,8 +67,8 @@ const Dashboard = () => {
               <div className="quick-action-icon">
                 <ClipboardList size={20} strokeWidth={1.6} />
               </div>
-              <span className="quick-action-label">Protocolos</span>
-              <p className="quick-action-desc">Gerencie protocolos de treino</p>
+              <span className="quick-action-label">Rotinas</span>
+              <p className="quick-action-desc">Crie e acompanhe rotinas de treino atribuídas aos seus alunos</p>
             </Link>
           )}
 
@@ -78,7 +78,7 @@ const Dashboard = () => {
                 <BookOpen size={20} strokeWidth={1.6} />
               </div>
               <span className="quick-action-label">Modelos de Treino</span>
-              <p className="quick-action-desc">Crie e edite modelos reutilizáveis</p>
+              <p className="quick-action-desc">Monte modelos reutilizáveis e aplique-os em qualquer rotina com um clique</p>
             </Link>
           )}
 
@@ -94,7 +94,7 @@ const Dashboard = () => {
               <span className="quick-action-label">
                 {loading ? 'Processando...' : 'Seja um Treinador'}
               </span>
-              <p className="quick-action-desc">Crie e gerencie protocolos de treino</p>
+              <p className="quick-action-desc">Habilite sua conta para criar rotinas, gerenciar alunos e muito mais</p>
             </button>
           )}
         </div>

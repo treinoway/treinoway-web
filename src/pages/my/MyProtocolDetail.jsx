@@ -56,12 +56,12 @@ const MyProtocolDetail = () => {
   if (!protocol) {
     return (
       <div className="empty-state">
-        <p className="empty-state-title">Protocolo não encontrado</p>
+        <p className="empty-state-title">Rotina não encontrada</p>
         <button
           onClick={() => navigate('/my/protocols')}
           className="btn-primary mt-md"
         >
-          Voltar para Meus Protocolos
+          Voltar para Minhas Rotinas
         </button>
       </div>
     );
@@ -70,12 +70,12 @@ const MyProtocolDetail = () => {
   return (
     <div>
       <button onClick={() => navigate('/my/protocols')} className="btn-back">
-        <ArrowLeft size={16} strokeWidth={1.6} /> Voltar para Meus Protocolos
+        <ArrowLeft size={16} strokeWidth={1.6} /> Voltar para Minhas Rotinas
       </button>
 
       <div className="card card--mb">
         <div className="card-header-start">
-          <h1 className="page-title mb-0">Meu Protocolo de Treino</h1>
+          <h1 className="page-title mb-0">Minha Rotina de Treino</h1>
           <span className={getStatusBadgeClass(protocol.status)}>
             {protocol.status}
           </span>
@@ -114,7 +114,7 @@ const MyProtocolDetail = () => {
       {trainings.length === 0 ? (
         <div className="empty-state">
           <p className="empty-state-title">Nenhum treino ainda</p>
-          <p>Seu treinador irá adicionar treinos a este protocolo</p>
+          <p>Seu treinador irá adicionar treinos a esta rotina</p>
         </div>
       ) : (
         <div className="stack-md">

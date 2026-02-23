@@ -72,7 +72,7 @@ const ptBR = {
     startDate: 'data de início',
     expirationDate: 'data de expiração',
     assigneeId: 'aluno',
-    protocolTemplateId: 'modelo de protocolo',
+    protocolTemplateId: 'modelo de rotina',
     availableWeekDays: 'dias da semana',
     defaultDurationWeeks: 'duração em semanas',
     status: 'status',

@@ -94,7 +94,7 @@ const ProtocolTemplates = () => {
   return (
     <div>
       <div className="page-header">
-        <h1>Modelos de Protocolo</h1>
+        <h1>Modelos de Rotina</h1>
         {!showForm && (
           <button onClick={() => setShowForm(true)} className="btn-primary">
             + Novo Modelo
@@ -282,7 +282,7 @@ const ProtocolTemplates = () => {
 
       {templates.length === 0 && !showForm && (
         <div className="empty-state">
-          <p className="empty-state-title">Nenhum modelo de protocolo ainda</p>
+          <p className="empty-state-title">Nenhum modelo de rotina ainda</p>
           <p>Crie seu primeiro modelo para começar</p>
         </div>
       )}

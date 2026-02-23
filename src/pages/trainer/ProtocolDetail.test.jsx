@@ -160,6 +160,6 @@ describe('ProtocolDetail', () => {
 
     await waitFor(() => screen.getByText(/aluno teste/i));
 
-    expect(screen.getByRole('button', { name: /voltar para protocolos/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /voltar para rotinas/i })).toBeInTheDocument();
   });
 });

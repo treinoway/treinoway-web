@@ -46,7 +46,7 @@ describe('ProtocolTemplates', () => {
   it('renders the page title', () => {
     renderWithRouter(<ProtocolTemplates />);
 
-    expect(screen.getByText('Modelos de Protocolo')).toBeInTheDocument();
+    expect(screen.getByText('Modelos de Rotina')).toBeInTheDocument();
   });
 
   it('fetches and displays templates on mount', async () => {
@@ -63,7 +63,7 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum modelo de protocolo ainda')).toBeInTheDocument();
+      expect(screen.getByText('Nenhum modelo de rotina ainda')).toBeInTheDocument();
     });
   });
 

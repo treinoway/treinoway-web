@@ -80,7 +80,7 @@ describe('Dashboard', () => {
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.getByText('Protocolos')).toBeInTheDocument();
+    expect(screen.getByText('Rotinas')).toBeInTheDocument();
     expect(screen.getByText('Modelos de Treino')).toBeInTheDocument();
   });
 
@@ -89,7 +89,7 @@ describe('Dashboard', () => {
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.queryByText('Protocolos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Rotinas')).not.toBeInTheDocument();
     expect(screen.queryByText('Modelos de Treino')).not.toBeInTheDocument();
   });
 

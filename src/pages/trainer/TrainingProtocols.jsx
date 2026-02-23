@@ -22,6 +22,8 @@ const TrainingProtocols = () => {
     templateId: '',
   });
 
+  const [confirmDialog, setConfirmDialog] = useState(null);
+
   // Template form state
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState(null);
@@ -77,7 +79,7 @@ const TrainingProtocols = () => {
       if (editingId) {
         const { assigneeEmail: _assigneeEmail, templateId: _templateId, ...updateData } = formData;
         await api.patch(`/trainer/protocols/${editingId}`, updateData);
-        showToast('Protocolo atualizado com sucesso!', 'success');
+        showToast('Rotina atualizada com sucesso!', 'success');
       } else if (formData.templateId) {
         await api.post('/trainer/protocols/import-from-template', {
           templateId: formData.templateId,
@@ -85,11 +87,11 @@ const TrainingProtocols = () => {
           startDate: formData.startDate,
           expirationDate: formData.endDate,
         });
-        showToast('Protocolo criado com sucesso!', 'success');
+        showToast('Rotina criada com sucesso!', 'success');
       } else {
         const { templateId: _templateId, ...createData } = formData;
         await api.post('/trainer/protocols', createData);
-        showToast('Protocolo criado com sucesso!', 'success');
+        showToast('Rotina criada com sucesso!', 'success');
       }
       fetchProtocols();
       resetForm();
@@ -112,16 +114,20 @@ const TrainingProtocols = () => {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Tem certeza que deseja excluir este protocolo?')) return;
-
-    try {
-      await api.delete(`/trainer/protocols/${id}`);
-      showToast('Protocolo excluído com sucesso!', 'success');
-      fetchProtocols();
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    }
+  const handleDelete = (id) => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir esta rotina? Esta ação não pode ser desfeita.',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await api.delete(`/trainer/protocols/${id}`);
+          showToast('Rotina excluída com sucesso!', 'success');
+          fetchProtocols();
+        } catch (error) {
+          showToast(error.userMessage || translateError(error), 'error');
+        }
+      },
+    });
   };
 
   const resetForm = () => {
@@ -243,11 +249,11 @@ const TrainingProtocols = () => {
   return (
     <div>
       <div className="page-header">
-        <h1>Protocolos de Treino</h1>
+        <h1>Rotinas de Treino</h1>
         <div className="btn-group">
           {!showForm && activeTab === 'protocols' && (
             <button onClick={handleNewProtocol} className="btn-primary">
-              + Novo Protocolo
+              + Nova Rotina
             </button>
           )}
           {!showTemplateForm && activeTab === 'templates' && (
@@ -263,7 +269,7 @@ const TrainingProtocols = () => {
           className={`tab-button ${activeTab === 'protocols' ? 'tab-button--active' : ''}`}
           onClick={() => { setActiveTab('protocols'); resetTemplateForm(); }}
         >
-          Protocolos
+          Rotinas
         </button>
         <button
           className={`tab-button ${activeTab === 'templates' ? 'tab-button--active' : ''}`}
@@ -279,7 +285,7 @@ const TrainingProtocols = () => {
           {showForm && (
             <div className="card card--mb">
               <h2 className="card-title mb-md">
-                {editingId ? 'Editar Protocolo' : 'Criar Novo Protocolo'}
+                {editingId ? 'Editar Rotina' : 'Criar Nova Rotina'}
               </h2>
               <form onSubmit={handleSubmit} className="form">
                 {!editingId && (
@@ -392,8 +398,8 @@ const TrainingProtocols = () => {
 
           {protocols.length === 0 && !showForm && (
             <div className="empty-state">
-              <p className="empty-state-title">Nenhum protocolo de treino ainda</p>
-              <p>Crie seu primeiro protocolo para atribuir a um aluno</p>
+              <p className="empty-state-title">Nenhuma rotina de treino ainda</p>
+              <p>Crie sua primeira rotina para atribuir a um aluno</p>
             </div>
           )}
         </>
@@ -402,6 +408,12 @@ const TrainingProtocols = () => {
       {/* === TAB: Modelos === */}
       {activeTab === 'templates' && (
         <>
+          {!showTemplateForm && (
+            <div className="alert alert-info" style={{ marginBottom: 'var(--spacing-md)' }}>
+              <strong>O que é um modelo?</strong> Um modelo é uma estrutura de rotina pré-definida — com treinos, dias da semana e duração — que você pode reutilizar para criar rotinas rapidamente sem precisar montar tudo do zero.
+            </div>
+          )}
+
           {showTemplateForm && (
             <div className="card card--mb">
               <h2 className="card-title mb-md">
@@ -694,11 +706,27 @@ const TrainingProtocols = () => {
 
           {templates.length === 0 && !showTemplateForm && (
             <div className="empty-state">
-              <p className="empty-state-title">Nenhum modelo de protocolo ainda</p>
-              <p>Crie seu primeiro modelo para começar</p>
+              <p className="empty-state-title">Nenhum modelo de rotina ainda</p>
+              <p>Crie seu primeiro modelo e use-o como base ao atribuir rotinas aos alunos</p>
             </div>
           )}
         </>
+      )}
+
+      {confirmDialog && (
+        <div className="overlay" onClick={() => setConfirmDialog(null)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-dialog-message">{confirmDialog.message}</p>
+            <div className="btn-group">
+              <button onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>
+                Confirmar
+              </button>
+              <button onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

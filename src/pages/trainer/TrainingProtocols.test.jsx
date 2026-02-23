@@ -54,21 +54,21 @@ describe('TrainingProtocols', () => {
   it('renders the page title', () => {
     renderWithRouter(<TrainingProtocols />);
 
-    expect(screen.getByText('Protocolos de Treino')).toBeInTheDocument();
+    expect(screen.getByText('Rotinas de Treino')).toBeInTheDocument();
   });
 
-  it('renders tab buttons for Protocolos and Modelos', () => {
+  it('renders tab buttons for Rotinas and Modelos', () => {
     renderWithRouter(<TrainingProtocols />);
 
-    expect(screen.getByRole('button', { name: /^protocolos$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^rotinas$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^modelos$/i })).toBeInTheDocument();
   });
 
-  it('shows Protocolos tab content by default', async () => {
+  it('shows Rotinas tab content by default', async () => {
     renderWithRouter(<TrainingProtocols />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /\+ novo protocolo/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /\+ nova rotina/i })).toBeInTheDocument();
     });
   });
 
@@ -101,7 +101,7 @@ describe('TrainingProtocols', () => {
     renderWithRouter(<TrainingProtocols />);
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum protocolo de treino ainda')).toBeInTheDocument();
+      expect(screen.getByText('Nenhuma rotina de treino ainda')).toBeInTheDocument();
     });
   });
 
@@ -118,28 +118,28 @@ describe('TrainingProtocols', () => {
     await user.click(screen.getByRole('button', { name: /^modelos$/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum modelo de protocolo ainda')).toBeInTheDocument();
+      expect(screen.getByText('Nenhum modelo de rotina ainda')).toBeInTheDocument();
     });
   });
 
-  it('shows protocol creation form when "+ Novo Protocolo" is clicked', async () => {
+  it('shows rotina creation form when "+ Nova Rotina" is clicked', async () => {
     const user = userEvent.setup();
     renderWithRouter(<TrainingProtocols />);
 
-    await waitFor(() => screen.getByRole('button', { name: /\+ novo protocolo/i }));
-    await user.click(screen.getByRole('button', { name: /\+ novo protocolo/i }));
+    await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
 
-    expect(screen.getByText('Criar Novo Protocolo')).toBeInTheDocument();
+    expect(screen.getByText('Criar Nova Rotina')).toBeInTheDocument();
   });
 
-  it('calls POST to create a protocol on valid form submission', async () => {
+  it('calls POST to create a rotina on valid form submission', async () => {
     const user = userEvent.setup();
     api.post.mockResolvedValue({ data: { id: 2, status: 'ACTIVE' } });
 
     const { container } = renderWithRouter(<TrainingProtocols />);
 
-    await waitFor(() => screen.getByRole('button', { name: /\+ novo protocolo/i }));
-    await user.click(screen.getByRole('button', { name: /\+ novo protocolo/i }));
+    await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
 
     const emailInput = screen.getByRole('textbox');
     await user.type(emailInput, 'aluno@example.com');
@@ -150,13 +150,12 @@ describe('TrainingProtocols', () => {
       expect(api.post).toHaveBeenCalledWith('/trainer/protocols', expect.objectContaining({
         assigneeEmail: 'aluno@example.com',
       }));
-      expect(mockShowToast).toHaveBeenCalledWith('Protocolo criado com sucesso!', 'success');
+      expect(mockShowToast).toHaveBeenCalledWith('Rotina criada com sucesso!', 'success');
     });
   });
 
-  it('calls DELETE and shows success toast on protocol delete with confirm', async () => {
+  it('calls DELETE and shows success toast on rotina delete with custom confirm dialog', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     api.delete.mockResolvedValue({});
     api.get.mockImplementation((url) => {
       if (url === '/trainer/protocols') return Promise.resolve({ data: mockProtocols });
@@ -169,9 +168,12 @@ describe('TrainingProtocols', () => {
     await waitFor(() => screen.getByRole('button', { name: /excluir/i }));
     await user.click(screen.getByRole('button', { name: /excluir/i }));
 
+    await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/protocols/1');
-      expect(mockShowToast).toHaveBeenCalledWith('Protocolo excluído com sucesso!', 'success');
+      expect(mockShowToast).toHaveBeenCalledWith('Rotina excluída com sucesso!', 'success');
     });
   });
 });

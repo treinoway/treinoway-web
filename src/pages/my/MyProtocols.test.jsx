@@ -49,7 +49,7 @@ describe('MyProtocols', () => {
     renderWithRouter(<MyProtocols />);
 
     await waitFor(() => {
-      expect(screen.getByText('Meus Protocolos')).toBeInTheDocument();
+      expect(screen.getByText('Minhas Rotinas')).toBeInTheDocument();
     });
   });
 
@@ -59,7 +59,7 @@ describe('MyProtocols', () => {
     renderWithRouter(<MyProtocols />);
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum protocolo atribuído ainda')).toBeInTheDocument();
+      expect(screen.getByText('Nenhuma rotina atribuída ainda')).toBeInTheDocument();
     });
   });
 

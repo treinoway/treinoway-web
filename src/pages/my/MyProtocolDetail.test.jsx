@@ -75,7 +75,7 @@ describe('MyProtocolDetail', () => {
     renderMyProtocolDetail();
 
     await waitFor(() => {
-      expect(screen.getByText('Meu Protocolo de Treino')).toBeInTheDocument();
+      expect(screen.getByText('Minha Rotina de Treino')).toBeInTheDocument();
       expect(screen.getByText('Trainer Silva')).toBeInTheDocument();
     });
   });
@@ -129,7 +129,7 @@ describe('MyProtocolDetail', () => {
     renderMyProtocolDetail();
 
     await waitFor(() => {
-      expect(screen.getByText('Protocolo não encontrado')).toBeInTheDocument();
+      expect(screen.getByText('Rotina não encontrada')).toBeInTheDocument();
     });
   });
 
@@ -138,9 +138,9 @@ describe('MyProtocolDetail', () => {
 
     renderMyProtocolDetail();
 
-    await waitFor(() => screen.getByText('Meu Protocolo de Treino'));
+    await waitFor(() => screen.getByText('Minha Rotina de Treino'));
 
-    expect(screen.getByRole('button', { name: /voltar para meus protocolos/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /voltar para minhas rotinas/i })).toBeInTheDocument();
   });
 
   it('shows total trainings count', async () => {

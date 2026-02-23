@@ -41,12 +41,12 @@ const MyProtocols = () => {
 
   return (
     <div>
-      <h1 className="page-title">Meus Protocolos</h1>
+      <h1 className="page-title">Minhas Rotinas</h1>
 
       {protocols.length === 0 ? (
         <div className="empty-state">
-          <p className="empty-state-title">Nenhum protocolo atribuído ainda</p>
-          <p>Seu treinador irá atribuir protocolos de treino a você</p>
+          <p className="empty-state-title">Nenhuma rotina atribuída ainda</p>
+          <p>Seu treinador irá atribuir rotinas de treino a você</p>
         </div>
       ) : (
         <div className="grid-cards">
@@ -57,7 +57,7 @@ const MyProtocols = () => {
               className="card-link"
             >
               <div className="card-header-start">
-                <h3 className="card-subtitle">Protocolo de Treino</h3>
+                <h3 className="card-subtitle">Rotina de Treino</h3>
                 <span className={getStatusBadgeClass(protocol.status)}>
                   {protocol.status}
                 </span>
