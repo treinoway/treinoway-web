@@ -17,7 +17,7 @@ const TrainingProtocols = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    assigneeEmail: '',
+    assigneeId: '',
     name: '',
     description: '',
     availableWeekDays: [],
@@ -31,6 +31,10 @@ const TrainingProtocols = () => {
   });
 
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  const [studentSearchResults, setStudentSearchResults] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [searchingStudents, setSearchingStudents] = useState(false);
 
   // Template form state
   const [showTemplateForm, setShowTemplateForm] = useState(false);
@@ -64,6 +68,30 @@ const TrainingProtocols = () => {
     fetchTemplates();
     fetchTrainingTemplates();
   }, []);
+
+  useEffect(() => {
+    if (editingId || selectedStudent || studentSearchQuery.trim().length < 2) {
+      setStudentSearchResults([]);
+      setSearchingStudents(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setSearchingStudents(true);
+      try {
+        const response = await api.get('/trainer/students/search', {
+          params: { q: studentSearchQuery.trim(), limit: 10 },
+        });
+        setStudentSearchResults(response.data || []);
+      } catch {
+        setStudentSearchResults([]);
+      } finally {
+        setSearchingStudents(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [studentSearchQuery, editingId, selectedStudent]);
 
   const fetchProtocols = async () => {
     try {
@@ -106,7 +134,7 @@ const TrainingProtocols = () => {
     };
 
     if (includeAssignee) {
-      payload.assigneeEmail = data.assigneeEmail;
+      payload.assigneeId = data.assigneeId;
     }
 
     return payload;
@@ -153,6 +181,40 @@ const TrainingProtocols = () => {
       genderOrdination: selectedTemplate.genderOrdination || '',
       trainingLevel: selectedTemplate.trainingLevel || '',
     }));
+  };
+
+  const getStudentFullName = (student) => {
+    if (!student) return '';
+    return [student.firstName, student.lastName].filter(Boolean).join(' ');
+  };
+
+  const getStudentDisplayName = (student) => {
+    const fullName = getStudentFullName(student);
+    return fullName || student?.email || '';
+  };
+
+  const getStudentSecondaryInfo = (student) => {
+    const fullName = getStudentFullName(student);
+    return fullName ? student?.email || '' : '';
+  };
+
+  const getStudentAvatarInitial = (student) => {
+    const displayName = getStudentDisplayName(student);
+    return displayName ? displayName.charAt(0).toUpperCase() : '?';
+  };
+
+  const handleStudentSelect = (student) => {
+    setSelectedStudent(student);
+    setFormData((prev) => ({ ...prev, assigneeId: student.id }));
+    setStudentSearchQuery('');
+    setStudentSearchResults([]);
+  };
+
+  const handleStudentClear = () => {
+    setSelectedStudent(null);
+    setFormData((prev) => ({ ...prev, assigneeId: '' }));
+    setStudentSearchQuery('');
+    setStudentSearchResults([]);
   };
 
   const handleAddProtocolTraining = () => {
@@ -251,6 +313,12 @@ const TrainingProtocols = () => {
   // Protocol handlers
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!editingId && !formData.assigneeId) {
+      showToast('Selecione um aluno para continuar.', 'error');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -292,7 +360,7 @@ const TrainingProtocols = () => {
     const protocolEndDate = protocol.endDate || protocol.expirationDate;
 
     setFormData({
-      assigneeEmail: protocol.assignee?.email || '',
+      assigneeId: protocol.assignee?.id || '',
       name: protocol.name || '',
       description: protocol.description || '',
       availableWeekDays: protocol.availableWeekDays || [],
@@ -304,6 +372,9 @@ const TrainingProtocols = () => {
       endDate: protocolEndDate?.split('T')[0] || '',
       templateId: '',
     });
+    setSelectedStudent(protocol.assignee || null);
+    setStudentSearchQuery('');
+    setStudentSearchResults([]);
     setEditingId(protocol.id);
     setActiveTab('protocols');
     setPendingProtocolTrainingTemplates([]);
@@ -328,7 +399,7 @@ const TrainingProtocols = () => {
 
   const resetForm = () => {
     setFormData({
-      assigneeEmail: '',
+      assigneeId: '',
       name: '',
       description: '',
       availableWeekDays: [],
@@ -341,6 +412,9 @@ const TrainingProtocols = () => {
       templateId: '',
     });
     setEditingId(null);
+    setSelectedStudent(null);
+    setStudentSearchQuery('');
+    setStudentSearchResults([]);
     setPendingProtocolTrainingTemplates([]);
     setShowForm(false);
   };
@@ -593,16 +667,76 @@ const TrainingProtocols = () => {
                 {!editingId && (
                   <>
                     <div>
-                      <label className="form-label" htmlFor="protocol-assignee-email">E-mail do Aluno</label>
-                      <input
-                        id="protocol-assignee-email"
-                        type="email"
-                        name="assigneeEmail"
-                        value={formData.assigneeEmail}
-                        onChange={handleProtocolInputChange}
-                        className="form-input"
-                        required
-                      />
+                      <label className="form-label" htmlFor="protocol-assignee-search">Aluno</label>
+                      {selectedStudent ? (
+                        <div className="protocol-student-selected">
+                          <div className="protocol-student-selected-header">
+                            <div className="protocol-student-avatar">
+                              {getStudentAvatarInitial(selectedStudent)}
+                            </div>
+                            <div className="protocol-student-selected-meta">
+                              <div className="protocol-student-name">{getStudentDisplayName(selectedStudent)}</div>
+                                {getStudentSecondaryInfo(selectedStudent) && (
+                                  <div className="protocol-student-email">{getStudentSecondaryInfo(selectedStudent)}</div>
+                                )}
+                            </div>
+                          </div>
+                          <div className="btn-group protocol-student-selected-actions">
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              onClick={handleStudentClear}
+                            >
+                              Trocar aluno
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="protocol-student-search">
+                          <input
+                            id="protocol-assignee-search"
+                            type="text"
+                            value={studentSearchQuery}
+                            onChange={(e) => setStudentSearchQuery(e.target.value)}
+                            className="form-input"
+                            placeholder="Busque por nome ou e-mail"
+                            autoComplete="off"
+                            required={!formData.assigneeId}
+                          />
+                          {searchingStudents && (
+                            <div className="protocol-student-search-status">
+                              Buscando alunos...
+                            </div>
+                          )}
+                          {studentSearchResults.length > 0 && (
+                            <div className="protocol-student-results">
+                              {studentSearchResults.map((student) => (
+                                <button
+                                  key={student.id}
+                                  type="button"
+                                  className="protocol-student-result-item"
+                                  onClick={() => handleStudentSelect(student)}
+                                >
+                                  <div className="protocol-student-avatar">
+                                    {getStudentAvatarInitial(student)}
+                                  </div>
+                                  <div className="protocol-student-result-meta">
+                                    <span className="protocol-student-name">{getStudentDisplayName(student)}</span>
+                                    {getStudentSecondaryInfo(student) && (
+                                      <span className="protocol-student-email">{getStudentSecondaryInfo(student)}</span>
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {studentSearchQuery.trim().length >= 2 && !searchingStudents && studentSearchResults.length === 0 && (
+                            <div className="protocol-student-search-status">
+                              Nenhum aluno encontrado.
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -623,6 +757,25 @@ const TrainingProtocols = () => {
                       </select>
                     </div>
                   </>
+                )}
+
+                {editingId && selectedStudent && (
+                  <div>
+                    <label className="form-label">Aluno vinculado</label>
+                    <div className="protocol-student-selected">
+                      <div className="protocol-student-selected-header">
+                        <div className="protocol-student-avatar">
+                          {getStudentAvatarInitial(selectedStudent)}
+                        </div>
+                        <div className="protocol-student-selected-meta">
+                          <div className="protocol-student-name">{getStudentDisplayName(selectedStudent)}</div>
+                          {getStudentSecondaryInfo(selectedStudent) && (
+                            <div className="protocol-student-email">{getStudentSecondaryInfo(selectedStudent)}</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 <div>

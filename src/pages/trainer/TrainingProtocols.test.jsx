@@ -33,8 +33,12 @@ const mockProtocols = [
     startDate: '2024-01-01T00:00:00.000Z',
     endDate: '2024-03-31T00:00:00.000Z',
     status: 'ACTIVE',
-    assignee: { email: 'aluno@example.com' },
+    assignee: { id: 'student-1', email: 'aluno@example.com', firstName: 'Aluno', lastName: 'Exemplo' },
   },
+];
+
+const mockStudentSearchResults = [
+  { id: 'student-1', email: 'aluno@example.com', firstName: 'Aluno', lastName: 'Exemplo' },
 ];
 
 const mockTemplates = [
@@ -47,6 +51,12 @@ const mockTrainingTemplates = [
 ];
 
 describe('TrainingProtocols', () => {
+  const selectStudentForProtocol = async (user, query = 'aluno') => {
+    await user.type(screen.getByLabelText('Aluno'), query);
+    const option = await screen.findByRole('button', { name: /aluno exemplo/i });
+    await user.click(option);
+  };
+
   beforeEach(() => {
     mockShowToast.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
@@ -55,6 +65,7 @@ describe('TrainingProtocols', () => {
       if (url === '/trainer/protocols') return Promise.resolve({ data: mockProtocols });
       if (url === '/trainer/protocol-templates') return Promise.resolve({ data: mockTemplates });
       if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+      if (url === '/trainer/students/search') return Promise.resolve({ data: mockStudentSearchResults });
       return Promise.resolve({ data: [] });
     });
 
@@ -153,7 +164,7 @@ describe('TrainingProtocols', () => {
     await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
 
-    await user.type(screen.getByLabelText('E-mail do Aluno'), 'aluno@example.com');
+    await selectStudentForProtocol(user);
     await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina Manual');
     await user.type(screen.getByLabelText('Descrição'), 'Criada sem modelo');
     await user.click(screen.getByRole('checkbox', { name: /segunda/i }));
@@ -167,7 +178,7 @@ describe('TrainingProtocols', () => {
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/trainer/protocols', expect.objectContaining({
-        assigneeEmail: 'aluno@example.com',
+        assigneeId: 'student-1',
         name: 'Rotina Manual',
         description: 'Criada sem modelo',
         availableWeekDays: ['monday'],
@@ -211,6 +222,8 @@ describe('TrainingProtocols', () => {
         endDate: '2024-04-30',
         expirationDate: '2024-04-30',
       }));
+      const patchPayload = api.patch.mock.calls[0][1];
+      expect(patchPayload.assigneeId).toBeUndefined();
       expect(mockShowToast).toHaveBeenCalledWith('Rotina atualizada com sucesso!', 'success');
     });
   });
@@ -224,7 +237,7 @@ describe('TrainingProtocols', () => {
     await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
 
-    await user.type(screen.getByLabelText('E-mail do Aluno'), 'aluno@example.com');
+    await selectStudentForProtocol(user);
     await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
     fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
     fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
@@ -234,7 +247,7 @@ describe('TrainingProtocols', () => {
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/trainer/protocols/import-from-template', expect.objectContaining({
         templateId: '1',
-        assigneeEmail: 'aluno@example.com',
+        assigneeId: 'student-1',
         name: 'Modelo Base',
         description: 'Desc',
         availableWeekDays: ['monday', 'wednesday'],
@@ -262,7 +275,7 @@ describe('TrainingProtocols', () => {
     await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
 
-    await user.type(screen.getByLabelText('E-mail do Aluno'), 'aluno@example.com');
+    await selectStudentForProtocol(user);
     await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina com treino');
     fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
     fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
@@ -298,7 +311,7 @@ describe('TrainingProtocols', () => {
     await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
 
-    await user.type(screen.getByLabelText('E-mail do Aluno'), 'aluno@example.com');
+    await selectStudentForProtocol(user);
     await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina com treino novo');
     fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
     fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
@@ -332,6 +345,7 @@ describe('TrainingProtocols', () => {
       if (url === '/trainer/protocols') return Promise.resolve({ data: mockProtocols });
       if (url === '/trainer/protocol-templates') return Promise.resolve({ data: mockTemplates });
       if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+      if (url === '/trainer/students/search') return Promise.resolve({ data: mockStudentSearchResults });
       if (url === '/trainer/protocol-templates/1') {
         return Promise.resolve({
           data: {
@@ -362,7 +376,7 @@ describe('TrainingProtocols', () => {
 
     await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
-    await user.type(screen.getByLabelText('E-mail do Aluno'), 'aluno@example.com');
+    await selectStudentForProtocol(user);
     await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
     fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
     fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
@@ -384,6 +398,24 @@ describe('TrainingProtocols', () => {
         order: 2,
       }));
       expect(mockShowToast).toHaveBeenCalledWith('Treinos do modelo sincronizados automaticamente.', 'success');
+    });
+  });
+
+  it('calls students fuzzy search endpoint while typing assignee', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<TrainingProtocols />);
+
+    await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.type(screen.getByLabelText('Aluno'), 'alun');
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/trainer/students/search', expect.objectContaining({
+        params: expect.objectContaining({
+          q: 'alun',
+          limit: 10,
+        }),
+      }));
     });
   });
 
