@@ -189,16 +189,20 @@ const TrainingProtocols = () => {
     }
   };
 
-  const handleTemplateDelete = async (id) => {
-    if (!confirm('Tem certeza que deseja excluir este modelo?')) return;
-
-    try {
-      await api.delete(`/trainer/protocol-templates/${id}`);
-      showToast('Modelo excluído com sucesso!', 'success');
-      await fetchTemplates();
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    }
+  const handleTemplateDelete = (id) => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir este modelo? Esta ação não pode ser desfeita.',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await api.delete(`/trainer/protocol-templates/${id}`);
+          showToast('Modelo excluído com sucesso!', 'success');
+          await fetchTemplates();
+        } catch (error) {
+          showToast(error.userMessage || translateError(error), 'error');
+        }
+      },
+    });
   };
 
   const resetTemplateForm = () => {

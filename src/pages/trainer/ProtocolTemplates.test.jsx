@@ -138,15 +138,16 @@ describe('ProtocolTemplates', () => {
     });
   });
 
-  it('calls DELETE and shows success toast on template delete with confirm', async () => {
+  it('calls DELETE and shows success toast on template delete with custom confirm dialog', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     api.delete.mockResolvedValue({});
 
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
     await user.click(screen.getByRole('button', { name: /excluir/i }));
+    await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(screen.getByRole('button', { name: /confirmar/i }));
 
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/protocol-templates/1');
@@ -154,14 +155,15 @@ describe('ProtocolTemplates', () => {
     });
   });
 
-  it('does not delete when confirmation is cancelled', async () => {
+  it('does not delete when custom dialog confirmation is cancelled', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
     await user.click(screen.getByRole('button', { name: /excluir/i }));
+    await waitFor(() => screen.getByRole('button', { name: /cancelar/i }));
+    await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
     expect(api.delete).not.toHaveBeenCalled();
   });

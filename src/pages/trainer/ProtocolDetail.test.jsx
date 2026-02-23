@@ -141,13 +141,14 @@ describe('ProtocolDetail', () => {
 
   it('calls DELETE and shows success toast when deleting a training', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     api.delete.mockResolvedValue({});
 
     renderProtocolDetail();
 
     await waitFor(() => screen.getByText('Treino de Peito'));
     await user.click(screen.getByRole('button', { name: /excluir/i }));
+    await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(screen.getByRole('button', { name: /confirmar/i }));
 
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/protocols/1/trainings/10');

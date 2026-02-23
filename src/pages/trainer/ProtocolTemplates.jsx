@@ -9,6 +9,7 @@ const ProtocolTemplates = () => {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -66,16 +67,20 @@ const ProtocolTemplates = () => {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Tem certeza que deseja excluir este modelo?')) return;
-
-    try {
-      await api.delete(`/trainer/protocol-templates/${id}`);
-      showToast('Modelo excluído com sucesso!', 'success');
-      await fetchTemplates();
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    }
+  const handleDelete = (id) => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir este modelo? Esta ação não pode ser desfeita.',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await api.delete(`/trainer/protocol-templates/${id}`);
+          showToast('Modelo excluído com sucesso!', 'success');
+          await fetchTemplates();
+        } catch (error) {
+          showToast(error.userMessage || translateError(error), 'error');
+        }
+      },
+    });
   };
 
   const resetForm = () => {
@@ -284,6 +289,22 @@ const ProtocolTemplates = () => {
         <div className="empty-state">
           <p className="empty-state-title">Nenhum modelo de rotina ainda</p>
           <p>Crie seu primeiro modelo para começar</p>
+        </div>
+      )}
+
+      {confirmDialog && (
+        <div className="overlay" onClick={() => setConfirmDialog(null)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-dialog-message">{confirmDialog.message}</p>
+            <div className="btn-group">
+              <button onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>
+                Confirmar
+              </button>
+              <button onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

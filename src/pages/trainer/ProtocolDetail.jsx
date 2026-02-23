@@ -17,6 +17,7 @@ const ProtocolDetail = () => {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [editingTrainingId, setEditingTrainingId] = useState(null);
   const [selectedTrainingForSchedule, setSelectedTrainingForSchedule] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   const [trainingFormData, setTrainingFormData] = useState({
     name: '',
@@ -116,16 +117,20 @@ const ProtocolDetail = () => {
     setShowTrainingForm(true);
   };
 
-  const handleDeleteTraining = async (trainingId) => {
-    if (!confirm('Tem certeza que deseja excluir este treino?')) return;
-
-    try {
-      await api.delete(`/trainer/protocols/${id}/trainings/${trainingId}`);
-      showToast('Treino excluído com sucesso!', 'success');
-      fetchTrainings();
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    }
+  const handleDeleteTraining = (trainingId) => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir este treino? Esta ação não pode ser desfeita.',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await api.delete(`/trainer/protocols/${id}/trainings/${trainingId}`);
+          showToast('Treino excluído com sucesso!', 'success');
+          fetchTrainings();
+        } catch (error) {
+          showToast(error.userMessage || translateError(error), 'error');
+        }
+      },
+    });
   };
 
   const handleScheduleTraining = (trainingId) => {
@@ -133,16 +138,20 @@ const ProtocolDetail = () => {
     setShowScheduleForm(true);
   };
 
-  const handleDeleteSchedule = async (trainingId, scheduleId) => {
-    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
-
-    try {
-      await api.delete(`/trainer/protocols/${id}/trainings/${trainingId}/schedule/${scheduleId}`);
-      showToast('Agendamento excluído com sucesso!', 'success');
-      fetchTrainings();
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    }
+  const handleDeleteSchedule = (trainingId, scheduleId) => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await api.delete(`/trainer/protocols/${id}/trainings/${trainingId}/schedule/${scheduleId}`);
+          showToast('Agendamento excluído com sucesso!', 'success');
+          fetchTrainings();
+        } catch (error) {
+          showToast(error.userMessage || translateError(error), 'error');
+        }
+      },
+    });
   };
 
   const resetTrainingForm = () => {
@@ -401,6 +410,22 @@ const ProtocolDetail = () => {
         <div className="empty-state">
           <p className="empty-state-title">Nenhum treino ainda</p>
           <p>Adicione treinos a esta rotina</p>
+        </div>
+      )}
+
+      {confirmDialog && (
+        <div className="overlay" onClick={() => setConfirmDialog(null)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-dialog-message">{confirmDialog.message}</p>
+            <div className="btn-group">
+              <button onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>
+                Confirmar
+              </button>
+              <button onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

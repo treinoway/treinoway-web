@@ -1,0 +1,35 @@
+---
+description: Every code change must include unit test updates
+alwaysApply: true
+---
+
+# Unit Tests Required
+
+All behavior changes must include unit test coverage in the same task.
+
+## Requirements
+
+- Update existing unit tests when changing behavior in existing code.
+- Add new unit tests when introducing new behavior or branches.
+- Do not merge code-only changes without corresponding test changes.
+- Keep tests focused on user-visible behavior and critical integration points.
+
+## Minimum Expectations
+
+- If a component handler changes (create/update/delete flows), update its page test file.
+- If confirmation or error flows change, include tests for both success and cancel/failure paths when applicable.
+- If text/labels/messages change and are behavior-relevant, update assertions accordingly.
+
+## Examples
+
+```jsx
+// ❌ WRONG: behavior changed, no test updates
+const handleDelete = () => setConfirmDialog({ ... });
+```
+
+```jsx
+// ✅ CORRECT: behavior changed + tests updated
+await user.click(screen.getByRole('button', { name: /excluir/i }));
+await user.click(screen.getByRole('button', { name: /confirmar/i }));
+expect(api.delete).toHaveBeenCalled();
+```

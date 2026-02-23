@@ -166,9 +166,8 @@ describe('TrainingTemplates', () => {
     });
   });
 
-  it('shows confirm dialog and calls DELETE on confirmation', async () => {
+  it('shows custom confirm dialog and calls DELETE on confirmation', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     api.delete.mockResolvedValue({});
 
     renderWithRouter(<TrainingTemplates />);
@@ -177,6 +176,8 @@ describe('TrainingTemplates', () => {
 
     const deleteButtons = screen.getAllByRole('button', { name: /excluir/i });
     await user.click(deleteButtons[0]);
+    await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(screen.getByRole('button', { name: /confirmar/i }));
 
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/training-templates/1');
@@ -184,9 +185,8 @@ describe('TrainingTemplates', () => {
     });
   });
 
-  it('does not delete when confirmation is cancelled', async () => {
+  it('does not delete when custom dialog confirmation is cancelled', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     renderWithRouter(<TrainingTemplates />);
 
@@ -194,6 +194,8 @@ describe('TrainingTemplates', () => {
 
     const deleteButtons = screen.getAllByRole('button', { name: /excluir/i });
     await user.click(deleteButtons[0]);
+    await waitFor(() => screen.getByRole('button', { name: /cancelar/i }));
+    await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
     expect(api.delete).not.toHaveBeenCalled();
   });

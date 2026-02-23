@@ -9,6 +9,7 @@ const TrainingTemplates = () => {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -64,16 +65,20 @@ const TrainingTemplates = () => {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Tem certeza que deseja excluir este modelo de treino?')) return;
-
-    try {
-      await api.delete(`/trainer/training-templates/${id}`);
-      showToast('Modelo de treino excluído com sucesso!', 'success');
-      fetchTemplates();
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    }
+  const handleDelete = (id) => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir este modelo de treino? Esta ação não pode ser desfeita.',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await api.delete(`/trainer/training-templates/${id}`);
+          showToast('Modelo de treino excluído com sucesso!', 'success');
+          fetchTemplates();
+        } catch (error) {
+          showToast(error.userMessage || translateError(error), 'error');
+        }
+      },
+    });
   };
 
   const resetForm = () => {
@@ -220,6 +225,22 @@ const TrainingTemplates = () => {
         <div className="empty-state">
           <p className="empty-state-title">Nenhum modelo de treino ainda</p>
           <p>Crie seu primeiro modelo de treino para começar</p>
+        </div>
+      )}
+
+      {confirmDialog && (
+        <div className="overlay" onClick={() => setConfirmDialog(null)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-dialog-message">{confirmDialog.message}</p>
+            <div className="btn-group">
+              <button onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>
+                Confirmar
+              </button>
+              <button onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

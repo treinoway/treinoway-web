@@ -176,4 +176,28 @@ describe('TrainingProtocols', () => {
       expect(mockShowToast).toHaveBeenCalledWith('Rotina excluída com sucesso!', 'success');
     });
   });
+
+  it('calls DELETE and shows success toast on template delete with custom confirm dialog', async () => {
+    const user = userEvent.setup();
+    api.delete.mockResolvedValue({});
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/protocols') return Promise.resolve({ data: mockProtocols });
+      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: mockTemplates });
+      return Promise.resolve({ data: [] });
+    });
+
+    renderWithRouter(<TrainingProtocols />);
+
+    await user.click(screen.getByRole('button', { name: /^modelos$/i }));
+    await waitFor(() => screen.getByRole('button', { name: /excluir/i }));
+    await user.click(screen.getByRole('button', { name: /excluir/i }));
+
+    await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+
+    await waitFor(() => {
+      expect(api.delete).toHaveBeenCalledWith('/trainer/protocol-templates/1');
+      expect(mockShowToast).toHaveBeenCalledWith('Modelo excluído com sucesso!', 'success');
+    });
+  });
 });
