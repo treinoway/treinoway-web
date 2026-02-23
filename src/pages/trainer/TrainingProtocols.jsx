@@ -18,6 +18,13 @@ const TrainingProtocols = () => {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     assigneeEmail: '',
+    name: '',
+    description: '',
+    availableWeekDays: [],
+    defaultDurationWeeks: 12,
+    genderOrdination: '',
+    trainingLevel: '',
+    trainings: [],
     startDate: '',
     endDate: '',
     templateId: '',
@@ -41,7 +48,9 @@ const TrainingProtocols = () => {
   // Inline Training Template creation modal
   const [showTrainingTemplateModal, setShowTrainingTemplateModal] = useState(false);
   const [creatingForIndex, setCreatingForIndex] = useState(null);
+  const [trainingTemplateModalContext, setTrainingTemplateModalContext] = useState('template');
   const [savingTrainingTemplate, setSavingTrainingTemplate] = useState(false);
+  const [pendingProtocolTrainingTemplates, setPendingProtocolTrainingTemplates] = useState([]);
   const [trainingTemplateFormData, setTrainingTemplateFormData] = useState({
     name: '',
     description: '',
@@ -83,6 +92,162 @@ const TrainingProtocols = () => {
     }
   };
 
+  const buildProtocolPayload = (data, { includeAssignee = false } = {}) => {
+    const payload = {
+      name: data.name,
+      description: data.description,
+      availableWeekDays: data.availableWeekDays,
+      defaultDurationWeeks: data.defaultDurationWeeks,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      expirationDate: data.endDate,
+      ...(data.genderOrdination && { genderOrdination: data.genderOrdination }),
+      ...(data.trainingLevel && { trainingLevel: data.trainingLevel }),
+    };
+
+    if (includeAssignee) {
+      payload.assigneeEmail = data.assigneeEmail;
+    }
+
+    return payload;
+  };
+
+  const handleProtocolInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleProtocolDurationChange = (e) => {
+    const parsedValue = parseInt(e.target.value, 10);
+    setFormData((prev) => ({
+      ...prev,
+      defaultDurationWeeks: Number.isNaN(parsedValue) ? 1 : parsedValue,
+    }));
+  };
+
+  const handleProtocolWeekdayChange = (day, checked) => {
+    setFormData((prev) => ({
+      ...prev,
+      availableWeekDays: checked
+        ? [...prev.availableWeekDays, day]
+        : prev.availableWeekDays.filter((selectedDay) => selectedDay !== day),
+    }));
+  };
+
+  const handleProtocolTemplateChange = (e) => {
+    const templateId = e.target.value;
+    const selectedTemplate = templates.find((template) => String(template.id) === templateId);
+
+    if (!selectedTemplate) {
+      setFormData((prev) => ({ ...prev, templateId }));
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      templateId,
+      name: selectedTemplate.name || '',
+      description: selectedTemplate.description || '',
+      availableWeekDays: selectedTemplate.availableWeekDays || [],
+      defaultDurationWeeks: selectedTemplate.defaultDurationWeeks || prev.defaultDurationWeeks,
+      genderOrdination: selectedTemplate.genderOrdination || '',
+      trainingLevel: selectedTemplate.trainingLevel || '',
+    }));
+  };
+
+  const handleAddProtocolTraining = () => {
+    setFormData((prev) => ({
+      ...prev,
+      trainings: [
+        ...prev.trainings,
+        { order: prev.trainings.length + 1, templateId: '' },
+      ],
+    }));
+  };
+
+  const handleProtocolTrainingChange = (index, field, value) => {
+    setFormData((prev) => {
+      const nextTrainings = [...prev.trainings];
+      nextTrainings[index] = { ...nextTrainings[index], [field]: value };
+
+      return {
+        ...prev,
+        trainings: nextTrainings,
+      };
+    });
+  };
+
+  const handleRemoveProtocolTraining = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      trainings: prev.trainings.filter((_, currentIndex) => currentIndex !== index),
+    }));
+  };
+
+  const persistPendingProtocolTrainingTemplates = async () => {
+    const createdTemplateIdByTempId = {};
+
+    for (const pendingTemplate of pendingProtocolTrainingTemplates) {
+      const response = await api.post('/trainer/training-templates', pendingTemplate.data);
+      createdTemplateIdByTempId[pendingTemplate.tempId] = response.data?.id;
+    }
+
+    return createdTemplateIdByTempId;
+  };
+
+  const createProtocolTrainings = async (protocolId, trainings, createdTemplateIdByTempId) => {
+    if (!protocolId || trainings.length === 0) {
+      return;
+    }
+
+    for (const training of trainings) {
+      const resolvedTemplateId = createdTemplateIdByTempId[training.templateId] || training.templateId;
+      const existingTemplate = trainingTemplates.find((template) => String(template.id) === String(resolvedTemplateId));
+      const pendingTemplate = pendingProtocolTrainingTemplates.find((template) => template.tempId === training.templateId);
+
+      await api.post(`/trainer/protocols/${protocolId}/trainings`, {
+        name: existingTemplate?.name || pendingTemplate?.data.name || 'Treino',
+        description: existingTemplate?.description || pendingTemplate?.data.description || '',
+        order: Number(training.order) || 1,
+        ...(resolvedTemplateId && { templateId: resolvedTemplateId }),
+      });
+    }
+  };
+
+  const ensureImportedTemplateTrainings = async (protocolId, templateId) => {
+    if (!protocolId || !templateId) {
+      return 0;
+    }
+
+    const [templateResponse, trainingsResponse] = await Promise.all([
+      api.get(`/trainer/protocol-templates/${templateId}`),
+      api.get(`/trainer/protocols/${protocolId}/trainings`),
+    ]);
+
+    const scheduleTemplates = templateResponse.data?.scheduleTemplates || [];
+    const protocolTrainings = trainingsResponse.data || [];
+
+    if (scheduleTemplates.length === 0 || protocolTrainings.length > 0) {
+      return 0;
+    }
+
+    let createdCount = 0;
+    for (const [index, scheduleTemplate] of scheduleTemplates.entries()) {
+      const trainingTemplate = scheduleTemplate.trainingTemplate || {};
+      const trainingTemplateId = trainingTemplate.id || scheduleTemplate.trainingTemplateId;
+
+      await api.post(`/trainer/protocols/${protocolId}/trainings`, {
+        templateId: trainingTemplateId,
+        name: trainingTemplate.name || `Treino ${index + 1}`,
+        description: trainingTemplate.description || '',
+        order: scheduleTemplate.order || index + 1,
+      });
+      createdCount += 1;
+    }
+
+    return createdCount;
+  };
+
   // Protocol handlers
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -90,22 +255,30 @@ const TrainingProtocols = () => {
 
     try {
       if (editingId) {
-        const { assigneeEmail: _assigneeEmail, templateId: _templateId, ...updateData } = formData;
+        const updateData = buildProtocolPayload(formData);
         await api.patch(`/trainer/protocols/${editingId}`, updateData);
         showToast('Rotina atualizada com sucesso!', 'success');
       } else if (formData.templateId) {
-        await api.post('/trainer/protocols/import-from-template', {
+        const createdTemplateIdByTempId = await persistPendingProtocolTrainingTemplates();
+        const importData = buildProtocolPayload(formData, { includeAssignee: true });
+        const response = await api.post('/trainer/protocols/import-from-template', {
           templateId: formData.templateId,
-          assigneeEmail: formData.assigneeEmail,
-          startDate: formData.startDate,
-          expirationDate: formData.endDate,
+          ...importData,
         });
+        const syncedTemplateTrainingsCount = await ensureImportedTemplateTrainings(response.data?.id, formData.templateId);
+        await createProtocolTrainings(response.data?.id, formData.trainings, createdTemplateIdByTempId);
+        if (syncedTemplateTrainingsCount > 0) {
+          showToast('Treinos do modelo sincronizados automaticamente.', 'success');
+        }
         showToast('Rotina criada com sucesso!', 'success');
       } else {
-        const { templateId: _templateId, ...createData } = formData;
-        await api.post('/trainer/protocols', createData);
+        const createdTemplateIdByTempId = await persistPendingProtocolTrainingTemplates();
+        const createData = buildProtocolPayload(formData, { includeAssignee: true });
+        const response = await api.post('/trainer/protocols', createData);
+        await createProtocolTrainings(response.data?.id, formData.trainings, createdTemplateIdByTempId);
         showToast('Rotina criada com sucesso!', 'success');
       }
+      await fetchTrainingTemplates();
       fetchProtocols();
       resetForm();
     } catch (error) {
@@ -116,14 +289,24 @@ const TrainingProtocols = () => {
   };
 
   const handleEdit = (protocol) => {
+    const protocolEndDate = protocol.endDate || protocol.expirationDate;
+
     setFormData({
       assigneeEmail: protocol.assignee?.email || '',
+      name: protocol.name || '',
+      description: protocol.description || '',
+      availableWeekDays: protocol.availableWeekDays || [],
+      defaultDurationWeeks: protocol.defaultDurationWeeks || 12,
+      genderOrdination: protocol.genderOrdination || '',
+      trainingLevel: protocol.trainingLevel || '',
+      trainings: [],
       startDate: protocol.startDate?.split('T')[0] || '',
-      endDate: protocol.endDate?.split('T')[0] || '',
+      endDate: protocolEndDate?.split('T')[0] || '',
       templateId: '',
     });
     setEditingId(protocol.id);
     setActiveTab('protocols');
+    setPendingProtocolTrainingTemplates([]);
     setShowForm(true);
   };
 
@@ -146,11 +329,19 @@ const TrainingProtocols = () => {
   const resetForm = () => {
     setFormData({
       assigneeEmail: '',
+      name: '',
+      description: '',
+      availableWeekDays: [],
+      defaultDurationWeeks: 12,
+      genderOrdination: '',
+      trainingLevel: '',
+      trainings: [],
       startDate: '',
       endDate: '',
       templateId: '',
     });
     setEditingId(null);
+    setPendingProtocolTrainingTemplates([]);
     setShowForm(false);
   };
 
@@ -232,7 +423,8 @@ const TrainingProtocols = () => {
     setShowTemplateForm(false);
   };
 
-  const openTrainingTemplateModal = (index) => {
+  const openTrainingTemplateModal = (index, context = 'template') => {
+    setTrainingTemplateModalContext(context);
     setCreatingForIndex(index);
     setTrainingTemplateFormData({
       name: '',
@@ -247,10 +439,32 @@ const TrainingProtocols = () => {
   const closeTrainingTemplateModal = () => {
     setShowTrainingTemplateModal(false);
     setCreatingForIndex(null);
+    setTrainingTemplateModalContext('template');
   };
 
   const handleTrainingTemplateCreate = async (e) => {
     e.preventDefault();
+
+    if (trainingTemplateModalContext === 'protocol') {
+      const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+      setPendingProtocolTrainingTemplates((prev) => [
+        ...prev,
+        { tempId, data: { ...trainingTemplateFormData } },
+      ]);
+
+      setFormData((prev) => ({
+        ...prev,
+        trainings: [
+          ...prev.trainings,
+          { templateId: tempId, order: prev.trainings.length + 1 },
+        ],
+      }));
+
+      closeTrainingTemplateModal();
+      return;
+    }
+
     setSavingTrainingTemplate(true);
 
     try {
@@ -314,6 +528,25 @@ const TrainingProtocols = () => {
     saturday: 'Sáb',
     sunday: 'Dom',
   };
+  const weekDayOptions = [
+    { value: 'monday', label: 'Segunda' },
+    { value: 'tuesday', label: 'Terça' },
+    { value: 'wednesday', label: 'Quarta' },
+    { value: 'thursday', label: 'Quinta' },
+    { value: 'friday', label: 'Sexta' },
+    { value: 'saturday', label: 'Sábado' },
+    { value: 'sunday', label: 'Domingo' },
+  ];
+  const protocolTrainingTemplateOptions = [
+    ...trainingTemplates.map((template) => ({
+      value: String(template.id),
+      label: template.name,
+    })),
+    ...pendingProtocolTrainingTemplates.map((template) => ({
+      value: template.tempId,
+      label: `${template.data.name} (novo)`,
+    })),
+  ];
 
   return (
     <div>
@@ -360,21 +593,25 @@ const TrainingProtocols = () => {
                 {!editingId && (
                   <>
                     <div>
-                      <label className="form-label">E-mail do Aluno</label>
+                      <label className="form-label" htmlFor="protocol-assignee-email">E-mail do Aluno</label>
                       <input
+                        id="protocol-assignee-email"
                         type="email"
+                        name="assigneeEmail"
                         value={formData.assigneeEmail}
-                        onChange={(e) => setFormData({ ...formData, assigneeEmail: e.target.value })}
+                        onChange={handleProtocolInputChange}
                         className="form-input"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="form-label">Importar de Modelo (opcional)</label>
+                      <label className="form-label" htmlFor="protocol-template-id">Importar de Modelo (opcional)</label>
                       <select
+                        id="protocol-template-id"
+                        name="templateId"
                         value={formData.templateId}
-                        onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
+                        onChange={handleProtocolTemplateChange}
                         className="form-select"
                       >
                         <option value="">-- Selecione um modelo --</option>
@@ -389,20 +626,205 @@ const TrainingProtocols = () => {
                 )}
 
                 <div>
-                  <label className="form-label">Data de Início</label>
-                  <DateInput
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  <label className="form-label" htmlFor="protocol-name">Nome da Rotina</label>
+                  <input
+                    id="protocol-name"
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleProtocolInputChange}
                     className="form-input"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="form-label">Data de Término</label>
+                  <label className="form-label" htmlFor="protocol-description">Descrição</label>
+                  <textarea
+                    id="protocol-description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleProtocolInputChange}
+                    rows={3}
+                    className="form-textarea"
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label">Dias Disponíveis</label>
+                  <div className="weekday-grid">
+                    {weekDayOptions.map((day) => (
+                      <label key={day.value}>
+                        <input
+                          type="checkbox"
+                          checked={formData.availableWeekDays.includes(day.value)}
+                          onChange={(e) => handleProtocolWeekdayChange(day.value, e.target.checked)}
+                        />
+                        <span className="text-sm">{day.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid-responsive-2col">
+                  <div>
+                    <label className="form-label" htmlFor="protocol-gender-ordination">Classificação</label>
+                    <select
+                      id="protocol-gender-ordination"
+                      name="genderOrdination"
+                      value={formData.genderOrdination}
+                      onChange={handleProtocolInputChange}
+                      className="form-select"
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="male">Masculino</option>
+                      <option value="female">Feminino</option>
+                      <option value="other">Outro</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label" htmlFor="protocol-training-level">Nível de Treino</label>
+                    <select
+                      id="protocol-training-level"
+                      name="trainingLevel"
+                      value={formData.trainingLevel}
+                      onChange={handleProtocolInputChange}
+                      className="form-select"
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="beginner">Iniciante</option>
+                      <option value="intermediate">Intermediário</option>
+                      <option value="advanced">Avançado</option>
+                      <option value="athlete">Atleta</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="form-label" htmlFor="protocol-default-duration-weeks">Duração Padrão (semanas)</label>
+                  <input
+                    id="protocol-default-duration-weeks"
+                    type="number"
+                    min="1"
+                    value={formData.defaultDurationWeeks}
+                    onChange={handleProtocolDurationChange}
+                    className="form-input"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <div className="schedule-template-section-header">
+                    <label className="form-label" style={{ margin: 0 }}>Treinos da Rotina</label>
+                  </div>
+
+                  {formData.trainings.length === 0 && (
+                    <div className="training-actions-empty">
+                      <button
+                        type="button"
+                        className="training-action-card"
+                        onClick={handleAddProtocolTraining}
+                      >
+                        <span className="training-action-card-title">Adicionar treino</span>
+                        <span className="training-action-card-description">
+                          Selecione um modelo de treino existente.
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="training-action-card training-action-card--primary"
+                        onClick={() => openTrainingTemplateModal(null, 'protocol')}
+                      >
+                        <span className="training-action-card-title">Criar treino</span>
+                        <span className="training-action-card-description">
+                          Abra o modal para criar um novo modelo de treino.
+                        </span>
+                      </button>
+                    </div>
+                  )}
+
+                  {formData.trainings.length > 0 && (
+                    <>
+                      <div className="schedule-template-list">
+                        {formData.trainings.map((training, index) => (
+                          <div key={index} className="schedule-template-row">
+                            <div className="schedule-template-fields">
+                              <select
+                                aria-label={`Modelo de treino ${index + 1}`}
+                                value={training.templateId}
+                                onChange={(e) => handleProtocolTrainingChange(index, 'templateId', e.target.value)}
+                                className="form-select"
+                                required
+                              >
+                                <option value="">Modelo de treino...</option>
+                                {protocolTrainingTemplateOptions.map((templateOption) => (
+                                  <option key={templateOption.value} value={templateOption.value}>
+                                    {templateOption.label}
+                                  </option>
+                                ))}
+                              </select>
+
+                              <input
+                                type="number"
+                                min="1"
+                                aria-label={`Ordem do treino ${index + 1}`}
+                                value={training.order}
+                                onChange={(e) => handleProtocolTrainingChange(index, 'order', parseInt(e.target.value, 10) || 1)}
+                                className="form-input schedule-template-order"
+                                placeholder="Ordem"
+                                required
+                              />
+                            </div>
+
+                            <button
+                              type="button"
+                              className="btn-delete-sm"
+                              onClick={() => handleRemoveProtocolTraining(index)}
+                              aria-label="Remover treino da rotina"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="schedule-template-actions">
+                        <button
+                          type="button"
+                          className="btn-secondary schedule-template-add-btn"
+                          onClick={handleAddProtocolTraining}
+                        >
+                          + Adicionar treino
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-primary schedule-template-add-btn"
+                          onClick={() => openTrainingTemplateModal(null, 'protocol')}
+                        >
+                          + Criar treino
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div>
+                  <label className="form-label" htmlFor="protocol-start-date">Data de Início</label>
                   <DateInput
+                    id="protocol-start-date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, startDate: e.target.value }))}
+                    className="form-input"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label" htmlFor="protocol-end-date">Data de Término</label>
+                  <DateInput
+                    id="protocol-end-date"
                     value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
                     className="form-input"
                     required
                   />
@@ -511,15 +933,7 @@ const TrainingProtocols = () => {
                 <div>
                   <label className="form-label">Dias Disponíveis</label>
                   <div className="weekday-grid">
-                    {[
-                      { value: 'monday', label: 'Segunda' },
-                      { value: 'tuesday', label: 'Terça' },
-                      { value: 'wednesday', label: 'Quarta' },
-                      { value: 'thursday', label: 'Quinta' },
-                      { value: 'friday', label: 'Sexta' },
-                      { value: 'saturday', label: 'Sábado' },
-                      { value: 'sunday', label: 'Domingo' },
-                    ].map(day => (
+                    {weekDayOptions.map(day => (
                       <label key={day.value}>
                         <input
                           type="checkbox"
@@ -828,7 +1242,9 @@ const TrainingProtocols = () => {
         <div className="overlay" onClick={closeTrainingTemplateModal}>
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
-              <h2 className="bottom-sheet-title">Criar Modelo de Treino</h2>
+              <h2 className="bottom-sheet-title">
+                {trainingTemplateModalContext === 'protocol' ? 'Criar Treino' : 'Criar Modelo de Treino'}
+              </h2>
               <button
                 className="bottom-sheet-close"
                 onClick={closeTrainingTemplateModal}
@@ -909,7 +1325,9 @@ const TrainingProtocols = () => {
 
                 <div className="btn-group">
                   <button type="submit" disabled={savingTrainingTemplate} className="btn-primary">
-                    {savingTrainingTemplate ? 'Salvando...' : 'Criar Modelo de Treino'}
+                    {trainingTemplateModalContext === 'protocol'
+                      ? 'Adicionar à rotina'
+                      : (savingTrainingTemplate ? 'Salvando...' : 'Criar Modelo de Treino')}
                   </button>
                   <button type="button" onClick={closeTrainingTemplateModal} className="btn-secondary">
                     Cancelar

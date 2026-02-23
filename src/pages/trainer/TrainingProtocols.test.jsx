@@ -24,6 +24,12 @@ const mockShowToast = vi.fn();
 const mockProtocols = [
   {
     id: 1,
+    name: 'Rotina Base',
+    description: 'Descricao inicial',
+    availableWeekDays: ['monday', 'friday'],
+    defaultDurationWeeks: 12,
+    genderOrdination: 'female',
+    trainingLevel: 'beginner',
     startDate: '2024-01-01T00:00:00.000Z',
     endDate: '2024-03-31T00:00:00.000Z',
     status: 'ACTIVE',
@@ -147,16 +153,237 @@ describe('TrainingProtocols', () => {
     await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
 
-    const emailInput = screen.getByRole('textbox');
-    await user.type(emailInput, 'aluno@example.com');
+    await user.type(screen.getByLabelText('E-mail do Aluno'), 'aluno@example.com');
+    await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina Manual');
+    await user.type(screen.getByLabelText('Descrição'), 'Criada sem modelo');
+    await user.click(screen.getByRole('checkbox', { name: /segunda/i }));
+    await user.selectOptions(screen.getByLabelText('Classificação'), 'male');
+    await user.selectOptions(screen.getByLabelText('Nível de Treino'), 'advanced');
+    fireEvent.change(screen.getByLabelText('Duração Padrão (semanas)'), { target: { value: '8' } });
+    fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
+    fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
 
     fireEvent.submit(container.querySelector('form'));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/trainer/protocols', expect.objectContaining({
         assigneeEmail: 'aluno@example.com',
+        name: 'Rotina Manual',
+        description: 'Criada sem modelo',
+        availableWeekDays: ['monday'],
+        defaultDurationWeeks: 8,
+        genderOrdination: 'male',
+        trainingLevel: 'advanced',
+        startDate: '2024-01-01',
+        endDate: '2024-03-31',
+        expirationDate: '2024-03-31',
       }));
       expect(mockShowToast).toHaveBeenCalledWith('Rotina criada com sucesso!', 'success');
+    });
+  });
+
+  it('calls PATCH to update rotina with parity fields', async () => {
+    const user = userEvent.setup();
+    api.patch.mockResolvedValue({ data: { id: 1 } });
+
+    const { container } = renderWithRouter(<TrainingProtocols />);
+
+    await waitFor(() => screen.getByRole('button', { name: /editar/i }));
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    await user.clear(screen.getByLabelText('Nome da Rotina'));
+    await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina Editada');
+    await user.selectOptions(screen.getByLabelText('Classificação'), 'other');
+    await user.selectOptions(screen.getByLabelText('Nível de Treino'), 'intermediate');
+    fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '02/01/2024' } });
+    fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '30/04/2024' } });
+
+    fireEvent.submit(container.querySelector('form'));
+
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith('/trainer/protocols/1', expect.objectContaining({
+        name: 'Rotina Editada',
+        availableWeekDays: ['monday', 'friday'],
+        defaultDurationWeeks: 12,
+        genderOrdination: 'other',
+        trainingLevel: 'intermediate',
+        startDate: '2024-01-02',
+        endDate: '2024-04-30',
+        expirationDate: '2024-04-30',
+      }));
+      expect(mockShowToast).toHaveBeenCalledWith('Rotina atualizada com sucesso!', 'success');
+    });
+  });
+
+  it('keeps import-from-template flow with template parity fields', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: { id: 3, status: 'ACTIVE' } });
+
+    const { container } = renderWithRouter(<TrainingProtocols />);
+
+    await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+
+    await user.type(screen.getByLabelText('E-mail do Aluno'), 'aluno@example.com');
+    await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
+    fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
+    fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+
+    fireEvent.submit(container.querySelector('form'));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/protocols/import-from-template', expect.objectContaining({
+        templateId: '1',
+        assigneeEmail: 'aluno@example.com',
+        name: 'Modelo Base',
+        description: 'Desc',
+        availableWeekDays: ['monday', 'wednesday'],
+        defaultDurationWeeks: 12,
+        genderOrdination: 'female',
+        trainingLevel: 'beginner',
+        startDate: '2024-01-01',
+        endDate: '2024-03-31',
+        expirationDate: '2024-03-31',
+      }));
+      expect(mockShowToast).toHaveBeenCalledWith('Rotina criada com sucesso!', 'success');
+    });
+  });
+
+  it('creates trainings right after creating a manual rotina', async () => {
+    const user = userEvent.setup();
+    api.post.mockImplementation((url) => {
+      if (url === '/trainer/protocols') return Promise.resolve({ data: { id: 55, status: 'ACTIVE' } });
+      if (url === '/trainer/protocols/55/trainings') return Promise.resolve({ data: { id: 500 } });
+      return Promise.resolve({ data: {} });
+    });
+
+    const { container } = renderWithRouter(<TrainingProtocols />);
+
+    await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+
+    await user.type(screen.getByLabelText('E-mail do Aluno'), 'aluno@example.com');
+    await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina com treino');
+    fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
+    fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+
+    await user.click(screen.getByRole('button', { name: /adicionar treino/i }));
+    await user.selectOptions(screen.getByRole('combobox', { name: /modelo de treino 1/i }), '10');
+
+    fireEvent.submit(container.querySelector('form'));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/protocols', expect.objectContaining({
+        name: 'Rotina com treino',
+      }));
+      expect(api.post).toHaveBeenCalledWith('/trainer/protocols/55/trainings', expect.objectContaining({
+        templateId: '10',
+        name: 'Treino A',
+        order: 1,
+      }));
+    });
+  });
+
+  it('creates training template from protocol modal only on rotina save', async () => {
+    const user = userEvent.setup();
+    api.post.mockImplementation((url) => {
+      if (url === '/trainer/protocols') return Promise.resolve({ data: { id: 77, status: 'ACTIVE' } });
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: { id: 201, name: 'Treino novo' } });
+      if (url === '/trainer/protocols/77/trainings') return Promise.resolve({ data: { id: 700 } });
+      return Promise.resolve({ data: {} });
+    });
+
+    const { container } = renderWithRouter(<TrainingProtocols />);
+
+    await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+
+    await user.type(screen.getByLabelText('E-mail do Aluno'), 'aluno@example.com');
+    await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina com treino novo');
+    fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
+    fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+
+    await user.click(screen.getByRole('button', { name: /criar treino/i }));
+
+    const modal = document.querySelector('.bottom-sheet');
+    await user.type(screen.getByLabelText('Nome', { selector: '#tt-modal-name' }), 'Treino novo');
+    await user.selectOptions(within(modal).getByRole('combobox', { name: /categoria/i }), 'strength');
+    await user.click(within(modal).getByRole('button', { name: /adicionar à rotina/i }));
+
+    expect(api.post).not.toHaveBeenCalledWith('/trainer/training-templates', expect.anything());
+
+    fireEvent.submit(container.querySelector('form'));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/training-templates', expect.objectContaining({
+        name: 'Treino novo',
+        category: 'strength',
+      }));
+      expect(api.post).toHaveBeenCalledWith('/trainer/protocols/77/trainings', expect.objectContaining({
+        templateId: 201,
+        name: 'Treino novo',
+      }));
+    });
+  });
+
+  it('imports linked trainings from template when backend returns none', async () => {
+    const user = userEvent.setup();
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/protocols') return Promise.resolve({ data: mockProtocols });
+      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+      if (url === '/trainer/protocol-templates/1') {
+        return Promise.resolve({
+          data: {
+            scheduleTemplates: [
+              {
+                order: 1,
+                trainingTemplate: { id: 10, name: 'Treino A', description: 'Desc A' },
+              },
+              {
+                order: 2,
+                trainingTemplate: { id: 11, name: 'Treino B', description: 'Desc B' },
+              },
+            ],
+          },
+        });
+      }
+      if (url === '/trainer/protocols/91/trainings') return Promise.resolve({ data: [] });
+      return Promise.resolve({ data: [] });
+    });
+
+    api.post.mockImplementation((url) => {
+      if (url === '/trainer/protocols/import-from-template') return Promise.resolve({ data: { id: 91 } });
+      if (url === '/trainer/protocols/91/trainings') return Promise.resolve({ data: { id: 999 } });
+      return Promise.resolve({ data: {} });
+    });
+
+    const { container } = renderWithRouter(<TrainingProtocols />);
+
+    await waitFor(() => screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.type(screen.getByLabelText('E-mail do Aluno'), 'aluno@example.com');
+    await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
+    fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
+    fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+
+    fireEvent.submit(container.querySelector('form'));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/protocols/import-from-template', expect.objectContaining({
+        templateId: '1',
+      }));
+      expect(api.post).toHaveBeenCalledWith('/trainer/protocols/91/trainings', expect.objectContaining({
+        templateId: 10,
+        name: 'Treino A',
+        order: 1,
+      }));
+      expect(api.post).toHaveBeenCalledWith('/trainer/protocols/91/trainings', expect.objectContaining({
+        templateId: 11,
+        name: 'Treino B',
+        order: 2,
+      }));
+      expect(mockShowToast).toHaveBeenCalledWith('Treinos do modelo sincronizados automaticamente.', 'success');
     });
   });
 
