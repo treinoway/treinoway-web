@@ -59,10 +59,42 @@ describe('TrainingTemplates', () => {
     });
   });
 
-  it('shows empty state when there are no templates', async () => {
+  it('shows empty state and info banner when there are no templates', async () => {
     api.get.mockResolvedValue({ data: [] });
 
     renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Nenhum modelo de treino ainda')).toBeInTheDocument();
+      expect(screen.getByText(/O que é um modelo de treino/i)).toBeInTheDocument();
+    });
+  });
+
+  it('does not show info banner when templates exist', async () => {
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+
+    expect(screen.queryByText(/O que é um modelo de treino/i)).not.toBeInTheDocument();
+  });
+
+  it('shows loading and avoids empty-state flash before GET resolves', async () => {
+    let resolveTemplates;
+    const templatesPromise = new Promise((resolve) => {
+      resolveTemplates = resolve;
+    });
+
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/training-templates') return templatesPromise;
+      return Promise.resolve({ data: [] });
+    });
+
+    renderWithRouter(<TrainingTemplates />);
+
+    expect(screen.getByText('Carregando...')).toBeInTheDocument();
+    expect(screen.queryByText('Nenhum modelo de treino ainda')).not.toBeInTheDocument();
+
+    resolveTemplates({ data: [] });
 
     await waitFor(() => {
       expect(screen.getByText('Nenhum modelo de treino ainda')).toBeInTheDocument();

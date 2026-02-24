@@ -50,8 +50,9 @@ treinoway-web/
 │   │   ├── Profile.jsx           # Protected: User profile management
 │   │   ├── trainer/              # Trainer-only pages
 │   │   │   ├── TrainerProfile.jsx
+│   │   │   ├── CreateProtocol.jsx
+│   │   │   ├── ProtocolTemplates.jsx
 │   │   │   ├── TrainingTemplates.jsx
-│   │   │   ├── TrainingProtocols.jsx  # Protocols + Protocol Templates (tabs)
 │   │   │   └── ProtocolDetail.jsx
 │   ├── App.jsx                   # Main app component with routing
 │   ├── main.jsx                  # Entry point
@@ -76,7 +77,8 @@ treinoway-web/
 
 ### Trainer Routes (require TRAINER role)
 - `/trainer/training-templates` - Training template CRUD
-- `/trainer/protocols` - Training protocols + protocol templates (tabs)
+- `/trainer/protocol-templates` - Protocol template CRUD
+- `/trainer/protocols/new` - Create protocol for a selected student
 - `/trainer/protocols/:id` - Protocol detail with trainings
 
 All protected routes wrap components with `<ProtectedRoute>` and `<Layout>`.
@@ -341,6 +343,7 @@ return (
 - **Error:** red alert, persistent, with close button
 - **Destructive actions:** always ask confirmation before executing (`window.confirm()`)
 - **Form submission:** disable submit button during request to prevent double-click
+- **GET resource loading rule:** on pages that fetch a specific resource via `GET` (e.g., by id), always render a loading state first and only show "not found" feedback (toast/alert) after the request has completed and confirmed no resource exists. Never show "not found" feedback before the initial GET finishes.
 
 ### Responsive Design
 

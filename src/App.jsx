@@ -15,8 +15,9 @@ import Profile from './pages/Profile';
 
 // Trainer pages
 import TrainingTemplates from './pages/trainer/TrainingTemplates';
-import TrainingProtocols from './pages/trainer/TrainingProtocols';
 import ProtocolDetail from './pages/trainer/ProtocolDetail';
+import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
+import CreateProtocol from './pages/trainer/CreateProtocol';
 import Students from './pages/trainer/Students';
 
 function App() {
@@ -64,11 +65,21 @@ function App() {
             }
           />
           <Route
-            path="/trainer/protocols"
+            path="/trainer/protocol-templates"
             element={
               <ProtectedRoute>
                 <Layout>
-                  <TrainingProtocols />
+                  <ProtocolTemplates />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/protocols/new"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <CreateProtocol />
                 </Layout>
               </ProtectedRoute>
             }

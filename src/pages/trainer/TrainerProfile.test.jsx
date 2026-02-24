@@ -40,7 +40,28 @@ describe('TrainerProfile', () => {
   it('renders the page title', async () => {
     renderWithRouter(<TrainerProfile />);
 
-    expect(screen.getByText('Perfil do Treinador')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Perfil do Treinador')).toBeInTheDocument();
+    });
+  });
+
+  it('shows loading while profile GET is pending', async () => {
+    let resolveProfile;
+    const profilePromise = new Promise((resolve) => {
+      resolveProfile = resolve;
+    });
+    api.get.mockReturnValue(profilePromise);
+
+    renderWithRouter(<TrainerProfile />);
+
+    expect(screen.getByText('Carregando...')).toBeInTheDocument();
+    expect(screen.queryByText('Perfil do Treinador')).not.toBeInTheDocument();
+
+    resolveProfile({ data: mockTrainerData });
+
+    await waitFor(() => {
+      expect(screen.getByText('Perfil do Treinador')).toBeInTheDocument();
+    });
   });
 
   it('displays trainer data in view mode after loading', async () => {

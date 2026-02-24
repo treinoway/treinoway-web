@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, MoreVertical } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -31,6 +32,13 @@ const StudentRowMenu = ({ student, onUnlink }) => {
       </button>
       {open && (
         <div className="row-menu-dropdown">
+          <Link
+            to={`/trainer/protocols/new?studentId=${student.id}`}
+            className="row-menu-item"
+            onClick={() => setOpen(false)}
+          >
+            Criar Rotina
+          </Link>
           <button
             className="row-menu-item row-menu-item--danger"
             onClick={() => {

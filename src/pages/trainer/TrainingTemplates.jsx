@@ -6,6 +6,7 @@ import api from '../../api/axios';
 const TrainingTemplates = () => {
   const { showToast } = useToast();
   const [templates, setTemplates] = useState([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -24,11 +25,14 @@ const TrainingTemplates = () => {
   }, []);
 
   const fetchTemplates = async () => {
+    setTemplatesLoading(true);
     try {
       const response = await api.get('/trainer/training-templates');
       setTemplates(response.data);
     } catch (error) {
       console.error('Failed to fetch training templates:', error);
+    } finally {
+      setTemplatesLoading(false);
     }
   };
 
@@ -185,7 +189,13 @@ const TrainingTemplates = () => {
         </div>
       )}
 
-      {!showForm && <div className="grid-cards">
+      {templatesLoading && !showForm && (
+        <div className="loading-screen">
+          <span className="loading-text">Carregando...</span>
+        </div>
+      )}
+
+      {!showForm && !templatesLoading && <div className="grid-cards">
         {templates.map((template) => (
           <div key={template.id} className="card">
             <div className="card-header-start">
@@ -221,11 +231,18 @@ const TrainingTemplates = () => {
         ))}
       </div>}
 
-      {templates.length === 0 && !showForm && (
-        <div className="empty-state">
-          <p className="empty-state-title">Nenhum modelo de treino ainda</p>
-          <p>Crie seu primeiro modelo de treino para começar</p>
-        </div>
+      {!showForm && !templatesLoading && templates.length === 0 && (
+        <>
+          <div className="alert alert-info" style={{ marginBottom: 'var(--spacing-md)' }}>
+            <strong>O que é um modelo de treino?</strong> Um modelo de treino é uma ficha pré-configurada
+            com categoria e segmento corporal que pode ser reutilizada em diferentes rotinas, agilizando
+            a montagem dos treinos dos seus alunos.
+          </div>
+          <div className="empty-state">
+            <p className="empty-state-title">Nenhum modelo de treino ainda</p>
+            <p>Crie seu primeiro modelo de treino para começar</p>
+          </div>
+        </>
       )}
 
       {confirmDialog && (

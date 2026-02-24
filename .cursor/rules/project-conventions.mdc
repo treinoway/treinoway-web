@@ -167,3 +167,49 @@ When a page has both a form (create or edit) and a list of items as cards, the l
 ```
 
 This rule applies to all pages with inline forms (protocols, trainings, templates, etc.). If multiple forms exist on the same page (e.g., training form and schedule form), hide the list whenever **any** form is open.
+
+## GET Resource Loading Rule
+
+For any page that fetches a specific resource with `GET` (especially by id or query param), always follow this flow:
+
+1. Set a dedicated loading state before starting the request
+2. Render a loading UI while waiting (`.loading-screen` + "Carregando...")
+3. Only after the request finishes:
+   - show the resource if found
+   - show "not found" feedback (toast/alert) if not found
+
+Never show "not found" messages before the initial `GET` completes. This avoids flicker and false negative feedback during navigation.
+
+```jsx
+// ✅ CORRECT
+const [loadingResource, setLoadingResource] = useState(false);
+const [resource, setResource] = useState(null);
+
+const fetchResource = async (id) => {
+  setLoadingResource(true);
+  try {
+    const response = await api.get('/endpoint');
+    const found = response.data?.find((item) => String(item.id) === String(id));
+    if (!found) {
+      showToast('Recurso não encontrado.', 'error');
+      return;
+    }
+    setResource(found);
+  } finally {
+    setLoadingResource(false);
+  }
+};
+
+if (loadingResource) {
+  return (
+    <div className="loading-screen">
+      <span className="loading-text">Carregando...</span>
+    </div>
+  );
+}
+
+// ❌ WRONG
+if (!resource) {
+  showToast('Recurso não encontrado.', 'error'); // fires before GET completes
+}
+```

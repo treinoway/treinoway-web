@@ -67,21 +67,13 @@ describe('Dashboard', () => {
     expect(screen.getByText(/bem-vindo/i)).toBeInTheDocument();
   });
 
-  it('always shows "Meu Perfil" quick action', () => {
-    mockHasRole.mockReturnValue(false);
-
-    renderWithRouter(<Dashboard />);
-
-    expect(screen.getByText('Meu Perfil')).toBeInTheDocument();
-  });
-
   it('shows trainer quick actions when user has TRAINER role', () => {
     mockHasRole.mockImplementation((role) => role === 'TRAINER');
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.getByText('Rotinas')).toBeInTheDocument();
-    expect(screen.getByText('Modelos de Treino')).toBeInTheDocument();
+    expect(screen.getByText('Criar Rotina para um Aluno')).toBeInTheDocument();
+    expect(screen.getByText('Modelos de Rotina')).toBeInTheDocument();
   });
 
   it('hides trainer quick actions when user does not have TRAINER role', () => {
@@ -89,8 +81,8 @@ describe('Dashboard', () => {
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.queryByText('Rotinas')).not.toBeInTheDocument();
-    expect(screen.queryByText('Modelos de Treino')).not.toBeInTheDocument();
+    expect(screen.queryByText('Criar Rotina para um Aluno')).not.toBeInTheDocument();
+    expect(screen.queryByText('Modelos de Rotina')).not.toBeInTheDocument();
   });
 
   it('shows "Seja um Treinador" button when user is not a trainer', () => {

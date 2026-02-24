@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import { Link } from 'react-router-dom';
-import { User, Dumbbell, ClipboardList, BookOpen } from 'lucide-react';
+import { Dumbbell, ClipboardList, BookOpen } from 'lucide-react';
 import api from '../api/axios';
 
 const Dashboard = () => {
@@ -54,31 +54,23 @@ const Dashboard = () => {
       <section>
         <h2 className="dashboard-section-title">Ações Rápidas</h2>
         <div className="quick-actions">
-          <Link to="/profile" className="quick-action-card">
-            <div className="quick-action-icon">
-              <User size={20} strokeWidth={1.6} />
-            </div>
-            <span className="quick-action-label">Meu Perfil</span>
-            <p className="quick-action-desc">Atualize seus dados pessoais, foto e informações de contato</p>
-          </Link>
-
           {hasRole('TRAINER') && (
-            <Link to="/trainer/protocols" className="quick-action-card">
+            <Link to="/trainer/protocols/new" className="quick-action-card">
               <div className="quick-action-icon">
                 <ClipboardList size={20} strokeWidth={1.6} />
               </div>
-              <span className="quick-action-label">Rotinas</span>
-              <p className="quick-action-desc">Crie e acompanhe rotinas de treino atribuídas aos seus alunos</p>
+              <span className="quick-action-label">Criar Rotina para um Aluno</span>
+              <p className="quick-action-desc">Monte uma nova rotina de treino personalizada e vincule diretamente a um aluno</p>
             </Link>
           )}
 
           {hasRole('TRAINER') && (
-            <Link to="/trainer/training-templates" className="quick-action-card">
+            <Link to="/trainer/protocol-templates" className="quick-action-card">
               <div className="quick-action-icon">
                 <BookOpen size={20} strokeWidth={1.6} />
               </div>
-              <span className="quick-action-label">Modelos de Treino</span>
-              <p className="quick-action-desc">Monte modelos reutilizáveis e aplique-os em qualquer rotina com um clique</p>
+              <span className="quick-action-label">Modelos de Rotina</span>
+              <p className="quick-action-desc">Crie estruturas de rotina reutilizáveis para agilizar a montagem dos treinos dos seus alunos</p>
             </Link>
           )}
 

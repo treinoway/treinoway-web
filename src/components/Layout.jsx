@@ -3,10 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, User, BookOpen, ClipboardList, Dumbbell, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-const BIBLIOTECA_PATHS = ['/trainer/protocols', '/trainer/training-templates'];
+const BIBLIOTECA_PATHS = ['/trainer/protocol-templates', '/trainer/training-templates'];
+const ALUNOS_PATHS = ['/trainer/students', '/trainer/protocols/new'];
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [alunosOpen, setAlunosOpen] = useState(false);
   const [bibliotecaOpen, setBibliotecaOpen] = useState(false);
   const [bibliotecaPopover, setBibliotecaPopover] = useState(false);
   const { user, logout, hasRole } = useAuth();
@@ -26,11 +28,20 @@ const Layout = ({ children }) => {
 
   const isBibliotecaActive = () =>
     BIBLIOTECA_PATHS.some((p) => isActive(p));
+  const isAlunosActive = () =>
+    ALUNOS_PATHS.some((p) => isActive(p));
 
   // Auto-open sidebar biblioteca group when a child route is active
   useEffect(() => {
     if (isBibliotecaActive()) {
       setBibliotecaOpen(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (isAlunosActive()) {
+      setAlunosOpen(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
@@ -48,8 +59,12 @@ const Layout = ({ children }) => {
   }, [bibliotecaPopover]);
 
   const bibliotecaChildren = [
-    { path: '/trainer/protocols', label: 'Rotinas', Icon: ClipboardList },
-    { path: '/trainer/training-templates', label: 'Treinos', Icon: Dumbbell },
+    { path: '/trainer/protocol-templates', label: 'Modelos de Rotina', Icon: ClipboardList },
+    { path: '/trainer/training-templates', label: 'Modelos de Treino', Icon: Dumbbell },
+  ];
+  const alunosChildren = [
+    { path: '/trainer/students', label: 'Meus alunos', Icon: Users },
+    { path: '/trainer/protocols/new', label: 'Criar Rotina', Icon: ClipboardList },
   ];
 
   const navLinks = [
@@ -126,6 +141,51 @@ const Layout = ({ children }) => {
                 <div className="sidebar-section-label">Treinador</div>
               )}
 
+              {/* Alunos dropdown */}
+              <button
+                onClick={() => {
+                  if (!sidebarOpen) {
+                    setSidebarOpen(true);
+                    setAlunosOpen(true);
+                  } else {
+                    setAlunosOpen((o) => !o);
+                  }
+                }}
+                className={`sidebar-dropdown-toggle ${isAlunosActive() ? 'sidebar-link--active' : ''}`}
+                aria-label="Alunos"
+                aria-expanded={alunosOpen && sidebarOpen}
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <Users size={20} strokeWidth={1.6} />
+                </span>
+                {sidebarOpen && (
+                  <>
+                    <span className="sidebar-link-label">Alunos</span>
+                    <span className={`sidebar-dropdown-chevron ${alunosOpen ? 'sidebar-dropdown-chevron--open' : ''}`}>
+                      <ChevronDown size={14} strokeWidth={1.6} />
+                    </span>
+                  </>
+                )}
+              </button>
+
+              {sidebarOpen && alunosOpen && (
+                <div className="sidebar-dropdown-children">
+                  {alunosChildren.map((child) => (
+                    <Link
+                      key={child.path}
+                      to={child.path}
+                      className={`sidebar-child-link ${isActive(child.path) ? 'sidebar-link--active' : ''}`}
+                      aria-label={child.label}
+                    >
+                      <span className="sidebar-link-icon" aria-hidden="true">
+                        <child.Icon size={16} strokeWidth={1.6} />
+                      </span>
+                      <span className="sidebar-link-label">{child.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
               {/* Biblioteca dropdown */}
               <button
                 onClick={() => {
@@ -170,21 +230,6 @@ const Layout = ({ children }) => {
                   ))}
                 </div>
               )}
-
-              {/* Alunos */}
-              {navLinks.filter(l => l.section === 'Treinador').map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`sidebar-link ${isActive(link.path) ? 'sidebar-link--active' : ''}`}
-                  aria-label={link.label}
-                >
-                  <span className="sidebar-link-icon" aria-hidden="true">
-                    <link.Icon size={20} strokeWidth={1.6} />
-                  </span>
-                  {sidebarOpen && <span className="sidebar-link-label">{link.label}</span>}
-                </Link>
-              ))}
             </>
           )}
         </nav>
@@ -230,6 +275,19 @@ const Layout = ({ children }) => {
         </Link>
 
         {hasRole('TRAINER') && (
+          <Link
+            to="/trainer/students"
+            className={`bottom-nav-item ${isActive('/trainer/students') ? 'bottom-nav-item--active' : ''}`}
+            aria-label="Alunos"
+          >
+            <span className="bottom-nav-item-icon" aria-hidden="true">
+              <Users size={22} strokeWidth={1.6} />
+            </span>
+            <span>Alunos</span>
+          </Link>
+        )}
+
+        {hasRole('TRAINER') && (
           <div className="bottom-nav-popover-wrapper" ref={popoverRef}>
             <button
               onClick={() => setBibliotecaPopover(o => !o)}
@@ -261,19 +319,6 @@ const Layout = ({ children }) => {
               </div>
             )}
           </div>
-        )}
-
-        {hasRole('TRAINER') && (
-          <Link
-            to="/trainer/students"
-            className={`bottom-nav-item ${isActive('/trainer/students') ? 'bottom-nav-item--active' : ''}`}
-            aria-label="Alunos"
-          >
-            <span className="bottom-nav-item-icon" aria-hidden="true">
-              <Users size={22} strokeWidth={1.6} />
-            </span>
-            <span>Alunos</span>
-          </Link>
         )}
 
         <button onClick={handleLogout} className="bottom-nav-item bottom-nav-logout" aria-label="Sair da conta">

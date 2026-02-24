@@ -27,7 +27,7 @@ const ProtocolDetail = () => {
     bodySegment: '',
     notes: '',
     order: 1,
-    templateId: '',
+    trainingTemplateId: '',
   });
 
   const [scheduleFormData, setScheduleFormData] = useState({
@@ -75,11 +75,13 @@ const ProtocolDetail = () => {
 
     try {
       if (editingTrainingId) {
-        const { templateId: _templateId, ...updateData } = trainingFormData;
+        const { trainingTemplateId: _tid, ...updateData } = trainingFormData;
         await api.patch(`/trainer/trainings/${editingTrainingId}`, updateData);
         showToast('Treino atualizado com sucesso!', 'success');
       } else {
-        await api.post(`/trainer/protocols/${id}/trainings`, trainingFormData);
+        const { trainingTemplateId, ...rest } = trainingFormData;
+        const createData = trainingTemplateId ? { ...rest, trainingTemplateId } : rest;
+        await api.post(`/trainer/protocols/${id}/trainings`, createData);
         showToast('Treino criado com sucesso!', 'success');
       }
       fetchTrainings();
@@ -118,7 +120,7 @@ const ProtocolDetail = () => {
       bodySegment: training.bodySegment || '',
       notes: training.notes || '',
       order: training.order,
-      templateId: '',
+      trainingTemplateId: '',
     });
     setEditingTrainingId(training.id);
     setShowTrainingForm(true);
@@ -153,7 +155,7 @@ const ProtocolDetail = () => {
       bodySegment: '',
       notes: '',
       order: 1,
-      templateId: '',
+      trainingTemplateId: '',
     });
     setEditingTrainingId(null);
     setShowTrainingForm(false);
@@ -244,9 +246,9 @@ const ProtocolDetail = () => {
               <div>
                 <label className="form-label">Importar de Modelo (opcional)</label>
                 <select
-                  value={trainingFormData.templateId}
+                  value={trainingFormData.trainingTemplateId}
                   onChange={(e) =>
-                    setTrainingFormData({ ...trainingFormData, templateId: e.target.value })
+                    setTrainingFormData({ ...trainingFormData, trainingTemplateId: e.target.value })
                   }
                   className="form-select"
                 >

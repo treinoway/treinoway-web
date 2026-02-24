@@ -37,7 +37,26 @@ describe('ProtocolTemplates', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
-    api.get.mockResolvedValue({ data: mockTemplates });
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/training-templates') {
+        return Promise.resolve({
+          data: [
+            { id: 10, name: 'Treino A', category: 'strength', bodySegment: 'upper' },
+            { id: 11, name: 'Treino B', category: 'cardio', bodySegment: 'lower' },
+          ],
+        });
+      }
+      if (url === '/trainer/protocol-templates/1') {
+        return Promise.resolve({
+          data: {
+            ...mockTemplates[0],
+            scheduleTemplates: [],
+          },
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
     api.post.mockReset();
     api.patch.mockReset();
     api.delete.mockReset();
@@ -55,6 +74,8 @@ describe('ProtocolTemplates', () => {
     await waitFor(() => {
       expect(screen.getByText('Modelo Força')).toBeInTheDocument();
     });
+
+    expect(screen.queryByText(/o que é um modelo\?/i)).not.toBeInTheDocument();
   });
 
   it('shows empty state when there are no templates', async () => {
@@ -64,6 +85,32 @@ describe('ProtocolTemplates', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Nenhum modelo de rotina ainda')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/o que é um modelo\?/i)).toBeInTheDocument();
+  });
+
+  it('shows loading and avoids info banner flash before GET resolves', async () => {
+    let resolveTemplates;
+    const templatesPromise = new Promise((resolve) => {
+      resolveTemplates = resolve;
+    });
+
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/protocol-templates') return templatesPromise;
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: [] });
+      return Promise.resolve({ data: [] });
+    });
+
+    renderWithRouter(<ProtocolTemplates />);
+
+    expect(screen.getByText('Carregando...')).toBeInTheDocument();
+    expect(screen.queryByText(/o que é um modelo\?/i)).not.toBeInTheDocument();
+
+    resolveTemplates({ data: [] });
+
+    await waitFor(() => {
+      expect(screen.getByText(/o que é um modelo\?/i)).toBeInTheDocument();
     });
   });
 
@@ -180,5 +227,42 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
     expect(screen.queryByText('Criar Novo Modelo')).not.toBeInTheDocument();
+  });
+
+  it('adds and removes training rows in template form', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
+    await user.click(screen.getByRole('button', { name: /selecionar existente/i }));
+
+    expect(screen.getByRole('button', { name: /\+ adicionar treino/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: /remover/i }));
+    expect(screen.getByRole('button', { name: /selecionar existente/i })).toBeInTheDocument();
+  });
+
+  it('creates training template from inline modal', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: { id: 99, name: 'Treino Novo', category: 'strength' } });
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
+
+    await user.type(screen.getByLabelText('Nome', { selector: '#tt-modal-name' }), 'Treino Novo');
+    await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+    await user.click(screen.getByRole('button', { name: /criar modelo de treino/i }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/training-templates', expect.objectContaining({
+        name: 'Treino Novo',
+        category: 'strength',
+      }));
+      expect(mockShowToast).toHaveBeenCalledWith('Modelo de treino criado com sucesso!', 'success');
+    });
   });
 });

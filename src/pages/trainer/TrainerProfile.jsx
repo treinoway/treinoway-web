@@ -5,6 +5,7 @@ import api from '../../api/axios';
 
 const TrainerProfile = () => {
   const { showToast } = useToast();
+  const [profileLoading, setProfileLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [trainer, setTrainer] = useState(null);
@@ -22,6 +23,7 @@ const TrainerProfile = () => {
   }, []);
 
   const fetchTrainerProfile = async () => {
+    setProfileLoading(true);
     try {
       const response = await api.get('/trainer');
       setTrainer(response.data);
@@ -34,6 +36,8 @@ const TrainerProfile = () => {
       });
     } catch (error) {
       console.error('Failed to fetch trainer profile:', error);
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -52,6 +56,14 @@ const TrainerProfile = () => {
       setLoading(false);
     }
   };
+
+  if (profileLoading) {
+    return (
+      <div className="loading-screen">
+        <span className="loading-text">Carregando...</span>
+      </div>
+    );
+  }
 
   return (
     <div>
