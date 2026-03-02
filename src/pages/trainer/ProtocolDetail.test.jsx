@@ -19,6 +19,20 @@ vi.mock('../../api/axios', () => ({
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
+vi.mock('../../components/CreateExerciseModal', () => ({
+  default: ({ open, onClose, onSuccess, trainingId, exercise, title, headerContent }) =>
+    open ? (
+      <div data-testid="create-exercise-modal">
+        {headerContent}
+        <span data-testid="modal-title">{title || (exercise ? 'Editar Exercício' : 'Criar Exercício')}</span>
+        {trainingId && <span data-testid="modal-training-id">{trainingId}</span>}
+        {exercise && <span data-testid="modal-exercise-id">{exercise.id}</span>}
+        <button onClick={onClose} type="button">Fechar modal exercício</button>
+        <button onClick={onSuccess} type="button">Salvar exercício</button>
+      </div>
+    ) : null,
+}));
+
 const mockShowToast = vi.fn();
 
 const mockProtocol = {
@@ -37,12 +51,21 @@ const mockTrainings = [
     category: 'strength',
     bodySegment: 'upper',
     order: 1,
-    schedules: [],
+    weekDay: 'monday',
   },
 ];
 
 const mockTrainingTemplates = [
   { id: 5, name: 'Template X' },
+];
+
+const mockExerciseTemplates = [
+  { id: 20, name: 'Supino Reto', type: 'strength' },
+  { id: 21, name: 'Corrida', type: 'cardio' },
+];
+
+const mockExercises = [
+  { id: 100, name: 'Supino Reto', type: 'strength', sets: 4, repetitions: 10 },
 ];
 
 function renderProtocolDetail() {
@@ -59,8 +82,10 @@ describe('ProtocolDetail', () => {
 
     api.get.mockImplementation((url) => {
       if (url.endsWith('/trainer/protocols/1')) return Promise.resolve({ data: mockProtocol });
-      if (url.includes('/trainings') && !url.includes('training-templates')) return Promise.resolve({ data: mockTrainings });
+      if (url === '/trainer/protocols/1/trainings') return Promise.resolve({ data: mockTrainings });
       if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+      if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
+      if (url.match(/\/trainer\/trainings\/\d+\/exercises/)) return Promise.resolve({ data: [] });
       return Promise.resolve({ data: [] });
     });
 
@@ -103,11 +128,21 @@ describe('ProtocolDetail', () => {
     });
   });
 
+  it('renders weekDay badge when training has weekDay', async () => {
+    renderProtocolDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Treino de Peito')).toBeInTheDocument();
+      expect(screen.getByText('Segunda-feira')).toBeInTheDocument();
+    });
+  });
+
   it('shows empty state when protocol has no trainings', async () => {
     api.get.mockImplementation((url) => {
       if (url.endsWith('/trainer/protocols/1')) return Promise.resolve({ data: mockProtocol });
-      if (url.includes('/trainings')) return Promise.resolve({ data: [] });
+      if (url === '/trainer/protocols/1/trainings') return Promise.resolve({ data: [] });
       if (url === '/trainer/training-templates') return Promise.resolve({ data: [] });
+      if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
       return Promise.resolve({ data: [] });
     });
 
@@ -118,7 +153,7 @@ describe('ProtocolDetail', () => {
     });
   });
 
-  it('shows the training form when "+ Adicionar Treino" is clicked', async () => {
+  it('shows the training modal when "+ Adicionar Treino" is clicked', async () => {
     const user = userEvent.setup();
     renderProtocolDetail();
 
@@ -126,6 +161,29 @@ describe('ProtocolDetail', () => {
     await user.click(screen.getByRole('button', { name: /adicionar treino/i }));
 
     expect(screen.getByText('Adicionar Novo Treino')).toBeInTheDocument();
+  });
+
+  it('closes the training modal when the close button is clicked', async () => {
+    const user = userEvent.setup();
+    renderProtocolDetail();
+
+    await waitFor(() => screen.getByText(/aluno teste/i));
+    await user.click(screen.getByRole('button', { name: /adicionar treino/i }));
+    expect(screen.getByText('Adicionar Novo Treino')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /fechar/i }));
+    expect(screen.queryByText('Adicionar Novo Treino')).not.toBeInTheDocument();
+  });
+
+  it('keeps the training list visible while the modal is open', async () => {
+    const user = userEvent.setup();
+    renderProtocolDetail();
+
+    await waitFor(() => screen.getByText('Treino de Peito'));
+    await user.click(screen.getByRole('button', { name: /adicionar treino/i }));
+
+    expect(screen.getByText('Adicionar Novo Treino')).toBeInTheDocument();
+    expect(screen.getByText('Treino de Peito')).toBeInTheDocument();
   });
 
   it('calls POST to create a training on form submission', async () => {
@@ -158,6 +216,7 @@ describe('ProtocolDetail', () => {
     renderProtocolDetail();
 
     await waitFor(() => screen.getByText('Treino de Peito'));
+    await user.click(screen.getByRole('button', { name: /ações do treino treino de peito/i }));
     await user.click(screen.getByRole('button', { name: /excluir/i }));
     await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
     await user.click(screen.getByRole('button', { name: /confirmar/i }));
@@ -175,6 +234,7 @@ describe('ProtocolDetail', () => {
     const { container } = renderProtocolDetail();
 
     await waitFor(() => screen.getByText('Treino de Peito'));
+    await user.click(screen.getByRole('button', { name: /ações do treino treino de peito/i }));
     await user.click(screen.getByRole('button', { name: /editar/i }));
 
     fireEvent.submit(container.querySelector('form'));
@@ -194,5 +254,203 @@ describe('ProtocolDetail', () => {
     await waitFor(() => screen.getByText(/aluno teste/i));
 
     expect(screen.getByRole('button', { name: /voltar para rotinas/i })).toBeInTheDocument();
+  });
+
+  it('shows "+ Adicionar exercício" button on each training card', async () => {
+    renderProtocolDetail();
+
+    await waitFor(() => screen.getByText('Treino de Peito'));
+
+    expect(screen.getByRole('button', { name: /adicionar exercício ao treino/i })).toBeInTheDocument();
+  });
+
+  it('shows existing exercises in the training card when loaded', async () => {
+    api.get.mockImplementation((url) => {
+      if (url.endsWith('/trainer/protocols/1')) return Promise.resolve({ data: mockProtocol });
+      if (url === '/trainer/protocols/1/trainings') return Promise.resolve({ data: mockTrainings });
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+      if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
+      if (url.match(/\/trainer\/trainings\/\d+\/exercises/)) return Promise.resolve({ data: mockExercises });
+      return Promise.resolve({ data: [] });
+    });
+
+    renderProtocolDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Supino Reto')).toBeInTheDocument();
+    });
+  });
+
+  describe('add exercise flow', () => {
+    it('opens CreateExerciseModal in "Criar novo" mode by default', async () => {
+      const user = userEvent.setup();
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Treino de Peito'));
+      await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+
+      expect(screen.getByTestId('create-exercise-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-title')).toHaveTextContent('Adicionar Exercício');
+      expect(screen.getByTestId('modal-training-id')).toHaveTextContent('10');
+    });
+
+    it('shows segmented toggle with "Criar novo" active in create mode', async () => {
+      const user = userEvent.setup();
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Treino de Peito'));
+      await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+
+      expect(screen.getByRole('button', { name: /criar novo/i })).toHaveClass('segmented-toggle-btn--active');
+    });
+
+    it('switches to "Importar de modelo" mode when toggle is clicked', async () => {
+      const user = userEvent.setup();
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Treino de Peito'));
+      await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+      await user.click(screen.getByRole('button', { name: /importar de modelo/i }));
+
+      expect(screen.getByRole('combobox', { name: /modelo de exercício/i })).toBeInTheDocument();
+      expect(screen.queryByTestId('create-exercise-modal')).not.toBeInTheDocument();
+    });
+
+    it('shows exercise templates in the import from template mode', async () => {
+      const user = userEvent.setup();
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Treino de Peito'));
+      await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+      await user.click(screen.getByRole('button', { name: /importar de modelo/i }));
+
+      expect(screen.getByRole('option', { name: 'Supino Reto' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Corrida' })).toBeInTheDocument();
+    });
+
+    it('calls POST from-template and closes modal on add exercise submit', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValue({ data: { id: 101 } });
+
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Treino de Peito'));
+      await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+      await user.click(screen.getByRole('button', { name: /importar de modelo/i }));
+      await user.selectOptions(screen.getByRole('combobox', { name: /modelo de exercício/i }), '20');
+      await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
+
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith('/trainer/exercises/from-template', {
+          trainingId: 10,
+          templateId: '20',
+        });
+        expect(mockShowToast).toHaveBeenCalledWith('Exercício adicionado com sucesso!', 'success');
+      });
+    });
+
+    it('can switch back to "Criar novo" from "Importar de modelo"', async () => {
+      const user = userEvent.setup();
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Treino de Peito'));
+      await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+      await user.click(screen.getByRole('button', { name: /importar de modelo/i }));
+
+      expect(screen.getByRole('combobox', { name: /modelo de exercício/i })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /criar novo/i }));
+
+      expect(screen.getByTestId('create-exercise-modal')).toBeInTheDocument();
+      expect(screen.queryByRole('combobox', { name: /modelo de exercício/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('exercise row actions', () => {
+    beforeEach(() => {
+      api.get.mockImplementation((url) => {
+        if (url.endsWith('/trainer/protocols/1')) return Promise.resolve({ data: mockProtocol });
+        if (url === '/trainer/protocols/1/trainings') return Promise.resolve({ data: mockTrainings });
+        if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+        if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
+        if (url.match(/\/trainer\/trainings\/\d+\/exercises/)) return Promise.resolve({ data: mockExercises });
+        return Promise.resolve({ data: [] });
+      });
+    });
+
+    it('shows 3-dot menu on exercise row', async () => {
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Supino Reto'));
+      expect(screen.getByRole('button', { name: /ações do exercício supino reto/i })).toBeInTheDocument();
+    });
+
+    it('opens edit modal when "Editar" is clicked on exercise menu', async () => {
+      const user = userEvent.setup();
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Supino Reto'));
+      await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
+      await user.click(screen.getByRole('button', { name: /editar/i }));
+
+      expect(screen.getByTestId('create-exercise-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-exercise-id')).toHaveTextContent('100');
+    });
+
+    it('calls DELETE when "Remover" is clicked on exercise menu', async () => {
+      const user = userEvent.setup();
+      api.delete.mockResolvedValue({});
+
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Supino Reto'));
+      await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
+      await user.click(screen.getByRole('button', { name: /remover/i }));
+      await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
+      await user.click(screen.getByRole('button', { name: /confirmar/i }));
+
+      await waitFor(() => {
+        expect(api.delete).toHaveBeenCalledWith('/trainer/exercises/100');
+        expect(mockShowToast).toHaveBeenCalledWith('Exercício removido com sucesso!', 'success');
+      });
+    });
+
+    it('shows drag handle for reordering trainings when trainings exist', async () => {
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Treino de Peito'));
+      expect(screen.getByRole('button', { name: /arrastar para reordenar/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('training drag and drop reorder', () => {
+    const twoTrainings = [
+      { id: 10, name: 'Treino de Peito', description: 'Peito', category: 'strength', bodySegment: 'upper', order: 1, weekDay: 'monday' },
+      { id: 11, name: 'Treino de Perna', description: 'Perna', category: 'strength', bodySegment: 'lower', order: 2, weekDay: 'tuesday' },
+    ];
+
+    beforeEach(() => {
+      api.get.mockImplementation((url) => {
+        if (url.endsWith('/trainer/protocols/1')) return Promise.resolve({ data: mockProtocol });
+        if (url === '/trainer/protocols/1/trainings') return Promise.resolve({ data: twoTrainings });
+        if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+        if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
+        if (url.match(/\/trainer\/trainings\/\d+\/exercises/)) return Promise.resolve({ data: [] });
+        return Promise.resolve({ data: [] });
+      });
+      api.patch.mockResolvedValue({});
+    });
+
+    it('renders one drag handle per training for reordering', async () => {
+      renderProtocolDetail();
+
+      await waitFor(() => {
+        expect(screen.getByText('Treino de Peito')).toBeInTheDocument();
+        expect(screen.getByText('Treino de Perna')).toBeInTheDocument();
+      });
+
+      const dragHandles = screen.getAllByRole('button', { name: /arrastar para reordenar/i });
+      expect(dragHandles).toHaveLength(2);
+    });
   });
 });

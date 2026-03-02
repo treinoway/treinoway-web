@@ -1,7 +1,96 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
+import { LayoutGrid, List, MoreVertical } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import CreateExerciseTemplateModal from '../../components/CreateExerciseTemplateModal';
+import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
+import { formatExerciseMeta } from '../../utils/exerciseMeta';
+
+const CATEGORY_LABEL = { strength: 'Força', cardio: 'Cardio' };
+const BODY_SEGMENT_LABEL = { upper: 'Superior', lower: 'Inferior', full_body: 'Corpo Inteiro' };
+
+const exerciseBadgeStyle = {
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-outline-variant)',
+  color: 'var(--color-on-surface-variant)',
+};
+
+const TemplateRowMenu = ({ onEdit, onDelete, ariaLabel, deleteLabel = 'Excluir' }) => {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  return (
+    <div className="row-menu" ref={menuRef}>
+      <button
+        type="button"
+        className="row-menu-trigger"
+        aria-label={ariaLabel}
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <MoreVertical size={18} strokeWidth={1.6} />
+      </button>
+      {open && (
+        <div className="row-menu-dropdown">
+          {onEdit && (
+            <button type="button" className="row-menu-item" onClick={() => { setOpen(false); onEdit(); }}>
+              Editar
+            </button>
+          )}
+          <button type="button" className="row-menu-item row-menu-item--danger" onClick={() => { setOpen(false); onDelete(); }}>
+            {deleteLabel}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+TemplateRowMenu.propTypes = {
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func.isRequired,
+  ariaLabel: PropTypes.string.isRequired,
+  deleteLabel: PropTypes.string,
+};
+
+const ExerciseRow = ({ name, meta, onEdit, onRemove }) => (
+  <div className="schedule-template-row">
+    <div className="schedule-template-fields" style={{ alignItems: 'center' }}>
+      <span style={{ fontWeight: 600, flex: 1 }}>{name}</span>
+      {meta && (
+        <div style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
+          <span className="badge" style={exerciseBadgeStyle}>
+            {meta}
+          </span>
+        </div>
+      )}
+    </div>
+    <TemplateRowMenu
+      ariaLabel={`Ações do exercício ${name}`}
+      onEdit={onEdit}
+      onDelete={onRemove}
+      deleteLabel="Remover"
+    />
+  </div>
+);
+
+ExerciseRow.propTypes = {
+  name: PropTypes.string.isRequired,
+  meta: PropTypes.string,
+  onEdit: PropTypes.func,
+  onRemove: PropTypes.func.isRequired,
+};
 
 const TrainingTemplates = () => {
   const { showToast } = useToast();
@@ -11,6 +100,12 @@ const TrainingTemplates = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [showExerciseTemplateModal, setShowExerciseTemplateModal] = useState(false);
+  const [editingExerciseTemplate, setEditingExerciseTemplate] = useState(null);
+  const [exerciseTemplates, setExerciseTemplates] = useState([]);
+  const [exercisePickerValue, setExercisePickerValue] = useState('');
+  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [viewMode, setViewMode] = usePersistedViewMode(VIEW_MODE_KEYS.trainingTemplates);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -18,10 +113,12 @@ const TrainingTemplates = () => {
     category: '',
     bodySegment: '',
     isPublic: false,
+    exerciseTemplateIds: [],
   });
 
   useEffect(() => {
     fetchTemplates();
+    fetchExerciseTemplates();
   }, []);
 
   const fetchTemplates = async () => {
@@ -36,16 +133,47 @@ const TrainingTemplates = () => {
     }
   };
 
+  const fetchExerciseTemplates = async () => {
+    try {
+      const response = await api.get('/trainer/exercise-templates');
+      setExerciseTemplates(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch exercise templates:', error);
+    }
+  };
+
+  const normalizeExerciseTemplateIds = (ids) =>
+    (ids || []).map((id) => (typeof id === 'number' ? id : Number.isNaN(Number(id)) ? id : Number(id)));
+
+  /** Extract exercise template IDs from API response (handles exerciseTemplateIds, exerciseTemplates, or trainingTemplateExerciseTemplates) */
+  const getExerciseTemplateIdsFromTemplate = (template) => {
+    if (template.exerciseTemplateIds && Array.isArray(template.exerciseTemplateIds)) {
+      return template.exerciseTemplateIds;
+    }
+    const junctionList = template.trainingTemplateExerciseTemplates;
+    if (Array.isArray(junctionList)) {
+      return junctionList
+        .map((e) => e.exerciseTemplateId ?? e.exerciseTemplate?.id)
+        .filter((id) => id != null);
+    }
+    const list = template.exerciseTemplates;
+    if (!Array.isArray(list)) return [];
+    return list.map((e) => e.exerciseTemplateId ?? e.id ?? e.exerciseTemplate?.id).filter((id) => id != null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      const { exerciseTemplateIds, ...rest } = formData;
+      const normalizedIds = normalizeExerciseTemplateIds(exerciseTemplateIds);
+      const payload = { ...rest, ...(normalizedIds.length > 0 && { exerciseTemplateIds: normalizedIds }) };
       if (editingId) {
-        await api.patch(`/trainer/training-templates/${editingId}`, formData);
+        await api.patch(`/trainer/training-templates/${editingId}`, payload);
         showToast('Modelo de treino atualizado com sucesso!', 'success');
       } else {
-        await api.post('/trainer/training-templates', formData);
+        await api.post('/trainer/training-templates', payload);
         showToast('Modelo de treino criado com sucesso!', 'success');
       }
       fetchTemplates();
@@ -57,16 +185,28 @@ const TrainingTemplates = () => {
     }
   };
 
-  const handleEdit = (template) => {
-    setFormData({
-      name: template.name,
-      description: template.description || '',
-      category: template.category || '',
-      bodySegment: template.bodySegment || '',
-      isPublic: template.isPublic || false,
-    });
+  const handleEdit = async (template) => {
     setEditingId(template.id);
+    setLoadingEdit(true);
     setShowForm(true);
+    try {
+      const response = await api.get(`/trainer/training-templates/${template.id}`);
+      const full = response.data;
+      setFormData({
+        name: full.name,
+        description: full.description || '',
+        category: full.category || '',
+        bodySegment: full.bodySegment || '',
+        isPublic: full.isPublic || false,
+        exerciseTemplateIds: getExerciseTemplateIdsFromTemplate(full),
+      });
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+      setShowForm(false);
+      setEditingId(null);
+    } finally {
+      setLoadingEdit(false);
+    }
   };
 
   const handleDelete = (id) => {
@@ -85,6 +225,23 @@ const TrainingTemplates = () => {
     });
   };
 
+  const handleExercisePickerAdd = () => {
+    if (!exercisePickerValue) return;
+    if (formData.exerciseTemplateIds.includes(exercisePickerValue)) return;
+    setFormData((prev) => ({
+      ...prev,
+      exerciseTemplateIds: [...prev.exerciseTemplateIds, exercisePickerValue],
+    }));
+    setExercisePickerValue('');
+  };
+
+  const handleExercisePickerRemove = (templateId) => {
+    setFormData((prev) => ({
+      ...prev,
+      exerciseTemplateIds: prev.exerciseTemplateIds.filter((id) => id !== templateId),
+    }));
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -92,7 +249,9 @@ const TrainingTemplates = () => {
       category: '',
       bodySegment: '',
       isPublic: false,
+      exerciseTemplateIds: [],
     });
+    setExercisePickerValue('');
     setEditingId(null);
     setShowForm(false);
   };
@@ -101,11 +260,35 @@ const TrainingTemplates = () => {
     <div>
       <div className="page-header">
         <h1>Modelos de Treino</h1>
-        {!showForm && (
-          <button onClick={() => setShowForm(true)} className="btn-primary">
-            + Novo Modelo de Treino
-          </button>
-        )}
+        <div className="page-header-actions">
+          {!showForm && (
+            <div className="view-toggle-group">
+              <button
+                type="button"
+                className={`view-toggle-btn${viewMode === 'card' ? ' view-toggle-btn--active' : ''}`}
+                onClick={() => setViewMode('card')}
+                aria-pressed={viewMode === 'card'}
+                aria-label="Visualização em cards"
+              >
+                <LayoutGrid size={16} />
+              </button>
+              <button
+                type="button"
+                className={`view-toggle-btn${viewMode === 'list' ? ' view-toggle-btn--active' : ''}`}
+                onClick={() => setViewMode('list')}
+                aria-pressed={viewMode === 'list'}
+                aria-label="Visualização em lista"
+              >
+                <List size={16} />
+              </button>
+            </div>
+          )}
+          {!showForm && (
+            <button onClick={() => setShowForm(true)} className="btn-primary">
+              + Novo Modelo de Treino
+            </button>
+          )}
+        </div>
       </div>
 
       {showForm && (
@@ -113,6 +296,11 @@ const TrainingTemplates = () => {
           <h2 className="card-title mb-md">
             {editingId ? 'Editar Modelo de Treino' : 'Criar Novo Modelo de Treino'}
           </h2>
+          {loadingEdit ? (
+            <div className="loading-screen" style={{ minHeight: 120 }}>
+              <span className="loading-text">Carregando...</span>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="form">
             <div>
               <label className="form-label">Nome</label>
@@ -177,6 +365,68 @@ const TrainingTemplates = () => {
               </label>
             </div>
 
+            <div className="form-section" style={{ marginTop: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--color-outline-variant)' }}>
+              <div className="form-section-header">
+                <h3 className="form-section-title">Exercícios do modelo</h3>
+              </div>
+
+              <div className="exercise-picker-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="tt-exercise-picker">Selecionar exercício existente</label>
+                  <select
+                    id="tt-exercise-picker"
+                    value={exercisePickerValue}
+                    onChange={(e) => setExercisePickerValue(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="">Selecione um modelo...</option>
+                    {exerciseTemplates.map((et) => (
+                      <option key={et.id} value={et.id}>{et.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleExercisePickerAdd}
+                  disabled={!exercisePickerValue}
+                  aria-label="Adicionar exercício ao modelo"
+                >
+                  Adicionar
+                </button>
+              </div>
+
+              {formData.exerciseTemplateIds.length > 0 && (
+                <div className="exercise-list">
+                  {formData.exerciseTemplateIds.map((etId) => {
+                    const et = exerciseTemplates.find((t) => String(t.id) === String(etId));
+                    const name = et?.name || String(etId);
+                    const meta = et ? formatExerciseMeta(et) : null;
+                    return (
+                      <ExerciseRow
+                        key={etId}
+                        name={name}
+                        meta={meta}
+                        onEdit={et ? () => setEditingExerciseTemplate(et) : undefined}
+                        onRemove={() => handleExercisePickerRemove(etId)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="exercise-list-actions">
+                <button
+                  type="button"
+                  className="btn-schedule-sm"
+                  onClick={() => setShowExerciseTemplateModal(true)}
+                  aria-label="Criar novo modelo de exercício"
+                >
+                  + Criar novo modelo de exercício
+                </button>
+              </div>
+            </div>
+
             <div className="btn-group">
               <button type="submit" disabled={loading} className="btn-primary">
                 {loading ? 'Salvando...' : 'Salvar'}
@@ -186,6 +436,7 @@ const TrainingTemplates = () => {
               </button>
             </div>
           </form>
+          )}
         </div>
       )}
 
@@ -195,41 +446,89 @@ const TrainingTemplates = () => {
         </div>
       )}
 
-      {!showForm && !templatesLoading && <div className="grid-cards">
-        {templates.map((template) => (
-          <div key={template.id} className="card">
-            <div className="card-header-start">
-              <h3 className="card-subtitle">{template.name}</h3>
-              {template.isPublic && (
-                <span className="badge badge-green">Público</span>
+      {!showForm && !templatesLoading && templates.length > 0 && viewMode === 'card' && (
+        <div className="grid-cards">
+          {templates.map((template) => (
+            <div key={template.id} className="card">
+              <div className="card-header-start">
+                <h3 className="card-subtitle">{template.name}</h3>
+                {template.isPublic && (
+                  <span className="badge badge-green">Público</span>
+                )}
+              </div>
+              {template.description && (
+                <p className="card-description mb-md">{template.description}</p>
               )}
+              <div className="info-list mb-md" style={{ paddingTop: 'var(--spacing-sm)', borderTop: '1px solid var(--color-outline-variant)' }}>
+                {template.category && (
+                  <div className="text-sm text-light">
+                    <strong>Categoria:</strong> {CATEGORY_LABEL[template.category] || template.category}
+                  </div>
+                )}
+                {template.bodySegment && (
+                  <div className="text-sm text-light">
+                    <strong>Segmento:</strong> {BODY_SEGMENT_LABEL[template.bodySegment] || template.bodySegment}
+                  </div>
+                )}
+              </div>
+              <div className="btn-group">
+                <button onClick={() => handleEdit(template)} className="btn-edit">
+                  Editar
+                </button>
+                <button onClick={() => handleDelete(template.id)} className="btn-delete">
+                  Excluir
+                </button>
+              </div>
             </div>
-            {template.description && (
-              <p className="card-description mb-md">{template.description}</p>
-            )}
-            <div className="info-list mb-md" style={{ paddingTop: 'var(--spacing-sm)', borderTop: '1px solid var(--color-outline-variant)' }}>
-              {template.category && (
-                <div className="text-sm text-light">
-                  <strong>Categoria:</strong> {{ strength: 'Força', cardio: 'Cardio' }[template.category] || template.category}
-                </div>
-              )}
-              {template.bodySegment && (
-                <div className="text-sm text-light">
-                  <strong>Segmento:</strong> {{ upper: 'Superior', lower: 'Inferior', full_body: 'Corpo Inteiro' }[template.bodySegment] || template.bodySegment}
-                </div>
-              )}
-            </div>
-            <div className="btn-group">
-              <button onClick={() => handleEdit(template)} className="btn-edit">
-                Editar
-              </button>
-              <button onClick={() => handleDelete(template.id)} className="btn-delete">
-                Excluir
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>}
+          ))}
+        </div>
+      )}
+
+      {!showForm && !templatesLoading && templates.length > 0 && viewMode === 'list' && (
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th className="table-col-desktop-only">Categoria</th>
+                <th className="table-col-desktop-only">Segmento</th>
+                <th style={{ width: '48px' }} />
+              </tr>
+            </thead>
+            <tbody>
+              {templates.map((template) => (
+                <tr key={template.id}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 600 }}>{template.name}</span>
+                      {template.isPublic && <span className="badge badge-green">Público</span>}
+                    </div>
+                    <span className="table-col-mobile-only" style={{ display: 'block', fontSize: 'var(--font-caption-size)', color: 'var(--color-on-surface-variant)', marginTop: '2px' }}>
+                      {[
+                        template.category && (CATEGORY_LABEL[template.category] || template.category),
+                        template.bodySegment && (BODY_SEGMENT_LABEL[template.bodySegment] || template.bodySegment),
+                      ].filter(Boolean).join(' · ') || '—'}
+                    </span>
+                  </td>
+                  <td className="table-col-desktop-only" style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-body-small-size)' }}>
+                    {CATEGORY_LABEL[template.category] || template.category || '—'}
+                  </td>
+                  <td className="table-col-desktop-only" style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-body-small-size)' }}>
+                    {BODY_SEGMENT_LABEL[template.bodySegment] || template.bodySegment || '—'}
+                  </td>
+                  <td>
+                    <TemplateRowMenu
+                      ariaLabel={`Ações do modelo ${template.name}`}
+                      onEdit={() => handleEdit(template)}
+                      onDelete={() => handleDelete(template.id)}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {!showForm && !templatesLoading && templates.length === 0 && (
         <>
@@ -243,6 +542,29 @@ const TrainingTemplates = () => {
             <p>Crie seu primeiro modelo de treino para começar</p>
           </div>
         </>
+      )}
+
+      {(showExerciseTemplateModal || editingExerciseTemplate) && (
+        <CreateExerciseTemplateModal
+          open
+          exerciseTemplate={editingExerciseTemplate}
+          onClose={() => {
+            setShowExerciseTemplateModal(false);
+            setEditingExerciseTemplate(null);
+          }}
+          onSuccess={(result) => {
+            const wasEditing = !!editingExerciseTemplate;
+            setShowExerciseTemplateModal(false);
+            setEditingExerciseTemplate(null);
+            fetchExerciseTemplates();
+            if (!wasEditing && result?.id != null) {
+              setFormData((prev) => ({
+                ...prev,
+                exerciseTemplateIds: [...prev.exerciseTemplateIds, result.id],
+              }));
+            }
+          }}
+        />
       )}
 
       {confirmDialog && (

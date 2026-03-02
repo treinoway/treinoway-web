@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { X, MoreVertical } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
@@ -33,6 +34,14 @@ const StudentRowMenu = ({ student, onUnlink }) => {
       {open && (
         <div className="row-menu-dropdown">
           <Link
+            to={`/trainer/students/${student.id}`}
+            state={{ student }}
+            className="row-menu-item"
+            onClick={() => setOpen(false)}
+          >
+            Ver Perfil
+          </Link>
+          <Link
             to={`/trainer/protocols/new?studentId=${student.id}`}
             className="row-menu-item"
             onClick={() => setOpen(false)}
@@ -52,6 +61,16 @@ const StudentRowMenu = ({ student, onUnlink }) => {
       )}
     </div>
   );
+};
+
+StudentRowMenu.propTypes = {
+  student: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    firstName: PropTypes.string,
+    lastName: PropTypes.string,
+    email: PropTypes.string,
+  }).isRequired,
+  onUnlink: PropTypes.func.isRequired,
 };
 
 const Students = () => {
@@ -164,17 +183,23 @@ const Students = () => {
               {students.map((student) => (
                 <tr key={student.id}>
                   <td>
-                    <div className="student-card-info" style={{ marginBottom: 0 }}>
-                      <div className="student-avatar">{getAvatarInitial(student)}</div>
-                      <div className="student-card-details">
-                        <span className="student-card-name">
-                          {getStudentName(student) ?? '—'}
-                        </span>
-                        <span className="student-card-email table-col-mobile-only">
-                          {student.email}
-                        </span>
+                    <Link
+                      to={`/trainer/students/${student.id}`}
+                      state={{ student }}
+                      className="student-card-link"
+                    >
+                      <div className="student-card-info" style={{ marginBottom: 0 }}>
+                        <div className="student-avatar">{getAvatarInitial(student)}</div>
+                        <div className="student-card-details">
+                          <span className="student-card-name">
+                            {getStudentName(student) ?? '—'}
+                          </span>
+                          <span className="student-card-email table-col-mobile-only">
+                            {student.email}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    </Link>
                   </td>
                   <td className="student-card-email table-col-desktop-only">{student.email}</td>
                   <td>

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRoute } from '../../test/test-utils';
 import CreateProtocol from './CreateProtocol';
@@ -19,6 +19,25 @@ vi.mock('../../api/axios', () => ({
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
+vi.mock('../../components/CreateExerciseModal', () => ({
+  default: vi.fn(({ open, onClose, onSuccess }) => {
+    if (!open) return null;
+    return (
+      <div data-testid="create-exercise-modal">
+        <button
+          onClick={() => {
+            onSuccess?.({ name: 'Exercício Draft', type: 'strength', hasLoad: false });
+            onClose?.();
+          }}
+        >
+          Salvar Exercício
+        </button>
+        <button onClick={onClose}>Fechar Modal Exercício</button>
+      </div>
+    );
+  }),
+}));
+
 const mockShowToast = vi.fn();
 
 const mockStudent = {
@@ -32,7 +51,6 @@ const mockTemplate = {
   id: 1,
   name: 'Modelo Base',
   description: 'Desc',
-  availableWeekDays: ['monday', 'wednesday'],
   defaultDurationWeeks: 12,
   genderOrdination: 'female',
   trainingLevel: 'beginner',
@@ -62,6 +80,31 @@ const mockTrainingTemplates = [
   { id: 'tt-2', name: 'Treino B', category: 'cardio' },
 ];
 
+const mockExerciseTemplates = [
+  { id: 'ex-1', name: 'Supino Reto', type: 'strength', sets: 4, repetitions: 10, hasLoad: true, suggestedLoad: 60 },
+  { id: 'ex-2', name: 'Tríceps Polia', type: 'strength', sets: 3, repetitions: 12, hasLoad: false, suggestedLoad: null },
+  { id: 'ex-3', name: 'Esteira', type: 'cardio', duration: 600, hasLoad: false, suggestedLoad: null },
+];
+
+const mockTrainingTemplateDetailA = {
+  id: 'tt-1',
+  name: 'Treino A',
+  category: 'strength',
+  trainingTemplateExerciseTemplates: [
+    { exerciseTemplateId: 'ex-1', exerciseTemplate: mockExerciseTemplates[0] },
+    { exerciseTemplateId: 'ex-2', exerciseTemplate: mockExerciseTemplates[1] },
+  ],
+};
+
+const mockTrainingTemplateDetailB = {
+  id: 'tt-2',
+  name: 'Treino B',
+  category: 'cardio',
+  trainingTemplateExerciseTemplates: [
+    { exerciseTemplateId: 'ex-3', exerciseTemplate: mockExerciseTemplates[2] },
+  ],
+};
+
 describe('CreateProtocol', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
@@ -70,8 +113,11 @@ describe('CreateProtocol', () => {
     api.get.mockImplementation((url) => {
       if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [mockTemplate] });
       if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+      if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
       if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
       if (url === '/trainer/protocol-templates/1') return Promise.resolve({ data: mockTemplateDetail });
+      if (url === '/trainer/training-templates/tt-1') return Promise.resolve({ data: mockTrainingTemplateDetailA });
+      if (url === '/trainer/training-templates/tt-2') return Promise.resolve({ data: mockTrainingTemplateDetailB });
       return Promise.resolve({ data: [] });
     });
 
@@ -102,7 +148,6 @@ describe('CreateProtocol', () => {
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
     await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina Nova');
-    await user.click(screen.getByRole('checkbox', { name: /segunda/i }));
     fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
     fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
@@ -111,10 +156,10 @@ describe('CreateProtocol', () => {
       expect(api.post).toHaveBeenCalledWith('/trainer/protocols', expect.objectContaining({
         assigneeId: 'student-1',
         name: 'Rotina Nova',
-        availableWeekDays: ['monday'],
         startDate: '2024-01-01',
         expirationDate: '2024-03-31',
       }));
+      expect(api.post.mock.calls[0][1]).not.toHaveProperty('availableWeekDays');
       expect(mockShowToast).toHaveBeenCalledWith('Rotina criada com sucesso!', 'success');
     });
   });
@@ -199,7 +244,7 @@ describe('CreateProtocol', () => {
         assigneeId: 'student-1',
         name: 'Modelo Base',
       }));
-      expect(api.post.mock.calls[0][1]).not.toHaveProperty('defaultDurationWeeks');
+      expect(api.post.mock.calls[0][1]).not.toHaveProperty('availableWeekDays');
     });
   });
 
@@ -216,10 +261,8 @@ describe('CreateProtocol', () => {
     });
 
     await waitFor(() => {
-      const nameInputs = screen.getAllByRole('textbox', { name: /nome do treino/i });
-      expect(nameInputs).toHaveLength(2);
-      expect(nameInputs[0]).toHaveValue('Treino A');
-      expect(nameInputs[1]).toHaveValue('Treino B');
+      expect(screen.getByText('Treino A')).toBeInTheDocument();
+      expect(screen.getByText('Treino B')).toBeInTheDocument();
     });
   });
 
@@ -233,7 +276,8 @@ describe('CreateProtocol', () => {
     await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
 
     await waitFor(() => {
-      expect(screen.getAllByRole('textbox', { name: /nome do treino/i })).toHaveLength(2);
+      expect(screen.getByText('Treino A')).toBeInTheDocument();
+      expect(screen.getByText('Treino B')).toBeInTheDocument();
     });
 
     fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
@@ -260,17 +304,43 @@ describe('CreateProtocol', () => {
     await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
 
     await waitFor(() => {
-      expect(screen.getAllByRole('textbox', { name: /nome do treino/i })).toHaveLength(2);
+      expect(screen.getByText('Treino A')).toBeInTheDocument();
     });
 
     await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '');
 
     await waitFor(() => {
-      expect(screen.queryByRole('textbox', { name: /nome do treino/i })).not.toBeInTheDocument();
+      expect(screen.queryByText('Treino A')).not.toBeInTheDocument();
+      expect(screen.queryByText('Treino B')).not.toBeInTheDocument();
     });
   });
 
-  it('allows adding a training manually with direct fields', async () => {
+  it('opens add training modal when "+ Adicionar treino" is clicked', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => screen.getByText('Aluno Exemplo'));
+    await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+
+    expect(screen.getByText('Adicionar Treino')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nome')).toBeInTheDocument();
+    expect(screen.getByLabelText('Categoria')).toBeInTheDocument();
+  });
+
+  it('closes add training modal when cancel is clicked', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => screen.getByText('Aluno Exemplo'));
+    await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+    expect(screen.getByText('Adicionar Treino')).toBeInTheDocument();
+
+    const modal = screen.getByText('Adicionar Treino').closest('.bottom-sheet');
+    await user.click(within(modal).getByRole('button', { name: /cancelar/i }));
+    expect(screen.queryByText('Adicionar Treino')).not.toBeInTheDocument();
+  });
+
+  it('allows adding a training manually via modal', async () => {
     const user = userEvent.setup();
     api.post.mockResolvedValue({ data: { id: 77 } });
 
@@ -279,9 +349,12 @@ describe('CreateProtocol', () => {
     await waitFor(() => screen.getByText('Aluno Exemplo'));
     await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
 
-    const nameInput = await screen.findByRole('textbox', { name: /nome do treino 1/i });
-    await user.type(nameInput, 'Treino Manual');
-    await user.selectOptions(screen.getByRole('combobox', { name: /categoria do treino 1/i }), 'strength');
+    await user.type(screen.getByLabelText('Nome'), 'Treino Manual');
+    await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+    await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
+
+    expect(screen.queryByText('Adicionar Treino')).not.toBeInTheDocument();
+    expect(screen.getByText('Treino Manual')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina Direta');
     fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
@@ -293,6 +366,223 @@ describe('CreateProtocol', () => {
         name: 'Treino Manual',
         category: 'strength',
       }));
+    });
+  });
+
+  it('displays exercise templates when importing from protocol template', async () => {
+    const user = userEvent.setup();
+
+    renderPage();
+
+    await waitFor(() => screen.getByText('Aluno Exemplo'));
+    await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
+
+    await waitFor(() => {
+      expect(screen.getByText('Treino A')).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Supino Reto')).toBeInTheDocument();
+      expect(screen.getByText('Tríceps Polia')).toBeInTheDocument();
+      expect(screen.getByText('Esteira')).toBeInTheDocument();
+    });
+  });
+
+  it('displays exercise templates when adding training with template via modal', async () => {
+    const user = userEvent.setup();
+
+    renderPage();
+
+    await waitFor(() => screen.getByText('Aluno Exemplo'));
+    await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+
+    await user.selectOptions(
+      screen.getByLabelText(/modelo de treino/i),
+      'tt-1',
+    );
+    await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+    await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Supino Reto')).toBeInTheDocument();
+      expect(screen.getByText('Tríceps Polia')).toBeInTheDocument();
+    });
+  });
+
+  it('does not show exercises when training has no template', async () => {
+    const user = userEvent.setup();
+
+    renderPage();
+
+    await waitFor(() => screen.getByText('Aluno Exemplo'));
+    await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+
+    await user.type(screen.getByLabelText('Nome'), 'Treino Sem Modelo');
+    await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+    await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
+
+    expect(screen.getByText('Treino Sem Modelo')).toBeInTheDocument();
+    expect(screen.queryByText('Supino Reto')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tríceps Polia')).not.toBeInTheDocument();
+  });
+
+  describe('inline exercises in training modal', () => {
+    it('shows "Criar exercício" button inside the add training modal', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+
+      expect(screen.getByRole('button', { name: /\+ criar exercício/i })).toBeInTheDocument();
+    });
+
+    it('opens CreateExerciseModal when "Criar exercício" is clicked inside training modal', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.click(screen.getByRole('button', { name: /\+ criar exercício/i }));
+
+      expect(screen.getByTestId('create-exercise-modal')).toBeInTheDocument();
+    });
+
+    it('adds draft exercise to modal list when CreateExerciseModal calls onSuccess', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.click(screen.getByRole('button', { name: /\+ criar exercício/i }));
+
+      const addTrainingModal = screen.getByText('Adicionar Treino').closest('.bottom-sheet');
+      expect(addTrainingModal).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /salvar exercício/i }));
+
+      expect(screen.queryByTestId('create-exercise-modal')).not.toBeInTheDocument();
+      expect(within(addTrainingModal).getByText('Exercício Draft')).toBeInTheDocument();
+    });
+
+    it('removes draft exercise from modal list when "Remover" is clicked', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.click(screen.getByRole('button', { name: /\+ criar exercício/i }));
+      await user.click(screen.getByRole('button', { name: /salvar exercício/i }));
+
+      const addTrainingModal = screen.getByText('Adicionar Treino').closest('.bottom-sheet');
+      expect(within(addTrainingModal).getByText('Exercício Draft')).toBeInTheDocument();
+
+      await user.click(within(addTrainingModal).getByRole('button', { name: /remover exercício Exercício Draft/i }));
+
+      expect(within(addTrainingModal).queryByText('Exercício Draft')).not.toBeInTheDocument();
+    });
+
+    it('includes draft exercises when training is added to the list', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+
+      await user.type(screen.getByLabelText('Nome'), 'Treino Com Exercício');
+      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await user.click(screen.getByRole('button', { name: /\+ criar exercício/i }));
+      await user.click(screen.getByRole('button', { name: /salvar exercício/i }));
+      await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
+
+      expect(screen.queryByText('Adicionar Treino')).not.toBeInTheDocument();
+      expect(screen.getByText('Treino Com Exercício')).toBeInTheDocument();
+      expect(screen.getByText('Exercício Draft')).toBeInTheDocument();
+    });
+  });
+
+  describe('inline exercises in training row', () => {
+    it('shows "Adicionar exercício" button in training row for manual trainings', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.type(screen.getByLabelText('Nome'), 'Treino Manual');
+      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
+
+      expect(screen.getByRole('button', { name: /\+ adicionar exercício/i })).toBeInTheDocument();
+    });
+
+    it('does not show "Adicionar exercício" button for fromTemplate trainings', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
+
+      await waitFor(() => screen.getByText('Treino A'));
+
+      expect(screen.queryByRole('button', { name: /\+ adicionar exercício/i })).not.toBeInTheDocument();
+    });
+
+    it('adds exercise to training row when CreateExerciseModal calls onSuccess from row', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.type(screen.getByLabelText('Nome'), 'Treino Manual');
+      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
+
+      await user.click(screen.getByRole('button', { name: /\+ adicionar exercício/i }));
+      await user.click(screen.getByRole('button', { name: /salvar exercício/i }));
+
+      expect(screen.queryByTestId('create-exercise-modal')).not.toBeInTheDocument();
+      expect(screen.getByText('Exercício Draft')).toBeInTheDocument();
+    });
+  });
+
+  describe('submit with inline exercises', () => {
+    it('calls POST to create exercises after creating training', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValueOnce({ data: { id: 99 } });
+      api.post.mockResolvedValueOnce({ data: { id: 'training-99' } });
+      api.post.mockResolvedValueOnce({ data: {} });
+
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.type(screen.getByLabelText('Nome'), 'Treino Com Exercício');
+      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await user.click(screen.getByRole('button', { name: /\+ criar exercício/i }));
+      await user.click(screen.getByRole('button', { name: /salvar exercício/i }));
+      await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
+
+      await user.type(screen.getByLabelText('Nome da Rotina'), 'Minha Rotina');
+      fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
+      fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+      await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+      await waitFor(() => {
+        const trainingPostCalls = api.post.mock.calls.filter(([url]) =>
+          url.includes('/trainings') && !url.includes('/exercises')
+        );
+        expect(trainingPostCalls.length).toBeGreaterThan(0);
+
+        const exercisePostCalls = api.post.mock.calls.filter(([url]) =>
+          url.includes('/exercises')
+        );
+        expect(exercisePostCalls.length).toBeGreaterThan(0);
+        expect(exercisePostCalls[0][1]).toMatchObject({
+          name: 'Exercício Draft',
+          type: 'strength',
+        });
+      });
     });
   });
 });

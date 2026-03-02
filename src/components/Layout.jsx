@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-const BIBLIOTECA_PATHS = ['/trainer/protocol-templates', '/trainer/training-templates'];
+const BIBLIOTECA_PATHS = ['/trainer/protocol-templates', '/trainer/training-templates', '/trainer/exercise-templates'];
 const ALUNOS_PATHS = ['/trainer/students', '/trainer/protocols/new'];
 
 const Layout = ({ children }) => {
@@ -61,6 +62,7 @@ const Layout = ({ children }) => {
   const bibliotecaChildren = [
     { path: '/trainer/protocol-templates', label: 'Modelos de Rotina', Icon: ClipboardList },
     { path: '/trainer/training-templates', label: 'Modelos de Treino', Icon: Dumbbell },
+    { path: '/trainer/exercise-templates', label: 'Modelos de Exercício', Icon: Activity },
   ];
   const alunosChildren = [
     { path: '/trainer/students', label: 'Meus alunos', Icon: Users },
@@ -330,6 +332,10 @@ const Layout = ({ children }) => {
       </nav>
     </div>
   );
+};
+
+Layout.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 export default Layout;

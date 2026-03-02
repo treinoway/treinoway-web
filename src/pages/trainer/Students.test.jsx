@@ -32,6 +32,21 @@ describe('Students', () => {
     });
   });
 
+  it('shows "Ver Perfil" link in student row menu', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<Students />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ações do aluno/i }));
+
+    const verPerfilLink = screen.getByRole('link', { name: /ver perfil/i });
+    expect(verPerfilLink).toBeInTheDocument();
+    expect(verPerfilLink).toHaveAttribute('href', '/trainer/students/student-1');
+  });
+
   it('shows "Criar Rotina" link in student row menu', async () => {
     const user = userEvent.setup();
     renderWithRouter(<Students />);

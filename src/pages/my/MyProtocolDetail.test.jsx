@@ -25,16 +25,13 @@ const mockProtocolData = {
       name: 'Treino A',
       description: 'Aquecimento e força',
       order: 1,
-      schedules: [
-        { id: 100, weekday: 'MONDAY', weekNumber: 1 },
-      ],
+      weekDay: 'MONDAY',
     },
     {
       id: 11,
       name: 'Treino B',
       description: 'Cardio e resistência',
       order: 2,
-      schedules: [],
     },
   ],
 };
@@ -112,13 +109,14 @@ describe('MyProtocolDetail', () => {
     });
   });
 
-  it('renders schedules for trainings that have them', async () => {
+  it('renders weekDay badge for trainings that have weekDay', async () => {
     api.get.mockResolvedValue({ data: mockProtocolData });
 
     renderMyProtocolDetail();
 
     await waitFor(() => {
-      expect(screen.getByText(/semana 1 - segunda-feira/i)).toBeInTheDocument();
+      expect(screen.getByText('Treino A')).toBeInTheDocument();
+      expect(screen.getByText('Segunda-feira')).toBeInTheDocument();
     });
   });
 

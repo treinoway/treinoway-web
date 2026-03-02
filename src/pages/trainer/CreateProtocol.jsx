@@ -1,9 +1,125 @@
 import { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { GripVertical } from 'lucide-react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import { CSS } from '@dnd-kit/utilities';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import DateInput from '../../components/DateInput';
+import CreateExerciseModal from '../../components/CreateExerciseModal';
+import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
+import { formatExerciseMeta } from '../../utils/exerciseMeta';
+
+const categoryLabels = {
+  strength: 'Força', cardio: 'Cardio', flexibility: 'Flexibilidade',
+  functional: 'Funcional', mobility: 'Mobilidade', rest: 'Descanso',
+};
+
+const segmentLabels = {
+  upper: 'Superior', lower: 'Inferior', core: 'Core', full_body: 'Corpo Inteiro',
+};
+
+const badgeStyle = {
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-outline-variant)',
+  color: 'var(--color-on-surface-variant)',
+};
+
+const SortableTrainingRow = ({ id, training, index, exercises, onRemove, onAddExercise }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  const dayLabel = getWeekDayLabel(training.weekDay);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`schedule-template-row${isDragging ? ' schedule-template-row--dragging' : ''}`}
+    >
+      <span className="drag-handle" {...attributes} {...listeners} aria-label="Arrastar para reordenar">
+        <GripVertical size={16} strokeWidth={1.8} />
+      </span>
+      <div className="schedule-template-fields" style={{ alignItems: 'center' }}>
+        <span style={{ fontWeight: 600, flex: 1 }}>
+          {training.name || `Treino ${index + 1}`}
+        </span>
+        <div style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
+          {training.category && (
+            <span className="badge" style={{ ...badgeStyle, color: 'var(--color-primary)' }}>
+              {categoryLabels[training.category] || training.category}
+            </span>
+          )}
+          {training.bodySegment && (
+            <span className="badge" style={badgeStyle}>
+              {segmentLabels[training.bodySegment] || training.bodySegment}
+            </span>
+          )}
+          {dayLabel && (
+            <span className="badge badge-blue">{dayLabel}</span>
+          )}
+          <span className="badge" style={badgeStyle}>Ordem: {training.order}</span>
+        </div>
+        {exercises.length > 0 && (
+          <div className="training-row-exercises">
+            {exercises.map((exercise) => {
+              const meta = formatExerciseMeta(exercise);
+              return (
+                <div key={exercise._id || exercise.id} className="training-row-exercise-item">
+                  <span className="training-row-exercise-name">{exercise.name}</span>
+                  {meta && <span className="training-row-exercise-meta"> · {meta}</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {!training.fromTemplate && onAddExercise && (
+          <button
+            type="button"
+            className="btn-schedule-sm"
+            onClick={() => onAddExercise(index)}
+            style={{ alignSelf: 'flex-start', marginTop: 'var(--spacing-xs)' }}
+          >
+            + Adicionar exercício
+          </button>
+        )}
+      </div>
+      <button
+        type="button"
+        className="btn-delete-sm"
+        onClick={() => onRemove(index)}
+        aria-label={`Remover treino ${index + 1}`}
+      >
+        Remover
+      </button>
+    </div>
+  );
+};
+
+SortableTrainingRow.propTypes = {
+  id: PropTypes.string.isRequired,
+  training: PropTypes.shape({
+    name: PropTypes.string,
+    category: PropTypes.string,
+    bodySegment: PropTypes.string,
+    weekDay: PropTypes.string,
+    order: PropTypes.number,
+    fromTemplate: PropTypes.bool,
+    inlineExercises: PropTypes.array,
+  }).isRequired,
+  index: PropTypes.number.isRequired,
+  exercises: PropTypes.arrayOf(PropTypes.shape({
+    name: PropTypes.string.isRequired,
+  })).isRequired,
+  onRemove: PropTypes.func.isRequired,
+  onAddExercise: PropTypes.func,
+};
 
 const CreateProtocol = () => {
   const { showToast } = useToast();
@@ -19,12 +135,30 @@ const CreateProtocol = () => {
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [studentSearchResults, setStudentSearchResults] = useState([]);
   const [searchingStudents, setSearchingStudents] = useState(false);
+  const [exerciseTemplates, setExerciseTemplates] = useState([]);
+  const [exerciseIdsByTemplateId, setExerciseIdsByTemplateId] = useState({});
+  const [showAddTrainingModal, setShowAddTrainingModal] = useState(false);
+  const [addTrainingModalData, setAddTrainingModalData] = useState({
+    trainingTemplateId: '',
+    name: '',
+    description: '',
+    category: '',
+    bodySegment: '',
+    order: 1,
+    weekDay: '',
+    inlineExercises: [],
+  });
+  // inlineExerciseContext: null (closed) | { type: 'modal' } | { type: 'row', trainingIndex: number }
+  const [inlineExerciseContext, setInlineExerciseContext] = useState(null);
+
+  const dndSensors = useSensors(useSensor(PointerSensor, {
+    activationConstraint: { distance: 5 },
+  }));
 
   const [formData, setFormData] = useState({
     assigneeId: '',
     name: '',
     description: '',
-    availableWeekDays: [],
     defaultDurationWeeks: 12,
     genderOrdination: '',
     trainingLevel: '',
@@ -34,19 +168,10 @@ const CreateProtocol = () => {
     templateId: '',
   });
 
-  const weekDayOptions = [
-    { value: 'monday', label: 'Segunda' },
-    { value: 'tuesday', label: 'Terça' },
-    { value: 'wednesday', label: 'Quarta' },
-    { value: 'thursday', label: 'Quinta' },
-    { value: 'friday', label: 'Sexta' },
-    { value: 'saturday', label: 'Sábado' },
-    { value: 'sunday', label: 'Domingo' },
-  ];
-
   useEffect(() => {
     fetchTemplates();
     fetchTrainingTemplates();
+    fetchExerciseTemplates();
     if (studentId) {
       fetchStudentById(studentId);
     }
@@ -77,6 +202,27 @@ const CreateProtocol = () => {
     return () => clearTimeout(timeoutId);
   }, [studentSearchQuery, studentId, selectedStudent]);
 
+  useEffect(() => {
+    const templateIds = formData.trainings
+      .map((t) => t.trainingTemplateId)
+      .filter((id) => id && !exerciseIdsByTemplateId[id]);
+    const uniqueIds = [...new Set(templateIds)];
+    uniqueIds.forEach(fetchExercisesForTemplate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.trainings]);
+
+  const getExercisesForTraining = (training) => {
+    const fromModel = (() => {
+      if (!training.trainingTemplateId) return [];
+      const ids = exerciseIdsByTemplateId[training.trainingTemplateId];
+      if (!ids) return [];
+      return ids
+        .map((id) => exerciseTemplates.find((et) => String(et.id) === String(id)))
+        .filter(Boolean);
+    })();
+    return [...fromModel, ...(training.inlineExercises || [])];
+  };
+
   const fetchTemplates = async () => {
     try {
       const response = await api.get('/trainer/protocol-templates');
@@ -92,6 +238,41 @@ const CreateProtocol = () => {
       setTrainingTemplates(response.data || []);
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
+    }
+  };
+
+  const fetchExerciseTemplates = async () => {
+    try {
+      const response = await api.get('/trainer/exercise-templates');
+      setExerciseTemplates(response.data || []);
+    } catch {
+      // non-critical — exercises are supplementary info
+    }
+  };
+
+  const getExerciseTemplateIdsFromTemplate = (template) => {
+    if (template.exerciseTemplateIds && Array.isArray(template.exerciseTemplateIds)) {
+      return template.exerciseTemplateIds;
+    }
+    const junctionList = template.trainingTemplateExerciseTemplates;
+    if (Array.isArray(junctionList)) {
+      return junctionList
+        .map((e) => e.exerciseTemplateId ?? e.exerciseTemplate?.id)
+        .filter((id) => id != null);
+    }
+    const list = template.exerciseTemplates;
+    if (!Array.isArray(list)) return [];
+    return list.map((e) => e.exerciseTemplateId ?? e.id ?? e.exerciseTemplate?.id).filter((id) => id != null);
+  };
+
+  const fetchExercisesForTemplate = async (trainingTemplateId) => {
+    if (!trainingTemplateId || exerciseIdsByTemplateId[trainingTemplateId]) return;
+    try {
+      const response = await api.get(`/trainer/training-templates/${trainingTemplateId}`);
+      const ids = getExerciseTemplateIdsFromTemplate(response.data);
+      setExerciseIdsByTemplateId((prev) => ({ ...prev, [trainingTemplateId]: ids }));
+    } catch {
+      // silently fail
     }
   };
 
@@ -161,15 +342,6 @@ const CreateProtocol = () => {
     }));
   };
 
-  const handleProtocolWeekdayChange = (day, checked) => {
-    setFormData((prev) => ({
-      ...prev,
-      availableWeekDays: checked
-        ? [...prev.availableWeekDays, day]
-        : prev.availableWeekDays.filter((selectedDay) => selectedDay !== day),
-    }));
-  };
-
   const handleProtocolTemplateChange = async (e) => {
     const templateId = e.target.value;
     const selectedTemplate = templates.find((template) => String(template.id) === templateId);
@@ -188,7 +360,6 @@ const CreateProtocol = () => {
       templateId,
       name: selectedTemplate.name || '',
       description: selectedTemplate.description || '',
-      availableWeekDays: (selectedTemplate.availableWeekDays || []).map((day) => day.toLowerCase()),
       defaultDurationWeeks: selectedTemplate.defaultDurationWeeks || prev.defaultDurationWeeks,
       genderOrdination: selectedTemplate.genderOrdination?.toLowerCase() || '',
       trainingLevel: selectedTemplate.trainingLevel?.toLowerCase() || '',
@@ -196,17 +367,21 @@ const CreateProtocol = () => {
 
     try {
       const response = await api.get(`/trainer/protocol-templates/${templateId}`);
-      const scheduleTemplates = response.data?.scheduleTemplates || [];
-      const templateTrainings = scheduleTemplates.map((st, index) => {
+      const full = response.data;
+      const scheduleItems = full?.scheduleTemplates || full?.trainings || [];
+      const templateTrainings = scheduleItems.map((st, index) => {
         const tt = st.trainingTemplate || {};
+        const weekDay = (st.weekDay || '').toLowerCase() || '';
         return {
           name: tt.name || '',
           description: tt.description || '',
           category: tt.category || '',
           bodySegment: tt.bodySegment || '',
-          order: st.order || index + 1,
+          order: st.order ?? index + 1,
+          weekDay: weekDay || '',
           trainingTemplateId: tt.id || st.trainingTemplateId || '',
           fromTemplate: true,
+          _id: crypto.randomUUID(),
         };
       });
       setFormData((prev) => ({
@@ -221,52 +396,110 @@ const CreateProtocol = () => {
     }
   };
 
-  const handleAddProtocolTraining = () => {
+  const openAddTrainingModal = () => {
+    setAddTrainingModalData({
+      trainingTemplateId: '',
+      name: '',
+      description: '',
+      category: '',
+      bodySegment: '',
+      order: formData.trainings.length + 1,
+      weekDay: '',
+      inlineExercises: [],
+    });
+    setShowAddTrainingModal(true);
+  };
+
+  const closeAddTrainingModal = () => {
+    setShowAddTrainingModal(false);
+  };
+
+  const openInlineExerciseForModal = () => {
+    setInlineExerciseContext({ type: 'modal' });
+  };
+
+  const openInlineExerciseForRow = (trainingIndex) => {
+    setInlineExerciseContext({ type: 'row', trainingIndex });
+  };
+
+  const closeInlineExerciseModal = () => {
+    setInlineExerciseContext(null);
+  };
+
+  const handleInlineExerciseSuccess = (payload) => {
+    const exercise = { ...payload, _id: crypto.randomUUID() };
+    if (!inlineExerciseContext) return;
+    if (inlineExerciseContext.type === 'modal') {
+      setAddTrainingModalData((prev) => ({
+        ...prev,
+        inlineExercises: [...prev.inlineExercises, exercise],
+      }));
+    } else {
+      const index = inlineExerciseContext.trainingIndex;
+      setFormData((prev) => {
+        const trainings = [...prev.trainings];
+        trainings[index] = {
+          ...trainings[index],
+          inlineExercises: [...(trainings[index].inlineExercises || []), exercise],
+        };
+        return { ...prev, trainings };
+      });
+    }
+  };
+
+  const removeInlineExerciseFromModal = (exerciseId) => {
+    setAddTrainingModalData((prev) => ({
+      ...prev,
+      inlineExercises: prev.inlineExercises.filter((ex) => ex._id !== exerciseId),
+    }));
+  };
+
+  const handleAddTrainingModalTemplateSelect = (templateId) => {
+    const template = trainingTemplates.find((t) => String(t.id) === templateId);
+    setAddTrainingModalData((prev) => ({
+      ...prev,
+      trainingTemplateId: templateId,
+      name: template?.name || prev.name,
+      description: template?.description || prev.description,
+      category: template?.category || prev.category,
+      bodySegment: template?.bodySegment || prev.bodySegment,
+    }));
+  };
+
+  const handleAddTrainingModalSubmit = (e) => {
+    e.preventDefault();
     setFormData((prev) => ({
       ...prev,
       trainings: [
         ...prev.trainings,
-        { name: '', description: '', category: '', bodySegment: '', order: prev.trainings.length + 1, trainingTemplateId: '' },
+        { ...addTrainingModalData, _id: crypto.randomUUID() },
       ],
     }));
-  };
-
-  const handleProtocolTrainingChange = (index, field, value) => {
-    setFormData((prev) => {
-      const nextTrainings = [...prev.trainings];
-      nextTrainings[index] = { ...nextTrainings[index], [field]: value };
-      return { ...prev, trainings: nextTrainings };
-    });
-  };
-
-  const handleTrainingTemplateSelect = (index, templateId) => {
-    const template = trainingTemplates.find((t) => String(t.id) === templateId);
-    setFormData((prev) => {
-      const nextTrainings = [...prev.trainings];
-      nextTrainings[index] = {
-        ...nextTrainings[index],
-        trainingTemplateId: templateId,
-        name: template?.name || nextTrainings[index].name,
-        description: template?.description || nextTrainings[index].description,
-        category: template?.category || nextTrainings[index].category,
-        bodySegment: template?.bodySegment || nextTrainings[index].bodySegment,
-      };
-      return { ...prev, trainings: nextTrainings };
-    });
+    closeAddTrainingModal();
   };
 
   const handleRemoveProtocolTraining = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      trainings: prev.trainings.filter((_, currentIndex) => currentIndex !== index),
-    }));
+    setFormData((prev) => {
+      const updated = prev.trainings.filter((_, currentIndex) => currentIndex !== index);
+      return { ...prev, trainings: updated.map((t, i) => ({ ...t, order: i + 1 })) };
+    });
+  };
+
+  const handleTrainingDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    setFormData((prev) => {
+      const oldIndex = prev.trainings.findIndex((t) => t._id === active.id);
+      const newIndex = prev.trainings.findIndex((t) => t._id === over.id);
+      const reordered = arrayMove(prev.trainings, oldIndex, newIndex);
+      return { ...prev, trainings: reordered.map((t, i) => ({ ...t, order: i + 1 })) };
+    });
   };
 
   const createProtocolTrainings = async (protocolId, trainings) => {
     if (!protocolId || trainings.length === 0) return;
 
     for (const training of trainings) {
-      await api.post(`/trainer/protocols/${protocolId}/trainings`, {
+      const res = await api.post(`/trainer/protocols/${protocolId}/trainings`, {
         name: training.name || 'Treino',
         description: training.description || '',
         category: training.category,
@@ -274,6 +507,15 @@ const CreateProtocol = () => {
         ...(training.bodySegment && { bodySegment: training.bodySegment }),
         ...(training.trainingTemplateId && { trainingTemplateId: training.trainingTemplateId }),
       });
+
+      const createdTrainingId = res.data?.id;
+      if (createdTrainingId && training.inlineExercises?.length > 0) {
+        for (const exercise of training.inlineExercises) {
+           
+          const { _id, ...payload } = exercise;
+          await api.post(`/trainer/trainings/${createdTrainingId}/exercises`, payload);
+        }
+      }
     }
   };
 
@@ -281,7 +523,6 @@ const CreateProtocol = () => {
     assigneeId: data.assigneeId,
     name: data.name,
     description: data.description,
-    availableWeekDays: data.availableWeekDays,
     startDate: data.startDate,
     expirationDate: data.endDate,
     ...(data.genderOrdination && { genderOrdination: data.genderOrdination }),
@@ -464,22 +705,6 @@ const CreateProtocol = () => {
             />
           </div>
 
-          <div>
-            <label className="form-label">Dias Disponíveis</label>
-            <div className="weekday-grid">
-              {weekDayOptions.map((day) => (
-                <label key={day.value}>
-                  <input
-                    type="checkbox"
-                    checked={formData.availableWeekDays.includes(day.value)}
-                    onChange={(e) => handleProtocolWeekdayChange(day.value, e.target.checked)}
-                  />
-                  <span className="text-sm">{day.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
           <div className="grid-responsive-2col">
             <div>
               <label className="form-label" htmlFor="protocol-gender-ordination">Classificação</label>
@@ -528,145 +753,57 @@ const CreateProtocol = () => {
             />
           </div>
 
-          <div>
-            <div className="schedule-template-section-header">
-              <label className="form-label" style={{ margin: 0 }}>Treinos da Rotina</label>
-              {formData.trainings.length > 0 && (
-                <button
-                  type="button"
-                  className="btn-schedule-sm"
-                  onClick={handleAddProtocolTraining}
-                >
-                  + Adicionar treino
-                </button>
-              )}
+          <div className="form-section">
+            <div className="form-section-header">
+              <h3 className="form-section-title">Treinos da Rotina</h3>
             </div>
 
             {formData.trainings.length === 0 && (
-              <div className="training-actions-empty" style={{ gridTemplateColumns: '1fr' }}>
-                <p style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-body-small-size)', margin: 0 }}>
-                  Nenhum treino adicionado. Os treinos definem o conteúdo de cada dia de treino da rotina.
-                </p>
-                <button
-                  type="button"
-                  className="btn-schedule-sm"
-                  onClick={handleAddProtocolTraining}
-                  style={{ alignSelf: 'flex-start' }}
-                >
+              <div className="empty-state-inline" style={{ border: 'none', background: 'transparent' }}>
+                <p>Nenhum treino adicionado. Adicione treinos para definir o conteúdo de cada dia da rotina.</p>
+                <button type="button" className="btn-primary" onClick={openAddTrainingModal}>
                   + Adicionar treino
                 </button>
               </div>
             )}
 
             {formData.trainings.length > 0 && (
-              <div className="schedule-template-list">
-                {formData.trainings.map((training, index) => (
-                  <div key={index} className="card">
-                    <div className="card-header" style={{ marginBottom: 'var(--spacing-md)' }}>
-                      <h3 className="card-subtitle">Treino {index + 1}</h3>
-                      <button
-                        type="button"
-                        className="btn-delete-sm"
-                        onClick={() => handleRemoveProtocolTraining(index)}
-                        aria-label={`Remover treino ${index + 1}`}
-                      >
-                        Remover
-                      </button>
+              <>
+                <DndContext
+                  sensors={dndSensors}
+                  collisionDetection={closestCenter}
+                  modifiers={[restrictToVerticalAxis]}
+                  onDragEnd={handleTrainingDragEnd}
+                >
+                  <SortableContext
+                    items={formData.trainings.map((t) => t._id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="schedule-template-list">
+                      {formData.trainings.map((training, index) => (
+                        <SortableTrainingRow
+                          key={training._id}
+                          id={training._id}
+                          training={training}
+                          index={index}
+                          exercises={getExercisesForTraining(training)}
+                          onRemove={handleRemoveProtocolTraining}
+                          onAddExercise={openInlineExerciseForRow}
+                        />
+                      ))}
                     </div>
-
-                    <div className="form">
-                      {trainingTemplates.length > 0 && (
-                        <div>
-                          <label className="form-label" htmlFor={`training-template-${index}`}>
-                            Modelo de treino <span style={{ fontWeight: 400, color: 'var(--color-on-surface-variant)' }}>(opcional — pré-preenche os campos)</span>
-                          </label>
-                          <select
-                            id={`training-template-${index}`}
-                            aria-label={`Modelo de treino para treino ${index + 1}`}
-                            value={training.trainingTemplateId || ''}
-                            onChange={(e) => handleTrainingTemplateSelect(index, e.target.value)}
-                            className="form-select"
-                          >
-                            <option value="">-- Nenhum --</option>
-                            {trainingTemplates.map((t) => (
-                              <option key={t.id} value={t.id}>{t.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      <div className="grid-responsive-2col">
-                        <div>
-                          <label className="form-label" htmlFor={`training-name-${index}`}>Nome</label>
-                          <input
-                            id={`training-name-${index}`}
-                            type="text"
-                            aria-label={`Nome do treino ${index + 1}`}
-                            value={training.name}
-                            onChange={(e) => handleProtocolTrainingChange(index, 'name', e.target.value)}
-                            className="form-input"
-                            placeholder="Ex: Treino A — Peito e Tríceps"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <label className="form-label" htmlFor={`training-order-${index}`}>Ordem</label>
-                          <input
-                            id={`training-order-${index}`}
-                            type="number"
-                            min="1"
-                            aria-label={`Ordem do treino ${index + 1}`}
-                            value={training.order}
-                            onChange={(e) => handleProtocolTrainingChange(index, 'order', parseInt(e.target.value, 10) || 1)}
-                            className="form-input"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid-responsive-2col">
-                        <div>
-                          <label className="form-label" htmlFor={`training-category-${index}`}>Categoria</label>
-                          <select
-                            id={`training-category-${index}`}
-                            aria-label={`Categoria do treino ${index + 1}`}
-                            value={training.category}
-                            onChange={(e) => handleProtocolTrainingChange(index, 'category', e.target.value)}
-                            className="form-select"
-                            required
-                          >
-                            <option value="">Selecione...</option>
-                            <option value="strength">Força</option>
-                            <option value="cardio">Cardio</option>
-                            <option value="flexibility">Flexibilidade</option>
-                            <option value="functional">Funcional</option>
-                            <option value="mobility">Mobilidade</option>
-                            <option value="rest">Descanso</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="form-label" htmlFor={`training-bodySegment-${index}`}>Segmento Corporal</label>
-                          <select
-                            id={`training-bodySegment-${index}`}
-                            aria-label={`Segmento corporal do treino ${index + 1}`}
-                            value={training.bodySegment || ''}
-                            onChange={(e) => handleProtocolTrainingChange(index, 'bodySegment', e.target.value)}
-                            className="form-select"
-                          >
-                            <option value="">Selecione...</option>
-                            <option value="upper">Superior</option>
-                            <option value="lower">Inferior</option>
-                            <option value="core">Core</option>
-                            <option value="full_body">Corpo Inteiro</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  </SortableContext>
+                </DndContext>
+                <div className="schedule-template-actions">
+                  <button
+                    type="button"
+                    className="btn-secondary schedule-template-add-btn"
+                    onClick={openAddTrainingModal}
+                  >
+                    + Adicionar treino
+                  </button>
+                </div>
+              </>
             )}
           </div>
 
@@ -713,6 +850,181 @@ const CreateProtocol = () => {
 
         </>
       )}
+
+      {showAddTrainingModal && (
+        <div className="overlay" onClick={closeAddTrainingModal}>
+          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-header">
+              <h2 className="bottom-sheet-title">Adicionar Treino</h2>
+              <button
+                className="bottom-sheet-close"
+                onClick={closeAddTrainingModal}
+                aria-label="Fechar"
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="bottom-sheet-body">
+              <form onSubmit={handleAddTrainingModalSubmit} className="form">
+                {trainingTemplates.length > 0 && (
+                  <div>
+                    <label className="form-label" htmlFor="add-training-template-id">
+                      Modelo de treino{' '}
+                      <span style={{ fontWeight: 400, color: 'var(--color-on-surface-variant)' }}>
+                        (opcional — pré-preenche os campos)
+                      </span>
+                    </label>
+                    <select
+                      id="add-training-template-id"
+                      value={addTrainingModalData.trainingTemplateId}
+                      onChange={(e) => handleAddTrainingModalTemplateSelect(e.target.value)}
+                      className="form-select"
+                    >
+                      <option value="">-- Nenhum --</option>
+                      {trainingTemplates.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="form-label" htmlFor="add-training-name">Nome</label>
+                  <input
+                    id="add-training-name"
+                    type="text"
+                    value={addTrainingModalData.name}
+                    onChange={(e) => setAddTrainingModalData((prev) => ({ ...prev, name: e.target.value }))}
+                    className="form-input"
+                    placeholder="Ex: Treino A — Peito e Tríceps"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div className="grid-responsive-2col">
+                  <div>
+                    <label className="form-label" htmlFor="add-training-category">Categoria</label>
+                    <select
+                      id="add-training-category"
+                      value={addTrainingModalData.category}
+                      onChange={(e) => setAddTrainingModalData((prev) => ({ ...prev, category: e.target.value }))}
+                      className="form-select"
+                      required
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="strength">Força</option>
+                      <option value="cardio">Cardio</option>
+                      <option value="flexibility">Flexibilidade</option>
+                      <option value="functional">Funcional</option>
+                      <option value="mobility">Mobilidade</option>
+                      <option value="rest">Descanso</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label" htmlFor="add-training-body-segment">Segmento Corporal</label>
+                    <select
+                      id="add-training-body-segment"
+                      value={addTrainingModalData.bodySegment}
+                      onChange={(e) => setAddTrainingModalData((prev) => ({ ...prev, bodySegment: e.target.value }))}
+                      className="form-select"
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="upper">Superior</option>
+                      <option value="lower">Inferior</option>
+                      <option value="core">Core</option>
+                      <option value="full_body">Corpo Inteiro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid-responsive-2col">
+                  <div>
+                    <label className="form-label" htmlFor="add-training-weekday">Dia da Semana (opcional)</label>
+                    <select
+                      id="add-training-weekday"
+                      value={addTrainingModalData.weekDay}
+                      onChange={(e) => setAddTrainingModalData((prev) => ({ ...prev, weekDay: e.target.value }))}
+                      className="form-select"
+                    >
+                      <option value="">— Sem dia definido —</option>
+                      {WEEK_DAY_OPTIONS.map((day) => (
+                        <option key={day.value} value={day.value}>{day.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label" htmlFor="add-training-order">Ordem</label>
+                    <input
+                      id="add-training-order"
+                      type="number"
+                      min="1"
+                      value={addTrainingModalData.order}
+                      onChange={(e) => setAddTrainingModalData((prev) => ({ ...prev, order: parseInt(e.target.value, 10) || 1 }))}
+                      className="form-input"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-section">
+                  <div className="form-section-header">
+                    <h3 className="form-section-title">Exercícios (opcional)</h3>
+                  </div>
+                  {addTrainingModalData.inlineExercises.length > 0 && (
+                    <div className="schedule-template-list" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                      {addTrainingModalData.inlineExercises.map((ex) => {
+                        const meta = formatExerciseMeta(ex);
+                        return (
+                          <div key={ex._id} className="schedule-template-row" style={{ alignItems: 'center' }}>
+                            <div className="schedule-template-fields" style={{ alignItems: 'center' }}>
+                              <span style={{ fontWeight: 600, flex: 1 }}>{ex.name}</span>
+                              {meta && <span className="text-sm text-light">{meta}</span>}
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-delete-sm"
+                              onClick={() => removeInlineExerciseFromModal(ex._id)}
+                              aria-label={`Remover exercício ${ex.name}`}
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-schedule-sm"
+                    onClick={openInlineExerciseForModal}
+                  >
+                    + Criar exercício
+                  </button>
+                </div>
+
+                <div className="btn-group">
+                  <button type="submit" className="btn-primary">
+                    Adicionar
+                  </button>
+                  <button type="button" onClick={closeAddTrainingModal} className="btn-secondary">
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <CreateExerciseModal
+        open={inlineExerciseContext !== null}
+        onClose={closeInlineExerciseModal}
+        onSuccess={handleInlineExerciseSuccess}
+      />
     </div>
   );
 };

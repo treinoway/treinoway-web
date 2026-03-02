@@ -1,0 +1,54 @@
+---
+description: Pattern for action menus in list rows
+globs: src/**/*.jsx
+alwaysApply: false
+---
+
+# List Row Actions — Three-Dot Menu Pattern
+
+When a list row has **more than one action**, the actions MUST be grouped inside a three-dot menu (`TemplateRowMenu` or equivalent). Never place multiple visible action buttons directly in a row.
+
+## ✅ CORRECT — Multiple actions go in a menu
+
+```jsx
+// Reuse TemplateRowMenu from TrainingTemplates.jsx pattern
+<TemplateRowMenu
+  ariaLabel={`Ações do item ${item.name}`}
+  onEdit={() => handleEdit(item)}
+  onDelete={() => handleDelete(item.id)}
+  deleteLabel="Remover"  // optional, defaults to "Excluir"
+/>
+```
+
+## ❌ WRONG — Multiple buttons directly in the row
+
+```jsx
+<button onClick={() => handleEdit(item)}>Editar</button>
+<button onClick={() => handleDelete(item.id)}>Excluir</button>
+```
+
+## ✅ CORRECT — Single action can be a direct button
+
+```jsx
+// Only one action: direct button is fine
+<button className="btn-delete-sm" onClick={() => handleRemove(id)}>
+  Remover
+</button>
+```
+
+## Implementation Details
+
+The `TemplateRowMenu` component (defined in `src/pages/trainer/TrainingTemplates.jsx`) accepts:
+- `ariaLabel` (required) — describes the item, e.g. `Ações do treino ${name}`
+- `onDelete` (required) — handler for the destructive action
+- `onEdit` (optional) — handler for the edit action; omit to hide the edit item
+- `deleteLabel` (optional) — label for destructive action, defaults to `"Excluir"`
+
+The trigger button uses `MoreVertical` from `lucide-react` and implements click-outside detection to close the dropdown.
+
+## When Applying This Rule
+
+- **New list/table rows with multiple actions:** always use the menu pattern
+- **Edit + Delete/Remove:** the most common case — use `onEdit` + `onDelete`
+- **aria-label for trigger:** must identify the item, e.g. `Ações do exercício Supino Reto`
+- **Destructive items:** always use `row-menu-item--danger` CSS class

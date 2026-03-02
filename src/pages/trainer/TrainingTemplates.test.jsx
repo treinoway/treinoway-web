@@ -19,6 +19,19 @@ vi.mock('../../api/axios', () => ({
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
+vi.mock('../../components/CreateExerciseTemplateModal', () => ({
+  default: ({ open, onClose, onSuccess, exerciseTemplate }) =>
+    open ? (
+      <div data-testid="create-exercise-template-modal">
+        {exerciseTemplate && <span data-testid="editing-exercise-id">{exerciseTemplate.id}</span>}
+        <button onClick={onClose} type="button">Fechar modal exercício</button>
+        <button onClick={() => onSuccess?.(exerciseTemplate ? { ...exerciseTemplate, name: 'Exercício Editado' } : { id: 99, name: 'Novo Exercício' })} type="button">
+          {exerciseTemplate ? 'Simular exercício editado' : 'Simular exercício criado'}
+        </button>
+      </div>
+    ) : null,
+}));
+
 const mockShowToast = vi.fn();
 
 const mockTemplates = [
@@ -30,7 +43,22 @@ describe('TrainingTemplates', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
-    api.get.mockResolvedValue({ data: mockTemplates });
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (typeof url === 'string' && url.startsWith('/trainer/training-templates/')) {
+        const id = url.replace('/trainer/training-templates/', '');
+        const template = mockTemplates.find((t) => String(t.id) === String(id));
+        return Promise.resolve({ data: template || mockTemplates[0] });
+      }
+      if (url === '/trainer/exercise-templates') return Promise.resolve({
+        data: [
+          { id: 20, name: 'Supino Reto' },
+          { id: 21, name: 'Corrida' },
+          { id: 99, name: 'Novo Exercício' },
+        ],
+      });
+      return Promise.resolve({ data: [] });
+    });
     api.post.mockReset();
     api.patch.mockReset();
     api.delete.mockReset();
@@ -177,7 +205,73 @@ describe('TrainingTemplates', () => {
     await user.click(editButtons[0]);
 
     expect(screen.getByText('Editar Modelo de Treino')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Treino A')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Treino A')).toBeInTheDocument();
+    });
+  });
+
+  it('shows exercises in form when GET by ID returns exerciseTemplateIds', async () => {
+    const user = userEvent.setup();
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/training-templates/1') {
+        return Promise.resolve({
+          data: { ...mockTemplates[0], exerciseTemplateIds: [20] },
+        });
+      }
+      if (url === '/trainer/exercise-templates') return Promise.resolve({
+        data: [
+          { id: 20, name: 'Supino Reto' },
+          { id: 21, name: 'Corrida' },
+          { id: 99, name: 'Novo Exercício' },
+        ],
+      });
+      return Promise.resolve({ data: [] });
+    });
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    const editButtons = screen.getAllByRole('button', { name: /editar/i });
+    await user.click(editButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /ações do exercício supino reto/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows exercises in form when GET by ID returns trainingTemplateExerciseTemplates', async () => {
+    const user = userEvent.setup();
+    const uuid = '8981a001-f57c-4e0d-9932-23a35cb629d3';
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/training-templates/1') {
+        return Promise.resolve({
+          data: {
+            ...mockTemplates[0],
+            trainingTemplateExerciseTemplates: [
+              { exerciseTemplateId: uuid, exerciseTemplate: { id: uuid, name: 'Tríceps Polia' } },
+            ],
+          },
+        });
+      }
+      if (url === '/trainer/exercise-templates') return Promise.resolve({
+        data: [
+          { id: 20, name: 'Supino Reto' },
+          { id: 21, name: 'Corrida' },
+          { id: uuid, name: 'Tríceps Polia' },
+        ],
+      });
+      return Promise.resolve({ data: [] });
+    });
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    const editButtons = screen.getAllByRole('button', { name: /editar/i });
+    await user.click(editButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /ações do exercício tríceps polia/i })).toBeInTheDocument();
+    });
   });
 
   it('calls PATCH on save when editing an existing template', async () => {
@@ -190,6 +284,7 @@ describe('TrainingTemplates', () => {
 
     const editButtons = screen.getAllByRole('button', { name: /editar/i });
     await user.click(editButtons[0]);
+    await waitFor(() => expect(screen.getByDisplayValue('Treino A')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -217,6 +312,88 @@ describe('TrainingTemplates', () => {
     });
   });
 
+  it('opens CreateExerciseTemplateModal when "Criar exercício" is clicked', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo modelo de exercício/i }));
+
+    expect(screen.getByTestId('create-exercise-template-modal')).toBeInTheDocument();
+  });
+
+  it('adds newly created exercise to form when CreateExerciseTemplateModal calls onSuccess', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo modelo de exercício/i }));
+    await user.click(screen.getByRole('button', { name: /simular exercício criado/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /ações do exercício novo exercício/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows exercise templates in picker when form is open', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+
+    expect(screen.getByLabelText(/selecionar exercício existente/i)).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Supino Reto' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Corrida' })).toBeInTheDocument();
+  });
+
+  it('adds and removes exercise templates from the form', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+
+    await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao modelo/i }));
+
+    expect(screen.getAllByText('Supino Reto').length).toBeGreaterThan(0);
+    const actionsBtn = screen.getByRole('button', { name: /ações do exercício supino reto/i });
+    expect(actionsBtn).toBeInTheDocument();
+
+    await user.click(actionsBtn);
+    await user.click(screen.getByRole('button', { name: /remover/i }));
+    expect(screen.queryByRole('button', { name: /ações do exercício supino reto/i })).not.toBeInTheDocument();
+  });
+
+  it('sends exerciseTemplateIds in payload when creating template with exercises', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: { id: 1 } });
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+    await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao modelo/i }));
+
+    const nameInput = screen.getAllByRole('textbox')[0];
+    await user.type(nameInput, 'Treino com Exercício');
+    await user.selectOptions(screen.getAllByRole('combobox')[0], 'strength');
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        '/trainer/training-templates',
+        expect.objectContaining({
+          name: 'Treino com Exercício',
+          exerciseTemplateIds: [20],
+        })
+      );
+    });
+  });
+
   it('does not delete when custom dialog confirmation is cancelled', async () => {
     const user = userEvent.setup();
 
@@ -230,5 +407,121 @@ describe('TrainingTemplates', () => {
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
     expect(api.delete).not.toHaveBeenCalled();
+  });
+
+  it('shows view toggle buttons when templates are loaded', async () => {
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+
+    expect(screen.getByRole('button', { name: /visualização em cards/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /visualização em lista/i })).toBeInTheDocument();
+  });
+
+  it('switches to list view and shows table with template data', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+
+    await user.click(screen.getByRole('button', { name: /visualização em lista/i }));
+
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByText('Treino A')).toBeInTheDocument();
+    expect(screen.getByText('Treino B')).toBeInTheDocument();
+  });
+
+  it('switches back to card view from list view', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+
+    await user.click(screen.getByRole('button', { name: /visualização em lista/i }));
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /visualização em cards/i }));
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('hides view toggle buttons when form is open', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+
+    expect(screen.queryByRole('button', { name: /visualização em cards/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /visualização em lista/i })).not.toBeInTheDocument();
+  });
+
+  const setupEditExerciseTest = () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/training-templates/1') {
+        return Promise.resolve({ data: { ...mockTemplates[0], exerciseTemplateIds: [20] } });
+      }
+      if (url === '/trainer/exercise-templates') return Promise.resolve({
+        data: [{ id: 20, name: 'Supino Reto' }, { id: 21, name: 'Corrida' }],
+      });
+      return Promise.resolve({ data: [] });
+    });
+  };
+
+  const openExerciseActionsMenu = async (user) => {
+    await waitFor(() => screen.getByText('Treino A'));
+    const editButtons = screen.getAllByRole('button', { name: /editar/i });
+    await user.click(editButtons[0]);
+    await waitFor(() => screen.getByRole('button', { name: /ações do exercício supino reto/i }));
+    await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
+  };
+
+  it('shows actions menu on exercise rows in the form', async () => {
+    const user = userEvent.setup();
+    setupEditExerciseTest();
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    const editButtons = screen.getAllByRole('button', { name: /editar/i });
+    await user.click(editButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /ações do exercício supino reto/i })).toBeInTheDocument();
+    });
+  });
+
+  it('opens exercise template modal in edit mode when edit exercise is clicked', async () => {
+    const user = userEvent.setup();
+    setupEditExerciseTest();
+    renderWithRouter(<TrainingTemplates />);
+
+    await openExerciseActionsMenu(user);
+    await user.click(screen.getByRole('button', { name: /^editar$/i }));
+
+    expect(screen.getByTestId('create-exercise-template-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('editing-exercise-id')).toHaveTextContent('20');
+  });
+
+  it('refreshes exercise templates after editing without duplicating IDs', async () => {
+    const user = userEvent.setup();
+    setupEditExerciseTest();
+    renderWithRouter(<TrainingTemplates />);
+
+    await openExerciseActionsMenu(user);
+    await user.click(screen.getByRole('button', { name: /^editar$/i }));
+
+    const getCallsBefore = api.get.mock.calls.length;
+    await user.click(screen.getByRole('button', { name: /simular exercício editado/i }));
+
+    await waitFor(() => {
+      const exerciseFetches = api.get.mock.calls.slice(getCallsBefore).filter(
+        ([url]) => url === '/trainer/exercise-templates'
+      );
+      expect(exerciseFetches.length).toBeGreaterThan(0);
+    });
+
+    // Should still have only one actions menu (no duplicate exercise)
+    const actionsMenus = screen.getAllByRole('button', { name: /ações do exercício/i });
+    expect(actionsMenus).toHaveLength(1);
   });
 });

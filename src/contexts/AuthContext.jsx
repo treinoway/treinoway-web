@@ -1,4 +1,5 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import api from '../api/axios';
@@ -227,6 +228,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Keep React state in sync when axios interceptor refreshes the token
+  useEffect(() => {
+    const handleTokensRefreshed = (e) => {
+      const { newAccessToken, newRefreshToken } = e.detail || {};
+      updateTokens(newAccessToken, newRefreshToken);
+    };
+    window.addEventListener('treinoway:tokensRefreshed', handleTokensRefreshed);
+    return () => window.removeEventListener('treinoway:tokensRefreshed', handleTokensRefreshed);
+  }, []);
+
   const value = {
     user,
     accessToken,
@@ -242,4 +253,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };

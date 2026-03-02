@@ -35,6 +35,32 @@ api.interceptors.request.use(
   }
 );
 
+// Single in-flight refresh (token rotation: only one refresh token use at a time)
+let refreshPromise = null;
+
+function clearAuthAndRedirect() {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
+  window.location.href = '/login';
+}
+
+async function performRefresh() {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) return null;
+  const response = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
+  const newAccessToken = response.data.token?.accessToken || response.data.accessToken;
+  const newRefreshToken = response.data.refreshToken;
+  localStorage.setItem('accessToken', newAccessToken);
+  if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('treinoway:tokensRefreshed', {
+      detail: { newAccessToken, newRefreshToken },
+    }));
+  }
+  return newAccessToken;
+}
+
 // Response interceptor to handle token refresh and detect HTML responses
 api.interceptors.response.use(
   (response) => {
@@ -65,40 +91,28 @@ api.interceptors.response.use(
 
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) {
-        // No refresh token, redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        clearAuthAndRedirect();
         return Promise.reject(error);
       }
 
       try {
-        // Try to refresh the token
-        // Use axios directly to avoid circular interceptor calls
-        const response = await axios.post(`${BASE_URL}/auth/refresh`, {
-          refreshToken,
-        });
+        // Only one refresh at a time; concurrent 401s wait for the same result (token rotation)
+        if (!refreshPromise) {
+          refreshPromise = performRefresh().finally(() => {
+            refreshPromise = null;
+          });
+        }
+        const newAccessToken = await refreshPromise;
 
-        // Handle nested token format: { token: { accessToken: "..." } }
-        const newAccessToken = response.data.token?.accessToken || response.data.accessToken;
-        const newRefreshToken = response.data.refreshToken;
-
-        // Save new tokens
-        localStorage.setItem('accessToken', newAccessToken);
-        if (newRefreshToken) {
-          localStorage.setItem('refreshToken', newRefreshToken);
+        if (!newAccessToken) {
+          clearAuthAndRedirect();
+          return Promise.reject(error);
         }
 
-        // Retry original request with new token
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, logout
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        clearAuthAndRedirect();
         return Promise.reject(refreshError);
       }
     }

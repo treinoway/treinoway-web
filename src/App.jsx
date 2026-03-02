@@ -15,10 +15,12 @@ import Profile from './pages/Profile';
 
 // Trainer pages
 import TrainingTemplates from './pages/trainer/TrainingTemplates';
+import ExerciseTemplates from './pages/trainer/ExerciseTemplates';
 import ProtocolDetail from './pages/trainer/ProtocolDetail';
 import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
 import CreateProtocol from './pages/trainer/CreateProtocol';
 import Students from './pages/trainer/Students';
+import StudentDetail from './pages/trainer/StudentDetail';
 
 function App() {
   return (
@@ -65,6 +67,16 @@ function App() {
             }
           />
           <Route
+            path="/trainer/exercise-templates"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ExerciseTemplates />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/trainer/protocol-templates"
             element={
               <ProtectedRoute>
@@ -101,6 +113,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Students />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/students/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <StudentDetail />
                 </Layout>
               </ProtectedRoute>
             }

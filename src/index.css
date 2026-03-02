@@ -769,6 +769,37 @@ a {
   font-weight: 600;
 }
 
+/* Segmented Toggle */
+.segmented-toggle {
+  display: flex;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: var(--spacing-md);
+}
+
+.segmented-toggle-btn {
+  flex: 1;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-surface);
+  border: none;
+  font-size: var(--font-body-small-size);
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.segmented-toggle-btn:not(:last-child) {
+  border-right: 1px solid var(--color-outline-variant);
+}
+
+.segmented-toggle-btn--active {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 500;
+}
+
 /* ============================================
    Cards
    ============================================ */
@@ -1223,6 +1254,52 @@ a {
   margin-right: 0.5rem;
 }
 
+/* Exercise list inside forms (training/protocol template) */
+.exercise-picker-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: flex-end;
+}
+
+.exercise-picker-row .form-group {
+  flex: 1;
+}
+
+.exercise-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.exercise-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.exercise-list-item:last-child {
+  border-bottom: none;
+}
+
+.exercise-list-item .card-subtitle {
+  margin-bottom: 0;
+  font-size: var(--font-body-small-size);
+  font-weight: var(--font-h3-weight);
+}
+
+.exercise-list-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.exercise-list-actions {
+  margin-top: var(--spacing-sm);
+}
+
 /* ============================================
    Alerts
    ============================================ */
@@ -1443,33 +1520,121 @@ a {
    Protocol Detail Specific
    ============================================ */
 .training-card {
-  background: white;
+  background: var(--color-surface);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow);
-  padding: 1.5rem;
+  padding: var(--spacing-lg);
+  transition: box-shadow 0.15s ease;
+}
+
+.training-card--dragging {
+  opacity: 0.5;
+  box-shadow: var(--shadow-lg);
 }
 
 .training-card-header {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0.75rem;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.training-card-header-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .training-card-title {
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: var(--font-h3-size);
+  font-weight: var(--font-h3-weight);
+  color: var(--color-on-surface);
+  margin-bottom: var(--spacing-xs);
 }
 
 .training-card-desc {
-  font-size: 0.875rem;
+  font-size: var(--font-body-small-size);
   color: var(--color-on-surface-variant);
+  margin-bottom: var(--spacing-xs);
+}
+
+.training-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
 }
 
 .training-card-order {
-  font-size: 0.75rem;
+  font-size: var(--font-caption-size);
   color: var(--color-on-surface-variant);
-  margin-top: 0.25rem;
+  background: var(--color-surface-container);
+  border-radius: var(--radius-full);
+  padding: 2px var(--spacing-sm);
+  font-weight: 500;
+}
+
+.training-card-exercises {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-outline-variant);
+}
+
+.training-card-exercises-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.training-card-exercises-label {
+  font-size: var(--font-body-small-size);
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: var(--font-caption-size);
+}
+
+.training-card-exercise-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.training-card-exercise-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-xs);
+  border-bottom: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-xs);
+  transition: background 0.12s ease;
+}
+
+.training-card-exercise-row:last-child {
+  border-bottom: none;
+}
+
+.training-card-exercise-row:hover {
+  background: var(--color-surface-container);
+}
+
+.training-card-exercise-name {
+  font-size: var(--font-body-small-size);
+  font-weight: 500;
+  color: var(--color-on-surface);
+}
+
+.training-card-exercise-meta {
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+  margin-left: var(--spacing-xs);
+}
+
+.training-card-exercises-empty {
+  padding: var(--spacing-sm) 0;
+  font-size: var(--font-body-small-size);
+  color: var(--color-outline);
+  font-style: italic;
 }
 
 .training-actions {
@@ -2020,6 +2185,62 @@ a {
 
 .schedule-template-order {
   max-width: 100%;
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  color: var(--color-outline);
+  cursor: grab;
+  padding: var(--spacing-xs);
+  flex-shrink: 0;
+  touch-action: none;
+  border-radius: var(--radius-xs);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.drag-handle:hover {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-variant);
+}
+
+.drag-handle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  background: var(--color-surface-container-high);
+}
+
+.schedule-template-row--dragging {
+  opacity: 0.5;
+  box-shadow: var(--shadow-lg);
+}
+
+.training-row-exercises {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  width: 100%;
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-outline-variant);
+}
+
+.training-row-exercise-item {
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+  line-height: var(--font-body-small-line);
+}
+
+.training-row-exercise-name {
+  font-weight: 500;
+}
+
+.training-row-exercise-meta {
+  opacity: 0.8;
 }
 
 @media (min-width: 768px) {
@@ -2621,6 +2842,17 @@ a {
   text-overflow: ellipsis;
 }
 
+.student-card-link {
+  display: flex;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.student-card-link:hover .student-card-name {
+  color: var(--md-primary);
+}
+
 /* Protocol student autocomplete */
 .protocol-student-search {
   position: relative;
@@ -2799,4 +3031,70 @@ a {
   padding: var(--spacing-xl);
   text-align: center;
   gap: var(--spacing-md);
+}
+
+/* ============================================
+   View Toggle (card / list)
+   ============================================ */
+.view-toggle-group {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.view-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.view-toggle-btn:hover {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+  border-color: var(--color-outline);
+}
+
+.view-toggle-btn--active {
+  background: var(--color-primary-container);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+/* ============================================
+   YouTube Preview (exercise card)
+   ============================================ */
+.youtube-preview {
+  position: relative;
+  width: 100%;
+  max-width: 70%;
+  margin-left: auto;
+  margin-right: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: var(--spacing-sm);
+  background: #000;
+}
+
+.youtube-preview iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }

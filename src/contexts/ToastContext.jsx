@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { onNetworkError } from '../api/axios';
 
 const ToastContext = createContext(null);
@@ -27,6 +28,15 @@ const ToastContainer = ({ toasts, onDismiss }) => (
     ))}
   </div>
 );
+
+ToastContainer.propTypes = {
+  toasts: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    message: PropTypes.string.isRequired,
+    type: PropTypes.string.isRequired,
+  })).isRequired,
+  onDismiss: PropTypes.func.isRequired,
+};
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
@@ -59,4 +69,8 @@ export const ToastProvider = ({ children }) => {
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </ToastContext.Provider>
   );
+};
+
+ToastProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };

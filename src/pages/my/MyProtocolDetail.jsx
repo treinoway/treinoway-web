@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
+import { getWeekDayLabel } from '../../constants/weekDays';
 
 const MyProtocolDetail = () => {
   const { id } = useParams();
@@ -34,16 +35,6 @@ const MyProtocolDetail = () => {
       case 'CANCELLED': return 'badge-status badge-red';
       default: return 'badge-status badge-gray';
     }
-  };
-
-  const weekdayLabels = {
-    MONDAY: 'Segunda-feira',
-    TUESDAY: 'Terça-feira',
-    WEDNESDAY: 'Quarta-feira',
-    THURSDAY: 'Quinta-feira',
-    FRIDAY: 'Sexta-feira',
-    SATURDAY: 'Sábado',
-    SUNDAY: 'Domingo',
   };
 
   const trainerLabel = [protocol?.trainer?.firstName, protocol?.trainer?.lastName]
@@ -132,22 +123,25 @@ const MyProtocolDetail = () => {
                 <div>
                   <h3 className="training-card-title">{training.name}</h3>
                   <p className="training-card-desc mt-sm">{training.description}</p>
-                  <div className="training-card-order">Ordem: {training.order}</div>
-                </div>
-              </div>
-
-              {training.schedules && training.schedules.length > 0 && (
-                <div className="schedule-section">
-                  <h4 className="schedule-title">Agendamento:</h4>
-                  <div className="schedule-badges">
-                    {training.schedules.map((schedule) => (
-                      <div key={schedule.id} className="schedule-badge">
-                        Semana {schedule.weekNumber} - {weekdayLabels[schedule.weekday] || schedule.weekday}
+                  <div className="training-card-order" style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span>Ordem: {training.order}</span>
+                    {getWeekDayLabel(training.weekDay) && (
+                      <span className="badge badge-blue">
+                        {getWeekDayLabel(training.weekDay)}
+                      </span>
+                    )}
+                    {!training.weekDay && training.schedules && training.schedules.length > 0 && (
+                      <div className="schedule-badges" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-xs)' }}>
+                        {training.schedules.map((schedule) => (
+                          <span key={schedule.id} className="schedule-badge">
+                            Semana {schedule.weekNumber} - {getWeekDayLabel(schedule.weekday) || schedule.weekday}
+                          </span>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>
