@@ -2620,6 +2620,50 @@ a {
   }
 }
 
+/* No Students Modal */
+.no-students-modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.no-students-modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--md-primary-container);
+  color: var(--md-primary);
+}
+
+.no-students-modal-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  cursor: pointer;
+  font-size: var(--font-body-small-size);
+  color: var(--md-on-surface-variant);
+}
+
+.no-students-modal-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--md-primary);
+  cursor: pointer;
+}
+
+.no-students-modal-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
 /* ============================================
    Data Table
    ============================================ */

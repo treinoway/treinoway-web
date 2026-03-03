@@ -152,4 +152,81 @@ describe('Dashboard', () => {
       );
     });
   });
+
+  describe('Create Routine - student check', () => {
+    beforeEach(() => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+      localStorage.clear();
+      api.get.mockReset();
+    });
+
+    it('navigates directly when localStorage skip is true', async () => {
+      const user = userEvent.setup();
+      localStorage.setItem('treinoway.skipNoStudentsWarning', 'true');
+
+      renderWithRouter(<Dashboard />);
+
+      await user.click(screen.getByText('Criar Rotina para um Aluno'));
+
+      expect(api.get).not.toHaveBeenCalled();
+    });
+
+    it('navigates when API returns students', async () => {
+      const user = userEvent.setup();
+      api.get.mockResolvedValue({ data: [{ id: 1, firstName: 'Ana' }] });
+
+      renderWithRouter(<Dashboard />);
+
+      await user.click(screen.getByText('Criar Rotina para um Aluno'));
+
+      await waitFor(() => {
+        expect(api.get).toHaveBeenCalledWith('/trainer/students');
+      });
+
+      expect(screen.queryByRole('heading', { name: 'Nenhum aluno cadastrado' })).not.toBeInTheDocument();
+    });
+
+    it('opens modal when API returns no students', async () => {
+      const user = userEvent.setup();
+      api.get.mockResolvedValue({ data: [] });
+
+      renderWithRouter(<Dashboard />);
+
+      await user.click(screen.getByText('Criar Rotina para um Aluno'));
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Nenhum aluno cadastrado' })).toBeInTheDocument();
+      });
+    });
+
+    it('closes modal when "Agora não" is clicked', async () => {
+      const user = userEvent.setup();
+      api.get.mockResolvedValue({ data: [] });
+
+      renderWithRouter(<Dashboard />);
+
+      await user.click(screen.getByText('Criar Rotina para um Aluno'));
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Nenhum aluno cadastrado' })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Agora não' }));
+
+      expect(screen.queryByRole('heading', { name: 'Nenhum aluno cadastrado' })).not.toBeInTheDocument();
+    });
+
+    it('shows error toast when API call fails', async () => {
+      const user = userEvent.setup();
+      api.get.mockRejectedValue({ userMessage: 'Erro de conexão' });
+
+      renderWithRouter(<Dashboard />);
+
+      await user.click(screen.getByText('Criar Rotina para um Aluno'));
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith('Erro de conexão', 'error');
+      });
+    });
+  });
 });

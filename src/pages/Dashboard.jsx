@@ -2,14 +2,20 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Dumbbell, ClipboardList, BookOpen } from 'lucide-react';
 import api from '../api/axios';
+import NoStudentsModal from '../components/NoStudentsModal';
+
+const SKIP_STORAGE_KEY = 'treinoway.skipNoStudentsWarning';
 
 const Dashboard = () => {
   const { user, hasRole, refreshUser, updateTokens } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [checkingStudents, setCheckingStudents] = useState(false);
+  const [showNoStudentsModal, setShowNoStudentsModal] = useState(false);
 
   useEffect(() => {
     if (refreshUser) {
@@ -17,6 +23,34 @@ const Dashboard = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleCreateRoutine = async () => {
+    try {
+      const skipWarning = localStorage.getItem(SKIP_STORAGE_KEY) === 'true';
+      if (skipWarning) {
+        navigate('/trainer/protocols/new');
+        return;
+      }
+    } catch {
+      // localStorage unavailable; proceed with API check
+    }
+
+    setCheckingStudents(true);
+    try {
+      const response = await api.get('/trainer/students');
+      const students = response.data;
+
+      if (students.length > 0) {
+        navigate('/trainer/protocols/new');
+      } else {
+        setShowNoStudentsModal(true);
+      }
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+    } finally {
+      setCheckingStudents(false);
+    }
+  };
 
   const handleBecomeTrainer = async () => {
     setLoading(true);
@@ -55,13 +89,19 @@ const Dashboard = () => {
         <h2 className="dashboard-section-title">Ações Rápidas</h2>
         <div className="quick-actions">
           {hasRole('TRAINER') && (
-            <Link to="/trainer/protocols/new" className="quick-action-card">
+            <button
+              onClick={handleCreateRoutine}
+              disabled={checkingStudents}
+              className="quick-action-card"
+            >
               <div className="quick-action-icon">
                 <ClipboardList size={20} strokeWidth={1.6} />
               </div>
-              <span className="quick-action-label">Criar Rotina para um Aluno</span>
+              <span className="quick-action-label">
+                {checkingStudents ? 'Verificando...' : 'Criar Rotina para um Aluno'}
+              </span>
               <p className="quick-action-desc">Monte uma nova rotina de treino personalizada e vincule diretamente a um aluno</p>
-            </Link>
+            </button>
           )}
 
           {hasRole('TRAINER') && (
@@ -91,6 +131,15 @@ const Dashboard = () => {
           )}
         </div>
       </section>
+
+      <NoStudentsModal
+        open={showNoStudentsModal}
+        onClose={() => setShowNoStudentsModal(false)}
+        onConfirm={() => {
+          setShowNoStudentsModal(false);
+          navigate('/trainer/students');
+        }}
+      />
     </div>
   );
 };
