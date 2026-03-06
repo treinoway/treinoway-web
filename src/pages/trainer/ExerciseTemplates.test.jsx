@@ -22,9 +22,9 @@ vi.mock('../../api/axios', () => ({
 const mockShowToast = vi.fn();
 
 const mockTemplates = [
-  { id: 1, name: 'Agachamento', type: 'strength', sets: 4, repetitions: 10, hasLoad: true, suggestedLoad: 60, isPublic: false },
+  { id: 1, name: 'Agachamento', type: 'strength', sets: 4, repetitions: { min: 8, max: 10 }, hasLoad: true, suggestedLoad: 60, isPublic: false },
   { id: 2, name: 'Corrida', type: 'cardio', duration: 600, isPublic: true },
-  { id: 3, name: 'Rosca Direta', type: 'strength', sets: 3, repetitions: 12, hasLoad: true, suggestedLoad: 10, isPublic: false, videoUrl: 'https://www.youtube.com/watch?v=abc123XYZ' },
+  { id: 3, name: 'Rosca Direta', type: 'strength', sets: 3, repetitions: { min: 12, max: 12 }, hasLoad: true, suggestedLoad: 10, isPublic: false, videoUrl: 'https://www.youtube.com/watch?v=abc123XYZ' },
 ];
 
 describe('ExerciseTemplates', () => {

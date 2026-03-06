@@ -62,7 +62,7 @@ describe('ProtocolTemplates', () => {
       if (url === '/trainer/exercise-templates') {
         return Promise.resolve({
           data: [
-            { id: 20, name: 'Supino Reto', type: 'strength', sets: 4, repetitions: 10, hasLoad: true, suggestedLoad: 60 },
+            { id: 20, name: 'Supino Reto', type: 'strength', sets: 4, repetitions: { min: 8, max: 10 }, hasLoad: true, suggestedLoad: 60 },
             { id: 21, name: 'Corrida', type: 'cardio', duration: 600, hasLoad: false },
             { id: 99, name: 'Novo Exercício', type: 'strength' },
           ],

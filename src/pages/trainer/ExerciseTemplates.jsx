@@ -68,7 +68,8 @@ const ExerciseTemplates = () => {
     videoUrl: '',
     isPublic: false,
     sets: '',
-    repetitions: '',
+    repetitionsMin: '',
+    repetitionsMax: '',
     duration: '',
     hasLoad: false,
     suggestedLoad: '',
@@ -100,7 +101,9 @@ const ExerciseTemplates = () => {
     };
     if (data.videoUrl?.trim()) payload.videoUrl = data.videoUrl.trim();
     if (data.sets !== '' && data.sets != null) payload.sets = parseInt(data.sets, 10);
-    if (data.repetitions !== '' && data.repetitions != null) payload.repetitions = parseInt(data.repetitions, 10);
+    if (data.repetitionsMin !== '' && data.repetitionsMin != null && data.repetitionsMax !== '' && data.repetitionsMax != null) {
+      payload.repetitions = { min: parseInt(data.repetitionsMin, 10), max: parseInt(data.repetitionsMax, 10) };
+    }
     if (data.duration !== '' && data.duration != null) payload.duration = parseInt(data.duration, 10);
     if (data.hasLoad && data.suggestedLoad !== '' && data.suggestedLoad != null) {
       payload.suggestedLoad = parseFloat(data.suggestedLoad, 10);
@@ -138,7 +141,8 @@ const ExerciseTemplates = () => {
       videoUrl: template.videoUrl || '',
       isPublic: template.isPublic || false,
       sets: template.sets ?? '',
-      repetitions: template.repetitions ?? '',
+      repetitionsMin: template.repetitions?.min ?? '',
+      repetitionsMax: template.repetitions?.max ?? '',
       duration: template.duration ?? '',
       hasLoad: template.hasLoad || false,
       suggestedLoad: template.suggestedLoad ?? '',
@@ -171,7 +175,8 @@ const ExerciseTemplates = () => {
       videoUrl: '',
       isPublic: false,
       sets: '',
-      repetitions: '',
+      repetitionsMin: '',
+      repetitionsMax: '',
       duration: '',
       hasLoad: false,
       suggestedLoad: '',
@@ -184,8 +189,12 @@ const ExerciseTemplates = () => {
   const formatExerciseMeta = (template) => {
     const parts = [];
     if (template.type) parts.push(getExerciseTypeLabel(template.type));
-    if (template.sets != null && template.repetitions != null) {
-      parts.push(`${template.sets}x${template.repetitions}`);
+    const reps = template.repetitions;
+    const repsLabel = reps != null
+      ? (reps.min === reps.max ? String(reps.min) : `${reps.min}–${reps.max}`)
+      : null;
+    if (template.sets != null && repsLabel != null) {
+      parts.push(`${template.sets}x${repsLabel}`);
     } else if (template.duration != null) {
       parts.push(`${template.duration}s`);
     }
@@ -299,15 +308,29 @@ const ExerciseTemplates = () => {
                 />
               </div>
               <div>
-                <label className="form-label" htmlFor="exercise-repetitions">Repetições (opcional)</label>
-                <input
-                  id="exercise-repetitions"
-                  type="number"
-                  min="1"
-                  value={formData.repetitions}
-                  onChange={(e) => setFormData({ ...formData, repetitions: e.target.value })}
-                  className="form-input"
-                />
+                <label className="form-label">Repetições (opcional)</label>
+                <div className="grid-2col" style={{ gap: 'var(--spacing-xs)' }}>
+                  <input
+                    id="exercise-repetitions-min"
+                    type="number"
+                    min="1"
+                    value={formData.repetitionsMin}
+                    onChange={(e) => setFormData({ ...formData, repetitionsMin: e.target.value })}
+                    className="form-input"
+                    aria-label="Repetições mínimas"
+                    placeholder="Mín"
+                  />
+                  <input
+                    id="exercise-repetitions-max"
+                    type="number"
+                    min="1"
+                    value={formData.repetitionsMax}
+                    onChange={(e) => setFormData({ ...formData, repetitionsMax: e.target.value })}
+                    className="form-input"
+                    aria-label="Repetições máximas"
+                    placeholder="Máx"
+                  />
+                </div>
               </div>
             </div>
 

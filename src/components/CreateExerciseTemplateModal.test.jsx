@@ -189,7 +189,7 @@ describe('CreateExerciseTemplateModal', () => {
       videoUrl: '',
       isPublic: false,
       sets: 4,
-      repetitions: 10,
+      repetitions: { min: 8, max: 10 },
       duration: '',
       hasLoad: true,
       suggestedLoad: 60,
@@ -206,7 +206,8 @@ describe('CreateExerciseTemplateModal', () => {
       expect(screen.getByLabelText(/nome/i)).toHaveValue('Supino Reto');
       expect(screen.getByLabelText(/tipo/i)).toHaveValue('strength');
       expect(screen.getByLabelText(/séries/i)).toHaveValue(4);
-      expect(screen.getByLabelText(/repetições/i)).toHaveValue(10);
+      expect(screen.getByLabelText(/repetições mínimas/i)).toHaveValue(8);
+      expect(screen.getByLabelText(/repetições máximas/i)).toHaveValue(10);
       expect(screen.getByLabelText(/carga sugerida/i)).toHaveValue(60);
       expect(screen.getByLabelText(/observações/i)).toHaveValue('Executar com cuidado');
     });

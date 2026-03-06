@@ -81,8 +81,8 @@ const mockTrainingTemplates = [
 ];
 
 const mockExerciseTemplates = [
-  { id: 'ex-1', name: 'Supino Reto', type: 'strength', sets: 4, repetitions: 10, hasLoad: true, suggestedLoad: 60 },
-  { id: 'ex-2', name: 'Tríceps Polia', type: 'strength', sets: 3, repetitions: 12, hasLoad: false, suggestedLoad: null },
+  { id: 'ex-1', name: 'Supino Reto', type: 'strength', sets: 4, repetitions: { min: 8, max: 10 }, hasLoad: true, suggestedLoad: 60 },
+  { id: 'ex-2', name: 'Tríceps Polia', type: 'strength', sets: 3, repetitions: { min: 12, max: 12 }, hasLoad: false, suggestedLoad: null },
   { id: 'ex-3', name: 'Esteira', type: 'cardio', duration: 600, hasLoad: false, suggestedLoad: null },
 ];
 

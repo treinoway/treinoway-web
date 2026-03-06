@@ -376,7 +376,11 @@ const ProtocolDetail = () => {
   const formatExerciseMeta = (exercise) => {
     const parts = [];
     if (exercise.type) parts.push(getExerciseTypeLabel(exercise.type));
-    if (exercise.sets && exercise.repetitions) parts.push(`${exercise.sets}x${exercise.repetitions}`);
+    const reps = exercise.repetitions;
+    const repsLabel = reps != null
+      ? (reps.min === reps.max ? String(reps.min) : `${reps.min}–${reps.max}`)
+      : null;
+    if (exercise.sets && repsLabel != null) parts.push(`${exercise.sets}x${repsLabel}`);
     else if (exercise.duration) parts.push(`${exercise.duration}s`);
     if (exercise.hasLoad && exercise.suggestedLoad != null) parts.push(`${exercise.suggestedLoad} kg`);
     return parts.join(' · ');

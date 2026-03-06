@@ -155,7 +155,8 @@ describe('CreateExerciseModal', () => {
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
     await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
     await user.type(screen.getByLabelText(/séries/i), '4');
-    await user.type(screen.getByLabelText(/repetições/i), '10');
+    await user.type(screen.getByLabelText(/repetições mínimas/i), '8');
+    await user.type(screen.getByLabelText(/repetições máximas/i), '10');
     await user.type(screen.getByLabelText(/duração/i), '60');
     await user.click(screen.getByLabelText(/exercício com carga/i));
     await user.type(screen.getByLabelText(/carga sugerida/i), '80');
@@ -168,7 +169,7 @@ describe('CreateExerciseModal', () => {
           name: 'Supino Reto',
           type: 'strength',
           sets: 4,
-          repetitions: 10,
+          repetitions: { min: 8, max: 10 },
           duration: 60,
           hasLoad: true,
           suggestedLoad: 80,
@@ -227,7 +228,8 @@ describe('CreateExerciseModal', () => {
       await user.type(screen.getByLabelText(/nome/i), 'Remada Curvada');
       await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
       await user.type(screen.getByLabelText(/séries/i), '3');
-      await user.type(screen.getByLabelText(/repetições/i), '12');
+      await user.type(screen.getByLabelText(/repetições mínimas/i), '12');
+      await user.type(screen.getByLabelText(/repetições máximas/i), '12');
       await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
       await waitFor(() => {
@@ -236,7 +238,7 @@ describe('CreateExerciseModal', () => {
             name: 'Remada Curvada',
             type: 'strength',
             sets: 3,
-            repetitions: 12,
+            repetitions: { min: 12, max: 12 },
           })
         );
       });
@@ -277,7 +279,7 @@ describe('CreateExerciseModal', () => {
       type: 'strength',
       videoUrl: '',
       sets: 4,
-      repetitions: 10,
+      repetitions: { min: 8, max: 10 },
       duration: '',
       hasLoad: true,
       suggestedLoad: 60,
@@ -294,7 +296,8 @@ describe('CreateExerciseModal', () => {
       expect(screen.getByLabelText(/nome/i)).toHaveValue('Supino Reto');
       expect(screen.getByLabelText(/tipo/i)).toHaveValue('strength');
       expect(screen.getByLabelText(/séries/i)).toHaveValue(4);
-      expect(screen.getByLabelText(/repetições/i)).toHaveValue(10);
+      expect(screen.getByLabelText(/repetições mínimas/i)).toHaveValue(8);
+      expect(screen.getByLabelText(/repetições máximas/i)).toHaveValue(10);
       expect(screen.getByLabelText(/carga sugerida/i)).toHaveValue(60);
       expect(screen.getByLabelText(/observações/i)).toHaveValue('Executar devagar');
     });

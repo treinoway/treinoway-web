@@ -65,7 +65,7 @@ const mockExerciseTemplates = [
 ];
 
 const mockExercises = [
-  { id: 100, name: 'Supino Reto', type: 'strength', sets: 4, repetitions: 10 },
+  { id: 100, name: 'Supino Reto', type: 'strength', sets: 4, repetitions: { min: 8, max: 10 } },
 ];
 
 function renderProtocolDetail() {
@@ -392,7 +392,7 @@ describe('ProtocolDetail', () => {
         if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
         if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
         if (url.match(/\/trainer\/trainings\/\d+\/exercises/))
-          return Promise.resolve({ data: [{ id: 100, name: 'Supino Reto', type: 'strength', sets: 4, repetitions: 10, notes: 'Manter escápulas retraídas' }] });
+          return Promise.resolve({ data: [{ id: 100, name: 'Supino Reto', type: 'strength', sets: 4, repetitions: { min: 8, max: 10 }, notes: 'Manter escápulas retraídas' }] });
         return Promise.resolve({ data: [] });
       });
 

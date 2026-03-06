@@ -11,7 +11,8 @@ const EMPTY_FORM = {
   type: '',
   videoUrl: '',
   sets: '',
-  repetitions: '',
+  repetitionsMin: '',
+  repetitionsMax: '',
   duration: '',
   hasLoad: false,
   suggestedLoad: '',
@@ -31,7 +32,8 @@ const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, t
         type: exercise.type || '',
         videoUrl: exercise.videoUrl || '',
         sets: exercise.sets ?? '',
-        repetitions: exercise.repetitions ?? '',
+        repetitionsMin: exercise.repetitions?.min ?? '',
+        repetitionsMax: exercise.repetitions?.max ?? '',
         duration: exercise.duration ?? '',
         hasLoad: exercise.hasLoad || false,
         suggestedLoad: exercise.suggestedLoad ?? '',
@@ -50,7 +52,9 @@ const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, t
     };
     if (data.videoUrl?.trim()) payload.videoUrl = data.videoUrl.trim();
     if (data.sets !== '' && data.sets != null) payload.sets = parseInt(data.sets, 10);
-    if (data.repetitions !== '' && data.repetitions != null) payload.repetitions = parseInt(data.repetitions, 10);
+    if (data.repetitionsMin !== '' && data.repetitionsMin != null && data.repetitionsMax !== '' && data.repetitionsMax != null) {
+      payload.repetitions = { min: parseInt(data.repetitionsMin, 10), max: parseInt(data.repetitionsMax, 10) };
+    }
     if (data.duration !== '' && data.duration != null) payload.duration = parseInt(data.duration, 10);
     if (data.hasLoad && data.suggestedLoad !== '' && data.suggestedLoad != null) {
       payload.suggestedLoad = parseFloat(data.suggestedLoad, 10);
@@ -177,15 +181,29 @@ const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, t
                 />
               </div>
               <div>
-                <label className="form-label" htmlFor="exercise-modal-repetitions">Repetições (opcional)</label>
-                <input
-                  id="exercise-modal-repetitions"
-                  type="number"
-                  min="1"
-                  value={formData.repetitions}
-                  onChange={(e) => setFormData({ ...formData, repetitions: e.target.value })}
-                  className="form-input"
-                />
+                <label className="form-label">Repetições (opcional)</label>
+                <div className="grid-2col" style={{ gap: 'var(--spacing-xs)' }}>
+                  <input
+                    id="exercise-modal-repetitions-min"
+                    type="number"
+                    min="1"
+                    value={formData.repetitionsMin}
+                    onChange={(e) => setFormData({ ...formData, repetitionsMin: e.target.value })}
+                    className="form-input"
+                    aria-label="Repetições mínimas"
+                    placeholder="Mín"
+                  />
+                  <input
+                    id="exercise-modal-repetitions-max"
+                    type="number"
+                    min="1"
+                    value={formData.repetitionsMax}
+                    onChange={(e) => setFormData({ ...formData, repetitionsMax: e.target.value })}
+                    className="form-input"
+                    aria-label="Repetições máximas"
+                    placeholder="Máx"
+                  />
+                </div>
               </div>
             </div>
 

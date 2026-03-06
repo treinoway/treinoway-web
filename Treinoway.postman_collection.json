@@ -1698,7 +1698,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Barbell Squat\",\n  \"type\": \"strength\",\n  \"videoUrl\": \"https://example.com/squat\",\n  \"isPublic\": false,\n  \"sets\": 4,\n  \"repetitions\": 10,\n  \"duration\": null,\n  \"hasLoad\": true,\n  \"suggestedLoad\": 60\n}"
+              "raw": "{\n  \"name\": \"Barbell Squat\",\n  \"type\": \"strength\",\n  \"videoUrl\": \"https://example.com/squat\",\n  \"isPublic\": false,\n  \"sets\": 4,\n  \"repetitions\": { \"min\": 8, \"max\": 10 },\n  \"duration\": null,\n  \"hasLoad\": true,\n  \"suggestedLoad\": 60\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/trainer/exercise-templates",
@@ -1759,7 +1759,7 @@
             "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Squat\",\n  \"type\": \"strength\",\n  \"sets\": 5,\n  \"repetitions\": 5,\n  \"hasLoad\": true,\n  \"suggestedLoad\": 70\n}"
+              "raw": "{\n  \"name\": \"Updated Squat\",\n  \"type\": \"strength\",\n  \"sets\": 5,\n  \"repetitions\": { \"min\": 5, \"max\": 5 },\n  \"hasLoad\": true,\n  \"suggestedLoad\": 70\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/trainer/exercise-templates/:id",
@@ -1798,7 +1798,7 @@
             "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Barbell Squat\",\n  \"type\": \"strength\",\n  \"order\": 1,\n  \"sets\": 4,\n  \"repetitions\": 10,\n  \"hasLoad\": true,\n  \"suggestedLoad\": 60\n}"
+              "raw": "{\n  \"name\": \"Barbell Squat\",\n  \"type\": \"strength\",\n  \"order\": 1,\n  \"sets\": 4,\n  \"repetitions\": { \"min\": 8, \"max\": 10 },\n  \"hasLoad\": true,\n  \"suggestedLoad\": 60\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/trainer/trainings/:trainingId/exercises",
@@ -1865,7 +1865,7 @@
             "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Front Squat\",\n  \"sets\": 5,\n  \"repetitions\": 5\n}"
+              "raw": "{\n  \"name\": \"Front Squat\",\n  \"sets\": 5,\n  \"repetitions\": { \"min\": 5, \"max\": 5 }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/trainer/exercises/:id",
