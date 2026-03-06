@@ -163,6 +163,24 @@ describe('CreateExerciseTemplateModal', () => {
     expect(mockOnClose).toHaveBeenCalled();
   });
 
+  it('includes notes in payload when filled', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValueOnce({ data: {} });
+    renderModal();
+
+    await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
+    await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+    await user.type(screen.getByLabelText(/observações/i), 'Manter postura correta');
+    await user.click(screen.getByRole('button', { name: /criar modelo de exercício/i }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        '/trainer/exercise-templates',
+        expect.objectContaining({ notes: 'Manter postura correta' })
+      );
+    });
+  });
+
   describe('edit mode', () => {
     const exerciseTemplate = {
       id: 10,
@@ -175,6 +193,7 @@ describe('CreateExerciseTemplateModal', () => {
       duration: '',
       hasLoad: true,
       suggestedLoad: 60,
+      notes: 'Executar com cuidado',
     };
 
     it('renders edit title when exerciseTemplate is provided', () => {
@@ -189,6 +208,7 @@ describe('CreateExerciseTemplateModal', () => {
       expect(screen.getByLabelText(/séries/i)).toHaveValue(4);
       expect(screen.getByLabelText(/repetições/i)).toHaveValue(10);
       expect(screen.getByLabelText(/carga sugerida/i)).toHaveValue(60);
+      expect(screen.getByLabelText(/observações/i)).toHaveValue('Executar com cuidado');
     });
 
     it('shows "Salvar" button instead of "Criar Modelo de Exercício"', () => {

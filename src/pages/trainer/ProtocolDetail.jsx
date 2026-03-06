@@ -653,6 +653,9 @@ const ProtocolDetail = () => {
                                 {meta && (
                                   <span className="training-card-exercise-meta">· {meta}</span>
                                 )}
+                                {exercise.notes && (
+                                  <p className="training-card-exercise-notes">{exercise.notes}</p>
+                                )}
                               </div>
                               <TemplateRowMenu
                                 ariaLabel={`Ações do exercício ${exercise.name}`}

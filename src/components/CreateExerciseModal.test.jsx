@@ -177,6 +177,24 @@ describe('CreateExerciseModal', () => {
     });
   });
 
+  it('includes notes in payload when filled', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValueOnce({ data: {} });
+    renderModal();
+
+    await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
+    await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+    await user.type(screen.getByLabelText(/observações/i), 'Manter coluna neutra');
+    await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        '/trainer/trainings/training-1/exercises',
+        expect.objectContaining({ notes: 'Manter coluna neutra' })
+      );
+    });
+  });
+
   describe('draft mode (no trainingId)', () => {
     const renderDraftModal = (props = {}) =>
       render(
@@ -263,6 +281,7 @@ describe('CreateExerciseModal', () => {
       duration: '',
       hasLoad: true,
       suggestedLoad: 60,
+      notes: 'Executar devagar',
     };
 
     it('renders edit title when exercise is provided', () => {
@@ -277,6 +296,7 @@ describe('CreateExerciseModal', () => {
       expect(screen.getByLabelText(/séries/i)).toHaveValue(4);
       expect(screen.getByLabelText(/repetições/i)).toHaveValue(10);
       expect(screen.getByLabelText(/carga sugerida/i)).toHaveValue(60);
+      expect(screen.getByLabelText(/observações/i)).toHaveValue('Executar devagar');
     });
 
     it('shows "Salvar" button instead of "Adicionar Exercício"', () => {

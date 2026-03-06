@@ -15,6 +15,7 @@ const EMPTY_FORM = {
   duration: '',
   hasLoad: false,
   suggestedLoad: '',
+  notes: '',
 };
 
 const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, title, headerContent }) => {
@@ -34,6 +35,7 @@ const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, t
         duration: exercise.duration ?? '',
         hasLoad: exercise.hasLoad || false,
         suggestedLoad: exercise.suggestedLoad ?? '',
+        notes: exercise.notes || '',
       });
     } else {
       setFormData(EMPTY_FORM);
@@ -53,6 +55,7 @@ const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, t
     if (data.hasLoad && data.suggestedLoad !== '' && data.suggestedLoad != null) {
       payload.suggestedLoad = parseFloat(data.suggestedLoad, 10);
     }
+    if (data.notes?.trim()) payload.notes = data.notes.trim();
     return payload;
   };
 
@@ -225,6 +228,18 @@ const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, t
                 />
               </div>
             )}
+
+            <div>
+              <label className="form-label" htmlFor="exercise-modal-notes">Observações (opcional)</label>
+              <textarea
+                id="exercise-modal-notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                className="form-textarea"
+                placeholder="Orientações ou anotações sobre este exercício"
+              />
+            </div>
 
             <div className="btn-group">
               <button type="submit" disabled={loading} className="btn-primary">

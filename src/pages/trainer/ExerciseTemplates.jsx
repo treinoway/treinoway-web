@@ -72,6 +72,7 @@ const ExerciseTemplates = () => {
     duration: '',
     hasLoad: false,
     suggestedLoad: '',
+    notes: '',
   });
 
   useEffect(() => {
@@ -104,6 +105,7 @@ const ExerciseTemplates = () => {
     if (data.hasLoad && data.suggestedLoad !== '' && data.suggestedLoad != null) {
       payload.suggestedLoad = parseFloat(data.suggestedLoad, 10);
     }
+    if (data.notes?.trim()) payload.notes = data.notes.trim();
     return payload;
   };
 
@@ -140,6 +142,7 @@ const ExerciseTemplates = () => {
       duration: template.duration ?? '',
       hasLoad: template.hasLoad || false,
       suggestedLoad: template.suggestedLoad ?? '',
+      notes: template.notes || '',
     });
     setEditingId(template.id);
     setShowForm(true);
@@ -172,6 +175,7 @@ const ExerciseTemplates = () => {
       duration: '',
       hasLoad: false,
       suggestedLoad: '',
+      notes: '',
     });
     setEditingId(null);
     setShowForm(false);
@@ -346,6 +350,18 @@ const ExerciseTemplates = () => {
                 />
               </div>
             )}
+
+            <div>
+              <label className="form-label" htmlFor="exercise-notes">Observações (opcional)</label>
+              <textarea
+                id="exercise-notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                className="form-textarea"
+                placeholder="Orientações ou anotações sobre este exercício"
+              />
+            </div>
 
             <div className="form-checkbox-row">
               <input

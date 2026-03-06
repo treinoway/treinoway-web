@@ -1630,6 +1630,13 @@ a {
   margin-left: var(--spacing-xs);
 }
 
+.training-card-exercise-notes {
+  font-size: var(--font-caption-size);
+  color: var(--color-on-surface-variant);
+  margin: var(--spacing-xs) 0 0 0;
+  font-style: italic;
+}
+
 .training-card-exercises-empty {
   padding: var(--spacing-sm) 0;
   font-size: var(--font-body-small-size);

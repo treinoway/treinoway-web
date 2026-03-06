@@ -385,6 +385,30 @@ describe('ProtocolDetail', () => {
       expect(screen.getByRole('button', { name: /ações do exercício supino reto/i })).toBeInTheDocument();
     });
 
+    it('shows exercise notes when present', async () => {
+      api.get.mockImplementation((url) => {
+        if (url.endsWith('/trainer/protocols/1')) return Promise.resolve({ data: mockProtocol });
+        if (url === '/trainer/protocols/1/trainings') return Promise.resolve({ data: mockTrainings });
+        if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+        if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
+        if (url.match(/\/trainer\/trainings\/\d+\/exercises/))
+          return Promise.resolve({ data: [{ id: 100, name: 'Supino Reto', type: 'strength', sets: 4, repetitions: 10, notes: 'Manter escápulas retraídas' }] });
+        return Promise.resolve({ data: [] });
+      });
+
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Supino Reto'));
+      expect(screen.getByText('Manter escápulas retraídas')).toBeInTheDocument();
+    });
+
+    it('does not show notes section when exercise has no notes', async () => {
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Supino Reto'));
+      expect(screen.queryByText(/manter/i)).not.toBeInTheDocument();
+    });
+
     it('opens edit modal when "Editar" is clicked on exercise menu', async () => {
       const user = userEvent.setup();
       renderProtocolDetail();

@@ -16,6 +16,7 @@ const EMPTY_FORM = {
   duration: '',
   hasLoad: false,
   suggestedLoad: '',
+  notes: '',
 };
 
 const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplate }) => {
@@ -36,6 +37,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
         duration: exerciseTemplate.duration ?? '',
         hasLoad: exerciseTemplate.hasLoad || false,
         suggestedLoad: exerciseTemplate.suggestedLoad ?? '',
+        notes: exerciseTemplate.notes || '',
       });
     } else {
       setFormData(EMPTY_FORM);
@@ -56,6 +58,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
     if (data.hasLoad && data.suggestedLoad !== '' && data.suggestedLoad != null) {
       payload.suggestedLoad = parseFloat(data.suggestedLoad, 10);
     }
+    if (data.notes?.trim()) payload.notes = data.notes.trim();
     return payload;
   };
 
@@ -219,6 +222,18 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
                 />
               </div>
             )}
+
+            <div>
+              <label className="form-label" htmlFor="et-modal-notes">Observações (opcional)</label>
+              <textarea
+                id="et-modal-notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                className="form-textarea"
+                placeholder="Orientações ou anotações sobre este exercício"
+              />
+            </div>
 
             <div className="form-checkbox-row">
               <input
