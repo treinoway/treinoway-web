@@ -12,6 +12,7 @@ import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
 import { getExerciseTypeLabel } from '../../constants/exerciseTypes';
+import { getProtocolTypeLabel } from '../../constants/protocolTypes';
 import CreateExerciseModal from '../../components/CreateExerciseModal';
 
 const TemplateRowMenu = ({ onEdit, onDelete, ariaLabel, deleteLabel = 'Excluir' }) => {
@@ -436,6 +437,12 @@ const ProtocolDetail = () => {
             <span className="info-label info-inline">Treinos:</span>
             <span className="info-value">{trainings.length}</span>
           </div>
+          {protocol.type && (
+            <div>
+              <span className="info-label info-inline">Tipo:</span>
+              <span className="info-value">{getProtocolTypeLabel(protocol.type)}</span>
+            </div>
+          )}
         </div>
       </div>
 

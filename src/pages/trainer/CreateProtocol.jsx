@@ -12,6 +12,7 @@ import api from '../../api/axios';
 import DateInput from '../../components/DateInput';
 import CreateExerciseModal from '../../components/CreateExerciseModal';
 import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
+import { PROTOCOL_TYPE_OPTIONS } from '../../constants/protocolTypes';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 
 const categoryLabels = {
@@ -162,6 +163,7 @@ const CreateProtocol = () => {
     defaultDurationWeeks: 12,
     genderOrdination: '',
     trainingLevel: '',
+    type: '',
     trainings: [],
     startDate: '',
     endDate: '',
@@ -363,6 +365,7 @@ const CreateProtocol = () => {
       defaultDurationWeeks: selectedTemplate.defaultDurationWeeks || prev.defaultDurationWeeks,
       genderOrdination: selectedTemplate.genderOrdination?.toLowerCase() || '',
       trainingLevel: selectedTemplate.trainingLevel?.toLowerCase() || '',
+      type: selectedTemplate.type?.toLowerCase() || '',
     }));
 
     try {
@@ -527,6 +530,7 @@ const CreateProtocol = () => {
     expirationDate: data.endDate,
     ...(data.genderOrdination && { genderOrdination: data.genderOrdination }),
     ...(data.trainingLevel && { trainingLevel: data.trainingLevel }),
+    ...(data.type && { type: data.type }),
   });
 
   const handleSubmit = async (e) => {
@@ -738,6 +742,22 @@ const CreateProtocol = () => {
                 <option value="athlete">Atleta</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="form-label" htmlFor="protocol-type">Tipo de Protocolo</label>
+            <select
+              id="protocol-type"
+              name="type"
+              value={formData.type}
+              onChange={handleProtocolInputChange}
+              className="form-select"
+            >
+              <option value="">Selecione...</option>
+              {PROTOCOL_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
           </div>
 
           <div>

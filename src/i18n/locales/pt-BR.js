@@ -17,6 +17,7 @@ const ptBR = {
     STUDENT_NOT_FOUND: 'Nenhum usuário encontrado com este e-mail.',
     STUDENT_ALREADY_LINKED: 'Este aluno já está vinculado à sua conta.',
     CANNOT_LINK_SELF: 'Você não pode se vincular como seu próprio aluno.',
+    INVALID_PROTOCOL_TYPE: 'Tipo de protocolo inválido.',
   },
 
   messageCodes: {

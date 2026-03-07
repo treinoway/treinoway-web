@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
+import { getProtocolTypeLabel } from '../../constants/protocolTypes';
 
 const MyProtocols = () => {
   const [protocols, setProtocols] = useState([]);
@@ -66,9 +67,14 @@ const MyProtocols = () => {
             >
               <div className="card-header-start">
                 <h3 className="card-subtitle">Rotina de Treino</h3>
-                <span className={getStatusBadgeClass(protocol.status)}>
-                  {protocol.status}
-                </span>
+                <div style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {protocol.type && (
+                    <span className="badge badge-blue">{getProtocolTypeLabel(protocol.type)}</span>
+                  )}
+                  <span className={getStatusBadgeClass(protocol.status)}>
+                    {protocol.status}
+                  </span>
+                </div>
               </div>
 
               <div className="protocol-meta">

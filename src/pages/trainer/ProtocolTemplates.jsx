@@ -11,6 +11,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
+import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 
 const scheduleBadgeStyle = {
@@ -200,6 +201,7 @@ const ProtocolTemplates = () => {
     defaultDurationWeeks: 12,
     genderOrdination: '',
     trainingLevel: '',
+    type: '',
     trainings: [],
   });
 
@@ -302,6 +304,7 @@ const ProtocolTemplates = () => {
       defaultDurationWeeks: templateFormData.defaultDurationWeeks,
       genderOrdination: templateFormData.genderOrdination,
       trainingLevel: templateFormData.trainingLevel,
+      type: templateFormData.type || undefined,
       // eslint-disable-next-line no-unused-vars
       trainings: templateFormData.trainings.map(({ _id, weekDay, ...t }) => ({
         ...t,
@@ -340,6 +343,7 @@ const ProtocolTemplates = () => {
         defaultDurationWeeks: full.defaultDurationWeeks || 12,
         genderOrdination: full.genderOrdination?.toLowerCase() || '',
         trainingLevel: full.trainingLevel?.toLowerCase() || '',
+        type: full.type?.toLowerCase() || '',
         trainings: scheduleItems.map((item) => ({
           trainingTemplateId: item.trainingTemplate?.id || item.trainingTemplateId,
           weekDay: (item.weekDay || '').toLowerCase() || '',
@@ -375,6 +379,7 @@ const ProtocolTemplates = () => {
       defaultDurationWeeks: 12,
       genderOrdination: '',
       trainingLevel: '',
+      type: '',
       trainings: [],
     });
     setEditingId(null);
@@ -623,6 +628,20 @@ const ProtocolTemplates = () => {
             </div>
 
             <div>
+              <label className="form-label">Tipo de Protocolo</label>
+              <select
+                value={templateFormData.type}
+                onChange={(e) => setTemplateFormData({ ...templateFormData, type: e.target.value })}
+                className="form-select"
+              >
+                <option value="">Selecione...</option>
+                {PROTOCOL_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <label className="form-label">Duração Padrão (semanas)</label>
               <input
                 type="number"
@@ -738,6 +757,7 @@ const ProtocolTemplates = () => {
           {templates.map((template) => {
             const genderLabel = { male: 'Masculino', female: 'Feminino', other: 'Outro' }[template.genderOrdination];
             const levelLabel = { beginner: 'Iniciante', intermediate: 'Intermediário', advanced: 'Avançado', athlete: 'Atleta' }[template.trainingLevel];
+            const typeLabel = template.type ? getProtocolTypeLabel(template.type) : null;
             return (
               <div key={template.id} className="card">
                 <div className="mb-md">
@@ -766,6 +786,11 @@ const ProtocolTemplates = () => {
                   {levelLabel && (
                     <div className="text-sm text-light">
                       <strong>Nível:</strong> {levelLabel}
+                    </div>
+                  )}
+                  {typeLabel && (
+                    <div className="text-sm text-light">
+                      <strong>Tipo:</strong> {typeLabel}
                     </div>
                   )}
                 </div>
@@ -800,6 +825,7 @@ const ProtocolTemplates = () => {
               {templates.map((template) => {
                 const levelLabel = { beginner: 'Iniciante', intermediate: 'Intermediário', advanced: 'Avançado', athlete: 'Atleta' }[template.trainingLevel];
                 const trainingsCount = template.scheduleTemplatesCount ?? template.trainingsCount ?? 0;
+                const typeLabel = template.type ? getProtocolTypeLabel(template.type) : null;
                 return (
                   <tr key={template.id}>
                     <td>
@@ -809,6 +835,7 @@ const ProtocolTemplates = () => {
                           `${template.defaultDurationWeeks} sem.`,
                           `${trainingsCount} treinos`,
                           levelLabel,
+                          typeLabel,
                         ].filter(Boolean).join(' · ')}
                       </span>
                     </td>

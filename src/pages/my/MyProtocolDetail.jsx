@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { getWeekDayLabel } from '../../constants/weekDays';
+import { getProtocolTypeLabel } from '../../constants/protocolTypes';
 
 const MyProtocolDetail = () => {
   const { id } = useParams();
@@ -103,6 +104,12 @@ const MyProtocolDetail = () => {
             <span className="info-label info-inline">Total de Treinos:</span>
             <span className="info-value">{trainings.length}</span>
           </div>
+          {protocol.type && (
+            <div>
+              <span className="info-label info-inline">Tipo:</span>
+              <span className="info-value">{getProtocolTypeLabel(protocol.type)}</span>
+            </div>
+          )}
         </div>
       </div>
 
