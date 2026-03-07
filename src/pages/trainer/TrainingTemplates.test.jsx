@@ -67,7 +67,7 @@ describe('TrainingTemplates', () => {
   it('renders the page title', () => {
     renderWithRouter(<TrainingTemplates />);
 
-    expect(screen.getByText('Modelos de Treino')).toBeInTheDocument();
+    expect(screen.getByText('Treinos únicos')).toBeInTheDocument();
   });
 
   it('fetches and displays templates on mount', async () => {
@@ -93,8 +93,8 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum modelo de treino ainda')).toBeInTheDocument();
-      expect(screen.getByText(/O que é um modelo de treino/i)).toBeInTheDocument();
+      expect(screen.getByText('Nenhum treino único ainda')).toBeInTheDocument();
+      expect(screen.getByText(/O que é um treino único/i)).toBeInTheDocument();
     });
   });
 
@@ -103,7 +103,7 @@ describe('TrainingTemplates', () => {
 
     await waitFor(() => screen.getByText('Treino A'));
 
-    expect(screen.queryByText(/O que é um modelo de treino/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/O que é um treino único/i)).not.toBeInTheDocument();
   });
 
   it('shows loading and avoids empty-state flash before GET resolves', async () => {
@@ -120,32 +120,32 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     expect(screen.getByText('Carregando...')).toBeInTheDocument();
-    expect(screen.queryByText('Nenhum modelo de treino ainda')).not.toBeInTheDocument();
+    expect(screen.queryByText('Nenhum treino único ainda')).not.toBeInTheDocument();
 
     resolveTemplates({ data: [] });
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum modelo de treino ainda')).toBeInTheDocument();
+      expect(screen.getByText('Nenhum treino único ainda')).toBeInTheDocument();
     });
   });
 
-  it('shows "+ Novo Modelo de Treino" button when form is hidden', async () => {
+  it('shows "+ Novo treino único" button when form is hidden', async () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
 
-    expect(screen.getByRole('button', { name: /novo modelo de treino/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /novo treino único/i })).toBeInTheDocument();
   });
 
-  it('shows the create form when "+ Novo Modelo de Treino" is clicked', async () => {
+  it('shows the create form when "+ Novo treino único" is clicked', async () => {
     const user = userEvent.setup();
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
 
-    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
 
-    expect(screen.getByText('Criar Novo Modelo de Treino')).toBeInTheDocument();
+    expect(screen.getByText('Criar novo treino único')).toBeInTheDocument();
   });
 
   it('hides the "+" button when the form is visible', async () => {
@@ -153,9 +153,9 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
 
-    expect(screen.queryByRole('button', { name: /novo modelo de treino/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /novo treino único/i })).not.toBeInTheDocument();
   });
 
   it('calls POST to create a new template on form submission', async () => {
@@ -166,7 +166,7 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
 
     const nameInput = screen.getAllByRole('textbox')[0];
     await user.type(nameInput, 'Novo Treino');
@@ -177,7 +177,7 @@ describe('TrainingTemplates', () => {
       expect(api.post).toHaveBeenCalledWith('/trainer/training-templates', expect.objectContaining({
         name: 'Novo Treino',
       }));
-      expect(mockShowToast).toHaveBeenCalledWith('Modelo de treino criado com sucesso!', 'success');
+      expect(mockShowToast).toHaveBeenCalledWith('Treino único criado com sucesso!', 'success');
     });
   });
 
@@ -186,13 +186,13 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
 
-    expect(screen.getByText('Criar Novo Modelo de Treino')).toBeInTheDocument();
+    expect(screen.getByText('Criar novo treino único')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
-    expect(screen.queryByText('Criar Novo Modelo de Treino')).not.toBeInTheDocument();
+    expect(screen.queryByText('Criar novo treino único')).not.toBeInTheDocument();
   });
 
   it('populates form with existing data when Edit is clicked', async () => {
@@ -204,7 +204,7 @@ describe('TrainingTemplates', () => {
     const editButtons = screen.getAllByRole('button', { name: /editar/i });
     await user.click(editButtons[0]);
 
-    expect(screen.getByText('Editar Modelo de Treino')).toBeInTheDocument();
+    expect(screen.getByText('Editar treino único')).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByDisplayValue('Treino A')).toBeInTheDocument();
     });
@@ -289,7 +289,7 @@ describe('TrainingTemplates', () => {
 
     await waitFor(() => {
       expect(api.patch).toHaveBeenCalledWith('/trainer/training-templates/1', expect.any(Object));
-      expect(mockShowToast).toHaveBeenCalledWith('Modelo de treino atualizado com sucesso!', 'success');
+      expect(mockShowToast).toHaveBeenCalledWith('Treino único atualizado com sucesso!', 'success');
     });
   });
 
@@ -308,7 +308,7 @@ describe('TrainingTemplates', () => {
 
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/training-templates/1');
-      expect(mockShowToast).toHaveBeenCalledWith('Modelo de treino excluído com sucesso!', 'success');
+      expect(mockShowToast).toHaveBeenCalledWith('Treino único excluído com sucesso!', 'success');
     });
   });
 
@@ -317,8 +317,8 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
-    await user.click(screen.getByRole('button', { name: /criar novo modelo de exercício/i }));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
 
     expect(screen.getByTestId('create-exercise-template-modal')).toBeInTheDocument();
   });
@@ -328,8 +328,8 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
-    await user.click(screen.getByRole('button', { name: /criar novo modelo de exercício/i }));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
     await user.click(screen.getByRole('button', { name: /simular exercício criado/i }));
 
     await waitFor(() => {
@@ -342,7 +342,7 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
 
     expect(screen.getByLabelText(/selecionar exercício existente/i)).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Supino Reto' })).toBeInTheDocument();
@@ -354,10 +354,10 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
 
     await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
-    await user.click(screen.getByRole('button', { name: /adicionar exercício ao modelo/i }));
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     expect(screen.getAllByText('Supino Reto').length).toBeGreaterThan(0);
     const actionsBtn = screen.getByRole('button', { name: /ações do exercício supino reto/i });
@@ -374,9 +374,9 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
     await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
-    await user.click(screen.getByRole('button', { name: /adicionar exercício ao modelo/i }));
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     const nameInput = screen.getAllByRole('textbox')[0];
     await user.type(nameInput, 'Treino com Exercício');
@@ -449,7 +449,7 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    await user.click(screen.getByRole('button', { name: /novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
 
     expect(screen.queryByRole('button', { name: /visualização em cards/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /visualização em lista/i })).not.toBeInTheDocument();

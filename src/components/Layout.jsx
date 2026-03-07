@@ -60,9 +60,9 @@ const Layout = ({ children }) => {
   }, [bibliotecaPopover]);
 
   const bibliotecaChildren = [
-    { path: '/trainer/protocol-templates', label: 'Modelos de Rotina', Icon: ClipboardList },
-    { path: '/trainer/training-templates', label: 'Modelos de Treino', Icon: Dumbbell },
-    { path: '/trainer/exercise-templates', label: 'Modelos de Exercício', Icon: Activity },
+    { path: '/trainer/protocol-templates', label: 'Rotinas', Icon: ClipboardList },
+    { path: '/trainer/training-templates', label: 'Treinos únicos', Icon: Dumbbell },
+    { path: '/trainer/exercise-templates', label: 'Exercícios', Icon: Activity },
   ];
   const alunosChildren = [
     { path: '/trainer/students', label: 'Meus alunos', Icon: Users },

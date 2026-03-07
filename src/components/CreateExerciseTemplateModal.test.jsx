@@ -50,14 +50,14 @@ describe('CreateExerciseTemplateModal', () => {
 
   it('renders the modal when open is true', () => {
     renderModal();
-    expect(screen.getByRole('heading', { name: 'Criar Modelo de Exercício' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Criar exercício' })).toBeInTheDocument();
   });
 
   it('does not render the modal when open is false', () => {
     render(
       <CreateExerciseTemplateModal open={false} onClose={mockOnClose} onSuccess={mockOnSuccess} />
     );
-    expect(screen.queryByText('Criar Modelo de Exercício')).not.toBeInTheDocument();
+    expect(screen.queryByText('Criar exercício')).not.toBeInTheDocument();
   });
 
   it('shows YouTube embed preview when a valid YouTube URL is entered', async () => {
@@ -130,7 +130,7 @@ describe('CreateExerciseTemplateModal', () => {
       'https://www.youtube.com/watch?v=abc123XYZ'
     );
 
-    await user.click(screen.getByRole('button', { name: /criar modelo de exercício/i }));
+    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
@@ -148,7 +148,7 @@ describe('CreateExerciseTemplateModal', () => {
 
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
     await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
-    await user.click(screen.getByRole('button', { name: /criar modelo de exercício/i }));
+    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
 
     await waitFor(() => {
       expect(mockOnSuccess).toHaveBeenCalledWith(created);
@@ -171,7 +171,7 @@ describe('CreateExerciseTemplateModal', () => {
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
     await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
     await user.type(screen.getByLabelText(/observações/i), 'Manter postura correta');
-    await user.click(screen.getByRole('button', { name: /criar modelo de exercício/i }));
+    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
@@ -198,7 +198,7 @@ describe('CreateExerciseTemplateModal', () => {
 
     it('renders edit title when exerciseTemplate is provided', () => {
       renderModal({ exerciseTemplate });
-      expect(screen.getByRole('heading', { name: 'Editar Modelo de Exercício' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Editar exercício' })).toBeInTheDocument();
     });
 
     it('pre-populates form fields from exerciseTemplate', () => {
@@ -212,10 +212,10 @@ describe('CreateExerciseTemplateModal', () => {
       expect(screen.getByLabelText(/observações/i)).toHaveValue('Executar com cuidado');
     });
 
-    it('shows "Salvar" button instead of "Criar Modelo de Exercício"', () => {
+    it('shows "Salvar" button instead of "Criar exercício"', () => {
       renderModal({ exerciseTemplate });
       expect(screen.getByRole('button', { name: /salvar/i })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /criar modelo de exercício/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /criar exercício/i })).not.toBeInTheDocument();
     });
 
     it('calls PATCH when submitting in edit mode', async () => {
@@ -244,7 +244,7 @@ describe('CreateExerciseTemplateModal', () => {
       await user.click(screen.getByRole('button', { name: /salvar/i }));
 
       await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith('Modelo de exercício atualizado com sucesso!', 'success');
+        expect(mockShowToast).toHaveBeenCalledWith('Exercício atualizado com sucesso!', 'success');
       });
     });
 

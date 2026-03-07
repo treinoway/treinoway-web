@@ -463,13 +463,13 @@ const ProtocolTemplates = () => {
 
       if (editingTrainingTemplateId) {
         await api.patch(`/trainer/training-templates/${editingTrainingTemplateId}`, payload);
-        showToast('Modelo de treino atualizado com sucesso!', 'success');
+        showToast('Treino único atualizado com sucesso!', 'success');
         await fetchTrainingTemplates();
         setExerciseIdsByTemplateId((prev) => ({ ...prev, [editingTrainingTemplateId]: normalizedIds }));
       } else {
         const response = await api.post('/trainer/training-templates', payload);
         const created = response.data;
-        showToast('Modelo de treino criado com sucesso!', 'success');
+        showToast('Treino único criado com sucesso!', 'success');
         await fetchTrainingTemplates();
 
         if (creatingForIndex !== null) {
@@ -530,7 +530,7 @@ const ProtocolTemplates = () => {
       )}
 
       <div className="page-header">
-        <h1>Modelos de Rotina</h1>
+        <h1>Rotinas</h1>
         <div className="page-header-actions">
           {!showForm && (
             <div className="view-toggle-group">
@@ -556,7 +556,7 @@ const ProtocolTemplates = () => {
           )}
           {!showForm && (
             <button onClick={() => setShowForm(true)} className="btn-primary">
-              + Novo Modelo
+              + Nova rotina
             </button>
           )}
         </div>
@@ -572,7 +572,7 @@ const ProtocolTemplates = () => {
       {showForm && (
         <div className="card card--mb">
           <h2 className="card-title mb-md">
-            {editingId ? 'Editar Modelo' : 'Criar Novo Modelo'}
+            {editingId ? 'Editar rotina' : 'Criar nova rotina'}
           </h2>
           <form onSubmit={handleTemplateSubmit} className="form">
             <div>
@@ -658,13 +658,13 @@ const ProtocolTemplates = () => {
 
             <div className="form-section">
               <div className="form-section-header">
-                <h3 className="form-section-title">Modelos de Treino</h3>
+                <h3 className="form-section-title">Treinos</h3>
                 {templateFormData.trainings.length > 0 && (
                   <button
                     type="button"
                     className="btn-primary schedule-template-add-btn"
                     onClick={() => openTrainingTemplateModal()}
-                    aria-label="Criar novo modelo de treino"
+                    aria-label="Criar novo treino único"
                   >
                     + Criar novo
                   </button>
@@ -678,20 +678,20 @@ const ProtocolTemplates = () => {
                     className="training-action-card"
                     onClick={openAddTrainingModal}
                   >
-                    <span className="training-action-card-title">Selecionar existente</span>
+                    <span className="training-action-card-title">Selecionar treino único</span>
                     <span className="training-action-card-description">
-                      Escolha um modelo de treino já cadastrado.
+                      Escolha um treino único já cadastrado.
                     </span>
                   </button>
                   <button
                     type="button"
                     className="training-action-card training-action-card--primary"
                     onClick={() => openTrainingTemplateModal()}
-                    aria-label="Criar novo modelo de treino"
+                    aria-label="Criar novo treino único"
                   >
-                    <span className="training-action-card-title">Criar novo modelo de treino</span>
+                    <span className="training-action-card-title">Criar novo treino único</span>
                     <span className="training-action-card-description">
-                      Cadastre um novo modelo sem sair desta tela.
+                      Cadastre um novo treino sem sair desta tela.
                     </span>
                   </button>
                 </div>
@@ -890,7 +890,7 @@ const ProtocolTemplates = () => {
         <div className="overlay" onClick={closeAddTrainingModal}>
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
-              <h2 className="bottom-sheet-title">Adicionar Treino ao Modelo</h2>
+              <h2 className="bottom-sheet-title">Adicionar Treino à Rotina</h2>
               <button
                 className="bottom-sheet-close"
                 onClick={closeAddTrainingModal}
@@ -903,7 +903,7 @@ const ProtocolTemplates = () => {
             <div className="bottom-sheet-body">
               <form onSubmit={handleAddTrainingModalSubmit} className="form">
                 <div>
-                  <label className="form-label" htmlFor="add-training-template">Modelo de Treino</label>
+                  <label className="form-label" htmlFor="add-training-template">Treino único</label>
                   <select
                     id="add-training-template"
                     value={addTrainingModalData.trainingTemplateId}
@@ -913,7 +913,7 @@ const ProtocolTemplates = () => {
                     className="form-select"
                     required
                   >
-                    <option value="">Selecione um modelo...</option>
+                    <option value="">Selecione um treino...</option>
                     {trainingTemplates.map((t) => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
@@ -921,7 +921,7 @@ const ProtocolTemplates = () => {
                 </div>
 
                 <div>
-                  <label className="form-label" htmlFor="add-training-weekday">Dia da Semana (opcional)</label>
+                  <label className="form-label" htmlFor="add-training-weekday">Dia da Semana</label>
                   <select
                     id="add-training-weekday"
                     value={addTrainingModalData.weekDay}
@@ -973,7 +973,7 @@ const ProtocolTemplates = () => {
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
               <h2 className="bottom-sheet-title">
-                {editingTrainingTemplateId ? 'Editar Modelo de Treino' : 'Criar Modelo de Treino'}
+                {editingTrainingTemplateId ? 'Editar treino único' : 'Criar treino único'}
               </h2>
               <button
                 className="bottom-sheet-close"
@@ -1063,7 +1063,7 @@ const ProtocolTemplates = () => {
 
                 <div className="form-section" style={{ marginTop: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--color-outline-variant)' }}>
                   <div className="form-section-header">
-                    <h3 className="form-section-title">Exercícios do modelo</h3>
+                    <h3 className="form-section-title">Exercícios do treino</h3>
                   </div>
 
                   <div className="exercise-picker-row">
@@ -1075,7 +1075,7 @@ const ProtocolTemplates = () => {
                         onChange={(e) => setExercisePickerValue(e.target.value)}
                         className="form-select"
                       >
-                        <option value="">Selecione um modelo...</option>
+                        <option value="">Selecione um exercício...</option>
                         {exerciseTemplates.map((et) => (
                           <option key={et.id} value={et.id}>{et.name}</option>
                         ))}
@@ -1086,7 +1086,7 @@ const ProtocolTemplates = () => {
                       className="btn-secondary"
                       onClick={handleExercisePickerAdd}
                       disabled={!exercisePickerValue}
-                      aria-label="Adicionar exercício ao modelo"
+                      aria-label="Adicionar exercício ao treino"
                     >
                       Adicionar
                     </button>
@@ -1116,16 +1116,16 @@ const ProtocolTemplates = () => {
                       type="button"
                       className="btn-schedule-sm"
                       onClick={() => setShowExerciseTemplateModal(true)}
-                      aria-label="Criar novo modelo de exercício"
+                      aria-label="Criar novo exercício"
                     >
-                      + Criar novo modelo de exercício
+                      + Criar novo exercício
                     </button>
                   </div>
                 </div>
 
                 <div className="btn-group">
                   <button type="submit" disabled={savingTrainingTemplate} className="btn-primary">
-                    {savingTrainingTemplate ? 'Salvando...' : editingTrainingTemplateId ? 'Salvar' : 'Criar Modelo de Treino'}
+                    {savingTrainingTemplate ? 'Salvando...' : editingTrainingTemplateId ? 'Salvar' : 'Criar treino único'}
                   </button>
                   <button type="button" onClick={closeTrainingTemplateModal} className="btn-secondary">
                     Cancelar

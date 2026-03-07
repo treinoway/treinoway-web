@@ -120,10 +120,10 @@ const ExerciseTemplates = () => {
       const payload = buildPayload(formData);
       if (editingId) {
         await api.patch(`/trainer/exercise-templates/${editingId}`, payload);
-        showToast('Modelo de exercício atualizado com sucesso!', 'success');
+        showToast('Exercício atualizado com sucesso!', 'success');
       } else {
         await api.post('/trainer/exercise-templates', payload);
-        showToast('Modelo de exercício criado com sucesso!', 'success');
+        showToast('Exercício criado com sucesso!', 'success');
       }
       fetchTemplates();
       resetForm();
@@ -154,12 +154,12 @@ const ExerciseTemplates = () => {
 
   const handleDelete = (id) => {
     setConfirmDialog({
-      message: 'Tem certeza que deseja excluir este modelo de exercício? Esta ação não pode ser desfeita.',
+      message: 'Tem certeza que deseja excluir este exercício? Esta ação não pode ser desfeita.',
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
           await api.delete(`/trainer/exercise-templates/${id}`);
-          showToast('Modelo de exercício excluído com sucesso!', 'success');
+          showToast('Exercício excluído com sucesso!', 'success');
           fetchTemplates();
         } catch (error) {
           showToast(error.userMessage || translateError(error), 'error');
@@ -207,7 +207,7 @@ const ExerciseTemplates = () => {
   return (
     <div>
       <div className="page-header">
-        <h1>Modelos de Exercício</h1>
+        <h1>Exercícios</h1>
         <div className="page-header-actions">
           {!showForm && (
             <div className="view-toggle-group">
@@ -233,7 +233,7 @@ const ExerciseTemplates = () => {
           )}
           {!showForm && (
             <button onClick={() => setShowForm(true)} className="btn-primary">
-              + Novo Modelo de Exercício
+              + Novo exercício
             </button>
           )}
         </div>
@@ -242,7 +242,7 @@ const ExerciseTemplates = () => {
       {showForm && (
         <div className="card card--mb">
           <h2 className="card-title mb-md">
-            {editingId ? 'Editar Modelo de Exercício' : 'Criar Novo Modelo de Exercício'}
+            {editingId ? 'Editar exercício' : 'Criar novo exercício'}
           </h2>
           <form onSubmit={handleSubmit} className="form">
             <div>
@@ -274,7 +274,7 @@ const ExerciseTemplates = () => {
             </div>
 
             <div>
-              <label className="form-label" htmlFor="exercise-videoUrl">URL do vídeo (opcional)</label>
+              <label className="form-label" htmlFor="exercise-videoUrl">URL do vídeo</label>
               <input
                 id="exercise-videoUrl"
                 type="url"
@@ -297,7 +297,7 @@ const ExerciseTemplates = () => {
 
             <div className="grid-responsive-2col">
               <div>
-                <label className="form-label" htmlFor="exercise-sets">Séries (opcional)</label>
+                <label className="form-label" htmlFor="exercise-sets">Séries</label>
                 <input
                   id="exercise-sets"
                   type="number"
@@ -308,7 +308,7 @@ const ExerciseTemplates = () => {
                 />
               </div>
               <div>
-                <label className="form-label">Repetições (opcional)</label>
+                <label className="form-label">Repetições</label>
                 <div className="grid-2col" style={{ gap: 'var(--spacing-xs)' }}>
                   <input
                     id="exercise-repetitions-min"
@@ -335,7 +335,7 @@ const ExerciseTemplates = () => {
             </div>
 
             <div>
-              <label className="form-label" htmlFor="exercise-duration">Duração em segundos (opcional)</label>
+              <label className="form-label" htmlFor="exercise-duration">Duração em segundos</label>
               <input
                 id="exercise-duration"
                 type="number"
@@ -375,7 +375,7 @@ const ExerciseTemplates = () => {
             )}
 
             <div>
-              <label className="form-label" htmlFor="exercise-notes">Observações (opcional)</label>
+              <label className="form-label" htmlFor="exercise-notes">Observações</label>
               <textarea
                 id="exercise-notes"
                 value={formData.notes}
@@ -527,13 +527,13 @@ const ExerciseTemplates = () => {
       {!showForm && !templatesLoading && templates.length === 0 && (
         <>
           <div className="alert alert-info" style={{ marginBottom: 'var(--spacing-md)' }}>
-            <strong>O que é um modelo de exercício?</strong> Um modelo de exercício é um exercício
+            <strong>O que é um exercício?</strong> Um exercício é um movimento
             reutilizável que pode ser adicionado aos seus treinos. Defina séries, repetições,
             carga sugerida e até link de vídeo para facilitar a montagem das rotinas.
           </div>
           <div className="empty-state">
-            <p className="empty-state-title">Nenhum modelo de exercício ainda</p>
-            <p>Crie seu primeiro modelo de exercício para começar</p>
+            <p className="empty-state-title">Nenhum exercício ainda</p>
+            <p>Crie seu primeiro exercício para começar</p>
           </div>
         </>
       )}

@@ -1,6 +1,6 @@
 /**
  * Protocol type enum and helpers for API and UI (pt-BR labels).
- * Types: strength, cardio, stretching, mobility
+ * Types: strength, cardio, stretching, mobility, activation
  */
 
 export const PROTOCOL_TYPE_OPTIONS = [
@@ -8,6 +8,7 @@ export const PROTOCOL_TYPE_OPTIONS = [
   { value: 'cardio', label: 'Cardio' },
   { value: 'stretching', label: 'Alongamento' },
   { value: 'mobility', label: 'Mobilidade' },
+  { value: 'activation', label: 'Ativação' },
 ];
 
 const LABELS_BY_VALUE = Object.fromEntries(

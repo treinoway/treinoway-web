@@ -312,7 +312,7 @@ describe('ProtocolDetail', () => {
       await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
       await user.click(screen.getByRole('button', { name: /importar de modelo/i }));
 
-      expect(screen.getByRole('combobox', { name: /modelo de exercício/i })).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: /exercício/i })).toBeInTheDocument();
       expect(screen.queryByTestId('create-exercise-modal')).not.toBeInTheDocument();
     });
 
@@ -337,7 +337,7 @@ describe('ProtocolDetail', () => {
       await waitFor(() => screen.getByText('Treino de Peito'));
       await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
       await user.click(screen.getByRole('button', { name: /importar de modelo/i }));
-      await user.selectOptions(screen.getByRole('combobox', { name: /modelo de exercício/i }), '20');
+      await user.selectOptions(screen.getByRole('combobox', { name: /exercício/i }), '20');
       await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
       await waitFor(() => {
@@ -357,12 +357,12 @@ describe('ProtocolDetail', () => {
       await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
       await user.click(screen.getByRole('button', { name: /importar de modelo/i }));
 
-      expect(screen.getByRole('combobox', { name: /modelo de exercício/i })).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: /exercício/i })).toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: /criar novo/i }));
 
       expect(screen.getByTestId('create-exercise-modal')).toBeInTheDocument();
-      expect(screen.queryByRole('combobox', { name: /modelo de exercício/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox', { name: /exercício/i })).not.toBeInTheDocument();
     });
   });
 

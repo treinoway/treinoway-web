@@ -106,7 +106,7 @@ describe('ProtocolTemplates', () => {
   it('renders the page title', () => {
     renderWithRouter(<ProtocolTemplates />);
 
-    expect(screen.getByText('Modelos de Rotina')).toBeInTheDocument();
+    expect(screen.getByText('Rotinas')).toBeInTheDocument();
   });
 
   it('fetches and displays templates on mount', async () => {
@@ -155,14 +155,14 @@ describe('ProtocolTemplates', () => {
     });
   });
 
-  it('shows the create form when "+ Novo Modelo" is clicked', async () => {
+  it('shows the create form when "+ Nova rotina" is clicked', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
 
-    expect(screen.getByText('Criar Novo Modelo')).toBeInTheDocument();
+    expect(screen.getByText('Criar nova rotina')).toBeInTheDocument();
   });
 
   it('calls POST to create a template on form submission', async () => {
@@ -173,7 +173,7 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
 
     const nameInput = screen.getAllByRole('textbox')[0];
     await user.type(nameInput, 'Novo Modelo');
@@ -194,7 +194,7 @@ describe('ProtocolTemplates', () => {
     await waitFor(() => screen.getByText('Modelo Força'));
     await user.click(screen.getByRole('button', { name: /editar/i }));
 
-    expect(screen.getByText('Editar Modelo')).toBeInTheDocument();
+    expect(screen.getByText('Editar rotina')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Modelo Força')).toBeInTheDocument();
   });
 
@@ -249,25 +249,25 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
 
-    expect(screen.getByText('Criar Novo Modelo')).toBeInTheDocument();
+    expect(screen.getByText('Criar nova rotina')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
-    expect(screen.queryByText('Criar Novo Modelo')).not.toBeInTheDocument();
+    expect(screen.queryByText('Criar nova rotina')).not.toBeInTheDocument();
   });
 
-  it('opens add training modal when "Selecionar existente" is clicked', async () => {
+  it('opens add training modal when "Selecionar treino único" is clicked', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /selecionar existente/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    expect(screen.getByText('Adicionar Treino ao Modelo')).toBeInTheDocument();
-    expect(screen.getByLabelText('Modelo de Treino')).toBeInTheDocument();
+    expect(screen.getByText('Adicionar Treino à Rotina')).toBeInTheDocument();
+    expect(screen.getByLabelText('Treino único')).toBeInTheDocument();
     expect(screen.getByLabelText(/Dia da Semana/i)).toBeInTheDocument();
     expect(screen.getByLabelText('Ordem')).toBeInTheDocument();
   });
@@ -277,9 +277,9 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
-    await user.click(screen.getByRole('button', { name: /criar novo modelo de exercício/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
 
     expect(screen.getByTestId('create-exercise-template-modal')).toBeInTheDocument();
   });
@@ -289,9 +289,9 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
-    await user.click(screen.getByRole('button', { name: /criar novo modelo de exercício/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
     await user.click(screen.getByRole('button', { name: /simular exercício criado/i }));
 
     await waitFor(() => {
@@ -304,14 +304,14 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /selecionar existente/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    const modal = screen.getByText('Adicionar Treino ao Modelo').closest('.bottom-sheet');
+    const modal = screen.getByText('Adicionar Treino à Rotina').closest('.bottom-sheet');
     expect(modal).toBeInTheDocument();
 
     await user.click(within(modal).getByRole('button', { name: /cancelar/i }));
-    expect(screen.queryByText('Adicionar Treino ao Modelo')).not.toBeInTheDocument();
+    expect(screen.queryByText('Adicionar Treino à Rotina')).not.toBeInTheDocument();
   });
 
   it('adds and removes training rows via the modal', async () => {
@@ -319,19 +319,19 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /selecionar existente/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText('Modelo de Treino'), '10');
+    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
     await user.selectOptions(screen.getByLabelText(/Dia da Semana/i), 'monday');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
-    expect(screen.queryByText('Adicionar Treino ao Modelo')).not.toBeInTheDocument();
+    expect(screen.queryByText('Adicionar Treino à Rotina')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /\+ adicionar treino/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /ações do treino treino a/i }));
     await user.click(screen.getByRole('button', { name: /^remover$/i }));
-    expect(screen.getByRole('button', { name: /selecionar existente/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /selecionar treino único/i })).toBeInTheDocument();
   });
 
   it('creates training template from inline modal', async () => {
@@ -340,19 +340,19 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
     await user.type(screen.getByLabelText('Nome', { selector: '#tt-modal-name' }), 'Treino Novo');
     await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
-    await user.click(screen.getByRole('button', { name: /criar modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /criar treino único/i }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/trainer/training-templates', expect.objectContaining({
         name: 'Treino Novo',
         category: 'strength',
       }));
-      expect(mockShowToast).toHaveBeenCalledWith('Modelo de treino criado com sucesso!', 'success');
+      expect(mockShowToast).toHaveBeenCalledWith('Treino único criado com sucesso!', 'success');
     });
   });
 
@@ -361,8 +361,8 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
     expect(screen.getByLabelText(/selecionar exercício existente/i)).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Supino Reto' })).toBeInTheDocument();
@@ -374,11 +374,11 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
     await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
-    await user.click(screen.getByRole('button', { name: /adicionar exercício ao modelo/i }));
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     expect(screen.getAllByText('Supino Reto').length).toBeGreaterThan(0);
     const actionsBtn = screen.getByRole('button', { name: /ações do exercício supino reto/i });
@@ -394,11 +394,11 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
     await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
-    await user.click(screen.getByRole('button', { name: /adicionar exercício ao modelo/i }));
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
     await user.click(screen.getByRole('button', { name: /^editar$/i }));
@@ -412,11 +412,11 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /criar novo modelo de treino/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
     await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
-    await user.click(screen.getByRole('button', { name: /adicionar exercício ao modelo/i }));
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
     await user.click(screen.getByRole('button', { name: /^editar$/i }));
@@ -440,10 +440,10 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /selecionar existente/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText('Modelo de Treino'), '10');
+    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     expect(screen.getByRole('button', { name: /ações do treino treino a/i })).toBeInTheDocument();
@@ -454,17 +454,17 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /selecionar existente/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText('Modelo de Treino'), '10');
+    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     await user.click(screen.getByRole('button', { name: /ações do treino treino a/i }));
     await user.click(screen.getByRole('button', { name: /^editar$/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('Editar Modelo de Treino')).toBeInTheDocument();
+      expect(screen.getByText('Editar treino único')).toBeInTheDocument();
     });
 
     expect(api.get).toHaveBeenCalledWith('/trainer/training-templates/10');
@@ -479,19 +479,19 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /selecionar existente/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText('Modelo de Treino'), '10');
+    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     await user.click(screen.getByRole('button', { name: /ações do treino treino a/i }));
     await user.click(screen.getByRole('button', { name: /^editar$/i }));
 
-    await waitFor(() => screen.getByText('Editar Modelo de Treino'));
+    await waitFor(() => screen.getByText('Editar treino único'));
     await waitFor(() => screen.getByDisplayValue('Treino A'));
 
-    const editModal = screen.getByText('Editar Modelo de Treino').closest('.bottom-sheet');
+    const editModal = screen.getByText('Editar treino único').closest('.bottom-sheet');
     await user.click(within(editModal).getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -499,7 +499,7 @@ describe('ProtocolTemplates', () => {
         name: 'Treino A',
         category: 'strength',
       }));
-      expect(mockShowToast).toHaveBeenCalledWith('Modelo de treino atualizado com sucesso!', 'success');
+      expect(mockShowToast).toHaveBeenCalledWith('Treino único atualizado com sucesso!', 'success');
     });
   });
 
@@ -508,10 +508,10 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
-    await user.click(screen.getByRole('button', { name: /selecionar existente/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText('Modelo de Treino'), '10');
+    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     await waitFor(() => {
@@ -559,7 +559,7 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /\+ novo modelo/i }));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
 
     expect(screen.queryByRole('button', { name: /visualização em cards/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /visualização em lista/i })).not.toBeInTheDocument();

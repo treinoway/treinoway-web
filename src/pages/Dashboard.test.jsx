@@ -72,8 +72,8 @@ describe('Dashboard', () => {
 
     renderWithRouter(<Dashboard />);
 
+    expect(screen.getByText('Rotinas')).toBeInTheDocument();
     expect(screen.getByText('Criar Rotina para um Aluno')).toBeInTheDocument();
-    expect(screen.getByText('Modelos de Rotina')).toBeInTheDocument();
   });
 
   it('hides trainer quick actions when user does not have TRAINER role', () => {
@@ -81,8 +81,7 @@ describe('Dashboard', () => {
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.queryByText('Criar Rotina para um Aluno')).not.toBeInTheDocument();
-    expect(screen.queryByText('Modelos de Rotina')).not.toBeInTheDocument();
+    expect(screen.queryByText('Rotinas')).not.toBeInTheDocument();
   });
 
   it('shows "Seja um Treinador" button when user is not a trainer', () => {
@@ -166,7 +165,7 @@ describe('Dashboard', () => {
 
       renderWithRouter(<Dashboard />);
 
-      await user.click(screen.getByText('Criar Rotina para um Aluno'));
+      await user.click(screen.getByRole('button', { name: /Criar Rotina para um Aluno/ }));
 
       expect(api.get).not.toHaveBeenCalled();
     });
@@ -177,7 +176,7 @@ describe('Dashboard', () => {
 
       renderWithRouter(<Dashboard />);
 
-      await user.click(screen.getByText('Criar Rotina para um Aluno'));
+      await user.click(screen.getByRole('button', { name: /Criar Rotina para um Aluno/ }));
 
       await waitFor(() => {
         expect(api.get).toHaveBeenCalledWith('/trainer/students');
@@ -192,7 +191,7 @@ describe('Dashboard', () => {
 
       renderWithRouter(<Dashboard />);
 
-      await user.click(screen.getByText('Criar Rotina para um Aluno'));
+      await user.click(screen.getByRole('button', { name: /Criar Rotina para um Aluno/ }));
 
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: 'Nenhum aluno cadastrado' })).toBeInTheDocument();
@@ -205,7 +204,7 @@ describe('Dashboard', () => {
 
       renderWithRouter(<Dashboard />);
 
-      await user.click(screen.getByText('Criar Rotina para um Aluno'));
+      await user.click(screen.getByRole('button', { name: /Criar Rotina para um Aluno/ }));
 
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: 'Nenhum aluno cadastrado' })).toBeInTheDocument();
@@ -222,7 +221,7 @@ describe('Dashboard', () => {
 
       renderWithRouter(<Dashboard />);
 
-      await user.click(screen.getByText('Criar Rotina para um Aluno'));
+      await user.click(screen.getByRole('button', { name: /Criar Rotina para um Aluno/ }));
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith('Erro de conexão', 'error');

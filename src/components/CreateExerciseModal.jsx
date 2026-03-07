@@ -147,7 +147,7 @@ const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, t
             </div>
 
             <div>
-              <label className="form-label" htmlFor="exercise-modal-videoUrl">URL do vídeo (opcional)</label>
+              <label className="form-label" htmlFor="exercise-modal-videoUrl">URL do vídeo</label>
               <input
                 id="exercise-modal-videoUrl"
                 type="url"
@@ -170,7 +170,7 @@ const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, t
 
             <div className="grid-responsive-2col">
               <div>
-                <label className="form-label" htmlFor="exercise-modal-sets">Séries (opcional)</label>
+                <label className="form-label" htmlFor="exercise-modal-sets">Séries</label>
                 <input
                   id="exercise-modal-sets"
                   type="number"
@@ -181,7 +181,7 @@ const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, t
                 />
               </div>
               <div>
-                <label className="form-label">Repetições (opcional)</label>
+                <label className="form-label">Repetições</label>
                 <div className="grid-2col" style={{ gap: 'var(--spacing-xs)' }}>
                   <input
                     id="exercise-modal-repetitions-min"
@@ -208,7 +208,7 @@ const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, t
             </div>
 
             <div>
-              <label className="form-label" htmlFor="exercise-modal-duration">Duração em segundos (opcional)</label>
+              <label className="form-label" htmlFor="exercise-modal-duration">Duração em segundos</label>
               <input
                 id="exercise-modal-duration"
                 type="number"
@@ -248,7 +248,7 @@ const CreateExerciseModal = ({ open, onClose, onSuccess, trainingId, exercise, t
             )}
 
             <div>
-              <label className="form-label" htmlFor="exercise-modal-notes">Observações (opcional)</label>
+              <label className="form-label" htmlFor="exercise-modal-notes">Observações</label>
               <textarea
                 id="exercise-modal-notes"
                 value={formData.notes}

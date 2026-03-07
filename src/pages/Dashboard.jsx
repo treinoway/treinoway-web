@@ -109,7 +109,7 @@ const Dashboard = () => {
               <div className="quick-action-icon">
                 <BookOpen size={20} strokeWidth={1.6} />
               </div>
-              <span className="quick-action-label">Modelos de Rotina</span>
+              <span className="quick-action-label">Rotinas</span>
               <p className="quick-action-desc">Crie estruturas de rotina reutilizáveis para agilizar a montagem dos treinos dos seus alunos</p>
             </Link>
           )}

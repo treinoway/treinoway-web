@@ -477,7 +477,7 @@ const ProtocolDetail = () => {
               <form onSubmit={handleTrainingSubmit} className="form">
                 {!editingTrainingId && (
                   <div>
-                    <label className="form-label">Importar de Modelo (opcional)</label>
+                    <label className="form-label">Importar treino único</label>
                     <select
                       value={trainingFormData.trainingTemplateId}
                       onChange={(e) =>
@@ -485,7 +485,7 @@ const ProtocolDetail = () => {
                       }
                       className="form-select"
                     >
-                      <option value="">-- Selecione um modelo --</option>
+                      <option value="">-- Selecione um treino --</option>
                       {trainingTemplates.map((template) => (
                         <option key={template.id} value={template.id}>
                           {template.name}
@@ -561,7 +561,7 @@ const ProtocolDetail = () => {
 
                 <div className="grid-responsive-2col">
                   <div>
-                    <label className="form-label">Dia da Semana (opcional)</label>
+                    <label className="form-label">Dia da Semana</label>
                     <select
                       value={trainingFormData.weekDay}
                       onChange={(e) =>
@@ -727,7 +727,7 @@ const ProtocolDetail = () => {
 
               <form onSubmit={handleAddExercise} className="form">
                 <div>
-                  <label className="form-label" htmlFor="add-exercise-template">Modelo de Exercício</label>
+                  <label className="form-label" htmlFor="add-exercise-template">Exercício</label>
                   <select
                     id="add-exercise-template"
                     value={addExerciseTemplateId}
@@ -735,7 +735,7 @@ const ProtocolDetail = () => {
                     className="form-select"
                     required
                   >
-                    <option value="">Selecione um modelo...</option>
+                    <option value="">Selecione um exercício...</option>
                     {exerciseTemplates.map((t) => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}

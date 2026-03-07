@@ -171,10 +171,10 @@ const TrainingTemplates = () => {
       const payload = { ...rest, ...(normalizedIds.length > 0 && { exerciseTemplateIds: normalizedIds }) };
       if (editingId) {
         await api.patch(`/trainer/training-templates/${editingId}`, payload);
-        showToast('Modelo de treino atualizado com sucesso!', 'success');
+        showToast('Treino único atualizado com sucesso!', 'success');
       } else {
         await api.post('/trainer/training-templates', payload);
-        showToast('Modelo de treino criado com sucesso!', 'success');
+        showToast('Treino único criado com sucesso!', 'success');
       }
       fetchTemplates();
       resetForm();
@@ -211,12 +211,12 @@ const TrainingTemplates = () => {
 
   const handleDelete = (id) => {
     setConfirmDialog({
-      message: 'Tem certeza que deseja excluir este modelo de treino? Esta ação não pode ser desfeita.',
+      message: 'Tem certeza que deseja excluir este treino único? Esta ação não pode ser desfeita.',
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
           await api.delete(`/trainer/training-templates/${id}`);
-          showToast('Modelo de treino excluído com sucesso!', 'success');
+          showToast('Treino único excluído com sucesso!', 'success');
           fetchTemplates();
         } catch (error) {
           showToast(error.userMessage || translateError(error), 'error');
@@ -259,7 +259,7 @@ const TrainingTemplates = () => {
   return (
     <div>
       <div className="page-header">
-        <h1>Modelos de Treino</h1>
+        <h1>Treinos únicos</h1>
         <div className="page-header-actions">
           {!showForm && (
             <div className="view-toggle-group">
@@ -285,7 +285,7 @@ const TrainingTemplates = () => {
           )}
           {!showForm && (
             <button onClick={() => setShowForm(true)} className="btn-primary">
-              + Novo Modelo de Treino
+              + Novo treino único
             </button>
           )}
         </div>
@@ -294,7 +294,7 @@ const TrainingTemplates = () => {
       {showForm && (
         <div className="card card--mb">
           <h2 className="card-title mb-md">
-            {editingId ? 'Editar Modelo de Treino' : 'Criar Novo Modelo de Treino'}
+            {editingId ? 'Editar treino único' : 'Criar novo treino único'}
           </h2>
           {loadingEdit ? (
             <div className="loading-screen" style={{ minHeight: 120 }}>
@@ -367,7 +367,7 @@ const TrainingTemplates = () => {
 
             <div className="form-section" style={{ marginTop: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--color-outline-variant)' }}>
               <div className="form-section-header">
-                <h3 className="form-section-title">Exercícios do modelo</h3>
+                <h3 className="form-section-title">Exercícios do treino</h3>
               </div>
 
               <div className="exercise-picker-row">
@@ -379,7 +379,7 @@ const TrainingTemplates = () => {
                     onChange={(e) => setExercisePickerValue(e.target.value)}
                     className="form-select"
                   >
-                    <option value="">Selecione um modelo...</option>
+                    <option value="">Selecione um exercício...</option>
                     {exerciseTemplates.map((et) => (
                       <option key={et.id} value={et.id}>{et.name}</option>
                     ))}
@@ -390,7 +390,7 @@ const TrainingTemplates = () => {
                   className="btn-secondary"
                   onClick={handleExercisePickerAdd}
                   disabled={!exercisePickerValue}
-                  aria-label="Adicionar exercício ao modelo"
+                  aria-label="Adicionar exercício ao treino"
                 >
                   Adicionar
                 </button>
@@ -420,9 +420,9 @@ const TrainingTemplates = () => {
                   type="button"
                   className="btn-schedule-sm"
                   onClick={() => setShowExerciseTemplateModal(true)}
-                  aria-label="Criar novo modelo de exercício"
+                  aria-label="Criar novo exercício"
                 >
-                  + Criar novo modelo de exercício
+                  + Criar novo exercício
                 </button>
               </div>
             </div>
@@ -533,13 +533,13 @@ const TrainingTemplates = () => {
       {!showForm && !templatesLoading && templates.length === 0 && (
         <>
           <div className="alert alert-info" style={{ marginBottom: 'var(--spacing-md)' }}>
-            <strong>O que é um modelo de treino?</strong> Um modelo de treino é uma ficha pré-configurada
+            <strong>O que é um treino único?</strong> Um treino único é uma ficha pré-configurada
             com categoria e segmento corporal que pode ser reutilizada em diferentes rotinas, agilizando
             a montagem dos treinos dos seus alunos.
           </div>
           <div className="empty-state">
-            <p className="empty-state-title">Nenhum modelo de treino ainda</p>
-            <p>Crie seu primeiro modelo de treino para começar</p>
+            <p className="empty-state-title">Nenhum treino único ainda</p>
+            <p>Crie seu primeiro treino único para começar</p>
           </div>
         </>
       )}

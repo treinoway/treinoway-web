@@ -74,10 +74,10 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
       let response;
       if (isEditing) {
         response = await api.patch(`/trainer/exercise-templates/${exerciseTemplate.id}`, payload);
-        showToast('Modelo de exercício atualizado com sucesso!', 'success');
+        showToast('Exercício atualizado com sucesso!', 'success');
       } else {
         response = await api.post('/trainer/exercise-templates', payload);
-        showToast('Modelo de exercício criado com sucesso!', 'success');
+        showToast('Exercício criado com sucesso!', 'success');
       }
       resetAndClose();
       onSuccess?.(response.data);
@@ -99,7 +99,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
     <div className="overlay" onClick={resetAndClose}>
       <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="bottom-sheet-header">
-          <h2 className="bottom-sheet-title">{isEditing ? 'Editar Modelo de Exercício' : 'Criar Modelo de Exercício'}</h2>
+          <h2 className="bottom-sheet-title">{isEditing ? 'Editar exercício' : 'Criar exercício'}</h2>
           <button
             className="bottom-sheet-close"
             onClick={resetAndClose}
@@ -141,7 +141,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
             </div>
 
             <div>
-              <label className="form-label" htmlFor="et-modal-videoUrl">URL do vídeo (opcional)</label>
+              <label className="form-label" htmlFor="et-modal-videoUrl">URL do vídeo</label>
               <input
                 id="et-modal-videoUrl"
                 type="url"
@@ -164,7 +164,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
 
             <div className="grid-responsive-2col">
               <div>
-                <label className="form-label" htmlFor="et-modal-sets">Séries (opcional)</label>
+                <label className="form-label" htmlFor="et-modal-sets">Séries</label>
                 <input
                   id="et-modal-sets"
                   type="number"
@@ -175,7 +175,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
                 />
               </div>
               <div>
-                <label className="form-label">Repetições (opcional)</label>
+                <label className="form-label">Repetições</label>
                 <div className="grid-2col" style={{ gap: 'var(--spacing-xs)' }}>
                   <input
                     id="et-modal-repetitions-min"
@@ -202,7 +202,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
             </div>
 
             <div>
-              <label className="form-label" htmlFor="et-modal-duration">Duração em segundos (opcional)</label>
+              <label className="form-label" htmlFor="et-modal-duration">Duração em segundos</label>
               <input
                 id="et-modal-duration"
                 type="number"
@@ -242,7 +242,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
             )}
 
             <div>
-              <label className="form-label" htmlFor="et-modal-notes">Observações (opcional)</label>
+              <label className="form-label" htmlFor="et-modal-notes">Observações</label>
               <textarea
                 id="et-modal-notes"
                 value={formData.notes}
@@ -267,7 +267,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
 
             <div className="btn-group">
               <button type="submit" disabled={loading} className="btn-primary">
-                {loading ? 'Salvando...' : isEditing ? 'Salvar' : 'Criar Modelo de Exercício'}
+                {loading ? 'Salvando...' : isEditing ? 'Salvar' : 'Criar exercício'}
               </button>
               <button type="button" onClick={resetAndClose} className="btn-secondary">
                 Cancelar

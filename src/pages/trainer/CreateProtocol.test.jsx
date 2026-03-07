@@ -233,7 +233,7 @@ describe('CreateProtocol', () => {
     renderPage();
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
-    await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
+    await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
     fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
     fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
@@ -254,7 +254,7 @@ describe('CreateProtocol', () => {
     renderPage();
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
-    await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
+    await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/trainer/protocol-templates/1');
@@ -273,7 +273,7 @@ describe('CreateProtocol', () => {
     renderPage();
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
-    await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
+    await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
 
     await waitFor(() => {
       expect(screen.getByText('Treino A')).toBeInTheDocument();
@@ -301,13 +301,13 @@ describe('CreateProtocol', () => {
     renderPage();
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
-    await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
+    await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
 
     await waitFor(() => {
       expect(screen.getByText('Treino A')).toBeInTheDocument();
     });
 
-    await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '');
+    await user.selectOptions(screen.getByLabelText('Importar rotina'), '');
 
     await waitFor(() => {
       expect(screen.queryByText('Treino A')).not.toBeInTheDocument();
@@ -375,7 +375,7 @@ describe('CreateProtocol', () => {
     renderPage();
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
-    await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
+    await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
 
     await waitFor(() => {
       expect(screen.getByText('Treino A')).toBeInTheDocument();
@@ -397,7 +397,7 @@ describe('CreateProtocol', () => {
     await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
 
     await user.selectOptions(
-      screen.getByLabelText(/modelo de treino/i),
+      screen.getByLabelText(/importar treino único/i),
       'tt-1',
     );
     await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
@@ -520,7 +520,7 @@ describe('CreateProtocol', () => {
       renderPage();
 
       await waitFor(() => screen.getByText('Aluno Exemplo'));
-      await user.selectOptions(screen.getByLabelText('Importar de Modelo (opcional)'), '1');
+      await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
 
       await waitFor(() => screen.getByText('Treino A'));
 

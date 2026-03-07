@@ -667,7 +667,7 @@ const CreateProtocol = () => {
           </div>
 
           <div>
-            <label className="form-label" htmlFor="protocol-template-id">Importar de Modelo (opcional)</label>
+            <label className="form-label" htmlFor="protocol-template-id">Importar rotina</label>
             <select
               id="protocol-template-id"
               name="templateId"
@@ -675,7 +675,7 @@ const CreateProtocol = () => {
               onChange={handleProtocolTemplateChange}
               className="form-select"
             >
-              <option value="">-- Selecione um modelo --</option>
+              <option value="">-- Selecione uma rotina --</option>
               {templates.map((template) => (
                 <option key={template.id} value={template.id}>
                   {template.name} ({template.defaultDurationWeeks} semanas)
@@ -775,7 +775,7 @@ const CreateProtocol = () => {
 
           <div className="form-section">
             <div className="form-section-header">
-              <h3 className="form-section-title">Treinos da Rotina</h3>
+              <h3 className="form-section-title">Treinos</h3>
             </div>
 
             {formData.trainings.length === 0 && (
@@ -890,9 +890,9 @@ const CreateProtocol = () => {
                 {trainingTemplates.length > 0 && (
                   <div>
                     <label className="form-label" htmlFor="add-training-template-id">
-                      Modelo de treino{' '}
+                      Importar treino único{' '}
                       <span style={{ fontWeight: 400, color: 'var(--color-on-surface-variant)' }}>
-                        (opcional — pré-preenche os campos)
+                        (pré-preenche os campos)
                       </span>
                     </label>
                     <select
@@ -962,7 +962,7 @@ const CreateProtocol = () => {
 
                 <div className="grid-responsive-2col">
                   <div>
-                    <label className="form-label" htmlFor="add-training-weekday">Dia da Semana (opcional)</label>
+                    <label className="form-label" htmlFor="add-training-weekday">Dia da Semana</label>
                     <select
                       id="add-training-weekday"
                       value={addTrainingModalData.weekDay}
@@ -992,7 +992,7 @@ const CreateProtocol = () => {
 
                 <div className="form-section">
                   <div className="form-section-header">
-                    <h3 className="form-section-title">Exercícios (opcional)</h3>
+                    <h3 className="form-section-title">Exercícios</h3>
                   </div>
                   {addTrainingModalData.inlineExercises.length > 0 && (
                     <div className="schedule-template-list" style={{ marginBottom: 'var(--spacing-sm)' }}>
