@@ -20,10 +20,11 @@ vi.mock('../../api/axios', () => ({
 }));
 
 vi.mock('../../components/CreateExerciseModal', () => ({
-  default: vi.fn(({ open, onClose, onSuccess }) => {
+  default: vi.fn(({ open, onClose, onSuccess, headerContent }) => {
     if (!open) return null;
     return (
       <div data-testid="create-exercise-modal">
+        {headerContent}
         <button
           onClick={() => {
             onSuccess?.({ name: 'Exercício Draft', type: 'strength', hasLoad: false });
@@ -498,6 +499,85 @@ describe('CreateProtocol', () => {
       expect(screen.queryByText('Adicionar Treino')).not.toBeInTheDocument();
       expect(screen.getByText('Treino Com Exercício')).toBeInTheDocument();
       expect(screen.getByText('Exercício Draft')).toBeInTheDocument();
+    });
+  });
+
+  describe('inline exercise from template', () => {
+    it('shows "Importar de modelo" toggle button inside exercise modal', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.click(screen.getByRole('button', { name: /\+ criar exercício/i }));
+
+      expect(screen.getByRole('button', { name: /importar exercício/i })).toBeInTheDocument();
+    });
+
+    it('switches to from-template mode when "Importar de modelo" is clicked', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.click(screen.getByRole('button', { name: /\+ criar exercício/i }));
+      await user.click(screen.getByRole('button', { name: /importar exercício/i }));
+
+      expect(screen.queryByTestId('create-exercise-modal')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Modelo de exercício')).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Supino Reto' })).toBeInTheDocument();
+    });
+
+    it('adds exercise from template to inline list in training modal', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.click(screen.getByRole('button', { name: /\+ criar exercício/i }));
+      await user.click(screen.getByRole('button', { name: /importar exercício/i }));
+
+      const fromTemplateOverlay = screen.getByLabelText('Modelo de exercício').closest('.bottom-sheet');
+      await user.selectOptions(within(fromTemplateOverlay).getByLabelText('Modelo de exercício'), 'ex-1');
+      await user.click(within(fromTemplateOverlay).getByRole('button', { name: /^adicionar$/i }));
+
+      const modal = screen.getByText('Adicionar Treino').closest('.bottom-sheet');
+      expect(within(modal).getByText('Supino Reto')).toBeInTheDocument();
+    });
+
+    it('switches back to create mode when "Criar novo" is clicked from template overlay', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.click(screen.getByRole('button', { name: /\+ criar exercício/i }));
+      await user.click(screen.getByRole('button', { name: /importar exercício/i }));
+
+      expect(screen.queryByTestId('create-exercise-modal')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /^criar novo$/i }));
+
+      expect(screen.getByTestId('create-exercise-modal')).toBeInTheDocument();
+    });
+
+    it('adds exercise from template to training row', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.type(screen.getByLabelText('Nome'), 'Treino Manual');
+      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
+
+      await user.click(screen.getByRole('button', { name: /\+ adicionar exercício/i }));
+      await user.click(screen.getByRole('button', { name: /importar exercício/i }));
+
+      const fromTemplateOverlay = screen.getByLabelText('Modelo de exercício').closest('.bottom-sheet');
+      await user.selectOptions(within(fromTemplateOverlay).getByLabelText('Modelo de exercício'), 'ex-2');
+      await user.click(within(fromTemplateOverlay).getByRole('button', { name: /^adicionar$/i }));
+
+      expect(screen.getByText('Tríceps Polia')).toBeInTheDocument();
     });
   });
 

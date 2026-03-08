@@ -72,6 +72,7 @@ const Layout = ({ children }) => {
   const navLinks = [
     { path: '/', label: 'Painel', Icon: Home },
     { path: '/profile', label: 'Meu Perfil', Icon: User },
+    { path: '/my/protocols', label: 'Minhas Rotinas', Icon: ClipboardList },
     ...(hasRole('TRAINER') ? [
       { path: '/trainer/students', label: 'Alunos', Icon: Users, section: 'Treinador' },
     ] : []),
@@ -274,6 +275,17 @@ const Layout = ({ children }) => {
             <User size={22} strokeWidth={1.6} />
           </span>
           <span>Perfil</span>
+        </Link>
+
+        <Link
+          to="/my/protocols"
+          className={`bottom-nav-item ${isActive('/my/protocols') ? 'bottom-nav-item--active' : ''}`}
+          aria-label="Minhas Rotinas"
+        >
+          <span className="bottom-nav-item-icon" aria-hidden="true">
+            <ClipboardList size={22} strokeWidth={1.6} />
+          </span>
+          <span>Rotinas</span>
         </Link>
 
         {hasRole('TRAINER') && (

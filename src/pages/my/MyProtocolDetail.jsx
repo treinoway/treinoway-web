@@ -1,31 +1,56 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Play, X } from 'lucide-react';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
+import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import { getWeekDayLabel } from '../../constants/weekDays';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
+import { getYoutubeVideoId } from '../../utils/youtube';
 
 const MyProtocolDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [protocol, setProtocol] = useState(null);
   const [trainings, setTrainings] = useState([]);
+  const [exercisesMap, setExercisesMap] = useState({});
   const [loading, setLoading] = useState(true);
+  const [videoModal, setVideoModal] = useState({ open: false, videoId: null });
 
   useEffect(() => {
     fetchProtocol();
+    fetchTrainings();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchProtocol = async () => {
     try {
       const response = await api.get(`/my/protocols/${id}`);
       setProtocol(response.data);
-      setTrainings(response.data.trainings || []);
     } catch (error) {
       console.error('Failed to fetch protocol:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchExercisesForTraining = async (trainingId) => {
+    try {
+      const response = await api.get(`/my/trainings/${trainingId}/exercises`);
+      setExercisesMap((prev) => ({ ...prev, [trainingId]: response.data || [] }));
+    } catch (error) {
+      console.error('Failed to fetch exercises for training:', error);
+    }
+  };
+
+  const fetchTrainings = async () => {
+    try {
+      const response = await api.get(`/my/protocols/${id}/trainings`);
+      const list = response.data || [];
+      setTrainings(list);
+      list.forEach((t) => fetchExercisesForTraining(t.id));
+    } catch (error) {
+      console.error('Failed to fetch trainings:', error);
     }
   };
 
@@ -124,33 +149,112 @@ const MyProtocolDetail = () => {
         </div>
       ) : (
         <div className="stack-md">
-          {trainings.map((training) => (
-            <div key={training.id} className="training-card">
-              <div className="training-card-header">
-                <div>
-                  <h3 className="training-card-title">{training.name}</h3>
-                  <p className="training-card-desc mt-sm">{training.description}</p>
-                  <div className="training-card-order" style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span>Ordem: {training.order}</span>
-                    {getWeekDayLabel(training.weekDay) && (
-                      <span className="badge badge-blue">
-                        {getWeekDayLabel(training.weekDay)}
-                      </span>
+          {trainings.map((training) => {
+            const exercises = exercisesMap[training.id] || [];
+            return (
+              <div key={training.id} className="training-card">
+                <div className="training-card-header">
+                  <div className="training-card-header-content">
+                    <h3 className="training-card-title">{training.name}</h3>
+                    {training.description && (
+                      <p className="training-card-desc">{training.description}</p>
                     )}
-                    {!training.weekDay && training.schedules && training.schedules.length > 0 && (
-                      <div className="schedule-badges" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-xs)' }}>
-                        {training.schedules.map((schedule) => (
-                          <span key={schedule.id} className="schedule-badge">
-                            Semana {schedule.weekNumber} - {getWeekDayLabel(schedule.weekday) || schedule.weekday}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <div className="training-card-meta">
+                      <span className="training-card-order">Ordem {training.order}</span>
+                      {training.weekDay && (
+                        <span className="badge badge-blue">
+                          {getWeekDayLabel(training.weekDay)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {training.notes && (
+                  <p className="training-card-exercise-notes">{training.notes}</p>
+                )}
+
+                <div className="training-card-exercises">
+                  <span className="training-card-exercises-label">Exercícios</span>
+
+                  {exercises.length === 0 ? (
+                    <p className="training-card-exercises-empty">Nenhum exercício adicionado.</p>
+                  ) : (
+                    <div className="training-card-exercise-list">
+                      {exercises.map((exercise) => {
+                        const meta = formatExerciseMeta(exercise);
+                        return (
+                          <div key={exercise.id} className="training-card-exercise-row">
+                            <div>
+                              <span className="training-card-exercise-name">{exercise.name}</span>
+                              {meta && (
+                                <span className="training-card-exercise-meta">{meta}</span>
+                              )}
+                              {exercise.notes && (
+                                <p className="training-card-exercise-notes">{exercise.notes}</p>
+                              )}
+                              {exercise.videoUrl && (() => {
+                                const videoId = getYoutubeVideoId(exercise.videoUrl);
+                                if (videoId) {
+                                  return (
+                                    <button
+                                      className="training-card-exercise-video-link"
+                                      onClick={() => setVideoModal({ open: true, videoId })}
+                                    >
+                                      <Play size={14} strokeWidth={1.6} />
+                                      Ver vídeo
+                                    </button>
+                                  );
+                                }
+                                return (
+                                  <a
+                                    href={exercise.videoUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="training-card-exercise-video-link"
+                                  >
+                                    <Play size={14} strokeWidth={1.6} />
+                                    Ver vídeo
+                                  </a>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {videoModal.open && (
+        <div className="bottom-sheet-overlay" onClick={() => setVideoModal({ open: false, videoId: null })}>
+          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-header">
+              <span className="bottom-sheet-title">Vídeo do exercício</span>
+              <button
+                className="bottom-sheet-close"
+                onClick={() => setVideoModal({ open: false, videoId: null })}
+                aria-label="Fechar vídeo"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="bottom-sheet-body">
+              <div className="video-embed-wrapper">
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoModal.videoId}`}
+                  title="Vídeo do exercício"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               </div>
             </div>
-          ))}
+          </div>
         </div>
       )}
     </div>

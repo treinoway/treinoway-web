@@ -1637,6 +1637,43 @@ a {
   font-style: italic;
 }
 
+.training-card-exercise-video-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-caption-size);
+  color: var(--md-primary);
+  text-decoration: none;
+  margin-top: var(--spacing-xs);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.training-card-exercise-video-link:hover {
+  text-decoration: underline;
+}
+
+.video-embed-wrapper {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.video-embed-wrapper iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
 .training-card-exercises-empty {
   padding: var(--spacing-sm) 0;
   font-size: var(--font-body-small-size);

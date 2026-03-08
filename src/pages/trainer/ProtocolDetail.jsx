@@ -11,8 +11,8 @@ import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
-import { getExerciseTypeLabel } from '../../constants/exerciseTypes';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
+import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import CreateExerciseModal from '../../components/CreateExerciseModal';
 
 const TemplateRowMenu = ({ onEdit, onDelete, ariaLabel, deleteLabel = 'Excluir' }) => {
@@ -372,19 +372,6 @@ const ProtocolDetail = () => {
     });
     setEditingTrainingId(null);
     setShowTrainingForm(false);
-  };
-
-  const formatExerciseMeta = (exercise) => {
-    const parts = [];
-    if (exercise.type) parts.push(getExerciseTypeLabel(exercise.type));
-    const reps = exercise.repetitions;
-    const repsLabel = reps != null
-      ? (reps.min === reps.max ? String(reps.min) : `${reps.min}–${reps.max}`)
-      : null;
-    if (exercise.sets && repsLabel != null) parts.push(`${exercise.sets}x${repsLabel}`);
-    else if (exercise.duration) parts.push(`${exercise.duration}s`);
-    if (exercise.hasLoad && exercise.suggestedLoad != null) parts.push(`${exercise.suggestedLoad} kg`);
-    return parts.join(' · ');
   };
 
   const assigneeLabel = [protocol?.assignee?.firstName, protocol?.assignee?.lastName]

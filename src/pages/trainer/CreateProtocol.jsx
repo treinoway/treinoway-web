@@ -13,6 +13,7 @@ import DateInput from '../../components/DateInput';
 import CreateExerciseModal from '../../components/CreateExerciseModal';
 import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
 import { PROTOCOL_TYPE_OPTIONS } from '../../constants/protocolTypes';
+import { EXERCISE_TYPE_OPTIONS } from '../../constants/exerciseTypes';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 
 const categoryLabels = {
@@ -151,6 +152,12 @@ const CreateProtocol = () => {
   });
   // inlineExerciseContext: null (closed) | { type: 'modal' } | { type: 'row', trainingIndex: number }
   const [inlineExerciseContext, setInlineExerciseContext] = useState(null);
+  const [inlineExerciseMode, setInlineExerciseMode] = useState('create'); // 'create' | 'fromTemplate'
+  const [inlineExerciseTemplateId, setInlineExerciseTemplateId] = useState('');
+  const [inlineExerciseTemplateFields, setInlineExerciseTemplateFields] = useState({
+    name: '', type: '', videoUrl: '', sets: '', repetitionsMin: '', repetitionsMax: '',
+    duration: '', hasLoad: false, suggestedLoad: '', notes: '',
+  });
 
   const dndSensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: { distance: 5 },
@@ -427,6 +434,12 @@ const CreateProtocol = () => {
 
   const closeInlineExerciseModal = () => {
     setInlineExerciseContext(null);
+    setInlineExerciseMode('create');
+    setInlineExerciseTemplateId('');
+    setInlineExerciseTemplateFields({
+      name: '', type: '', videoUrl: '', sets: '', repetitionsMin: '', repetitionsMax: '',
+      duration: '', hasLoad: false, suggestedLoad: '', notes: '',
+    });
   };
 
   const handleInlineExerciseSuccess = (payload) => {
@@ -448,6 +461,48 @@ const CreateProtocol = () => {
         return { ...prev, trainings };
       });
     }
+  };
+
+  const handleInlineExerciseTemplateSelect = (templateId) => {
+    setInlineExerciseTemplateId(templateId);
+    const template = exerciseTemplates.find((t) => String(t.id) === templateId);
+    if (!template) {
+      setInlineExerciseTemplateFields({
+        name: '', type: '', videoUrl: '', sets: '', repetitionsMin: '', repetitionsMax: '',
+        duration: '', hasLoad: false, suggestedLoad: '', notes: '',
+      });
+      return;
+    }
+    setInlineExerciseTemplateFields({
+      name: template.name || '',
+      type: template.type || '',
+      videoUrl: template.videoUrl || '',
+      sets: template.sets ?? '',
+      repetitionsMin: template.repetitions?.min ?? '',
+      repetitionsMax: template.repetitions?.max ?? '',
+      duration: template.duration ?? '',
+      hasLoad: template.hasLoad || false,
+      suggestedLoad: template.suggestedLoad ?? '',
+      notes: template.notes || '',
+    });
+  };
+
+  const handleInlineExerciseFromTemplate = (e) => {
+    e.preventDefault();
+    if (!inlineExerciseTemplateId) return;
+    const f = inlineExerciseTemplateFields;
+    const payload = { name: f.name, type: f.type, hasLoad: f.hasLoad };
+    if (f.videoUrl?.trim()) payload.videoUrl = f.videoUrl.trim();
+    if (f.sets !== '' && f.sets != null) payload.sets = parseInt(f.sets, 10);
+    if (f.repetitionsMin !== '' && f.repetitionsMin != null && f.repetitionsMax !== '' && f.repetitionsMax != null) {
+      payload.repetitions = { min: parseInt(f.repetitionsMin, 10), max: parseInt(f.repetitionsMax, 10) };
+    }
+    if (f.duration !== '' && f.duration != null) payload.duration = parseInt(f.duration, 10);
+    if (f.hasLoad && f.suggestedLoad !== '' && f.suggestedLoad != null) payload.suggestedLoad = parseFloat(f.suggestedLoad);
+    if (f.notes?.trim()) payload.notes = f.notes.trim();
+
+    handleInlineExerciseSuccess(payload);
+    closeInlineExerciseModal();
   };
 
   const removeInlineExerciseFromModal = (exerciseId) => {
@@ -1041,10 +1096,190 @@ const CreateProtocol = () => {
       )}
 
       <CreateExerciseModal
-        open={inlineExerciseContext !== null}
+        open={inlineExerciseContext !== null && inlineExerciseMode === 'create'}
         onClose={closeInlineExerciseModal}
         onSuccess={handleInlineExerciseSuccess}
+        headerContent={
+          <div className="segmented-toggle">
+            <button type="button" className="segmented-toggle-btn segmented-toggle-btn--active">
+              Criar novo
+            </button>
+            <button
+              type="button"
+              className="segmented-toggle-btn"
+              onClick={() => setInlineExerciseMode('fromTemplate')}
+            >
+              Importar exercício
+            </button>
+          </div>
+        }
       />
+
+      {inlineExerciseContext !== null && inlineExerciseMode === 'fromTemplate' && (
+        <div className="overlay" onClick={closeInlineExerciseModal}>
+          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-header">
+              <h2 className="bottom-sheet-title">Adicionar Exercício</h2>
+              <button
+                className="bottom-sheet-close"
+                onClick={closeInlineExerciseModal}
+                aria-label="Fechar"
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="bottom-sheet-body">
+              <div className="segmented-toggle">
+                <button
+                  type="button"
+                  className="segmented-toggle-btn"
+                  onClick={() => setInlineExerciseMode('create')}
+                >
+                  Criar novo
+                </button>
+                <button type="button" className="segmented-toggle-btn segmented-toggle-btn--active">
+                  Importar exercício
+                </button>
+              </div>
+              <form onSubmit={handleInlineExerciseFromTemplate} className="form">
+                <div>
+                  <label className="form-label" htmlFor="inline-exercise-template">Modelo de exercício</label>
+                  <select
+                    id="inline-exercise-template"
+                    value={inlineExerciseTemplateId}
+                    onChange={(e) => handleInlineExerciseTemplateSelect(e.target.value)}
+                    className="form-select"
+                    required
+                  >
+                    <option value="">Selecione um exercício...</option>
+                    {exerciseTemplates.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {inlineExerciseTemplateId && (
+                  <>
+                    <div>
+                      <label className="form-label" htmlFor="ietf-name">Nome</label>
+                      <input
+                        id="ietf-name"
+                        type="text"
+                        className="form-input"
+                        value={inlineExerciseTemplateFields.name}
+                        onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, name: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label" htmlFor="ietf-type">Tipo</label>
+                      <select
+                        id="ietf-type"
+                        className="form-select"
+                        value={inlineExerciseTemplateFields.type}
+                        onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, type: e.target.value }))}
+                        required
+                      >
+                        <option value="">Selecione...</option>
+                        {EXERCISE_TYPE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid-2col">
+                      <div>
+                        <label className="form-label" htmlFor="ietf-sets">Séries</label>
+                        <input
+                          id="ietf-sets"
+                          type="number"
+                          min="1"
+                          className="form-input"
+                          value={inlineExerciseTemplateFields.sets}
+                          onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, sets: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label" htmlFor="ietf-duration">Duração (s)</label>
+                        <input
+                          id="ietf-duration"
+                          type="number"
+                          min="1"
+                          className="form-input"
+                          value={inlineExerciseTemplateFields.duration}
+                          onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, duration: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid-2col">
+                      <div>
+                        <label className="form-label" htmlFor="ietf-rep-min">Rep. mín.</label>
+                        <input
+                          id="ietf-rep-min"
+                          type="number"
+                          min="1"
+                          className="form-input"
+                          value={inlineExerciseTemplateFields.repetitionsMin}
+                          onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, repetitionsMin: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label" htmlFor="ietf-rep-max">Rep. máx.</label>
+                        <input
+                          id="ietf-rep-max"
+                          type="number"
+                          min="1"
+                          className="form-input"
+                          value={inlineExerciseTemplateFields.repetitionsMax}
+                          onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, repetitionsMax: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+                      <input
+                        id="ietf-hasload"
+                        type="checkbox"
+                        checked={inlineExerciseTemplateFields.hasLoad}
+                        onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, hasLoad: e.target.checked }))}
+                      />
+                      <label htmlFor="ietf-hasload" className="form-label" style={{ margin: 0 }}>Usa carga</label>
+                    </div>
+                    {inlineExerciseTemplateFields.hasLoad && (
+                      <div>
+                        <label className="form-label" htmlFor="ietf-load">Carga sugerida (kg)</label>
+                        <input
+                          id="ietf-load"
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          className="form-input"
+                          value={inlineExerciseTemplateFields.suggestedLoad}
+                          onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, suggestedLoad: e.target.value }))}
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="form-label" htmlFor="ietf-notes">Observações</label>
+                      <textarea
+                        id="ietf-notes"
+                        className="form-textarea"
+                        value={inlineExerciseTemplateFields.notes}
+                        onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, notes: e.target.value }))}
+                        rows={2}
+                      />
+                    </div>
+                  </>
+                )}
+                <div className="btn-group">
+                  <button type="submit" className="btn-primary">Adicionar</button>
+                  <button type="button" onClick={closeInlineExerciseModal} className="btn-secondary">
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

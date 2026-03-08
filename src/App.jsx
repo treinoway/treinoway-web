@@ -22,6 +22,10 @@ import CreateProtocol from './pages/trainer/CreateProtocol';
 import Students from './pages/trainer/Students';
 import StudentDetail from './pages/trainer/StudentDetail';
 
+// Student pages
+import MyProtocols from './pages/my/MyProtocols';
+import MyProtocolDetail from './pages/my/MyProtocolDetail';
+
 function App() {
   return (
     <BrowserRouter>
@@ -124,6 +128,28 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <StudentDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Student routes */}
+          <Route
+            path="/my/protocols"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <MyProtocols />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my/protocols/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <MyProtocolDetail />
                 </Layout>
               </ProtectedRoute>
             }
