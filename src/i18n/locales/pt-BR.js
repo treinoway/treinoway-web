@@ -18,6 +18,14 @@ const ptBR = {
     STUDENT_ALREADY_LINKED: 'Este aluno já está vinculado à sua conta.',
     CANNOT_LINK_SELF: 'Você não pode se vincular como seu próprio aluno.',
     INVALID_PROTOCOL_TYPE: 'Tipo de protocolo inválido.',
+    TRAINING_NOT_FOUND: 'Treino não encontrado.',
+    FORBIDDEN_NOT_YOUR_TRAINING: 'Este treino não está atribuído a você.',
+    SESSION_ALREADY_IN_PROGRESS: 'Você já possui uma sessão de treino em andamento.',
+    WORKOUT_SESSION_NOT_FOUND: 'Sessão de treino não encontrada.',
+    FORBIDDEN_NOT_YOUR_SESSION: 'Esta sessão não pertence a você.',
+    EXERCISE_LOG_NOT_FOUND: 'Registro de exercício não encontrado.',
+    EXERCISE_LOG_NOT_IN_SESSION: 'Registro de exercício não pertence a esta sessão.',
+    SET_LOG_NOT_FOUND: 'Registro de série não encontrado.',
   },
 
   messageCodes: {
@@ -33,6 +41,14 @@ const ptBR = {
     'server.error': 'Erro interno do servidor. Tente novamente mais tarde.',
     'server.unavailable': 'Serviço temporariamente indisponível.',
     'rate.limited': 'Muitas tentativas. Aguarde um momento e tente novamente.',
+    'workoutSession.alreadyInProgress': 'Você já possui uma sessão de treino em andamento.',
+    'anamnesis.notFound': 'Anamnese não encontrada.',
+    'anamnesis.forbidden.notOwner': 'Você não tem acesso a esta anamnese.',
+    'anamnesis.forbidden.general': 'Anamneses gerais não podem ser editadas.',
+    'anamnesis.section.notFound': 'Seção não encontrada.',
+    'anamnesis.question.notFound': 'Pergunta não encontrada.',
+    'anamnesis.alreadyLinked': 'Esta anamnese já está vinculada a este aluno.',
+    'anamnesis.invalidQuestionType': 'Tipo de pergunta inválido.',
   },
 
   httpStatus: {

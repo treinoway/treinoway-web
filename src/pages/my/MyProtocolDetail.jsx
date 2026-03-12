@@ -1,20 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, X } from 'lucide-react';
+import { ArrowLeft, Play, X, Dumbbell } from 'lucide-react';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import { getWeekDayLabel } from '../../constants/weekDays';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { getYoutubeVideoId } from '../../utils/youtube';
+import { useToast } from '../../contexts/ToastContext';
 
 const MyProtocolDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [protocol, setProtocol] = useState(null);
   const [trainings, setTrainings] = useState([]);
   const [exercisesMap, setExercisesMap] = useState({});
   const [loading, setLoading] = useState(true);
+  const [startingTrainingId, setStartingTrainingId] = useState(null);
   const [videoModal, setVideoModal] = useState({ open: false, videoId: null });
 
   useEffect(() => {
@@ -51,6 +54,24 @@ const MyProtocolDetail = () => {
       list.forEach((t) => fetchExercisesForTraining(t.id));
     } catch (error) {
       console.error('Failed to fetch trainings:', error);
+    }
+  };
+
+  const handleStartTraining = async (trainingId) => {
+    setStartingTrainingId(trainingId);
+    try {
+      const response = await api.post(`/my/trainings/${trainingId}/workout-sessions`, {});
+      navigate(`/my/workout-sessions/${response.data.id}`);
+    } catch (error) {
+      const activeSessionId = error.response?.data?.details?.activeSessionId;
+      if (activeSessionId) {
+        showToast('Você já tem uma sessão em andamento. Redirecionando...', 'info');
+        navigate(`/my/workout-sessions/${activeSessionId}`);
+        return;
+      }
+      showToast(error.userMessage || 'Erro ao iniciar treino.', 'error');
+    } finally {
+      setStartingTrainingId(null);
     }
   };
 
@@ -151,6 +172,7 @@ const MyProtocolDetail = () => {
         <div className="stack-md">
           {trainings.map((training) => {
             const exercises = exercisesMap[training.id] || [];
+            const isStarting = startingTrainingId === training.id;
             return (
               <div key={training.id} className="training-card">
                 <div className="training-card-header">
@@ -168,6 +190,15 @@ const MyProtocolDetail = () => {
                       )}
                     </div>
                   </div>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={() => handleStartTraining(training.id)}
+                    disabled={isStarting || startingTrainingId !== null}
+                    aria-label={`Iniciar treino ${training.name}`}
+                  >
+                    <Dumbbell size={14} strokeWidth={1.6} />
+                    {isStarting ? 'Iniciando...' : 'Iniciar'}
+                  </button>
                 </div>
 
                 {training.notes && (

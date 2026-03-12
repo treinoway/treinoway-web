@@ -14,6 +14,10 @@ vi.mock('../../api/axios', () => ({
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
+vi.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
 const mockProtocolData = {
   id: 1,
   status: 'ACTIVE',

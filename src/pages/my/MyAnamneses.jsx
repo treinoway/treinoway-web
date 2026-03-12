@@ -1,0 +1,227 @@
+import { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { translateError } from '../../i18n';
+import api from '../../api/axios';
+import { getQuestionTypeLabel, ANAMNESIS_QUESTION_TYPE } from '../../constants/anamnesis';
+
+const getTrainerName = (trainer) => {
+  const user = trainer?.user;
+  if (!user) return '—';
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
+  return name || '—';
+};
+
+const QuestionItem = ({ question, index }) => {
+  const typeLabel = getQuestionTypeLabel(question.type);
+
+  const renderAnswerHint = () => {
+    switch (question.type) {
+      case ANAMNESIS_QUESTION_TYPE.FREE_TEXT:
+        return <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>Resposta em texto livre</p>;
+      case ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS:
+        return <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>Sim / Não</p>;
+      case ANAMNESIS_QUESTION_TYPE.NUMERIC: {
+        const config = question.config ?? {};
+        const parts = [];
+        if (config.min !== undefined) parts.push(`Mín: ${config.min}`);
+        if (config.max !== undefined) parts.push(`Máx: ${config.max}`);
+        if (config.unit) parts.push(`Unidade: ${config.unit}`);
+        return parts.length > 0
+          ? <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>{parts.join(' · ')}</p>
+          : null;
+      }
+      case ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE:
+      case ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE:
+      case ANAMNESIS_QUESTION_TYPE.MATRIX:
+        if (!question.options?.length) return null;
+        return (
+          <ul className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)', paddingLeft: 'var(--spacing-md)' }}>
+            {question.options.map((opt) => (
+              <li key={opt.id}>{opt.text}</li>
+            ))}
+          </ul>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div
+      style={{
+        padding: 'var(--spacing-sm) var(--spacing-md)',
+        background: 'var(--md-surface)',
+        borderRadius: 'var(--radius-sm)',
+        border: '1px solid var(--color-outline-variant)',
+        marginBottom: 'var(--spacing-sm)',
+      }}
+    >
+      <div style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <span className="font-medium" style={{ flex: 1 }}>{index + 1}. {question.text}</span>
+        <div style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap', flexShrink: 0 }}>
+          <span className="badge badge-gray">{typeLabel}</span>
+          {question.required && <span className="badge badge-blue">Obrigatória</span>}
+        </div>
+      </div>
+      {renderAnswerHint()}
+    </div>
+  );
+};
+
+const SectionAccordion = ({ section }) => {
+  const [expanded, setExpanded] = useState(false);
+  const sortedQuestions = [...(section.questions ?? [])].sort((a, b) => a.order - b.order);
+
+  return (
+    <div
+      style={{
+        border: '1px solid var(--color-outline-variant)',
+        borderRadius: 'var(--radius-md)',
+        marginBottom: 'var(--spacing-sm)',
+        overflow: 'hidden',
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setExpanded((p) => !p)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: 'var(--spacing-sm) var(--spacing-md)',
+          background: 'var(--md-surface)',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+        aria-expanded={expanded}
+        aria-label={`Seção ${section.title}`}
+      >
+        <span className="font-medium">{section.title}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+          <span className="text-sm text-muted">{sortedQuestions.length} pergunta(s)</span>
+          {expanded ? <ChevronUp size={16} strokeWidth={1.6} /> : <ChevronDown size={16} strokeWidth={1.6} />}
+        </div>
+      </button>
+
+      {expanded && sortedQuestions.length > 0 && (
+        <div style={{ padding: 'var(--spacing-md)', background: 'var(--md-primary-container)' }}>
+          {sortedQuestions.map((question, index) => (
+            <QuestionItem key={question.id} question={question} index={index} />
+          ))}
+        </div>
+      )}
+
+      {expanded && sortedQuestions.length === 0 && (
+        <div style={{ padding: 'var(--spacing-md)', background: 'var(--md-primary-container)' }}>
+          <p className="text-sm text-muted">Nenhuma pergunta nesta seção.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AnamnesisCard = ({ link }) => {
+  const [expanded, setExpanded] = useState(false);
+  const { anamnesis, trainer, createdAt } = link;
+  const sortedSections = [...(anamnesis.sections ?? [])].sort((a, b) => a.order - b.order);
+
+  const formattedDate = createdAt
+    ? new Date(createdAt).toLocaleDateString('pt-BR')
+    : '—';
+
+  return (
+    <div className="card card--mb">
+      <div className="card-header">
+        <div>
+          <h3 className="card-subtitle">{anamnesis.title}</h3>
+          {anamnesis.isGeneral && (
+            <span className="badge badge-blue" style={{ marginTop: 'var(--spacing-xs)' }}>Geral</span>
+          )}
+        </div>
+      </div>
+
+      {anamnesis.description && (
+        <p className="card-description" style={{ marginTop: 'var(--spacing-xs)' }}>{anamnesis.description}</p>
+      )}
+
+      <div className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+        <span className="font-medium">Treinador:</span> {getTrainerName(trainer)}
+      </div>
+      <div className="text-sm text-muted">
+        <span className="font-medium">Enviado em:</span> {formattedDate}
+      </div>
+
+      <button
+        type="button"
+        className="btn-secondary"
+        style={{ marginTop: 'var(--spacing-md)' }}
+        onClick={() => setExpanded((p) => !p)}
+        aria-expanded={expanded}
+      >
+        {expanded ? 'Ocultar perguntas' : `Ver perguntas (${sortedSections.length} seção(ões))`}
+      </button>
+
+      {expanded && (
+        <div style={{ marginTop: 'var(--spacing-md)' }}>
+          {sortedSections.length === 0 && (
+            <p className="text-sm text-muted">Esta anamnese não possui seções.</p>
+          )}
+          {sortedSections.map((section) => (
+            <SectionAccordion key={section.id} section={section} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MyAnamneses = () => {
+  const { showToast } = useToast();
+  const [links, setLinks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnamneses = async () => {
+      setLoading(true);
+      try {
+        const response = await api.get('/my/anamneses');
+        setLinks(response.data);
+      } catch (error) {
+        showToast(error.userMessage || translateError(error), 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnamneses();
+  }, [showToast]);
+
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <span className="loading-text">Carregando...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h1 className="page-title">Minhas Anamneses</h1>
+
+      {links.length === 0 ? (
+        <div className="empty-state">
+          <p className="empty-state-title">Nenhuma anamnese ainda</p>
+          <p>Seu treinador irá enviar anamneses para você responder</p>
+        </div>
+      ) : (
+        links.map((link) => (
+          <AnamnesisCard key={link.id} link={link} />
+        ))
+      )}
+    </div>
+  );
+};
+
+export default MyAnamneses;

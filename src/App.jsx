@@ -21,10 +21,15 @@ import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
 import CreateProtocol from './pages/trainer/CreateProtocol';
 import Students from './pages/trainer/Students';
 import StudentDetail from './pages/trainer/StudentDetail';
+import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
+import AnamnesisDetail from './pages/trainer/AnamnesisDetail';
 
 // Student pages
 import MyProtocols from './pages/my/MyProtocols';
+import MyAnamneses from './pages/my/MyAnamneses';
 import MyProtocolDetail from './pages/my/MyProtocolDetail';
+import WorkoutSessions from './pages/my/WorkoutSessions';
+import WorkoutSession from './pages/my/WorkoutSession';
 
 function App() {
   return (
@@ -133,6 +138,28 @@ function App() {
             }
           />
 
+          <Route
+            path="/trainer/anamneses"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <TrainerAnamneses />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/anamneses/:anamnesisId"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <AnamnesisDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Student routes */}
           <Route
             path="/my/protocols"
@@ -150,6 +177,37 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <MyProtocolDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my/workout-sessions"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <WorkoutSessions />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my/anamneses"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <MyAnamneses />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/my/workout-sessions/:sessionId"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <WorkoutSession />
                 </Layout>
               </ProtectedRoute>
             }

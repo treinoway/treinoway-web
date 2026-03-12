@@ -17,7 +17,7 @@ const exerciseBadgeStyle = {
   color: 'var(--color-on-surface-variant)',
 };
 
-const TemplateRowMenu = ({ onEdit, onDelete, ariaLabel, deleteLabel = 'Excluir' }) => {
+export const TemplateRowMenu = ({ onEdit, onDelete, ariaLabel, deleteLabel = 'Excluir' }) => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
 

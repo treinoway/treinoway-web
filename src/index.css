@@ -3186,3 +3186,146 @@ a {
   height: 100%;
   border: 0;
 }
+
+/* ============================================
+   Workout Session
+   ============================================ */
+
+/* Exercise log card */
+.exercise-log-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.exercise-log-card--done {
+  border-color: var(--color-success);
+  background: var(--color-success-container);
+}
+
+.exercise-log-card--skipped {
+  opacity: 0.55;
+}
+
+.exercise-log-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.exercise-log-card-info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.exercise-log-card-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: var(--color-on-surface-variant);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.exercise-log-card-name {
+  font-weight: 600;
+  font-size: var(--font-body-size);
+  margin: 0 0 2px;
+}
+
+.exercise-log-card-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.exercise-log-card-body {
+  margin-top: var(--spacing-md);
+}
+
+/* Set log list */
+.set-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.set-log-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: var(--color-surface-variant);
+  border-radius: var(--radius-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.set-log-number {
+  font-weight: 600;
+  font-size: var(--font-body-small-size);
+  min-width: 56px;
+  flex-shrink: 0;
+}
+
+.set-log-detail {
+  flex: 1;
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+}
+
+/* Set log form */
+.set-log-form {
+  background: var(--color-surface-container);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+.set-log-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.set-log-form-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.form-input--sm {
+  padding: 6px 10px;
+  font-size: var(--font-body-small-size);
+}
+
+.filter-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-md);
+}
+
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+  .set-log-form-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .exercise-log-card-actions {
+    flex-direction: row;
+  }
+}
