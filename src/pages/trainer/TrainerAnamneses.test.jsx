@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { renderWithRouter } from '../../test/test-utils';
+import { renderWithRouter, renderWithRoute } from '../../test/test-utils';
 import TrainerAnamneses from './TrainerAnamneses';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
@@ -118,20 +118,31 @@ describe('TrainerAnamneses', () => {
     expect(screen.getByLabelText('Título')).toBeInTheDocument();
   });
 
-  it('submits create form, shows success toast and navigates to detail', async () => {
+  it('after creating, navigates to the anamnesis detail page', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: [] });
     api.post.mockResolvedValue({ data: { id: 'new-id' } });
-    renderWithRouter(<TrainerAnamneses />);
+
+    renderWithRoute(<TrainerAnamneses />, {
+      route: '/trainer/anamneses',
+      path: '/trainer/anamneses',
+    });
+
     await waitFor(() => {
       expect(screen.queryByText(/carregando/i)).not.toBeInTheDocument();
     });
+
     await user.click(screen.getByText('+ Nova Anamnese'));
     await user.type(screen.getByLabelText('Título'), 'Nova Anamnese Teste');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/trainer/anamneses', expect.objectContaining({ title: 'Nova Anamnese Teste' }));
       expect(mockShowToast).toHaveBeenCalledWith('Anamnese criada com sucesso!', 'success');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('redirected')).toBeInTheDocument();
     });
   });
 

@@ -14,6 +14,7 @@ import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import CreateExerciseModal from '../../components/CreateExerciseModal';
+import ExerciseForm from '../../components/ExerciseForm';
 
 const TemplateRowMenu = ({ onEdit, onDelete, ariaLabel, deleteLabel = 'Excluir' }) => {
   const [open, setOpen] = useState(false);
@@ -136,9 +137,9 @@ const ProtocolDetail = () => {
   const [addExerciseTemplateId, setAddExerciseTemplateId] = useState('');
   const [addingExercise, setAddingExercise] = useState(false);
   const [addExerciseMode, setAddExerciseMode] = useState('create');
-  const [showCreateExerciseModal, setShowCreateExerciseModal] = useState(false);
   const [editingExercise, setEditingExercise] = useState(null);
   const [editingExerciseTrainingId, setEditingExerciseTrainingId] = useState(null);
+  const [showEditExerciseModal, setShowEditExerciseModal] = useState(false);
   const [reorderingTrainings, setReorderingTrainings] = useState(false);
 
   const sensors = useSensors(
@@ -273,7 +274,7 @@ const ProtocolDetail = () => {
     });
   };
 
-  const handleAddExercise = async (e) => {
+  const handleAddExerciseFromTemplate = async (e) => {
     e.preventDefault();
     if (!addExerciseTemplateId) return;
     setAddingExercise(true);
@@ -284,7 +285,7 @@ const ProtocolDetail = () => {
       });
       showToast('Exercício adicionado com sucesso!', 'success');
       fetchExercisesForTraining(addExerciseTrainingId);
-      closeAddExerciseModal();
+      closeAddExerciseSheet();
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
     } finally {
@@ -308,13 +309,13 @@ const ProtocolDetail = () => {
     });
   };
 
-  const openAddExerciseModal = (trainingId) => {
+  const openAddExerciseSheet = (trainingId) => {
     setAddExerciseTrainingId(trainingId);
     setAddExerciseTemplateId('');
     setAddExerciseMode('create');
   };
 
-  const closeAddExerciseModal = () => {
+  const closeAddExerciseSheet = () => {
     setAddExerciseTrainingId(null);
     setAddExerciseTemplateId('');
     setAddExerciseMode('create');
@@ -323,13 +324,13 @@ const ProtocolDetail = () => {
   const handleEditExercise = (exercise, trainingId) => {
     setEditingExercise(exercise);
     setEditingExerciseTrainingId(trainingId);
-    setShowCreateExerciseModal(true);
+    setShowEditExerciseModal(true);
   };
 
   const closeEditExerciseModal = () => {
     setEditingExercise(null);
     setEditingExerciseTrainingId(null);
-    setShowCreateExerciseModal(false);
+    setShowEditExerciseModal(false);
   };
 
   const handleTrainingDragEnd = async ({ active, over }) => {
@@ -373,6 +374,25 @@ const ProtocolDetail = () => {
     setEditingTrainingId(null);
     setShowTrainingForm(false);
   };
+
+  const segmentedToggle = (
+    <div className="segmented-toggle">
+      <button
+        type="button"
+        className={`segmented-toggle-btn${addExerciseMode === 'create' ? ' segmented-toggle-btn--active' : ''}`}
+        onClick={() => setAddExerciseMode('create')}
+      >
+        Criar novo
+      </button>
+      <button
+        type="button"
+        className={`segmented-toggle-btn${addExerciseMode === 'fromTemplate' ? ' segmented-toggle-btn--active' : ''}`}
+        onClick={() => setAddExerciseMode('fromTemplate')}
+      >
+        Importar de modelo
+      </button>
+    </div>
+  );
 
   const assigneeLabel = [protocol?.assignee?.firstName, protocol?.assignee?.lastName]
     .filter(Boolean)
@@ -631,7 +651,7 @@ const ProtocolDetail = () => {
                       <button
                         type="button"
                         className="btn-schedule-sm"
-                        onClick={() => openAddExerciseModal(training.id)}
+                        onClick={() => openAddExerciseSheet(training.id)}
                         aria-label={`Adicionar exercício ao treino ${training.name}`}
                       >
                         + Adicionar exercício
@@ -681,14 +701,14 @@ const ProtocolDetail = () => {
         </div>
       )}
 
-      {addExerciseTrainingId !== null && addExerciseMode === 'fromTemplate' && (
-        <div className="overlay" onClick={closeAddExerciseModal}>
-          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+      {addExerciseTrainingId !== null && (
+        <div className="overlay" onClick={closeAddExerciseSheet}>
+          <div className="bottom-sheet bottom-sheet--large" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
               <h2 className="bottom-sheet-title">Adicionar Exercício</h2>
               <button
                 className="bottom-sheet-close"
-                onClick={closeAddExerciseModal}
+                onClick={closeAddExerciseSheet}
                 aria-label="Fechar"
                 type="button"
               >
@@ -696,86 +716,55 @@ const ProtocolDetail = () => {
               </button>
             </div>
             <div className="bottom-sheet-body">
-              <div className="segmented-toggle">
-                <button
-                  type="button"
-                  className="segmented-toggle-btn"
-                  onClick={() => setAddExerciseMode('create')}
-                >
-                  Criar novo
-                </button>
-                <button
-                  type="button"
-                  className="segmented-toggle-btn segmented-toggle-btn--active"
-                >
-                  Importar de modelo
-                </button>
-              </div>
+              {addExerciseMode === 'create' ? (
+                <ExerciseForm
+                  trainingId={addExerciseTrainingId}
+                  onSuccess={() => {
+                    fetchExercisesForTraining(addExerciseTrainingId);
+                    closeAddExerciseSheet();
+                  }}
+                  onCancel={closeAddExerciseSheet}
+                  headerContent={segmentedToggle}
+                />
+              ) : (
+                <>
+                  {segmentedToggle}
+                  <form onSubmit={handleAddExerciseFromTemplate} className="form">
+                    <div>
+                      <label className="form-label" htmlFor="add-exercise-template">Exercício</label>
+                      <select
+                        id="add-exercise-template"
+                        value={addExerciseTemplateId}
+                        onChange={(e) => setAddExerciseTemplateId(e.target.value)}
+                        className="form-select"
+                        required
+                      >
+                        <option value="">Selecione um exercício...</option>
+                        {exerciseTemplates.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
 
-              <form onSubmit={handleAddExercise} className="form">
-                <div>
-                  <label className="form-label" htmlFor="add-exercise-template">Exercício</label>
-                  <select
-                    id="add-exercise-template"
-                    value={addExerciseTemplateId}
-                    onChange={(e) => setAddExerciseTemplateId(e.target.value)}
-                    className="form-select"
-                    required
-                  >
-                    <option value="">Selecione um exercício...</option>
-                    {exerciseTemplates.map((t) => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="btn-group">
-                  <button type="submit" disabled={addingExercise} className="btn-primary">
-                    {addingExercise ? 'Adicionando...' : 'Adicionar'}
-                  </button>
-                  <button type="button" onClick={closeAddExerciseModal} className="btn-secondary">
-                    Cancelar
-                  </button>
-                </div>
-              </form>
+                    <div className="btn-group">
+                      <button type="submit" disabled={addingExercise} className="btn-primary">
+                        {addingExercise ? 'Adicionando...' : 'Adicionar'}
+                      </button>
+                      <button type="button" onClick={closeAddExerciseSheet} className="btn-secondary">
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {addExerciseTrainingId !== null && addExerciseMode === 'create' && (
+      {showEditExerciseModal && (
         <CreateExerciseModal
-          open={true}
-          title="Adicionar Exercício"
-          trainingId={addExerciseTrainingId}
-          onClose={closeAddExerciseModal}
-          onSuccess={() => {
-            fetchExercisesForTraining(addExerciseTrainingId);
-            closeAddExerciseModal();
-          }}
-          headerContent={
-            <div className="segmented-toggle">
-              <button
-                type="button"
-                className="segmented-toggle-btn segmented-toggle-btn--active"
-              >
-                Criar novo
-              </button>
-              <button
-                type="button"
-                className="segmented-toggle-btn"
-                onClick={() => setAddExerciseMode('fromTemplate')}
-              >
-                Importar de modelo
-              </button>
-            </div>
-          }
-        />
-      )}
-
-      {showCreateExerciseModal && (
-        <CreateExerciseModal
-          open={showCreateExerciseModal}
+          open={showEditExerciseModal}
           trainingId={editingExerciseTrainingId}
           exercise={editingExercise}
           onClose={closeEditExerciseModal}

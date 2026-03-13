@@ -40,6 +40,8 @@ const TrainerAnamneses = () => {
     try {
       const response = await api.post('/trainer/anamneses', formData);
       showToast('Anamnese criada com sucesso!', 'success');
+      setShowForm(false);
+      setFormData({ title: '', description: '' });
       navigate(`/trainer/anamneses/${response.data.id}`);
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');

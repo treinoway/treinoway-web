@@ -35,3 +35,26 @@ export const QUESTION_TYPES_WITH_OPTIONS = [
   ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE,
   ANAMNESIS_QUESTION_TYPE.MATRIX,
 ];
+
+/**
+ * Returns a blank question form object.
+ * @returns {object}
+ */
+export const defaultQuestionForm = () => ({
+  text: '',
+  type: ANAMNESIS_QUESTION_TYPE.FREE_TEXT,
+  required: false,
+  order: 0,
+  config: null,
+  options: [],
+});
+
+/**
+ * Returns a blank section form object.
+ * @returns {object}
+ */
+export const defaultSectionForm = () => ({
+  title: '',
+  description: '',
+  order: 0,
+});

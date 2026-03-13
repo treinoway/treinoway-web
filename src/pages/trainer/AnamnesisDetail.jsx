@@ -8,6 +8,8 @@ import {
   ANAMNESIS_QUESTION_TYPE,
   QUESTION_TYPES_WITH_OPTIONS,
   getQuestionTypeLabel,
+  defaultQuestionForm,
+  defaultSectionForm,
 } from '../../constants/anamnesis';
 
 const QUESTION_TYPE_OPTIONS = Object.values(ANAMNESIS_QUESTION_TYPE).map((value) => ({
@@ -15,22 +17,8 @@ const QUESTION_TYPE_OPTIONS = Object.values(ANAMNESIS_QUESTION_TYPE).map((value)
   label: getQuestionTypeLabel(value),
 }));
 
-const defaultQuestionForm = () => ({
-  text: '',
-  type: ANAMNESIS_QUESTION_TYPE.FREE_TEXT,
-  required: false,
-  order: 0,
-  config: null,
-  options: [],
-});
 
-const defaultSectionForm = () => ({
-  title: '',
-  description: '',
-  order: 0,
-});
-
-const QuestionForm = ({ initialData, onSubmit, onCancel, saving }) => {
+export const QuestionForm = ({ initialData, onSubmit, onCancel, saving }) => {
   const [data, setData] = useState(initialData ?? defaultQuestionForm());
   const [newOption, setNewOption] = useState('');
 
@@ -168,7 +156,7 @@ const QuestionForm = ({ initialData, onSubmit, onCancel, saving }) => {
   );
 };
 
-const SectionBlock = ({
+export const SectionBlock = ({
   section,
   isGeneral,
   onDeleteSection,

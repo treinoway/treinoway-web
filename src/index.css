@@ -2642,6 +2642,17 @@ a {
   padding: var(--spacing-lg);
 }
 
+.bottom-sheet--large {
+  max-height: 95vh;
+}
+
+@media (min-width: 768px) {
+  .bottom-sheet--large {
+    max-width: 720px;
+    max-height: 90vh;
+  }
+}
+
 @keyframes slide-up {
   from {
     transform: translateY(100%);

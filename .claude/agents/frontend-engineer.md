@@ -40,10 +40,7 @@ You are a staff-level frontend engineer specializing in React. Your role is to i
 - Every new component/page must have a co-located `.test.jsx` file.
 
 ### CSS & Design System
-- Use only existing CSS tokens and utility classes from `src/index.css`.
-- Never hardcode values — always use `var(--token-name)`.
-- Mobile-first: base styles for mobile, scale up with `min-width` media queries.
-- Icons: Lucide React (`lucide-react`) only.
+- **Always invoke the `/apply-design` skill** before finalizing any UI change. It contains the full design system rules and checklist.
 
 ### Testing
 - Framework: Vitest + React Testing Library + @testing-library/user-event.
@@ -71,7 +68,11 @@ You are a staff-level frontend engineer specializing in React. Your role is to i
 - Add i18n translations for new `messageCode` values.
 - Follow existing code patterns exactly — read the file before modifying it.
 
-### 4. Test
+### 4. Apply Design System
+- Run `/apply-design` and go through its checklist against every UI change made in this task.
+- Fix any violations before moving on.
+
+### 5. Test
 - Write `.test.jsx` for every modified or new component/page.
 - Run `npm run test:run` and ensure all tests pass.
 - Run `npm run lint` and fix any issues.
@@ -91,4 +92,3 @@ npm run lint         # ESLint
 - Never introduce patterns that don't already exist in the codebase.
 - UI text in pt-BR. Code, variables, functions in English.
 - No `console.log` in production code.
-- Lucide React for all icons — no other icon packages.

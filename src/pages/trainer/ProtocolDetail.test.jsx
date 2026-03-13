@@ -20,17 +20,26 @@ vi.mock('../../api/axios', () => ({
 }));
 
 vi.mock('../../components/CreateExerciseModal', () => ({
-  default: ({ open, onClose, onSuccess, trainingId, exercise, title, headerContent }) =>
+  default: ({ open, onClose, onSuccess, trainingId, exercise }) =>
     open ? (
       <div data-testid="create-exercise-modal">
-        {headerContent}
-        <span data-testid="modal-title">{title || (exercise ? 'Editar Exercício' : 'Criar Exercício')}</span>
+        <span data-testid="modal-exercise-id">{exercise?.id}</span>
         {trainingId && <span data-testid="modal-training-id">{trainingId}</span>}
-        {exercise && <span data-testid="modal-exercise-id">{exercise.id}</span>}
         <button onClick={onClose} type="button">Fechar modal exercício</button>
         <button onClick={onSuccess} type="button">Salvar exercício</button>
       </div>
     ) : null,
+}));
+
+vi.mock('../../components/ExerciseForm', () => ({
+  default: ({ onSuccess, onCancel, trainingId, headerContent }) => (
+    <div data-testid="exercise-form">
+      {headerContent}
+      {trainingId && <span data-testid="form-training-id">{trainingId}</span>}
+      <button onClick={onSuccess} type="button">Salvar exercício inline</button>
+      <button onClick={onCancel} type="button">Cancelar exercício inline</button>
+    </div>
+  ),
 }));
 
 const mockShowToast = vi.fn();
@@ -282,16 +291,15 @@ describe('ProtocolDetail', () => {
   });
 
   describe('add exercise flow', () => {
-    it('opens CreateExerciseModal in "Criar novo" mode by default', async () => {
+    it('opens the add exercise bottom-sheet in "Criar novo" mode by default', async () => {
       const user = userEvent.setup();
       renderProtocolDetail();
 
       await waitFor(() => screen.getByText('Treino de Peito'));
       await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
-      expect(screen.getByTestId('create-exercise-modal')).toBeInTheDocument();
-      expect(screen.getByTestId('modal-title')).toHaveTextContent('Adicionar Exercício');
-      expect(screen.getByTestId('modal-training-id')).toHaveTextContent('10');
+      expect(screen.getByTestId('exercise-form')).toBeInTheDocument();
+      expect(screen.getByTestId('form-training-id')).toHaveTextContent('10');
     });
 
     it('shows segmented toggle with "Criar novo" active in create mode', async () => {
@@ -313,7 +321,7 @@ describe('ProtocolDetail', () => {
       await user.click(screen.getByRole('button', { name: /importar de modelo/i }));
 
       expect(screen.getByRole('combobox', { name: /exercício/i })).toBeInTheDocument();
-      expect(screen.queryByTestId('create-exercise-modal')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('exercise-form')).not.toBeInTheDocument();
     });
 
     it('shows exercise templates in the import from template mode', async () => {
@@ -328,7 +336,7 @@ describe('ProtocolDetail', () => {
       expect(screen.getByRole('option', { name: 'Corrida' })).toBeInTheDocument();
     });
 
-    it('calls POST from-template and closes modal on add exercise submit', async () => {
+    it('calls POST from-template and closes sheet on add exercise submit', async () => {
       const user = userEvent.setup();
       api.post.mockResolvedValue({ data: { id: 101 } });
 
@@ -361,8 +369,44 @@ describe('ProtocolDetail', () => {
 
       await user.click(screen.getByRole('button', { name: /criar novo/i }));
 
-      expect(screen.getByTestId('create-exercise-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('exercise-form')).toBeInTheDocument();
       expect(screen.queryByRole('combobox', { name: /exercício/i })).not.toBeInTheDocument();
+    });
+
+    it('closes the sheet when inline exercise form calls onCancel', async () => {
+      const user = userEvent.setup();
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Treino de Peito'));
+      await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+
+      expect(screen.getByTestId('exercise-form')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /cancelar exercício inline/i }));
+
+      expect(screen.queryByTestId('exercise-form')).not.toBeInTheDocument();
+    });
+
+    it('closes the sheet and refreshes exercises when inline exercise is saved', async () => {
+      const user = userEvent.setup();
+      api.get.mockImplementation((url) => {
+        if (url.endsWith('/trainer/protocols/1')) return Promise.resolve({ data: mockProtocol });
+        if (url === '/trainer/protocols/1/trainings') return Promise.resolve({ data: mockTrainings });
+        if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+        if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
+        if (url.match(/\/trainer\/trainings\/\d+\/exercises/)) return Promise.resolve({ data: [] });
+        return Promise.resolve({ data: [] });
+      });
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Treino de Peito'));
+      await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+
+      expect(screen.getByTestId('exercise-form')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /salvar exercício inline/i }));
+
+      expect(screen.queryByTestId('exercise-form')).not.toBeInTheDocument();
     });
   });
 
@@ -409,7 +453,7 @@ describe('ProtocolDetail', () => {
       expect(screen.queryByText(/manter/i)).not.toBeInTheDocument();
     });
 
-    it('opens edit modal when "Editar" is clicked on exercise menu', async () => {
+    it('opens edit modal (CreateExerciseModal) when "Editar" is clicked on exercise menu', async () => {
       const user = userEvent.setup();
       renderProtocolDetail();
 

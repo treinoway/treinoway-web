@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { GripVertical, LayoutGrid, List, MoreVertical } from 'lucide-react';
-import CreateExerciseTemplateModal from '../../components/CreateExerciseTemplateModal';
+import { ArrowLeft, GripVertical, LayoutGrid, List, MoreVertical } from 'lucide-react';
+import ExerciseTemplateForm from '../../components/ExerciseTemplateForm';
 import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -177,11 +177,11 @@ const ProtocolTemplates = () => {
   const [editingId, setEditingId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [showTrainingTemplateModal, setShowTrainingTemplateModal] = useState(false);
+  const [ttModalView, setTtModalView] = useState('form');
+  const [editingInlineExercise, setEditingInlineExercise] = useState(null);
   const [creatingForIndex, setCreatingForIndex] = useState(null);
   const [savingTrainingTemplate, setSavingTrainingTemplate] = useState(false);
   const [showAddTrainingModal, setShowAddTrainingModal] = useState(false);
-  const [showExerciseTemplateModal, setShowExerciseTemplateModal] = useState(false);
-  const [editingExerciseTemplate, setEditingExerciseTemplate] = useState(null);
   const [editingTrainingTemplateId, setEditingTrainingTemplateId] = useState(null);
   const [loadingTrainingTemplateEdit, setLoadingTrainingTemplateEdit] = useState(false);
   const [viewMode, setViewMode] = usePersistedViewMode(VIEW_MODE_KEYS.protocolTemplates);
@@ -398,12 +398,14 @@ const ProtocolTemplates = () => {
       exerciseTemplateIds: [],
     });
     setExercisePickerValue('');
+    setTtModalView('form');
     setShowTrainingTemplateModal(true);
   };
 
   const openEditTrainingTemplateModal = async (trainingTemplateId) => {
     setEditingTrainingTemplateId(trainingTemplateId);
     setLoadingTrainingTemplateEdit(true);
+    setTtModalView('form');
     setShowTrainingTemplateModal(true);
     try {
       const response = await api.get(`/trainer/training-templates/${trainingTemplateId}`);
@@ -430,6 +432,8 @@ const ProtocolTemplates = () => {
     setShowTrainingTemplateModal(false);
     setCreatingForIndex(null);
     setEditingTrainingTemplateId(null);
+    setTtModalView('form');
+    setEditingInlineExercise(null);
   };
 
   const handleExercisePickerAdd = () => {
@@ -520,6 +524,23 @@ const ProtocolTemplates = () => {
       trainings: reordered.map((t, i) => ({ ...t, order: i + 1 })),
     });
   };
+
+  const handleInlineExerciseSaved = (result) => {
+    const wasEditing = ttModalView === 'exercise-edit';
+    fetchExerciseTemplates();
+    if (!wasEditing && result?.id != null) {
+      setTrainingTemplateFormData((prev) => ({
+        ...prev,
+        exerciseTemplateIds: [...prev.exerciseTemplateIds, result.id],
+      }));
+    }
+    setEditingInlineExercise(null);
+    setTtModalView('form');
+  };
+
+  const ttModalTitle = ttModalView === 'form'
+    ? (editingTrainingTemplateId ? 'Editar treino único' : 'Criar treino único')
+    : (ttModalView === 'exercise-edit' ? 'Editar exercício' : 'Criar exercício');
 
   return (
     <div>
@@ -970,11 +991,19 @@ const ProtocolTemplates = () => {
 
       {showTrainingTemplateModal && (
         <div className="overlay" onClick={closeTrainingTemplateModal}>
-          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+          <div className="bottom-sheet bottom-sheet--large" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
-              <h2 className="bottom-sheet-title">
-                {editingTrainingTemplateId ? 'Editar treino único' : 'Criar treino único'}
-              </h2>
+              {ttModalView !== 'form' ? (
+                <button
+                  type="button"
+                  className="btn-back"
+                  onClick={() => { setTtModalView('form'); setEditingInlineExercise(null); }}
+                  aria-label="Voltar"
+                >
+                  <ArrowLeft size={18} strokeWidth={1.6} />
+                </button>
+              ) : null}
+              <h2 className="bottom-sheet-title">{ttModalTitle}</h2>
               <button
                 className="bottom-sheet-close"
                 onClick={closeTrainingTemplateModal}
@@ -984,181 +1013,164 @@ const ProtocolTemplates = () => {
               </button>
             </div>
             <div className="bottom-sheet-body">
-              {loadingTrainingTemplateEdit ? (
+              {ttModalView !== 'form' ? (
+                <ExerciseTemplateForm
+                  exerciseTemplate={ttModalView === 'exercise-edit' ? editingInlineExercise : undefined}
+                  onSuccess={handleInlineExerciseSaved}
+                  onCancel={() => { setTtModalView('form'); setEditingInlineExercise(null); }}
+                />
+              ) : loadingTrainingTemplateEdit ? (
                 <div className="loading-screen"><span className="loading-text">Carregando...</span></div>
               ) : (
-              <form onSubmit={handleTrainingTemplateSubmit} className="form">
-                <div>
-                  <label className="form-label" htmlFor="tt-modal-name">Nome</label>
-                  <input
-                    id="tt-modal-name"
-                    type="text"
-                    value={trainingTemplateFormData.name}
-                    onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, name: e.target.value })}
-                    className="form-input"
-                    required
-                    autoFocus
-                  />
-                </div>
-
-                <div>
-                  <label className="form-label" htmlFor="tt-modal-description">Descrição</label>
-                  <textarea
-                    id="tt-modal-description"
-                    value={trainingTemplateFormData.description}
-                    onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, description: e.target.value })}
-                    rows={3}
-                    className="form-textarea"
-                  />
-                </div>
-
-                <div className="grid-responsive-2col">
+                <form onSubmit={handleTrainingTemplateSubmit} className="form">
                   <div>
-                    <label className="form-label" htmlFor="tt-modal-category">Categoria</label>
-                    <select
-                      id="tt-modal-category"
-                      value={trainingTemplateFormData.category}
-                      onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, category: e.target.value })}
-                      className="form-select"
+                    <label className="form-label" htmlFor="tt-modal-name">Nome</label>
+                    <input
+                      id="tt-modal-name"
+                      type="text"
+                      value={trainingTemplateFormData.name}
+                      onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, name: e.target.value })}
+                      className="form-input"
                       required
-                    >
-                      <option value="">Selecione...</option>
-                      <option value="strength">Força</option>
-                      <option value="cardio">Cardio</option>
-                      <option value="flexibility">Flexibilidade</option>
-                      <option value="functional">Funcional</option>
-                      <option value="mobility">Mobilidade</option>
-                      <option value="rest">Descanso</option>
-                    </select>
+                      autoFocus
+                    />
                   </div>
 
                   <div>
-                    <label className="form-label" htmlFor="tt-modal-bodySegment">Segmento Corporal</label>
-                    <select
-                      id="tt-modal-bodySegment"
-                      value={trainingTemplateFormData.bodySegment}
-                      onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, bodySegment: e.target.value })}
-                      className="form-select"
-                    >
-                      <option value="">Selecione...</option>
-                      <option value="upper">Superior</option>
-                      <option value="lower">Inferior</option>
-                      <option value="core">Core</option>
-                      <option value="full_body">Corpo Inteiro</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-checkbox-row">
-                  <input
-                    type="checkbox"
-                    id="trainingTemplateIsPublic"
-                    checked={trainingTemplateFormData.isPublic}
-                    onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, isPublic: e.target.checked })}
-                  />
-                  <label htmlFor="trainingTemplateIsPublic" className="form-label mb-0">
-                    Tornar este modelo público
-                  </label>
-                </div>
-
-                <div className="form-section" style={{ marginTop: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--color-outline-variant)' }}>
-                  <div className="form-section-header">
-                    <h3 className="form-section-title">Exercícios do treino</h3>
+                    <label className="form-label" htmlFor="tt-modal-description">Descrição</label>
+                    <textarea
+                      id="tt-modal-description"
+                      value={trainingTemplateFormData.description}
+                      onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, description: e.target.value })}
+                      rows={3}
+                      className="form-textarea"
+                    />
                   </div>
 
-                  <div className="exercise-picker-row">
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="pt-exercise-picker">Selecionar exercício existente</label>
+                  <div className="grid-responsive-2col">
+                    <div>
+                      <label className="form-label" htmlFor="tt-modal-category">Categoria</label>
                       <select
-                        id="pt-exercise-picker"
-                        value={exercisePickerValue}
-                        onChange={(e) => setExercisePickerValue(e.target.value)}
+                        id="tt-modal-category"
+                        value={trainingTemplateFormData.category}
+                        onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, category: e.target.value })}
                         className="form-select"
+                        required
                       >
-                        <option value="">Selecione um exercício...</option>
-                        {exerciseTemplates.map((et) => (
-                          <option key={et.id} value={et.id}>{et.name}</option>
-                        ))}
+                        <option value="">Selecione...</option>
+                        <option value="strength">Força</option>
+                        <option value="cardio">Cardio</option>
+                        <option value="flexibility">Flexibilidade</option>
+                        <option value="functional">Funcional</option>
+                        <option value="mobility">Mobilidade</option>
+                        <option value="rest">Descanso</option>
                       </select>
                     </div>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={handleExercisePickerAdd}
-                      disabled={!exercisePickerValue}
-                      aria-label="Adicionar exercício ao treino"
-                    >
-                      Adicionar
-                    </button>
-                  </div>
 
-                  {trainingTemplateFormData.exerciseTemplateIds.length > 0 && (
-                    <div className="exercise-list">
-                      {trainingTemplateFormData.exerciseTemplateIds.map((etId) => {
-                        const et = exerciseTemplates.find((t) => String(t.id) === String(etId));
-                        const name = et?.name || String(etId);
-                        const meta = et ? formatExerciseMeta(et) : null;
-                        return (
-                          <ExerciseRow
-                            key={etId}
-                            name={name}
-                            meta={meta}
-                            onEdit={et ? () => setEditingExerciseTemplate(et) : undefined}
-                            onRemove={() => handleExercisePickerRemove(etId)}
-                          />
-                        );
-                      })}
+                    <div>
+                      <label className="form-label" htmlFor="tt-modal-bodySegment">Segmento Corporal</label>
+                      <select
+                        id="tt-modal-bodySegment"
+                        value={trainingTemplateFormData.bodySegment}
+                        onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, bodySegment: e.target.value })}
+                        className="form-select"
+                      >
+                        <option value="">Selecione...</option>
+                        <option value="upper">Superior</option>
+                        <option value="lower">Inferior</option>
+                        <option value="core">Core</option>
+                        <option value="full_body">Corpo Inteiro</option>
+                      </select>
                     </div>
-                  )}
+                  </div>
 
-                  <div className="exercise-list-actions">
-                    <button
-                      type="button"
-                      className="btn-schedule-sm"
-                      onClick={() => setShowExerciseTemplateModal(true)}
-                      aria-label="Criar novo exercício"
-                    >
-                      + Criar novo exercício
+                  <div className="form-checkbox-row">
+                    <input
+                      type="checkbox"
+                      id="trainingTemplateIsPublic"
+                      checked={trainingTemplateFormData.isPublic}
+                      onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, isPublic: e.target.checked })}
+                    />
+                    <label htmlFor="trainingTemplateIsPublic" className="form-label mb-0">
+                      Tornar este modelo público
+                    </label>
+                  </div>
+
+                  <div className="form-section" style={{ marginTop: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--color-outline-variant)' }}>
+                    <div className="form-section-header">
+                      <h3 className="form-section-title">Exercícios do treino</h3>
+                    </div>
+
+                    <div className="exercise-picker-row">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="pt-exercise-picker">Selecionar exercício existente</label>
+                        <select
+                          id="pt-exercise-picker"
+                          value={exercisePickerValue}
+                          onChange={(e) => setExercisePickerValue(e.target.value)}
+                          className="form-select"
+                        >
+                          <option value="">Selecione um exercício...</option>
+                          {exerciseTemplates.map((et) => (
+                            <option key={et.id} value={et.id}>{et.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={handleExercisePickerAdd}
+                        disabled={!exercisePickerValue}
+                        aria-label="Adicionar exercício ao treino"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+
+                    {trainingTemplateFormData.exerciseTemplateIds.length > 0 && (
+                      <div className="exercise-list">
+                        {trainingTemplateFormData.exerciseTemplateIds.map((etId) => {
+                          const et = exerciseTemplates.find((t) => String(t.id) === String(etId));
+                          const name = et?.name || String(etId);
+                          const meta = et ? formatExerciseMeta(et) : null;
+                          return (
+                            <ExerciseRow
+                              key={etId}
+                              name={name}
+                              meta={meta}
+                              onEdit={et ? () => { setEditingInlineExercise(et); setTtModalView('exercise-edit'); } : undefined}
+                              onRemove={() => handleExercisePickerRemove(etId)}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="exercise-list-actions">
+                      <button
+                        type="button"
+                        className="btn-schedule-sm"
+                        onClick={() => setTtModalView('exercise-create')}
+                        aria-label="Criar novo exercício"
+                      >
+                        + Criar novo exercício
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="btn-group">
+                    <button type="submit" disabled={savingTrainingTemplate} className="btn-primary">
+                      {savingTrainingTemplate ? 'Salvando...' : editingTrainingTemplateId ? 'Salvar' : 'Criar treino único'}
+                    </button>
+                    <button type="button" onClick={closeTrainingTemplateModal} className="btn-secondary">
+                      Cancelar
                     </button>
                   </div>
-                </div>
-
-                <div className="btn-group">
-                  <button type="submit" disabled={savingTrainingTemplate} className="btn-primary">
-                    {savingTrainingTemplate ? 'Salvando...' : editingTrainingTemplateId ? 'Salvar' : 'Criar treino único'}
-                  </button>
-                  <button type="button" onClick={closeTrainingTemplateModal} className="btn-secondary">
-                    Cancelar
-                  </button>
-                </div>
-              </form>
+                </form>
               )}
             </div>
           </div>
         </div>
-      )}
-
-      {(showExerciseTemplateModal || editingExerciseTemplate) && (
-        <CreateExerciseTemplateModal
-          open
-          exerciseTemplate={editingExerciseTemplate}
-          onClose={() => {
-            setShowExerciseTemplateModal(false);
-            setEditingExerciseTemplate(null);
-          }}
-          onSuccess={(result) => {
-            const wasEditing = !!editingExerciseTemplate;
-            setShowExerciseTemplateModal(false);
-            setEditingExerciseTemplate(null);
-            fetchExerciseTemplates();
-            if (!wasEditing && result?.id != null) {
-              setTrainingTemplateFormData((prev) => ({
-                ...prev,
-                exerciseTemplateIds: [...prev.exerciseTemplateIds, result.id],
-              }));
-            }
-          }}
-        />
       )}
     </div>
   );

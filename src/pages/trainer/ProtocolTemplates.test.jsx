@@ -19,17 +19,22 @@ vi.mock('../../api/axios', () => ({
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('../../components/CreateExerciseTemplateModal', () => ({
-  default: ({ open, onClose, onSuccess, exerciseTemplate }) =>
-    open ? (
-      <div data-testid="create-exercise-template-modal">
-        {exerciseTemplate && <span data-testid="editing-exercise-id">{exerciseTemplate.id}</span>}
-        <button onClick={onClose} type="button">Fechar modal exercício</button>
-        <button onClick={() => onSuccess?.(exerciseTemplate ? { ...exerciseTemplate, name: 'Exercício Editado' } : { id: 99, name: 'Novo Exercício' })} type="button">
-          {exerciseTemplate ? 'Simular exercício editado' : 'Simular exercício criado'}
-        </button>
-      </div>
-    ) : null,
+vi.mock('../../components/ExerciseTemplateForm', () => ({
+  default: ({ exerciseTemplate, onSuccess, onCancel }) => (
+    <div data-testid="exercise-template-form">
+      {exerciseTemplate && <span data-testid="editing-exercise-id">{exerciseTemplate.id}</span>}
+      <button
+        onClick={() => onSuccess?.(exerciseTemplate
+          ? { ...exerciseTemplate, name: 'Exercício Editado' }
+          : { id: 99, name: 'Novo Exercício' }
+        )}
+        type="button"
+      >
+        {exerciseTemplate ? 'Simular exercício editado' : 'Simular exercício criado'}
+      </button>
+      <button onClick={onCancel} type="button">Cancelar exercício</button>
+    </div>
+  ),
 }));
 
 const mockShowToast = vi.fn();
@@ -272,7 +277,7 @@ describe('ProtocolTemplates', () => {
     expect(screen.getByLabelText('Ordem')).toBeInTheDocument();
   });
 
-  it('opens CreateExerciseTemplateModal when "Criar exercício" is clicked in training template modal', async () => {
+  it('shows inline exercise template form when "Criar novo exercício" is clicked', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ProtocolTemplates />);
 
@@ -281,10 +286,23 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
     await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
 
-    expect(screen.getByTestId('create-exercise-template-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('exercise-template-form')).toBeInTheDocument();
+    expect(screen.queryByTestId('editing-exercise-id')).not.toBeInTheDocument();
   });
 
-  it('adds newly created exercise to training template form when CreateExerciseTemplateModal calls onSuccess', async () => {
+  it('shows "Criar exercício" title in modal header when creating inline exercise', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
+
+    expect(screen.getByText('Criar exercício')).toBeInTheDocument();
+  });
+
+  it('adds newly created exercise to training template form after inline form success', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ProtocolTemplates />);
 
@@ -297,6 +315,54 @@ describe('ProtocolTemplates', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /ações do exercício novo exercício/i })).toBeInTheDocument();
     });
+  });
+
+  it('returns to training template form when back button is clicked from exercise form', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
+
+    expect(screen.getByTestId('exercise-template-form')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /voltar/i }));
+
+    expect(screen.queryByTestId('exercise-template-form')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Nome', { selector: '#tt-modal-name' })).toBeInTheDocument();
+  });
+
+  it('returns to training template form when cancel is clicked in exercise form', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
+
+    await user.click(screen.getByRole('button', { name: /cancelar exercício/i }));
+
+    expect(screen.queryByTestId('exercise-template-form')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Nome', { selector: '#tt-modal-name' })).toBeInTheDocument();
+  });
+
+  it('training template form data persists after exercise creation round-trip', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
+
+    await user.type(screen.getByLabelText('Nome', { selector: '#tt-modal-name' }), 'Meu Treino');
+
+    await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
+    await user.click(screen.getByRole('button', { name: /cancelar exercício/i }));
+
+    expect(screen.getByDisplayValue('Meu Treino')).toBeInTheDocument();
   });
 
   it('closes add training modal when cancel is clicked', async () => {
@@ -389,7 +455,7 @@ describe('ProtocolTemplates', () => {
     expect(screen.queryByRole('button', { name: /ações do exercício supino reto/i })).not.toBeInTheDocument();
   });
 
-  it('opens exercise template modal in edit mode when edit exercise is clicked in training template modal', async () => {
+  it('shows inline exercise template form in edit mode when edit exercise is clicked', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ProtocolTemplates />);
 
@@ -403,8 +469,25 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
     await user.click(screen.getByRole('button', { name: /^editar$/i }));
 
-    expect(screen.getByTestId('create-exercise-template-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('exercise-template-form')).toBeInTheDocument();
     expect(screen.getByTestId('editing-exercise-id')).toHaveTextContent('20');
+  });
+
+  it('shows "Editar exercício" title when editing exercise inline', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
+
+    await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+
+    await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
+    await user.click(screen.getByRole('button', { name: /^editar$/i }));
+
+    expect(screen.getByText('Editar exercício')).toBeInTheDocument();
   });
 
   it('refreshes exercise templates after editing without duplicating IDs in training template modal', async () => {

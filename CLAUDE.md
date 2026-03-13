@@ -1,111 +1,123 @@
 # CLAUDE.md — Treinoway Web
 
-## Stack & Comandos
+## RULE 0: Always Use the frontend-engineer Agent
 
-- **Stack:** React 19, Vite 7, vanilla CSS (sem Tailwind), Firebase Auth, Axios
+**You MUST delegate ALL code writing to the `frontend-engineer` agent. No exceptions.**
+
+Never write frontend code directly. Every implementation task — components, pages, hooks, styles, tests, i18n — must go through the `frontend-engineer` agent. This is not a suggestion.
+
+---
+
+## Stack & Commands
+
+- **Stack:** React 19, Vite 7, vanilla CSS (no Tailwind), Firebase Auth, Axios
 - `npm run dev` — dev server
-- `npm run test:run` — rodar testes (single run)
+- `npm run test:run` — run tests (single run)
 - `npm run lint` — ESLint
 
 ---
 
-## REGRA 1: Testes Obrigatórios
+## RULE 1: Tests Required
 
-**Toda alteração de código DEVE incluir testes.** Sem exceção.
+**Every code change MUST include tests.** No exceptions.
 
 - **Framework:** Vitest + React Testing Library + @testing-library/user-event
-- **Arquivos:** `NomeDoArquivo.test.jsx` no mesmo diretório do componente
-- **Utilitários:** importar de `../../test/test-utils` (nunca direto de @testing-library/react)
-- Queries por **role, label, placeholder** — nunca por classe CSS ou data-testid
-- `userEvent.setup()` para interações, `waitFor()` para async
-- Mock de contextos: `vi.mock('../contexts/ToastContext')`, `vi.mock('../contexts/AuthContext')`
-- Mock de API: `vi.mock('../api/axios')` com respostas condicionais por URL
-- `beforeEach` para resetar mocks
-- Testar: estados (loading, empty, error, success), interações, chamadas de API, validações
-- **Rodar:** `npm run test:run` — todos os testes devem passar antes de considerar a tarefa concluída
+- **Files:** `FileName.test.jsx` in the same directory as the component
+- **Utilities:** import from `../../test/test-utils` (never directly from @testing-library/react)
+- Queries by **role, label, placeholder** — never by CSS class or data-testid
+- `userEvent.setup()` for interactions, `waitFor()` for async
+- Context mocks: `vi.mock('../contexts/ToastContext')`, `vi.mock('../contexts/AuthContext')`
+- API mock: `vi.mock('../api/axios')` with conditional responses by URL
+- `beforeEach` to reset mocks
+- Test: states (loading, empty, error, success), interactions, API calls, validations
+- **Update existing tests** when behavior changes. Not just add new ones.
+- Test both **success AND cancel/failure** paths when applicable.
+- **Run:** `npm run test:run` — all tests must pass before considering the task complete
 
 ---
 
-## REGRA 2: Design System (CSS)
+## RULE 2: Design System (CSS)
 
-**Todo código visual DEVE usar tokens e classes existentes em `src/index.css`.** Nunca valores hardcoded.
+**All visual code MUST use tokens and existing classes from `src/index.css`.** Never hardcoded values.
 
-**Mobile-first obrigatório:** estilos base = mobile. Breakpoints: `min-width: 768px` e `1024px`.
+**Mobile-first required:** base styles = mobile. Breakpoints: `min-width: 768px` and `1024px`.
 
-**Tokens CSS (usar sempre via variável):**
-- Cores: `--md-primary`, `--md-on-primary`, `--md-primary-container`, `--md-secondary`, `--md-error`, `--md-success`, `--md-surface`, `--md-on-surface`
-- Espaçamento: `--spacing-xs/sm/md/lg/xl/xxl` (4/8/16/24/32/48px)
-- Raio: `--radius-xs/sm/md/lg/xl/full`
-- Sombras: `--shadow-sm/md/lg`
+**CSS Tokens (always use via variable):**
+- Colors: `--md-primary`, `--md-on-primary`, `--md-primary-container`, `--md-secondary`, `--md-error`, `--md-success`, `--md-surface`, `--md-on-surface`
+- Spacing: `--spacing-xs/sm/md/lg/xl/xxl` (4/8/16/24/32/48px)
+- Radius: `--radius-xs/sm/md/lg/xl/full`
+- Shadows: `--shadow-sm/md/lg`
+- Typography: `--font-h1-size/weight`, `--font-h2-size/weight`, `--font-h3-size/weight`, `--font-body-size/weight`, `--font-body-small-size`, `--font-caption-size`, `--font-button-label-size/weight/letter-spacing`, `--font-family-base`
 
-**Classes reutilizáveis (verificar antes de criar novas):**
-- Botões: `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-delete`, `.btn-schedule-sm` + variantes `-sm`/`-full`
-- Hierarquia de botões: `btn-primary` = ação principal; `btn-secondary` = cancelar/voltar; `btn-schedule-sm` = adicionar/agendar; `btn-danger`/`btn-delete` = destrutivo
+**Reusable classes (check before creating new ones):**
+- Buttons: `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-delete`, `.btn-delete-sm`, `.btn-schedule-sm` + variants `-sm`/`-full`
+- Button hierarchy: `btn-primary` = main action; `btn-secondary` = cancel/back; `btn-schedule-sm` = add/schedule; `btn-danger`/`btn-delete`/`btn-delete-sm` = destructive
+- `inline style` acceptable **only for dynamic values** (e.g. `style={{ width: \`${progress}%\` }}`). Never for fixed colors or spacing.
 - Forms: `.form`, `.form-group`, `.form-label`, `.form-input`, `.form-select`, `.form-textarea`, `.form-error`, `.form-input--error`
 - Cards: `.card`, `.card-link`, `.card-header`, `.card-title`, `.card-description`
-- Modais: `.bottom-sheet`, `.bottom-sheet-header`, `.bottom-sheet-body`, `.bottom-sheet-close`
-- Confirmação: `.overlay` + `.confirm-dialog` + `.confirm-dialog-message`
+- Modals: `.bottom-sheet`, `.bottom-sheet-header`, `.bottom-sheet-body`, `.bottom-sheet-close`
+- Confirmation: `.overlay` + `.confirm-dialog` + `.confirm-dialog-message`
 - Badges: `.badge`, `.badge-blue`, `.badge-green`, `.badge-red`, `.badge-gray`
-- Grid: `.grid-cards` (1→2→3 colunas), `.grid-2col`
-- Tabelas responsivas: `.table-col-mobile-only`, `.table-col-desktop-only`
-- Utilitários: `.text-muted`, `.text-sm`, `.mb-sm`, `.mb-md`, `.mt-md`, `.font-medium`
+- Grid: `.grid-cards` (1→2→3 columns), `.grid-2col`
+- Responsive tables: `.table-col-mobile-only`, `.table-col-desktop-only`
+- Utilities: `.text-muted`, `.text-sm`, `.mb-sm`, `.mb-md`, `.mt-md`, `.font-medium`
 
-**Ícones:** Lucide React (`lucide-react`). Nunca usar outro pacote.
+**Icons:** Lucide React (`lucide-react`). Never use another package.
 
-**CSS em BEM-like:** `.card`, `.card--highlighted`, `.card__title`.
-
----
-
-## REGRA 3: React & Boas Práticas
-
-- **Componentes funcionais** com arrow function + `export default` no final. Nunca class components.
-- **Estado local:** `useState`. **Global:** Context API (AuthContext, ToastContext). Sem prop drilling excessivo.
-- **API:** usar `src/api/axios.js` (nunca `fetch` ou nova instância). Interceptors tratam token e erros automaticamente.
-- **Auth:** usar `useAuth()` de `AuthContext`. Nunca ler `localStorage` diretamente.
-- **Erros de API:** usar `error.userMessage` (setado pelo interceptor) ou `translateError(error)` de `src/i18n`. Nunca extrair `error.response?.data?.message` diretamente.
-- **Formulários:** inputs controlados com `useState`. Validação inline com `.form-error`.
-- **Navigation:** `useNavigate()`. Nunca `window.location.href` nem `<a href>` para rotas internas.
-- **Rotas protegidas:** `<ProtectedRoute>` + `<Layout>`.
-- **Effects:** `useEffect` com dependências explícitas e cleanup adequado.
-- **Memoização:** apenas quando houver problema de performance mensurável.
-- **Imports:** React não precisa ser importado (JSX transform).
-- **Sem `console.log`** em código final. `console.error` é aceitável.
-- **Event handlers:** prefixo `handle` (ex: `handleSubmit`, `handleDelete`).
-- **Loading:** desabilitar inputs/botões durante loading. Botão deve mostrar estado "Carregando...".
-
-**Organização do componente:** imports → hooks → handlers → return.
+**CSS in BEM-like:** `.card`, `.card--highlighted`, `.card__title`.
 
 ---
 
-## REGRA 4: Clean Architecture
+## RULE 3: React & Best Practices
 
-**Após implementar, revisar:**
+- **Functional components** with arrow function + `export default` at the end. Never class components.
+- **Local state:** `useState`. **Global:** Context API (AuthContext, ToastContext). No excessive prop drilling.
+- **API:** use `src/api/axios.js` (never `fetch` or a new instance). Interceptors handle token and errors automatically.
+- **Auth:** use `useAuth()` from `AuthContext`. Never read `localStorage` directly.
+- **API errors:** use `error.userMessage` (set by the interceptor) or `translateError(error)` from `src/i18n`. Never extract `error.response?.data?.message` directly. Never use `getErrorMessage(error, 'hardcoded fallback')`.
+- **Forms:** controlled inputs with `useState`. Inline validation with `.form-error`.
+- **Navigation:** `useNavigate()`. Never `window.location.href` or `<a href>` for internal routes.
+- **Protected routes:** `<ProtectedRoute>` + `<Layout>`.
+- **Effects:** `useEffect` with explicit dependencies and proper cleanup.
+- **Memoization:** only when there is a measurable performance problem.
+- **Imports:** React does not need to be imported (JSX transform).
+- **No `console.log`** in final code. `console.error` is acceptable.
+- **Event handlers:** `handle` prefix (e.g. `handleSubmit`, `handleDelete`).
+- **Loading:** disable inputs/buttons during loading. Button must show "Carregando..." state.
 
-1. **Responsabilidade única** — cada componente/função faz UMA coisa.
-2. **Separação de camadas:** `pages/` orquestra; `components/` é UI reutilizável (sem API direta); `hooks/` lógica reutilizável; `utils/` funções puras; `constants/` enums.
-3. **DRY** — padrão repetido 3+ vezes → extrair.
-4. **Nomes expressivos.** Sem abreviações obscuras.
-5. **Sem código morto** — remover imports, variáveis e comentários não usados.
-6. **Funções ≤ 30 linhas.** Se ultrapassar, quebrar.
-7. **Early return** — guard clauses antes de aninhamento.
-8. **Sem lógica no JSX** — extrair condicionais complexas para variáveis antes do `return`.
-
----
-
-## REGRA 5: Ações em Linhas de Lista
-
-**Linha com mais de uma ação → menu de 3 pontos.** Nunca múltiplos botões visíveis na linha.
-
-- **Componente:** `TemplateRowMenu` de `src/pages/trainer/TrainingTemplates.jsx`
-- Props: `ariaLabel` (obrigatório), `onDelete` (obrigatório), `onEdit` (opcional), `deleteLabel` (default "Excluir")
-- Trigger: `MoreVertical` do lucide-react. Ação destrutiva: `row-menu-item--danger`.
-- **Exceção:** linha com apenas UMA ação pode ter botão direto.
+**Component organization:** imports → hooks → handlers → return.
 
 ---
 
-## REGRA 6: Confirmações Destrutivas
+## RULE 4: Clean Architecture
 
-**Nunca usar `window.confirm()`.** Sempre usar dialog customizado:
+**After implementing, review:**
+
+1. **Single responsibility** — each component/function does ONE thing.
+2. **Layer separation:** `pages/` orchestrates; `components/` is reusable UI (no direct API calls); `hooks/` reusable logic; `utils/` pure functions; `constants/` enums.
+3. **DRY** — pattern repeated 3+ times → extract.
+4. **Expressive names.** No obscure abbreviations.
+5. **No dead code** — remove unused imports, variables, and comments.
+6. **Functions ≤ 30 lines.** If exceeded, break it up.
+7. **Early return** — guard clauses before nesting.
+8. **No logic in JSX** — extract complex conditionals to variables before `return`.
+
+---
+
+## RULE 5: List Row Actions
+
+**Row with more than one action → three-dot menu.** Never multiple visible buttons in a row.
+
+- **Component:** `TemplateRowMenu` from `src/pages/trainer/TrainingTemplates.jsx`
+- Props: `ariaLabel` (required), `onDelete` (required), `onEdit` (optional), `deleteLabel` (default "Excluir")
+- Trigger: `MoreVertical` from lucide-react. Destructive action: `row-menu-item--danger`.
+- **Exception:** row with only ONE action may have a direct button.
+
+---
+
+## RULE 6: Destructive Confirmations
+
+**Never use `window.confirm()`.** Always use a custom dialog:
 
 ```jsx
 const [confirmDialog, setConfirmDialog] = useState(null);
@@ -117,7 +129,7 @@ const handleDelete = (item) => {
   });
 };
 
-// No JSX:
+// In JSX:
 {confirmDialog && (
   <div className="overlay" onClick={() => setConfirmDialog(null)}>
     <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
@@ -133,9 +145,9 @@ const handleDelete = (item) => {
 
 ---
 
-## REGRA 7: Tabelas Responsivas
+## RULE 7: Responsive Tables
 
-**Nunca renderizar tabela larga que transborde em 375px.** Usar classes para mostrar colunas progressivamente:
+**Never render a wide table that overflows on 375px.** Use classes to show columns progressively:
 
 ```jsx
 <thead><tr>
@@ -156,33 +168,33 @@ const handleDelete = (item) => {
 
 ---
 
-## REGRA 8: Cards — Hierarquia Visual
+## RULE 8: Cards — Visual Hierarchy
 
-1. Título primário em linha própria (`card-subtitle`)
-2. Metadado secundário em linha separada com estilo subdued (`text-sm text-light`)
-3. Badge de status alinhado no header oposto ao título
-4. Datas/info abaixo do header
-5. Ações em footer dedicado (`btn-group`)
-- Nunca mostrar `Invalid Date` — usar `"-"` como fallback para datas ausentes
-- Nome de pessoa: `firstName + lastName`, fallback para email
-
----
-
-## REGRA 9: Carregamento de Recursos
-
-Ao buscar recurso por id/query:
-
-1. Setar estado de loading antes da request
-2. Renderizar `.loading-screen` com "Carregando..."
-3. Só após concluir: mostrar recurso ou feedback de "não encontrado"
-
-Nunca mostrar "não encontrado" antes do `GET` completar.
+1. Primary title on its own line (`card-subtitle`)
+2. Secondary metadata on a separate line with subdued style (`text-sm text-light`)
+3. Status badge aligned in the header opposite the title
+4. Dates/info below the header
+5. Actions in a dedicated footer (`btn-group`)
+- Never show `Invalid Date` — use `"-"` as fallback for missing dates
+- Person name: `firstName + lastName`, fallback to email
 
 ---
 
-## REGRA 10: Formulário + Lista — Exclusão Mútua
+## RULE 9: Resource Loading
 
-Quando a página tem formulário inline e lista de cards, **ocultar a lista enquanto o formulário estiver aberto:**
+When fetching a resource by id/query:
+
+1. Set loading state before the request
+2. Render `.loading-screen` with "Carregando..."
+3. Only after completion: show the resource or "not found" feedback
+
+Never show "not found" before the `GET` completes.
+
+---
+
+## RULE 10: Form + List — Mutual Exclusion
+
+When the page has an inline form and a card list, **hide the list while the form is open:**
 
 ```jsx
 {!showForm && <div className="grid-cards">{items.map(...)}</div>}
@@ -190,24 +202,51 @@ Quando a página tem formulário inline e lista de cards, **ocultar a lista enqu
 
 ---
 
-## REGRA 11: Modelos vs Entidades Reais
+## RULE 11: Templates vs Real Entities
 
-O app diferencia **modelos (templates)** de **entidades reais (vinculadas a aluno)**.
+The app differentiates **templates** from **real entities (linked to a student)**.
 
-**Contexto de aluno (ex: ProtocolDetail):** ao adicionar exercício/treino, oferecer duas opções via `segmented-toggle`:
-1. **Criar novo** → `POST /trainer/trainings/:id/exercises`
-2. **Importar de modelo** → `POST /trainer/exercises/from-template`
+**Student context (e.g. ProtocolDetail):** when adding an exercise/training, offer two options via `segmented-toggle`:
+1. **Create new** → `POST /trainer/trainings/:id/exercises`
+2. **Import from template** → `POST /trainer/exercises/from-template`
 
-**Contexto de modelo (páginas de templates):** permitir criação de sub-modelos inline.
+**Template context (template pages):** allow inline creation of sub-templates.
 
-- `CreateExerciseModal` — exercício real
-- `CreateExerciseTemplateModal` — modelo de exercício
+- `CreateExerciseModal` — real exercise
+- `CreateExerciseTemplateModal` — exercise template
 
 ---
 
-## Convenções Gerais
+## RULE 12: API Error Format
 
-- **Idioma:** código em inglês, UI em pt-BR via i18n (`src/i18n/locales/pt-BR.js`)
-- **CSS:** novos estilos em `src/index.css`, na seção correta. Verificar se existe classe similar antes de criar nova.
-- **Novos componentes/páginas:** sempre criar teste junto.
-- **Sem bibliotecas de componentes externas** (MUI, Ant Design, etc.)
+The backend returns errors with an i18n-ready structure:
+
+```json
+{ "error": "INVALID_CREDENTIALS", "messageCode": "auth.unauthorized", "message": "..." }
+// Validation (400):
+{ "error": "VALIDATION_ERROR", "messageCode": "validation.failed", "details": [{ "field": "email", "messageCode": "validation.email.format" }] }
+```
+
+**Known `messageCode` values:** `auth.unauthorized`, `auth.forbidden`, `resource.notFound`, `resource.conflict`, `request.badRequest`, `validation.failed`
+
+**Known error codes:** `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `EMAIL_IN_USE`, `PASSWORD_MISMATCH`, `VALIDATION_ERROR`, `FILE_REQUIRED`, `INVALID_FILE_TYPE`, `FILE_TOO_LARGE`
+
+New translations go in `src/i18n/locales/pt-BR.js` under the `errors`, `messageCodes`, `validation`, `fields` sections.
+
+---
+
+## RULE 13: Be Critical, Not Sycophantic
+
+- **Be critical and skeptical** when reviewing proposals, ideas, or code. Do not agree by default.
+- **Never be sycophantic** — give honest, direct feedback. Skip empty praise.
+- **Point out problems, trade-offs, and alternatives** before agreeing with a plan.
+- If an approach has downsides, say so clearly — even if the user seems enthusiastic about it.
+
+---
+
+## General Conventions
+
+- **Language:** code in English, UI in pt-BR via i18n (`src/i18n/locales/pt-BR.js`)
+- **CSS:** new styles in `src/index.css`, in the correct section. Check if a similar class exists before creating a new one.
+- **New components/pages:** always create a test alongside.
+- **No external component libraries** (MUI, Ant Design, etc.)
