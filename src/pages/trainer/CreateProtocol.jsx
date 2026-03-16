@@ -764,6 +764,30 @@ const CreateProtocol = () => {
             />
           </div>
 
+          <div className="grid-2col">
+            <div>
+              <label className="form-label" htmlFor="protocol-start-date">Data de Início</label>
+              <DateInput
+                id="protocol-start-date"
+                value={formData.startDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, startDate: e.target.value }))}
+                className="form-input"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="form-label" htmlFor="protocol-end-date">Data de Término</label>
+              <DateInput
+                id="protocol-end-date"
+                value={formData.endDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
+                className="form-input"
+                required
+              />
+            </div>
+          </div>
+
           <div className="grid-responsive-2col">
             <div>
               <label className="form-label" htmlFor="protocol-gender-ordination">Classificação</label>
@@ -880,28 +904,6 @@ const CreateProtocol = () => {
                 </div>
               </>
             )}
-          </div>
-
-          <div>
-            <label className="form-label" htmlFor="protocol-start-date">Data de Início</label>
-            <DateInput
-              id="protocol-start-date"
-              value={formData.startDate}
-              onChange={(e) => setFormData((prev) => ({ ...prev, startDate: e.target.value }))}
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="form-label" htmlFor="protocol-end-date">Data de Término</label>
-            <DateInput
-              id="protocol-end-date"
-              value={formData.endDate}
-              onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
-              className="form-input"
-              required
-            />
           </div>
 
           <div className="btn-group">

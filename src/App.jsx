@@ -12,6 +12,7 @@ import Signup from './pages/Signup';
 // Protected pages
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import Trainers from './pages/Trainers';
 
 // Trainer pages
 import TrainingTemplates from './pages/trainer/TrainingTemplates';
@@ -59,6 +60,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Profile />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainers"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Trainers />
                 </Layout>
               </ProtectedRoute>
             }

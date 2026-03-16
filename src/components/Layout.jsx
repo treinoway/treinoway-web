@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown, FileText } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown, FileText, UserCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const BIBLIOTECA_PATHS = ['/trainer/protocol-templates', '/trainer/training-templates', '/trainer/exercise-templates'];
@@ -73,6 +73,7 @@ const Layout = ({ children }) => {
   const navLinks = [
     { path: '/', label: 'Painel', Icon: Home },
     { path: '/profile', label: 'Meu Perfil', Icon: User },
+    { path: '/trainers', label: 'Treinadores', Icon: UserCheck },
     { path: '/my/protocols', label: 'Minhas Rotinas', Icon: ClipboardList },
     { path: '/my/anamneses', label: 'Anamneses', Icon: FileText },
     ...(hasRole('TRAINER') ? [
@@ -299,6 +300,17 @@ const Layout = ({ children }) => {
             <FileText size={22} strokeWidth={1.6} />
           </span>
           <span>Anamneses</span>
+        </Link>
+
+        <Link
+          to="/trainers"
+          className={`bottom-nav-item ${isActive('/trainers') ? 'bottom-nav-item--active' : ''}`}
+          aria-label="Treinadores"
+        >
+          <span className="bottom-nav-item-icon" aria-hidden="true">
+            <UserCheck size={22} strokeWidth={1.6} />
+          </span>
+          <span>Treinadores</span>
         </Link>
 
         {hasRole('TRAINER') && (

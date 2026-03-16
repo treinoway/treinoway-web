@@ -46,6 +46,7 @@ const mockShowToast = vi.fn();
 
 const mockProtocol = {
   id: 1,
+  name: 'Rotina Teste',
   status: 'ACTIVE',
   startDate: '2024-01-01',
   expirationDate: '2024-03-31',
@@ -244,7 +245,8 @@ describe('ProtocolDetail', () => {
 
     await waitFor(() => screen.getByText('Treino de Peito'));
     await user.click(screen.getByRole('button', { name: /ações do treino treino de peito/i }));
-    await user.click(screen.getByRole('button', { name: /editar/i }));
+    const editarButtons = screen.getAllByRole('button', { name: /editar/i });
+    await user.click(editarButtons[editarButtons.length - 1]);
 
     fireEvent.submit(container.querySelector('form'));
 
@@ -459,7 +461,8 @@ describe('ProtocolDetail', () => {
 
       await waitFor(() => screen.getByText('Supino Reto'));
       await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
-      await user.click(screen.getByRole('button', { name: /editar/i }));
+      const editarButtons = screen.getAllByRole('button', { name: /editar/i });
+      await user.click(editarButtons[editarButtons.length - 1]);
 
       expect(screen.getByTestId('create-exercise-modal')).toBeInTheDocument();
       expect(screen.getByTestId('modal-exercise-id')).toHaveTextContent('100');
@@ -488,6 +491,101 @@ describe('ProtocolDetail', () => {
 
       await waitFor(() => screen.getByText('Treino de Peito'));
       expect(screen.getByRole('button', { name: /arrastar para reordenar/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('edit protocol', () => {
+    it('shows an "Editar" button in the protocol card', async () => {
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      expect(screen.getByRole('button', { name: /^editar$/i })).toBeInTheDocument();
+    });
+
+    it('opens a bottom-sheet form when "Editar" is clicked', async () => {
+      const user = userEvent.setup();
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      await user.click(screen.getByRole('button', { name: /^editar$/i }));
+
+      expect(screen.getByText('Editar Rotina')).toBeInTheDocument();
+    });
+
+    it('pre-populates the form with current protocol name', async () => {
+      const user = userEvent.setup();
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      await user.click(screen.getByRole('button', { name: /^editar$/i }));
+
+      expect(screen.getByRole('textbox', { name: /nome/i })).toHaveValue('Rotina Teste');
+    });
+
+    it('calls PATCH /trainer/protocols/1 on submit', async () => {
+      const user = userEvent.setup();
+      api.patch.mockResolvedValue({ data: {} });
+
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      await user.click(screen.getByRole('button', { name: /^editar$/i }));
+
+      await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+      await waitFor(() => {
+        expect(api.patch).toHaveBeenCalledWith(
+          '/trainer/protocols/1',
+          expect.objectContaining({ name: 'Rotina Teste', status: 'ACTIVE' })
+        );
+      });
+    });
+
+    it('shows success toast after successful edit', async () => {
+      const user = userEvent.setup();
+      api.patch.mockResolvedValue({ data: {} });
+
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      await user.click(screen.getByRole('button', { name: /^editar$/i }));
+      await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith('Rotina atualizada com sucesso!', 'success');
+      });
+    });
+
+    it('closes the form after successful edit', async () => {
+      const user = userEvent.setup();
+      api.patch.mockResolvedValue({ data: {} });
+
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      await user.click(screen.getByRole('button', { name: /^editar$/i }));
+      expect(screen.getByText('Editar Rotina')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByText('Editar Rotina')).not.toBeInTheDocument();
+      });
+    });
+
+    it('shows error toast on failed edit', async () => {
+      const user = userEvent.setup();
+      api.patch.mockRejectedValue({ userMessage: 'Erro ao atualizar rotina' });
+
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      await user.click(screen.getByRole('button', { name: /^editar$/i }));
+      await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith('Erro ao atualizar rotina', 'error');
+      });
     });
   });
 

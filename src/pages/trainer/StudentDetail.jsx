@@ -5,6 +5,9 @@ import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
+import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
+import { TemplateRowMenu } from './TrainingTemplates';
+import { ANAMNESIS_QUESTION_TYPE } from '../../constants/anamnesis';
 
 const getAvatarInitial = (student) => {
   if (student?.firstName) return student.firstName.charAt(0).toUpperCase();
@@ -18,24 +21,6 @@ const getStudentName = (student) => {
     return [student.firstName, student.lastName].filter(Boolean).join(' ');
   }
   return null;
-};
-
-const getStatusBadgeClass = (status) => {
-  switch (status?.toLowerCase()) {
-    case 'active': return 'badge badge-green';
-    case 'completed': return 'badge badge-gray';
-    case 'cancelled': return 'badge badge-red';
-    default: return 'badge badge-gray';
-  }
-};
-
-const getStatusLabel = (status) => {
-  switch (status?.toLowerCase()) {
-    case 'active': return 'Ativo';
-    case 'completed': return 'Concluído';
-    case 'cancelled': return 'Cancelado';
-    default: return status ?? '—';
-  }
 };
 
 const ProtocolsTab = ({ studentId }) => {
@@ -103,8 +88,115 @@ const ProtocolsTab = ({ studentId }) => {
   );
 };
 
+const formatAnswerValue = (question, value) => {
+  if (value === null || value === undefined) return '—';
+  if (question.type === ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS) {
+    return value === 'yes' ? 'Sim' : 'Não';
+  }
+  if (question.type === ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE && Array.isArray(value)) {
+    return value.join(', ') || '—';
+  }
+  return String(value);
+};
+
+const AnamnesisResponseView = ({ studentId, link }) => {
+  const { showToast } = useToast();
+  const [loadingResponse, setLoadingResponse] = useState(false);
+  const [response, setResponse] = useState(null);
+  const [fullAnamnesis, setFullAnamnesis] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  const anamnesisId = link.anamnesis.id;
+
+  const source = fullAnamnesis ?? link.anamnesis;
+  const allQuestions = (source.sections ?? [])
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .flatMap((s) =>
+      (s.questions ?? []).slice().sort((a, b) => a.order - b.order)
+    );
+
+  const handleToggle = async () => {
+    if (visible) {
+      setVisible(false);
+      return;
+    }
+    setVisible(true);
+    if (response || notFound) return;
+
+    setLoadingResponse(true);
+    try {
+      const [resResponse, resAnamnesis] = await Promise.all([
+        api.get(`/trainer/students/${studentId}/anamneses/${anamnesisId}/response`),
+        api.get(`/trainer/anamneses/${anamnesisId}`).catch(() => null),
+      ]);
+      setResponse(resResponse.data);
+      if (resAnamnesis) {
+        setFullAnamnesis(resAnamnesis.data);
+      }
+    } catch (err) {
+      if (err.response?.status === 404) {
+        setNotFound(true);
+      } else {
+        showToast(err.userMessage || translateError(err), 'error');
+        setVisible(false);
+      }
+    } finally {
+      setLoadingResponse(false);
+    }
+  };
+
+  return (
+    <div>
+      <button type="button" className="btn-secondary" onClick={handleToggle}>
+        {visible ? 'Ocultar resposta' : 'Ver resposta'}
+      </button>
+
+      {visible && loadingResponse && (
+        <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-sm)' }}>
+          Carregando resposta...
+        </p>
+      )}
+
+      {visible && !loadingResponse && notFound && (
+        <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-sm)' }}>
+          O aluno ainda não respondeu esta anamnese.
+        </p>
+      )}
+
+      {visible && !loadingResponse && response && (
+        <div style={{ marginTop: 'var(--spacing-sm)' }}>
+          {response.answers.length === 0 && (
+            <p className="text-sm text-muted">Nenhuma resposta registrada.</p>
+          )}
+          {response.answers.map((answer) => {
+            const question = allQuestions.find((q) => q.id === answer.questionId);
+            const displayValue = question
+              ? formatAnswerValue(question, answer.value)
+              : String(answer.value ?? '—');
+            return (
+              <div
+                key={answer.id ?? answer.questionId}
+                style={{
+                  padding: 'var(--spacing-xs) var(--spacing-sm)',
+                  borderBottom: '1px solid var(--color-outline-variant)',
+                }}
+              >
+                {question && <p className="text-sm font-medium">{question.text}</p>}
+                <p className="text-sm text-muted">{displayValue}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AnamnesisTab = ({ studentId }) => {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [linkedAnamneses, setLinkedAnamneses] = useState([]);
   const [allAnamneses, setAllAnamneses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -166,7 +258,7 @@ const AnamnesisTab = ({ studentId }) => {
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
-          await api.delete(`/trainer/students/${studentId}/anamneses/${link.id}`);
+          await api.delete(`/trainer/students/${studentId}/anamneses/${link.anamnesis.id}`);
           showToast('Anamnese desvinculada com sucesso!', 'success');
           fetchLinkedAnamneses();
         } catch (err) {
@@ -206,15 +298,18 @@ const AnamnesisTab = ({ studentId }) => {
             <div key={link.id} className="card">
               <div className="card-header">
                 <span className="card-title" style={{ marginBottom: 0 }}>{link.anamnesis.title}</span>
-                {link.anamnesis.isGeneral && <span className="badge badge-blue">Geral</span>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+                  {link.anamnesis.isGeneral && <span className="badge badge-blue">Geral</span>}
+                  <TemplateRowMenu
+                    ariaLabel={`Opções de ${link.anamnesis.title}`}
+                    onEdit={() => navigate(`/trainer/anamneses/${link.anamnesis.id}`)}
+                    onDelete={() => handleUnlink(link)}
+                    deleteLabel="Desvincular"
+                  />
+                </div>
               </div>
-              <div className="btn-group" style={{ marginTop: 'var(--spacing-sm)' }}>
-                <Link to={`/trainer/anamneses/${link.anamnesis.id}`} className="btn-secondary">
-                  Ver detalhes
-                </Link>
-                <button onClick={() => handleUnlink(link)} className="btn-delete">
-                  Desvincular
-                </button>
+              <div style={{ marginTop: 'var(--spacing-sm)' }}>
+                <AnamnesisResponseView studentId={studentId} link={link} />
               </div>
             </div>
           ))}

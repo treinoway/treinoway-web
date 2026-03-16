@@ -154,14 +154,24 @@ describe('MyProtocolDetail', () => {
     });
   });
 
-  it('renders status badge for the protocol', async () => {
+  it('renders translated status badge for the protocol', async () => {
     setupApiMocks();
 
     renderMyProtocolDetail();
 
     await waitFor(() => {
-      expect(screen.getByText('ACTIVE')).toBeInTheDocument();
+      expect(screen.getByText('Ativo')).toBeInTheDocument();
     });
+  });
+
+  it('does not show raw status string in the badge', async () => {
+    setupApiMocks();
+
+    renderMyProtocolDetail();
+
+    await waitFor(() => screen.getByText('Ativo'));
+
+    expect(screen.queryByText('ACTIVE')).not.toBeInTheDocument();
   });
 
   it('renders list of trainings', async () => {

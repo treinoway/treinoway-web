@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Copy, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -293,6 +293,9 @@ const AnamnesisDetail = () => {
   const [savingSection, setSavingSection] = useState(false);
   const [sectionForm, setSectionForm] = useState(defaultSectionForm());
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [forking, setForking] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [forkConflictDialog, setForkConflictDialog] = useState(false);
 
   const fetchAnamnesis = useCallback(async () => {
     setLoading(true);
@@ -311,6 +314,10 @@ const AnamnesisDetail = () => {
     fetchAnamnesis();
   }, [fetchAnamnesis]);
 
+  const isStudentLinksConflict = (error) =>
+    error.response?.status === 409 &&
+    error.response?.data?.error === 'ANAMNESIS_HAS_STUDENT_LINKS';
+
   const handleAddSection = async (e) => {
     e.preventDefault();
     setSavingSection(true);
@@ -321,7 +328,11 @@ const AnamnesisDetail = () => {
       setShowSectionForm(false);
       fetchAnamnesis();
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      if (isStudentLinksConflict(error)) {
+        handleStudentLinksConflict();
+      } else {
+        showToast(error.userMessage || translateError(error), 'error');
+      }
     } finally {
       setSavingSection(false);
     }
@@ -337,7 +348,11 @@ const AnamnesisDetail = () => {
           showToast('Seção excluída com sucesso!', 'success');
           fetchAnamnesis();
         } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
+          if (isStudentLinksConflict(error)) {
+            handleStudentLinksConflict();
+          } else {
+            showToast(error.userMessage || translateError(error), 'error');
+          }
         }
       },
     });
@@ -349,7 +364,11 @@ const AnamnesisDetail = () => {
       showToast('Pergunta adicionada com sucesso!', 'success');
       fetchAnamnesis();
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      if (isStudentLinksConflict(error)) {
+        handleStudentLinksConflict();
+      } else {
+        showToast(error.userMessage || translateError(error), 'error');
+      }
     }
   };
 
@@ -359,8 +378,43 @@ const AnamnesisDetail = () => {
       showToast('Pergunta excluída com sucesso!', 'success');
       fetchAnamnesis();
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      if (isStudentLinksConflict(error)) {
+        handleStudentLinksConflict();
+      } else {
+        showToast(error.userMessage || translateError(error), 'error');
+      }
     }
+  };
+
+  const handleFork = async () => {
+    setForking(true);
+    setForkConflictDialog(false);
+    try {
+      const response = await api.post(`/trainer/anamneses/${anamnesisId}/fork`);
+      showToast('Nova versão criada com sucesso!', 'success');
+      navigate(`/trainer/anamneses/${response.data.id}`);
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+    } finally {
+      setForking(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    setCopying(true);
+    try {
+      const response = await api.post(`/trainer/anamneses/${anamnesisId}/copy`);
+      showToast('Anamnese copiada com sucesso!', 'success');
+      navigate(`/trainer/anamneses/${response.data.id}`);
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+    } finally {
+      setCopying(false);
+    }
+  };
+
+  const handleStudentLinksConflict = () => {
+    setForkConflictDialog(true);
   };
 
   if (loading) {
@@ -392,17 +446,50 @@ const AnamnesisDetail = () => {
       <div className="card card--mb">
         <div className="card-header">
           <h1 className="card-title" style={{ marginBottom: 0 }}>{anamnesis.title}</h1>
-          {isGeneral && <span className="badge badge-blue">Geral</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+            {anamnesis.version > 1 && <span className="badge badge-gray">v{anamnesis.version}</span>}
+            {isGeneral && <span className="badge badge-blue">Geral</span>}
+          </div>
         </div>
         {anamnesis.description && (
           <p className="card-description" style={{ marginTop: 'var(--spacing-xs)' }}>
             {anamnesis.description}
           </p>
         )}
+        {anamnesis.parentId && (
+          <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+            Nova versão criada a partir de uma anamnese anterior.
+          </p>
+        )}
         {isGeneral && (
           <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-sm)' }}>
             Esta é uma anamnese geral da plataforma e não pode ser editada.
           </p>
+        )}
+        {isGeneral && (
+          <div style={{ marginTop: 'var(--spacing-md)' }}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleCopy}
+              disabled={copying}
+            >
+              <Copy size={14} strokeWidth={1.6} style={{ marginRight: 'var(--spacing-xs)' }} />
+              {copying ? 'Copiando...' : 'Copiar para minha coleção'}
+            </button>
+          </div>
+        )}
+        {!isGeneral && (
+          <div style={{ marginTop: 'var(--spacing-md)' }}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleFork}
+              disabled={forking}
+            >
+              {forking ? 'Criando...' : 'Criar nova versão'}
+            </button>
+          </div>
         )}
       </div>
 
@@ -489,6 +576,25 @@ const AnamnesisDetail = () => {
                 Confirmar
               </button>
               <button onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {forkConflictDialog && (
+        <div className="overlay" onClick={() => setForkConflictDialog(false)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-dialog-message">
+              Esta anamnese está vinculada a alunos e não pode ser editada diretamente.
+              Deseja criar uma nova versão para editar?
+            </p>
+            <div className="btn-group">
+              <button onClick={handleFork} disabled={forking} className="btn-primary" style={{ flex: 1 }}>
+                {forking ? 'Criando...' : 'Criar nova versão'}
+              </button>
+              <button onClick={() => setForkConflictDialog(false)} className="btn-secondary" style={{ flex: 1 }}>
                 Cancelar
               </button>
             </div>

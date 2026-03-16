@@ -6,6 +6,7 @@ import { formatDateForDisplay } from '../../utils/dateFormat';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import { getWeekDayLabel } from '../../constants/weekDays';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
+import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
 import { getYoutubeVideoId } from '../../utils/youtube';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -75,15 +76,6 @@ const MyProtocolDetail = () => {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'ACTIVE': return 'badge-status badge-green';
-      case 'COMPLETED': return 'badge-status badge-blue';
-      case 'CANCELLED': return 'badge-status badge-red';
-      default: return 'badge-status badge-gray';
-    }
-  };
-
   const trainerLabel = [protocol?.trainer?.firstName, protocol?.trainer?.lastName]
     .filter(Boolean)
     .join(' ')
@@ -123,7 +115,7 @@ const MyProtocolDetail = () => {
         <div className="card-header-start">
           <h1 className="page-title mb-0">Minha Rotina de Treino</h1>
           <span className={getStatusBadgeClass(protocol.status)}>
-            {protocol.status}
+            {getStatusLabel(protocol.status)}
           </span>
         </div>
 

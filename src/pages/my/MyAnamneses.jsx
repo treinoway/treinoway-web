@@ -123,14 +123,224 @@ const SectionAccordion = ({ section }) => {
   );
 };
 
+const QuestionAnswerField = ({ question, index, value, onChange, error }) => {
+  const { type, options, config, text, required } = question;
+
+  const renderField = () => {
+    switch (type) {
+      case ANAMNESIS_QUESTION_TYPE.FREE_TEXT:
+        return (
+          <textarea
+            value={value ?? ''}
+            onChange={(e) => onChange(e.target.value)}
+            className="form-textarea"
+            rows={3}
+            placeholder="Sua resposta..."
+            aria-label={`Resposta para: ${text}`}
+          />
+        );
+
+      case ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS:
+        return (
+          <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name={`q-${question.id}`}
+                value="yes"
+                checked={value === 'yes'}
+                onChange={() => onChange('yes')}
+              />
+              Sim
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name={`q-${question.id}`}
+                value="no"
+                checked={value === 'no'}
+                onChange={() => onChange('no')}
+              />
+              Não
+            </label>
+          </div>
+        );
+
+      case ANAMNESIS_QUESTION_TYPE.NUMERIC: {
+        const min = config?.min;
+        const max = config?.max;
+        return (
+          <input
+            type="number"
+            value={value ?? ''}
+            onChange={(e) => onChange(e.target.value)}
+            className="form-input"
+            min={min}
+            max={max}
+            placeholder="Valor numérico..."
+            aria-label={`Resposta para: ${text}`}
+          />
+        );
+      }
+
+      case ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE:
+      case ANAMNESIS_QUESTION_TYPE.MATRIX:
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
+            {(options ?? []).map((opt) => (
+              <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name={`q-${question.id}`}
+                  value={opt.text}
+                  checked={value === opt.text}
+                  onChange={() => onChange(opt.text)}
+                />
+                {opt.text}
+              </label>
+            ))}
+          </div>
+        );
+
+      case ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE: {
+        const selectedValues = Array.isArray(value) ? value : [];
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
+            {(options ?? []).map((opt) => (
+              <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  value={opt.text}
+                  checked={selectedValues.includes(opt.text)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      onChange([...selectedValues, opt.text]);
+                    } else {
+                      onChange(selectedValues.filter((v) => v !== opt.text));
+                    }
+                  }}
+                  aria-label={opt.text}
+                />
+                {opt.text}
+              </label>
+            ))}
+          </div>
+        );
+      }
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div style={{ marginBottom: 'var(--spacing-md)' }}>
+      <p className="form-label" style={{ marginBottom: 'var(--spacing-xs)' }}>
+        {index + 1}. {text}
+        {required && <span style={{ color: 'var(--md-error)', marginLeft: 'var(--spacing-xs)' }}>*</span>}
+      </p>
+      {renderField()}
+      {error && <p className="form-error">{error}</p>}
+    </div>
+  );
+};
+
 const AnamnesisCard = ({ link }) => {
-  const [expanded, setExpanded] = useState(false);
+  const { showToast } = useToast();
   const { anamnesis, trainer, createdAt } = link;
+  const anamnesisId = link.anamnesisId;
   const sortedSections = [...(anamnesis.sections ?? [])].sort((a, b) => a.order - b.order);
+
+  const [expanded, setExpanded] = useState(false);
+  const [loadingResponse, setLoadingResponse] = useState(true);
+  const [existingResponse, setExistingResponse] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formAnswers, setFormAnswers] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
 
   const formattedDate = createdAt
     ? new Date(createdAt).toLocaleDateString('pt-BR')
     : '—';
+
+  const allQuestions = sortedSections.flatMap((s) =>
+    [...(s.questions ?? [])].sort((a, b) => a.order - b.order)
+  );
+
+  useEffect(() => {
+    const fetchResponse = async () => {
+      setLoadingResponse(true);
+      try {
+        const response = await api.get(`/my/anamneses/${anamnesisId}/response`);
+        setExistingResponse(response.data);
+      } catch (error) {
+        if (error.response?.status !== 404) {
+          showToast(error.userMessage || translateError(error), 'error');
+        }
+      } finally {
+        setLoadingResponse(false);
+      }
+    };
+    fetchResponse();
+  }, [anamnesisId, showToast]);
+
+  const buildInitialAnswers = (responseData) => {
+    if (!responseData) return {};
+    return responseData.answers.reduce((acc, answer) => {
+      acc[answer.questionId] = answer.value;
+      return acc;
+    }, {});
+  };
+
+  const handleOpenForm = () => {
+    setFormAnswers(buildInitialAnswers(existingResponse));
+    setValidationErrors({});
+    setShowForm(true);
+  };
+
+  const handleAnswerChange = (questionId, value) => {
+    setFormAnswers((prev) => ({ ...prev, [questionId]: value }));
+    setValidationErrors((prev) => ({ ...prev, [questionId]: undefined }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setValidationErrors({});
+
+    const answers = allQuestions
+      .filter((q) => {
+        const val = formAnswers[q.id];
+        if (val === undefined || val === null || val === '') return false;
+        if (Array.isArray(val) && val.length === 0) return false;
+        return true;
+      })
+      .map((q) => ({ questionId: q.id, value: formAnswers[q.id] }));
+
+    try {
+      const response = await api.post(`/my/anamneses/${anamnesisId}/response`, { answers });
+      setExistingResponse(response.data);
+      setShowForm(false);
+      showToast('Resposta enviada com sucesso!', 'success');
+    } catch (error) {
+      const details = error.response?.data?.details;
+      if (Array.isArray(details) && details.length > 0) {
+        const errors = details.reduce((acc, detail) => {
+          acc[detail.questionId] = detail.message;
+          return acc;
+        }, {});
+        setValidationErrors(errors);
+      } else {
+        showToast(error.userMessage || translateError(error), 'error');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submittedDate = existingResponse?.submittedAt
+    ? new Date(existingResponse.submittedAt).toLocaleDateString('pt-BR')
+    : null;
 
   return (
     <div className="card card--mb">
@@ -154,17 +364,77 @@ const AnamnesisCard = ({ link }) => {
         <span className="font-medium">Enviado em:</span> {formattedDate}
       </div>
 
-      <button
-        type="button"
-        className="btn-secondary"
-        style={{ marginTop: 'var(--spacing-md)' }}
-        onClick={() => setExpanded((p) => !p)}
-        aria-expanded={expanded}
-      >
-        {expanded ? 'Ocultar perguntas' : `Ver perguntas (${sortedSections.length} seção(ões))`}
-      </button>
+      {loadingResponse && (
+        <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-sm)' }}>
+          Carregando resposta...
+        </p>
+      )}
 
-      {expanded && (
+      {!loadingResponse && submittedDate && !showForm && (
+        <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-sm)' }}>
+          Respondido em {submittedDate}
+        </p>
+      )}
+
+      {!loadingResponse && !showForm && (
+        <div className="btn-group" style={{ marginTop: 'var(--spacing-md)' }}>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={handleOpenForm}
+          >
+            {existingResponse ? 'Atualizar resposta' : 'Responder'}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setExpanded((p) => !p)}
+            aria-expanded={expanded}
+          >
+            {expanded ? 'Ocultar perguntas' : `Ver perguntas (${sortedSections.length} ${sortedSections.length === 1 ? 'seção' : 'seções'})`}
+          </button>
+        </div>
+      )}
+
+      {!loadingResponse && showForm && (
+        <div style={{ marginTop: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--color-outline-variant)' }}>
+          <form onSubmit={handleSubmit} className="form">
+            {sortedSections.map((section) => {
+              const sectionQuestions = [...(section.questions ?? [])].sort((a, b) => a.order - b.order);
+              return (
+                <div key={section.id} style={{ marginBottom: 'var(--spacing-md)' }}>
+                  <h4 className="font-medium" style={{ marginBottom: 'var(--spacing-sm)' }}>{section.title}</h4>
+                  {sectionQuestions.map((question, index) => (
+                    <QuestionAnswerField
+                      key={question.id}
+                      question={question}
+                      index={index}
+                      value={formAnswers[question.id]}
+                      onChange={(val) => handleAnswerChange(question.id, val)}
+                      error={validationErrors[question.id]}
+                    />
+                  ))}
+                </div>
+              );
+            })}
+            <div className="btn-group">
+              <button type="submit" disabled={submitting} className="btn-primary">
+                {submitting ? 'Enviando...' : 'Enviar resposta'}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={submitting}
+                onClick={() => { setShowForm(false); setValidationErrors({}); }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {expanded && !showForm && (
         <div style={{ marginTop: 'var(--spacing-md)' }}>
           {sortedSections.length === 0 && (
             <p className="text-sm text-muted">Esta anamnese não possui seções.</p>

@@ -96,15 +96,26 @@ describe('MyProtocols', () => {
     });
   });
 
-  it('shows status badge for each protocol', async () => {
+  it('shows translated status badge for each protocol', async () => {
     api.get.mockResolvedValue({ data: mockProtocols });
 
     renderWithRouter(<MyProtocols />);
 
     await waitFor(() => {
-      expect(screen.getByText('ACTIVE')).toBeInTheDocument();
-      expect(screen.getByText('COMPLETED')).toBeInTheDocument();
+      expect(screen.getByText('Ativo')).toBeInTheDocument();
+      expect(screen.getByText('Concluído')).toBeInTheDocument();
     });
+  });
+
+  it('does not show raw status string in badges', async () => {
+    api.get.mockResolvedValue({ data: mockProtocols });
+
+    renderWithRouter(<MyProtocols />);
+
+    await waitFor(() => screen.getByText('Ativo'));
+
+    expect(screen.queryByText('ACTIVE')).not.toBeInTheDocument();
+    expect(screen.queryByText('COMPLETED')).not.toBeInTheDocument();
   });
 
   it('renders expiration dates without showing Invalid Date', async () => {

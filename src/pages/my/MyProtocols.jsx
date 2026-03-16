@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
+import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
 
 const MyProtocols = () => {
   const [protocols, setProtocols] = useState([]);
@@ -21,15 +22,6 @@ const MyProtocols = () => {
       console.error('Failed to fetch protocols:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'ACTIVE': return 'badge badge-green';
-      case 'COMPLETED': return 'badge badge-blue';
-      case 'CANCELLED': return 'badge badge-red';
-      default: return 'badge badge-gray';
     }
   };
 
@@ -72,7 +64,7 @@ const MyProtocols = () => {
                     <span className="badge badge-blue">{getProtocolTypeLabel(protocol.type)}</span>
                   )}
                   <span className={getStatusBadgeClass(protocol.status)}>
-                    {protocol.status}
+                    {getStatusLabel(protocol.status)}
                   </span>
                 </div>
               </div>

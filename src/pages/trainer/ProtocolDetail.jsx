@@ -11,7 +11,8 @@ import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
-import { getProtocolTypeLabel } from '../../constants/protocolTypes';
+import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/protocolTypes';
+import { getStatusLabel } from '../../constants/protocolStatus';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import CreateExerciseModal from '../../components/CreateExerciseModal';
 import ExerciseForm from '../../components/ExerciseForm';
@@ -141,6 +142,15 @@ const ProtocolDetail = () => {
   const [editingExerciseTrainingId, setEditingExerciseTrainingId] = useState(null);
   const [showEditExerciseModal, setShowEditExerciseModal] = useState(false);
   const [reorderingTrainings, setReorderingTrainings] = useState(false);
+  const [showEditProtocolForm, setShowEditProtocolForm] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editProtocolData, setEditProtocolData] = useState({
+    name: '',
+    startDate: '',
+    expirationDate: '',
+    type: '',
+    status: '',
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -375,6 +385,32 @@ const ProtocolDetail = () => {
     setShowTrainingForm(false);
   };
 
+  const handleOpenEditProtocol = () => {
+    setEditProtocolData({
+      name: protocol.name || '',
+      startDate: protocol.startDate?.slice(0, 10) || '',
+      expirationDate: (protocol.expirationDate || protocol.endDate)?.slice(0, 10) || '',
+      type: protocol.type || '',
+      status: protocol.status || '',
+    });
+    setShowEditProtocolForm(true);
+  };
+
+  const handleEditProtocolSubmit = async (e) => {
+    e.preventDefault();
+    setEditLoading(true);
+    try {
+      await api.patch(`/trainer/protocols/${id}`, editProtocolData);
+      showToast('Rotina atualizada com sucesso!', 'success');
+      setShowEditProtocolForm(false);
+      fetchProtocol();
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   const segmentedToggle = (
     <div className="segmented-toggle">
       <button
@@ -416,9 +452,18 @@ const ProtocolDetail = () => {
       </button>
 
       <div className="card card--mb">
-        <h1 className="page-title">
-          {protocol.name}
-        </h1>
+        <div className="card-header">
+          <h1 className="page-title" style={{ marginBottom: 0 }}>
+            {protocol.name}
+          </h1>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={handleOpenEditProtocol}
+          >
+            Editar
+          </button>
+        </div>
         <div className="grid-2col text-sm">
           <div>
             <span className="info-label info-inline">Aluno:</span>
@@ -426,7 +471,7 @@ const ProtocolDetail = () => {
           </div>
           <div>
             <span className="info-label info-inline">Status:</span>
-            <span className="info-value">{protocol.status}</span>
+            <span className="info-value">{getStatusLabel(protocol.status)}</span>
           </div>
           <div>
             <span className="info-label info-inline">Data de Início:</span>
@@ -773,6 +818,105 @@ const ProtocolDetail = () => {
             closeEditExerciseModal();
           }}
         />
+      )}
+
+      {showEditProtocolForm && (
+        <div className="overlay" onClick={() => setShowEditProtocolForm(false)}>
+          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-header">
+              <h2 className="bottom-sheet-title">Editar Rotina</h2>
+              <button
+                className="bottom-sheet-close"
+                onClick={() => setShowEditProtocolForm(false)}
+                aria-label="Fechar"
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="bottom-sheet-body">
+              <form onSubmit={handleEditProtocolSubmit} className="form">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-protocol-name">Nome</label>
+                  <input
+                    id="edit-protocol-name"
+                    type="text"
+                    value={editProtocolData.name}
+                    onChange={(e) => setEditProtocolData({ ...editProtocolData, name: e.target.value })}
+                    className="form-input"
+                    required
+                  />
+                </div>
+
+                <div className="grid-responsive-2col">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="edit-protocol-start-date">Data de Início</label>
+                    <input
+                      id="edit-protocol-start-date"
+                      type="date"
+                      value={editProtocolData.startDate}
+                      onChange={(e) => setEditProtocolData({ ...editProtocolData, startDate: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="edit-protocol-expiration-date">Data de Término</label>
+                    <input
+                      id="edit-protocol-expiration-date"
+                      type="date"
+                      value={editProtocolData.expirationDate}
+                      onChange={(e) => setEditProtocolData({ ...editProtocolData, expirationDate: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-protocol-type">Tipo</label>
+                  <select
+                    id="edit-protocol-type"
+                    value={editProtocolData.type}
+                    onChange={(e) => setEditProtocolData({ ...editProtocolData, type: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="">— Sem tipo —</option>
+                    {PROTOCOL_TYPE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-protocol-status">Status</label>
+                  <select
+                    id="edit-protocol-status"
+                    value={editProtocolData.status}
+                    onChange={(e) => setEditProtocolData({ ...editProtocolData, status: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="ACTIVE">Ativo</option>
+                    <option value="COMPLETED">Concluído</option>
+                    <option value="CANCELLED">Cancelado</option>
+                  </select>
+                </div>
+
+                <div className="btn-group">
+                  <button type="submit" disabled={editLoading} className="btn-primary">
+                    {editLoading ? 'Salvando...' : 'Salvar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowEditProtocolForm(false)}
+                    className="btn-secondary"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
 
       {confirmDialog && (

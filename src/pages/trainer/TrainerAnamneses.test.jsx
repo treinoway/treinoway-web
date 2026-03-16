@@ -27,6 +27,7 @@ const mockAnamneses = [
     title: 'Anamnese Saúde Geral',
     description: 'Questionário de saúde',
     isGeneral: false,
+    version: 1,
     sections: [{ id: 's1' }, { id: 's2' }],
   },
   {
@@ -34,6 +35,7 @@ const mockAnamneses = [
     title: 'Anamnese Geral da Plataforma',
     description: null,
     isGeneral: true,
+    version: 1,
     sections: [],
   },
 ];
@@ -85,8 +87,8 @@ describe('TrainerAnamneses', () => {
       expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
       expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
     });
-    expect(screen.getByText('2 seção(ões)')).toBeInTheDocument();
-    expect(screen.getByText('0 seção(ões)')).toBeInTheDocument();
+    expect(screen.getByText('2 seções')).toBeInTheDocument();
+    expect(screen.getByText('0 seções')).toBeInTheDocument();
   });
 
   it('shows "Geral" badge for general anamneses', async () => {
@@ -105,6 +107,51 @@ describe('TrainerAnamneses', () => {
     });
     const menus = screen.getAllByRole('button', { name: /opções de/i });
     expect(menus).toHaveLength(1); // only for non-general
+  });
+
+  it('shows "Copiar" button for general anamneses', async () => {
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    renderWithRouter(<TrainerAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: /copiar anamnese geral da plataforma/i })).toBeInTheDocument();
+  });
+
+  it('calls copy endpoint and navigates on success', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    api.post.mockResolvedValue({ data: { id: 'copied-id' } });
+    renderWithRoute(<TrainerAnamneses />, {
+      route: '/trainer/anamneses',
+      path: '/trainer/anamneses',
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /copiar anamnese geral da plataforma/i }));
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-2/copy');
+      expect(mockShowToast).toHaveBeenCalledWith('Anamnese copiada com sucesso!', 'success');
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('redirected')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error toast when copy fails', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    const error = { userMessage: 'Erro ao copiar' };
+    api.post.mockRejectedValue(error);
+    renderWithRouter(<TrainerAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /copiar anamnese geral da plataforma/i }));
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('Erro ao copiar', 'error');
+    });
   });
 
   it('shows the create form when "Nova Anamnese" is clicked', async () => {
@@ -225,5 +272,25 @@ describe('TrainerAnamneses', () => {
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Erro ao carregar', 'error');
     });
+  });
+
+  it('shows version badge for versioned anamneses', async () => {
+    const anamnesesWithVersion = [
+      ...mockAnamneses,
+      {
+        id: 'anamnesis-3',
+        title: 'Anamnese Versão 2',
+        description: null,
+        isGeneral: false,
+        version: 2,
+        sections: [],
+      },
+    ];
+    api.get.mockResolvedValue({ data: anamnesesWithVersion });
+    renderWithRouter(<TrainerAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese Versão 2')).toBeInTheDocument();
+    });
+    expect(screen.getByText('v2')).toBeInTheDocument();
   });
 });

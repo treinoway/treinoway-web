@@ -76,11 +76,39 @@ const mockLinks = [
   },
 ];
 
+const mockResponse = {
+  id: 'response-1',
+  anamnesisId: 'anamnesis-1',
+  studentId: 'student-1',
+  submittedAt: '2026-03-01T10:00:00.000Z',
+  createdAt: '2026-03-01T10:00:00.000Z',
+  updatedAt: null,
+  answers: [
+    { id: 'ans-1', responseId: 'response-1', questionId: 'q1', value: 'yes', createdAt: '2026-03-01T10:00:00.000Z', updatedAt: null },
+  ],
+};
+
+// By default, no existing responses
+function setupApiMocks({ linksData = mockLinks, responseStatus = 404 } = {}) {
+  api.get.mockImplementation((url) => {
+    if (url === '/my/anamneses') return Promise.resolve({ data: linksData });
+    if (url.startsWith('/my/anamneses/') && url.endsWith('/response')) {
+      if (responseStatus === 404) {
+        const err = Object.assign(new Error('Not found'), { response: { status: 404 } });
+        return Promise.reject(err);
+      }
+      return Promise.resolve({ data: mockResponse });
+    }
+    return Promise.resolve({ data: [] });
+  });
+}
+
 describe('MyAnamneses', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockReset();
+    api.post.mockReset();
   });
 
   it('shows loading state while fetching', () => {
@@ -90,7 +118,7 @@ describe('MyAnamneses', () => {
   });
 
   it('renders page title after loading', async () => {
-    api.get.mockResolvedValue({ data: [] });
+    setupApiMocks({ linksData: [] });
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       expect(screen.getByText('Minhas Anamneses')).toBeInTheDocument();
@@ -98,7 +126,7 @@ describe('MyAnamneses', () => {
   });
 
   it('fetches from /my/anamneses on mount', async () => {
-    api.get.mockResolvedValue({ data: [] });
+    setupApiMocks({ linksData: [] });
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/my/anamneses');
@@ -106,7 +134,7 @@ describe('MyAnamneses', () => {
   });
 
   it('shows empty state when no anamneses', async () => {
-    api.get.mockResolvedValue({ data: [] });
+    setupApiMocks({ linksData: [] });
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       expect(screen.getByText('Nenhuma anamnese ainda')).toBeInTheDocument();
@@ -114,7 +142,7 @@ describe('MyAnamneses', () => {
   });
 
   it('renders anamnesis card with title and trainer name', async () => {
-    api.get.mockResolvedValue({ data: mockLinks });
+    setupApiMocks();
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       expect(screen.getByText('Anamnese de Saúde')).toBeInTheDocument();
@@ -123,7 +151,7 @@ describe('MyAnamneses', () => {
   });
 
   it('shows "Geral" badge for general anamneses', async () => {
-    api.get.mockResolvedValue({ data: mockLinks });
+    setupApiMocks();
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       expect(screen.getByText('Geral')).toBeInTheDocument();
@@ -131,7 +159,7 @@ describe('MyAnamneses', () => {
   });
 
   it('shows anamnesis description when present', async () => {
-    api.get.mockResolvedValue({ data: mockLinks });
+    setupApiMocks();
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       expect(screen.getByText('Questionário completo')).toBeInTheDocument();
@@ -139,7 +167,7 @@ describe('MyAnamneses', () => {
   });
 
   it('shows formatted date for each link', async () => {
-    api.get.mockResolvedValue({ data: mockLinks });
+    setupApiMocks();
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       // 2026-01-15 should appear as localized date
@@ -149,12 +177,15 @@ describe('MyAnamneses', () => {
 
   it('expands section accordion when "Ver perguntas" is clicked', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: mockLinks });
+    setupApiMocks();
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       expect(screen.getByText('Anamnese de Saúde')).toBeInTheDocument();
     });
-    // First "Ver perguntas" button corresponds to the first anamnesis (with 1 section)
+    // Wait for response loading to finish
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /ver perguntas/i }).length).toBeGreaterThan(0);
+    });
     const expandButtons = screen.getAllByRole('button', { name: /ver perguntas/i });
     await user.click(expandButtons[0]);
     expect(screen.getByText('Histórico')).toBeInTheDocument();
@@ -162,11 +193,13 @@ describe('MyAnamneses', () => {
 
   it('shows section accordion after expanding the anamnesis card', async () => {
     const user = userEvent.setup();
-    // Use only the first link (with sections) to avoid multiple "Ver perguntas" buttons
-    api.get.mockResolvedValue({ data: [mockLinks[0]] });
+    setupApiMocks({ linksData: [mockLinks[0]] });
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       expect(screen.getByText('Anamnese de Saúde')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /ver perguntas/i })).toBeInTheDocument();
     });
     const expandButton = screen.getByRole('button', { name: /ver perguntas/i });
     await user.click(expandButton);
@@ -179,6 +212,101 @@ describe('MyAnamneses', () => {
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Erro ao carregar anamneses', 'error');
+    });
+  });
+
+  it('shows "Responder" button for each anamnesis', async () => {
+    setupApiMocks({ linksData: [mockLinks[0]] });
+    renderWithRouter(<MyAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese de Saúde')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
+    });
+  });
+
+  it('shows response form when "Responder" is clicked', async () => {
+    const user = userEvent.setup();
+    setupApiMocks({ linksData: [mockLinks[0]] });
+    renderWithRouter(<MyAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: 'Responder' }));
+    expect(screen.getByText(/Você tem alguma doença\?/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enviar resposta' })).toBeInTheDocument();
+  });
+
+  it('pre-fills form when existing response is loaded', async () => {
+    setupApiMocks({ linksData: [mockLinks[0]], responseStatus: 200 });
+    const user = userEvent.setup();
+    renderWithRouter(<MyAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Atualizar resposta' })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: 'Atualizar resposta' }));
+    // q1 is dichotomous, answer is 'yes' — should have "Sim" radio checked
+    const simRadio = screen.getByRole('radio', { name: 'Sim' });
+    expect(simRadio).toBeChecked();
+  });
+
+  it('submits response and shows success toast', async () => {
+    const user = userEvent.setup();
+    setupApiMocks({ linksData: [mockLinks[0]] });
+    api.post.mockResolvedValue({ data: mockResponse });
+    renderWithRouter(<MyAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: 'Responder' }));
+    // Click "Sim" radio
+    await user.click(screen.getByRole('radio', { name: 'Sim' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/my/anamneses/anamnesis-1/response', {
+        answers: [{ questionId: 'q1', value: 'yes' }],
+      });
+      expect(mockShowToast).toHaveBeenCalledWith('Resposta enviada com sucesso!', 'success');
+    });
+  });
+
+  it('shows "Respondido em" date after successful submission', async () => {
+    const user = userEvent.setup();
+    setupApiMocks({ linksData: [mockLinks[0]] });
+    api.post.mockResolvedValue({ data: mockResponse });
+    renderWithRouter(<MyAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: 'Responder' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    await waitFor(() => {
+      expect(screen.getByText(/Respondido em/)).toBeInTheDocument();
+    });
+  });
+
+  it('shows per-question validation errors on 400 response', async () => {
+    const user = userEvent.setup();
+    setupApiMocks({ linksData: [mockLinks[0]] });
+    const validationError = {
+      response: {
+        status: 400,
+        data: {
+          error: 'VALIDATION_ERROR',
+          details: [{ questionId: 'q1', message: 'Este campo é obrigatório.' }],
+        },
+      },
+    };
+    api.post.mockRejectedValue(validationError);
+    renderWithRouter(<MyAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: 'Responder' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
+    await waitFor(() => {
+      expect(screen.getByText('Este campo é obrigatório.')).toBeInTheDocument();
     });
   });
 });

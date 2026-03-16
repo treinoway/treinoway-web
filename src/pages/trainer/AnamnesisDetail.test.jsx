@@ -26,6 +26,8 @@ const mockAnamnesis = {
   title: 'Anamnese de Saúde',
   description: 'Descrição da anamnese',
   isGeneral: false,
+  version: 1,
+  parentId: null,
   sections: [
     {
       id: 'section-1',
@@ -206,6 +208,177 @@ describe('AnamnesisDetail', () => {
     renderAnamnesisDetail();
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Anamnese não encontrada.', 'error');
+    });
+  });
+
+  it('shows fork button for non-general anamneses', async () => {
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Criar nova versão' })).toBeInTheDocument();
+    });
+  });
+
+  it('hides fork button for general anamneses', async () => {
+    api.get.mockResolvedValue({ data: mockGeneralAnamnesis });
+    renderAnamnesisDetail('anamnesis-2');
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese Geral')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: 'Criar nova versão' })).not.toBeInTheDocument();
+  });
+
+  it('calls fork endpoint and navigates on success', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    api.post.mockResolvedValue({ data: { id: 'forked-anamnesis-id' } });
+    renderAnamnesisDetail('anamnesis-1');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Criar nova versão' })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: 'Criar nova versão' }));
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1/fork');
+      expect(mockShowToast).toHaveBeenCalledWith('Nova versão criada com sucesso!', 'success');
+    });
+  });
+
+  it('shows version badge when version > 1', async () => {
+    const versionedAnamnesis = { ...mockAnamnesis, version: 2 };
+    api.get.mockResolvedValue({ data: versionedAnamnesis });
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText('v2')).toBeInTheDocument();
+    });
+  });
+
+  it('shows "Copiar para minha coleção" button for general anamneses', async () => {
+    api.get.mockResolvedValue({ data: mockGeneralAnamnesis });
+    renderAnamnesisDetail('anamnesis-2');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /copiar para minha coleção/i })).toBeInTheDocument();
+    });
+  });
+
+  it('hides copy button for non-general anamneses', async () => {
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese de Saúde')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: /copiar para minha coleção/i })).not.toBeInTheDocument();
+  });
+
+  it('calls copy endpoint and navigates on success', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockGeneralAnamnesis });
+    api.post.mockResolvedValue({ data: { id: 'copied-id' } });
+    renderWithRoute(<AnamnesisDetail />, {
+      route: '/trainer/anamneses/anamnesis-2',
+      path: '/trainer/anamneses/:anamnesisId',
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /copiar para minha coleção/i })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /copiar para minha coleção/i }));
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-2/copy');
+      expect(mockShowToast).toHaveBeenCalledWith('Anamnese copiada com sucesso!', 'success');
+    });
+  });
+
+  it('shows copy error toast when copy fails', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockGeneralAnamnesis });
+    const error = { userMessage: 'Erro ao copiar' };
+    api.post.mockRejectedValue(error);
+    renderAnamnesisDetail('anamnesis-2');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /copiar para minha coleção/i })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /copiar para minha coleção/i }));
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('Erro ao copiar', 'error');
+    });
+  });
+
+  it('shows fork conflict dialog when adding section returns 409 ANAMNESIS_HAS_STUDENT_LINKS', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    const conflictError = {
+      response: {
+        status: 409,
+        data: { error: 'ANAMNESIS_HAS_STUDENT_LINKS' },
+      },
+    };
+    api.post.mockRejectedValue(conflictError);
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText('+ Adicionar seção')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('+ Adicionar seção'));
+    await user.type(screen.getByLabelText('Título da seção'), 'Nova Seção');
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }));
+    await waitFor(() => {
+      expect(screen.getByText(/vinculada a alunos/i)).toBeInTheDocument();
+    });
+  });
+
+  it('dismisses fork conflict dialog on cancel', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    const conflictError = {
+      response: {
+        status: 409,
+        data: { error: 'ANAMNESIS_HAS_STUDENT_LINKS' },
+      },
+    };
+    api.post.mockRejectedValue(conflictError);
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText('+ Adicionar seção')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('+ Adicionar seção'));
+    await user.type(screen.getByLabelText('Título da seção'), 'Nova Seção');
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }));
+    await waitFor(() => {
+      expect(screen.getByText(/vinculada a alunos/i)).toBeInTheDocument();
+    });
+    const cancelButtons = screen.getAllByRole('button', { name: 'Cancelar' });
+    await user.click(cancelButtons[cancelButtons.length - 1]);
+    expect(screen.queryByText(/vinculada a alunos/i)).not.toBeInTheDocument();
+  });
+
+  it('calls fork endpoint from conflict dialog and navigates', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    const conflictError = {
+      response: {
+        status: 409,
+        data: { error: 'ANAMNESIS_HAS_STUDENT_LINKS' },
+      },
+    };
+    api.post
+      .mockRejectedValueOnce(conflictError)
+      .mockResolvedValueOnce({ data: { id: 'forked-from-conflict' } });
+    renderWithRoute(<AnamnesisDetail />, {
+      route: '/trainer/anamneses/anamnesis-1',
+      path: '/trainer/anamneses/:anamnesisId',
+    });
+    await waitFor(() => {
+      expect(screen.getByText('+ Adicionar seção')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('+ Adicionar seção'));
+    await user.type(screen.getByLabelText('Título da seção'), 'Nova Seção');
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }));
+    await waitFor(() => {
+      expect(screen.getByText(/vinculada a alunos/i)).toBeInTheDocument();
+    });
+    const forkButtons = screen.getAllByRole('button', { name: 'Criar nova versão' });
+    await user.click(forkButtons[forkButtons.length - 1]);
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1/fork');
+      expect(mockShowToast).toHaveBeenCalledWith('Nova versão criada com sucesso!', 'success');
     });
   });
 });

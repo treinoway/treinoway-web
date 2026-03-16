@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Copy } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -17,6 +18,7 @@ const TrainerAnamneses = () => {
   const [confirmDialog, setConfirmDialog] = useState(null);
 
   const [formData, setFormData] = useState({ title: '', description: '' });
+  const [copyingId, setCopyingId] = useState(null);
 
   const fetchAnamneses = useCallback(async () => {
     setLoading(true);
@@ -85,6 +87,19 @@ const TrainerAnamneses = () => {
         }
       },
     });
+  };
+
+  const handleCopy = async (anamnesis) => {
+    setCopyingId(anamnesis.id);
+    try {
+      const response = await api.post(`/trainer/anamneses/${anamnesis.id}/copy`);
+      showToast('Anamnese copiada com sucesso!', 'success');
+      navigate(`/trainer/anamneses/${response.data.id}`);
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+    } finally {
+      setCopyingId(null);
+    }
   };
 
   const resetForm = () => {
@@ -175,7 +190,20 @@ const TrainerAnamneses = () => {
                   {anamnesis.title}
                 </Link>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+                  {anamnesis.version > 1 && <span className="badge badge-gray">v{anamnesis.version}</span>}
                   {anamnesis.isGeneral && <span className="badge badge-blue">Geral</span>}
+                  {anamnesis.isGeneral && (
+                    <button
+                      type="button"
+                      className="btn-schedule-sm"
+                      onClick={() => handleCopy(anamnesis)}
+                      disabled={copyingId === anamnesis.id}
+                      aria-label={`Copiar ${anamnesis.title}`}
+                    >
+                      <Copy size={14} strokeWidth={1.6} />
+                      {copyingId === anamnesis.id ? 'Copiando...' : 'Copiar'}
+                    </button>
+                  )}
                   {!anamnesis.isGeneral && (
                     <TemplateRowMenu
                       ariaLabel={`Opções de ${anamnesis.title}`}
@@ -189,7 +217,7 @@ const TrainerAnamneses = () => {
                 <p className="card-description">{anamnesis.description}</p>
               )}
               <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
-                {anamnesis.sections?.length ?? 0} seção(ões)
+                {`${anamnesis.sections?.length ?? 0} ${(anamnesis.sections?.length ?? 0) === 1 ? 'seção' : 'seções'}`}
               </p>
             </div>
           ))}

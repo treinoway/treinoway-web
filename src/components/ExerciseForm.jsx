@@ -217,7 +217,7 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
 
         {formData.hasLoad && (
           <div>
-            <label className="form-label" htmlFor="exercise-form-suggestedLoad">Carga sugerida (kg)</label>
+            <label className="form-label" htmlFor="exercise-form-suggestedLoad">Carga sugerida (Kg)</label>
             <input
               id="exercise-form-suggestedLoad"
               type="number"

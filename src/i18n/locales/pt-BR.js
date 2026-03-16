@@ -26,6 +26,11 @@ const ptBR = {
     EXERCISE_LOG_NOT_FOUND: 'Registro de exercício não encontrado.',
     EXERCISE_LOG_NOT_IN_SESSION: 'Registro de exercício não pertence a esta sessão.',
     SET_LOG_NOT_FOUND: 'Registro de série não encontrado.',
+    ANAMNESIS_HAS_STUDENT_LINKS: 'Esta anamnese está vinculada a alunos. Crie uma nova versão antes de editar.',
+    FORBIDDEN_GENERAL_ANAMNESIS: 'Anamneses gerais não podem ser editadas. Copie-a primeiro.',
+    FORBIDDEN_NOT_ANAMNESIS_OWNER: 'Você não tem permissão para editar esta anamnese.',
+    ANAMNESIS_NOT_LINKED_TO_STUDENT: 'Esta anamnese não está vinculada ao seu perfil.',
+    ANAMNESIS_RESPONSE_NOT_FOUND: 'Nenhuma resposta encontrada para esta anamnese.',
   },
 
   messageCodes: {
@@ -49,6 +54,9 @@ const ptBR = {
     'anamnesis.question.notFound': 'Pergunta não encontrada.',
     'anamnesis.alreadyLinked': 'Esta anamnese já está vinculada a este aluno.',
     'anamnesis.invalidQuestionType': 'Tipo de pergunta inválido.',
+    'anamnesis.hasStudentLinks': 'Esta anamnese está vinculada a alunos. Crie uma nova versão antes de editar.',
+    'anamnesis.response.notFound': 'Nenhuma resposta encontrada para esta anamnese.',
+    'anamnesis.notLinkedToStudent': 'Esta anamnese não está vinculada ao seu perfil.',
   },
 
   httpStatus: {

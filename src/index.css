@@ -3340,3 +3340,62 @@ a {
     flex-direction: row;
   }
 }
+
+/* ─────────────────────────────────────────────
+   Trainers page
+───────────────────────────────────────────── */
+.trainer-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.trainer-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.trainer-card__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.trainer-card__avatar-placeholder {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-full);
+  background: var(--md-primary-container);
+  color: var(--md-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-h3-size);
+  font-weight: var(--font-h2-weight);
+  flex-shrink: 0;
+}
+
+.trainer-card__name {
+  font-size: var(--font-body-size);
+  font-weight: 600;
+  color: var(--md-on-surface);
+  margin: 0;
+}
+
+.trainer-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  font-size: var(--font-body-small-size);
+  color: var(--md-on-surface);
+}
+
+.trainer-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--color-on-surface-variant, #49454f);
+}
