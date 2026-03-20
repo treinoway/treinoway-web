@@ -27,8 +27,9 @@ vi.mock('../../components/CreateExerciseModal', () => ({
         {headerContent}
         <button
           onClick={() => {
+            // Simulate ExerciseForm draft mode: only calls onSuccess, NOT onClose.
+            // The parent (handleInlineExerciseSuccess) is responsible for closing the modal.
             onSuccess?.({ name: 'Exercício Draft', type: 'strength', hasLoad: false });
-            onClose?.();
           }}
         >
           Salvar Exercício

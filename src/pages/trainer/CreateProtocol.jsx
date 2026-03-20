@@ -444,23 +444,25 @@ const CreateProtocol = () => {
 
   const handleInlineExerciseSuccess = (payload) => {
     const exercise = { ...payload, _id: crypto.randomUUID() };
-    if (!inlineExerciseContext) return;
-    if (inlineExerciseContext.type === 'modal') {
-      setAddTrainingModalData((prev) => ({
-        ...prev,
-        inlineExercises: [...prev.inlineExercises, exercise],
-      }));
-    } else {
-      const index = inlineExerciseContext.trainingIndex;
-      setFormData((prev) => {
-        const trainings = [...prev.trainings];
-        trainings[index] = {
-          ...trainings[index],
-          inlineExercises: [...(trainings[index].inlineExercises || []), exercise],
-        };
-        return { ...prev, trainings };
-      });
+    if (inlineExerciseContext) {
+      if (inlineExerciseContext.type === 'modal') {
+        setAddTrainingModalData((prev) => ({
+          ...prev,
+          inlineExercises: [...prev.inlineExercises, exercise],
+        }));
+      } else {
+        const index = inlineExerciseContext.trainingIndex;
+        setFormData((prev) => {
+          const trainings = [...prev.trainings];
+          trainings[index] = {
+            ...trainings[index],
+            inlineExercises: [...(trainings[index].inlineExercises || []), exercise],
+          };
+          return { ...prev, trainings };
+        });
+      }
     }
+    closeInlineExerciseModal();
   };
 
   const handleInlineExerciseTemplateSelect = (templateId) => {
@@ -502,7 +504,6 @@ const CreateProtocol = () => {
     if (f.notes?.trim()) payload.notes = f.notes.trim();
 
     handleInlineExerciseSuccess(payload);
-    closeInlineExerciseModal();
   };
 
   const removeInlineExerciseFromModal = (exerciseId) => {

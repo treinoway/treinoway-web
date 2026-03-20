@@ -11,6 +11,7 @@ import {
   defaultQuestionForm,
   defaultSectionForm,
 } from '../../constants/anamnesis';
+import { TemplateRowMenu } from './TrainingTemplates';
 
 const QUESTION_TYPE_OPTIONS = Object.values(ANAMNESIS_QUESTION_TYPE).map((value) => ({
   value,
@@ -160,13 +161,19 @@ export const SectionBlock = ({
   section,
   isGeneral,
   onDeleteSection,
+  onEditSection,
   onAddQuestion,
   onDeleteQuestion,
+  onEditQuestion,
   setConfirmDialog,
 }) => {
   const [expanded, setExpanded] = useState(true);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [editingQuestionId, setEditingQuestionId] = useState(null);
+  const [showSectionEditForm, setShowSectionEditForm] = useState(false);
+  const [sectionEditForm, setSectionEditForm] = useState({ title: section.title, description: section.description ?? '' });
   const [saving, setSaving] = useState(false);
+  const [savingQuestion, setSavingQuestion] = useState(false);
 
   const handleAddQuestion = async (questionData) => {
     setSaving(true);
@@ -188,20 +195,40 @@ export const SectionBlock = ({
     });
   };
 
+  const handleEditQuestionSubmit = async (questionData) => {
+    setSavingQuestion(true);
+    const success = await onEditQuestion(section.id, editingQuestionId, questionData);
+    setSavingQuestion(false);
+    if (success) setEditingQuestionId(null);
+  };
+
+  const handleSectionEditSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    const success = await onEditSection(section.id, sectionEditForm);
+    setSaving(false);
+    if (success) setShowSectionEditForm(false);
+  };
+
+  const handleStartSectionEdit = () => {
+    setSectionEditForm({ title: section.title, description: section.description ?? '' });
+    setShowSectionEditForm(true);
+  };
+
   return (
     <div className="card card--mb">
       <div className="card-header" style={{ cursor: 'pointer' }} onClick={() => setExpanded((p) => !p)}>
         <span className="card-title" style={{ marginBottom: 0 }}>{section.title}</span>
         <div style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'center' }}>
           {!isGeneral && (
-            <button
-              type="button"
-              className="btn-delete"
-              onClick={(e) => { e.stopPropagation(); onDeleteSection(section); }}
-              aria-label={`Excluir seção ${section.title}`}
-            >
-              Excluir seção
-            </button>
+            <div onClick={(e) => e.stopPropagation()}>
+              <TemplateRowMenu
+                ariaLabel={`Ações da seção ${section.title}`}
+                onEdit={() => { setExpanded(true); handleStartSectionEdit(); }}
+                onDelete={() => onDeleteSection(section)}
+                deleteLabel="Excluir seção"
+              />
+            </div>
           )}
           {expanded ? <ChevronUp size={16} strokeWidth={1.6} /> : <ChevronDown size={16} strokeWidth={1.6} />}
         </div>
@@ -209,6 +236,51 @@ export const SectionBlock = ({
 
       {expanded && (
         <div style={{ marginTop: 'var(--spacing-md)' }}>
+          {showSectionEditForm && (
+            <div style={{ marginBottom: 'var(--spacing-md)', paddingBottom: 'var(--spacing-md)', borderBottom: '1px solid var(--color-outline-variant)' }}>
+              <h4 className="text-sm font-medium" style={{ marginBottom: 'var(--spacing-sm)' }}>Editar seção</h4>
+              <form onSubmit={handleSectionEditSubmit} className="form">
+                <div>
+                  <label className="form-label" htmlFor={`edit-section-title-${section.id}`}>Título da seção</label>
+                  <input
+                    id={`edit-section-title-${section.id}`}
+                    type="text"
+                    value={sectionEditForm.title}
+                    onChange={(e) => setSectionEditForm((prev) => ({ ...prev, title: e.target.value }))}
+                    className="form-input"
+                    required
+                    disabled={saving}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" htmlFor={`edit-section-description-${section.id}`}>Descrição</label>
+                  <textarea
+                    id={`edit-section-description-${section.id}`}
+                    value={sectionEditForm.description}
+                    onChange={(e) => setSectionEditForm((prev) => ({ ...prev, description: e.target.value }))}
+                    className="form-textarea"
+                    rows={2}
+                    placeholder="Descrição opcional"
+                    disabled={saving}
+                  />
+                </div>
+                <div className="btn-group">
+                  <button type="submit" disabled={saving} className="btn-primary">
+                    {saving ? 'Salvando...' : 'Salvar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSectionEditForm(false)}
+                    className="btn-secondary"
+                    disabled={saving}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
           {section.questions?.length === 0 && (
             <p className="text-sm text-muted" style={{ marginBottom: 'var(--spacing-md)' }}>
               Nenhuma pergunta nesta seção.
@@ -226,32 +298,41 @@ export const SectionBlock = ({
                 marginBottom: 'var(--spacing-sm)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--spacing-sm)' }}>
-                <div style={{ flex: 1 }}>
-                  <span className="font-medium">{index + 1}. {question.text}</span>
-                  <div style={{ marginTop: 'var(--spacing-xs)', display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
-                    <span className="badge badge-gray">{getQuestionTypeLabel(question.type)}</span>
-                    {question.required && <span className="badge badge-blue">Obrigatória</span>}
+              {editingQuestionId === question.id ? (
+                <div>
+                  <h4 className="text-sm font-medium" style={{ marginBottom: 'var(--spacing-sm)' }}>Editar pergunta</h4>
+                  <QuestionForm
+                    initialData={{ text: question.text, type: question.type, required: question.required, options: question.options ?? [] }}
+                    onSubmit={handleEditQuestionSubmit}
+                    onCancel={() => setEditingQuestionId(null)}
+                    saving={savingQuestion}
+                  />
+                </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--spacing-sm)' }}>
+                  <div style={{ flex: 1 }}>
+                    <span className="font-medium">{index + 1}. {question.text}</span>
+                    <div style={{ marginTop: 'var(--spacing-xs)', display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
+                      <span className="badge badge-gray">{getQuestionTypeLabel(question.type)}</span>
+                      {question.required && <span className="badge badge-blue">Obrigatória</span>}
+                    </div>
+                    {question.options?.length > 0 && (
+                      <ul className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)', paddingLeft: 'var(--spacing-md)' }}>
+                        {question.options.map((opt) => (
+                          <li key={opt.id}>{opt.text}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  {question.options?.length > 0 && (
-                    <ul className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)', paddingLeft: 'var(--spacing-md)' }}>
-                      {question.options.map((opt) => (
-                        <li key={opt.id}>{opt.text}</li>
-                      ))}
-                    </ul>
+                  {!isGeneral && (
+                    <TemplateRowMenu
+                      ariaLabel={`Ações da pergunta ${question.text}`}
+                      onEdit={() => setEditingQuestionId(question.id)}
+                      onDelete={() => handleDeleteQuestion(question)}
+                    />
                   )}
                 </div>
-                {!isGeneral && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteQuestion(question)}
-                    className="btn-delete"
-                    aria-label={`Excluir pergunta ${question.text}`}
-                  >
-                    Excluir
-                  </button>
-                )}
-              </div>
+              )}
             </div>
           ))}
 
@@ -383,6 +464,38 @@ const AnamnesisDetail = () => {
       } else {
         showToast(error.userMessage || translateError(error), 'error');
       }
+    }
+  };
+
+  const handleEditSection = async (sectionId, data) => {
+    try {
+      await api.patch(`/trainer/anamneses/${anamnesisId}/sections/${sectionId}`, data);
+      showToast('Seção atualizada com sucesso!', 'success');
+      fetchAnamnesis();
+      return true;
+    } catch (error) {
+      if (isStudentLinksConflict(error)) {
+        handleStudentLinksConflict();
+      } else {
+        showToast(error.userMessage || translateError(error), 'error');
+      }
+      return false;
+    }
+  };
+
+  const handleEditQuestion = async (sectionId, questionId, data) => {
+    try {
+      await api.patch(`/trainer/anamneses/${anamnesisId}/sections/${sectionId}/questions/${questionId}`, data);
+      showToast('Pergunta atualizada com sucesso!', 'success');
+      fetchAnamnesis();
+      return true;
+    } catch (error) {
+      if (isStudentLinksConflict(error)) {
+        handleStudentLinksConflict();
+      } else {
+        showToast(error.userMessage || translateError(error), 'error');
+      }
+      return false;
     }
   };
 
@@ -561,8 +674,10 @@ const AnamnesisDetail = () => {
           section={section}
           isGeneral={isGeneral}
           onDeleteSection={handleDeleteSection}
+          onEditSection={handleEditSection}
           onAddQuestion={handleAddQuestion}
           onDeleteQuestion={handleDeleteQuestion}
+          onEditQuestion={handleEditQuestion}
           setConfirmDialog={setConfirmDialog}
         />
       ))}

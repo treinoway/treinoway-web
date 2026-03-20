@@ -76,6 +76,7 @@ describe('AnamnesisDetail', () => {
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockReset();
     api.post.mockReset();
+    api.patch.mockReset();
     api.delete.mockReset();
   });
 
@@ -174,7 +175,8 @@ describe('AnamnesisDetail', () => {
     await waitFor(() => {
       expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument();
     });
-    await user.click(screen.getByRole('button', { name: /excluir seção histórico de saúde/i }));
+    await user.click(screen.getByRole('button', { name: /ações da seção histórico de saúde/i }));
+    await user.click(screen.getByRole('button', { name: /excluir seção/i }));
     expect(screen.getByText(/excluir a seção "histórico de saúde"/i)).toBeInTheDocument();
   });
 
@@ -184,9 +186,10 @@ describe('AnamnesisDetail', () => {
     api.delete.mockResolvedValue({});
     renderAnamnesisDetail();
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /excluir seção histórico de saúde/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /ações da seção histórico de saúde/i })).toBeInTheDocument();
     });
-    await user.click(screen.getByRole('button', { name: /excluir seção histórico de saúde/i }));
+    await user.click(screen.getByRole('button', { name: /ações da seção histórico de saúde/i }));
+    await user.click(screen.getByRole('button', { name: /excluir seção/i }));
     await user.click(screen.getByRole('button', { name: 'Confirmar' }));
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1/sections/section-1');
@@ -379,6 +382,152 @@ describe('AnamnesisDetail', () => {
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1/fork');
       expect(mockShowToast).toHaveBeenCalledWith('Nova versão criada com sucesso!', 'success');
+    });
+  });
+
+  it('clicking edit section shows a pre-filled inline form', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /ações da seção histórico de saúde/i }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    const titleInput = screen.getByLabelText(/título da seção/i);
+    expect(titleInput).toBeInTheDocument();
+    expect(titleInput).toHaveValue('Histórico de Saúde');
+  });
+
+  it('submitting edit section calls PATCH with correct data and shows success toast', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    api.patch.mockResolvedValue({ data: {} });
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /ações da seção histórico de saúde/i }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    const titleInput = screen.getByLabelText(/título da seção/i);
+    await user.clear(titleInput);
+    await user.type(titleInput, 'Histórico Atualizado');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith(
+        '/trainer/anamneses/anamnesis-1/sections/section-1',
+        expect.objectContaining({ title: 'Histórico Atualizado' }),
+      );
+      expect(mockShowToast).toHaveBeenCalledWith('Seção atualizada com sucesso!', 'success');
+    });
+  });
+
+  it('cancelling edit section hides the form', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /ações da seção histórico de saúde/i }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    expect(screen.getByLabelText(/título da seção/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByLabelText(/título da seção/i)).not.toBeInTheDocument();
+  });
+
+  it('clicking edit question shows a pre-filled QuestionForm', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText(/você tem alguma doença crônica/i)).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /ações da pergunta você tem alguma doença crônica/i }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    const questionInput = screen.getByLabelText('Pergunta');
+    expect(questionInput).toBeInTheDocument();
+    expect(questionInput).toHaveValue('Você tem alguma doença crônica?');
+  });
+
+  it('submitting edit question calls PATCH with correct data and shows success toast', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    api.patch.mockResolvedValue({ data: {} });
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText(/você tem alguma doença crônica/i)).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /ações da pergunta você tem alguma doença crônica/i }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    const questionInput = screen.getByLabelText('Pergunta');
+    await user.clear(questionInput);
+    await user.type(questionInput, 'Pergunta atualizada?');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith(
+        '/trainer/anamneses/anamnesis-1/sections/section-1/questions/q1',
+        expect.objectContaining({ text: 'Pergunta atualizada?' }),
+      );
+      expect(mockShowToast).toHaveBeenCalledWith('Pergunta atualizada com sucesso!', 'success');
+    });
+  });
+
+  it('cancelling edit question hides the form', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText(/você tem alguma doença crônica/i)).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /ações da pergunta você tem alguma doença crônica/i }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    expect(screen.getByLabelText('Pergunta')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByLabelText('Pergunta')).not.toBeInTheDocument();
+  });
+
+  it('edit section with 409 ANAMNESIS_HAS_STUDENT_LINKS shows fork conflict dialog', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    const conflictError = {
+      response: {
+        status: 409,
+        data: { error: 'ANAMNESIS_HAS_STUDENT_LINKS' },
+      },
+    };
+    api.patch.mockRejectedValue(conflictError);
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /ações da seção histórico de saúde/i }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => {
+      expect(screen.getByText(/vinculada a alunos/i)).toBeInTheDocument();
+    });
+  });
+
+  it('edit question with 409 ANAMNESIS_HAS_STUDENT_LINKS shows fork conflict dialog', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    const conflictError = {
+      response: {
+        status: 409,
+        data: { error: 'ANAMNESIS_HAS_STUDENT_LINKS' },
+      },
+    };
+    api.patch.mockRejectedValue(conflictError);
+    renderAnamnesisDetail();
+    await waitFor(() => {
+      expect(screen.getByText(/você tem alguma doença crônica/i)).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /ações da pergunta você tem alguma doença crônica/i }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => {
+      expect(screen.getByText(/vinculada a alunos/i)).toBeInTheDocument();
     });
   });
 });
