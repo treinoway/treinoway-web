@@ -1,4 +1,4 @@
-import { formatRepetitions, formatExerciseMeta } from './exerciseMeta';
+import { formatRepetitions, formatRestInterval, formatExerciseMeta } from './exerciseMeta';
 
 describe('formatRepetitions', () => {
   it('returns null for null input', () => {
@@ -15,6 +15,35 @@ describe('formatRepetitions', () => {
 
   it('returns range when min differs from max', () => {
     expect(formatRepetitions({ min: 8, max: 12 })).toBe('8\u201312');
+  });
+});
+
+describe('formatRestInterval', () => {
+  it('returns null for null or undefined', () => {
+    expect(formatRestInterval(null)).toBeNull();
+    expect(formatRestInterval(undefined)).toBeNull();
+  });
+
+  it('returns null for 0', () => {
+    expect(formatRestInterval(0)).toBeNull();
+  });
+
+  it('returns null for negative values', () => {
+    expect(formatRestInterval(-10)).toBeNull();
+  });
+
+  it('formats seconds only when less than 60', () => {
+    expect(formatRestInterval(30)).toBe('Descanso: 30s');
+  });
+
+  it('formats exact minutes', () => {
+    expect(formatRestInterval(60)).toBe('Descanso: 1min');
+    expect(formatRestInterval(120)).toBe('Descanso: 2min');
+  });
+
+  it('formats minutes and seconds', () => {
+    expect(formatRestInterval(90)).toBe('Descanso: 1min 30s');
+    expect(formatRestInterval(150)).toBe('Descanso: 2min 30s');
   });
 });
 
@@ -79,5 +108,37 @@ describe('formatExerciseMeta', () => {
       suggestedLoad: 5,
     };
     expect(formatExerciseMeta(exercise)).toBe('Mobilidade · 2x15\u201320 · 5 kg');
+  });
+
+  it('includes rest interval when greater than 0', () => {
+    const exercise = {
+      type: 'strength',
+      sets: 4,
+      repetitions: { min: 8, max: 10 },
+      hasLoad: true,
+      suggestedLoad: 60,
+      restInterval: 90,
+    };
+    expect(formatExerciseMeta(exercise)).toBe('Força · 4x8\u201310 · 60 kg · Descanso: 1min 30s');
+  });
+
+  it('does not include rest interval when null', () => {
+    const exercise = {
+      type: 'strength',
+      sets: 4,
+      repetitions: { min: 8, max: 10 },
+      restInterval: null,
+    };
+    expect(formatExerciseMeta(exercise)).toBe('Força · 4x8\u201310');
+  });
+
+  it('does not include rest interval when 0', () => {
+    const exercise = {
+      type: 'strength',
+      sets: 4,
+      repetitions: { min: 8, max: 10 },
+      restInterval: 0,
+    };
+    expect(formatExerciseMeta(exercise)).toBe('Força · 4x8\u201310');
   });
 });

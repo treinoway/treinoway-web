@@ -1,0 +1,143 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '../test/test-utils';
+import userEvent from '@testing-library/user-event';
+import RowMenu from './RowMenu';
+
+describe('RowMenu', () => {
+  let onEdit;
+  let onDelete;
+
+  beforeEach(() => {
+    onEdit = vi.fn();
+    onDelete = vi.fn();
+  });
+
+  it('renders the trigger button with correct aria-label', () => {
+    render(<RowMenu ariaLabel="Ações do item" onDelete={onDelete} />);
+    expect(screen.getByRole('button', { name: 'Ações do item' })).toBeInTheDocument();
+  });
+
+  it('does not show dropdown initially', () => {
+    render(<RowMenu ariaLabel="Ações" onDelete={onDelete} onEdit={onEdit} />);
+    expect(screen.queryByText('Editar')).not.toBeInTheDocument();
+    expect(screen.queryByText('Excluir')).not.toBeInTheDocument();
+  });
+
+  it('shows dropdown when trigger is clicked', async () => {
+    const user = userEvent.setup();
+    render(<RowMenu ariaLabel="Ações" onDelete={onDelete} onEdit={onEdit} />);
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+
+    expect(screen.getByText('Editar')).toBeInTheDocument();
+    expect(screen.getByText('Excluir')).toBeInTheDocument();
+  });
+
+  it('calls onEdit and closes dropdown when Editar is clicked', async () => {
+    const user = userEvent.setup();
+    render(<RowMenu ariaLabel="Ações" onDelete={onDelete} onEdit={onEdit} />);
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+    await user.click(screen.getByText('Editar'));
+
+    expect(onEdit).toHaveBeenCalledOnce();
+    expect(screen.queryByText('Editar')).not.toBeInTheDocument();
+  });
+
+  it('calls onDelete and closes dropdown when delete button is clicked', async () => {
+    const user = userEvent.setup();
+    render(<RowMenu ariaLabel="Ações" onDelete={onDelete} />);
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+    await user.click(screen.getByText('Excluir'));
+
+    expect(onDelete).toHaveBeenCalledOnce();
+    expect(screen.queryByText('Excluir')).not.toBeInTheDocument();
+  });
+
+  it('uses custom deleteLabel', async () => {
+    const user = userEvent.setup();
+    render(<RowMenu ariaLabel="Ações" onDelete={onDelete} deleteLabel="Desvincular" />);
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+
+    expect(screen.getByText('Desvincular')).toBeInTheDocument();
+    expect(screen.queryByText('Excluir')).not.toBeInTheDocument();
+  });
+
+  it('does not render Editar when onEdit is not provided', async () => {
+    const user = userEvent.setup();
+    render(<RowMenu ariaLabel="Ações" onDelete={onDelete} />);
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+
+    expect(screen.queryByText('Editar')).not.toBeInTheDocument();
+    expect(screen.getByText('Excluir')).toBeInTheDocument();
+  });
+
+  it('renders extra items between edit and delete', async () => {
+    const user = userEvent.setup();
+    const onCopy = vi.fn();
+    const extraItems = [{ label: 'Copiar', onClick: onCopy }];
+
+    render(
+      <RowMenu ariaLabel="Ações" onDelete={onDelete} onEdit={onEdit} extraItems={extraItems} />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+
+    const buttons = screen.getAllByRole('button').filter(
+      (btn) => btn.classList.contains('row-menu-item')
+    );
+    expect(buttons[0]).toHaveTextContent('Editar');
+    expect(buttons[1]).toHaveTextContent('Copiar');
+    expect(buttons[2]).toHaveTextContent('Excluir');
+
+    await user.click(screen.getByText('Copiar'));
+    expect(onCopy).toHaveBeenCalledOnce();
+  });
+
+  it('renders extra danger items with correct class', async () => {
+    const user = userEvent.setup();
+    const extraItems = [{ label: 'Remover', onClick: vi.fn(), danger: true }];
+
+    render(<RowMenu ariaLabel="Ações" onDelete={onDelete} extraItems={extraItems} />);
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+
+    const removeBtn = screen.getByText('Remover');
+    expect(removeBtn.classList.contains('row-menu-item--danger')).toBe(true);
+  });
+
+  it('closes dropdown when clicking outside', async () => {
+    const user = userEvent.setup();
+    render(
+      <div>
+        <span>Outside</span>
+        <RowMenu ariaLabel="Ações" onDelete={onDelete} onEdit={onEdit} />
+      </div>
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+    expect(screen.getByText('Editar')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Outside'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Editar')).not.toBeInTheDocument();
+    });
+  });
+
+  it('toggles dropdown open and closed', async () => {
+    const user = userEvent.setup();
+    render(<RowMenu ariaLabel="Ações" onDelete={onDelete} onEdit={onEdit} />);
+
+    const trigger = screen.getByRole('button', { name: 'Ações' });
+
+    await user.click(trigger);
+    expect(screen.getByText('Editar')).toBeInTheDocument();
+
+    await user.click(trigger);
+    expect(screen.queryByText('Editar')).not.toBeInTheDocument();
+  });
+});

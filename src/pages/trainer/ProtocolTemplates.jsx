@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { ArrowLeft, GripVertical, LayoutGrid, List, MoreVertical } from 'lucide-react';
+import { ArrowLeft, GripVertical, LayoutGrid, List } from 'lucide-react';
 import ExerciseTemplateForm from '../../components/ExerciseTemplateForm';
+import RowMenu from '../../components/RowMenu';
 import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -14,51 +15,6 @@ import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
 import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 
-const scheduleBadgeStyle = {
-  background: 'var(--color-surface)',
-  border: '1px solid var(--color-outline-variant)',
-};
-
-const TemplateRowMenu = ({ onEdit, onDelete, ariaLabel, deleteLabel = 'Excluir' }) => {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
-
-  return (
-    <div className="row-menu" ref={menuRef}>
-      <button
-        type="button"
-        className="row-menu-trigger"
-        aria-label={ariaLabel}
-        aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <MoreVertical size={18} strokeWidth={1.6} />
-      </button>
-      {open && (
-        <div className="row-menu-dropdown">
-          {onEdit && (
-            <button type="button" className="row-menu-item" onClick={() => { setOpen(false); onEdit(); }}>
-              Editar
-            </button>
-          )}
-          <button type="button" className="row-menu-item row-menu-item--danger" onClick={() => { setOpen(false); onDelete(); }}>
-            {deleteLabel}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
 const SortableScheduleRow = ({ id, training, trainingTemplates, exercises, onRemove, onEdit }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -67,6 +23,10 @@ const SortableScheduleRow = ({ id, training, trainingTemplates, exercises, onRem
     (t) => String(t.id) === String(training.trainingTemplateId)
   )?.name || '—';
   const dayLabel = getWeekDayLabel(training.weekDay);
+
+  const metaParts = [];
+  if (dayLabel) metaParts.push(dayLabel);
+  metaParts.push(`Ordem ${training.order}`);
 
   return (
     <div
@@ -77,18 +37,16 @@ const SortableScheduleRow = ({ id, training, trainingTemplates, exercises, onRem
       <span className="drag-handle" {...attributes} {...listeners} aria-label="Arrastar para reordenar">
         <GripVertical size={16} strokeWidth={1.8} />
       </span>
-      <div className="schedule-template-fields" style={{ alignItems: 'center' }}>
-        <span style={{ fontWeight: 600, flex: 1 }}>{templateName}</span>
-        <div style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
-          {dayLabel && (
-            <span className="badge badge-blue" style={scheduleBadgeStyle}>
-              {dayLabel}
+      <div className="schedule-template-fields">
+        <span className="schedule-row-name">{templateName}</span>
+        <span className="schedule-row-meta">
+          {metaParts.map((part, index) => (
+            <span key={part}>
+              {index > 0 && <span aria-hidden="true"> · </span>}
+              {part}
             </span>
-          )}
-          <span className="badge" style={{ ...scheduleBadgeStyle, color: 'var(--color-on-surface-variant)' }}>
-            Ordem: {training.order}
-          </span>
-        </div>
+          ))}
+        </span>
         {exercises.length > 0 && (
           <div className="training-row-exercises">
             {exercises.map((exercise) => {
@@ -103,7 +61,7 @@ const SortableScheduleRow = ({ id, training, trainingTemplates, exercises, onRem
           </div>
         )}
       </div>
-      <TemplateRowMenu
+      <RowMenu
         ariaLabel={`Ações do treino ${templateName}`}
         onEdit={onEdit}
         onDelete={onRemove}
@@ -111,13 +69,6 @@ const SortableScheduleRow = ({ id, training, trainingTemplates, exercises, onRem
       />
     </div>
   );
-};
-
-TemplateRowMenu.propTypes = {
-  onEdit: PropTypes.func,
-  onDelete: PropTypes.func.isRequired,
-  ariaLabel: PropTypes.string.isRequired,
-  deleteLabel: PropTypes.string,
 };
 
 SortableScheduleRow.propTypes = {
@@ -138,17 +89,11 @@ SortableScheduleRow.propTypes = {
 
 const ExerciseRow = ({ name, meta, onEdit, onRemove }) => (
   <div className="schedule-template-row">
-    <div className="schedule-template-fields" style={{ alignItems: 'center' }}>
-      <span style={{ fontWeight: 600, flex: 1 }}>{name}</span>
-      {meta && (
-        <div style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
-          <span className="badge" style={{ ...scheduleBadgeStyle, color: 'var(--color-on-surface-variant)' }}>
-            {meta}
-          </span>
-        </div>
-      )}
+    <div className="schedule-template-fields">
+      <span className="schedule-row-name">{name}</span>
+      {meta && <span className="schedule-row-meta">{meta}</span>}
     </div>
-    <TemplateRowMenu
+    <RowMenu
       ariaLabel={`Ações do exercício ${name}`}
       onEdit={onEdit}
       onDelete={onRemove}
@@ -870,7 +815,7 @@ const ProtocolTemplates = () => {
                       {levelLabel || '—'}
                     </td>
                     <td>
-                      <TemplateRowMenu
+                      <RowMenu
                         ariaLabel={`Ações do modelo ${template.name}`}
                         onEdit={() => handleTemplateEdit(template)}
                         onDelete={() => handleTemplateDelete(template.id)}

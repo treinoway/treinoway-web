@@ -116,7 +116,7 @@ describe('ProtocolDetail', () => {
     renderProtocolDetail();
 
     await waitFor(() => {
-      expect(screen.getByText(/aluno teste/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/aluno teste/i).length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -167,7 +167,7 @@ describe('ProtocolDetail', () => {
     const user = userEvent.setup();
     renderProtocolDetail();
 
-    await waitFor(() => screen.getByText(/aluno teste/i));
+    await waitFor(() => screen.getAllByText(/aluno teste/i));
     await user.click(screen.getByRole('button', { name: /adicionar treino/i }));
 
     expect(screen.getByText('Adicionar Novo Treino')).toBeInTheDocument();
@@ -177,7 +177,7 @@ describe('ProtocolDetail', () => {
     const user = userEvent.setup();
     renderProtocolDetail();
 
-    await waitFor(() => screen.getByText(/aluno teste/i));
+    await waitFor(() => screen.getAllByText(/aluno teste/i));
     await user.click(screen.getByRole('button', { name: /adicionar treino/i }));
     expect(screen.getByText('Adicionar Novo Treino')).toBeInTheDocument();
 
@@ -202,7 +202,7 @@ describe('ProtocolDetail', () => {
 
     const { container } = renderProtocolDetail();
 
-    await waitFor(() => screen.getByText(/aluno teste/i));
+    await waitFor(() => screen.getAllByText(/aluno teste/i));
     await user.click(screen.getByRole('button', { name: /adicionar treino/i }));
 
     const nameInput = screen.getAllByRole('textbox')[0];
@@ -259,12 +259,14 @@ describe('ProtocolDetail', () => {
     });
   });
 
-  it('renders a back button that navigates to the protocols list', async () => {
+  it('renders a back button that navigates to the student detail', async () => {
     renderProtocolDetail();
 
-    await waitFor(() => screen.getByText(/aluno teste/i));
+    await waitFor(() => screen.getAllByText(/aluno teste/i));
 
-    expect(screen.getByRole('button', { name: /voltar para rotinas/i })).toBeInTheDocument();
+    const backButton = screen.getByRole('button', { name: /aluno teste/i });
+    expect(backButton).toBeInTheDocument();
+    expect(backButton.classList.contains('btn-back')).toBe(true);
   });
 
   it('shows "+ Adicionar exercício" button on each training card', async () => {

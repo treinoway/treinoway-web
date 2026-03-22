@@ -1,15 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown, FileText, UserCheck } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-const BIBLIOTECA_PATHS = ['/trainer/protocol-templates', '/trainer/training-templates', '/trainer/exercise-templates'];
-const ALUNOS_PATHS = ['/trainer/students', '/trainer/protocols/new', '/trainer/anamneses'];
+const BIBLIOTECA_PATHS = ['/trainer/protocol-templates', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [alunosOpen, setAlunosOpen] = useState(false);
   const [bibliotecaOpen, setBibliotecaOpen] = useState(false);
   const [bibliotecaPopover, setBibliotecaPopover] = useState(false);
   const { user, logout, hasRole } = useAuth();
@@ -29,20 +27,11 @@ const Layout = ({ children }) => {
 
   const isBibliotecaActive = () =>
     BIBLIOTECA_PATHS.some((p) => isActive(p));
-  const isAlunosActive = () =>
-    ALUNOS_PATHS.some((p) => isActive(p));
 
   // Auto-open sidebar biblioteca group when a child route is active
   useEffect(() => {
     if (isBibliotecaActive()) {
       setBibliotecaOpen(true);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
-
-  useEffect(() => {
-    if (isAlunosActive()) {
-      setAlunosOpen(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
@@ -63,22 +52,14 @@ const Layout = ({ children }) => {
     { path: '/trainer/protocol-templates', label: 'Rotinas', Icon: ClipboardList },
     { path: '/trainer/training-templates', label: 'Treinos únicos', Icon: Dumbbell },
     { path: '/trainer/exercise-templates', label: 'Exercícios', Icon: Activity },
-  ];
-  const alunosChildren = [
-    { path: '/trainer/students', label: 'Meus alunos', Icon: Users },
-    { path: '/trainer/protocols/new', label: 'Criar Rotina', Icon: ClipboardList },
     { path: '/trainer/anamneses', label: 'Anamneses', Icon: FileText },
   ];
 
   const navLinks = [
     { path: '/', label: 'Painel', Icon: Home },
     { path: '/profile', label: 'Meu Perfil', Icon: User },
-    { path: '/trainers', label: 'Treinadores', Icon: UserCheck },
     { path: '/my/protocols', label: 'Minhas Rotinas', Icon: ClipboardList },
     { path: '/my/anamneses', label: 'Anamneses', Icon: FileText },
-    ...(hasRole('TRAINER') ? [
-      { path: '/trainer/students', label: 'Alunos', Icon: Users, section: 'Treinador' },
-    ] : []),
   ];
 
   return (
@@ -125,8 +106,8 @@ const Layout = ({ children }) => {
         </div>
 
         <nav className="sidebar-nav">
-          {/* Regular nav links (Painel, Meu Perfil) */}
-          {navLinks.filter(l => !l.section).map((link) => (
+          {/* Regular nav links */}
+          {navLinks.map((link) => (
             <Link
               key={link.path}
               to={link.path}
@@ -147,50 +128,17 @@ const Layout = ({ children }) => {
                 <div className="sidebar-section-label">Treinador</div>
               )}
 
-              {/* Alunos dropdown */}
-              <button
-                onClick={() => {
-                  if (!sidebarOpen) {
-                    setSidebarOpen(true);
-                    setAlunosOpen(true);
-                  } else {
-                    setAlunosOpen((o) => !o);
-                  }
-                }}
-                className={`sidebar-dropdown-toggle ${isAlunosActive() ? 'sidebar-link--active' : ''}`}
-                aria-label="Alunos"
-                aria-expanded={alunosOpen && sidebarOpen}
+              {/* Alunos — direct link (no dropdown needed) */}
+              <Link
+                to="/trainer/students"
+                className={`sidebar-link ${isActive('/trainer/students') ? 'sidebar-link--active' : ''}`}
+                aria-label="Meus Alunos"
               >
                 <span className="sidebar-link-icon" aria-hidden="true">
                   <Users size={20} strokeWidth={1.6} />
                 </span>
-                {sidebarOpen && (
-                  <>
-                    <span className="sidebar-link-label">Alunos</span>
-                    <span className={`sidebar-dropdown-chevron ${alunosOpen ? 'sidebar-dropdown-chevron--open' : ''}`}>
-                      <ChevronDown size={14} strokeWidth={1.6} />
-                    </span>
-                  </>
-                )}
-              </button>
-
-              {sidebarOpen && alunosOpen && (
-                <div className="sidebar-dropdown-children">
-                  {alunosChildren.map((child) => (
-                    <Link
-                      key={child.path}
-                      to={child.path}
-                      className={`sidebar-child-link ${isActive(child.path) ? 'sidebar-link--active' : ''}`}
-                      aria-label={child.label}
-                    >
-                      <span className="sidebar-link-icon" aria-hidden="true">
-                        <child.Icon size={16} strokeWidth={1.6} />
-                      </span>
-                      <span className="sidebar-link-label">{child.label}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
+                {sidebarOpen && <span className="sidebar-link-label">Meus Alunos</span>}
+              </Link>
 
               {/* Biblioteca dropdown */}
               <button
@@ -270,17 +218,6 @@ const Layout = ({ children }) => {
         </Link>
 
         <Link
-          to="/profile"
-          className={`bottom-nav-item ${isActive('/profile') ? 'bottom-nav-item--active' : ''}`}
-          aria-label="Meu Perfil"
-        >
-          <span className="bottom-nav-item-icon" aria-hidden="true">
-            <User size={22} strokeWidth={1.6} />
-          </span>
-          <span>Perfil</span>
-        </Link>
-
-        <Link
           to="/my/protocols"
           className={`bottom-nav-item ${isActive('/my/protocols') ? 'bottom-nav-item--active' : ''}`}
           aria-label="Minhas Rotinas"
@@ -291,33 +228,11 @@ const Layout = ({ children }) => {
           <span>Rotinas</span>
         </Link>
 
-        <Link
-          to="/my/anamneses"
-          className={`bottom-nav-item ${isActive('/my/anamneses') ? 'bottom-nav-item--active' : ''}`}
-          aria-label="Anamneses"
-        >
-          <span className="bottom-nav-item-icon" aria-hidden="true">
-            <FileText size={22} strokeWidth={1.6} />
-          </span>
-          <span>Anamneses</span>
-        </Link>
-
-        <Link
-          to="/trainers"
-          className={`bottom-nav-item ${isActive('/trainers') ? 'bottom-nav-item--active' : ''}`}
-          aria-label="Treinadores"
-        >
-          <span className="bottom-nav-item-icon" aria-hidden="true">
-            <UserCheck size={22} strokeWidth={1.6} />
-          </span>
-          <span>Treinadores</span>
-        </Link>
-
         {hasRole('TRAINER') && (
           <Link
             to="/trainer/students"
             className={`bottom-nav-item ${isActive('/trainer/students') ? 'bottom-nav-item--active' : ''}`}
-            aria-label="Alunos"
+            aria-label="Meus Alunos"
           >
             <span className="bottom-nav-item-icon" aria-hidden="true">
               <Users size={22} strokeWidth={1.6} />
@@ -360,12 +275,16 @@ const Layout = ({ children }) => {
           </div>
         )}
 
-        <button onClick={handleLogout} className="bottom-nav-item bottom-nav-logout" aria-label="Sair da conta">
+        <Link
+          to="/profile"
+          className={`bottom-nav-item ${isActive('/profile') ? 'bottom-nav-item--active' : ''}`}
+          aria-label="Meu Perfil"
+        >
           <span className="bottom-nav-item-icon" aria-hidden="true">
-            <LogOut size={22} strokeWidth={1.6} />
+            <User size={22} strokeWidth={1.6} />
           </span>
-          <span>Sair</span>
-        </button>
+          <span>Perfil</span>
+        </Link>
       </nav>
     </div>
   );

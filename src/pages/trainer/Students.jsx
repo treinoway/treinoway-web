@@ -81,6 +81,7 @@ const Students = () => {
   const [email, setEmail] = useState('');
   const [linking, setLinking] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchStudents = useCallback(async () => {
     setLoading(true);
@@ -155,19 +156,45 @@ const Students = () => {
     );
   }
 
+  const normalizedQuery = searchQuery.toLowerCase().trim();
+  const filteredStudents = normalizedQuery
+    ? students.filter((s) => {
+        const name = getStudentName(s) || '';
+        const emailStr = s.email || '';
+        return name.toLowerCase().includes(normalizedQuery) || emailStr.toLowerCase().includes(normalizedQuery);
+      })
+    : students;
+
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title" style={{ marginBottom: 0 }}>Alunos</h1>
+        <h1 className="page-title" style={{ marginBottom: 0 }}>Meus Alunos</h1>
         <button onClick={() => setShowLinkForm(true)} className="btn-primary">
           + Vincular Aluno
         </button>
       </div>
 
+      {students.length > 0 && (
+        <div style={{ marginBottom: 'var(--spacing-md)' }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="form-input"
+            placeholder="Buscar por nome ou e-mail..."
+            aria-label="Buscar alunos"
+          />
+        </div>
+      )}
+
       {students.length === 0 ? (
         <div className="empty-state">
           <p className="empty-state-title">Nenhum aluno vinculado ainda</p>
           <p>Clique em &quot;Vincular Aluno&quot; para adicionar seu primeiro aluno</p>
+        </div>
+      ) : filteredStudents.length === 0 ? (
+        <div className="empty-state">
+          <p className="empty-state-title">Nenhum resultado para &quot;{searchQuery}&quot;</p>
         </div>
       ) : (
         <div className="table-container">
@@ -180,7 +207,7 @@ const Students = () => {
               </tr>
             </thead>
             <tbody>
-              {students.map((student) => (
+              {filteredStudents.map((student) => (
                 <tr key={student.id}>
                   <td>
                     <Link

@@ -1,12 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { LayoutGrid, List, MoreVertical } from 'lucide-react';
+import { LayoutGrid, List } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import CreateExerciseTemplateModal from '../../components/CreateExerciseTemplateModal';
+import RowMenu from '../../components/RowMenu';
 import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
+
+/** @deprecated Use RowMenu from '../../components/RowMenu' instead */
+export const TemplateRowMenu = RowMenu;
 
 const CATEGORY_LABEL = { strength: 'Força', cardio: 'Cardio' };
 const BODY_SEGMENT_LABEL = { upper: 'Superior', lower: 'Inferior', full_body: 'Corpo Inteiro' };
@@ -15,53 +19,6 @@ const exerciseBadgeStyle = {
   background: 'var(--color-surface)',
   border: '1px solid var(--color-outline-variant)',
   color: 'var(--color-on-surface-variant)',
-};
-
-export const TemplateRowMenu = ({ onEdit, onDelete, ariaLabel, deleteLabel = 'Excluir' }) => {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
-
-  return (
-    <div className="row-menu" ref={menuRef}>
-      <button
-        type="button"
-        className="row-menu-trigger"
-        aria-label={ariaLabel}
-        aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <MoreVertical size={18} strokeWidth={1.6} />
-      </button>
-      {open && (
-        <div className="row-menu-dropdown">
-          {onEdit && (
-            <button type="button" className="row-menu-item" onClick={() => { setOpen(false); onEdit(); }}>
-              Editar
-            </button>
-          )}
-          <button type="button" className="row-menu-item row-menu-item--danger" onClick={() => { setOpen(false); onDelete(); }}>
-            {deleteLabel}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-TemplateRowMenu.propTypes = {
-  onEdit: PropTypes.func,
-  onDelete: PropTypes.func.isRequired,
-  ariaLabel: PropTypes.string.isRequired,
-  deleteLabel: PropTypes.string,
 };
 
 const ExerciseRow = ({ name, meta, onEdit, onRemove }) => (
@@ -106,6 +63,7 @@ const TrainingTemplates = () => {
   const [exercisePickerValue, setExercisePickerValue] = useState('');
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [viewMode, setViewMode] = usePersistedViewMode(VIEW_MODE_KEYS.trainingTemplates);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -256,6 +214,11 @@ const TrainingTemplates = () => {
     setShowForm(false);
   };
 
+  const normalizedQuery = searchQuery.toLowerCase().trim();
+  const filteredTemplates = normalizedQuery
+    ? templates.filter((t) => t.name.toLowerCase().includes(normalizedQuery))
+    : templates;
+
   return (
     <div>
       <div className="page-header">
@@ -290,6 +253,19 @@ const TrainingTemplates = () => {
           )}
         </div>
       </div>
+
+      {!showForm && !templatesLoading && templates.length > 0 && (
+        <div style={{ marginBottom: 'var(--spacing-md)' }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="form-input"
+            placeholder="Buscar treino por nome..."
+            aria-label="Buscar treinos"
+          />
+        </div>
+      )}
 
       {showForm && (
         <div className="card card--mb">
@@ -446,15 +422,22 @@ const TrainingTemplates = () => {
         </div>
       )}
 
-      {!showForm && !templatesLoading && templates.length > 0 && viewMode === 'card' && (
+      {!showForm && !templatesLoading && filteredTemplates.length > 0 && viewMode === 'card' && (
         <div className="grid-cards">
-          {templates.map((template) => (
+          {filteredTemplates.map((template) => (
             <div key={template.id} className="card">
-              <div className="card-header-start">
-                <h3 className="card-subtitle">{template.name}</h3>
-                {template.isPublic && (
-                  <span className="badge badge-green">Público</span>
-                )}
+              <div className="card-header">
+                <h3 className="card-subtitle" style={{ marginBottom: 0 }}>{template.name}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+                  {template.isPublic && (
+                    <span className="badge badge-green">Público</span>
+                  )}
+                  <RowMenu
+                    ariaLabel={`Ações do modelo ${template.name}`}
+                    onEdit={() => handleEdit(template)}
+                    onDelete={() => handleDelete(template.id)}
+                  />
+                </div>
               </div>
               {template.description && (
                 <p className="card-description mb-md">{template.description}</p>
@@ -471,20 +454,12 @@ const TrainingTemplates = () => {
                   </div>
                 )}
               </div>
-              <div className="btn-group">
-                <button onClick={() => handleEdit(template)} className="btn-edit">
-                  Editar
-                </button>
-                <button onClick={() => handleDelete(template.id)} className="btn-delete">
-                  Excluir
-                </button>
-              </div>
             </div>
           ))}
         </div>
       )}
 
-      {!showForm && !templatesLoading && templates.length > 0 && viewMode === 'list' && (
+      {!showForm && !templatesLoading && filteredTemplates.length > 0 && viewMode === 'list' && (
         <div className="table-container">
           <table className="data-table">
             <thead>
@@ -496,7 +471,7 @@ const TrainingTemplates = () => {
               </tr>
             </thead>
             <tbody>
-              {templates.map((template) => (
+              {filteredTemplates.map((template) => (
                 <tr key={template.id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
@@ -527,6 +502,12 @@ const TrainingTemplates = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!showForm && !templatesLoading && templates.length > 0 && filteredTemplates.length === 0 && (
+        <div className="empty-state">
+          <p className="empty-state-title">Nenhum resultado para &quot;{searchQuery}&quot;</p>
         </div>
       )}
 

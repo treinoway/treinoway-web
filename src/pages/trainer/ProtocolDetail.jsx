@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, GripVertical, MoreVertical } from 'lucide-react';
+import { ArrowLeft, GripVertical } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -16,53 +16,7 @@ import { getStatusLabel } from '../../constants/protocolStatus';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import CreateExerciseModal from '../../components/CreateExerciseModal';
 import ExerciseForm from '../../components/ExerciseForm';
-
-const TemplateRowMenu = ({ onEdit, onDelete, ariaLabel, deleteLabel = 'Excluir' }) => {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
-
-  return (
-    <div className="row-menu" ref={menuRef}>
-      <button
-        type="button"
-        className="row-menu-trigger"
-        aria-label={ariaLabel}
-        aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <MoreVertical size={18} strokeWidth={1.6} />
-      </button>
-      {open && (
-        <div className="row-menu-dropdown">
-          {onEdit && (
-            <button type="button" className="row-menu-item" onClick={() => { setOpen(false); onEdit(); }}>
-              Editar
-            </button>
-          )}
-          <button type="button" className="row-menu-item row-menu-item--danger" onClick={() => { setOpen(false); onDelete(); }}>
-            {deleteLabel}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-TemplateRowMenu.propTypes = {
-  onEdit: PropTypes.func,
-  onDelete: PropTypes.func.isRequired,
-  ariaLabel: PropTypes.string.isRequired,
-  deleteLabel: PropTypes.string,
-};
+import RowMenu from '../../components/RowMenu';
 
 const SortableTrainingCard = ({ training, children, onEdit, onDelete }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -97,7 +51,7 @@ const SortableTrainingCard = ({ training, children, onEdit, onDelete }) => {
             )}
           </div>
         </div>
-        <TemplateRowMenu
+        <RowMenu
           ariaLabel={`Ações do treino ${training.name}`}
           onEdit={() => onEdit(training)}
           onDelete={() => onDelete(training.id)}
@@ -447,8 +401,18 @@ const ProtocolDetail = () => {
 
   return (
     <div>
-      <button onClick={() => navigate('/trainer/protocols')} className="btn-back">
-        <ArrowLeft size={16} strokeWidth={1.6} /> Voltar para Rotinas
+      <button
+        onClick={() => {
+          const assigneeId = protocol?.assignee?.id;
+          if (assigneeId) {
+            navigate(`/trainer/students/${assigneeId}`);
+          } else {
+            navigate('/trainer/students');
+          }
+        }}
+        className="btn-back"
+      >
+        <ArrowLeft size={16} strokeWidth={1.6} /> {assigneeLabel}
       </button>
 
       <div className="card card--mb">
@@ -720,7 +684,7 @@ const ProtocolDetail = () => {
                                   <p className="training-card-exercise-notes">{exercise.notes}</p>
                                 )}
                               </div>
-                              <TemplateRowMenu
+                              <RowMenu
                                 ariaLabel={`Ações do exercício ${exercise.name}`}
                                 onEdit={() => handleEditExercise(exercise, training.id)}
                                 onDelete={() => handleDeleteExercise(exercise.id, training.id)}

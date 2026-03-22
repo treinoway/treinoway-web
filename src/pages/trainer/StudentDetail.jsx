@@ -6,7 +6,7 @@ import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
-import { TemplateRowMenu } from './TrainingTemplates';
+import RowMenu from '../../components/RowMenu';
 import { ANAMNESIS_QUESTION_TYPE } from '../../constants/anamnesis';
 
 const getAvatarInitial = (student) => {
@@ -300,7 +300,7 @@ const AnamnesisTab = ({ studentId }) => {
                 <span className="card-title" style={{ marginBottom: 0 }}>{link.anamnesis.title}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
                   {link.anamnesis.isGeneral && <span className="badge badge-blue">Geral</span>}
-                  <TemplateRowMenu
+                  <RowMenu
                     ariaLabel={`Opções de ${link.anamnesis.title}`}
                     onEdit={() => navigate(`/trainer/anamneses/${link.anamnesis.id}`)}
                     onDelete={() => handleUnlink(link)}

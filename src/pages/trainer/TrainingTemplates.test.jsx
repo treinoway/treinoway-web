@@ -201,8 +201,9 @@ describe('TrainingTemplates', () => {
 
     await waitFor(() => screen.getByText('Treino A'));
 
-    const editButtons = screen.getAllByRole('button', { name: /editar/i });
-    await user.click(editButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Editar'));
 
     expect(screen.getByText('Editar treino único')).toBeInTheDocument();
     await waitFor(() => {
@@ -231,8 +232,9 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    const editButtons = screen.getAllByRole('button', { name: /editar/i });
-    await user.click(editButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Editar'));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /ações do exercício supino reto/i })).toBeInTheDocument();
@@ -266,8 +268,9 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    const editButtons = screen.getAllByRole('button', { name: /editar/i });
-    await user.click(editButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Editar'));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /ações do exercício tríceps polia/i })).toBeInTheDocument();
@@ -282,8 +285,9 @@ describe('TrainingTemplates', () => {
 
     await waitFor(() => screen.getByText('Treino A'));
 
-    const editButtons = screen.getAllByRole('button', { name: /editar/i });
-    await user.click(editButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Editar'));
     await waitFor(() => expect(screen.getByDisplayValue('Treino A')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
@@ -301,8 +305,9 @@ describe('TrainingTemplates', () => {
 
     await waitFor(() => screen.getByText('Treino A'));
 
-    const deleteButtons = screen.getAllByRole('button', { name: /excluir/i });
-    await user.click(deleteButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Excluir'));
     await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
     await user.click(screen.getByRole('button', { name: /confirmar/i }));
 
@@ -401,8 +406,9 @@ describe('TrainingTemplates', () => {
 
     await waitFor(() => screen.getByText('Treino A'));
 
-    const deleteButtons = screen.getAllByRole('button', { name: /excluir/i });
-    await user.click(deleteButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Excluir'));
     await waitFor(() => screen.getByRole('button', { name: /cancelar/i }));
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
@@ -470,8 +476,9 @@ describe('TrainingTemplates', () => {
 
   const openExerciseActionsMenu = async (user) => {
     await waitFor(() => screen.getByText('Treino A'));
-    const editButtons = screen.getAllByRole('button', { name: /editar/i });
-    await user.click(editButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Editar'));
     await waitFor(() => screen.getByRole('button', { name: /ações do exercício supino reto/i }));
     await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
   };
@@ -482,8 +489,9 @@ describe('TrainingTemplates', () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
-    const editButtons = screen.getAllByRole('button', { name: /editar/i });
-    await user.click(editButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Editar'));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /ações do exercício supino reto/i })).toBeInTheDocument();

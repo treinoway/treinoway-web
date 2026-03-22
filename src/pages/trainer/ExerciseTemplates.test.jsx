@@ -136,8 +136,9 @@ describe('ExerciseTemplates', () => {
 
     await waitFor(() => screen.getByText('Agachamento'));
 
-    const editButtons = screen.getAllByRole('button', { name: /editar/i });
-    await user.click(editButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo agachamento/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Editar'));
 
     expect(screen.getByText('Editar exercício')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Agachamento')).toBeInTheDocument();
@@ -151,8 +152,9 @@ describe('ExerciseTemplates', () => {
 
     await waitFor(() => screen.getByText('Agachamento'));
 
-    const editButtons = screen.getAllByRole('button', { name: /editar/i });
-    await user.click(editButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo agachamento/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Editar'));
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -169,8 +171,9 @@ describe('ExerciseTemplates', () => {
 
     await waitFor(() => screen.getByText('Agachamento'));
 
-    const deleteButtons = screen.getAllByRole('button', { name: /excluir/i });
-    await user.click(deleteButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo agachamento/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Excluir'));
     await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
     await user.click(screen.getByRole('button', { name: /confirmar/i }));
 
@@ -187,8 +190,9 @@ describe('ExerciseTemplates', () => {
 
     await waitFor(() => screen.getByText('Agachamento'));
 
-    const deleteButtons = screen.getAllByRole('button', { name: /excluir/i });
-    await user.click(deleteButtons[0]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo agachamento/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Excluir'));
     await waitFor(() => screen.getByRole('button', { name: /cancelar/i }));
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
@@ -299,9 +303,9 @@ describe('ExerciseTemplates', () => {
     await waitFor(() => screen.getByText('Rosca Direta'));
 
     await user.click(screen.getByRole('button', { name: /visualização em cards/i }));
-    const editButtons = screen.getAllByRole('button', { name: /editar/i });
-    const rocaIndex = mockTemplates.findIndex((t) => t.name === 'Rosca Direta');
-    await user.click(editButtons[rocaIndex]);
+    const menuTrigger = screen.getByRole('button', { name: /ações do modelo rosca direta/i });
+    await user.click(menuTrigger);
+    await user.click(screen.getByText('Editar'));
 
     const iframes = document.querySelectorAll('iframe');
     const formPreviewIframe = Array.from(iframes).find((el) =>

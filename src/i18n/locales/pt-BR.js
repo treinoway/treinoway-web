@@ -31,6 +31,10 @@ const ptBR = {
     FORBIDDEN_NOT_ANAMNESIS_OWNER: 'Você não tem permissão para editar esta anamnese.',
     ANAMNESIS_NOT_LINKED_TO_STUDENT: 'Esta anamnese não está vinculada ao seu perfil.',
     ANAMNESIS_RESPONSE_NOT_FOUND: 'Nenhuma resposta encontrada para esta anamnese.',
+    ANAMNESIS_NOT_FOUND: 'Anamnese não encontrada.',
+    ANAMNESIS_SECTION_NOT_FOUND: 'Seção da anamnese não encontrada.',
+    ANAMNESIS_QUESTION_NOT_FOUND: 'Pergunta da anamnese não encontrada.',
+    TRAINER_PROFILE_MISSING: 'Perfil de treinador não encontrado.',
   },
 
   messageCodes: {
@@ -57,6 +61,7 @@ const ptBR = {
     'anamnesis.hasStudentLinks': 'Esta anamnese está vinculada a alunos. Crie uma nova versão antes de editar.',
     'anamnesis.response.notFound': 'Nenhuma resposta encontrada para esta anamnese.',
     'anamnesis.notLinkedToStudent': 'Esta anamnese não está vinculada ao seu perfil.',
+    'trainer.notFound': 'Perfil de treinador não encontrado.',
   },
 
   httpStatus: {

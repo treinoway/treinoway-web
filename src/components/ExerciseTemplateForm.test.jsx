@@ -164,6 +164,7 @@ describe('ExerciseTemplateForm', () => {
       sets: 4,
       repetitions: { min: 8, max: 10 },
       duration: '',
+      restInterval: 60,
       hasLoad: true,
       suggestedLoad: 60,
       notes: 'Executar com cuidado',
@@ -176,6 +177,7 @@ describe('ExerciseTemplateForm', () => {
       expect(screen.getByLabelText(/séries/i)).toHaveValue(4);
       expect(screen.getByLabelText(/repetições mínimas/i)).toHaveValue(8);
       expect(screen.getByLabelText(/repetições máximas/i)).toHaveValue(10);
+      expect(screen.getByLabelText(/intervalo de descanso/i)).toHaveValue(60);
       expect(screen.getByLabelText(/carga sugerida/i)).toHaveValue(60);
       expect(screen.getByLabelText(/observações/i)).toHaveValue('Executar com cuidado');
     });

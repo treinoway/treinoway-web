@@ -1,56 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
-import PropTypes from 'prop-types';
-import { LayoutGrid, List, MoreVertical } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { LayoutGrid, List } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel } from '../../constants/exerciseTypes';
 import { getYoutubeVideoId } from '../../utils/youtube';
+import RowMenu from '../../components/RowMenu';
 import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
-
-const TemplateRowMenu = ({ onEdit, onDelete, ariaLabel }) => {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
-
-  return (
-    <div className="row-menu" ref={menuRef}>
-      <button
-        type="button"
-        className="row-menu-trigger"
-        aria-label={ariaLabel}
-        aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <MoreVertical size={18} strokeWidth={1.6} />
-      </button>
-      {open && (
-        <div className="row-menu-dropdown">
-          <button type="button" className="row-menu-item" onClick={() => { setOpen(false); onEdit(); }}>
-            Editar
-          </button>
-          <button type="button" className="row-menu-item row-menu-item--danger" onClick={() => { setOpen(false); onDelete(); }}>
-            Excluir
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-TemplateRowMenu.propTypes = {
-  onEdit: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
-  ariaLabel: PropTypes.string.isRequired,
-};
 
 const ExerciseTemplates = () => {
   const { showToast } = useToast();
@@ -61,6 +17,7 @@ const ExerciseTemplates = () => {
   const [editingId, setEditingId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [viewMode, setViewMode] = usePersistedViewMode(VIEW_MODE_KEYS.exerciseTemplates);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -71,6 +28,7 @@ const ExerciseTemplates = () => {
     repetitionsMin: '',
     repetitionsMax: '',
     duration: '',
+    restInterval: '',
     hasLoad: false,
     suggestedLoad: '',
     notes: '',
@@ -105,6 +63,7 @@ const ExerciseTemplates = () => {
       payload.repetitions = { min: parseInt(data.repetitionsMin, 10), max: parseInt(data.repetitionsMax, 10) };
     }
     if (data.duration !== '' && data.duration != null) payload.duration = parseInt(data.duration, 10);
+    if (data.restInterval !== '' && data.restInterval != null) payload.restInterval = parseInt(data.restInterval, 10);
     if (data.hasLoad && data.suggestedLoad !== '' && data.suggestedLoad != null) {
       payload.suggestedLoad = parseFloat(data.suggestedLoad, 10);
     }
@@ -144,6 +103,7 @@ const ExerciseTemplates = () => {
       repetitionsMin: template.repetitions?.min ?? '',
       repetitionsMax: template.repetitions?.max ?? '',
       duration: template.duration ?? '',
+      restInterval: template.restInterval ?? '',
       hasLoad: template.hasLoad || false,
       suggestedLoad: template.suggestedLoad ?? '',
       notes: template.notes || '',
@@ -178,6 +138,7 @@ const ExerciseTemplates = () => {
       repetitionsMin: '',
       repetitionsMax: '',
       duration: '',
+      restInterval: '',
       hasLoad: false,
       suggestedLoad: '',
       notes: '',
@@ -201,8 +162,22 @@ const ExerciseTemplates = () => {
     if (template.hasLoad && template.suggestedLoad != null) {
       parts.push(`${template.suggestedLoad} kg`);
     }
+    if (template.restInterval != null && template.restInterval > 0) {
+      const minutes = Math.floor(template.restInterval / 60);
+      const remaining = template.restInterval % 60;
+      let formatted;
+      if (minutes === 0) formatted = `${remaining}s`;
+      else if (remaining === 0) formatted = `${minutes}min`;
+      else formatted = `${minutes}min ${remaining}s`;
+      parts.push(`Descanso: ${formatted}`);
+    }
     return parts.length ? parts.join(' · ') : null;
   };
+
+  const normalizedQuery = searchQuery.toLowerCase().trim();
+  const filteredTemplates = normalizedQuery
+    ? templates.filter((t) => t.name.toLowerCase().includes(normalizedQuery))
+    : templates;
 
   return (
     <div>
@@ -238,6 +213,19 @@ const ExerciseTemplates = () => {
           )}
         </div>
       </div>
+
+      {!showForm && !templatesLoading && templates.length > 0 && (
+        <div style={{ marginBottom: 'var(--spacing-md)' }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="form-input"
+            placeholder="Buscar exercício por nome..."
+            aria-label="Buscar exercícios"
+          />
+        </div>
+      )}
 
       {showForm && (
         <div className="card card--mb">
@@ -347,6 +335,19 @@ const ExerciseTemplates = () => {
               />
             </div>
 
+            <div>
+              <label className="form-label" htmlFor="exercise-restInterval">Intervalo de descanso (segundos)</label>
+              <input
+                id="exercise-restInterval"
+                type="number"
+                min="0"
+                value={formData.restInterval}
+                onChange={(e) => setFormData({ ...formData, restInterval: e.target.value })}
+                className="form-input"
+                placeholder="Ex: 60"
+              />
+            </div>
+
             <div className="form-checkbox-row">
               <input
                 type="checkbox"
@@ -416,18 +417,25 @@ const ExerciseTemplates = () => {
         </div>
       )}
 
-      {!showForm && !templatesLoading && templates.length > 0 && viewMode === 'card' && (
+      {!showForm && !templatesLoading && filteredTemplates.length > 0 && viewMode === 'card' && (
         <div className="grid-cards">
-          {templates.map((template) => {
+          {filteredTemplates.map((template) => {
             const meta = formatExerciseMeta(template);
             const youtubeId = getYoutubeVideoId(template.videoUrl);
             return (
               <div key={template.id} className="card">
-                <div className="card-header-start">
-                  <h3 className="card-subtitle">{template.name}</h3>
-                  {template.isPublic && (
-                    <span className="badge badge-green">Público</span>
-                  )}
+                <div className="card-header">
+                  <h3 className="card-subtitle" style={{ marginBottom: 0 }}>{template.name}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+                    {template.isPublic && (
+                      <span className="badge badge-green">Público</span>
+                    )}
+                    <RowMenu
+                      ariaLabel={`Ações do modelo ${template.name}`}
+                      onEdit={() => handleEdit(template)}
+                      onDelete={() => handleDelete(template.id)}
+                    />
+                  </div>
                 </div>
                 {youtubeId && (
                   <div className="youtube-preview">
@@ -444,21 +452,13 @@ const ExerciseTemplates = () => {
                     <div className="text-sm text-light">{meta}</div>
                   </div>
                 )}
-                <div className="btn-group">
-                  <button onClick={() => handleEdit(template)} className="btn-edit">
-                    Editar
-                  </button>
-                  <button onClick={() => handleDelete(template.id)} className="btn-delete">
-                    Excluir
-                  </button>
-                </div>
               </div>
             );
           })}
         </div>
       )}
 
-      {!showForm && !templatesLoading && templates.length > 0 && viewMode === 'list' && (
+      {!showForm && !templatesLoading && filteredTemplates.length > 0 && viewMode === 'list' && (
         <div className="table-container">
           <table className="data-table">
             <thead>
@@ -470,7 +470,7 @@ const ExerciseTemplates = () => {
               </tr>
             </thead>
             <tbody>
-              {templates.map((template) => {
+              {filteredTemplates.map((template) => {
                 const meta = formatExerciseMeta(template);
                 const hasVideo = !!getYoutubeVideoId(template.videoUrl);
                 return (
@@ -510,7 +510,7 @@ const ExerciseTemplates = () => {
                       )}
                     </td>
                     <td>
-                      <TemplateRowMenu
+                      <RowMenu
                         ariaLabel={`Ações do modelo ${template.name}`}
                         onEdit={() => handleEdit(template)}
                         onDelete={() => handleDelete(template.id)}
@@ -521,6 +521,12 @@ const ExerciseTemplates = () => {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!showForm && !templatesLoading && templates.length > 0 && filteredTemplates.length === 0 && (
+        <div className="empty-state">
+          <p className="empty-state-title">Nenhum resultado para &quot;{searchQuery}&quot;</p>
         </div>
       )}
 

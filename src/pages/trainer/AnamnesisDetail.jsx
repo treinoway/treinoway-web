@@ -11,7 +11,7 @@ import {
   defaultQuestionForm,
   defaultSectionForm,
 } from '../../constants/anamnesis';
-import { TemplateRowMenu } from './TrainingTemplates';
+import RowMenu from '../../components/RowMenu';
 
 const QUESTION_TYPE_OPTIONS = Object.values(ANAMNESIS_QUESTION_TYPE).map((value) => ({
   value,
@@ -222,7 +222,7 @@ export const SectionBlock = ({
         <div style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'center' }}>
           {!isGeneral && (
             <div onClick={(e) => e.stopPropagation()}>
-              <TemplateRowMenu
+              <RowMenu
                 ariaLabel={`Ações da seção ${section.title}`}
                 onEdit={() => { setExpanded(true); handleStartSectionEdit(); }}
                 onDelete={() => onDeleteSection(section)}
@@ -325,7 +325,7 @@ export const SectionBlock = ({
                     )}
                   </div>
                   {!isGeneral && (
-                    <TemplateRowMenu
+                    <RowMenu
                       ariaLabel={`Ações da pergunta ${question.text}`}
                       onEdit={() => setEditingQuestionId(question.id)}
                       onDelete={() => handleDeleteQuestion(question)}

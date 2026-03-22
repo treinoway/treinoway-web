@@ -14,6 +14,7 @@ const EMPTY_FORM = {
   repetitionsMin: '',
   repetitionsMax: '',
   duration: '',
+  restInterval: '',
   hasLoad: false,
   suggestedLoad: '',
   notes: '',
@@ -37,6 +38,7 @@ const buildPayload = (data) => {
     };
   }
   if (data.duration !== '' && data.duration != null) payload.duration = parseInt(data.duration, 10);
+  if (data.restInterval !== '' && data.restInterval != null) payload.restInterval = parseInt(data.restInterval, 10);
   if (data.hasLoad && data.suggestedLoad !== '' && data.suggestedLoad != null) {
     payload.suggestedLoad = parseFloat(data.suggestedLoad, 10);
   }
@@ -61,6 +63,7 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
         repetitionsMin: exercise.repetitions?.min ?? '',
         repetitionsMax: exercise.repetitions?.max ?? '',
         duration: exercise.duration ?? '',
+        restInterval: exercise.restInterval ?? '',
         hasLoad: exercise.hasLoad || false,
         suggestedLoad: exercise.suggestedLoad ?? '',
         notes: exercise.notes || '',
@@ -198,6 +201,19 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
             min="1"
             value={formData.duration}
             onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+            className="form-input"
+            placeholder="Ex: 60"
+          />
+        </div>
+
+        <div>
+          <label className="form-label" htmlFor="exercise-form-restInterval">Intervalo de descanso (segundos)</label>
+          <input
+            id="exercise-form-restInterval"
+            type="number"
+            min="0"
+            value={formData.restInterval}
+            onChange={(e) => setFormData({ ...formData, restInterval: e.target.value })}
             className="form-input"
             placeholder="Ex: 60"
           />

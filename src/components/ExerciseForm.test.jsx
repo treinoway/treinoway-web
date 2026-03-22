@@ -152,6 +152,7 @@ describe('ExerciseForm', () => {
     await user.type(screen.getByLabelText(/repetições mínimas/i), '8');
     await user.type(screen.getByLabelText(/repetições máximas/i), '10');
     await user.type(screen.getByLabelText(/duração/i), '60');
+    await user.type(screen.getByLabelText(/intervalo de descanso/i), '90');
     await user.click(screen.getByLabelText(/exercício com carga/i));
     await user.type(screen.getByLabelText(/carga sugerida/i), '80');
     await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
@@ -165,6 +166,7 @@ describe('ExerciseForm', () => {
           sets: 4,
           repetitions: { min: 8, max: 10 },
           duration: 60,
+          restInterval: 90,
           hasLoad: true,
           suggestedLoad: 80,
         })
@@ -240,6 +242,7 @@ describe('ExerciseForm', () => {
       sets: 4,
       repetitions: { min: 8, max: 10 },
       duration: '',
+      restInterval: 90,
       hasLoad: true,
       suggestedLoad: 60,
       notes: 'Executar devagar',
@@ -252,6 +255,7 @@ describe('ExerciseForm', () => {
       expect(screen.getByLabelText(/séries/i)).toHaveValue(4);
       expect(screen.getByLabelText(/repetições mínimas/i)).toHaveValue(8);
       expect(screen.getByLabelText(/repetições máximas/i)).toHaveValue(10);
+      expect(screen.getByLabelText(/intervalo de descanso/i)).toHaveValue(90);
       expect(screen.getByLabelText(/carga sugerida/i)).toHaveValue(60);
       expect(screen.getByLabelText(/observações/i)).toHaveValue('Executar devagar');
     });

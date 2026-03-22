@@ -4,7 +4,7 @@ import { Copy } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import { TemplateRowMenu } from './TrainingTemplates';
+import RowMenu from '../../components/RowMenu';
 
 const TrainerAnamneses = () => {
   const { showToast } = useToast();
@@ -205,7 +205,7 @@ const TrainerAnamneses = () => {
                     </button>
                   )}
                   {!anamnesis.isGeneral && (
-                    <TemplateRowMenu
+                    <RowMenu
                       ariaLabel={`Opções de ${anamnesis.title}`}
                       onEdit={() => handleEditClick(anamnesis)}
                       onDelete={() => handleDelete(anamnesis)}
