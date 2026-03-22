@@ -31,7 +31,7 @@ const mockExerciseLogs = [
     status: 'pending',
     order: 0,
     notes: null,
-    exercise: { id: 'ex-1', name: 'Supino Reto', type: 'strength', sets: 4, repetitions: { min: 8, max: 12 } },
+    exercise: { id: 'ex-1', name: 'Supino Reto', type: 'strength', sets: 4, repetitions: { min: 8, max: 12 }, restInterval: 90 },
     setLogs: [],
   },
   {
@@ -41,7 +41,7 @@ const mockExerciseLogs = [
     status: 'completed',
     order: 1,
     notes: null,
-    exercise: { id: 'ex-2', name: 'Crucifixo', type: 'strength', sets: 3, repetitions: { min: 12, max: 15 } },
+    exercise: { id: 'ex-2', name: 'Crucifixo', type: 'strength', sets: 3, repetitions: { min: 12, max: 15 }, restInterval: null },
     setLogs: [
       { id: 'set-1', exerciseLogId: 'log-2', setNumber: 1, repetitions: 12, load: 15, rpe: null, restSeconds: null, completed: true },
     ],
@@ -233,6 +233,29 @@ describe('WorkoutSession', () => {
     await waitFor(() => {
       expect(screen.getAllByLabelText(/Série \*/i)[0]).toBeInTheDocument();
     });
+  });
+
+  it('displays rest interval in exercise meta when restInterval is set', async () => {
+    api.get.mockResolvedValue({ data: mockSession });
+
+    renderSession();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Descanso: 1min 30s/)).toBeInTheDocument();
+    });
+  });
+
+  it('does not display rest interval when restInterval is null', async () => {
+    api.get.mockResolvedValue({ data: mockSession });
+
+    renderSession();
+
+    await waitFor(() => {
+      expect(screen.getByText('Crucifixo')).toBeInTheDocument();
+    });
+
+    const crucifixoMeta = screen.getByText('Força · 3x12–15');
+    expect(crucifixoMeta.textContent).not.toContain('Descanso');
   });
 
   it('shows empty state when session is not found after error', async () => {
