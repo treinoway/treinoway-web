@@ -221,14 +221,9 @@ const CreateProtocol = () => {
   }, [formData.trainings]);
 
   const getExercisesForTraining = (training) => {
-    const fromModel = (() => {
-      if (!training.trainingTemplateId) return [];
-      const ids = exerciseIdsByTemplateId[training.trainingTemplateId];
-      if (!ids) return [];
-      return ids
-        .map((id) => exerciseTemplates.find((et) => String(et.id) === String(id)))
-        .filter(Boolean);
-    })();
+    const fromModel = training.trainingTemplateId
+      ? (exerciseIdsByTemplateId[training.trainingTemplateId] || [])
+      : [];
     return [...fromModel, ...(training.inlineExercises || [])];
   };
 
@@ -259,27 +254,16 @@ const CreateProtocol = () => {
     }
   };
 
-  const getExerciseTemplateIdsFromTemplate = (template) => {
-    if (template.exerciseTemplateIds && Array.isArray(template.exerciseTemplateIds)) {
-      return template.exerciseTemplateIds;
-    }
-    const junctionList = template.trainingTemplateExerciseTemplates;
-    if (Array.isArray(junctionList)) {
-      return junctionList
-        .map((e) => e.exerciseTemplateId ?? e.exerciseTemplate?.id)
-        .filter((id) => id != null);
-    }
-    const list = template.exerciseTemplates;
-    if (!Array.isArray(list)) return [];
-    return list.map((e) => e.exerciseTemplateId ?? e.id ?? e.exerciseTemplate?.id).filter((id) => id != null);
-  };
-
   const fetchExercisesForTemplate = async (trainingTemplateId) => {
     if (!trainingTemplateId || exerciseIdsByTemplateId[trainingTemplateId]) return;
     try {
       const response = await api.get(`/trainer/training-templates/${trainingTemplateId}`);
-      const ids = getExerciseTemplateIdsFromTemplate(response.data);
-      setExerciseIdsByTemplateId((prev) => ({ ...prev, [trainingTemplateId]: ids }));
+      const junctionList = response.data?.trainingTemplateExerciseTemplates || [];
+      const exercises = junctionList
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((e) => e.exerciseTemplate)
+        .filter(Boolean);
+      setExerciseIdsByTemplateId((prev) => ({ ...prev, [trainingTemplateId]: exercises }));
     } catch {
       // silently fail
     }
@@ -515,6 +499,14 @@ const CreateProtocol = () => {
 
   const handleAddTrainingModalTemplateSelect = (templateId) => {
     const template = trainingTemplates.find((t) => String(t.id) === templateId);
+    if (template && templateId && !exerciseIdsByTemplateId[templateId]) {
+      const junctionList = template.trainingTemplateExerciseTemplates || [];
+      const exercises = junctionList
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((e) => e.exerciseTemplate)
+        .filter(Boolean);
+      setExerciseIdsByTemplateId((prev) => ({ ...prev, [templateId]: exercises }));
+    }
     setAddTrainingModalData((prev) => ({
       ...prev,
       trainingTemplateId: templateId,
@@ -568,9 +560,17 @@ const CreateProtocol = () => {
       });
 
       const createdTrainingId = res.data?.id;
-      if (createdTrainingId && training.inlineExercises?.length > 0) {
+      if (!createdTrainingId) continue;
+
+      if (training.trainingTemplateId) {
+        const templateExercises = exerciseIdsByTemplateId[training.trainingTemplateId] || [];
+        for (const exercise of templateExercises) {
+          await api.post('/trainer/exercises/from-template', { trainingId: createdTrainingId, templateId: exercise.id });
+        }
+      }
+
+      if (training.inlineExercises?.length > 0) {
         for (const exercise of training.inlineExercises) {
-           
           const { _id, ...payload } = exercise;
           await api.post(`/trainer/trainings/${createdTrainingId}/exercises`, payload);
         }
@@ -966,6 +966,27 @@ const CreateProtocol = () => {
                     </select>
                   </div>
                 )}
+
+                {addTrainingModalData.trainingTemplateId && (() => {
+                  const exercises = exerciseIdsByTemplateId[addTrainingModalData.trainingTemplateId] || [];
+                  if (exercises.length === 0) return null;
+                  return (
+                    <div>
+                      <p className="form-label">Exercícios inclusos</p>
+                      <div className="training-row-exercises">
+                        {exercises.map((exercise) => {
+                          const meta = formatExerciseMeta(exercise);
+                          return (
+                            <div key={exercise.id} className="training-row-exercise-item">
+                              <span className="training-row-exercise-name">{exercise.name}</span>
+                              {meta && <span className="training-row-exercise-meta"> · {meta}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div>
                   <label className="form-label" htmlFor="add-training-name">Nome</label>

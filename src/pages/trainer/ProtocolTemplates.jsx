@@ -873,9 +873,10 @@ const ProtocolTemplates = () => {
                   <select
                     id="add-training-template"
                     value={addTrainingModalData.trainingTemplateId}
-                    onChange={(e) =>
-                      setAddTrainingModalData({ ...addTrainingModalData, trainingTemplateId: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setAddTrainingModalData({ ...addTrainingModalData, trainingTemplateId: e.target.value });
+                      fetchExercisesForTemplate(e.target.value);
+                    }}
                     className="form-select"
                     required
                   >
@@ -884,6 +885,24 @@ const ProtocolTemplates = () => {
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                   </select>
+
+                  {addTrainingModalData.trainingTemplateId && (() => {
+                    const previewExercises = getExercisesForTraining({ trainingTemplateId: addTrainingModalData.trainingTemplateId });
+                    if (!previewExercises.length) return null;
+                    return (
+                      <div className="training-row-exercises">
+                        {previewExercises.map((exercise) => {
+                          const meta = formatExerciseMeta(exercise);
+                          return (
+                            <div key={exercise.id} className="training-row-exercise-item">
+                              <span className="training-row-exercise-name">{exercise.name}</span>
+                              {meta && <span className="training-row-exercise-meta"> · {meta}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div>

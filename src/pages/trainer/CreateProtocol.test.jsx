@@ -77,15 +77,30 @@ const mockTemplateDetail = {
   ],
 };
 
-const mockTrainingTemplates = [
-  { id: 'tt-1', name: 'Treino A', category: 'strength' },
-  { id: 'tt-2', name: 'Treino B', category: 'cardio' },
-];
-
 const mockExerciseTemplates = [
   { id: 'ex-1', name: 'Supino Reto', type: 'strength', sets: 4, repetitions: { min: 8, max: 10 }, hasLoad: true, suggestedLoad: 60 },
   { id: 'ex-2', name: 'Tríceps Polia', type: 'strength', sets: 3, repetitions: { min: 12, max: 12 }, hasLoad: false, suggestedLoad: null },
   { id: 'ex-3', name: 'Esteira', type: 'cardio', duration: 600, hasLoad: false, suggestedLoad: null },
+];
+
+const mockTrainingTemplates = [
+  {
+    id: 'tt-1',
+    name: 'Treino A',
+    category: 'strength',
+    trainingTemplateExerciseTemplates: [
+      { order: 1, exerciseTemplate: mockExerciseTemplates[0] },
+      { order: 2, exerciseTemplate: mockExerciseTemplates[1] },
+    ],
+  },
+  {
+    id: 'tt-2',
+    name: 'Treino B',
+    category: 'cardio',
+    trainingTemplateExerciseTemplates: [
+      { order: 1, exerciseTemplate: mockExerciseTemplates[2] },
+    ],
+  },
 ];
 
 const mockTrainingTemplateDetailA = {
@@ -411,6 +426,52 @@ describe('CreateProtocol', () => {
     });
   });
 
+  it('shows exercise preview inside modal when a training template is selected', async () => {
+    const user = userEvent.setup();
+
+    renderPage();
+
+    await waitFor(() => screen.getByText('Aluno Exemplo'));
+    await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+
+    const modal = screen.getByText('Adicionar Treino').closest('.bottom-sheet');
+    expect(within(modal).queryByText('Exercícios inclusos')).not.toBeInTheDocument();
+
+    await user.selectOptions(
+      within(modal).getByLabelText(/importar treino único/i),
+      'tt-1',
+    );
+
+    await waitFor(() => {
+      expect(within(modal).getByText('Exercícios inclusos')).toBeInTheDocument();
+      expect(within(modal).getByText('Supino Reto')).toBeInTheDocument();
+      expect(within(modal).getByText('Tríceps Polia')).toBeInTheDocument();
+    });
+  });
+
+  it('hides exercise preview inside modal when template selection is cleared', async () => {
+    const user = userEvent.setup();
+
+    renderPage();
+
+    await waitFor(() => screen.getByText('Aluno Exemplo'));
+    await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+
+    const modal = screen.getByText('Adicionar Treino').closest('.bottom-sheet');
+    await user.selectOptions(within(modal).getByLabelText(/importar treino único/i), 'tt-1');
+
+    await waitFor(() => {
+      expect(within(modal).getByText('Supino Reto')).toBeInTheDocument();
+    });
+
+    await user.selectOptions(within(modal).getByLabelText(/importar treino único/i), '');
+
+    await waitFor(() => {
+      expect(within(modal).queryByText('Exercícios inclusos')).not.toBeInTheDocument();
+      expect(within(modal).queryByText('Supino Reto')).not.toBeInTheDocument();
+    });
+  });
+
   it('does not show exercises when training has no template', async () => {
     const user = userEvent.setup();
 
@@ -663,6 +724,42 @@ describe('CreateProtocol', () => {
           name: 'Exercício Draft',
           type: 'strength',
         });
+      });
+    });
+
+    it('calls POST /trainer/exercises/from-template for each exercise when training has trainingTemplateId', async () => {
+      const user = userEvent.setup();
+      // Protocol creation → training creation → from-template calls
+      api.post.mockResolvedValue({ data: { id: 'created-id' } });
+
+      renderPage();
+
+      await waitFor(() => screen.getByText('Aluno Exemplo'));
+
+      // Add a training via the modal, selecting a training template (tt-1 has ex-1 and ex-2)
+      await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
+      await user.selectOptions(screen.getByLabelText(/importar treino único/i), 'tt-1');
+      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
+
+      // Wait for exercises from tt-1 to be fetched and rendered
+      await waitFor(() => {
+        expect(screen.getByText('Supino Reto')).toBeInTheDocument();
+      });
+
+      await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina Template');
+      fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
+      fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+      await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+      await waitFor(() => {
+        const fromTemplateCalls = api.post.mock.calls.filter(
+          ([url]) => url === '/trainer/exercises/from-template'
+        );
+        // tt-1 has ex-1 and ex-2, so two calls expected
+        expect(fromTemplateCalls).toHaveLength(2);
+        expect(fromTemplateCalls[0][1]).toMatchObject({ trainingId: 'created-id', templateId: 'ex-1' });
+        expect(fromTemplateCalls[1][1]).toMatchObject({ trainingId: 'created-id', templateId: 'ex-2' });
       });
     });
   });

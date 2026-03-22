@@ -647,4 +647,37 @@ describe('ProtocolTemplates', () => {
     expect(screen.queryByRole('button', { name: /visualização em cards/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /visualização em lista/i })).not.toBeInTheDocument();
   });
+
+  it('shows exercise preview in add training modal when a training template is selected', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
+
+    expect(screen.queryByText('Supino Reto')).not.toBeInTheDocument();
+    expect(screen.queryByText('Corrida')).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
+
+    await waitFor(() => {
+      expect(screen.getByText('Supino Reto')).toBeInTheDocument();
+      expect(screen.getByText('Corrida')).toBeInTheDocument();
+    });
+
+    expect(api.get).toHaveBeenCalledWith('/trainer/training-templates/10');
+  });
+
+  it('does not show exercise preview in add training modal before a template is selected', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+    await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
+    await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
+
+    expect(screen.queryByText('Supino Reto')).not.toBeInTheDocument();
+    expect(screen.queryByText('Corrida')).not.toBeInTheDocument();
+  });
 });
