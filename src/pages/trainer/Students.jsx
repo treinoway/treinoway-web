@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { X, MoreVertical } from 'lucide-react';
+import { X, MoreVertical, Upload, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
@@ -73,6 +73,101 @@ StudentRowMenu.propTypes = {
   onUnlink: PropTypes.func.isRequired,
 };
 
+const ImportPreviewTable = ({ students, selectedEmails, onToggleStudent, onToggleAll }) => {
+  const allSelected = students.length > 0 && students.every((s) => s.email && selectedEmails.has(s.email));
+
+  return (
+    <div className="table-container">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th style={{ width: '40px' }}>
+              <input
+                type="checkbox"
+                aria-label="Selecionar todos"
+                checked={allSelected}
+                onChange={onToggleAll}
+              />
+            </th>
+            <th>Nome</th>
+            <th className="table-col-desktop-only">E-mail</th>
+            <th className="table-col-desktop-only">Plano</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {students.map((student, index) => (
+            <tr key={student.email || index}>
+              <td>
+                <input
+                  type="checkbox"
+                  aria-label={`Selecionar ${student.fullName || student.email}`}
+                  checked={!!student.email && selectedEmails.has(student.email)}
+                  onChange={() => onToggleStudent(student.email)}
+                  disabled={!student.email}
+                />
+              </td>
+              <td>
+                <span>{student.fullName}</span>
+                <span className="table-col-mobile-only text-sm text-muted">
+                  {student.email || '—'}
+                </span>
+              </td>
+              <td className="table-col-desktop-only">{student.email || '—'}</td>
+              <td className="table-col-desktop-only">{student.plan || '—'}</td>
+              <td>
+                {student.duplicateEmail ? (
+                  <span className="badge badge-red">Duplicado</span>
+                ) : (
+                  <span className="badge badge-green">{student.status || '—'}</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+ImportPreviewTable.propTypes = {
+  students: PropTypes.arrayOf(
+    PropTypes.shape({
+      fullName: PropTypes.string,
+      email: PropTypes.string,
+      plan: PropTypes.string,
+      status: PropTypes.string,
+      duplicateEmail: PropTypes.bool,
+    })
+  ).isRequired,
+  selectedEmails: PropTypes.instanceOf(Set).isRequired,
+  onToggleStudent: PropTypes.func.isRequired,
+  onToggleAll: PropTypes.func.isRequired,
+};
+
+const ImportSummaryBar = ({ summary }) => {
+  return (
+    <div className="import-summary" role="status">
+      <span className="font-medium">
+        {summary.total} {summary.total === 1 ? 'aluno encontrado' : 'alunos encontrados'}
+      </span>
+      <span className="text-muted"> · </span>
+      <span className="text-muted">
+        {summary.duplicateEmails} {summary.duplicateEmails === 1 ? 'duplicado' : 'duplicados'}
+      </span>
+    </div>
+  );
+};
+
+ImportSummaryBar.propTypes = {
+  summary: PropTypes.shape({
+    total: PropTypes.number.isRequired,
+    withEmail: PropTypes.number.isRequired,
+    withoutEmail: PropTypes.number.isRequired,
+    duplicateEmails: PropTypes.number.isRequired,
+  }).isRequired,
+};
+
 const Students = () => {
   const { showToast } = useToast();
   const [students, setStudents] = useState([]);
@@ -82,6 +177,14 @@ const Students = () => {
   const [linking, setLinking] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importStep, setImportStep] = useState('platform');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importData, setImportData] = useState(null);
+  const [importEmail, setImportEmail] = useState('');
+  const [importPassword, setImportPassword] = useState('');
+  const [selectedEmails, setSelectedEmails] = useState(new Set());
 
   const fetchStudents = useCallback(async () => {
     setLoading(true);
@@ -136,6 +239,59 @@ const Students = () => {
     setEmail('');
   };
 
+  const handleCloseImportModal = () => {
+    setShowImportModal(false);
+    setImportStep('platform');
+    setImportLoading(false);
+    setImportData(null);
+    setImportEmail('');
+    setImportPassword('');
+    setSelectedEmails(new Set());
+  };
+
+  const handleImportPreview = async (e) => {
+    e.preventDefault();
+    setImportLoading(true);
+    try {
+      const response = await api.post('/trainer/import/primecoaching/preview', {
+        email: importEmail,
+        password: importPassword,
+      });
+      setImportData(response.data);
+      setSelectedEmails(
+        new Set(response.data.students.filter((s) => !s.duplicateEmail).map((s) => s.email))
+      );
+      setImportStep('preview');
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleToggleStudent = (email) => {
+    setSelectedEmails((prev) => {
+      const next = new Set(prev);
+      if (next.has(email)) next.delete(email);
+      else next.add(email);
+      return next;
+    });
+  };
+
+  const handleToggleAll = () => {
+    const all = importData.students.map((s) => s.email).filter(Boolean);
+    const anySelected = all.some((e) => selectedEmails.has(e));
+    setSelectedEmails(anySelected ? new Set() : new Set(all));
+  };
+
+  const handleImportLink = () => {
+    showToast(
+      `Convite${selectedEmails.size !== 1 ? 's' : ''} enviado${selectedEmails.size !== 1 ? 's' : ''} com sucesso!`,
+      'success'
+    );
+    handleCloseImportModal();
+  };
+
   const getAvatarInitial = (student) => {
     if (student.firstName) return student.firstName.charAt(0).toUpperCase();
     return student.email.charAt(0).toUpperCase();
@@ -169,9 +325,15 @@ const Students = () => {
     <div>
       <div className="page-header">
         <h1 className="page-title" style={{ marginBottom: 0 }}>Meus Alunos</h1>
-        <button onClick={() => setShowLinkForm(true)} className="btn-primary">
-          + Vincular Aluno
-        </button>
+        <div className="page-header-actions">
+          <button onClick={() => setShowImportModal(true)} className="btn-secondary">
+            <Upload size={16} strokeWidth={1.6} />
+            Importar Alunos
+          </button>
+          <button onClick={() => setShowLinkForm(true)} className="btn-primary">
+            + Vincular Aluno
+          </button>
+        </div>
       </div>
 
       {students.length > 0 && (
@@ -313,6 +475,137 @@ const Students = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImportModal && (
+        <div className="overlay" onClick={handleCloseImportModal}>
+          <div
+            className={`bottom-sheet${importStep === 'preview' ? ' bottom-sheet--large' : ''}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bottom-sheet-header">
+              <h2 className="bottom-sheet-title">
+                {importStep === 'platform' && 'Importar Alunos'}
+                {importStep === 'credentials' && 'Importar do PrimeCoaching'}
+                {importStep === 'preview' && 'Alunos do PrimeCoaching'}
+              </h2>
+              <button
+                onClick={handleCloseImportModal}
+                className="bottom-sheet-close"
+                aria-label="Fechar"
+              >
+                <X size={20} strokeWidth={1.6} />
+              </button>
+            </div>
+            <div className="bottom-sheet-body">
+              {importStep === 'platform' && (
+                <div className="form">
+                  <p className="text-muted">Selecione a plataforma de origem</p>
+                  <button
+                    className="import-platform-card"
+                    onClick={() => setImportStep('credentials')}
+                  >
+                    <span className="import-platform-card__name">PrimeCoaching</span>
+                    <span className="import-platform-card__description text-sm text-muted">
+                      Importar alunos da sua conta PrimeCoaching
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {importStep === 'credentials' && (
+                <form onSubmit={handleImportPreview} className="form">
+                  <p className="import-security-notice">
+                    <ShieldCheck size={14} strokeWidth={1.6} />
+                    Método seguro: suas credenciais são usadas apenas para buscar a lista de alunos e não são armazenadas em nossos servidores.
+                  </p>
+                  <div>
+                    <label className="form-label" htmlFor="import-email">
+                      E-mail do PrimeCoaching
+                    </label>
+                    <input
+                      id="import-email"
+                      type="email"
+                      value={importEmail}
+                      onChange={(e) => setImportEmail(e.target.value)}
+                      className="form-input"
+                      placeholder="seu@email.com"
+                      required
+                      autoFocus
+                      disabled={importLoading}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" htmlFor="import-password">
+                      Senha do PrimeCoaching
+                    </label>
+                    <input
+                      id="import-password"
+                      type="password"
+                      value={importPassword}
+                      onChange={(e) => setImportPassword(e.target.value)}
+                      className="form-input"
+                      placeholder="Sua senha"
+                      required
+                      disabled={importLoading}
+                    />
+                  </div>
+                  <div className="btn-group">
+                    <button
+                      type="submit"
+                      disabled={importLoading}
+                      className="btn-primary"
+                      style={{ flex: 1 }}
+                    >
+                      {importLoading ? 'Conectando ao PrimeCoaching...' : 'Importar'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCloseImportModal}
+                      className="btn-secondary"
+                      style={{ flex: 1 }}
+                      disabled={importLoading}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {importStep === 'preview' && importData && (
+                <>
+                  <ImportSummaryBar summary={importData.summary} />
+                  <ImportPreviewTable
+                    students={importData.students}
+                    selectedEmails={selectedEmails}
+                    onToggleStudent={handleToggleStudent}
+                    onToggleAll={handleToggleAll}
+                  />
+                  <div className="btn-group" style={{ marginTop: 'var(--spacing-md)' }}>
+                    <button
+                      type="button"
+                      onClick={handleImportLink}
+                      className="btn-primary"
+                      style={{ flex: 1 }}
+                      disabled={selectedEmails.size === 0}
+                    >
+                      Enviar convite por e-mail
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCloseImportModal}
+                      className="btn-secondary"
+                      style={{ flex: 1 }}
+                      disabled={importLoading}
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

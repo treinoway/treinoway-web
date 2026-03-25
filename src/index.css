@@ -917,6 +917,9 @@ a {
 }
 
 .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-primary);
   color: var(--color-on-primary);
@@ -964,6 +967,9 @@ a {
 }
 
 .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-primary-container);
   color: var(--color-primary);
@@ -1022,6 +1028,9 @@ a {
 }
 
 .btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-error);
   color: var(--color-on-error);
@@ -2645,6 +2654,15 @@ a {
   }
 }
 
+/* Import Summary */
+.import-summary {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-surface-container);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-body-small-size);
+}
+
 @keyframes slide-up {
   from {
     transform: translateY(100%);
@@ -3390,4 +3408,48 @@ a {
   align-items: center;
   gap: var(--spacing-xs);
   color: var(--color-on-surface-variant, #49454f);
+}
+
+/* ── Import Platform Card ─────────────────────────────────────────── */
+.import-platform-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-variant);
+  cursor: pointer;
+  text-align: left;
+  gap: var(--spacing-xs);
+  transition: background-color 0.2s;
+}
+
+.import-platform-card:hover {
+  background: var(--md-primary-container);
+}
+
+.import-platform-card__name {
+  font-weight: var(--font-medium);
+  font-size: var(--font-body-size);
+}
+
+/* ── Import Security Notice ───────────────────────────────────────── */
+.import-security-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  background: var(--md-primary-container);
+  color: var(--md-on-surface);
+  font-size: var(--font-body-small-size);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.import-security-notice svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
