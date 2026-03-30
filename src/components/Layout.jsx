@@ -189,10 +189,17 @@ const Layout = ({ children }) => {
         </nav>
 
         <div className="sidebar-footer">
-          <div className={!sidebarOpen ? 'hidden' : ''} aria-hidden={!sidebarOpen}>
-            <div className="sidebar-user-name">{user?.firstName} {user?.lastName}</div>
-            <div className="sidebar-user-email">{user?.email}</div>
-          </div>
+          {sidebarOpen && (
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-avatar">
+                {user?.firstName ? `${user.firstName[0]}${user.lastName?.[0] || ''}`.toUpperCase() : (user?.email?.[0] || '?').toUpperCase()}
+              </div>
+              <div>
+                <div className="sidebar-user-name">{user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : ''}</div>
+                <div className="sidebar-user-email">{user?.email}</div>
+              </div>
+            </div>
+          )}
           <button onClick={handleLogout} className="btn-logout" aria-label="Sair da conta">
             <LogOut size={18} strokeWidth={1.6} />
             {sidebarOpen && <span>Sair</span>}

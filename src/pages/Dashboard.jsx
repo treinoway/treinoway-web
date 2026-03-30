@@ -16,6 +16,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [checkingStudents, setCheckingStudents] = useState(false);
   const [showNoStudentsModal, setShowNoStudentsModal] = useState(false);
+  const [studentsCount, setStudentsCount] = useState(null);
+  const [protocolsCount, setProtocolsCount] = useState(null);
 
   useEffect(() => {
     if (refreshUser) {
@@ -23,6 +25,27 @@ const Dashboard = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!hasRole('TRAINER')) return;
+
+    const fetchStats = async () => {
+      try {
+        const [studentsRes, protocolsRes] = await Promise.all([
+          api.get('/trainer/students'),
+          api.get('/trainer/protocol-templates'),
+        ]);
+        setStudentsCount(studentsRes.data.length);
+        setProtocolsCount(protocolsRes.data.length);
+      } catch {
+        setStudentsCount(0);
+        setProtocolsCount(0);
+      }
+    };
+
+    fetchStats();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleCreateRoutine = async () => {
     try {
@@ -84,6 +107,19 @@ const Dashboard = () => {
           </Link>
         )}
       </div>
+
+      {hasRole('TRAINER') && (
+        <section className="dashboard-stats">
+          <div className="stat-card">
+            <span className="stat-card-value">{studentsCount ?? '--'}</span>
+            <span className="stat-card-label">Alunos</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-card-value">{protocolsCount ?? '--'}</span>
+            <span className="stat-card-label">Rotinas</span>
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="dashboard-section-title">Ações Rápidas</h2>

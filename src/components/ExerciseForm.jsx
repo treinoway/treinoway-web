@@ -52,6 +52,8 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
   const [formData, setFormData] = useState(EMPTY_FORM);
   const isEditing = !!exercise?.id;
   const isDraftMode = !isEditing && !trainingId;
+  const showRepetitions = formData.type !== 'cardio';
+  const showDuration = formData.type !== 'strength';
 
   useEffect(() => {
     if (exercise) {
@@ -104,7 +106,7 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
       {headerContent}
       <form onSubmit={handleSubmit} className="form">
         <div>
-          <label className="form-label" htmlFor="exercise-form-name">Nome</label>
+          <label className="form-label" htmlFor="exercise-form-name">Nome <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
           <input
             id="exercise-form-name"
             type="text"
@@ -117,7 +119,7 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
         </div>
 
         <div>
-          <label className="form-label" htmlFor="exercise-form-type">Tipo</label>
+          <label className="form-label" htmlFor="exercise-form-type">Tipo <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
           <select
             id="exercise-form-type"
             value={formData.type}
@@ -154,7 +156,46 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
           )}
         </div>
 
-        <div className="grid-responsive-2col">
+        {showRepetitions ? (
+          <div className="grid-responsive-2col">
+            <div>
+              <label className="form-label" htmlFor="exercise-form-sets">Séries</label>
+              <input
+                id="exercise-form-sets"
+                type="number"
+                min="1"
+                value={formData.sets}
+                onChange={(e) => setFormData({ ...formData, sets: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div>
+              <label className="form-label">Repetições</label>
+              <div className="grid-2col" style={{ gap: 'var(--spacing-xs)' }}>
+                <input
+                  id="exercise-form-repetitions-min"
+                  type="number"
+                  min="1"
+                  value={formData.repetitionsMin}
+                  onChange={(e) => setFormData({ ...formData, repetitionsMin: e.target.value })}
+                  className="form-input"
+                  aria-label="Repetições mínimas"
+                  placeholder="Mín"
+                />
+                <input
+                  id="exercise-form-repetitions-max"
+                  type="number"
+                  min="1"
+                  value={formData.repetitionsMax}
+                  onChange={(e) => setFormData({ ...formData, repetitionsMax: e.target.value })}
+                  className="form-input"
+                  aria-label="Repetições máximas"
+                  placeholder="Máx"
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
           <div>
             <label className="form-label" htmlFor="exercise-form-sets">Séries</label>
             <input
@@ -166,45 +207,22 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
               className="form-input"
             />
           </div>
-          <div>
-            <label className="form-label">Repetições</label>
-            <div className="grid-2col" style={{ gap: 'var(--spacing-xs)' }}>
-              <input
-                id="exercise-form-repetitions-min"
-                type="number"
-                min="1"
-                value={formData.repetitionsMin}
-                onChange={(e) => setFormData({ ...formData, repetitionsMin: e.target.value })}
-                className="form-input"
-                aria-label="Repetições mínimas"
-                placeholder="Mín"
-              />
-              <input
-                id="exercise-form-repetitions-max"
-                type="number"
-                min="1"
-                value={formData.repetitionsMax}
-                onChange={(e) => setFormData({ ...formData, repetitionsMax: e.target.value })}
-                className="form-input"
-                aria-label="Repetições máximas"
-                placeholder="Máx"
-              />
-            </div>
-          </div>
-        </div>
+        )}
 
-        <div>
-          <label className="form-label" htmlFor="exercise-form-duration">Duração em segundos</label>
-          <input
-            id="exercise-form-duration"
-            type="number"
-            min="1"
-            value={formData.duration}
-            onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-            className="form-input"
-            placeholder="Ex: 60"
-          />
-        </div>
+        {showDuration && (
+          <div>
+            <label className="form-label" htmlFor="exercise-form-duration">Duração em segundos</label>
+            <input
+              id="exercise-form-duration"
+              type="number"
+              min="1"
+              value={formData.duration}
+              onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+              className="form-input"
+              placeholder="Ex: 60"
+            />
+          </div>
+        )}
 
         <div>
           <label className="form-label" htmlFor="exercise-form-restInterval">Intervalo de descanso (segundos)</label>

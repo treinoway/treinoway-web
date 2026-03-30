@@ -68,7 +68,7 @@ describe('Profile', () => {
   it('displays user email in view mode', () => {
     renderWithRouter(<Profile />);
 
-    expect(screen.getByText('user@example.com')).toBeInTheDocument();
+    expect(screen.getAllByText('user@example.com').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows the Edit button in view mode', () => {
@@ -296,6 +296,34 @@ describe('Profile', () => {
     await waitFor(() => {
       expect(mockRefreshUser).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('renders avatar circle with correct initials in view mode', () => {
+    renderWithRouter(<Profile />);
+
+    expect(screen.getByText('JS')).toBeInTheDocument();
+  });
+
+  it('renders avatar circle with email initial when user has no name', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockEmptyUser,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+    });
+
+    renderWithRouter(<Profile />);
+
+    expect(screen.getByText('U')).toBeInTheDocument();
+  });
+
+  it('does not render avatar row in edit mode', async () => {
+    const user = userEvent.setup();
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    expect(screen.queryByText('JS')).not.toBeInTheDocument();
   });
 
   it('renders address section when user has address data', () => {

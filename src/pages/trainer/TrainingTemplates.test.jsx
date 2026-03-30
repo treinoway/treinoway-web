@@ -98,6 +98,19 @@ describe('TrainingTemplates', () => {
     });
   });
 
+  it('empty state CTA opens the create form', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [] });
+
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Nenhum treino único ainda'));
+
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
+
+    expect(screen.getByText('Criar novo treino único')).toBeInTheDocument();
+  });
+
   it('does not show info banner when templates exist', async () => {
     renderWithRouter(<TrainingTemplates />);
 

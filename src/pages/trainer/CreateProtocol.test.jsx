@@ -164,9 +164,9 @@ describe('CreateProtocol', () => {
     renderPage();
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
-    await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina Nova');
-    fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
-    fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+    await user.type(screen.getByLabelText(/^nome da rotina/i), 'Rotina Nova');
+    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
+    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -251,8 +251,8 @@ describe('CreateProtocol', () => {
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
     await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
-    fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
-    fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
+    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -297,8 +297,8 @@ describe('CreateProtocol', () => {
       expect(screen.getByText('Treino B')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
-    fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
+    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -373,9 +373,9 @@ describe('CreateProtocol', () => {
     expect(screen.queryByText('Adicionar Treino')).not.toBeInTheDocument();
     expect(screen.getByText('Treino Manual')).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina Direta');
-    fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
-    fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+    await user.type(screen.getByLabelText(/^nome da rotina/i), 'Rotina Direta');
+    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
+    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -705,9 +705,9 @@ describe('CreateProtocol', () => {
       await user.click(screen.getByRole('button', { name: /salvar exercício/i }));
       await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
-      await user.type(screen.getByLabelText('Nome da Rotina'), 'Minha Rotina');
-      fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
-      fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+      await user.type(screen.getByLabelText(/^nome da rotina/i), 'Minha Rotina');
+      fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
+      fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
       await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
       await waitFor(() => {
@@ -747,9 +747,9 @@ describe('CreateProtocol', () => {
         expect(screen.getByText('Supino Reto')).toBeInTheDocument();
       });
 
-      await user.type(screen.getByLabelText('Nome da Rotina'), 'Rotina Template');
-      fireEvent.change(screen.getByLabelText('Data de Início'), { target: { value: '01/01/2024' } });
-      fireEvent.change(screen.getByLabelText('Data de Término'), { target: { value: '31/03/2024' } });
+      await user.type(screen.getByLabelText(/^nome da rotina/i), 'Rotina Template');
+      fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
+      fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
       await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
       await waitFor(() => {

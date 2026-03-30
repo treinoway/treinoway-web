@@ -35,6 +35,7 @@ describe('Dashboard', () => {
     mockRefreshUser.mockResolvedValue(null);
     mockShowToast.mockReset();
     mockHasRole.mockReset();
+    api.get.mockReset();
 
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     vi.mocked(useAuth).mockReturnValue({
@@ -67,13 +68,65 @@ describe('Dashboard', () => {
     expect(screen.getByText(/bem-vindo/i)).toBeInTheDocument();
   });
 
-  it('shows trainer quick actions when user has TRAINER role', () => {
+  it('shows trainer quick actions when user has TRAINER role', async () => {
     mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [] });
+      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+      return Promise.reject(new Error('unexpected'));
+    });
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.getByText('Rotinas')).toBeInTheDocument();
     expect(screen.getByText('Criar Rotina para um Aluno')).toBeInTheDocument();
+    expect(screen.getAllByText('Rotinas').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders stats section with counts when user is TRAINER', async () => {
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [{ id: 1 }, { id: 2 }] });
+      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [{ id: 1 }] });
+      return Promise.reject(new Error('unexpected'));
+    });
+
+    renderWithRouter(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('2')).toBeInTheDocument();
+      expect(screen.getByText('1')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Alunos')).toBeInTheDocument();
+    expect(screen.getAllByText('Rotinas').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders stats section with -- placeholders while loading', () => {
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    api.get.mockImplementation(() => new Promise(() => {}));
+
+    renderWithRouter(<Dashboard />);
+
+    expect(screen.getAllByText('--').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('renders stats section with -- on API error', async () => {
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    api.get.mockRejectedValue(new Error('network error'));
+
+    renderWithRouter(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('--').length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  it('does not render stats section when user is not TRAINER', () => {
+    mockHasRole.mockReturnValue(false);
+
+    renderWithRouter(<Dashboard />);
+
+    expect(screen.queryByText('Alunos')).not.toBeInTheDocument();
   });
 
   it('hides trainer quick actions when user does not have TRAINER role', () => {
@@ -159,15 +212,16 @@ describe('Dashboard', () => {
       api.get.mockReset();
     });
 
-    it('navigates directly when localStorage skip is true', async () => {
+    it('navigates directly when localStorage skip is true without showing modal', async () => {
       const user = userEvent.setup();
       localStorage.setItem('treinoway.skipNoStudentsWarning', 'true');
+      api.get.mockResolvedValue({ data: [] });
 
       renderWithRouter(<Dashboard />);
 
       await user.click(screen.getByRole('button', { name: /Criar Rotina para um Aluno/ }));
 
-      expect(api.get).not.toHaveBeenCalled();
+      expect(screen.queryByRole('heading', { name: 'Nenhum aluno cadastrado' })).not.toBeInTheDocument();
     });
 
     it('navigates when API returns students', async () => {

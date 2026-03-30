@@ -161,7 +161,11 @@ useEffect(() => {
     }
   };
 
-return (
+  const avatarInitials = user?.firstName
+    ? `${user.firstName[0]}${user.lastName?.[0] || ''}`.toUpperCase()
+    : (user?.email?.[0] || '?').toUpperCase();
+
+  return (
     <div>
       <h1 className="page-title">Meu Perfil</h1>
 
@@ -391,6 +395,16 @@ return (
           </form>
         ) : (
           <div className="profile-display">
+            <div className="profile-avatar-row">
+              <div className="profile-avatar">
+                {avatarInitials}
+              </div>
+              <div className="profile-avatar-info">
+                <span className="profile-avatar-name">{user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.email}</span>
+                <span className="profile-avatar-email">{user?.email}</span>
+              </div>
+            </div>
+
             <div className="profile-section">
               <h3 className="profile-section-title">Dados Pessoais</h3>
               <div className="info-list">

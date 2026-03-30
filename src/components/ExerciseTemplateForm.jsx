@@ -53,6 +53,8 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const isEditing = !!exerciseTemplate?.id;
+  const showRepetitions = formData.type !== 'cardio';
+  const showDuration = formData.type !== 'strength';
 
   useEffect(() => {
     if (exerciseTemplate) {
@@ -99,7 +101,7 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel }) => {
   return (
     <form onSubmit={handleSubmit} className="form">
       <div>
-        <label className="form-label" htmlFor="etf-name">Nome</label>
+        <label className="form-label" htmlFor="etf-name">Nome <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
         <input
           id="etf-name"
           type="text"
@@ -112,7 +114,7 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel }) => {
       </div>
 
       <div>
-        <label className="form-label" htmlFor="etf-type">Tipo</label>
+        <label className="form-label" htmlFor="etf-type">Tipo <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
         <select
           id="etf-type"
           value={formData.type}
@@ -149,7 +151,46 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel }) => {
         )}
       </div>
 
-      <div className="grid-responsive-2col">
+      {showRepetitions ? (
+        <div className="grid-responsive-2col">
+          <div>
+            <label className="form-label" htmlFor="etf-sets">Séries</label>
+            <input
+              id="etf-sets"
+              type="number"
+              min="1"
+              value={formData.sets}
+              onChange={(e) => setFormData({ ...formData, sets: e.target.value })}
+              className="form-input"
+            />
+          </div>
+          <div>
+            <label className="form-label">Repetições</label>
+            <div className="grid-2col" style={{ gap: 'var(--spacing-xs)' }}>
+              <input
+                id="etf-repetitions-min"
+                type="number"
+                min="1"
+                value={formData.repetitionsMin}
+                onChange={(e) => setFormData({ ...formData, repetitionsMin: e.target.value })}
+                className="form-input"
+                aria-label="Repetições mínimas"
+                placeholder="Mín"
+              />
+              <input
+                id="etf-repetitions-max"
+                type="number"
+                min="1"
+                value={formData.repetitionsMax}
+                onChange={(e) => setFormData({ ...formData, repetitionsMax: e.target.value })}
+                className="form-input"
+                aria-label="Repetições máximas"
+                placeholder="Máx"
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
         <div>
           <label className="form-label" htmlFor="etf-sets">Séries</label>
           <input
@@ -161,45 +202,22 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel }) => {
             className="form-input"
           />
         </div>
-        <div>
-          <label className="form-label">Repetições</label>
-          <div className="grid-2col" style={{ gap: 'var(--spacing-xs)' }}>
-            <input
-              id="etf-repetitions-min"
-              type="number"
-              min="1"
-              value={formData.repetitionsMin}
-              onChange={(e) => setFormData({ ...formData, repetitionsMin: e.target.value })}
-              className="form-input"
-              aria-label="Repetições mínimas"
-              placeholder="Mín"
-            />
-            <input
-              id="etf-repetitions-max"
-              type="number"
-              min="1"
-              value={formData.repetitionsMax}
-              onChange={(e) => setFormData({ ...formData, repetitionsMax: e.target.value })}
-              className="form-input"
-              aria-label="Repetições máximas"
-              placeholder="Máx"
-            />
-          </div>
-        </div>
-      </div>
+      )}
 
-      <div>
-        <label className="form-label" htmlFor="etf-duration">Duração em segundos</label>
-        <input
-          id="etf-duration"
-          type="number"
-          min="1"
-          value={formData.duration}
-          onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-          className="form-input"
-          placeholder="Ex: 60"
-        />
-      </div>
+      {showDuration && (
+        <div>
+          <label className="form-label" htmlFor="etf-duration">Duração em segundos</label>
+          <input
+            id="etf-duration"
+            type="number"
+            min="1"
+            value={formData.duration}
+            onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+            className="form-input"
+            placeholder="Ex: 60"
+          />
+        </div>
+      )}
 
       <div>
         <label className="form-label" htmlFor="etf-restInterval">Intervalo de descanso (segundos)</label>

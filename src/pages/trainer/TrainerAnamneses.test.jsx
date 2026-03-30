@@ -80,6 +80,22 @@ describe('TrainerAnamneses', () => {
     });
   });
 
+  it('shows CTA button in empty state that opens the create form', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [] });
+    renderWithRouter(<TrainerAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByText('Nenhuma anamnese ainda')).toBeInTheDocument();
+    });
+
+    const ctaButton = screen.getByRole('button', { name: /nova anamnese/i });
+    expect(ctaButton).toBeInTheDocument();
+
+    await user.click(ctaButton);
+
+    expect(screen.getByLabelText(/^nome/i)).toBeInTheDocument();
+  });
+
   it('renders anamnesis cards with title and section count', async () => {
     api.get.mockResolvedValue({ data: mockAnamneses });
     renderWithRouter(<TrainerAnamneses />);
@@ -162,7 +178,7 @@ describe('TrainerAnamneses', () => {
       expect(screen.queryByText(/carregando/i)).not.toBeInTheDocument();
     });
     await user.click(screen.getByText('+ Nova Anamnese'));
-    expect(screen.getByLabelText('Título')).toBeInTheDocument();
+    expect(screen.getByLabelText(/^nome/i)).toBeInTheDocument();
   });
 
   it('after creating, navigates to the anamnesis detail page', async () => {
@@ -180,7 +196,7 @@ describe('TrainerAnamneses', () => {
     });
 
     await user.click(screen.getByText('+ Nova Anamnese'));
-    await user.type(screen.getByLabelText('Título'), 'Nova Anamnese Teste');
+    await user.type(screen.getByLabelText(/^nome/i), 'Nova Anamnese Teste');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Copy } from 'lucide-react';
+import { Copy, ClipboardList, Info } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -123,8 +123,8 @@ const TrainerAnamneses = () => {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title" style={{ marginBottom: 0 }}>Anamneses</h1>
-        {!showForm && (
+        <h1>Anamneses</h1>
+        {!showForm && anamneses.length > 0 && (
           <button onClick={() => setShowForm(true)} className="btn-primary">
             + Nova Anamnese
           </button>
@@ -138,16 +138,17 @@ const TrainerAnamneses = () => {
           </h2>
           <form onSubmit={editingAnamnesis ? handleUpdate : handleCreate} className="form">
             <div>
-              <label className="form-label" htmlFor="anamnesis-title">Título</label>
+              <label className="form-label" htmlFor="anamnesis-name">Nome <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
               <input
-                id="anamnesis-title"
+                id="anamnesis-name"
                 type="text"
                 value={formData.title}
                 onChange={handleFormChange('title')}
                 className="form-input"
-                placeholder="Ex: Anamnese de saúde geral"
+                placeholder="Ex: Anamnese inicial"
                 required
                 disabled={saving}
+                autoFocus
               />
             </div>
             <div>
@@ -162,6 +163,9 @@ const TrainerAnamneses = () => {
                 disabled={saving}
               />
             </div>
+            <p className="text-sm text-muted">
+              Após salvar, você poderá adicionar seções e perguntas à anamnese.
+            </p>
             <div className="btn-group">
               <button type="submit" disabled={saving} className="btn-primary">
                 {saving ? 'Salvando...' : 'Salvar'}
@@ -175,9 +179,22 @@ const TrainerAnamneses = () => {
       )}
 
       {!showForm && anamneses.length === 0 && (
+        <div className="info-banner">
+          <span className="info-banner-icon"><Info size={16} strokeWidth={1.6} /></span>
+          <span><strong>O que é uma anamnese?</strong> Uma anamnese é um questionário de saúde aplicado ao aluno para coletar informações sobre histórico médico, objetivos e limitações físicas.</span>
+        </div>
+      )}
+
+      {!showForm && anamneses.length === 0 && (
         <div className="empty-state">
+          <div className="empty-state-icon">
+            <ClipboardList size={48} strokeWidth={1.2} />
+          </div>
           <p className="empty-state-title">Nenhuma anamnese ainda</p>
           <p>Crie sua primeira anamnese para aplicar aos seus alunos</p>
+          <button className="btn-primary" onClick={() => setShowForm(true)}>
+            + Nova Anamnese
+          </button>
         </div>
       )}
 

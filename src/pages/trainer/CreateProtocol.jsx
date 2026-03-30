@@ -627,6 +627,9 @@ const CreateProtocol = () => {
   };
 
 
+  const showInlineRepetitions = inlineExerciseTemplateFields.type !== 'cardio';
+  const showInlineDuration = inlineExerciseTemplateFields.type !== 'strength';
+
   return (
     <div>
       {studentLoading && (
@@ -741,7 +744,7 @@ const CreateProtocol = () => {
           </div>
 
           <div>
-            <label className="form-label" htmlFor="protocol-name">Nome da Rotina</label>
+            <label className="form-label" htmlFor="protocol-name">Nome da Rotina <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
             <input
               id="protocol-name"
               type="text"
@@ -750,6 +753,7 @@ const CreateProtocol = () => {
               onChange={handleProtocolInputChange}
               className="form-input"
               required
+              autoFocus
             />
           </div>
 
@@ -767,7 +771,7 @@ const CreateProtocol = () => {
 
           <div className="grid-2col">
             <div>
-              <label className="form-label" htmlFor="protocol-start-date">Data de Início</label>
+              <label className="form-label" htmlFor="protocol-start-date">Data de Início <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
               <DateInput
                 id="protocol-start-date"
                 value={formData.startDate}
@@ -778,7 +782,7 @@ const CreateProtocol = () => {
             </div>
 
             <div>
-              <label className="form-label" htmlFor="protocol-end-date">Data de Término</label>
+              <label className="form-label" htmlFor="protocol-end-date">Data de Término <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
               <DateInput
                 id="protocol-end-date"
                 value={formData.endDate}
@@ -791,7 +795,7 @@ const CreateProtocol = () => {
 
           <div className="grid-responsive-2col">
             <div>
-              <label className="form-label" htmlFor="protocol-gender-ordination">Classificação</label>
+              <label className="form-label" htmlFor="protocol-gender-ordination">Sexo biológico</label>
               <select
                 id="protocol-gender-ordination"
                 name="genderOrdination"
@@ -841,7 +845,7 @@ const CreateProtocol = () => {
           </div>
 
           <div>
-            <label className="form-label" htmlFor="protocol-default-duration-weeks">Duração Padrão (semanas)</label>
+            <label className="form-label" htmlFor="protocol-default-duration-weeks">Duração (semanas) <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
             <input
               id="protocol-default-duration-weeks"
               type="number"
@@ -1210,18 +1214,18 @@ const CreateProtocol = () => {
                         ))}
                       </select>
                     </div>
-                    <div className="grid-2col">
-                      <div>
-                        <label className="form-label" htmlFor="ietf-sets">Séries</label>
-                        <input
-                          id="ietf-sets"
-                          type="number"
-                          min="1"
-                          className="form-input"
-                          value={inlineExerciseTemplateFields.sets}
-                          onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, sets: e.target.value }))}
-                        />
-                      </div>
+                    <div>
+                      <label className="form-label" htmlFor="ietf-sets">Séries</label>
+                      <input
+                        id="ietf-sets"
+                        type="number"
+                        min="1"
+                        className="form-input"
+                        value={inlineExerciseTemplateFields.sets}
+                        onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, sets: e.target.value }))}
+                      />
+                    </div>
+                    {showInlineDuration && (
                       <div>
                         <label className="form-label" htmlFor="ietf-duration">Duração (s)</label>
                         <input
@@ -1233,7 +1237,8 @@ const CreateProtocol = () => {
                           onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, duration: e.target.value }))}
                         />
                       </div>
-                    </div>
+                    )}
+                    {showInlineRepetitions && (
                     <div className="grid-2col">
                       <div>
                         <label className="form-label" htmlFor="ietf-rep-min">Rep. mín.</label>
@@ -1258,6 +1263,7 @@ const CreateProtocol = () => {
                         />
                       </div>
                     </div>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
                       <input
                         id="ietf-hasload"

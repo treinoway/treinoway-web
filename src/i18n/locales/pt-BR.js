@@ -35,10 +35,7 @@ const ptBR = {
     ANAMNESIS_SECTION_NOT_FOUND: 'Seção da anamnese não encontrada.',
     ANAMNESIS_QUESTION_NOT_FOUND: 'Pergunta da anamnese não encontrada.',
     TRAINER_PROFILE_MISSING: 'Perfil de treinador não encontrado.',
-    EXTERNAL_AUTH_FAILED: 'Credenciais incorretas. Verifique seu e-mail e senha do PrimeCoaching.',
-    EXTERNAL_SERVICE_UNAVAILABLE: 'Não foi possível conectar ao PrimeCoaching. Tente novamente em alguns minutos.',
-    EXTERNAL_EXPORT_FAILED: 'Falha ao baixar dados do PrimeCoaching. Tente novamente.',
-    IMPORT_FORMAT_CHANGED: 'O formato de exportação do PrimeCoaching mudou. Entre em contato com o suporte.',
+    IMPORT_FORMAT_CHANGED: 'O arquivo não corresponde ao formato esperado do PrimeCoaching. Verifique se você exportou a planilha correta.',
   },
 
   messageCodes: {
@@ -66,10 +63,7 @@ const ptBR = {
     'anamnesis.response.notFound': 'Nenhuma resposta encontrada para esta anamnese.',
     'anamnesis.notLinkedToStudent': 'Esta anamnese não está vinculada ao seu perfil.',
     'trainer.notFound': 'Perfil de treinador não encontrado.',
-    'import.primecoaching.authFailed': 'Credenciais incorretas. Verifique seu e-mail e senha do PrimeCoaching.',
-    'import.primecoaching.serviceUnavailable': 'Não foi possível conectar ao PrimeCoaching. Tente novamente em alguns minutos.',
-    'import.primecoaching.exportFailed': 'Falha ao baixar dados do PrimeCoaching. Tente novamente.',
-    'import.primecoaching.formatChanged': 'O formato de exportação do PrimeCoaching mudou. Entre em contato com o suporte.',
+    'import.primecoaching.formatChanged': 'O arquivo não corresponde ao formato esperado do PrimeCoaching. Verifique se você exportou a planilha correta.',
   },
 
   httpStatus: {

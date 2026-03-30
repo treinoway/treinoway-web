@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Dumbbell, Info } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -246,7 +246,7 @@ const TrainingTemplates = () => {
               </button>
             </div>
           )}
-          {!showForm && (
+          {!showForm && templates.length > 0 && (
             <button onClick={() => setShowForm(true)} className="btn-primary">
               + Novo treino único
             </button>
@@ -513,14 +513,17 @@ const TrainingTemplates = () => {
 
       {!showForm && !templatesLoading && templates.length === 0 && (
         <>
-          <div className="alert alert-info" style={{ marginBottom: 'var(--spacing-md)' }}>
-            <strong>O que é um treino único?</strong> Um treino único é uma ficha pré-configurada
-            com categoria e segmento corporal que pode ser reutilizada em diferentes rotinas, agilizando
-            a montagem dos treinos dos seus alunos.
+          <div className="info-banner">
+            <span className="info-banner-icon"><Info size={16} strokeWidth={1.6} /></span>
+            <span><strong>O que é um treino único?</strong> Um treino único é uma ficha pré-configurada com categoria e segmento corporal que pode ser reutilizada em diferentes rotinas, agilizando a montagem dos treinos dos seus alunos.</span>
           </div>
           <div className="empty-state">
+            <div className="empty-state-icon">
+              <Dumbbell size={48} strokeWidth={1.2} />
+            </div>
             <p className="empty-state-title">Nenhum treino único ainda</p>
             <p>Crie seu primeiro treino único para começar</p>
+            <button className="btn-primary" onClick={() => setShowForm(true)}>+ Novo treino único</button>
           </div>
         </>
       )}

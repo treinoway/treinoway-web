@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -482,6 +482,9 @@ const MyAnamneses = () => {
 
       {links.length === 0 ? (
         <div className="empty-state">
+          <div className="empty-state-icon">
+            <ClipboardList size={48} strokeWidth={1.2} />
+          </div>
           <p className="empty-state-title">Nenhuma anamnese ainda</p>
           <p>Seu treinador irá enviar anamneses para você responder</p>
         </div>

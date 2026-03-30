@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Dumbbell, Info } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -206,7 +206,7 @@ const ExerciseTemplates = () => {
               </button>
             </div>
           )}
-          {!showForm && (
+          {!showForm && templates.length > 0 && (
             <button onClick={() => setShowForm(true)} className="btn-primary">
               + Novo exercício
             </button>
@@ -532,14 +532,19 @@ const ExerciseTemplates = () => {
 
       {!showForm && !templatesLoading && templates.length === 0 && (
         <>
-          <div className="alert alert-info" style={{ marginBottom: 'var(--spacing-md)' }}>
-            <strong>O que é um exercício?</strong> Um exercício é um movimento
-            reutilizável que pode ser adicionado aos seus treinos. Defina séries, repetições,
-            carga sugerida e até link de vídeo para facilitar a montagem das rotinas.
+          <div className="info-banner">
+            <span className="info-banner-icon"><Info size={16} strokeWidth={1.6} /></span>
+            <span><strong>O que é um exercício?</strong> Um exercício é um movimento reutilizável que pode ser adicionado aos seus treinos. Defina séries, repetições, carga sugerida e até link de vídeo para facilitar a montagem das rotinas.</span>
           </div>
           <div className="empty-state">
+            <div className="empty-state-icon">
+              <Dumbbell size={48} strokeWidth={1.2} />
+            </div>
             <p className="empty-state-title">Nenhum exercício ainda</p>
             <p>Crie seu primeiro exercício para começar</p>
+            <button className="btn-primary" onClick={() => setShowForm(true)}>
+              + Novo exercício
+            </button>
           </div>
         </>
       )}

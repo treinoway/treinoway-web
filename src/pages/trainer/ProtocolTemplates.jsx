@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { ArrowLeft, GripVertical, LayoutGrid, List } from 'lucide-react';
+import { ArrowLeft, GripVertical, LayoutGrid, List, BookOpen, Info } from 'lucide-react';
 import ExerciseTemplateForm from '../../components/ExerciseTemplateForm';
 import RowMenu from '../../components/RowMenu';
 import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
@@ -520,7 +520,7 @@ const ProtocolTemplates = () => {
               </button>
             </div>
           )}
-          {!showForm && (
+          {!showForm && templates.length > 0 && (
             <button onClick={() => setShowForm(true)} className="btn-primary">
               + Nova rotina
             </button>
@@ -529,9 +529,9 @@ const ProtocolTemplates = () => {
       </div>
 
       {!showForm && !templatesLoading && templates.length === 0 && (
-        <div className="alert alert-info" style={{ marginBottom: 'var(--spacing-md)' }}>
-          <strong>O que é um modelo?</strong> Um modelo é uma estrutura de rotina pré-definida com
-          treinos, dias da semana e duração para reutilização rápida.
+        <div className="info-banner">
+          <span className="info-banner-icon"><Info size={16} strokeWidth={1.6} /></span>
+          <span><strong>O que é um modelo?</strong> Um modelo é uma estrutura de rotina pré-definida com treinos, dias da semana e duração para reutilização rápida.</span>
         </div>
       )}
 
@@ -542,13 +542,14 @@ const ProtocolTemplates = () => {
           </h2>
           <form onSubmit={handleTemplateSubmit} className="form">
             <div>
-              <label className="form-label">Nome</label>
+              <label className="form-label">Nome <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
               <input
                 type="text"
                 value={templateFormData.name}
                 onChange={(e) => setTemplateFormData({ ...templateFormData, name: e.target.value })}
                 className="form-input"
                 required
+                autoFocus
               />
             </div>
 
@@ -564,7 +565,7 @@ const ProtocolTemplates = () => {
 
             <div className="grid-responsive-2col">
               <div>
-                <label className="form-label">Classificação</label>
+                <label className="form-label">Sexo biológico</label>
                 <select
                   value={templateFormData.genderOrdination}
                   onChange={(e) => setTemplateFormData({ ...templateFormData, genderOrdination: e.target.value })}
@@ -608,7 +609,7 @@ const ProtocolTemplates = () => {
             </div>
 
             <div>
-              <label className="form-label">Duração Padrão (semanas)</label>
+              <label className="form-label">Duração (semanas) <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
               <input
                 type="number"
                 min="1"
@@ -831,8 +832,14 @@ const ProtocolTemplates = () => {
 
       {templates.length === 0 && !showForm && !templatesLoading && (
         <div className="empty-state">
+          <div className="empty-state-icon">
+            <BookOpen size={48} strokeWidth={1.2} />
+          </div>
           <p className="empty-state-title">Nenhum modelo de rotina ainda</p>
           <p>Crie seu primeiro modelo e use-o como base ao atribuir rotinas aos alunos</p>
+          <button className="btn-primary" onClick={() => setShowForm(true)}>
+            + Nova rotina
+          </button>
         </div>
       )}
 
@@ -988,7 +995,7 @@ const ProtocolTemplates = () => {
               ) : (
                 <form onSubmit={handleTrainingTemplateSubmit} className="form">
                   <div>
-                    <label className="form-label" htmlFor="tt-modal-name">Nome</label>
+                    <label className="form-label" htmlFor="tt-modal-name">Nome <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
                     <input
                       id="tt-modal-name"
                       type="text"

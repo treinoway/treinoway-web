@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { X, MoreVertical, Upload, ShieldCheck } from 'lucide-react';
+import { X, MoreVertical, Upload, FileSpreadsheet, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
@@ -182,8 +182,7 @@ const Students = () => {
   const [importStep, setImportStep] = useState('platform');
   const [importLoading, setImportLoading] = useState(false);
   const [importData, setImportData] = useState(null);
-  const [importEmail, setImportEmail] = useState('');
-  const [importPassword, setImportPassword] = useState('');
+  const [importFile, setImportFile] = useState(null);
   const [selectedEmails, setSelectedEmails] = useState(new Set());
 
   const fetchStudents = useCallback(async () => {
@@ -244,18 +243,19 @@ const Students = () => {
     setImportStep('platform');
     setImportLoading(false);
     setImportData(null);
-    setImportEmail('');
-    setImportPassword('');
+    setImportFile(null);
     setSelectedEmails(new Set());
   };
 
   const handleImportPreview = async (e) => {
     e.preventDefault();
+    if (!importFile) return;
     setImportLoading(true);
     try {
-      const response = await api.post('/trainer/import/primecoaching/preview', {
-        email: importEmail,
-        password: importPassword,
+      const formData = new FormData();
+      formData.append('file', importFile);
+      const response = await api.post('/trainer/import/primecoaching/preview', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       setImportData(response.data);
       setSelectedEmails(
@@ -330,9 +330,11 @@ const Students = () => {
             <Upload size={16} strokeWidth={1.6} />
             Importar Alunos
           </button>
-          <button onClick={() => setShowLinkForm(true)} className="btn-primary">
-            + Vincular Aluno
-          </button>
+          {students.length > 0 && (
+            <button onClick={() => setShowLinkForm(true)} className="btn-primary">
+              + Vincular Aluno
+            </button>
+          )}
         </div>
       </div>
 
@@ -351,8 +353,14 @@ const Students = () => {
 
       {students.length === 0 ? (
         <div className="empty-state">
+          <div className="empty-state-icon">
+            <Users size={48} strokeWidth={1.2} />
+          </div>
           <p className="empty-state-title">Nenhum aluno vinculado ainda</p>
-          <p>Clique em &quot;Vincular Aluno&quot; para adicionar seu primeiro aluno</p>
+          <p>Vincule seu primeiro aluno para começar a gerenciar treinos</p>
+          <button className="btn-primary" onClick={() => setShowLinkForm(true)}>
+            + Vincular Aluno
+          </button>
         </div>
       ) : filteredStudents.length === 0 ? (
         <div className="empty-state">
@@ -489,7 +497,7 @@ const Students = () => {
             <div className="bottom-sheet-header">
               <h2 className="bottom-sheet-title">
                 {importStep === 'platform' && 'Importar Alunos'}
-                {importStep === 'credentials' && 'Importar do PrimeCoaching'}
+                {importStep === 'upload' && 'Importar do PrimeCoaching'}
                 {importStep === 'preview' && 'Alunos do PrimeCoaching'}
               </h2>
               <button
@@ -506,7 +514,7 @@ const Students = () => {
                   <p className="text-muted">Selecione a plataforma de origem</p>
                   <button
                     className="import-platform-card"
-                    onClick={() => setImportStep('credentials')}
+                    onClick={() => setImportStep('upload')}
                   >
                     <span className="import-platform-card__name">PrimeCoaching</span>
                     <span className="import-platform-card__description text-sm text-muted">
@@ -516,39 +524,22 @@ const Students = () => {
                 </div>
               )}
 
-              {importStep === 'credentials' && (
+              {importStep === 'upload' && (
                 <form onSubmit={handleImportPreview} className="form">
                   <p className="import-security-notice">
-                    <ShieldCheck size={14} strokeWidth={1.6} />
-                    Método seguro: suas credenciais são usadas apenas para buscar a lista de alunos e não são armazenadas em nossos servidores.
+                    <FileSpreadsheet size={14} strokeWidth={1.6} />
+                    Acesse o PrimeCoaching, exporte a lista de alunos em formato XLSX e faça o upload do arquivo abaixo.
                   </p>
                   <div>
-                    <label className="form-label" htmlFor="import-email">
-                      E-mail do PrimeCoaching
+                    <label className="form-label" htmlFor="import-file">
+                      Arquivo XLSX do PrimeCoaching
                     </label>
                     <input
-                      id="import-email"
-                      type="email"
-                      value={importEmail}
-                      onChange={(e) => setImportEmail(e.target.value)}
+                      id="import-file"
+                      type="file"
+                      accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      onChange={(e) => setImportFile(e.target.files[0] ?? null)}
                       className="form-input"
-                      placeholder="seu@email.com"
-                      required
-                      autoFocus
-                      disabled={importLoading}
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label" htmlFor="import-password">
-                      Senha do PrimeCoaching
-                    </label>
-                    <input
-                      id="import-password"
-                      type="password"
-                      value={importPassword}
-                      onChange={(e) => setImportPassword(e.target.value)}
-                      className="form-input"
-                      placeholder="Sua senha"
                       required
                       disabled={importLoading}
                     />
@@ -556,11 +547,11 @@ const Students = () => {
                   <div className="btn-group">
                     <button
                       type="submit"
-                      disabled={importLoading}
+                      disabled={importLoading || !importFile}
                       className="btn-primary"
                       style={{ flex: 1 }}
                     >
-                      {importLoading ? 'Conectando ao PrimeCoaching...' : 'Importar'}
+                      {importLoading ? 'Processando arquivo...' : 'Importar'}
                     </button>
                     <button
                       type="button"

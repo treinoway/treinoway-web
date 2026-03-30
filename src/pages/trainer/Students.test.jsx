@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter } from '../../test/test-utils';
 import Students from './Students';
@@ -66,6 +66,22 @@ describe('Students', () => {
     api.post.mockReset();
   });
 
+  it('shows empty state with icon and CTA when there are no students', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [] });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Nenhum aluno vinculado ainda')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: /vincular aluno/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /vincular aluno/i }));
+
+    expect(screen.getByRole('heading', { name: 'Vincular Aluno' })).toBeInTheDocument();
+  });
+
   it('shows "Ver Perfil" link in student row menu', async () => {
     const user = userEvent.setup();
     renderWithRouter(<Students />);
@@ -97,6 +113,22 @@ describe('Students', () => {
   });
 
   describe('Import from PrimeCoaching', () => {
+    const mockFile = new File(['xlsx content'], 'alunos.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
+    const uploadFileAndSubmit = async (user) => {
+      await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
+      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
+      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
+      const fileInput = screen.getByLabelText(/arquivo xlsx do primecoaching/i);
+      await user.upload(fileInput, mockFile);
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /^importar$/i })).not.toBeDisabled()
+      );
+      fireEvent.submit(fileInput.closest('form'));
+    };
+
     it('shows the import button', async () => {
       renderWithRouter(<Students />);
 
@@ -107,7 +139,7 @@ describe('Students', () => {
       expect(screen.getByRole('button', { name: /importar alunos/i })).toBeInTheDocument();
     });
 
-    it('opens the import modal when clicking the import button', async () => {
+    it('opens the import modal with platform selection when clicking the import button', async () => {
       const user = userEvent.setup();
       renderWithRouter(<Students />);
 
@@ -119,14 +151,9 @@ describe('Students', () => {
 
       expect(screen.getByRole('heading', { name: 'Importar Alunos' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /primecoaching/i })).toBeInTheDocument();
-
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-
-      expect(screen.getByLabelText('E-mail do PrimeCoaching')).toBeInTheDocument();
-      expect(screen.getByLabelText('Senha do PrimeCoaching')).toBeInTheDocument();
     });
 
-    it('shows platform selection before credentials form', async () => {
+    it('shows file upload form after selecting PrimeCoaching platform', async () => {
       const user = userEvent.setup();
       renderWithRouter(<Students />);
 
@@ -136,13 +163,12 @@ describe('Students', () => {
 
       await user.click(screen.getByRole('button', { name: /importar alunos/i }));
 
-      expect(screen.getByRole('button', { name: /primecoaching/i })).toBeInTheDocument();
-      expect(screen.queryByLabelText('E-mail do PrimeCoaching')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/arquivo xlsx/i)).not.toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: /primecoaching/i }));
 
-      expect(screen.getByLabelText('E-mail do PrimeCoaching')).toBeInTheDocument();
-      expect(screen.getByLabelText('Senha do PrimeCoaching')).toBeInTheDocument();
+      expect(screen.getByLabelText(/arquivo xlsx do primecoaching/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Importar do PrimeCoaching' })).toBeInTheDocument();
     });
 
     it('closes the import modal when clicking cancel', async () => {
@@ -155,10 +181,10 @@ describe('Students', () => {
 
       await user.click(screen.getByRole('button', { name: /importar alunos/i }));
       await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      expect(screen.getByText('Importar do PrimeCoaching')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Importar do PrimeCoaching' })).toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: /cancelar/i }));
-      expect(screen.queryByText('Importar do PrimeCoaching')).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Importar do PrimeCoaching' })).not.toBeInTheDocument();
     });
 
     it('closes the import modal when clicking the close button', async () => {
@@ -176,7 +202,21 @@ describe('Students', () => {
       expect(screen.queryByRole('heading', { name: 'Importar Alunos' })).not.toBeInTheDocument();
     });
 
-    it('disables form inputs and buttons during loading', async () => {
+    it('import button is disabled until a file is selected', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<Students />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
+      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
+
+      expect(screen.getByRole('button', { name: /^importar$/i })).toBeDisabled();
+    });
+
+    it('disables file input and submit button during loading', async () => {
       const user = userEvent.setup();
       let resolveImport;
       api.post.mockImplementation((url) => {
@@ -194,17 +234,16 @@ describe('Students', () => {
         expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      await user.type(screen.getByLabelText('E-mail do PrimeCoaching'), 'test@example.com');
-      await user.type(screen.getByLabelText('Senha do PrimeCoaching'), 'password123');
-      await user.click(screen.getByRole('button', { name: /^importar$/i }));
+      await uploadFileAndSubmit(user);
 
-      expect(screen.getByLabelText('E-mail do PrimeCoaching')).toBeDisabled();
-      expect(screen.getByLabelText('Senha do PrimeCoaching')).toBeDisabled();
-      expect(screen.getByRole('button', { name: /conectando ao primecoaching/i })).toBeDisabled();
+      expect(screen.getByLabelText(/arquivo xlsx do primecoaching/i)).toBeDisabled();
+      expect(screen.getByRole('button', { name: /processando arquivo/i })).toBeDisabled();
 
-      resolveImport({ data: mockImportPreviewResponse });
+      await waitFor(() => {
+        resolveImport({ data: mockImportPreviewResponse });
+        return Promise.resolve();
+      });
+      await waitFor(() => expect(screen.getByText('Alunos do PrimeCoaching')).toBeInTheDocument());
     });
 
     it('shows preview table and summary on successful import', async () => {
@@ -222,11 +261,7 @@ describe('Students', () => {
         expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      await user.type(screen.getByLabelText('E-mail do PrimeCoaching'), 'test@example.com');
-      await user.type(screen.getByLabelText('Senha do PrimeCoaching'), 'password123');
-      await user.click(screen.getByRole('button', { name: /^importar$/i }));
+      await uploadFileAndSubmit(user);
 
       await waitFor(() => {
         expect(screen.getByText('Alunos do PrimeCoaching')).toBeInTheDocument();
@@ -239,7 +274,7 @@ describe('Students', () => {
       expect(screen.getByText('Duplicado')).toBeInTheDocument();
     });
 
-    it('sends correct credentials to the API', async () => {
+    it('sends FormData with the file to the API', async () => {
       const user = userEvent.setup();
       api.post.mockImplementation((url) => {
         if (url === '/trainer/import/primecoaching/preview') {
@@ -254,25 +289,24 @@ describe('Students', () => {
         expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      await user.type(screen.getByLabelText('E-mail do PrimeCoaching'), 'trainer@pc.com');
-      await user.type(screen.getByLabelText('Senha do PrimeCoaching'), 'mypassword');
-      await user.click(screen.getByRole('button', { name: /^importar$/i }));
+      await uploadFileAndSubmit(user);
 
-      expect(api.post).toHaveBeenCalledWith('/trainer/import/primecoaching/preview', {
-        email: 'trainer@pc.com',
-        password: 'mypassword',
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith(
+          '/trainer/import/primecoaching/preview',
+          expect.any(FormData),
+          expect.objectContaining({ headers: { 'Content-Type': 'multipart/form-data' } })
+        );
       });
     });
 
-    it('shows error toast on auth failure', async () => {
+    it('shows error toast on format changed error', async () => {
       const user = userEvent.setup();
-      const authError = new Error('Auth failed');
-      authError.userMessage = 'Credenciais incorretas. Verifique seu e-mail e senha do PrimeCoaching.';
+      const formatError = new Error('Format changed');
+      formatError.userMessage = 'O arquivo não corresponde ao formato esperado do PrimeCoaching. Verifique se você exportou a planilha correta.';
       api.post.mockImplementation((url) => {
         if (url === '/trainer/import/primecoaching/preview') {
-          return Promise.reject(authError);
+          return Promise.reject(formatError);
         }
         return Promise.resolve({ data: {} });
       });
@@ -283,27 +317,23 @@ describe('Students', () => {
         expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      await user.type(screen.getByLabelText('E-mail do PrimeCoaching'), 'wrong@email.com');
-      await user.type(screen.getByLabelText('Senha do PrimeCoaching'), 'wrongpass');
-      await user.click(screen.getByRole('button', { name: /^importar$/i }));
+      await uploadFileAndSubmit(user);
 
       await waitFor(() => {
         expect(showToast).toHaveBeenCalledWith(
-          'Credenciais incorretas. Verifique seu e-mail e senha do PrimeCoaching.',
+          'O arquivo não corresponde ao formato esperado do PrimeCoaching. Verifique se você exportou a planilha correta.',
           'error'
         );
       });
     });
 
-    it('shows error toast on service unavailable', async () => {
+    it('shows error toast on generic upload error', async () => {
       const user = userEvent.setup();
-      const serviceError = new Error('Service unavailable');
-      serviceError.userMessage = 'Não foi possível conectar ao PrimeCoaching. Tente novamente em alguns minutos.';
+      const genericError = new Error('Bad request');
+      genericError.userMessage = 'Dados inválidos. Verifique os campos e tente novamente.';
       api.post.mockImplementation((url) => {
         if (url === '/trainer/import/primecoaching/preview') {
-          return Promise.reject(serviceError);
+          return Promise.reject(genericError);
         }
         return Promise.resolve({ data: {} });
       });
@@ -314,15 +344,11 @@ describe('Students', () => {
         expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      await user.type(screen.getByLabelText('E-mail do PrimeCoaching'), 'test@example.com');
-      await user.type(screen.getByLabelText('Senha do PrimeCoaching'), 'password');
-      await user.click(screen.getByRole('button', { name: /^importar$/i }));
+      await uploadFileAndSubmit(user);
 
       await waitFor(() => {
         expect(showToast).toHaveBeenCalledWith(
-          'Não foi possível conectar ao PrimeCoaching. Tente novamente em alguns minutos.',
+          'Dados inválidos. Verifique os campos e tente novamente.',
           'error'
         );
       });
@@ -343,11 +369,7 @@ describe('Students', () => {
         expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      await user.type(screen.getByLabelText('E-mail do PrimeCoaching'), 'test@example.com');
-      await user.type(screen.getByLabelText('Senha do PrimeCoaching'), 'password123');
-      await user.click(screen.getByRole('button', { name: /^importar$/i }));
+      await uploadFileAndSubmit(user);
 
       await waitFor(() => {
         expect(screen.getByText('Alunos do PrimeCoaching')).toBeInTheDocument();
@@ -375,11 +397,7 @@ describe('Students', () => {
       renderWithRouter(<Students />);
       await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      await user.type(screen.getByLabelText('E-mail do PrimeCoaching'), 'test@example.com');
-      await user.type(screen.getByLabelText('Senha do PrimeCoaching'), 'password123');
-      await user.click(screen.getByRole('button', { name: /^importar$/i }));
+      await uploadFileAndSubmit(user);
 
       await waitFor(() => expect(screen.getByText('Alunos do PrimeCoaching')).toBeInTheDocument());
 
@@ -399,11 +417,7 @@ describe('Students', () => {
       renderWithRouter(<Students />);
       await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      await user.type(screen.getByLabelText('E-mail do PrimeCoaching'), 'test@example.com');
-      await user.type(screen.getByLabelText('Senha do PrimeCoaching'), 'password123');
-      await user.click(screen.getByRole('button', { name: /^importar$/i }));
+      await uploadFileAndSubmit(user);
 
       await waitFor(() => expect(screen.getByText('Alunos do PrimeCoaching')).toBeInTheDocument());
 
@@ -425,11 +439,7 @@ describe('Students', () => {
       renderWithRouter(<Students />);
       await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      await user.type(screen.getByLabelText('E-mail do PrimeCoaching'), 'test@example.com');
-      await user.type(screen.getByLabelText('Senha do PrimeCoaching'), 'password123');
-      await user.click(screen.getByRole('button', { name: /^importar$/i }));
+      await uploadFileAndSubmit(user);
 
       await waitFor(() => expect(screen.getByText('Alunos do PrimeCoaching')).toBeInTheDocument());
 
@@ -454,11 +464,7 @@ describe('Students', () => {
       renderWithRouter(<Students />);
       await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      await user.type(screen.getByLabelText('E-mail do PrimeCoaching'), 'test@example.com');
-      await user.type(screen.getByLabelText('Senha do PrimeCoaching'), 'password123');
-      await user.click(screen.getByRole('button', { name: /^importar$/i }));
+      await uploadFileAndSubmit(user);
 
       await waitFor(() => expect(screen.getByText('Alunos do PrimeCoaching')).toBeInTheDocument());
 
@@ -469,13 +475,13 @@ describe('Students', () => {
       expect(screen.queryByText('Alunos do PrimeCoaching')).not.toBeInTheDocument();
     });
 
-    it('stays on credentials step after error and re-enables form', async () => {
+    it('stays on upload step after error and re-enables form', async () => {
       const user = userEvent.setup();
-      const authError = new Error('Auth failed');
-      authError.userMessage = 'Credenciais incorretas.';
+      const uploadError = new Error('Format changed');
+      uploadError.userMessage = 'O arquivo não corresponde ao formato esperado do PrimeCoaching.';
       api.post.mockImplementation((url) => {
         if (url === '/trainer/import/primecoaching/preview') {
-          return Promise.reject(authError);
+          return Promise.reject(uploadError);
         }
         return Promise.resolve({ data: {} });
       });
@@ -486,19 +492,14 @@ describe('Students', () => {
         expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /importar alunos/i }));
-      await user.click(screen.getByRole('button', { name: /primecoaching/i }));
-      await user.type(screen.getByLabelText('E-mail do PrimeCoaching'), 'wrong@email.com');
-      await user.type(screen.getByLabelText('Senha do PrimeCoaching'), 'wrongpass');
-      await user.click(screen.getByRole('button', { name: /^importar$/i }));
+      await uploadFileAndSubmit(user);
 
       await waitFor(() => {
         expect(showToast).toHaveBeenCalled();
       });
 
-      expect(screen.getByText('Importar do PrimeCoaching')).toBeInTheDocument();
-      expect(screen.getByLabelText('E-mail do PrimeCoaching')).not.toBeDisabled();
-      expect(screen.getByLabelText('Senha do PrimeCoaching')).not.toBeDisabled();
+      expect(screen.getByRole('heading', { name: 'Importar do PrimeCoaching' })).toBeInTheDocument();
+      expect(screen.getByLabelText(/arquivo xlsx do primecoaching/i)).not.toBeDisabled();
     });
   });
 });

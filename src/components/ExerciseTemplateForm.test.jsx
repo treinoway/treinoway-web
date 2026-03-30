@@ -140,6 +140,46 @@ describe('ExerciseTemplateForm', () => {
     });
   });
 
+  describe('conditional rendering based on type', () => {
+    it('hides repetitions fields when type is cardio', async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.selectOptions(screen.getByLabelText(/tipo/i), 'cardio');
+
+      expect(screen.queryByLabelText(/repetições mínimas/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/repetições máximas/i)).not.toBeInTheDocument();
+    });
+
+    it('shows repetitions fields when type is strength', async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+
+      expect(screen.getByLabelText(/repetições mínimas/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/repetições máximas/i)).toBeInTheDocument();
+    });
+
+    it('hides duration field when type is strength', async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+
+      expect(screen.queryByLabelText(/duração em segundos/i)).not.toBeInTheDocument();
+    });
+
+    it('shows duration field when type is cardio', async () => {
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.selectOptions(screen.getByLabelText(/tipo/i), 'cardio');
+
+      expect(screen.getByLabelText(/duração em segundos/i)).toBeInTheDocument();
+    });
+  });
+
   it('shows YouTube embed preview when a valid YouTube URL is entered', async () => {
     const user = userEvent.setup();
     renderForm();

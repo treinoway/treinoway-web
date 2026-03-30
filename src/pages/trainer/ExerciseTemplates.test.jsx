@@ -71,6 +71,24 @@ describe('ExerciseTemplates', () => {
     });
   });
 
+  it('shows CTA button in empty state that opens the create form', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [] });
+
+    renderWithRouter(<ExerciseTemplates />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Nenhum exercício ainda')).toBeInTheDocument();
+    });
+
+    const ctaButton = screen.getByRole('button', { name: /novo exercício/i });
+    expect(ctaButton).toBeInTheDocument();
+
+    await user.click(ctaButton);
+
+    expect(screen.getByLabelText('Nome')).toBeInTheDocument();
+  });
+
   it('shows loading before GET resolves', async () => {
     let resolveTemplates;
     const templatesPromise = new Promise((resolve) => {

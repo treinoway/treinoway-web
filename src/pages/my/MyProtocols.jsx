@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ClipboardList } from 'lucide-react';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
@@ -46,6 +46,9 @@ const MyProtocols = () => {
 
       {protocols.length === 0 ? (
         <div className="empty-state">
+          <div className="empty-state-icon">
+            <ClipboardList size={48} strokeWidth={1.2} />
+          </div>
           <p className="empty-state-title">Nenhuma rotina atribuída ainda</p>
           <p>Seu treinador irá atribuir rotinas de treino a você</p>
         </div>

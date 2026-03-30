@@ -21,6 +21,7 @@ vi.mock('../constants/exerciseTypes', () => ({
   EXERCISE_TYPE_OPTIONS: [
     { value: 'strength', label: 'Força' },
     { value: 'cardio', label: 'Cardio' },
+    { value: 'mobility', label: 'Mobilidade' },
   ],
 }));
 
@@ -147,7 +148,7 @@ describe('ExerciseForm', () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
-    await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+    await user.selectOptions(screen.getByLabelText(/tipo/i), 'mobility');
     await user.type(screen.getByLabelText(/séries/i), '4');
     await user.type(screen.getByLabelText(/repetições mínimas/i), '8');
     await user.type(screen.getByLabelText(/repetições máximas/i), '10');
@@ -162,7 +163,7 @@ describe('ExerciseForm', () => {
         '/trainer/trainings/training-1/exercises',
         expect.objectContaining({
           name: 'Supino Reto',
-          type: 'strength',
+          type: 'mobility',
           sets: 4,
           repetitions: { min: 8, max: 10 },
           duration: 60,
@@ -171,6 +172,38 @@ describe('ExerciseForm', () => {
           suggestedLoad: 80,
         })
       );
+    });
+  });
+
+  describe('conditional field visibility by type', () => {
+    it('hides Duração when type is strength', async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+      expect(screen.queryByLabelText(/duração em segundos/i)).not.toBeInTheDocument();
+      expect(screen.getByLabelText(/repetições mínimas/i)).toBeInTheDocument();
+    });
+
+    it('hides Repetições when type is cardio', async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await user.selectOptions(screen.getByLabelText(/tipo/i), 'cardio');
+      expect(screen.queryByLabelText(/repetições mínimas/i)).not.toBeInTheDocument();
+      expect(screen.getByLabelText(/duração em segundos/i)).toBeInTheDocument();
+    });
+
+    it('shows both Repetições and Duração when type is mobility', async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await user.selectOptions(screen.getByLabelText(/tipo/i), 'mobility');
+      expect(screen.getByLabelText(/repetições mínimas/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/duração em segundos/i)).toBeInTheDocument();
+    });
+
+    it('shows both Repetições and Duração when no type selected', () => {
+      renderForm();
+      expect(screen.getByLabelText(/repetições mínimas/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/duração em segundos/i)).toBeInTheDocument();
     });
   });
 

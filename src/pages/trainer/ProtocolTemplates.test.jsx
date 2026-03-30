@@ -136,6 +136,24 @@ describe('ProtocolTemplates', () => {
     expect(screen.getByText(/o que é um modelo\?/i)).toBeInTheDocument();
   });
 
+  it('shows CTA button in empty state that opens the create form', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [] });
+
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Nenhum modelo de rotina ainda')).toBeInTheDocument();
+    });
+
+    const ctaButton = screen.getByRole('button', { name: /nova rotina/i });
+    expect(ctaButton).toBeInTheDocument();
+
+    await user.click(ctaButton);
+
+    expect(screen.getByText('Criar nova rotina')).toBeInTheDocument();
+  });
+
   it('shows loading and avoids info banner flash before GET resolves', async () => {
     let resolveTemplates;
     const templatesPromise = new Promise((resolve) => {
@@ -331,7 +349,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /voltar/i }));
 
     expect(screen.queryByTestId('exercise-template-form')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Nome', { selector: '#tt-modal-name' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^nome/i, { selector: '#tt-modal-name' })).toBeInTheDocument();
   });
 
   it('returns to training template form when cancel is clicked in exercise form', async () => {
@@ -346,7 +364,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /cancelar exercício/i }));
 
     expect(screen.queryByTestId('exercise-template-form')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Nome', { selector: '#tt-modal-name' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^nome/i, { selector: '#tt-modal-name' })).toBeInTheDocument();
   });
 
   it('training template form data persists after exercise creation round-trip', async () => {
@@ -357,7 +375,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
-    await user.type(screen.getByLabelText('Nome', { selector: '#tt-modal-name' }), 'Meu Treino');
+    await user.type(screen.getByLabelText(/^nome/i, { selector: '#tt-modal-name' }), 'Meu Treino');
 
     await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
     await user.click(screen.getByRole('button', { name: /cancelar exercício/i }));
@@ -409,7 +427,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
-    await user.type(screen.getByLabelText('Nome', { selector: '#tt-modal-name' }), 'Treino Novo');
+    await user.type(screen.getByLabelText(/^nome/i, { selector: '#tt-modal-name' }), 'Treino Novo');
     await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
     await user.click(screen.getByRole('button', { name: /criar treino único/i }));
 
