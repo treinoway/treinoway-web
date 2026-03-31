@@ -24,9 +24,14 @@ vi.mock('../api/axios', () => ({
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
+vi.mock('../components/TrainerProfileSection', () => ({
+  default: () => <div data-testid="trainer-profile-section">TrainerProfileSection</div>,
+}));
+
 const mockRefreshUser = vi.fn();
 const mockUpdateUser = vi.fn();
 const mockShowToast = vi.fn();
+const mockHasRole = vi.fn(() => false);
 
 const mockUser = {
   id: 1,
@@ -42,12 +47,34 @@ const mockEmptyUser = {
   email: 'user@example.com',
 };
 
+const mockUserWithAddress = {
+  ...mockUser,
+  address: {
+    postalCode: '01310100',
+    line1: 'Rua das Flores',
+    neighborhood: 'Centro',
+    city: 'São Paulo',
+    stateCode: 'SP',
+  },
+};
+
+const mockUserWithSocials = {
+  ...mockUser,
+  socials: {
+    instagram: '@joao',
+    whatsapp: '+5511999999999',
+    linkedin: 'linkedin.com/in/joao',
+  },
+};
+
 describe('Profile', () => {
   beforeEach(() => {
     mockRefreshUser.mockClear();
     mockRefreshUser.mockResolvedValue(null);
     mockUpdateUser.mockReset();
     mockShowToast.mockReset();
+    mockHasRole.mockReset();
+    mockHasRole.mockReturnValue(false);
     vi.mocked(api.patch).mockClear();
     vi.mocked(api.get).mockClear();
 
@@ -56,6 +83,7 @@ describe('Profile', () => {
       user: mockUser,
       updateUser: mockUpdateUser,
       refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
     });
   });
 
@@ -102,23 +130,24 @@ describe('Profile', () => {
     expect(lastNameInput).toHaveValue('Silva');
   });
 
-  it('calls profile update API with only filled fields', async () => {
+  it('calls profile update API with only changed fields', async () => {
     const user = userEvent.setup();
     api.patch.mockResolvedValue({ data: mockUser });
     vi.mocked(useAuth).mockReturnValue({
       user: mockEmptyUser,
       updateUser: mockUpdateUser,
       refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
     });
 
     renderWithRouter(<Profile />);
 
     await user.click(screen.getByRole('button', { name: /editar/i }));
-    
+
     const inputs = screen.getAllByRole('textbox');
     const firstNameInput = inputs[0];
     await user.type(firstNameInput, 'Maria');
-    
+
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -135,16 +164,17 @@ describe('Profile', () => {
       user: mockEmptyUser,
       updateUser: mockUpdateUser,
       refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
     });
 
     renderWithRouter(<Profile />);
 
     await user.click(screen.getByRole('button', { name: /editar/i }));
-    
+
     const inputs = screen.getAllByRole('textbox');
     const firstNameInput = inputs[0];
     await user.type(firstNameInput, 'João');
-    
+
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -163,16 +193,17 @@ describe('Profile', () => {
       user: mockEmptyUser,
       updateUser: mockUpdateUser,
       refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
     });
 
     renderWithRouter(<Profile />);
 
     await user.click(screen.getByRole('button', { name: /editar/i }));
-    
+
     const inputs = screen.getAllByRole('textbox');
     const firstNameInput = inputs[0];
     await user.type(firstNameInput, 'João');
-    
+
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -189,6 +220,7 @@ describe('Profile', () => {
       user: mockEmptyUser,
       updateUser: mockUpdateUser,
       refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
     });
 
     renderWithRouter(<Profile />);
@@ -212,16 +244,17 @@ describe('Profile', () => {
       user: mockEmptyUser,
       updateUser: mockUpdateUser,
       refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
     });
 
     renderWithRouter(<Profile />);
 
     await user.click(screen.getByRole('button', { name: /editar/i }));
-    
+
     const inputs = screen.getAllByRole('textbox');
     const firstNameInput = inputs[0];
     await user.type(firstNameInput, '  João  ');
-    
+
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -238,25 +271,26 @@ describe('Profile', () => {
       user: mockEmptyUser,
       updateUser: mockUpdateUser,
       refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
     });
 
     renderWithRouter(<Profile />);
 
     await user.click(screen.getByRole('button', { name: /editar/i }));
-    
+
     const inputs = screen.getAllByRole('textbox');
     const firstNameInput = inputs[0];
     const genderSelect = screen.getByRole('combobox');
-    
+
     await user.type(firstNameInput, 'João');
     await user.selectOptions(genderSelect, 'male');
-    
+
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
       expect(api.patch).toHaveBeenCalledTimes(1);
       const payload = vi.mocked(api.patch).mock.calls[0][1];
-      
+
       expect(payload).toEqual({
         firstName: 'João',
         gender: 'male',
@@ -309,6 +343,7 @@ describe('Profile', () => {
       user: mockEmptyUser,
       updateUser: mockUpdateUser,
       refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
     });
 
     renderWithRouter(<Profile />);
@@ -326,25 +361,349 @@ describe('Profile', () => {
     expect(screen.queryByText('JS')).not.toBeInTheDocument();
   });
 
-  it('renders address section when user has address data', () => {
+  // Tweak 2: Empty fields are hidden, summary shown instead
+  it('hides empty fields in view mode and shows empty field count', () => {
     vi.mocked(useAuth).mockReturnValue({
-      user: {
-        ...mockUser,
-        address: {
-          postalCode: '01310100',
-          line1: 'Rua das Flores',
-          neighborhood: 'Centro',
-          city: 'São Paulo',
-          stateCode: 'SP',
-        },
-      },
+      user: mockEmptyUser,
       updateUser: mockUpdateUser,
       refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
+    });
+
+    renderWithRouter(<Profile />);
+
+    // Should NOT show "Não informado" for individual fields
+    expect(screen.queryByText('Não informado')).not.toBeInTheDocument();
+    // Should show empty field summaries (multiple sections)
+    const summaries = screen.getAllByText(/campos não preenchidos/);
+    expect(summaries.length).toBeGreaterThan(0);
+  });
+
+  // Tweak 10: Address section shows compact format
+  it('renders compact address when user has address data', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockUserWithAddress,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
     });
 
     renderWithRouter(<Profile />);
 
     expect(screen.getByText(/endereço/i)).toBeInTheDocument();
-    expect(screen.getByText('01310100')).toBeInTheDocument();
+    // Compact format: "Rua das Flores" on line 1
+    expect(screen.getByText('Rua das Flores')).toBeInTheDocument();
+    // Line 2: "Centro - São Paulo/SP - 01310100"
+    expect(screen.getByText('Centro - São Paulo/SP - 01310100')).toBeInTheDocument();
+  });
+
+  // Tweak 10: Address section shows message when empty
+  it('shows "Endereço não informado" when address is empty', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockEmptyUser,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
+    });
+
+    renderWithRouter(<Profile />);
+
+    expect(screen.getByText('Endereço não informado')).toBeInTheDocument();
+  });
+
+  // Step 1: Always show socials section
+  it('renders socials section even when user has no socials data', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockEmptyUser,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
+    });
+
+    renderWithRouter(<Profile />);
+
+    expect(screen.getByText(/redes sociais/i)).toBeInTheDocument();
+  });
+
+  // Step 2: Cancel button
+  it('shows Cancel button in edit mode', async () => {
+    const user = userEvent.setup();
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    expect(screen.getByRole('button', { name: /cancelar/i })).toBeInTheDocument();
+  });
+
+  it('cancel restores original data and exits edit mode', async () => {
+    const user = userEvent.setup();
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    const inputs = screen.getAllByRole('textbox');
+    const firstNameInput = inputs[0];
+    await user.clear(firstNameInput);
+    await user.type(firstNameInput, 'NomeAlterado');
+
+    await user.click(screen.getByRole('button', { name: /cancelar/i }));
+
+    // Should be back in view mode with original data
+    expect(screen.getByRole('button', { name: /editar/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^salvar$/i })).not.toBeInTheDocument();
+    // Original name should be displayed (not "NomeAlterado")
+    expect(screen.queryByText('NomeAlterado')).not.toBeInTheDocument();
+    expect(screen.getAllByText(/João/).length).toBeGreaterThan(0);
+  });
+
+  // Step 2: Disabled inputs during loading
+  it('disables form inputs during loading', async () => {
+    const user = userEvent.setup();
+    let resolveUpdate;
+    api.patch.mockReturnValue(new Promise((resolve) => { resolveUpdate = resolve; }));
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    const inputs = screen.getAllByRole('textbox');
+    await user.type(inputs[0], 'Test');
+
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    // Save button should show loading state and be disabled
+    expect(screen.getByRole('button', { name: /salvando/i })).toBeDisabled();
+    // Cancel should also be disabled
+    expect(screen.getByRole('button', { name: /cancelar/i })).toBeDisabled();
+
+    resolveUpdate({ data: mockUser });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /editar/i })).toBeInTheDocument();
+    });
+  });
+
+  // Step 5: CEP inline error
+  it('shows inline error when CEP lookup fails', async () => {
+    const user = userEvent.setup();
+    api.get.mockRejectedValue({
+      userMessage: 'CEP não encontrado.',
+      response: { status: 404 },
+    });
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+    await user.type(screen.getByPlaceholderText('00000-000'), '99999999');
+
+    await waitFor(() => {
+      expect(screen.getByText('CEP não encontrado.')).toBeInTheDocument();
+    });
+  });
+
+  it('clears CEP error when user types new value', async () => {
+    const user = userEvent.setup();
+    api.get.mockRejectedValueOnce({
+      userMessage: 'CEP não encontrado.',
+      response: { status: 404 },
+    });
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+    const cepInput = screen.getByPlaceholderText('00000-000');
+    await user.type(cepInput, '99999999');
+
+    await waitFor(() => {
+      expect(screen.getByText('CEP não encontrado.')).toBeInTheDocument();
+    });
+
+    await user.type(cepInput, '0');
+
+    expect(screen.queryByText('CEP não encontrado.')).not.toBeInTheDocument();
+  });
+
+  // Step 4: No separate Estado field in edit mode
+  it('does not show separate Estado field in edit mode', async () => {
+    const user = userEvent.setup();
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    const labels = screen.getAllByText(/^UF$/);
+    expect(labels.length).toBe(1);
+    expect(screen.queryByLabelText('Estado')).not.toBeInTheDocument();
+  });
+
+  // Step 7: TrainerProfileSection integration
+  it('renders TrainerProfileSection when user is a trainer', () => {
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+
+    renderWithRouter(<Profile />);
+
+    expect(screen.getByTestId('trainer-profile-section')).toBeInTheDocument();
+  });
+
+  it('does not render TrainerProfileSection when user is not a trainer', () => {
+    mockHasRole.mockReturnValue(false);
+
+    renderWithRouter(<Profile />);
+
+    expect(screen.queryByTestId('trainer-profile-section')).not.toBeInTheDocument();
+  });
+
+  // Step 8: Socials section hidden for trainers
+  it('hides socials section in view mode for trainers', () => {
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockUserWithSocials,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
+    });
+
+    renderWithRouter(<Profile />);
+
+    // Should not show "Redes Sociais" section in the personal card
+    expect(screen.queryByText('Redes Sociais')).not.toBeInTheDocument();
+  });
+
+  it('shows socials section in view mode for non-trainers', () => {
+    mockHasRole.mockReturnValue(false);
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockUserWithSocials,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
+    });
+
+    renderWithRouter(<Profile />);
+
+    expect(screen.getByText('Redes Sociais')).toBeInTheDocument();
+  });
+
+  it('hides socials section in edit mode for trainers', async () => {
+    const user = userEvent.setup();
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    expect(screen.queryByText('Redes Sociais')).not.toBeInTheDocument();
+  });
+
+  // Step 6: buildPatchPayload diff - only sends changed fields
+  it('does not send unchanged fields in payload', async () => {
+    const user = userEvent.setup();
+    api.patch.mockResolvedValue({ data: mockUser });
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockUser,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
+    });
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    // Change only the lastName
+    const inputs = screen.getAllByRole('textbox');
+    const lastNameInput = inputs[1];
+    await user.clear(lastNameInput);
+    await user.type(lastNameInput, 'Santos');
+
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledTimes(1);
+      const payload = vi.mocked(api.patch).mock.calls[0][1];
+      expect(payload).toEqual({ lastName: 'Santos' });
+      // Should not include unchanged fields
+      expect(payload).not.toHaveProperty('firstName');
+      expect(payload).not.toHaveProperty('gender');
+    });
+  });
+
+  // Tweak 1: Stacked info layout in view mode
+  it('renders info items in stacked layout (label on top, value below)', () => {
+    renderWithRouter(<Profile />);
+
+    // Check that email label exists without inline suffix
+    const emailLabels = screen.getAllByText('E-mail');
+    expect(emailLabels.length).toBeGreaterThan(0);
+    // Name should be displayed as stacked (value only, no "Nome:" inline)
+    const nameElements = screen.getAllByText('João Silva');
+    expect(nameElements.length).toBeGreaterThan(0);
+  });
+
+  // Tweak 3: Larger avatar
+  it('renders avatar with larger size', () => {
+    renderWithRouter(<Profile />);
+
+    const avatar = screen.getByText('JS').closest('.profile-avatar');
+    expect(avatar).toBeInTheDocument();
+  });
+
+  // Tweak 6: Section completeness indicator
+  it('shows check icon when all personal fields are filled', () => {
+    renderWithRouter(<Profile />);
+
+    expect(screen.getByLabelText('Seção completa')).toBeInTheDocument();
+  });
+
+  it('shows "Incompleto" when section has empty fields', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockEmptyUser,
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
+    });
+
+    renderWithRouter(<Profile />);
+
+    const incompleteTexts = screen.getAllByText('Incompleto');
+    expect(incompleteTexts.length).toBeGreaterThan(0);
+  });
+
+  // Tweak 2: Socials section shows filled fields only
+  it('shows only filled social fields in view mode', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        ...mockUser,
+        socials: {
+          instagram: '@joao',
+          whatsapp: '',
+          linkedin: '',
+        },
+      },
+      updateUser: mockUpdateUser,
+      refreshUser: mockRefreshUser,
+      hasRole: mockHasRole,
+    });
+
+    renderWithRouter(<Profile />);
+
+    expect(screen.getByText('@joao')).toBeInTheDocument();
+    // WhatsApp and LinkedIn should not be rendered since empty
+    expect(screen.queryByText('WhatsApp')).not.toBeInTheDocument();
+    expect(screen.queryByText('LinkedIn')).not.toBeInTheDocument();
+  });
+
+  // Tweak 5: City and UF on same grid row in edit mode
+  it('renders city and UF fields in edit mode', async () => {
+    const user = userEvent.setup();
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    expect(screen.getByPlaceholderText('SP')).toBeInTheDocument();
+    expect(screen.getByText('Cidade')).toBeInTheDocument();
+    expect(screen.getByText('UF')).toBeInTheDocument();
   });
 });

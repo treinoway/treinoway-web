@@ -1576,6 +1576,63 @@ a {
   display: inline;
 }
 
+/* Tweak 1: Stacked info layout for view mode */
+.info-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.info-stacked .info-label {
+  display: block;
+  font-size: var(--font-caption-size);
+  font-weight: var(--font-caption-weight);
+  color: var(--color-on-surface-variant);
+  margin-bottom: 0;
+  text-transform: uppercase;
+  letter-spacing: var(--font-overline-letter-spacing);
+}
+
+.info-stacked .info-value {
+  display: block;
+  font-size: var(--font-body-size);
+  color: var(--color-on-surface);
+  margin-left: 0;
+}
+
+/* Tweak 2: Empty fields summary */
+.info-empty-summary {
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+  margin-top: var(--spacing-sm);
+}
+
+/* Tweak 9: Bio block */
+.bio-block {
+  background: var(--color-surface-container);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-style: italic;
+  color: var(--color-on-surface);
+  font-size: var(--font-body-size);
+  line-height: 1.6;
+}
+
+.bio-block--placeholder {
+  font-style: italic;
+  color: var(--color-on-surface-variant);
+}
+
+/* Tweak 10: Compact address */
+.address-compact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  color: var(--color-on-surface);
+  font-size: var(--font-body-size);
+  line-height: 1.5;
+}
+
 .info-roles {
   display: inline-flex;
   gap: 0.5rem;
@@ -1958,15 +2015,11 @@ a {
    Profile Page
    ============================================ */
 .profile-section {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--color-surface-container-high);
+  margin-top: var(--spacing-lg);
 }
 
 .profile-section:first-child {
   margin-top: 0;
-  padding-top: 0;
-  border-top: none;
 }
 
 .profile-section-title {
@@ -1993,18 +2046,28 @@ a {
   border-bottom: 1px solid var(--color-outline-variant);
 }
 
+/* Tweak 3: Larger avatar */
 .profile-avatar {
-  width: 64px;
-  height: 64px;
+  --avatar-size: 80px;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
   border-radius: var(--radius-full);
   background: var(--color-primary-container);
   color: var(--color-primary);
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: var(--font-h2-size);
+  font-weight: var(--font-h2-weight);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: var(--shadow);
+}
+
+@media (min-width: 768px) {
+  .profile-avatar {
+    --avatar-size: 96px;
+    font-size: var(--font-h1-size);
+  }
 }
 
 .profile-avatar-info {
@@ -2013,10 +2076,11 @@ a {
   gap: var(--spacing-xs);
 }
 
+/* Tweak 3: Larger name */
 .profile-avatar-name {
   display: block;
-  font-size: var(--font-h3-size);
-  font-weight: var(--font-h3-weight);
+  font-size: var(--font-h2-size);
+  font-weight: var(--font-h2-weight);
   color: var(--color-on-surface);
 }
 
@@ -2024,6 +2088,83 @@ a {
   display: block;
   font-size: var(--font-body-small-size);
   color: var(--color-on-surface-variant);
+}
+
+/* Tweak 5: City + UF grid */
+.grid-city-uf {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .grid-city-uf {
+    grid-template-columns: 3fr 1fr;
+  }
+}
+
+/* Tweak 6: Section header with completeness indicator */
+.profile-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.profile-section-header .profile-section-title {
+  margin-bottom: 0;
+}
+
+.section-complete-icon {
+  color: var(--color-success);
+  flex-shrink: 0;
+}
+
+.card-header-badge {
+  margin-top: var(--spacing-xs);
+}
+
+.section-incomplete-text {
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+  flex-shrink: 0;
+}
+
+/* Tweak 7: Fade-in animation */
+.fade-in {
+  animation: fadeIn 200ms ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--spacing-sm));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Profile form sticky actions (mobile) */
+.profile-form-actions {
+  position: sticky;
+  bottom: calc(var(--spacing-md) + 72px);
+  z-index: 10;
+  background: var(--color-surface);
+  padding: var(--spacing-md) 0;
+  border-top: 1px solid var(--color-outline-variant);
+  margin-top: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .profile-form-actions {
+    position: static;
+    background: transparent;
+    padding: 0;
+    border-top: none;
+    margin-top: var(--spacing-md);
+  }
 }
 
 /* ============================================

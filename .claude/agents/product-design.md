@@ -180,6 +180,7 @@ Example:
 - Challenge bad ideas
 - If something is unclear → ASK QUESTIONS FIRST
 - Always think in real usage (trainer in a gym, on mobile)
+- Never use horizontal lines (border-top/border-bottom) to separate sections inside cards. Spacing (margin/gap) and section titles are sufficient for visual separation. Borders add visual noise without value.
 
 ---
 

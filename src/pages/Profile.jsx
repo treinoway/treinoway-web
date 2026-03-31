@@ -1,24 +1,69 @@
 import { useState, useEffect } from 'react';
+import { Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
 import DateInput from '../components/DateInput';
+import TrainerProfileSection from '../components/TrainerProfileSection';
 
 // Helper function to format date without timezone conversion
 const formatDateForDisplay = (dateString) => {
-  if (!dateString) return 'Não informado';
+  if (!dateString) return null;
   const [year, month, day] = dateString.split('T')[0].split('-');
   return `${day}/${month}/${year}`;
 };
 
+const formatGender = (gender) => {
+  if (gender === 'male') return 'Masculino';
+  if (gender === 'female') return 'Feminino';
+  if (gender === 'other') return 'Outro';
+  return null;
+};
+
+// Tweak 10: Format address compactly
+const formatCompactAddress = (address) => {
+  if (!address) return null;
+
+  const { line1, line2, neighborhood, city, stateCode, postalCode } = address;
+  const hasAny = line1 || line2 || neighborhood || city || stateCode || postalCode;
+  if (!hasAny) return null;
+
+  const parts1 = [line1, line2].filter(Boolean);
+  const line1Text = parts1.join(' - ');
+
+  const cityState = [city, stateCode].filter(Boolean).join('/');
+  const parts2 = [neighborhood, cityState, postalCode].filter(Boolean);
+  const line2Text = parts2.join(' - ');
+
+  return { line1: line1Text, line2: line2Text };
+};
+
+// Tweak 6: Count empty fields for a section
+const countEmptyFields = (fields) => {
+  return fields.filter((val) => !val).length;
+};
+
+// Tweak 6: Section header with completeness indicator
+const SectionHeader = ({ title, emptyCount }) => (
+  <div className="profile-section-header">
+    <h3 className="profile-section-title">{title}</h3>
+    {emptyCount === 0 ? (
+      <Check size={16} className="section-complete-icon" aria-label="Seção completa" />
+    ) : (
+      <span className="section-incomplete-text">Incompleto</span>
+    )}
+  </div>
+);
+
 const Profile = () => {
-  const { user, updateUser, refreshUser } = useAuth();
+  const { user, updateUser, refreshUser, hasRole } = useAuth();
   const { showToast } = useToast();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
-  
+  const [cepError, setCepError] = useState('');
+
   const emptyFormData = {
     firstName: '',
     lastName: '',
@@ -81,11 +126,12 @@ useEffect(() => {
     if (cleanCep.length !== 8) return;
 
     setLoadingCep(true);
-    
+    setCepError('');
+
     try {
       const response = await api.get(`/postal-code?code=${cleanCep}`);
       const data = response.data;
-      
+
       const newAddress = {
         line1: data.logradouro || data.street || data.line1 || '',
         line2: formData.address.line2,
@@ -97,42 +143,91 @@ useEffect(() => {
         countryCode: 'BR',
         postalCode: cleanCep,
       };
-      
+
       setFormData(prev => ({
         ...prev,
         address: newAddress,
       }));
-      
+
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      setCepError(error.userMessage || translateError(error) || 'Erro ao buscar CEP.');
     } finally {
       setLoadingCep(false);
     }
   };
 
+  const getOriginalData = () => ({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    gender: user?.gender || '',
+    birthDate: user?.birthDate?.split('T')[0] || '',
+    address: {
+      line1: user?.address?.line1 || '',
+      line2: user?.address?.line2 || '',
+      neighborhood: user?.address?.neighborhood || '',
+      city: user?.address?.city || '',
+      state: user?.address?.state || '',
+      stateCode: user?.address?.stateCode || '',
+      country: user?.address?.country || '',
+      countryCode: user?.address?.countryCode || '',
+      postalCode: user?.address?.postalCode || '',
+    },
+    socials: {
+      instagram: user?.socials?.instagram || '',
+      whatsapp: user?.socials?.whatsapp || '',
+      linkedin: user?.socials?.linkedin || '',
+    },
+  });
+
   const buildPatchPayload = () => {
     const payload = {};
-
+    const original = getOriginalData();
     const trimmed = (val) => (typeof val === 'string' ? val.trim() : val);
 
-    if (trimmed(formData.firstName)) payload.firstName = trimmed(formData.firstName);
-    if (trimmed(formData.lastName)) payload.lastName = trimmed(formData.lastName);
-    if (formData.gender) payload.gender = formData.gender;
-    if (formData.birthDate) payload.birthDate = formData.birthDate;
+    // Top-level fields: only include if changed
+    // firstName/lastName have minLength:1 on backend, so skip if empty
+    if (trimmed(formData.firstName) !== trimmed(original.firstName)) {
+      if (trimmed(formData.firstName)) payload.firstName = trimmed(formData.firstName);
+    }
+    if (trimmed(formData.lastName) !== trimmed(original.lastName)) {
+      if (trimmed(formData.lastName)) payload.lastName = trimmed(formData.lastName);
+    }
+    if (formData.gender !== original.gender && formData.gender) {
+      payload.gender = formData.gender;
+    }
+    if (formData.birthDate !== original.birthDate && formData.birthDate) {
+      payload.birthDate = formData.birthDate;
+    }
 
+    // Address: include only changed fields
     const addr = formData.address;
+    const origAddr = original.address;
     const patchAddr = {};
     for (const key of Object.keys(addr)) {
       const val = trimmed(addr[key]);
-      if (val) patchAddr[key] = val;
+      const origVal = trimmed(origAddr[key]);
+      if (val !== origVal) {
+        if (val) {
+          patchAddr[key] = val;
+        }
+        // If field had value and now empty, we omit (backend doesn't accept empty strings for address fields)
+      }
     }
     if (Object.keys(patchAddr).length > 0) payload.address = patchAddr;
 
+    // Socials: include only changed fields
     const soc = formData.socials;
+    const origSoc = original.socials;
     const patchSoc = {};
     for (const key of Object.keys(soc)) {
       const val = trimmed(soc[key]);
-      if (val) patchSoc[key] = val;
+      const origVal = trimmed(origSoc[key]);
+      if (val !== origVal) {
+        if (val) {
+          patchSoc[key] = val;
+        }
+        // If field had value and now empty, omit (backend doesn't support nullable on /me/profile socials)
+      }
     }
     if (Object.keys(patchSoc).length > 0) payload.socials = patchSoc;
 
@@ -161,9 +256,61 @@ useEffect(() => {
     }
   };
 
+  const handleCancel = () => {
+    if (user) {
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        gender: user.gender || '',
+        birthDate: user.birthDate?.split('T')[0] || '',
+        address: {
+          line1: user.address?.line1 || '',
+          line2: user.address?.line2 || '',
+          neighborhood: user.address?.neighborhood || '',
+          city: user.address?.city || '',
+          state: user.address?.state || '',
+          stateCode: user.address?.stateCode || '',
+          country: user.address?.country || '',
+          countryCode: user.address?.countryCode || '',
+          postalCode: user.address?.postalCode || '',
+        },
+        socials: {
+          instagram: user.socials?.instagram || '',
+          whatsapp: user.socials?.whatsapp || '',
+          linkedin: user.socials?.linkedin || '',
+        },
+      });
+    }
+    setEditing(false);
+  };
+
   const avatarInitials = user?.firstName
     ? `${user.firstName[0]}${user.lastName?.[0] || ''}`.toUpperCase()
     : (user?.email?.[0] || '?').toUpperCase();
+
+  // Tweak 2 & 6: Compute empty field counts for each section
+  const fullName = user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : null;
+  const genderDisplay = formatGender(user?.gender);
+  const birthDateDisplay = formatDateForDisplay(user?.birthDate);
+
+  const personalFields = [fullName, genderDisplay, birthDateDisplay];
+  const personalEmptyCount = countEmptyFields(personalFields);
+
+  const addressData = formatCompactAddress(user?.address);
+  const addressFields = [
+    user?.address?.line1,
+    user?.address?.neighborhood,
+    user?.address?.city,
+    user?.address?.postalCode,
+  ];
+  const addressEmptyCount = addressData ? countEmptyFields(addressFields) : addressFields.length;
+
+  const socialsFields = [
+    user?.socials?.instagram,
+    user?.socials?.whatsapp,
+    user?.socials?.linkedin,
+  ];
+  const socialsEmptyCount = countEmptyFields(socialsFields);
 
   return (
     <div>
@@ -180,10 +327,10 @@ useEffect(() => {
         </div>
 
         {editing ? (
-          <form onSubmit={handleProfileUpdate} className="form">
+          <form onSubmit={handleProfileUpdate} className="form fade-in">
             <div className="profile-section">
               <h3 className="profile-section-title">Dados Pessoais</h3>
-              
+
               <div className="grid-responsive-2col">
                 <div>
                   <label className="form-label">Nome</label>
@@ -192,6 +339,7 @@ useEffect(() => {
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     className="form-input"
+                    disabled={loading}
                   />
                 </div>
 
@@ -202,6 +350,7 @@ useEffect(() => {
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     className="form-input"
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -213,6 +362,7 @@ useEffect(() => {
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                     className="form-select"
+                    disabled={loading}
                   >
                     <option value="">Selecione...</option>
                     <option value="male">Masculino</option>
@@ -227,6 +377,7 @@ useEffect(() => {
                     value={formData.birthDate}
                     onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                     className="form-input"
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -234,7 +385,7 @@ useEffect(() => {
 
             <div className="profile-section">
               <h3 className="profile-section-title">Endereço</h3>
-              
+
               <div>
                 <label className="form-label">CEP</label>
                 <input
@@ -242,6 +393,7 @@ useEffect(() => {
                   value={formData.address.postalCode}
                   onChange={(e) => {
                     const value = e.target.value;
+                    setCepError('');
                     setFormData(prev => ({
                       ...prev,
                       address: { ...prev.address, postalCode: value }
@@ -250,11 +402,12 @@ useEffect(() => {
                       handleCepLookup(value);
                     }
                   }}
-                  className="form-input"
+                  className={`form-input${cepError ? ' form-input--error' : ''}`}
                   placeholder="00000-000"
-                  disabled={loadingCep}
+                  disabled={loading || loadingCep}
                 />
                 {loadingCep && <p className="text-sm text-muted">Buscando CEP...</p>}
+                {cepError && <span className="form-error">{cepError}</span>}
               </div>
 
               <div>
@@ -267,6 +420,7 @@ useEffect(() => {
                     address: { ...prev.address, line1: e.target.value }
                   }))}
                   className="form-input"
+                  disabled={loading}
                 />
               </div>
 
@@ -280,23 +434,26 @@ useEffect(() => {
                     address: { ...prev.address, line2: e.target.value }
                   }))}
                   className="form-input"
+                  disabled={loading}
                 />
               </div>
 
-              <div className="grid-responsive-2col">
-                <div>
-                  <label className="form-label">Bairro</label>
-                  <input
-                    type="text"
-                    value={formData.address.neighborhood}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      address: { ...prev.address, neighborhood: e.target.value }
-                    }))}
-                    className="form-input"
-                  />
-                </div>
+              <div>
+                <label className="form-label">Bairro</label>
+                <input
+                  type="text"
+                  value={formData.address.neighborhood}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    address: { ...prev.address, neighborhood: e.target.value }
+                  }))}
+                  className="form-input"
+                  disabled={loading}
+                />
+              </div>
 
+              {/* Tweak 5: City + UF on same line */}
+              <div className="grid-city-uf">
                 <div>
                   <label className="form-label">Cidade</label>
                   <input
@@ -307,21 +464,7 @@ useEffect(() => {
                       address: { ...prev.address, city: e.target.value }
                     }))}
                     className="form-input"
-                  />
-                </div>
-              </div>
-
-              <div className="grid-responsive-2col">
-                <div>
-                  <label className="form-label">Estado</label>
-                  <input
-                    type="text"
-                    value={formData.address.state}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      address: { ...prev.address, state: e.target.value }
-                    }))}
-                    className="form-input"
+                    disabled={loading}
                   />
                 </div>
 
@@ -336,65 +479,75 @@ useEffect(() => {
                     }))}
                     className="form-input"
                     maxLength="2"
+                    disabled={loading}
+                    placeholder="SP"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="profile-section">
-              <h3 className="profile-section-title">Redes Sociais</h3>
-              
-              <div>
-                <label className="form-label">Instagram</label>
-                <input
-                  type="text"
-                  value={formData.socials.instagram}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    socials: { ...prev.socials, instagram: e.target.value }
-                  }))}
-                  className="form-input"
-                  placeholder="@usuario"
-                />
-              </div>
+            {!hasRole('TRAINER') && (
+              <div className="profile-section">
+                <h3 className="profile-section-title">Redes Sociais</h3>
 
-              <div>
-                <label className="form-label">WhatsApp</label>
-                <input
-                  type="text"
-                  value={formData.socials.whatsapp}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    socials: { ...prev.socials, whatsapp: e.target.value }
-                  }))}
-                  className="form-input"
-                  placeholder="+55 11 99999-9999"
-                />
-              </div>
+                <div>
+                  <label className="form-label">Instagram</label>
+                  <input
+                    type="text"
+                    value={formData.socials.instagram}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      socials: { ...prev.socials, instagram: e.target.value }
+                    }))}
+                    className="form-input"
+                    placeholder="@usuario"
+                    disabled={loading}
+                  />
+                </div>
 
-              <div>
-                <label className="form-label">LinkedIn</label>
-                <input
-                  type="text"
-                  value={formData.socials.linkedin}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    socials: { ...prev.socials, linkedin: e.target.value }
-                  }))}
-                  className="form-input"
-                  placeholder="https://linkedin.com/in/usuario"
-                />
-              </div>
-            </div>
+                <div>
+                  <label className="form-label">WhatsApp</label>
+                  <input
+                    type="text"
+                    value={formData.socials.whatsapp}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      socials: { ...prev.socials, whatsapp: e.target.value }
+                    }))}
+                    className="form-input"
+                    placeholder="+55 11 99999-9999"
+                    disabled={loading}
+                  />
+                </div>
 
-            <div>
+                <div>
+                  <label className="form-label">LinkedIn</label>
+                  <input
+                    type="text"
+                    value={formData.socials.linkedin}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      socials: { ...prev.socials, linkedin: e.target.value }
+                    }))}
+                    className="form-input"
+                    placeholder="https://linkedin.com/in/usuario"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="btn-group profile-form-actions">
               <button type="submit" disabled={loading} className="btn-primary">
                 {loading ? 'Salvando...' : 'Salvar'}
+              </button>
+              <button type="button" onClick={handleCancel} disabled={loading} className="btn-secondary">
+                Cancelar
               </button>
             </div>
           </form>
         ) : (
-          <div className="profile-display">
+          <div className="profile-display fade-in">
             <div className="profile-avatar-row">
               <div className="profile-avatar">
                 {avatarInitials}
@@ -406,81 +559,96 @@ useEffect(() => {
             </div>
 
             <div className="profile-section">
-              <h3 className="profile-section-title">Dados Pessoais</h3>
-              <div className="info-list">
+              <SectionHeader title="Dados Pessoais" emptyCount={personalEmptyCount} />
+              <div className="info-stacked">
                 <div>
-                  <span className="info-label info-inline">E-mail:</span>
+                  <span className="info-label">E-mail</span>
                   <span className="info-value">{user?.email}</span>
                 </div>
-                <div>
-                  <span className="info-label info-inline">Nome:</span>
-                  <span className="info-value">{user?.firstName || 'Não informado'} {user?.lastName || ''}</span>
-                </div>
-                <div>
-                  <span className="info-label info-inline">Gênero:</span>
-                  <span className="info-value">
-                    {user?.gender === 'male' ? 'Masculino' : user?.gender === 'female' ? 'Feminino' : user?.gender === 'other' ? 'Outro' : 'Não informado'}
-                  </span>
-                </div>
-                <div>
-                  <span className="info-label info-inline">Data de Nascimento:</span>
-                  <span className="info-value">{formatDateForDisplay(user?.birthDate)}</span>
-                </div>
+                {fullName && (
+                  <div>
+                    <span className="info-label">Nome</span>
+                    <span className="info-value">{fullName}</span>
+                  </div>
+                )}
+                {genderDisplay && (
+                  <div>
+                    <span className="info-label">Gênero</span>
+                    <span className="info-value">{genderDisplay}</span>
+                  </div>
+                )}
+                {birthDateDisplay && (
+                  <div>
+                    <span className="info-label">Data de Nascimento</span>
+                    <span className="info-value">{birthDateDisplay}</span>
+                  </div>
+                )}
               </div>
+              {personalEmptyCount > 0 && (
+                <p className="info-empty-summary">
+                  {personalEmptyCount} {personalEmptyCount === 1 ? 'campo não preenchido' : 'campos não preenchidos'}
+                </p>
+              )}
             </div>
 
-            {user?.address && (
-              <div className="profile-section">
-                <h3 className="profile-section-title">Endereço</h3>
-                <div className="info-list">
-                  <div>
-                    <span className="info-label info-inline">CEP:</span>
-                    <span className="info-value">{user.address.postalCode || 'Não informado'}</span>
-                  </div>
-                  <div>
-                    <span className="info-label info-inline">Logradouro:</span>
-                    <span className="info-value">{user.address.line1 || 'Não informado'}</span>
-                  </div>
-                  {user.address.line2 && (
-                    <div>
-                      <span className="info-label info-inline">Complemento:</span>
-                      <span className="info-value">{user.address.line2}</span>
-                    </div>
-                  )}
-                  <div>
-                    <span className="info-label info-inline">Bairro:</span>
-                    <span className="info-value">{user.address.neighborhood || 'Não informado'}</span>
-                  </div>
-                  <div>
-                    <span className="info-label info-inline">Cidade:</span>
-                    <span className="info-value">{user.address.city || 'Não informado'} - {user.address.stateCode || ''}</span>
-                  </div>
+            <div className="profile-section">
+              <SectionHeader title="Endereço" emptyCount={addressEmptyCount} />
+              {addressData ? (
+                <div className="address-compact">
+                  {addressData.line1 && <span>{addressData.line1}</span>}
+                  {addressData.line2 && <span>{addressData.line2}</span>}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-muted">Endereço não informado</p>
+              )}
+              {addressData && addressEmptyCount > 0 && (
+                <p className="info-empty-summary">
+                  {addressEmptyCount} {addressEmptyCount === 1 ? 'campo não preenchido' : 'campos não preenchidos'}
+                </p>
+              )}
+            </div>
 
-            {user?.socials && (
+            {!hasRole('TRAINER') && (
               <div className="profile-section">
-                <h3 className="profile-section-title">Redes Sociais</h3>
-                <div className="info-list">
-                  <div>
-                    <span className="info-label info-inline">Instagram:</span>
-                    <span className="info-value">{user.socials.instagram || 'Não informado'}</span>
+                <SectionHeader title="Redes Sociais" emptyCount={socialsEmptyCount} />
+                {socialsEmptyCount === socialsFields.length ? (
+                  <p className="info-empty-summary">
+                    {socialsEmptyCount} campos não preenchidos
+                  </p>
+                ) : (
+                  <div className="info-stacked">
+                    {user?.socials?.instagram && (
+                      <div>
+                        <span className="info-label">Instagram</span>
+                        <span className="info-value">{user.socials.instagram}</span>
+                      </div>
+                    )}
+                    {user?.socials?.whatsapp && (
+                      <div>
+                        <span className="info-label">WhatsApp</span>
+                        <span className="info-value">{user.socials.whatsapp}</span>
+                      </div>
+                    )}
+                    {user?.socials?.linkedin && (
+                      <div>
+                        <span className="info-label">LinkedIn</span>
+                        <span className="info-value">{user.socials.linkedin}</span>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <span className="info-label info-inline">WhatsApp:</span>
-                    <span className="info-value">{user.socials.whatsapp || 'Não informado'}</span>
-                  </div>
-                  <div>
-                    <span className="info-label info-inline">LinkedIn:</span>
-                    <span className="info-value">{user.socials.linkedin || 'Não informado'}</span>
-                  </div>
-                </div>
+                )}
+                {socialsEmptyCount > 0 && socialsEmptyCount < socialsFields.length && (
+                  <p className="info-empty-summary">
+                    {socialsEmptyCount} {socialsEmptyCount === 1 ? 'campo não preenchido' : 'campos não preenchidos'}
+                  </p>
+                )}
               </div>
             )}
           </div>
         )}
       </div>
+
+      {hasRole('TRAINER') && <TrainerProfileSection />}
 
     </div>
   );
