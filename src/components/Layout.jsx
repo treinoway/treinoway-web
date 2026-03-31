@@ -57,11 +57,15 @@ const Layout = ({ children, noPadding = false }) => {
     { path: '/trainer/anamneses', label: 'Anamneses', Icon: FileText },
   ];
 
+  const isStudentUser = user?.email === 'n.santos1897@gmail.com';
+
   const navLinks = [
     { path: '/', label: 'Painel', Icon: Home },
     { path: '/profile', label: 'Meu Perfil', Icon: User },
-    { path: '/my/protocols', label: 'Minhas Rotinas', Icon: ClipboardList },
-    { path: '/my/anamneses', label: 'Anamneses', Icon: FileText },
+    ...(isStudentUser ? [
+      { path: '/my/protocols', label: 'Minhas Rotinas', Icon: ClipboardList },
+      { path: '/my/anamneses', label: 'Anamneses', Icon: FileText },
+    ] : []),
   ];
 
   return (
@@ -238,16 +242,18 @@ const Layout = ({ children, noPadding = false }) => {
           <span>Painel</span>
         </Link>
 
-        <Link
-          to="/my/protocols"
-          className={`bottom-nav-item ${isActive('/my/protocols') ? 'bottom-nav-item--active' : ''}`}
-          aria-label="Minhas Rotinas"
-        >
-          <span className="bottom-nav-item-icon" aria-hidden="true">
-            <ClipboardList size={22} strokeWidth={1.6} />
-          </span>
-          <span>Rotinas</span>
-        </Link>
+        {isStudentUser && (
+          <Link
+            to="/my/protocols"
+            className={`bottom-nav-item ${isActive('/my/protocols') ? 'bottom-nav-item--active' : ''}`}
+            aria-label="Minhas Rotinas"
+          >
+            <span className="bottom-nav-item-icon" aria-hidden="true">
+              <ClipboardList size={22} strokeWidth={1.6} />
+            </span>
+            <span>Rotinas</span>
+          </Link>
+        )}
 
         {hasRole('TRAINER') && (
           <Link

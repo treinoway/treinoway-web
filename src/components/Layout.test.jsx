@@ -39,6 +39,20 @@ beforeEach(() => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const STUDENT_EMAIL = 'n.santos1897@gmail.com';
+
+function setupAuth({ email = 'ana@example.com', isTrainer = false } = {}) {
+  useAuth.mockReturnValue({
+    user: { firstName: 'Ana', lastName: 'Lima', email },
+    logout: mockLogout,
+    hasRole: mockHasRole.mockReturnValue(isTrainer),
+  });
+}
+
 describe('Layout', () => {
   it('renders children inside main-content-inner by default', () => {
     renderWithRouter(
@@ -171,5 +185,83 @@ describe('Layout', () => {
     await user.click(screen.getByRole('button', { name: /assistente ia processando/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/ai-assistant');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Student-role navigation visibility
+  // ---------------------------------------------------------------------------
+
+  describe('student navigation items', () => {
+    it('shows "Minhas Rotinas" and "Anamneses" in sidebar for the student email', () => {
+      setupAuth({ email: STUDENT_EMAIL });
+
+      renderWithRouter(
+        <Layout>
+          <span>Content</span>
+        </Layout>
+      );
+
+      // Both sidebar and bottom-nav render "Minhas Rotinas" links for the student user
+      const rotinasLinks = screen.getAllByRole('link', { name: 'Minhas Rotinas' });
+      expect(rotinasLinks.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByRole('link', { name: 'Anamneses' })).toBeInTheDocument();
+    });
+
+    it('shows "Rotinas" bottom nav link for the student email', () => {
+      setupAuth({ email: STUDENT_EMAIL });
+
+      renderWithRouter(
+        <Layout>
+          <span>Content</span>
+        </Layout>
+      );
+
+      // At least one "Minhas Rotinas" link present (sidebar + bottom nav)
+      const rotinasLinks = screen.getAllByRole('link', { name: 'Minhas Rotinas' });
+      expect(rotinasLinks.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('hides "Minhas Rotinas" and "Anamneses" from sidebar for a non-student email', () => {
+      setupAuth({ email: 'outro@example.com' });
+
+      renderWithRouter(
+        <Layout>
+          <span>Content</span>
+        </Layout>
+      );
+
+      expect(screen.queryByRole('link', { name: 'Minhas Rotinas' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Anamneses' })).not.toBeInTheDocument();
+    });
+
+    it('hides "Rotinas" bottom nav link for a non-student email', () => {
+      setupAuth({ email: 'outro@example.com' });
+
+      renderWithRouter(
+        <Layout>
+          <span>Content</span>
+        </Layout>
+      );
+
+      // The bottom-nav Rotinas link should not be present
+      expect(screen.queryByRole('link', { name: 'Minhas Rotinas' })).not.toBeInTheDocument();
+    });
+
+    it('hides student items even when the user has no email set', () => {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Sem', lastName: 'Email' },
+        logout: mockLogout,
+        hasRole: mockHasRole.mockReturnValue(false),
+      });
+
+      renderWithRouter(
+        <Layout>
+          <span>Content</span>
+        </Layout>
+      );
+
+      expect(screen.queryByRole('link', { name: 'Minhas Rotinas' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Anamneses' })).not.toBeInTheDocument();
+    });
   });
 });
