@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { AiChatProvider } from './contexts/AiChatContext';
 import { ToastProvider } from './contexts/ToastContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -24,6 +25,7 @@ import Students from './pages/trainer/Students';
 import StudentDetail from './pages/trainer/StudentDetail';
 import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
 import AnamnesisDetail from './pages/trainer/AnamnesisDetail';
+import AiAssistant from './pages/trainer/AiAssistant';
 
 // Student pages
 import MyProtocols from './pages/my/MyProtocols';
@@ -38,6 +40,7 @@ function App() {
       <ToastProvider>
         <ErrorBoundary>
           <AuthProvider>
+            <AiChatProvider>
             <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
@@ -172,6 +175,17 @@ function App() {
             }
           />
 
+          <Route
+            path="/trainer/ai-assistant"
+            element={
+              <ProtectedRoute>
+                <Layout noPadding>
+                  <AiAssistant />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Student routes */}
           <Route
             path="/my/protocols"
@@ -228,6 +242,7 @@ function App() {
           {/* Catch all - redirect to dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+            </AiChatProvider>
           </AuthProvider>
         </ErrorBoundary>
       </ToastProvider>

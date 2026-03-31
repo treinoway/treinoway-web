@@ -36,6 +36,11 @@ const ptBR = {
     ANAMNESIS_QUESTION_NOT_FOUND: 'Pergunta da anamnese não encontrada.',
     TRAINER_PROFILE_MISSING: 'Perfil de treinador não encontrado.',
     IMPORT_FORMAT_CHANGED: 'O arquivo não corresponde ao formato esperado do PrimeCoaching. Verifique se você exportou a planilha correta.',
+    AI_CONVERSATION_NOT_FOUND: 'Conversa não encontrada.',
+    AI_RATE_LIMITED: 'Muitas mensagens enviadas. Aguarde um momento.',
+    AI_MODEL_ERROR: 'O assistente está temporariamente indisponível. Tente novamente.',
+    AI_OVERLOADED: 'O assistente está sobrecarregado no momento. Tente novamente em instantes.',
+    AI_CONTEXT_BUILD_FAILED: 'Não foi possível carregar seus dados. Tente novamente.',
   },
 
   messageCodes: {
@@ -64,6 +69,11 @@ const ptBR = {
     'anamnesis.notLinkedToStudent': 'Esta anamnese não está vinculada ao seu perfil.',
     'trainer.notFound': 'Perfil de treinador não encontrado.',
     'import.primecoaching.formatChanged': 'O arquivo não corresponde ao formato esperado do PrimeCoaching. Verifique se você exportou a planilha correta.',
+    'ai.conversationNotFound': 'Conversa não encontrada.',
+    'ai.rateLimited': 'Muitas mensagens enviadas. Aguarde um momento.',
+    'ai.modelError': 'O assistente está temporariamente indisponível. Tente novamente.',
+    'ai.overloaded': 'O assistente está sobrecarregado no momento. Tente novamente em instantes.',
+    'ai.trainerNotFound': 'Perfil de treinador não encontrado.',
   },
 
   httpStatus: {
@@ -77,6 +87,7 @@ const ptBR = {
     500: 'Erro interno do servidor. Tente novamente mais tarde.',
     502: 'Servidor indisponível. Tente novamente mais tarde.',
     503: 'Serviço temporariamente indisponível. Tente novamente mais tarde.',
+    529: 'O assistente está sobrecarregado. Tente novamente em instantes.',
   },
 
   network: {

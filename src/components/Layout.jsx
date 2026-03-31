@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown, FileText } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown, FileText, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAiChat } from '../contexts/AiChatContext';
 
 const BIBLIOTECA_PATHS = ['/trainer/protocol-templates', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
 
-const Layout = ({ children }) => {
+const Layout = ({ children, noPadding = false }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [bibliotecaOpen, setBibliotecaOpen] = useState(false);
   const [bibliotecaPopover, setBibliotecaPopover] = useState(false);
   const { user, logout, hasRole } = useAuth();
+  const { loading: aiLoading, hasNewResponse: aiHasNewResponse } = useAiChat();
   const location = useLocation();
   const navigate = useNavigate();
   const popoverRef = useRef(null);
@@ -63,7 +65,7 @@ const Layout = ({ children }) => {
   ];
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout${noPadding ? ' app-layout--fullscreen' : ''}`}>
       {/* Top App Bar — visible only on mobile */}
       <div className="top-app-bar">
         <img
@@ -140,6 +142,18 @@ const Layout = ({ children }) => {
                 {sidebarOpen && <span className="sidebar-link-label">Meus Alunos</span>}
               </Link>
 
+              {/* Assistente IA */}
+              <Link
+                to="/trainer/ai-assistant"
+                className={`sidebar-link ${isActive('/trainer/ai-assistant') ? 'sidebar-link--active' : ''}`}
+                aria-label="Assistente IA"
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <Sparkles size={20} strokeWidth={1.6} />
+                </span>
+                {sidebarOpen && <span className="sidebar-link-label">Assistente IA</span>}
+              </Link>
+
               {/* Biblioteca dropdown */}
               <button
                 onClick={() => {
@@ -207,8 +221,8 @@ const Layout = ({ children }) => {
         </div>
       </aside>
 
-      <main className="main-content">
-        <div className="main-content-inner">{children}</div>
+      <main className={`main-content${noPadding ? ' main-content--fullscreen' : ''}`}>
+        {noPadding ? children : <div className="main-content-inner">{children}</div>}
       </main>
 
       {/* Bottom Navigation — visible only on mobile */}
@@ -245,6 +259,19 @@ const Layout = ({ children }) => {
               <Users size={22} strokeWidth={1.6} />
             </span>
             <span>Alunos</span>
+          </Link>
+        )}
+
+        {hasRole('TRAINER') && (
+          <Link
+            to="/trainer/ai-assistant"
+            className={`bottom-nav-item ${isActive('/trainer/ai-assistant') ? 'bottom-nav-item--active' : ''}`}
+            aria-label="Assistente IA"
+          >
+            <span className="bottom-nav-item-icon" aria-hidden="true">
+              <Sparkles size={22} strokeWidth={1.6} />
+            </span>
+            <span>IA</span>
           </Link>
         )}
 
@@ -293,12 +320,26 @@ const Layout = ({ children }) => {
           <span>Perfil</span>
         </Link>
       </nav>
+
+      {/* AI floating action button — visible when AI is working or has a new response, and user is not on the AI page */}
+      {hasRole('TRAINER') && !isActive('/trainer/ai-assistant') && (aiLoading || aiHasNewResponse) && (
+        <button
+          className="ai-fab"
+          onClick={() => navigate('/trainer/ai-assistant')}
+          aria-label={aiHasNewResponse ? 'Assistente IA respondeu' : 'Assistente IA processando'}
+        >
+          <Sparkles size={20} strokeWidth={1.6} />
+          {aiHasNewResponse && <span className="ai-fab__badge" />}
+          {aiLoading && <span className="ai-fab__pulse" />}
+        </button>
+      )}
     </div>
   );
 };
 
 Layout.propTypes = {
   children: PropTypes.node.isRequired,
+  noPadding: PropTypes.bool,
 };
 
 export default Layout;

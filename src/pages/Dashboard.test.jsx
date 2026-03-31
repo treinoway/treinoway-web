@@ -82,6 +82,28 @@ describe('Dashboard', () => {
     expect(screen.getAllByText('Rotinas').length).toBeGreaterThanOrEqual(1);
   });
 
+  it('shows AI assistant card when user is TRAINER', async () => {
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [] });
+      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+      return Promise.reject(new Error('unexpected'));
+    });
+
+    renderWithRouter(<Dashboard />);
+
+    expect(screen.getByText('Assistente IA')).toBeInTheDocument();
+    expect(screen.getByText(/linguagem natural/i)).toBeInTheDocument();
+  });
+
+  it('hides AI assistant card when user is not TRAINER', () => {
+    mockHasRole.mockReturnValue(false);
+
+    renderWithRouter(<Dashboard />);
+
+    expect(screen.queryByText('Assistente IA')).not.toBeInTheDocument();
+  });
+
   it('renders stats section with counts when user is TRAINER', async () => {
     mockHasRole.mockImplementation((role) => role === 'TRAINER');
     api.get.mockImplementation((url) => {

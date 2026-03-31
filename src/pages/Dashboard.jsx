@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import { Link, useNavigate } from 'react-router-dom';
-import { Dumbbell, ClipboardList, BookOpen } from 'lucide-react';
+import { Dumbbell, ClipboardList, BookOpen, Sparkles } from 'lucide-react';
 import api from '../api/axios';
 import NoStudentsModal from '../components/NoStudentsModal';
 
@@ -124,6 +124,16 @@ const Dashboard = () => {
       <section>
         <h2 className="dashboard-section-title">Ações Rápidas</h2>
         <div className="quick-actions">
+          {hasRole('TRAINER') && (
+            <Link to="/trainer/ai-assistant" className="quick-action-card quick-action-card--ai">
+              <div className="quick-action-icon quick-action-icon--ai">
+                <Sparkles size={20} strokeWidth={1.6} />
+              </div>
+              <span className="quick-action-label quick-action-label--ai">Assistente IA</span>
+              <p className="quick-action-desc quick-action-desc--ai">Crie treinos e rotinas com linguagem natural usando inteligência artificial</p>
+            </Link>
+          )}
+
           {hasRole('TRAINER') && (
             <button
               onClick={handleCreateRoutine}
