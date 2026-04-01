@@ -709,6 +709,84 @@ describe('AiAssistant', () => {
 
     expect(screen.queryByText('Prévia da mensagem aqui')).not.toBeInTheDocument();
   });
+
+  // ---------------------------------------------------------------------------
+  // Markdown rendering
+  // ---------------------------------------------------------------------------
+
+  it('renders bold markdown in assistant messages as <strong> element', () => {
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [
+          { role: 'user', content: 'Quais os exercícios?' },
+          {
+            role: 'assistant',
+            content: 'Use **agachamento** para pernas.',
+            actionsExecuted: [],
+          },
+        ],
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    const strong = document.querySelector('strong');
+    expect(strong).toBeInTheDocument();
+    expect(strong.textContent).toBe('agachamento');
+  });
+
+  it('does not render markdown in user messages', () => {
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [
+          { role: 'user', content: 'Devo fazer **agachamento**?' },
+        ],
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    expect(document.querySelector('strong')).not.toBeInTheDocument();
+    expect(screen.getByText('Devo fazer **agachamento**?')).toBeInTheDocument();
+  });
+
+  it('renders streaming assistant message with markdown', () => {
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        loading: true,
+        streamingText: 'Faça **3 séries** de agachamento.',
+        messages: [
+          { role: 'user', content: 'Treino de pernas?' },
+          { role: 'assistant', content: '', isStreaming: true },
+        ],
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    const strong = document.querySelector('strong');
+    expect(strong).toBeInTheDocument();
+    expect(strong.textContent).toBe('3 séries');
+  });
+
+  it('renders GFM table in assistant messages as an HTML table', () => {
+    const tableContent = '| Exercício | Séries |\n| --- | --- |\n| Agachamento | 3 |\n| Leg press | 4 |';
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [
+          { role: 'user', content: 'Monte um treino de pernas' },
+          { role: 'assistant', content: tableContent, actionsExecuted: [] },
+        ],
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    expect(document.querySelector('table')).toBeInTheDocument();
+    expect(document.querySelector('th')).toBeInTheDocument();
+    expect(screen.getByText('Exercício')).toBeInTheDocument();
+    expect(screen.getByText('Agachamento')).toBeInTheDocument();
+  });
 });
 
 // ---------------------------------------------------------------------------
