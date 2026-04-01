@@ -26,6 +26,7 @@ import StudentDetail from './pages/trainer/StudentDetail';
 import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
 import AnamnesisDetail from './pages/trainer/AnamnesisDetail';
 import AiAssistant from './pages/trainer/AiAssistant';
+import TrainerBranding from './pages/trainer/TrainerBranding';
 
 // Student pages
 import MyProtocols from './pages/my/MyProtocols';
@@ -181,6 +182,17 @@ function App() {
               <ProtectedRoute>
                 <Layout noPadding>
                   <AiAssistant />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/branding"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <TrainerBranding />
                 </Layout>
               </ProtectedRoute>
             }

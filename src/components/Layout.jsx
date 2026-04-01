@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown, FileText, Sparkles } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown, FileText, Sparkles, Palette } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 
@@ -156,6 +156,18 @@ const Layout = ({ children, noPadding = false }) => {
                   <Sparkles size={20} strokeWidth={1.6} />
                 </span>
                 {sidebarOpen && <span className="sidebar-link-label">Assistente IA</span>}
+              </Link>
+
+              {/* Personalização */}
+              <Link
+                to="/trainer/branding"
+                className={`sidebar-link ${isActive('/trainer/branding') ? 'sidebar-link--active' : ''}`}
+                aria-label="Personalização"
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <Palette size={20} strokeWidth={1.6} />
+                </span>
+                {sidebarOpen && <span className="sidebar-link-label">Personalização</span>}
               </Link>
 
               {/* Biblioteca dropdown */}

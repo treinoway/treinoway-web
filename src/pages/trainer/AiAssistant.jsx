@@ -18,6 +18,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { useAiChat } from '../../contexts/AiChatContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import { groupConversationsByDate } from '../../utils/conversationGroups';
 
 const MAX_INPUT_LENGTH = 1000;
 const CHAR_COUNT_THRESHOLD = 900;
@@ -28,6 +29,21 @@ const EXAMPLE_PROMPTS = [
   { text: 'Monte um treino de pernas com 6 exercícios', Icon: Dumbbell },
   { text: 'Adicione um treino de costas ao protocolo do aluno Maria', Icon: Plus },
 ];
+
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
+
+const formatConversationDate = (dateStr) => {
+  if (!dateStr) return '—';
+  const date = new Date(dateStr);
+  if (isNaN(date)) return '—';
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+};
+
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
 
 const TypingIndicator = () => (
   <div className="ai-chat__typing" aria-label="Assistente digitando">
@@ -74,33 +90,53 @@ ActionBadge.propTypes = {
   ).isRequired,
 };
 
-const formatConversationDate = (dateStr) => {
-  if (!dateStr) return '—';
-  const date = new Date(dateStr);
-  if (isNaN(date)) return '—';
-  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-};
+const ConversationItem = ({ conversation, isActive, isLoading, onSelect, onDelete }) => {
+  const title = conversation.title || null;
+  const preview = conversation.preview || conversation.firstMessage || null;
 
-const ConversationItem = ({ conversation, isActive, onSelect, onDelete }) => (
-  <div className={`ai-history__item${isActive ? ' ai-history__item--active' : ''}`}>
-    <button
-      className="ai-history__item-btn"
-      onClick={() => onSelect(conversation)}
-      aria-label={`Abrir conversa: ${conversation.title || 'Sem título'}`}
-    >
-      <MessageSquare size={14} strokeWidth={1.6} className="ai-history__item-icon" />
-      <span className="ai-history__item-title">{conversation.title || 'Sem título'}</span>
-      <span className="ai-history__item-date">{formatConversationDate(conversation.updatedAt || conversation.createdAt)}</span>
-    </button>
-    <button
-      className="ai-history__item-delete"
-      onClick={(e) => { e.stopPropagation(); onDelete(conversation); }}
-      aria-label={`Excluir conversa: ${conversation.title || 'Sem título'}`}
-    >
-      <Trash2 size={13} strokeWidth={1.6} />
-    </button>
-  </div>
-);
+  const itemClass = [
+    'ai-history__item',
+    isActive ? 'ai-history__item--active' : '',
+    isLoading ? 'ai-history__item--loading' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <div className={itemClass}>
+      <button
+        className="ai-history__item-btn"
+        onClick={() => onSelect(conversation)}
+        aria-label={`Abrir conversa: ${title || 'Sem título'}`}
+      >
+        <div className="ai-history__item-btn-row">
+          {isLoading ? (
+            <MessageSquare size={14} strokeWidth={1.6} className="ai-history__item-spinner" />
+          ) : (
+            <MessageSquare size={14} strokeWidth={1.6} className="ai-history__item-icon" />
+          )}
+          <span className={`ai-history__item-title${!title ? ' ai-history__item-title--untitled' : ''}`}>
+            {title || 'Sem título'}
+          </span>
+          <span className="ai-history__item-date">
+            {formatConversationDate(conversation.updatedAt || conversation.createdAt)}
+          </span>
+        </div>
+        {preview && <span className="ai-history__item-preview">{preview}</span>}
+      </button>
+      <button
+        className="ai-history__item-delete"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(conversation);
+        }}
+        aria-label={`Excluir conversa: ${title || 'Sem título'}`}
+      >
+        <Trash2 size={13} strokeWidth={1.6} />
+      </button>
+    </div>
+  );
+};
 
 ConversationItem.propTypes = {
   conversation: PropTypes.shape({
@@ -108,11 +144,18 @@ ConversationItem.propTypes = {
     title: PropTypes.string,
     createdAt: PropTypes.string,
     updatedAt: PropTypes.string,
+    preview: PropTypes.string,
+    firstMessage: PropTypes.string,
   }).isRequired,
   isActive: PropTypes.bool.isRequired,
+  isLoading: PropTypes.bool.isRequired,
   onSelect: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
 };
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 
 const AiAssistant = () => {
   const { showToast } = useToast();
@@ -131,7 +174,6 @@ const AiAssistant = () => {
     retryLastMessage,
   } = useAiChat();
 
-  // Local state — only UI concerns specific to this page
   const [input, setInput] = useState('');
   const [isNearBottom, setIsNearBottom] = useState(true);
 
@@ -139,13 +181,13 @@ const AiAssistant = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [loadingConversationId, setLoadingConversationId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
 
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Clear new response badge when page mounts or when a new response arrives
   useEffect(() => {
     if (hasNewResponse) clearNewResponse();
   }, [hasNewResponse, clearNewResponse]);
@@ -159,7 +201,8 @@ const AiAssistant = () => {
   const checkScrollPosition = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < SCROLL_THRESHOLD;
+    const nearBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight < SCROLL_THRESHOLD;
     setIsNearBottom(nearBottom);
   }, []);
 
@@ -187,12 +230,20 @@ const AiAssistant = () => {
   };
 
   const handleSelectConversation = async (conversation) => {
-    setHistoryOpen(false);
-    await loadConversation(conversation.id);
-    inputRef.current?.focus();
+    setLoadingConversationId(conversation.id);
+    try {
+      await loadConversation(conversation.id);
+      setHistoryOpen(false);
+      inputRef.current?.focus();
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+    } finally {
+      setLoadingConversationId(null);
+    }
   };
 
   const handleDeleteConversation = (conversation) => {
+    setHistoryOpen(false);
     setConfirmDialog({
       message: `Excluir a conversa "${conversation.title || 'Sem título'}"? Esta ação não pode ser desfeita.`,
       onConfirm: async () => {
@@ -208,6 +259,13 @@ const AiAssistant = () => {
         }
       },
     });
+  };
+
+  const handleNewConversationFromSheet = () => {
+    setHistoryOpen(false);
+    startNewConversation();
+    setInput('');
+    inputRef.current?.focus();
   };
 
   const handleSend = async (e) => {
@@ -253,6 +311,7 @@ const AiAssistant = () => {
   const isSendDisabled = !input.trim() || loading;
   const showCharCount = input.length > CHAR_COUNT_THRESHOLD;
   const isCharCountWarn = input.length >= MAX_INPUT_LENGTH;
+  const groupedConversations = groupConversationsByDate(conversations);
 
   return (
     <div className="ai-chat">
@@ -386,7 +445,9 @@ const AiAssistant = () => {
               }}
             />
             {showCharCount && (
-              <div className={`ai-chat__char-count${isCharCountWarn ? ' ai-chat__char-count--warn' : ''}`}>
+              <div
+                className={`ai-chat__char-count${isCharCountWarn ? ' ai-chat__char-count--warn' : ''}`}
+              >
                 {input.length}/{MAX_INPUT_LENGTH}
               </div>
             )}
@@ -402,42 +463,66 @@ const AiAssistant = () => {
         </form>
       </div>
 
-      {/* History panel overlay */}
+      {/* History panel */}
       {historyOpen && (
         <div className="overlay" onClick={() => setHistoryOpen(false)}>
-          <div className="ai-history" onClick={(e) => e.stopPropagation()}>
-            <div className="ai-history__header">
-              <h2 className="ai-history__title">Histórico de conversas</h2>
+          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-header">
+              <h2 className="bottom-sheet-title">Histórico de conversas</h2>
               <button
-                className="ai-history__close"
+                className="bottom-sheet-close"
                 onClick={() => setHistoryOpen(false)}
                 aria-label="Fechar histórico"
               >
                 <X size={18} strokeWidth={1.6} />
               </button>
             </div>
-            <div className="ai-history__body">
+            <div className="bottom-sheet-body">
+              <div className="ai-history__new-conversation-btn">
+                <button
+                  className="btn-secondary btn-secondary-full"
+                  onClick={handleNewConversationFromSheet}
+                  aria-label="Iniciar nova conversa"
+                >
+                  <RotateCcw size={14} strokeWidth={1.6} />
+                  Nova conversa
+                </button>
+              </div>
+
               {conversationsLoading ? (
-                <p className="ai-history__empty">Carregando...</p>
+                <p style={{ textAlign: 'center', color: 'var(--color-on-surface-variant)' }}>
+                  Carregando...
+                </p>
               ) : conversations.length === 0 ? (
-                <p className="ai-history__empty">Nenhuma conversa encontrada.</p>
+                <div className="ai-history__empty-state">
+                  <MessageSquare size={32} strokeWidth={1.2} />
+                  <p className="ai-history__empty-state-text">Nenhuma conversa ainda.</p>
+                </div>
               ) : (
-                conversations.map((conv) => (
-                  <ConversationItem
-                    key={conv.id}
-                    conversation={conv}
-                    isActive={conv.id === conversationId}
-                    onSelect={handleSelectConversation}
-                    onDelete={handleDeleteConversation}
-                  />
-                ))
+                <div className="ai-history__list">
+                  {groupedConversations.map((group) => (
+                    <div key={group.label}>
+                      <p className="ai-history__group-label">{group.label}</p>
+                      {group.conversations.map((conv) => (
+                        <ConversationItem
+                          key={conv.id}
+                          conversation={conv}
+                          isActive={conv.id === conversationId}
+                          isLoading={conv.id === loadingConversationId}
+                          onSelect={handleSelectConversation}
+                          onDelete={handleDeleteConversation}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Delete confirmation dialog */}
+      {/* Delete confirmation dialog — rendered outside the history overlay */}
       {confirmDialog && (
         <div className="overlay" onClick={() => setConfirmDialog(null)}>
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
@@ -446,7 +531,11 @@ const AiAssistant = () => {
               <button onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>
                 Excluir
               </button>
-              <button onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="btn-secondary"
+                style={{ flex: 1 }}
+              >
                 Cancelar
               </button>
             </div>

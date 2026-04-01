@@ -68,6 +68,7 @@ const ptBR = {
     'anamnesis.response.notFound': 'Nenhuma resposta encontrada para esta anamnese.',
     'anamnesis.notLinkedToStudent': 'Esta anamnese não está vinculada ao seu perfil.',
     'trainer.notFound': 'Perfil de treinador não encontrado.',
+    'branding.notFound': 'Personalização não encontrada. Salve as configurações primeiro.',
     'import.primecoaching.formatChanged': 'O arquivo não corresponde ao formato esperado do PrimeCoaching. Verifique se você exportou a planilha correta.',
     'ai.conversationNotFound': 'Conversa não encontrada.',
     'ai.rateLimited': 'Muitas mensagens enviadas. Aguarde um momento.',
@@ -144,6 +145,9 @@ const ptBR = {
     trainingLevel: 'nível de treino',
     category: 'categoria',
     bodySegment: 'segmento corporal',
+    primaryColor: 'cor primária',
+    secondaryColor: 'cor secundária',
+    welcomeMessage: 'mensagem de boas-vindas',
   },
 
   validationRules: {

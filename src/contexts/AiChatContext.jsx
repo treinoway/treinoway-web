@@ -162,15 +162,50 @@ export const AiChatProvider = ({ children }) => {
       ...(conversationIdRef.current && { conversationId: conversationIdRef.current }),
     };
 
-    try {
-      const response = await fetch(`${BASE_URL}/trainer/ai/chat/stream`, {
+    const doStreamFetch = async (token) => {
+      return fetch(`${BASE_URL}/trainer/ai/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessTokenRef.current}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
+    };
+
+    try {
+      let token = localStorage.getItem('accessToken') || accessTokenRef.current;
+      let response = await doStreamFetch(token);
+
+      // If 401, try refreshing the token once (mirrors axios interceptor behavior)
+      if (response.status === 401) {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (refreshToken) {
+          try {
+            const refreshResp = await fetch(`${BASE_URL}/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken }),
+            });
+            if (refreshResp.ok) {
+              const data = await refreshResp.json();
+              const newAccessToken = data.token?.accessToken || data.accessToken;
+              const newRefreshToken = data.refreshToken;
+              if (newAccessToken) {
+                localStorage.setItem('accessToken', newAccessToken);
+                if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
+                window.dispatchEvent(new CustomEvent('treinoway:tokensRefreshed', {
+                  detail: { newAccessToken, newRefreshToken },
+                }));
+                token = newAccessToken;
+                response = await doStreamFetch(token);
+              }
+            }
+          } catch {
+            // Refresh failed, will fall through to the error below
+          }
+        }
+      }
 
       if (!response.ok) {
         throw new Error('Erro ao conectar com o assistente.');
