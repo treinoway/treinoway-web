@@ -172,6 +172,45 @@ describe('AiAssistant', () => {
     renderWithRouter(<AiAssistant />);
 
     expect(screen.getByText('Parcial...')).toBeInTheDocument();
+    expect(screen.getByLabelText('Assistente digitando')).toBeInTheDocument();
+  });
+
+  it('shows streaming text and status message together when both are set', () => {
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        loading: true,
+        streamingText: 'Perfeito! Criando o protocolo agora.',
+        statusMessage: 'Executando ação...',
+        messages: [
+          { role: 'user', content: 'Crie um protocolo' },
+          { role: 'assistant', content: '', isStreaming: true },
+        ],
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText('Perfeito! Criando o protocolo agora.')).toBeInTheDocument();
+    expect(screen.getByText('Executando ação...')).toBeInTheDocument();
+  });
+
+  it('shows streaming text and typing indicator when streaming with no status message', () => {
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        loading: true,
+        streamingText: 'Processando...',
+        statusMessage: '',
+        messages: [
+          { role: 'user', content: 'Olá' },
+          { role: 'assistant', content: '', isStreaming: true },
+        ],
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText('Processando...')).toBeInTheDocument();
+    expect(screen.getByLabelText('Assistente digitando')).toBeInTheDocument();
   });
 
   it('shows status message when available during streaming', () => {

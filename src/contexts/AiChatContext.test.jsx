@@ -26,6 +26,7 @@ vi.mock('../api/axios', () => ({
 }));
 
 const CONVERSATION_ID = 'conv-uuid-1234';
+const DEFAULT_USER = { id: 'user-1', email: 'test@test.com' };
 
 function createMockSSEStream(events) {
   const text = events
@@ -115,7 +116,7 @@ describe('AiChatContext', () => {
   beforeEach(() => {
     showToast = vi.fn();
     vi.mocked(useToast).mockReturnValue({ showToast });
-    vi.mocked(useAuth).mockReturnValue({ accessToken: 'test-token' });
+    vi.mocked(useAuth).mockReturnValue({ accessToken: 'test-token', user: DEFAULT_USER });
     api.get.mockReset();
     api.delete.mockReset();
     global.fetch = vi.fn();
@@ -319,6 +320,73 @@ describe('AiChatContext', () => {
           }),
         })
       );
+    });
+  });
+
+  it('sendMessage is blocked when user is null', async () => {
+    vi.mocked(useAuth).mockReturnValue({ accessToken: 'test-token', user: null });
+    const user = userEvent.setup();
+
+    renderWithProvider();
+
+    await user.click(screen.getByRole('button', { name: /enviar/i }));
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    const messageCount = document.querySelector('[data-info="messageCount"]');
+    expect(messageCount.textContent).toBe('0');
+  });
+
+  it('loadConversation is blocked when user is null', async () => {
+    vi.mocked(useAuth).mockReturnValue({ accessToken: 'test-token', user: null });
+    const user = userEvent.setup();
+
+    renderWithProvider();
+
+    await user.click(screen.getByRole('button', { name: /carregar conversa/i }));
+
+    expect(api.get).not.toHaveBeenCalled();
+  });
+
+  it('exposes empty state when user is null (ownership check)', () => {
+    vi.mocked(useAuth).mockReturnValue({ accessToken: 'test-token', user: null });
+
+    renderWithProvider();
+
+    const messageCount = document.querySelector('[data-info="messageCount"]');
+    expect(messageCount.textContent).toBe('0');
+    const loadingEl = document.querySelector('[data-info="loading"]');
+    expect(loadingEl.textContent).toBe('false');
+  });
+
+  it('clears state when user changes (logout/login scenario)', async () => {
+    const user = userEvent.setup();
+    global.fetch.mockResolvedValue(createMockSSEStream(createDefaultSSEEvents()));
+
+    const { rerender } = renderWithRouter(
+      <AiChatProvider>
+        <TestConsumer />
+      </AiChatProvider>
+    );
+
+    await user.click(screen.getByRole('button', { name: /enviar/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/assistant: Pronto! Criei o protocolo./)).toBeInTheDocument();
+    });
+
+    // Simulate user change (logout then login as different user)
+    const newUser = { id: 'user-2', email: 'other@test.com' };
+    vi.mocked(useAuth).mockReturnValue({ accessToken: 'new-token', user: newUser });
+
+    rerender(
+      <AiChatProvider>
+        <TestConsumer />
+      </AiChatProvider>
+    );
+
+    await waitFor(() => {
+      const messageCount = document.querySelector('[data-info="messageCount"]');
+      expect(messageCount.textContent).toBe('0');
     });
   });
 });

@@ -416,16 +416,23 @@ const AiAssistant = () => {
             >
               <div>
                 {msg.isStreaming ? (
-                  statusMessage ? (
-                    <p className="ai-chat__status-text">{statusMessage}</p>
-                  ) : streamingText ? (
-                    <div className="ai-chat__message-content">
-                      {msg.role === 'assistant' ? (
-                        <MarkdownMessage content={streamingText} />
+                  streamingText ? (
+                    <>
+                      <div className="ai-chat__message-content">
+                        {msg.role === 'assistant' ? (
+                          <MarkdownMessage content={streamingText} />
+                        ) : (
+                          streamingText
+                        )}
+                      </div>
+                      {statusMessage ? (
+                        <p className="ai-chat__status-text">{statusMessage}</p>
                       ) : (
-                        streamingText
+                        <TypingIndicator />
                       )}
-                    </div>
+                    </>
+                  ) : statusMessage ? (
+                    <p className="ai-chat__status-text">{statusMessage}</p>
                   ) : (
                     <TypingIndicator />
                   )

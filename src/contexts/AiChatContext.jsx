@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
@@ -37,8 +37,10 @@ export const useAiChat = () => {
 };
 
 export const AiChatProvider = ({ children }) => {
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const { showToast } = useToast();
+
+  const ownerIdRef = useRef(user?.id ?? null);
 
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationIdState] = useState(null);
@@ -145,6 +147,7 @@ export const AiChatProvider = ({ children }) => {
   }, [handleStreamEvent]);
 
   const sendMessage = useCallback(async (messageText) => {
+    if (!user?.id || user.id !== ownerIdRef.current) return;
     const trimmedInput = messageText.trim();
     if (!trimmedInput || loadingRef.current) return;
 
@@ -245,7 +248,7 @@ export const AiChatProvider = ({ children }) => {
       setLoading(false);
       loadingRef.current = false;
     }
-  }, [readStream, showToast]);
+  }, [readStream, showToast, user]);
 
   const startNewConversation = useCallback(() => {
     setMessages([]);
@@ -256,7 +259,16 @@ export const AiChatProvider = ({ children }) => {
     setHasNewResponse(false);
   }, [setConversationId]);
 
+  useEffect(() => {
+    const currentUserId = user?.id ?? null;
+    if (ownerIdRef.current !== currentUserId) {
+      startNewConversation();
+      ownerIdRef.current = currentUserId;
+    }
+  }, [user?.id, startNewConversation]);
+
   const loadConversation = useCallback(async (id) => {
+    if (!user?.id || user.id !== ownerIdRef.current) return;
     setLoading(true);
     setMessages([]);
     setErrorRetry(null);
@@ -278,7 +290,7 @@ export const AiChatProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, user]);
 
   const clearNewResponse = useCallback(() => {
     setHasNewResponse(false);
@@ -291,14 +303,16 @@ export const AiChatProvider = ({ children }) => {
     await sendMessage(retryText);
   }, [errorRetry, sendMessage]);
 
+  const isOwner = user?.id != null && user.id === ownerIdRef.current;
+
   const value = {
-    messages,
-    conversationId,
-    loading,
-    streamingText,
-    statusMessage,
-    hasNewResponse,
-    errorRetry,
+    messages: isOwner ? messages : [],
+    conversationId: isOwner ? conversationId : null,
+    loading: isOwner ? loading : false,
+    streamingText: isOwner ? streamingText : '',
+    statusMessage: isOwner ? statusMessage : '',
+    hasNewResponse: isOwner ? hasNewResponse : false,
+    errorRetry: isOwner ? errorRetry : null,
     sendMessage,
     startNewConversation,
     loadConversation,
