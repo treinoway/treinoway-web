@@ -122,7 +122,7 @@ export const QuestionForm = ({ initialData, onSubmit, onCancel, saving }) => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: 'var(--spacing-xs) var(--spacing-sm)',
-                    background: 'var(--md-surface)',
+                    background: 'var(--color-surface)',
                     borderRadius: 'var(--radius-sm)',
                     marginBottom: 'var(--spacing-xs)',
                     border: '1px solid var(--color-outline-variant)',
@@ -134,7 +134,7 @@ export const QuestionForm = ({ initialData, onSubmit, onCancel, saving }) => {
                     onClick={() => handleRemoveOption(index)}
                     disabled={saving}
                     aria-label={`Remover opção ${opt.text}`}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--md-error)', padding: 0 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-error)', padding: 0 }}
                   >
                     <Trash2 size={14} strokeWidth={1.6} />
                   </button>
@@ -292,7 +292,7 @@ export const SectionBlock = ({
               key={question.id}
               style={{
                 padding: 'var(--spacing-sm) var(--spacing-md)',
-                background: 'var(--md-surface)',
+                background: 'var(--color-surface)',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--color-outline-variant)',
                 marginBottom: 'var(--spacing-sm)',

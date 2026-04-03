@@ -55,11 +55,13 @@ export const AiChatProvider = ({ children }) => {
   const [statusMessage, setStatusMessage] = useState('');
   const [hasNewResponse, setHasNewResponse] = useState(false);
   const [errorRetry, setErrorRetry] = useState(null);
+  const [errorCode, setErrorCode] = useState(null);
 
   const accessTokenRef = useRef(accessToken);
   accessTokenRef.current = accessToken;
 
   const loadingRef = useRef(false);
+  const pendingMessageRef = useRef(null);
 
   const handleStreamEvent = useCallback((event, data, accumulated) => {
     if (event === 'status') {
@@ -108,6 +110,10 @@ export const AiChatProvider = ({ children }) => {
       setStatusMessage('');
       setLoading(false);
       loadingRef.current = false;
+      setErrorCode(data.error || null);
+      if (pendingMessageRef.current) {
+        setErrorRetry(pendingMessageRef.current);
+      }
       showToast(data.message, 'error');
       return accumulated;
     }
@@ -155,6 +161,8 @@ export const AiChatProvider = ({ children }) => {
     const streamingPlaceholder = { role: 'assistant', content: '', isStreaming: true };
     setMessages((prev) => [...prev, userMessage, streamingPlaceholder]);
     setErrorRetry(null);
+    setErrorCode(null);
+    pendingMessageRef.current = trimmedInput;
     setLoading(true);
     loadingRef.current = true;
     setStreamingText('');
@@ -254,9 +262,11 @@ export const AiChatProvider = ({ children }) => {
     setMessages([]);
     setConversationId(null);
     setErrorRetry(null);
+    setErrorCode(null);
     setStreamingText('');
     setStatusMessage('');
     setHasNewResponse(false);
+    pendingMessageRef.current = null;
   }, [setConversationId]);
 
   useEffect(() => {
@@ -300,6 +310,7 @@ export const AiChatProvider = ({ children }) => {
     if (!errorRetry) return;
     const retryText = errorRetry;
     setErrorRetry(null);
+    setErrorCode(null);
     await sendMessage(retryText);
   }, [errorRetry, sendMessage]);
 
@@ -313,6 +324,7 @@ export const AiChatProvider = ({ children }) => {
     statusMessage: isOwner ? statusMessage : '',
     hasNewResponse: isOwner ? hasNewResponse : false,
     errorRetry: isOwner ? errorRetry : null,
+    errorCode: isOwner ? errorCode : null,
     sendMessage,
     startNewConversation,
     loadConversation,

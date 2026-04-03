@@ -10,9 +10,11 @@ const TrainerProfile = () => {
   const [editing, setEditing] = useState(false);
   const [trainer, setTrainer] = useState(null);
 
-  const [formData, setFormData] = useState({
-    bio: '',
-    serviceMode: 'HYBRID',
+  const [trainerData, setTrainerData] = useState({
+    serviceMode: 'hybrid',
+  });
+
+  const [socialsData, setSocialsData] = useState({
     instagram: '',
     facebook: '',
     whatsapp: '',
@@ -26,13 +28,15 @@ const TrainerProfile = () => {
     setProfileLoading(true);
     try {
       const response = await api.get('/trainer');
-      setTrainer(response.data);
-      setFormData({
-        bio: response.data.bio || '',
-        serviceMode: response.data.serviceMode || 'HYBRID',
-        instagram: response.data.instagram || '',
-        facebook: response.data.facebook || '',
-        whatsapp: response.data.whatsapp || '',
+      const data = response.data;
+      setTrainer(data);
+      setTrainerData({
+        serviceMode: data.serviceMode || 'hybrid',
+      });
+      setSocialsData({
+        instagram: data.socialNetworks?.instagram || '',
+        facebook: data.socialNetworks?.facebook || '',
+        whatsapp: data.socialNetworks?.whatsapp || '',
       });
     } catch (error) {
       console.error('Failed to fetch trainer profile:', error);
@@ -46,7 +50,10 @@ const TrainerProfile = () => {
     setLoading(true);
 
     try {
-      const response = await api.patch('/trainer', formData);
+      const response = await api.patch('/trainer', {
+        trainer: trainerData,
+        socials: socialsData,
+      });
       setTrainer(response.data);
       showToast('Perfil do treinador atualizado com sucesso!', 'success');
       setEditing(false);
@@ -55,6 +62,13 @@ const TrainerProfile = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const serviceModeLabel = (mode) => {
+    if (mode === 'online') return 'Online';
+    if (mode === 'in_person') return 'Presencial';
+    if (mode === 'hybrid') return 'Híbrido';
+    return 'Não informado';
   };
 
   if (profileLoading) {
@@ -82,26 +96,15 @@ const TrainerProfile = () => {
         {editing ? (
           <form onSubmit={handleSubmit} className="form">
             <div>
-              <label className="form-label">Bio</label>
-              <textarea
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                rows={4}
-                className="form-textarea"
-                placeholder="Conte aos alunos sobre você..."
-              />
-            </div>
-
-            <div>
               <label className="form-label">Modo de Atendimento</label>
               <select
-                value={formData.serviceMode}
-                onChange={(e) => setFormData({ ...formData, serviceMode: e.target.value })}
+                value={trainerData.serviceMode}
+                onChange={(e) => setTrainerData({ ...trainerData, serviceMode: e.target.value })}
                 className="form-select"
               >
-                <option value="ONLINE">Online</option>
-                <option value="IN_PERSON">Presencial</option>
-                <option value="HYBRID">Híbrido</option>
+                <option value="online">Online</option>
+                <option value="in_person">Presencial</option>
+                <option value="hybrid">Híbrido</option>
               </select>
             </div>
 
@@ -109,8 +112,8 @@ const TrainerProfile = () => {
               <label className="form-label">Instagram</label>
               <input
                 type="text"
-                value={formData.instagram}
-                onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                value={socialsData.instagram}
+                onChange={(e) => setSocialsData({ ...socialsData, instagram: e.target.value })}
                 className="form-input"
                 placeholder="@usuario"
               />
@@ -120,8 +123,8 @@ const TrainerProfile = () => {
               <label className="form-label">Facebook</label>
               <input
                 type="text"
-                value={formData.facebook}
-                onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                value={socialsData.facebook}
+                onChange={(e) => setSocialsData({ ...socialsData, facebook: e.target.value })}
                 className="form-input"
                 placeholder="facebook.com/usuario"
               />
@@ -131,8 +134,8 @@ const TrainerProfile = () => {
               <label className="form-label">WhatsApp</label>
               <input
                 type="text"
-                value={formData.whatsapp}
-                onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                value={socialsData.whatsapp}
+                onChange={(e) => setSocialsData({ ...socialsData, whatsapp: e.target.value })}
                 className="form-input"
                 placeholder="+5511999999999"
               />
@@ -149,31 +152,21 @@ const TrainerProfile = () => {
           </form>
         ) : (
           <div className="info-list">
-            <div className="info-item">
-              <span className="info-label">Bio:</span>
-              <p className="info-value">
-                {trainer?.bio || 'Não informado'}
-              </p>
-            </div>
             <div>
               <span className="info-label info-inline">Modo de Atendimento:</span>
-              <span className="info-value">
-                {trainer?.serviceMode === 'ONLINE' ? 'Online' :
-                 trainer?.serviceMode === 'IN_PERSON' ? 'Presencial' :
-                 trainer?.serviceMode === 'HYBRID' ? 'Híbrido' : 'Não informado'}
-              </span>
+              <span className="info-value">{serviceModeLabel(trainer?.serviceMode)}</span>
             </div>
             <div>
               <span className="info-label info-inline">Instagram:</span>
-              <span className="info-value">{trainer?.instagram || 'Não informado'}</span>
+              <span className="info-value">{trainer?.socialNetworks?.instagram || 'Não informado'}</span>
             </div>
             <div>
               <span className="info-label info-inline">Facebook:</span>
-              <span className="info-value">{trainer?.facebook || 'Não informado'}</span>
+              <span className="info-value">{trainer?.socialNetworks?.facebook || 'Não informado'}</span>
             </div>
             <div>
               <span className="info-label info-inline">WhatsApp:</span>
-              <span className="info-value">{trainer?.whatsapp || 'Não informado'}</span>
+              <span className="info-value">{trainer?.socialNetworks?.whatsapp || 'Não informado'}</span>
             </div>
           </div>
         )}

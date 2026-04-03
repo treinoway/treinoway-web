@@ -202,6 +202,7 @@ const AiAssistant = () => {
     statusMessage,
     hasNewResponse,
     errorRetry,
+    errorCode,
     sendMessage,
     startNewConversation,
     loadConversation,
@@ -455,7 +456,11 @@ const AiAssistant = () => {
           ))}
           {errorRetry && !loading && (
             <div className="ai-chat__error-card">
-              <p className="ai-chat__error-text">Não foi possível processar sua mensagem.</p>
+              <p className="ai-chat__error-text">
+                {errorCode === 'AI_OVERLOADED'
+                  ? 'O assistente está sobrecarregado no momento. Tente novamente em instantes.'
+                  : 'Não foi possível processar sua mensagem.'}
+              </p>
               <button
                 onClick={handleRetry}
                 className="ai-chat__error-retry"

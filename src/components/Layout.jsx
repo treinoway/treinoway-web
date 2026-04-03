@@ -13,6 +13,7 @@ const Layout = ({ children, noPadding = false }) => {
   const [bibliotecaPopover, setBibliotecaPopover] = useState(false);
   const { user, logout, hasRole } = useAuth();
   const { loading: aiLoading, hasNewResponse: aiHasNewResponse } = useAiChat();
+  const showAi = user?.email !== 'gabriel.araujo.lima2011@gmail.com';
   const location = useLocation();
   const navigate = useNavigate();
   const popoverRef = useRef(null);
@@ -147,16 +148,18 @@ const Layout = ({ children, noPadding = false }) => {
               </Link>
 
               {/* Assistente IA */}
-              <Link
-                to="/trainer/ai-assistant"
-                className={`sidebar-link ${isActive('/trainer/ai-assistant') ? 'sidebar-link--active' : ''}`}
-                aria-label="Assistente IA"
-              >
-                <span className="sidebar-link-icon" aria-hidden="true">
-                  <Sparkles size={20} strokeWidth={1.6} />
-                </span>
-                {sidebarOpen && <span className="sidebar-link-label">Assistente IA</span>}
-              </Link>
+              {showAi && (
+                <Link
+                  to="/trainer/ai-assistant"
+                  className={`sidebar-link ${isActive('/trainer/ai-assistant') ? 'sidebar-link--active' : ''}`}
+                  aria-label="Assistente IA"
+                >
+                  <span className="sidebar-link-icon" aria-hidden="true">
+                    <Sparkles size={20} strokeWidth={1.6} />
+                  </span>
+                  {sidebarOpen && <span className="sidebar-link-label">Assistente IA</span>}
+                </Link>
+              )}
 
               {/* Personalização */}
               <Link
@@ -280,7 +283,7 @@ const Layout = ({ children, noPadding = false }) => {
           </Link>
         )}
 
-        {hasRole('TRAINER') && (
+        {hasRole('TRAINER') && showAi && (
           <Link
             to="/trainer/ai-assistant"
             className={`bottom-nav-item ${isActive('/trainer/ai-assistant') ? 'bottom-nav-item--active' : ''}`}
@@ -340,7 +343,7 @@ const Layout = ({ children, noPadding = false }) => {
       </nav>
 
       {/* AI floating action button — visible when AI is working or has a new response, and user is not on the AI page */}
-      {hasRole('TRAINER') && !isActive('/trainer/ai-assistant') && (aiLoading || aiHasNewResponse) && (
+      {hasRole('TRAINER') && showAi && !isActive('/trainer/ai-assistant') && (aiLoading || aiHasNewResponse) && (
         <button
           className="ai-fab"
           onClick={() => navigate('/trainer/ai-assistant')}

@@ -123,24 +123,59 @@ describe('Dashboard', () => {
     expect(screen.getAllByText('Rotinas').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders stats section with -- placeholders while loading', () => {
+  it('renders skeleton loaders while stats are loading', () => {
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    api.get.mockImplementation(() => new Promise(() => {}));
+
+    const { container } = renderWithRouter(<Dashboard />);
+
+    const skeletons = container.querySelectorAll('.stat-card-skeleton');
+    expect(skeletons).toHaveLength(2);
+    skeletons.forEach((skeleton) => {
+      expect(skeleton).toHaveAttribute('aria-hidden', 'true');
+    });
+  });
+
+  it('marks stats section as aria-busy while loading', () => {
     mockHasRole.mockImplementation((role) => role === 'TRAINER');
     api.get.mockImplementation(() => new Promise(() => {}));
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.getAllByText('--').length).toBeGreaterThanOrEqual(2);
+    const statsSection = screen.getByText('Alunos').closest('section');
+    expect(statsSection).toHaveAttribute('aria-busy', 'true');
   });
 
-  it('renders stats section with -- on API error', async () => {
+  it('removes skeleton loaders and aria-busy after stats load', async () => {
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [{ id: 1 }] });
+      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+      return Promise.reject(new Error('unexpected'));
+    });
+
+    const { container } = renderWithRouter(<Dashboard />);
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('.stat-card-skeleton')).toHaveLength(0);
+    });
+
+    const statsSection = screen.getByText('Alunos').closest('section');
+    expect(statsSection).toHaveAttribute('aria-busy', 'false');
+  });
+
+  it('shows zero counts on API error without skeletons', async () => {
     mockHasRole.mockImplementation((role) => role === 'TRAINER');
     api.get.mockRejectedValue(new Error('network error'));
 
-    renderWithRouter(<Dashboard />);
+    const { container } = renderWithRouter(<Dashboard />);
 
     await waitFor(() => {
-      expect(screen.getAllByText('--').length).toBeGreaterThanOrEqual(2);
+      expect(container.querySelectorAll('.stat-card-skeleton')).toHaveLength(0);
     });
+
+    const statValues = screen.getAllByText('0');
+    expect(statValues.length).toBeGreaterThanOrEqual(2);
   });
 
   it('does not render stats section when user is not TRAINER', () => {

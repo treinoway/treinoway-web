@@ -22,11 +22,12 @@ vi.mock('../../api/axios', () => ({
 const mockShowToast = vi.fn();
 
 const mockTrainerData = {
-  bio: 'Treinador experiente com 10 anos de atuação.',
-  serviceMode: 'HYBRID',
-  instagram: '@trainer',
-  facebook: 'trainer.fb',
-  whatsapp: '+5511999999999',
+  serviceMode: 'hybrid',
+  socialNetworks: {
+    instagram: '@trainer',
+    facebook: 'trainer.fb',
+    whatsapp: '+5511999999999',
+  },
 };
 
 describe('TrainerProfile', () => {
@@ -68,16 +69,31 @@ describe('TrainerProfile', () => {
     renderWithRouter(<TrainerProfile />);
 
     await waitFor(() => {
-      expect(screen.getByText('Treinador experiente com 10 anos de atuação.')).toBeInTheDocument();
+      expect(screen.getByText('Híbrido')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Híbrido')).toBeInTheDocument();
     expect(screen.getByText('@trainer')).toBeInTheDocument();
   });
 
-  it('shows "Não informado" for empty fields', async () => {
+  it('shows "Não informado" for empty social fields', async () => {
     api.get.mockResolvedValue({
-      data: { bio: '', serviceMode: 'ONLINE', instagram: '', facebook: '', whatsapp: '' },
+      data: {
+        serviceMode: 'online',
+        socialNetworks: { instagram: '', facebook: '', whatsapp: '' },
+      },
+    });
+
+    renderWithRouter(<TrainerProfile />);
+
+    await waitFor(() => {
+      const notInformed = screen.getAllByText('Não informado');
+      expect(notInformed.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('shows "Não informado" when socialNetworks is absent', async () => {
+    api.get.mockResolvedValue({
+      data: { serviceMode: 'online' },
     });
 
     renderWithRouter(<TrainerProfile />);
@@ -115,8 +131,8 @@ describe('TrainerProfile', () => {
     await waitFor(() => screen.getByRole('button', { name: /^editar$/i }));
     await user.click(screen.getByRole('button', { name: /^editar$/i }));
 
-    expect(screen.getByDisplayValue('Treinador experiente com 10 anos de atuação.')).toBeInTheDocument();
     expect(screen.getByDisplayValue('@trainer')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('trainer.fb')).toBeInTheDocument();
   });
 
   it('returns to view mode when Cancel is clicked', async () => {
@@ -131,7 +147,7 @@ describe('TrainerProfile', () => {
     expect(screen.getByRole('button', { name: /^editar$/i })).toBeInTheDocument();
   });
 
-  it('calls PATCH /trainer and shows success toast on submit', async () => {
+  it('calls PATCH /trainer with nested body and shows success toast on submit', async () => {
     const user = userEvent.setup();
     api.patch.mockResolvedValue({ data: mockTrainerData });
 
@@ -142,7 +158,14 @@ describe('TrainerProfile', () => {
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
-      expect(api.patch).toHaveBeenCalledWith('/trainer', expect.any(Object));
+      expect(api.patch).toHaveBeenCalledWith('/trainer', {
+        trainer: { serviceMode: 'hybrid' },
+        socials: {
+          instagram: '@trainer',
+          facebook: 'trainer.fb',
+          whatsapp: '+5511999999999',
+        },
+      });
       expect(mockShowToast).toHaveBeenCalledWith(
         'Perfil do treinador atualizado com sucesso!',
         'success'
@@ -165,6 +188,30 @@ describe('TrainerProfile', () => {
 
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Erro ao atualizar.', 'error');
+    });
+  });
+
+  it('displays correct label for in_person service mode', async () => {
+    api.get.mockResolvedValue({
+      data: { serviceMode: 'in_person', socialNetworks: {} },
+    });
+
+    renderWithRouter(<TrainerProfile />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Presencial')).toBeInTheDocument();
+    });
+  });
+
+  it('displays correct label for online service mode', async () => {
+    api.get.mockResolvedValue({
+      data: { serviceMode: 'online', socialNetworks: {} },
+    });
+
+    renderWithRouter(<TrainerProfile />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Online')).toBeInTheDocument();
     });
   });
 });

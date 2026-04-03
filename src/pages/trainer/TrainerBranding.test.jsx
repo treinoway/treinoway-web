@@ -69,7 +69,7 @@ describe('TrainerBranding', () => {
     api.get.mockResolvedValue({ data: null });
     renderWithRouter(<TrainerBranding />);
     await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toHaveValue('#6D28D9');
+      expect(screen.getByLabelText('Cor primária')).toHaveValue('#1565C0');
     });
     expect(screen.getByLabelText('Cor secundária')).toHaveValue('');
     expect(screen.getByLabelText('Mensagem de boas-vindas')).toHaveValue('');
@@ -120,7 +120,7 @@ describe('TrainerBranding', () => {
   it('saves branding with PUT /trainer/branding', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: null });
-    api.put.mockResolvedValue({ data: { ...mockBranding, primaryColor: '#6D28D9', secondaryColor: null, welcomeMessage: null } });
+    api.put.mockResolvedValue({ data: { ...mockBranding, primaryColor: '#1565C0', secondaryColor: null, welcomeMessage: null } });
     renderWithRouter(<TrainerBranding />);
 
     await waitFor(() => {
@@ -131,7 +131,7 @@ describe('TrainerBranding', () => {
 
     await waitFor(() => {
       expect(api.put).toHaveBeenCalledWith('/trainer/branding', {
-        primaryColor: '#6D28D9',
+        primaryColor: '#1565C0',
         secondaryColor: null,
         welcomeMessage: null,
       });
@@ -154,7 +154,7 @@ describe('TrainerBranding', () => {
 
     await waitFor(() => {
       expect(api.put).toHaveBeenCalledWith('/trainer/branding', {
-        primaryColor: '#6D28D9',
+        primaryColor: '#1565C0',
         secondaryColor: null,
         welcomeMessage: 'Olá!',
       });
@@ -431,7 +431,7 @@ describe('TrainerBranding', () => {
 
     await waitFor(() => {
       expect(api.put).toHaveBeenCalledWith('/trainer/branding', {
-        primaryColor: '#6D28D9',
+        primaryColor: '#1565C0',
         secondaryColor: '#33A1FF',
         welcomeMessage: null,
       });

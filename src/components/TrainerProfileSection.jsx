@@ -5,17 +5,16 @@ import { translateError } from '../i18n';
 import api from '../api/axios';
 
 const serviceModeLabel = (mode) => {
-  if (mode === 'ONLINE') return 'Online';
-  if (mode === 'IN_PERSON') return 'Presencial';
-  if (mode === 'HYBRID') return 'Híbrido';
+  if (mode === 'online') return 'Online';
+  if (mode === 'in_person') return 'Presencial';
+  if (mode === 'hybrid') return 'Híbrido';
   return null;
 };
 
-// Tweak 4: Badge class for service mode
 const serviceModeBadgeClass = (mode) => {
-  if (mode === 'ONLINE') return 'badge badge-blue';
-  if (mode === 'IN_PERSON') return 'badge badge-green';
-  if (mode === 'HYBRID') return 'badge';
+  if (mode === 'online') return 'badge badge-blue';
+  if (mode === 'in_person') return 'badge badge-green';
+  if (mode === 'hybrid') return 'badge';
   return 'badge';
 };
 
@@ -27,8 +26,7 @@ const TrainerProfileSection = () => {
   const [trainer, setTrainer] = useState(null);
 
   const [formData, setFormData] = useState({
-    bio: '',
-    serviceMode: 'HYBRID',
+    serviceMode: 'hybrid',
     instagram: '',
     facebook: '',
     whatsapp: '',
@@ -42,13 +40,13 @@ const TrainerProfileSection = () => {
     setProfileLoading(true);
     try {
       const response = await api.get('/trainer');
-      setTrainer(response.data);
+      const data = response.data;
+      setTrainer(data);
       setFormData({
-        bio: response.data.bio || '',
-        serviceMode: response.data.serviceMode || 'HYBRID',
-        instagram: response.data.instagram || '',
-        facebook: response.data.facebook || '',
-        whatsapp: response.data.whatsapp || '',
+        serviceMode: data.serviceMode || 'hybrid',
+        instagram: data.socialNetworks?.instagram || '',
+        facebook: data.socialNetworks?.facebook || '',
+        whatsapp: data.socialNetworks?.whatsapp || '',
       });
     } catch (error) {
       console.error('Failed to fetch trainer profile:', error);
@@ -60,11 +58,10 @@ const TrainerProfileSection = () => {
   const handleCancel = () => {
     if (trainer) {
       setFormData({
-        bio: trainer.bio || '',
-        serviceMode: trainer.serviceMode || 'HYBRID',
-        instagram: trainer.instagram || '',
-        facebook: trainer.facebook || '',
-        whatsapp: trainer.whatsapp || '',
+        serviceMode: trainer.serviceMode || 'hybrid',
+        instagram: trainer.socialNetworks?.instagram || '',
+        facebook: trainer.socialNetworks?.facebook || '',
+        whatsapp: trainer.socialNetworks?.whatsapp || '',
       });
     }
     setEditing(false);
@@ -75,8 +72,21 @@ const TrainerProfileSection = () => {
     setLoading(true);
 
     try {
-      const response = await api.patch('/trainer', formData);
+      const response = await api.patch('/trainer', {
+        trainer: { serviceMode: formData.serviceMode },
+        socials: {
+          instagram: formData.instagram,
+          facebook: formData.facebook,
+          whatsapp: formData.whatsapp,
+        },
+      });
       setTrainer(response.data);
+      setFormData({
+        serviceMode: response.data.serviceMode || 'hybrid',
+        instagram: response.data.socialNetworks?.instagram || '',
+        facebook: response.data.socialNetworks?.facebook || '',
+        whatsapp: response.data.socialNetworks?.whatsapp || '',
+      });
       showToast('Perfil do treinador atualizado com sucesso!', 'success');
       setEditing(false);
     } catch (error) {
@@ -96,8 +106,11 @@ const TrainerProfileSection = () => {
     );
   }
 
-  // Tweak 2 & 6: Count empty fields
-  const socialFields = [trainer?.instagram, trainer?.facebook, trainer?.whatsapp];
+  const socialFields = [
+    trainer?.socialNetworks?.instagram,
+    trainer?.socialNetworks?.facebook,
+    trainer?.socialNetworks?.whatsapp,
+  ];
   const socialEmptyCount = socialFields.filter((val) => !val).length;
 
   const modeLabel = serviceModeLabel(trainer?.serviceMode);
@@ -108,7 +121,6 @@ const TrainerProfileSection = () => {
       <div className="card-header">
         <div>
           <h2 className="card-title">Informações do Treinador</h2>
-          {/* Tweak 4: Service mode badge in header */}
           {!editing && modeLabel && (
             <span className={`${modeBadgeClass} card-header-badge`}>
               {modeLabel}
@@ -125,18 +137,6 @@ const TrainerProfileSection = () => {
       {editing ? (
         <form onSubmit={handleSubmit} className="form fade-in">
           <div>
-            <label className="form-label">Bio</label>
-            <textarea
-              value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              rows={4}
-              className="form-textarea"
-              placeholder="Conte aos alunos sobre você..."
-              disabled={loading}
-            />
-          </div>
-
-          <div>
             <label className="form-label">Modo de Atendimento</label>
             <select
               value={formData.serviceMode}
@@ -144,9 +144,9 @@ const TrainerProfileSection = () => {
               className="form-select"
               disabled={loading}
             >
-              <option value="ONLINE">Online</option>
-              <option value="IN_PERSON">Presencial</option>
-              <option value="HYBRID">Híbrido</option>
+              <option value="online">Online</option>
+              <option value="in_person">Presencial</option>
+              <option value="hybrid">Híbrido</option>
             </select>
           </div>
 
@@ -197,18 +197,6 @@ const TrainerProfileSection = () => {
         </form>
       ) : (
         <div className="fade-in">
-          {/* Tweak 9: Bio block */}
-          {trainer?.bio ? (
-            <div className="bio-block">
-              {trainer.bio}
-            </div>
-          ) : (
-            <div className="bio-block bio-block--placeholder">
-              Adicione uma bio para seus alunos conhecerem você
-            </div>
-          )}
-
-          {/* Tweak 8: Separate social section */}
           <div className="profile-section">
             <div className="profile-section-header">
               <h3 className="profile-section-title">Redes Sociais e Contato</h3>
@@ -224,22 +212,22 @@ const TrainerProfileSection = () => {
               </p>
             ) : (
               <div className="info-stacked">
-                {trainer?.instagram && (
+                {trainer?.socialNetworks?.instagram && (
                   <div>
                     <span className="info-label">Instagram</span>
-                    <span className="info-value">{trainer.instagram}</span>
+                    <span className="info-value">{trainer.socialNetworks.instagram}</span>
                   </div>
                 )}
-                {trainer?.facebook && (
+                {trainer?.socialNetworks?.facebook && (
                   <div>
                     <span className="info-label">Facebook</span>
-                    <span className="info-value">{trainer.facebook}</span>
+                    <span className="info-value">{trainer.socialNetworks.facebook}</span>
                   </div>
                 )}
-                {trainer?.whatsapp && (
+                {trainer?.socialNetworks?.whatsapp && (
                   <div>
                     <span className="info-label">WhatsApp</span>
-                    <span className="info-value">{trainer.whatsapp}</span>
+                    <span className="info-value">{trainer.socialNetworks.whatsapp}</span>
                   </div>
                 )}
               </div>

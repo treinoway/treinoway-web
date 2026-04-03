@@ -52,6 +52,7 @@ function createDefaultContextValue(overrides = {}) {
     statusMessage: '',
     hasNewResponse: false,
     errorRetry: null,
+    errorCode: null,
     sendMessage: vi.fn(),
     startNewConversation: vi.fn(),
     loadConversation: vi.fn(),
@@ -281,6 +282,37 @@ describe('AiAssistant', () => {
     await user.click(screen.getByRole('button', { name: /tentar novamente/i }));
 
     expect(retryLastMessage).toHaveBeenCalled();
+  });
+
+  it('shows distinct overloaded message when errorCode is AI_OVERLOADED', () => {
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        errorRetry: 'Minha mensagem',
+        errorCode: 'AI_OVERLOADED',
+        messages: [{ role: 'user', content: 'Minha mensagem' }],
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    expect(
+      screen.getByText('O assistente está sobrecarregado no momento. Tente novamente em instantes.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Não foi possível processar sua mensagem.')).not.toBeInTheDocument();
+  });
+
+  it('shows generic error message when errorCode is not AI_OVERLOADED', () => {
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        errorRetry: 'Minha mensagem',
+        errorCode: null,
+        messages: [{ role: 'user', content: 'Minha mensagem' }],
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText('Não foi possível processar sua mensagem.')).toBeInTheDocument();
   });
 
   // ---------------------------------------------------------------------------

@@ -109,13 +109,21 @@ const Dashboard = () => {
       </div>
 
       {hasRole('TRAINER') && (
-        <section className="dashboard-stats">
+        <section className="dashboard-stats" aria-busy={studentsCount === null || protocolsCount === null}>
           <div className="stat-card">
-            <span className="stat-card-value">{studentsCount ?? '--'}</span>
+            <span className="stat-card-value">
+              {studentsCount === null
+                ? <span className="skeleton stat-card-skeleton" aria-hidden="true" />
+                : studentsCount}
+            </span>
             <span className="stat-card-label">Alunos</span>
           </div>
           <div className="stat-card">
-            <span className="stat-card-value">{protocolsCount ?? '--'}</span>
+            <span className="stat-card-value">
+              {protocolsCount === null
+                ? <span className="skeleton stat-card-skeleton" aria-hidden="true" />
+                : protocolsCount}
+            </span>
             <span className="stat-card-label">Rotinas</span>
           </div>
         </section>
@@ -124,7 +132,7 @@ const Dashboard = () => {
       <section>
         <h2 className="dashboard-section-title">Ações Rápidas</h2>
         <div className="quick-actions">
-          {hasRole('TRAINER') && (
+          {hasRole('TRAINER') && user?.email !== 'gabriel.araujo.lima2011@gmail.com' && (
             <Link to="/trainer/ai-assistant" className="quick-action-card quick-action-card--ai">
               <div className="quick-action-icon quick-action-icon--ai">
                 <Sparkles size={20} strokeWidth={1.6} />

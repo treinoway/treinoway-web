@@ -72,6 +72,7 @@ const TestConsumer = () => {
     streamingText,
     statusMessage,
     errorRetry,
+    errorCode,
     sendMessage,
     startNewConversation,
     loadConversation,
@@ -86,6 +87,7 @@ const TestConsumer = () => {
       <span data-info="streamingText">{streamingText}</span>
       <span data-info="statusMessage">{statusMessage}</span>
       <span data-info="errorRetry">{errorRetry || ''}</span>
+      <span data-info="errorCode">{errorCode || ''}</span>
       <span data-info="messageCount">{messages.length}</span>
       {messages.map((msg, i) => (
         <div key={i} data-info={`message-${i}`}>
@@ -356,6 +358,64 @@ describe('AiChatContext', () => {
     expect(messageCount.textContent).toBe('0');
     const loadingEl = document.querySelector('[data-info="loading"]');
     expect(loadingEl.textContent).toBe('false');
+  });
+
+  it('sets errorRetry and errorCode when SSE error event fires', async () => {
+    const user = userEvent.setup();
+    const errorEvents = [
+      { event: 'error', data: { error: 'AI_OVERLOADED', messageCode: 'ai.overloaded', message: 'Sobrecarregado.' } },
+    ];
+    global.fetch.mockResolvedValue(createMockSSEStream(errorEvents));
+
+    renderWithProvider();
+
+    await user.click(screen.getByRole('button', { name: /enviar/i }));
+
+    await waitFor(() => {
+      const errorRetryEl = document.querySelector('[data-info="errorRetry"]');
+      expect(errorRetryEl.textContent).toBe('Test message');
+    });
+
+    const errorCodeEl = document.querySelector('[data-info="errorCode"]');
+    expect(errorCodeEl.textContent).toBe('AI_OVERLOADED');
+  });
+
+  it('shows toast when SSE error event fires', async () => {
+    const user = userEvent.setup();
+    const errorEvents = [
+      { event: 'error', data: { error: 'AI_OVERLOADED', messageCode: 'ai.overloaded', message: 'Sobrecarregado.' } },
+    ];
+    global.fetch.mockResolvedValue(createMockSSEStream(errorEvents));
+
+    renderWithProvider();
+
+    await user.click(screen.getByRole('button', { name: /enviar/i }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith('Sobrecarregado.', 'error');
+    });
+  });
+
+  it('clears errorCode on startNewConversation', async () => {
+    const user = userEvent.setup();
+    const errorEvents = [
+      { event: 'error', data: { error: 'AI_OVERLOADED', messageCode: 'ai.overloaded', message: 'Sobrecarregado.' } },
+    ];
+    global.fetch.mockResolvedValue(createMockSSEStream(errorEvents));
+
+    renderWithProvider();
+
+    await user.click(screen.getByRole('button', { name: /enviar/i }));
+
+    await waitFor(() => {
+      const errorCodeEl = document.querySelector('[data-info="errorCode"]');
+      expect(errorCodeEl.textContent).toBe('AI_OVERLOADED');
+    });
+
+    await user.click(screen.getByRole('button', { name: /nova conversa/i }));
+
+    const errorCodeEl = document.querySelector('[data-info="errorCode"]');
+    expect(errorCodeEl.textContent).toBe('');
   });
 
   it('clears state when user changes (logout/login scenario)', async () => {

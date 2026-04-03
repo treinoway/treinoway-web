@@ -51,53 +51,53 @@
   --radius-xl: 28px;
   --radius-full: 9999px;
 
-  /* Material 3 Colors - Light Theme (seed: #6D28D9) */
-  /* Primary */
-  --color-primary: #6D28D9;
+  /* Material 3 Colors - Light Theme (seed: #1565C0 blue, accent: #B55A02 orange) */
+  /* Primary - Blue */
+  --color-primary: #1565C0;
   --color-on-primary: #FFFFFF;
-  --color-primary-container: #EDE9FE;
-  --color-on-primary-container: #2E1065;
+  --color-primary-container: #D4E3F7;
+  --color-on-primary-container: #0D3B6F;
 
-  /* Secondary */
-  --color-secondary: #6B7280;
+  /* Secondary - Orange */
+  --color-secondary: #B55A02;
   --color-on-secondary: #FFFFFF;
-  --color-secondary-container: #E5E7EB;
-  --color-on-secondary-container: #1F2937;
+  --color-secondary-container: #FDDCBA;
+  --color-on-secondary-container: #6B3400;
 
   /* Tertiary */
-  --color-tertiary: #BE185D;
+  --color-tertiary: #1B3A5C;
   --color-on-tertiary: #FFFFFF;
-  --color-tertiary-container: #FCE7F3;
-  --color-on-tertiary-container: #831843;
+  --color-tertiary-container: #C8D6E5;
+  --color-on-tertiary-container: #0F2137;
 
   /* Error */
-  --color-error: #BA1A1A;
+  --color-error: #D32F2F;
   --color-on-error: #FFFFFF;
-  --color-error-container: #FFDAD6;
+  --color-error-container: #FDDEDE;
   --color-on-error-container: #410002;
 
   /* Success (custom) */
-  --color-success: #16a34a;
+  --color-success: #2E7D32;
   --color-on-success: #FFFFFF;
-  --color-success-container: #dcfce7;
+  --color-success-container: #D4EDDA;
   --color-on-success-container: #052e16;
 
   /* Background & Surface */
-  --color-background: #FDFBFF;
-  --color-on-background: #1A1C1E;
-  
-  --color-surface: #FDFBFF;
-  --color-on-surface: #1A1C1E;
-  --color-surface-variant: #E1E2EC;
-  --color-on-surface-variant: #44474F;
-  
-  --color-surface-container: #F3F0FF;
-  --color-surface-container-high: #EDE9FE;
-  --color-surface-container-highest: #DDD6FE;
+  --color-background: #F8F9FB;
+  --color-on-background: #1C1C1E;
+
+  --color-surface: #FFFFFF;
+  --color-on-surface: #1C1C1E;
+  --color-surface-variant: #E8E8ED;
+  --color-on-surface-variant: #626267;
+
+  --color-surface-container: #F0F1F4;
+  --color-surface-container-high: #E6E7EB;
+  --color-surface-container-highest: #DCDDE2;
 
   /* Outline */
-  --color-outline: #75777F;
-  --color-outline-variant: #C5C6D0;
+  --color-outline: #8E8E93;
+  --color-outline-variant: #C7C7CC;
 
   /* Shadow (keeping existing) */
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -324,7 +324,7 @@ a {
 
 .sidebar-header {
   padding: var(--spacing-md);
-  background: linear-gradient(135deg, #5B21B6, #7C3AED);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-tertiary));
   border-bottom: none;
 }
 
@@ -605,8 +605,8 @@ a {
   justify-content: space-between;
   padding: var(--spacing-sm) var(--spacing-md);
   height: 56px;
-  background: linear-gradient(135deg, #5B21B6, #7C3AED);
-  color: #FFFFFF;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-tertiary));
+  color: var(--color-on-primary);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -1798,7 +1798,7 @@ a {
   align-items: center;
   gap: var(--spacing-xs);
   font-size: var(--font-caption-size);
-  color: var(--md-primary);
+  color: var(--color-primary);
   text-decoration: none;
   margin-top: var(--spacing-xs);
   background: none;
@@ -2659,6 +2659,12 @@ a {
   border-radius: var(--radius-md);
 }
 
+.stat-card-skeleton {
+  display: inline-block;
+  width: 3ch;
+  height: 2rem;
+}
+
 @keyframes skeleton-pulse {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
@@ -2750,9 +2756,9 @@ a {
    Dashboard Hero & Quick Actions
    ============================================ */
 .dashboard-hero {
-  background: linear-gradient(135deg, #5B21B6, #7C3AED);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-tertiary));
   border-radius: var(--radius-xl);
-  color: #FFFFFF;
+  color: var(--color-on-primary);
   padding: var(--spacing-xl) var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
 }
@@ -3015,8 +3021,8 @@ a {
   width: 56px;
   height: 56px;
   border-radius: var(--radius-full);
-  background: var(--md-primary-container);
-  color: var(--md-primary);
+  background: var(--color-primary-container);
+  color: var(--color-primary);
 }
 
 .no-students-modal-checkbox {
@@ -3026,13 +3032,13 @@ a {
   margin-bottom: var(--spacing-lg);
   cursor: pointer;
   font-size: var(--font-body-small-size);
-  color: var(--md-on-surface-variant);
+  color: var(--color-on-surface-variant);
 }
 
 .no-students-modal-checkbox input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: var(--md-primary);
+  accent-color: var(--color-primary);
   cursor: pointer;
 }
 
@@ -3272,7 +3278,7 @@ a {
 }
 
 .student-card-link:hover .student-card-name {
-  color: var(--md-primary);
+  color: var(--color-primary);
 }
 
 /* Protocol student autocomplete */
@@ -3691,8 +3697,8 @@ a {
   width: 52px;
   height: 52px;
   border-radius: var(--radius-full);
-  background: var(--md-primary-container);
-  color: var(--md-primary);
+  background: var(--color-primary-container);
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3704,7 +3710,7 @@ a {
 .trainer-card__name {
   font-size: var(--font-body-size);
   font-weight: 600;
-  color: var(--md-on-surface);
+  color: var(--color-on-surface);
   margin: 0;
 }
 
@@ -3713,7 +3719,7 @@ a {
   flex-direction: column;
   gap: var(--spacing-xs);
   font-size: var(--font-body-small-size);
-  color: var(--md-on-surface);
+  color: var(--color-on-surface);
 }
 
 .trainer-card__meta-row {
@@ -3731,8 +3737,8 @@ a {
   width: 100%;
   padding: var(--spacing-md);
   border-radius: var(--radius-md);
-  border: 1px solid var(--md-outline-variant);
-  background: var(--md-surface-variant);
+  border: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-variant);
   cursor: pointer;
   text-align: left;
   gap: var(--spacing-xs);
@@ -3740,7 +3746,7 @@ a {
 }
 
 .import-platform-card:hover {
-  background: var(--md-primary-container);
+  background: var(--color-primary-container);
 }
 
 .import-platform-card__name {
@@ -3755,8 +3761,8 @@ a {
   gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-sm);
-  background: var(--md-primary-container);
-  color: var(--md-on-surface);
+  background: var(--color-primary-container);
+  color: var(--color-on-surface);
   font-size: var(--font-body-small-size);
   line-height: 1.4;
   margin: 0;
@@ -3933,12 +3939,12 @@ a {
 .ai-chat__md-th,
 .ai-chat__md-td {
   padding: var(--spacing-xs) var(--spacing-sm);
-  border: 1px solid color-mix(in srgb, var(--md-on-surface) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 20%, transparent);
   text-align: left;
 }
 
 .ai-chat__md-th {
-  background: var(--md-primary-container);
+  background: var(--color-primary-container);
   font-weight: 600;
 }
 
@@ -4392,9 +4398,9 @@ a {
    Dashboard AI Card (highlighted quick action)
    ============================================ */
 .quick-action-card--ai {
-  background: linear-gradient(135deg, #5B21B6, #7C3AED);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-tertiary));
   border: none;
-  color: #FFFFFF;
+  color: var(--color-on-primary);
   transition: box-shadow 0.15s, transform 0.15s;
 }
 

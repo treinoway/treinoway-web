@@ -22,11 +22,12 @@ vi.mock('../api/axios', () => ({
 const mockShowToast = vi.fn();
 
 const mockTrainerData = {
-  bio: 'Treinador experiente com 10 anos de atuação.',
-  serviceMode: 'HYBRID',
-  instagram: '@trainer',
-  facebook: 'trainer.fb',
-  whatsapp: '+5511999999999',
+  serviceMode: 'hybrid',
+  socialNetworks: {
+    instagram: '@trainer',
+    facebook: 'trainer.fb',
+    whatsapp: '+5511999999999',
+  },
 };
 
 describe('TrainerProfileSection', () => {
@@ -55,15 +56,6 @@ describe('TrainerProfileSection', () => {
     });
   });
 
-  it('displays trainer bio in styled bio block after loading', async () => {
-    renderWithRouter(<TrainerProfileSection />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Treinador experiente com 10 anos de atuação.')).toBeInTheDocument();
-    });
-  });
-
-  // Tweak 4: Service mode badge in header
   it('displays service mode as a badge in the header', async () => {
     renderWithRouter(<TrainerProfileSection />);
 
@@ -74,10 +66,9 @@ describe('TrainerProfileSection', () => {
     });
   });
 
-  // Tweak 4: Badge classes by mode
-  it('renders ONLINE mode as badge-blue', async () => {
+  it('renders online mode as badge-blue', async () => {
     api.get.mockResolvedValue({
-      data: { ...mockTrainerData, serviceMode: 'ONLINE' },
+      data: { ...mockTrainerData, serviceMode: 'online' },
     });
 
     renderWithRouter(<TrainerProfileSection />);
@@ -88,9 +79,9 @@ describe('TrainerProfileSection', () => {
     });
   });
 
-  it('renders IN_PERSON mode as badge-green', async () => {
+  it('renders in_person mode as badge-green', async () => {
     api.get.mockResolvedValue({
-      data: { ...mockTrainerData, serviceMode: 'IN_PERSON' },
+      data: { ...mockTrainerData, serviceMode: 'in_person' },
     });
 
     renderWithRouter(<TrainerProfileSection />);
@@ -111,32 +102,16 @@ describe('TrainerProfileSection', () => {
     expect(screen.queryByText('Perfil do Treinador')).not.toBeInTheDocument();
   });
 
-  // Tweak 2: Empty fields hidden, summary shown
   it('hides empty social fields and shows empty count', async () => {
     api.get.mockResolvedValue({
-      data: { bio: '', serviceMode: 'ONLINE', instagram: '', facebook: '', whatsapp: '' },
+      data: { serviceMode: 'online', socialNetworks: { instagram: '', facebook: '', whatsapp: '' } },
     });
 
     renderWithRouter(<TrainerProfileSection />);
 
     await waitFor(() => {
-      // Should NOT show "Não informado" for individual fields
       expect(screen.queryAllByText('Não informado').length).toBe(0);
-      // Should show empty fields summary
       expect(screen.getByText(/campos não preenchidos/)).toBeInTheDocument();
-    });
-  });
-
-  // Tweak 9: Bio placeholder when empty
-  it('shows bio placeholder when bio is empty', async () => {
-    api.get.mockResolvedValue({
-      data: { bio: '', serviceMode: 'ONLINE', instagram: '', facebook: '', whatsapp: '' },
-    });
-
-    renderWithRouter(<TrainerProfileSection />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Adicione uma bio para seus alunos conhecerem você')).toBeInTheDocument();
     });
   });
 
@@ -159,15 +134,15 @@ describe('TrainerProfileSection', () => {
     expect(screen.getByRole('button', { name: /cancelar/i })).toBeInTheDocument();
   });
 
-  it('pre-fills edit form with existing trainer data', async () => {
+  it('pre-fills edit form with existing trainer data from socialNetworks', async () => {
     const user = userEvent.setup();
     renderWithRouter(<TrainerProfileSection />);
 
     await waitFor(() => screen.getByRole('button', { name: /^editar$/i }));
     await user.click(screen.getByRole('button', { name: /^editar$/i }));
 
-    expect(screen.getByDisplayValue('Treinador experiente com 10 anos de atuação.')).toBeInTheDocument();
     expect(screen.getByDisplayValue('@trainer')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('trainer.fb')).toBeInTheDocument();
   });
 
   it('returns to view mode and restores data when Cancel is clicked', async () => {
@@ -177,15 +152,15 @@ describe('TrainerProfileSection', () => {
     await waitFor(() => screen.getByRole('button', { name: /^editar$/i }));
     await user.click(screen.getByRole('button', { name: /^editar$/i }));
 
-    const bioTextarea = screen.getByDisplayValue('Treinador experiente com 10 anos de atuação.');
-    await user.clear(bioTextarea);
-    await user.type(bioTextarea, 'Nova bio');
+    const instagramInput = screen.getByDisplayValue('@trainer');
+    await user.clear(instagramInput);
+    await user.type(instagramInput, '@changed');
 
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
     expect(screen.queryByRole('button', { name: /^salvar$/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^editar$/i })).toBeInTheDocument();
-    expect(screen.getByText('Treinador experiente com 10 anos de atuação.')).toBeInTheDocument();
+    expect(screen.getByText('@trainer')).toBeInTheDocument();
   });
 
   it('disables inputs during loading', async () => {
@@ -208,7 +183,7 @@ describe('TrainerProfileSection', () => {
     });
   });
 
-  it('calls PATCH /trainer and shows success toast on submit', async () => {
+  it('calls PATCH /trainer with nested body and shows success toast on submit', async () => {
     const user = userEvent.setup();
     api.patch.mockResolvedValue({ data: mockTrainerData });
 
@@ -219,7 +194,14 @@ describe('TrainerProfileSection', () => {
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
-      expect(api.patch).toHaveBeenCalledWith('/trainer', expect.any(Object));
+      expect(api.patch).toHaveBeenCalledWith('/trainer', {
+        trainer: { serviceMode: 'hybrid' },
+        socials: {
+          instagram: '@trainer',
+          facebook: 'trainer.fb',
+          whatsapp: '+5511999999999',
+        },
+      });
       expect(mockShowToast).toHaveBeenCalledWith(
         'Perfil do treinador atualizado com sucesso!',
         'success'
@@ -245,7 +227,6 @@ describe('TrainerProfileSection', () => {
     });
   });
 
-  // Tweak 8: Social media in separate sub-section
   it('renders social media under "Redes Sociais e Contato" sub-section', async () => {
     renderWithRouter(<TrainerProfileSection />);
 
@@ -257,7 +238,6 @@ describe('TrainerProfileSection', () => {
     expect(screen.getByText('trainer.fb')).toBeInTheDocument();
   });
 
-  // Tweak 6: Section completeness indicator
   it('shows check icon when all social fields are filled', async () => {
     renderWithRouter(<TrainerProfileSection />);
 
@@ -268,7 +248,10 @@ describe('TrainerProfileSection', () => {
 
   it('shows "Incompleto" when social fields are partially empty', async () => {
     api.get.mockResolvedValue({
-      data: { ...mockTrainerData, facebook: '', whatsapp: '' },
+      data: {
+        serviceMode: 'hybrid',
+        socialNetworks: { instagram: '@trainer', facebook: '', whatsapp: '' },
+      },
     });
 
     renderWithRouter(<TrainerProfileSection />);
@@ -278,31 +261,41 @@ describe('TrainerProfileSection', () => {
     });
   });
 
-  // Tweak 1: Stacked info layout
   it('renders social info in stacked layout', async () => {
     renderWithRouter(<TrainerProfileSection />);
 
     await waitFor(() => {
-      // Labels should exist as block elements (not inline)
       expect(screen.getByText('Instagram')).toBeInTheDocument();
       expect(screen.getByText('@trainer')).toBeInTheDocument();
     });
   });
 
-  // Tweak 2: Only filled fields shown
   it('shows only filled social fields and empty count for others', async () => {
     api.get.mockResolvedValue({
-      data: { ...mockTrainerData, facebook: '', whatsapp: '' },
+      data: {
+        serviceMode: 'hybrid',
+        socialNetworks: { instagram: '@trainer', facebook: '', whatsapp: '' },
+      },
     });
 
     renderWithRouter(<TrainerProfileSection />);
 
     await waitFor(() => {
       expect(screen.getByText('@trainer')).toBeInTheDocument();
-      // Facebook and WhatsApp should not appear as info items
       expect(screen.queryByText('trainer.fb')).not.toBeInTheDocument();
-      // Empty count shown
       expect(screen.getByText(/campo.*não preenchido/)).toBeInTheDocument();
+    });
+  });
+
+  it('handles missing socialNetworks gracefully', async () => {
+    api.get.mockResolvedValue({
+      data: { serviceMode: 'online' },
+    });
+
+    renderWithRouter(<TrainerProfileSection />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/campos não preenchidos/)).toBeInTheDocument();
     });
   });
 });

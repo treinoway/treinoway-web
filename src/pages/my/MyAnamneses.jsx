@@ -51,7 +51,7 @@ const QuestionItem = ({ question, index }) => {
     <div
       style={{
         padding: 'var(--spacing-sm) var(--spacing-md)',
-        background: 'var(--md-surface)',
+        background: 'var(--color-surface)',
         borderRadius: 'var(--radius-sm)',
         border: '1px solid var(--color-outline-variant)',
         marginBottom: 'var(--spacing-sm)',
@@ -91,7 +91,7 @@ const SectionAccordion = ({ section }) => {
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: 'var(--spacing-sm) var(--spacing-md)',
-          background: 'var(--md-surface)',
+          background: 'var(--color-surface)',
           border: 'none',
           cursor: 'pointer',
           textAlign: 'left',
@@ -107,7 +107,7 @@ const SectionAccordion = ({ section }) => {
       </button>
 
       {expanded && sortedQuestions.length > 0 && (
-        <div style={{ padding: 'var(--spacing-md)', background: 'var(--md-primary-container)' }}>
+        <div style={{ padding: 'var(--spacing-md)', background: 'var(--color-primary-container)' }}>
           {sortedQuestions.map((question, index) => (
             <QuestionItem key={question.id} question={question} index={index} />
           ))}
@@ -115,7 +115,7 @@ const SectionAccordion = ({ section }) => {
       )}
 
       {expanded && sortedQuestions.length === 0 && (
-        <div style={{ padding: 'var(--spacing-md)', background: 'var(--md-primary-container)' }}>
+        <div style={{ padding: 'var(--spacing-md)', background: 'var(--color-primary-container)' }}>
           <p className="text-sm text-muted">Nenhuma pergunta nesta seção.</p>
         </div>
       )}
@@ -237,7 +237,7 @@ const QuestionAnswerField = ({ question, index, value, onChange, error }) => {
     <div style={{ marginBottom: 'var(--spacing-md)' }}>
       <p className="form-label" style={{ marginBottom: 'var(--spacing-xs)' }}>
         {index + 1}. {text}
-        {required && <span style={{ color: 'var(--md-error)', marginLeft: 'var(--spacing-xs)' }}>*</span>}
+        {required && <span style={{ color: 'var(--color-error)', marginLeft: 'var(--spacing-xs)' }}>*</span>}
       </p>
       {renderField()}
       {error && <p className="form-error">{error}</p>}

@@ -36,7 +36,7 @@ const TrainerBranding = () => {
   const [uploadingCover, setUploadingCover] = useState(false);
 
   const [branding, setBranding] = useState(null);
-  const [primaryColor, setPrimaryColor] = useState('#6D28D9');
+  const [primaryColor, setPrimaryColor] = useState('#1565C0');
   const [secondaryColor, setSecondaryColor] = useState('');
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [primaryColorError, setPrimaryColorError] = useState('');
@@ -62,7 +62,7 @@ const TrainerBranding = () => {
       const data = response.data;
       setBranding(data);
       if (data) {
-        setPrimaryColor(data.primaryColor || '#6D28D9');
+        setPrimaryColor(data.primaryColor || '#1565C0');
         setSecondaryColor(data.secondaryColor || '');
         setWelcomeMessage(data.welcomeMessage || '');
       }
@@ -231,14 +231,14 @@ const TrainerBranding = () => {
                 value={primaryColor}
                 onChange={(e) => handlePrimaryColorChange(e.target.value)}
                 className={`form-input branding-color-input${primaryColorError ? ' form-input--error' : ''}`}
-                placeholder="#6D28D9"
+                placeholder="#1565C0"
                 maxLength={7}
                 disabled={isBusy}
               />
               <input
                 type="color"
                 className="branding-color-swatch"
-                value={HEX_COLOR_REGEX.test(primaryColor) ? primaryColor : '#6D28D9'}
+                value={HEX_COLOR_REGEX.test(primaryColor) ? primaryColor : '#1565C0'}
                 onChange={(e) => handlePrimaryColorChange(e.target.value)}
                 aria-label="Pré-visualização da cor primária"
                 disabled={isBusy}
