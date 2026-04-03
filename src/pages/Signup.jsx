@@ -1,21 +1,17 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import GoogleIcon from '../components/GoogleIcon';
 
-const GoogleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 48 48">
-    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-    <path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.001 24.001 0 0 0 0 21.56l7.98-6.19z"/>
-    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-  </svg>
-);
+const GOOGLE_CREDENTIAL_CONFLICT = 'auth/account-exists-with-different-credential';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const { signup, loginWithGoogle, isAuthenticated } = useAuth();
@@ -25,17 +21,47 @@ const Signup = () => {
     return <Navigate to="/" replace />;
   }
 
+  const validateFields = () => {
+    const errors = {};
+
+    if (password.length > 0 && password.length < 6) {
+      errors.password = 'A senha deve ter pelo menos 6 caracteres.';
+    }
+
+    return errors;
+  };
+
+  const handlePasswordChange = (value) => {
+    setPassword(value);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.password;
+      return next;
+    });
+  };
+
+  const handlePasswordBlur = () => {
+    if (password.length > 0 && password.length < 6) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        password: 'A senha deve ter pelo menos 6 caracteres.',
+      }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
 
-    if (password !== confirmPassword) {
-      setError('As senhas não coincidem.');
+    const errors = validateFields();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
     if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.');
+      setFieldErrors({ password: 'A senha deve ter pelo menos 6 caracteres.' });
       return;
     }
 
@@ -66,7 +92,10 @@ const Signup = () => {
       if (result.success) {
         navigate('/', { replace: true });
       } else if (result.error) {
-        setError(result.error);
+        const message = String(result.error).includes(GOOGLE_CREDENTIAL_CONFLICT)
+          ? 'Esse e-mail já está cadastrado com senha. Entre com e-mail e senha.'
+          : result.error;
+        setError(message);
         setGoogleLoading(false);
       } else {
         setGoogleLoading(false);
@@ -80,88 +109,11 @@ const Signup = () => {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-header">
-          <img
-            src="/img/treino_way_transparente.png"
-            alt="Treinoway"
-            className="auth-logo"
-          />
-          <h1>Criar Conta</h1>
-          <p>Junte-se ao Treinoway hoje</p>
-        </div>
+        <img src="/img/treino_way_transparente.png" alt="Treinoway" className="auth-logo" />
+        <h1 className="auth-heading">Criar conta</h1>
+        <p className="auth-subtitle">Gerencie seus alunos e treinos.</p>
 
-        {error && (
-          <div className="alert alert-error alert-compact alert-dismissible mb-md">
-            <span>{error}</span>
-            <button
-              type="button"
-              onClick={() => setError('')}
-              className="alert-close"
-              aria-label="Fechar alerta"
-            >
-              ×
-            </button>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="form">
-          <div>
-            <label htmlFor="email" className="form-label">
-              E-mail
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="form-input"
-              placeholder="voce@exemplo.com"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="form-label">
-              Senha
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="form-input"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="confirmPassword" className="form-label">
-              Confirmar Senha
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              className="form-input"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary-full"
-          >
-            {loading ? 'Criando conta...' : 'Cadastrar'}
-          </button>
-        </form>
-
-        <div className="auth-divider">
-          <span>ou</span>
-        </div>
+        {error && <p className="auth-error">{error}</p>}
 
         <button
           type="button"
@@ -170,17 +122,70 @@ const Signup = () => {
           className="btn-google"
         >
           <GoogleIcon />
-          {googleLoading ? 'Entrando...' : 'Cadastrar com Google'}
+          {googleLoading ? 'Cadastrando...' : 'Cadastrar com Google'}
         </button>
 
-        <div className="auth-footer">
-          <p>
-            Já tem uma conta?{' '}
-            <Link to="/login" className="link">
-              Entrar
-            </Link>
-          </p>
-        </div>
+        <div className="auth-divider"><span>ou</span></div>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label htmlFor="email" className="form-label">E-mail</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="form-input"
+              placeholder="voce@exemplo.com"
+              autoComplete="email"
+              disabled={loading || googleLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password" className="form-label">Senha</label>
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                value={password}
+                onChange={(e) => handlePasswordChange(e.target.value)}
+                onBlur={handlePasswordBlur}
+                required
+                className={`form-input${fieldErrors.password ? ' form-input--error' : ''}`}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                disabled={loading || googleLoading}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            {fieldErrors.password && (
+              <span className="form-error">{fieldErrors.password}</span>
+            )}
+            <span className="auth-password-hint">Mínimo 6 caracteres</span>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || googleLoading}
+            className="btn-primary-full"
+          >
+            {loading ? 'Criando conta...' : 'Criar conta'}
+          </button>
+        </form>
+
+        <p className="auth-footer">
+          Já tem uma conta?{' '}
+          <Link to="/login" className="link">Entrar</Link>
+        </p>
       </div>
     </div>
   );
