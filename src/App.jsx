@@ -27,6 +27,10 @@ import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
 import AnamnesisDetail from './pages/trainer/AnamnesisDetail';
 import AiAssistant from './pages/trainer/AiAssistant';
 import TrainerBranding from './pages/trainer/TrainerBranding';
+import StudentPoints from './pages/trainer/StudentPoints';
+import Challenges from './pages/trainer/Challenges';
+import CreateChallenge from './pages/trainer/CreateChallenge';
+import ChallengeDetail from './pages/trainer/ChallengeDetail';
 
 // Student pages
 import MyProtocols from './pages/my/MyProtocols';
@@ -34,6 +38,8 @@ import MyAnamneses from './pages/my/MyAnamneses';
 import MyProtocolDetail from './pages/my/MyProtocolDetail';
 import WorkoutSessions from './pages/my/WorkoutSessions';
 import WorkoutSession from './pages/my/WorkoutSession';
+import MyChallenges from './pages/my/MyChallenges';
+import MyChallengeDetail from './pages/my/MyChallengeDetail';
 
 function App() {
   return (
@@ -198,6 +204,55 @@ function App() {
             }
           />
 
+          <Route path="/trainer/gamification" element={<Navigate to="/trainer/challenges" replace />} />
+
+          {/* Redirects for removed pages */}
+          <Route path="/trainer/competition" element={<Navigate to="/trainer/challenges" replace />} />
+          <Route path="/trainer/ranking" element={<Navigate to="/trainer/challenges" replace />} />
+          <Route path="/my/ranking" element={<Navigate to="/my/challenges" replace />} />
+          <Route path="/my/points" element={<Navigate to="/my/challenges" replace />} />
+
+          <Route
+            path="/trainer/students/:studentId/points"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <StudentPoints />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/challenges"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Challenges />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/challenges/new"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <CreateChallenge />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/challenges/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ChallengeDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Student routes */}
           <Route
             path="/my/protocols"
@@ -235,6 +290,27 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <MyAnamneses />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/my/challenges"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <MyChallenges />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my/challenges/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <MyChallengeDetail />
                 </Layout>
               </ProtectedRoute>
             }

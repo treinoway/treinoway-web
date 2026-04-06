@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown, FileText, Sparkles, Palette } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown, FileText, Sparkles, Palette, Trophy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 
@@ -66,6 +66,7 @@ const Layout = ({ children, noPadding = false }) => {
     ...(isStudentUser ? [
       { path: '/my/protocols', label: 'Minhas Rotinas', Icon: ClipboardList },
       { path: '/my/anamneses', label: 'Anamneses', Icon: FileText },
+      { path: '/my/challenges', label: 'Campeonatos', Icon: Trophy },
     ] : []),
   ];
 
@@ -160,6 +161,19 @@ const Layout = ({ children, noPadding = false }) => {
                   {sidebarOpen && <span className="sidebar-link-label">Assistente IA</span>}
                 </Link>
               )}
+
+              {/* Campeonatos */}
+              <Link
+                to="/trainer/challenges"
+                className={`sidebar-link ${isActive('/trainer/challenges') ? 'sidebar-link--active' : ''}`}
+                aria-label="Campeonatos"
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <Trophy size={20} strokeWidth={1.6} />
+                </span>
+                {sidebarOpen && <span className="sidebar-link-label">Campeonatos</span>}
+              </Link>
+
 
               {/* Personalização */}
               <Link
@@ -270,6 +284,19 @@ const Layout = ({ children, noPadding = false }) => {
           </Link>
         )}
 
+        {isStudentUser && (
+          <Link
+            to="/my/challenges"
+            className={`bottom-nav-item ${isActive('/my/challenges') ? 'bottom-nav-item--active' : ''}`}
+            aria-label="Campeonatos"
+          >
+            <span className="bottom-nav-item-icon" aria-hidden="true">
+              <Trophy size={22} strokeWidth={1.6} />
+            </span>
+            <span>Campeonatos</span>
+          </Link>
+        )}
+
         {hasRole('TRAINER') && (
           <Link
             to="/trainer/students"
@@ -280,6 +307,19 @@ const Layout = ({ children, noPadding = false }) => {
               <Users size={22} strokeWidth={1.6} />
             </span>
             <span>Alunos</span>
+          </Link>
+        )}
+
+        {hasRole('TRAINER') && (
+          <Link
+            to="/trainer/challenges"
+            className={`bottom-nav-item ${isActive('/trainer/challenges') ? 'bottom-nav-item--active' : ''}`}
+            aria-label="Campeonatos"
+          >
+            <span className="bottom-nav-item-icon" aria-hidden="true">
+              <Trophy size={22} strokeWidth={1.6} />
+            </span>
+            <span>Campeonatos</span>
           </Link>
         )}
 
