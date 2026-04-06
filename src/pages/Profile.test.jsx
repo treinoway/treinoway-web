@@ -6,6 +6,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../api/axios';
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
@@ -32,6 +38,7 @@ const mockRefreshUser = vi.fn();
 const mockUpdateUser = vi.fn();
 const mockShowToast = vi.fn();
 const mockHasRole = vi.fn(() => false);
+const mockLogout = vi.fn();
 
 const mockUser = {
   id: 1,
@@ -75,6 +82,8 @@ describe('Profile', () => {
     mockShowToast.mockReset();
     mockHasRole.mockReset();
     mockHasRole.mockReturnValue(false);
+    mockLogout.mockReset();
+    mockNavigate.mockReset();
     vi.mocked(api.patch).mockClear();
     vi.mocked(api.get).mockClear();
 
@@ -84,6 +93,7 @@ describe('Profile', () => {
       updateUser: mockUpdateUser,
       refreshUser: mockRefreshUser,
       hasRole: mockHasRole,
+      logout: mockLogout,
     });
   });
 
@@ -705,5 +715,23 @@ describe('Profile', () => {
     expect(screen.getByPlaceholderText('SP')).toBeInTheDocument();
     expect(screen.getByText('Cidade')).toBeInTheDocument();
     expect(screen.getByText('UF')).toBeInTheDocument();
+  });
+
+  // Logout
+  it('renders a "Sair da conta" button', () => {
+    renderWithRouter(<Profile />);
+
+    expect(screen.getByRole('button', { name: /sair da conta/i })).toBeInTheDocument();
+  });
+
+  it('calls logout and navigates to /login when "Sair da conta" is clicked', async () => {
+    const user = userEvent.setup();
+
+    renderWithRouter(<Profile />);
+
+    await user.click(screen.getByRole('button', { name: /sair da conta/i }));
+
+    expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
 });

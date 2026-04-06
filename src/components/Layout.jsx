@@ -284,19 +284,6 @@ const Layout = ({ children, noPadding = false }) => {
           </Link>
         )}
 
-        {isStudentUser && (
-          <Link
-            to="/my/challenges"
-            className={`bottom-nav-item ${isActive('/my/challenges') ? 'bottom-nav-item--active' : ''}`}
-            aria-label="Campeonatos"
-          >
-            <span className="bottom-nav-item-icon" aria-hidden="true">
-              <Trophy size={22} strokeWidth={1.6} />
-            </span>
-            <span>Campeonatos</span>
-          </Link>
-        )}
-
         {hasRole('TRAINER') && (
           <Link
             to="/trainer/students"
@@ -307,19 +294,6 @@ const Layout = ({ children, noPadding = false }) => {
               <Users size={22} strokeWidth={1.6} />
             </span>
             <span>Alunos</span>
-          </Link>
-        )}
-
-        {hasRole('TRAINER') && (
-          <Link
-            to="/trainer/challenges"
-            className={`bottom-nav-item ${isActive('/trainer/challenges') ? 'bottom-nav-item--active' : ''}`}
-            aria-label="Campeonatos"
-          >
-            <span className="bottom-nav-item-icon" aria-hidden="true">
-              <Trophy size={22} strokeWidth={1.6} />
-            </span>
-            <span>Campeonatos</span>
           </Link>
         )}
 

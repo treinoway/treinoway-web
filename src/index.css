@@ -2277,6 +2277,49 @@ html:has(.auth-page) {
 }
 
 /* ============================================
+   Account Card (mobile-only logout)
+   ============================================ */
+.card--account {
+  margin-top: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+  .card--account {
+    display: none;
+  }
+}
+
+.account-action-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-size: var(--font-body-size);
+  font-weight: 400;
+  color: var(--md-on-surface);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.account-action-row:hover {
+  background: color-mix(in srgb, var(--md-surface-variant) 50%, transparent);
+}
+
+.account-action-row:active {
+  background: var(--md-surface-variant);
+}
+
+.account-action-row__icon {
+  color: var(--md-error);
+  flex-shrink: 0;
+}
+
+/* ============================================
    Protocol Dashboard Section
    ============================================ */
 .protocol-section {
@@ -2905,13 +2948,19 @@ html:has(.auth-page) {
 
 .quick-actions {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: var(--spacing-md);
 }
 
 @media (min-width: 768px) {
   .quick-actions {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .quick-actions {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -2958,6 +3007,35 @@ html:has(.auth-page) {
   font-size: var(--font-body-small-size);
   color: var(--color-on-surface-variant);
   margin: 0;
+}
+
+/* Compact quick-action cards on mobile */
+@media (max-width: 767px) {
+  .quick-action-card {
+    flex-direction: row;
+    align-items: center;
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+  .quick-action-desc {
+    display: none;
+  }
+  .quick-action-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+  .quick-action-label {
+    font-size: var(--font-body-small-size);
+    font-weight: 600;
+    text-align: left;
+    line-height: 1.2;
+  }
+  .quick-action-card--ai {
+    grid-column: span 2;
+    flex-direction: row;
+    align-items: center;
+  }
 }
 
 /* ============================================

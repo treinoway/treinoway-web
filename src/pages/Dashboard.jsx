@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import { Link, useNavigate } from 'react-router-dom';
-import { Dumbbell, ClipboardList, BookOpen, Sparkles } from 'lucide-react';
+import { Dumbbell, ClipboardList, BookOpen, Sparkles, Trophy } from 'lucide-react';
 import api from '../api/axios';
 import NoStudentsModal from '../components/NoStudentsModal';
 
@@ -11,6 +11,7 @@ const SKIP_STORAGE_KEY = 'treinoway.skipNoStudentsWarning';
 
 const Dashboard = () => {
   const { user, hasRole, refreshUser, updateTokens } = useAuth();
+  const isStudentUser = user?.email === 'n.santos1897@gmail.com';
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -165,6 +166,26 @@ const Dashboard = () => {
               </div>
               <span className="quick-action-label">Rotinas</span>
               <p className="quick-action-desc">Crie estruturas de rotina reutilizáveis para agilizar a montagem dos treinos dos seus alunos</p>
+            </Link>
+          )}
+
+          {hasRole('TRAINER') && (
+            <Link to="/trainer/challenges" className="quick-action-card">
+              <div className="quick-action-icon">
+                <Trophy size={20} strokeWidth={1.6} />
+              </div>
+              <span className="quick-action-label">Campeonatos</span>
+              <p className="quick-action-desc">Veja os campeonatos e desafios dos seus alunos</p>
+            </Link>
+          )}
+
+          {isStudentUser && (
+            <Link to="/my/challenges" className="quick-action-card">
+              <div className="quick-action-icon">
+                <Trophy size={20} strokeWidth={1.6} />
+              </div>
+              <span className="quick-action-label">Campeonatos</span>
+              <p className="quick-action-desc">Participe de campeonatos e acompanhe seu desempenho</p>
             </Link>
           )}
 

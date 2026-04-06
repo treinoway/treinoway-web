@@ -82,6 +82,33 @@ describe('Dashboard', () => {
     expect(screen.getAllByText('Rotinas').length).toBeGreaterThanOrEqual(1);
   });
 
+  it('shows Campeonatos card for trainer', async () => {
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [] });
+      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+      return Promise.reject(new Error('unexpected'));
+    });
+
+    renderWithRouter(<Dashboard />);
+
+    expect(screen.getByRole('link', { name: /campeonatos/i })).toHaveAttribute('href', '/trainer/challenges');
+  });
+
+  it('shows Campeonatos card for student user', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: 2, firstName: 'Aluno', status: 'active', email: 'n.santos1897@gmail.com', roles: [] },
+      hasRole: mockHasRole,
+      refreshUser: mockRefreshUser,
+      updateTokens: mockUpdateTokens,
+    });
+    mockHasRole.mockReturnValue(false);
+
+    renderWithRouter(<Dashboard />);
+
+    expect(screen.getByRole('link', { name: /campeonatos/i })).toHaveAttribute('href', '/my/challenges');
+  });
+
   it('shows AI assistant card when user is TRAINER', async () => {
     mockHasRole.mockImplementation((role) => role === 'TRAINER');
     api.get.mockImplementation((url) => {

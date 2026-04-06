@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Check, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
@@ -57,8 +58,9 @@ const SectionHeader = ({ title, emptyCount }) => (
 );
 
 const Profile = () => {
-  const { user, updateUser, refreshUser, hasRole } = useAuth();
+  const { user, updateUser, refreshUser, hasRole, logout } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
@@ -282,6 +284,11 @@ useEffect(() => {
       });
     }
     setEditing(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   const avatarInitials = user?.firstName
@@ -649,6 +656,16 @@ useEffect(() => {
       </div>
 
       {hasRole('TRAINER') && <TrainerProfileSection />}
+
+      <div className="card card--account">
+        <div className="card-header">
+          <h2 className="card-title">Conta</h2>
+        </div>
+        <button onClick={handleLogout} className="account-action-row">
+          <LogOut size={18} strokeWidth={1.6} className="account-action-row__icon" />
+          Sair da conta
+        </button>
+      </div>
 
     </div>
   );
