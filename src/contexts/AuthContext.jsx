@@ -96,17 +96,19 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'Resposta da API sem token de acesso.' };
       }
 
-      // Save tokens first
+      // Save token to localStorage early so the interceptor can use it for /me
       localStorage.setItem('accessToken', token);
       if (refresh) localStorage.setItem('refreshToken', refresh);
-      setAccessToken(token);
 
       // Fetch user data from /me
       const meResponse = await api.get('/me?include=address,socials');
       const userData = meResponse.data;
-      
+
       localStorage.setItem('user', JSON.stringify(userData));
+      // Batch setUser and setAccessToken together so React renders once with
+      // both isAuthenticated=true and user already populated (prevents flash).
       setUser(userData);
+      setAccessToken(token);
 
       return { success: true };
     } catch (error) {
@@ -127,17 +129,19 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'Resposta da API sem token de acesso.' };
       }
 
-      // Save tokens first
+      // Save token to localStorage early so the interceptor can use it for /me
       localStorage.setItem('accessToken', token);
       if (refresh) localStorage.setItem('refreshToken', refresh);
-      setAccessToken(token);
 
       // Fetch user data from /me
       const meResponse = await api.get('/me?include=address,socials');
       const userData = meResponse.data;
 
       localStorage.setItem('user', JSON.stringify(userData));
+      // Batch setUser and setAccessToken together so React renders once with
+      // both isAuthenticated=true and user already populated (prevents flash).
       setUser(userData);
+      setAccessToken(token);
 
       return { success: true };
     } catch (error) {
@@ -164,15 +168,18 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'Resposta da API sem token de acesso.' };
       }
 
+      // Save token to localStorage early so the interceptor can use it for /me
       localStorage.setItem('accessToken', token);
       if (refresh) localStorage.setItem('refreshToken', refresh);
-      setAccessToken(token);
 
       const meResponse = await api.get('/me?include=address,socials');
       const userData = meResponse.data;
 
       localStorage.setItem('user', JSON.stringify(userData));
+      // Batch setUser and setAccessToken together so React renders once with
+      // both isAuthenticated=true and user already populated (prevents flash).
       setUser(userData);
+      setAccessToken(token);
 
       return { success: true };
     } catch (error) {
