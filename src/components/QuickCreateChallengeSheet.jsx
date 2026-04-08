@@ -1,13 +1,72 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
+import {
+  Zap,
+  Target,
+  Trophy,
+  PlusCircle,
+  ArrowLeft,
+  X,
+  CalendarDays,
+  Users,
+  Dumbbell,
+  CalendarCheck,
+  Flame,
+  Medal,
+} from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
 import PointsBottomSheet from './PointsBottomSheet';
-import { CHALLENGE_PRESETS, PARTICIPANT_MODE, CHALLENGE_NAME_MAX_LENGTH } from '../constants/challenge';
+import { PARTICIPANT_MODE, CHALLENGE_NAME_MAX_LENGTH } from '../constants/challenge';
 import { DEFAULT_CONFIG } from '../constants/gamification';
 import { POINTS_FIELD_KEYS } from '../constants/points-fields';
+
+const TEMPLATE_CARDS = [
+  {
+    key: 'sprint-7',
+    title: 'Sprint de 7 dias',
+    description: 'Competição rápida para manter o ritmo',
+    icon: Zap,
+    badge: 'Rápido',
+    badgeClass: 'badge-blue',
+    durationDays: 7,
+    defaultName: 'Sprint Semanal',
+  },
+  {
+    key: 'bi-weekly',
+    title: 'Desafio quinzenal',
+    description: 'Duas semanas focadas em consistência',
+    icon: Target,
+    badge: 'Popular',
+    badgeClass: 'badge-green',
+    durationDays: 14,
+    defaultName: 'Desafio 14 Dias',
+  },
+  {
+    key: 'monthly',
+    title: 'Campeonato mensal',
+    description: 'Um mês completo com ranking acumulado',
+    icon: Trophy,
+    badge: 'Consistência',
+    badgeClass: 'badge-gray',
+    durationDays: 30,
+    defaultName: 'Campeonato do Mês',
+  },
+];
+
+const SCORING_RULES = [
+  { key: 'ptsWorkoutCompleted', label: 'Treino completo', icon: Dumbbell },
+  { key: 'ptsDailyCheckin', label: 'Check-in diário', icon: CalendarCheck },
+  { key: 'ptsStreak7Days', label: 'Sequência de 7 dias', icon: Flame },
+];
+
+const MOCK_RANKING = [
+  { position: '1º', name: 'Aluno A', points: 120, color: '#D4A017' },
+  { position: '2º', name: 'Aluno B', points: 95, color: '#8E8E93' },
+  { position: '3º', name: 'Aluno C', points: 80, color: '#CD7F32' },
+];
 
 const todayIso = () => {
   const now = new Date();
@@ -37,11 +96,11 @@ const extractPtsValues = (config) => {
 const QuickCreateChallengeSheet = ({ onClose, onCreated }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const [expandedKey, setExpandedKey] = useState(null);
+  const [selectedPreset, setSelectedPreset] = useState(null);
   const [presetNames, setPresetNames] = useState({});
-  const [nameErrors, setNameErrors] = useState({});
+  const [nameError, setNameError] = useState(null);
   const [activeCount, setActiveCount] = useState(null);
-  const [creatingKey, setCreatingKey] = useState(null);
+  const [creating, setCreating] = useState(false);
   const [trainerTemplate, setTrainerTemplate] = useState(null);
   const [ptsValues, setPtsValues] = useState(null);
   const [showPointsEditor, setShowPointsEditor] = useState(false);
@@ -57,30 +116,41 @@ const QuickCreateChallengeSheet = ({ onClose, onCreated }) => {
         const config = r.data || DEFAULT_CONFIG;
         setTrainerTemplate({ ...extractPtsValues(config), anonymousRanking: !!config.anonymousRanking });
       })
-      .catch(() => { if (mounted) setTrainerTemplate({ ...extractPtsValues(DEFAULT_CONFIG), anonymousRanking: false }); });
+      .catch(() => {
+        if (mounted) setTrainerTemplate({ ...extractPtsValues(DEFAULT_CONFIG), anonymousRanking: false });
+      });
     return () => { mounted = false; };
   }, []);
 
-  const handleTogglePreset = (key, defaultName) => {
-    setExpandedKey((prev) => {
-      const next = prev === key ? null : key;
-      if (next) {
-        setPresetNames((names) => ({ ...names, [key]: names[key] ?? defaultName }));
-      }
-      return next;
-    });
+  const handleSelectPreset = (preset) => {
+    setPresetNames((prev) => ({
+      ...prev,
+      [preset.key]: prev[preset.key] ?? preset.defaultName,
+    }));
+    setSelectedPreset(preset);
+    setNameError(null);
   };
 
-  const handleCreate = async (preset) => {
-    const name = (presetNames[preset.key] ?? preset.defaultName).trim();
+  const handleBack = () => {
+    setSelectedPreset(null);
+    setNameError(null);
+  };
+
+  const handleCustomize = () => {
+    onClose();
+    navigate('/trainer/challenges/new');
+  };
+
+  const handleCreate = async () => {
+    const name = (presetNames[selectedPreset.key] ?? selectedPreset.defaultName).trim();
     if (!name) {
-      setNameErrors((prev) => ({ ...prev, [preset.key]: 'Nome é obrigatório.' }));
+      setNameError('Nome é obrigatório');
       return;
     }
-    setCreatingKey(preset.key);
+    setCreating(true);
     try {
       const start = todayIso();
-      const end = addDays(start, preset.durationDays);
+      const end = addDays(start, selectedPreset.durationDays);
       const body = {
         name,
         startDate: start,
@@ -99,18 +169,8 @@ const QuickCreateChallengeSheet = ({ onClose, onCreated }) => {
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
     } finally {
-      setCreatingKey(null);
+      setCreating(false);
     }
-  };
-
-  const handleCustomize = () => {
-    onClose();
-    navigate('/trainer/challenges/new');
-  };
-
-  const handleOpenEditor = (e) => {
-    e.stopPropagation();
-    setShowPointsEditor(true);
   };
 
   const handlePointsSave = (newValues) => {
@@ -120,106 +180,197 @@ const QuickCreateChallengeSheet = ({ onClose, onCreated }) => {
   };
 
   const previewValues = trainerTemplate || extractPtsValues(DEFAULT_CONFIG);
+  const currentPts = ptsValues || previewValues;
 
-  return (
-    <div className="overlay" onClick={onClose}>
-      <div className="bottom-sheet bottom-sheet--large" onClick={(e) => e.stopPropagation()}>
+  const participantInfo = () => {
+    if (activeCount === null) return 'Calculando participantes...';
+    if (activeCount === 0) return null;
+    return `${activeCount} alunos participam`;
+  };
+
+  const renderTemplateSelection = () => (
+    <>
+      <div className="bottom-sheet-header">
+        <h3 className="bottom-sheet-title">Novo campeonato</h3>
+        <button
+          type="button"
+          className="bottom-sheet-close"
+          onClick={onClose}
+          aria-label="Fechar"
+        >
+          <X size={20} />
+        </button>
+      </div>
+      <div className="bottom-sheet-body">
+        <p className="text-sm text-muted mb-md">Escolha um modelo para começar</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+          {TEMPLATE_CARDS.map((card) => {
+            const IconComponent = card.icon;
+            return (
+              <button
+                key={card.key}
+                type="button"
+                className="challenge-template-card"
+                onClick={() => handleSelectPreset(card)}
+                aria-label={card.title}
+              >
+                <div className="challenge-template-card__icon">
+                  <IconComponent size={20} />
+                </div>
+                <div className="challenge-template-card__text">
+                  <div className="challenge-template-card__title">{card.title}</div>
+                  <div className="challenge-template-card__desc">{card.description}</div>
+                </div>
+                <span className={`badge ${card.badgeClass} challenge-template-card__badge`}>
+                  {card.badge}
+                </span>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            className="challenge-template-card challenge-template-card--secondary"
+            onClick={handleCustomize}
+            aria-label="Criar do zero"
+          >
+            <div className="challenge-template-card__icon">
+              <PlusCircle size={20} />
+            </div>
+            <div className="challenge-template-card__text">
+              <div className="challenge-template-card__title">Criar do zero</div>
+              <div className="challenge-template-card__desc">Configure tudo manualmente</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderConfirmation = () => {
+    const info = participantInfo();
+    return (
+      <>
         <div className="bottom-sheet-header">
-          <h3 className="bottom-sheet-title">Criar campeonato</h3>
+          <button
+            type="button"
+            className="bottom-sheet-close"
+            onClick={handleBack}
+            aria-label="Voltar"
+            style={{ marginRight: 'auto' }}
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <h3 className="bottom-sheet-title">{selectedPreset.title}</h3>
           <button
             type="button"
             className="bottom-sheet-close"
             onClick={onClose}
             aria-label="Fechar"
-          >x</button>
+          >
+            <X size={20} />
+          </button>
         </div>
         <div className="bottom-sheet-body">
-          {CHALLENGE_PRESETS.map((preset) => {
-            const isOpen = expandedKey === preset.key;
-            return (
-              <div
-                key={preset.key}
-                className={`preset-card${isOpen ? ' preset-card--open' : ''}`}
-                role="button"
-                tabIndex={0}
-                aria-expanded={isOpen}
-                onClick={() => handleTogglePreset(preset.key, preset.defaultName)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleTogglePreset(preset.key, preset.defaultName);
-                  }
-                }}
+          <div className="form-group mb-md">
+            <label className="form-label" htmlFor="challenge-name">
+              Nome do campeonato
+            </label>
+            <input
+              id="challenge-name"
+              className={`form-input${nameError ? ' form-input--error' : ''}`}
+              type="text"
+              value={presetNames[selectedPreset.key] ?? selectedPreset.defaultName}
+              maxLength={CHALLENGE_NAME_MAX_LENGTH}
+              onChange={(e) => {
+                setPresetNames((prev) => ({ ...prev, [selectedPreset.key]: e.target.value }));
+                if (nameError) setNameError(null);
+              }}
+            />
+            {nameError && <span className="form-error">{nameError}</span>}
+          </div>
+
+          <div className="challenge-confirm-info">
+            <div className="challenge-confirm-info__row">
+              <CalendarDays size={16} />
+              <span>
+                {selectedPreset.durationDays} dias · Início hoje
+              </span>
+            </div>
+            <div className="challenge-confirm-info__row">
+              <Users size={16} />
+              {info ? (
+                <span>{info}</span>
+              ) : (
+                <span className="text-muted">
+                  Você poderá adicionar alunos após criar o campeonato
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="challenge-confirm-scoring">
+            <div className="challenge-confirm-scoring__header">
+              <span className="challenge-confirm-scoring__title">Regras de pontuação</span>
+              <button
+                type="button"
+                className="btn-link"
+                onClick={() => setShowPointsEditor(true)}
+                aria-label="Editar regras de pontuação"
               >
-                <h4 className="preset-card__title">{preset.title}</h4>
-                <p className="preset-card__desc">{preset.description}</p>
-                {isOpen && (
-                  <div className="preset-card__details">
-                    <div className="form-group mb-sm">
-                      <label className="form-label" htmlFor={`preset-name-${preset.key}`}>Nome</label>
-                      <input
-                        id={`preset-name-${preset.key}`}
-                        className={`form-input${nameErrors[preset.key] ? ' form-input--error' : ''}`}
-                        type="text"
-                        value={presetNames[preset.key] ?? preset.defaultName}
-                        maxLength={CHALLENGE_NAME_MAX_LENGTH}
-                        onChange={(e) => {
-                          setPresetNames((prev) => ({ ...prev, [preset.key]: e.target.value }));
-                          if (nameErrors[preset.key]) setNameErrors((prev) => ({ ...prev, [preset.key]: null }));
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => e.stopPropagation()}
-                      />
-                      {nameErrors[preset.key] && <span className="form-error">{nameErrors[preset.key]}</span>}
-                    </div>
-                    <p className="text-sm text-muted mb-sm">
-                      {activeCount !== null
-                        ? activeCount > 0
-                          ? `${activeCount} aluno(s) ativo(s) participarão.`
-                          : 'Nenhum aluno ativo. Você pode adicionar participantes depois.'
-                        : 'Calculando participantes...'}
-                    </p>
-                    <p className="text-sm text-muted mb-sm">
-                      Pontuação: {ptsValues ? 'personalizada' : 'preferências padrão'}{' '}
-                      <button
-                        type="button"
-                        className="btn-link"
-                        onClick={handleOpenEditor}
-                        aria-label="Editar regras de pontuação"
-                      >
-                        Editar
-                      </button>
-                    </p>
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      onClick={(e) => { e.stopPropagation(); handleCreate(preset); }}
-                      disabled={creatingKey !== null}
-                      style={{ width: '100%' }}
-                    >
-                      {creatingKey === preset.key ? 'Criando...' : 'Criar'}
-                    </button>
-                  </div>
-                )}
+                Editar
+              </button>
+            </div>
+            {SCORING_RULES.map(({ key, label, icon: RuleIcon }) => (
+              <div key={key} className="challenge-scoring-rule">
+                <RuleIcon size={18} className="challenge-scoring-rule__icon" />
+                <span className="challenge-scoring-rule__label">{label}</span>
+                <span className="challenge-scoring-rule__value">
+                  {currentPts[key] != null ? `+${currentPts[key]} pts` : '--'}
+                </span>
               </div>
-            );
-          })}
+            ))}
+          </div>
+
+          <div className="challenge-confirm-ranking">
+            <div className="challenge-confirm-ranking__title">Como vai funcionar</div>
+            {MOCK_RANKING.map((row) => (
+              <div key={row.position} className="challenge-ranking-row">
+                <Medal size={16} style={{ color: row.color, flexShrink: 0 }} />
+                <span className="challenge-ranking-row__position">{row.position}</span>
+                <span className="challenge-ranking-row__name">{row.name}</span>
+                <span className="challenge-ranking-row__points">{row.points} pts</span>
+              </div>
+            ))}
+            <p className="challenge-confirm-caption">
+              Ranking atualizado em tempo real
+              {' '}para todos os participantes
+            </p>
+          </div>
 
           <button
             type="button"
-            className="btn-secondary"
-            onClick={handleCustomize}
-            style={{ width: '100%', marginTop: 'var(--spacing-md)' }}
+            className="btn-primary btn-primary-full"
+            onClick={handleCreate}
+            disabled={creating}
           >
-            Personalizar do zero
+            <Trophy size={18} />
+            {creating ? 'Lançando...' : 'Lançar campeonato'}
           </button>
         </div>
+      </>
+    );
+  };
+
+  return (
+    <div className="overlay">
+      <div className="bottom-sheet bottom-sheet--large" onClick={(e) => e.stopPropagation()}>
+        {selectedPreset ? renderConfirmation() : renderTemplateSelection()}
       </div>
 
       {showPointsEditor && (
         <PointsBottomSheet
           mode="editable"
-          values={ptsValues || previewValues}
+          values={currentPts}
           template={previewValues}
           onSave={handlePointsSave}
           onClose={() => setShowPointsEditor(false)}

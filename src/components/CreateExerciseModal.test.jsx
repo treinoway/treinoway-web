@@ -79,13 +79,13 @@ describe('CreateExerciseModal', () => {
     expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('calls onClose when the overlay is clicked', async () => {
+  it('does not call onClose when the overlay is clicked', async () => {
     const user = userEvent.setup();
     const { container } = renderModal();
 
     const overlay = container.querySelector('.overlay');
     await user.click(overlay);
-    expect(mockOnClose).toHaveBeenCalled();
+    expect(mockOnClose).not.toHaveBeenCalled();
   });
 
   it('renders headerContent inside the modal body', () => {

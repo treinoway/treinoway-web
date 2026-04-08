@@ -410,7 +410,7 @@ const Students = () => {
       )}
 
       {confirmDialog && (
-        <div className="overlay" onClick={() => setConfirmDialog(null)}>
+        <div className="overlay">
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
             <div className="btn-group">
@@ -434,7 +434,7 @@ const Students = () => {
       )}
 
       {showLinkForm && (
-        <div className="overlay" onClick={handleCloseForm}>
+        <div className="overlay">
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
               <h2 className="bottom-sheet-title">Vincular Aluno</h2>
@@ -489,7 +489,7 @@ const Students = () => {
       )}
 
       {showImportModal && (
-        <div className="overlay" onClick={handleCloseImportModal}>
+        <div className="overlay">
           <div
             className={`bottom-sheet${importStep === 'preview' ? ' bottom-sheet--large' : ''}`}
             onClick={(e) => e.stopPropagation()}

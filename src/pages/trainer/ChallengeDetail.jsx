@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Check } from 'lucide-react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Plus, Check } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import RowMenu from '../../components/RowMenu';
 import RankingList from '../../components/RankingList';
 import StudentBonusSheet from '../../components/StudentBonusSheet';
 import BonusChipGrid from '../../components/BonusChipGrid';
@@ -51,10 +52,12 @@ const ChallengeDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
 
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('ranking');
+  const initialTab = searchParams.get('tab') || 'ranking';
+  const [tab, setTab] = useState(initialTab);
 
   // Ranking tab state
   const [ranking, setRanking] = useState([]);
@@ -216,9 +219,9 @@ const ChallengeDetail = () => {
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
-          const response = await api.post(`/trainer/challenges/${id}/cancel`);
-          setChallenge(response.data);
+          await api.post(`/trainer/challenges/${id}/cancel`);
           showToast('Campeonato cancelado.', 'success');
+          navigate('/trainer/challenges');
         } catch (error) {
           showToast(error.userMessage || translateError(error), 'error');
         }
@@ -340,6 +343,7 @@ const ChallengeDetail = () => {
   const badgeClass = CHALLENGE_STATUS_BADGE[challenge.status] || 'badge-gray';
 
   const challengePtsValues = { ...extractPtsValues(challenge), anonymousRanking: !!challenge.anonymousRanking };
+  const hasConfigChanges = editName !== challenge.name || editEndDate !== challenge.endDate;
 
   const getReadOnlyBanner = () => {
     if (challenge.status === CHALLENGE_STATUS.ACTIVE) {
@@ -465,14 +469,11 @@ const ChallengeDetail = () => {
                       )}
                     </div>
                     {!selectionMode && (
-                      <button
-                        type="button"
-                        className="btn-delete-sm"
-                        onClick={() => handleRemoveParticipant(p)}
-                        aria-label={`Remover ${getStudentFullName(p)}`}
-                      >
-                        <Trash2 size={14} strokeWidth={1.6} />
-                      </button>
+                      <RowMenu
+                        ariaLabel={`Ações para ${getStudentFullName(p)}`}
+                        onDelete={() => handleRemoveParticipant(p)}
+                        deleteLabel="Remover do campeonato"
+                      />
                     )}
                   </li>
                 );
@@ -534,20 +535,31 @@ const ChallengeDetail = () => {
           />
 
           <div className="btn-group mt-lg">
-            <button type="submit" className="btn-primary" disabled={saving || !canEditEndDate}>
+            <button type="submit" className="btn-primary" disabled={saving || !canEditEndDate || !hasConfigChanges}>
               {saving ? 'Salvando...' : 'Salvar configuração'}
             </button>
-            {canCancel && (
-              <button type="button" className="btn-danger" onClick={handleCancelChallenge}>
-                Cancelar campeonato
-              </button>
-            )}
-            {canDelete && (
-              <button type="button" className="btn-danger" onClick={handleDeleteChallenge}>
-                Excluir
-              </button>
-            )}
           </div>
+
+          {(canCancel || canDelete) && (
+            <>
+              <hr className="separator" />
+              <div>
+                <h3 className="text-sm font-medium danger-zone-title">Zona de perigo</h3>
+                <div className="btn-group">
+                  {canCancel && (
+                    <button type="button" className="btn-danger" onClick={handleCancelChallenge}>
+                      Cancelar campeonato
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button type="button" className="btn-danger" onClick={handleDeleteChallenge}>
+                      Excluir campeonato
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </form>
       )}
 
@@ -576,7 +588,7 @@ const ChallengeDetail = () => {
 
       {/* Bulk Bonus Sheet */}
       {showBulkSheet && (
-        <div className="overlay" onClick={() => !bulkSubmitting && setShowBulkSheet(false)}>
+        <div className="overlay">
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
               <h3 className="bottom-sheet-title">
@@ -598,7 +610,7 @@ const ChallengeDetail = () => {
 
       {/* Add participants modal */}
       {showAddModal && (
-        <div className="overlay" onClick={() => setShowAddModal(false)}>
+        <div className="overlay">
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
               <h3 className="bottom-sheet-title">Adicionar participantes</h3>
@@ -652,7 +664,7 @@ const ChallengeDetail = () => {
 
       {/* Confirm Dialog */}
       {confirmDialog && (
-        <div className="overlay" onClick={() => setConfirmDialog(null)}>
+        <div className="overlay">
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
             <div className="btn-group">

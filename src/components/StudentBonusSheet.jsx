@@ -36,7 +36,7 @@ const StudentBonusSheet = ({ student, onAward, onClose, disabled = false }) => {
   };
 
   return (
-    <div className="overlay" onClick={() => !disabled && onClose()}>
+    <div className="overlay">
       <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="bottom-sheet-header">
           <h3 className="bottom-sheet-title">Conceder bônus</h3>

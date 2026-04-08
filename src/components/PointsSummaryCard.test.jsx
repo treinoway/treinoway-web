@@ -16,7 +16,7 @@ const baseValues = {
 const template = { ...baseValues };
 
 describe('PointsSummaryCard', () => {
-  it('renders title and default subtitle when values match template', () => {
+  it('renders title "Pontuação"', () => {
     renderWithRouter(
       <PointsSummaryCard
         values={baseValues}
@@ -25,12 +25,54 @@ describe('PointsSummaryCard', () => {
         onAction={vi.fn()}
       />
     );
-    expect(screen.getByText('Regras de pontuação')).toBeInTheDocument();
-    expect(screen.getByText('Usando preferências padrão')).toBeInTheDocument();
+    expect(screen.getByText('Pontuação')).toBeInTheDocument();
   });
 
-  it('shows customized subtitle with diff count', () => {
-    const modified = { ...baseValues, ptsWorkoutCompleted: 99, ptsStreak7Days: 999 };
+  it('renders point value chips for the first 3 fields', () => {
+    renderWithRouter(
+      <PointsSummaryCard
+        values={baseValues}
+        template={template}
+        editable
+        onAction={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Treino')).toBeInTheDocument();
+    expect(screen.getByText('10 pts')).toBeInTheDocument();
+    expect(screen.getByText('Seq. 7d')).toBeInTheDocument();
+    expect(screen.getByText('50 pts')).toBeInTheDocument();
+    expect(screen.getByText('Seq. 30d')).toBeInTheDocument();
+    expect(screen.getByText('250 pts')).toBeInTheDocument();
+  });
+
+  it('shows "--" for null/undefined chip values', () => {
+    const nullValues = { ...baseValues, ptsWorkoutCompleted: null };
+    renderWithRouter(
+      <PointsSummaryCard
+        values={nullValues}
+        template={template}
+        editable
+        onAction={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Treino')).toBeInTheDocument();
+    expect(screen.getByText('--')).toBeInTheDocument();
+  });
+
+  it('shows "+N regras" chip for remaining fields', () => {
+    renderWithRouter(
+      <PointsSummaryCard
+        values={baseValues}
+        template={template}
+        editable
+        onAction={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/\+\d+ regras/)).toBeInTheDocument();
+  });
+
+  it('shows "Personalizado" badge when values differ from template and showDiff is true', () => {
+    const modified = { ...baseValues, ptsWorkoutCompleted: 99 };
     renderWithRouter(
       <PointsSummaryCard
         values={modified}
@@ -39,10 +81,10 @@ describe('PointsSummaryCard', () => {
         onAction={vi.fn()}
       />
     );
-    expect(screen.getByText('Personalizado (2 alterações)')).toBeInTheDocument();
+    expect(screen.getByText('Personalizado')).toBeInTheDocument();
   });
 
-  it('shows Editar button when editable', () => {
+  it('does not show "Personalizado" badge when values match template', () => {
     renderWithRouter(
       <PointsSummaryCard
         values={baseValues}
@@ -51,22 +93,24 @@ describe('PointsSummaryCard', () => {
         onAction={vi.fn()}
       />
     );
-    expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument();
+    expect(screen.queryByText('Personalizado')).not.toBeInTheDocument();
   });
 
-  it('shows Ver detalhes button when not editable', () => {
+  it('does not show "Personalizado" badge when showDiff is false', () => {
+    const modified = { ...baseValues, ptsWorkoutCompleted: 99 };
     renderWithRouter(
       <PointsSummaryCard
-        values={baseValues}
+        values={modified}
         template={template}
-        editable={false}
+        showDiff={false}
+        editable
         onAction={vi.fn()}
       />
     );
-    expect(screen.getByRole('button', { name: 'Ver detalhes' })).toBeInTheDocument();
+    expect(screen.queryByText('Personalizado')).not.toBeInTheDocument();
   });
 
-  it('calls onAction when button is clicked', async () => {
+  it('calls onAction when card is clicked and editable', async () => {
     const user = userEvent.setup();
     const onAction = vi.fn();
     renderWithRouter(
@@ -77,21 +121,77 @@ describe('PointsSummaryCard', () => {
         onAction={onAction}
       />
     );
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button'));
     expect(onAction).toHaveBeenCalled();
   });
 
-  it('shows diff dot when any value differs', () => {
-    const modified = { ...baseValues, ptsWorkoutCompleted: 99 };
+  it('calls onAction when Enter key is pressed and editable', async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
     renderWithRouter(
       <PointsSummaryCard
-        values={modified}
+        values={baseValues}
+        template={template}
+        editable
+        onAction={onAction}
+      />
+    );
+    const card = screen.getByRole('button');
+    card.focus();
+    await user.keyboard('{Enter}');
+    expect(onAction).toHaveBeenCalled();
+  });
+
+  it('calls onAction when Space key is pressed and editable', async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    renderWithRouter(
+      <PointsSummaryCard
+        values={baseValues}
+        template={template}
+        editable
+        onAction={onAction}
+      />
+    );
+    const card = screen.getByRole('button');
+    card.focus();
+    await user.keyboard(' ');
+    expect(onAction).toHaveBeenCalled();
+  });
+
+  it('does not render a role="button" when not editable', () => {
+    renderWithRouter(
+      <PointsSummaryCard
+        values={baseValues}
+        template={template}
+        editable={false}
+        onAction={vi.fn()}
+      />
+    );
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('shows ChevronRight icon only when editable', () => {
+    const { rerender } = renderWithRouter(
+      <PointsSummaryCard
+        values={baseValues}
         template={template}
         editable
         onAction={vi.fn()}
       />
     );
-    expect(screen.getByLabelText('Valores personalizados')).toBeInTheDocument();
+    const svgs = document.querySelectorAll('svg');
+    expect(svgs.length).toBeGreaterThan(0);
+
+    rerender(
+      <PointsSummaryCard
+        values={baseValues}
+        template={template}
+        editable={false}
+        onAction={vi.fn()}
+      />
+    );
+    expect(document.querySelectorAll('svg').length).toBe(0);
   });
 
   it('counts anonymousRanking as a diff when different from template', () => {
@@ -105,6 +205,6 @@ describe('PointsSummaryCard', () => {
         onAction={vi.fn()}
       />
     );
-    expect(screen.getByText('Personalizado (1 alterações)')).toBeInTheDocument();
+    expect(screen.getByText('Personalizado')).toBeInTheDocument();
   });
 });

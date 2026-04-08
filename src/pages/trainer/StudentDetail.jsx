@@ -317,7 +317,7 @@ const AnamnesisTab = ({ studentId }) => {
       )}
 
       {showLinkForm && (
-        <div className="overlay" onClick={() => setShowLinkForm(false)}>
+        <div className="overlay">
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
               <h2 className="bottom-sheet-title">Vincular Anamnese</h2>
@@ -364,7 +364,7 @@ const AnamnesisTab = ({ studentId }) => {
       )}
 
       {confirmDialog && (
-        <div className="overlay" onClick={() => setConfirmDialog(null)}>
+        <div className="overlay">
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
             <div className="btn-group">

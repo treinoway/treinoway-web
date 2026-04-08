@@ -934,7 +934,7 @@ const CreateProtocol = () => {
       )}
 
       {showAddTrainingModal && (
-        <div className="overlay" onClick={closeAddTrainingModal}>
+        <div className="overlay">
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
               <h2 className="bottom-sheet-title">Adicionar Treino</h2>
@@ -1144,7 +1144,7 @@ const CreateProtocol = () => {
       />
 
       {inlineExerciseContext !== null && inlineExerciseMode === 'fromTemplate' && (
-        <div className="overlay" onClick={closeInlineExerciseModal}>
+        <div className="overlay">
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
               <h2 className="bottom-sheet-title">Adicionar Exercício</h2>

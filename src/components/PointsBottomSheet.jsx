@@ -63,7 +63,7 @@ const PointsBottomSheet = ({
   const diffCount = countDiffs(displayValues, template) + (anonymousDiff ? 1 : 0);
 
   return (
-    <div className="overlay" onClick={onClose}>
+    <div className="overlay">
       <div
         className="bottom-sheet bottom-sheet--large"
         onClick={(e) => e.stopPropagation()}

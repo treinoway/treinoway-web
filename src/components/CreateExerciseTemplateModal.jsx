@@ -7,7 +7,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
   const modalTitle = exerciseTemplate?.id ? 'Editar exercício' : 'Criar exercício';
 
   return (
-    <div className="overlay" onClick={onClose}>
+    <div className="overlay">
       <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="bottom-sheet-header">
           <h2 className="bottom-sheet-title">{modalTitle}</h2>

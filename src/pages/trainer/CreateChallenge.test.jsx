@@ -42,7 +42,21 @@ describe('CreateChallenge', () => {
       expect(screen.getByRole('heading', { name: 'Novo campeonato', level: 1 })).toBeInTheDocument();
     });
     expect(screen.getByLabelText('Nome')).toBeInTheDocument();
-    expect(screen.getByText('Regras de pontuação')).toBeInTheDocument();
+    expect(screen.getByText('Pontuação')).toBeInTheDocument();
+  });
+
+  it('renders "Informações básicas" card heading', async () => {
+    renderWithRouter(<CreateChallenge />);
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Informações básicas', level: 2 })).toBeInTheDocument();
+    });
+  });
+
+  it('renders "Participantes" card heading', async () => {
+    renderWithRouter(<CreateChallenge />);
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Participantes', level: 2 })).toBeInTheDocument();
+    });
   });
 
   it('fetches gamification config on mount', async () => {
@@ -67,13 +81,14 @@ describe('CreateChallenge', () => {
     });
   });
 
-  it('opens PointsBottomSheet when clicking Editar on summary card', async () => {
+  it('opens PointsBottomSheet when clicking the points summary card', async () => {
     const user = userEvent.setup();
     renderWithRouter(<CreateChallenge />);
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument();
+      expect(screen.getByText('Pontuação')).toBeInTheDocument();
     });
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    const card = screen.getByRole('button', { name: /pontuação/i });
+    await user.click(card);
     expect(screen.getByText('Treino completo')).toBeInTheDocument();
   });
 

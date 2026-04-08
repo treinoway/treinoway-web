@@ -475,7 +475,7 @@ const ProtocolDetail = () => {
       </div>
 
       {showTrainingForm && (
-        <div className="overlay" onClick={resetTrainingForm}>
+        <div className="overlay">
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
               <h2 className="bottom-sheet-title">
@@ -711,7 +711,7 @@ const ProtocolDetail = () => {
       )}
 
       {addExerciseTrainingId !== null && (
-        <div className="overlay" onClick={closeAddExerciseSheet}>
+        <div className="overlay">
           <div className="bottom-sheet bottom-sheet--large" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
               <h2 className="bottom-sheet-title">Adicionar Exercício</h2>
@@ -785,7 +785,7 @@ const ProtocolDetail = () => {
       )}
 
       {showEditProtocolForm && (
-        <div className="overlay" onClick={() => setShowEditProtocolForm(false)}>
+        <div className="overlay">
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
               <h2 className="bottom-sheet-title">Editar Rotina</h2>
@@ -884,7 +884,7 @@ const ProtocolDetail = () => {
       )}
 
       {confirmDialog && (
-        <div className="overlay" onClick={() => setConfirmDialog(null)}>
+        <div className="overlay">
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
             <div className="btn-group">

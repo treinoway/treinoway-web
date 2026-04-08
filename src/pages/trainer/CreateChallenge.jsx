@@ -237,6 +237,9 @@ const CreateChallenge = () => {
 
       <form onSubmit={handleSubmit} className="form">
         <div className="card card--mb">
+          <div className="card-header">
+            <h2 className="card-title">Informações básicas</h2>
+          </div>
           <div className="form-group">
             <label className="form-label" htmlFor="ch-name">Nome</label>
             <input
@@ -396,7 +399,7 @@ const CreateChallenge = () => {
           )}
 
           {participantMode !== PARTICIPANT_MODE.EXPLICIT && (
-            <div className="btn-group">
+            <div className="btn-group" style={{ marginTop: 'var(--spacing-sm)' }}>
               <button
                 type="button"
                 className="btn-secondary"

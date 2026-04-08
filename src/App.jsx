@@ -31,6 +31,7 @@ import StudentPoints from './pages/trainer/StudentPoints';
 import Challenges from './pages/trainer/Challenges';
 import CreateChallenge from './pages/trainer/CreateChallenge';
 import ChallengeDetail from './pages/trainer/ChallengeDetail';
+import CreateChampionship from './pages/trainer/CreateChampionship';
 
 // Student pages
 import MyProtocols from './pages/my/MyProtocols';
@@ -248,6 +249,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <ChallengeDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/championships/create"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <CreateChampionship />
                 </Layout>
               </ProtectedRoute>
             }

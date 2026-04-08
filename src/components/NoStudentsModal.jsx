@@ -30,7 +30,7 @@ const NoStudentsModal = ({ open, onClose, onConfirm }) => {
   };
 
   return (
-    <div className="overlay" onClick={handleClose}>
+    <div className="overlay">
       <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="bottom-sheet-header">
           <h2 className="bottom-sheet-title">Nenhum aluno cadastrado</h2>

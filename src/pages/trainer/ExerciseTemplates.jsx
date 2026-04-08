@@ -550,7 +550,7 @@ const ExerciseTemplates = () => {
       )}
 
       {confirmDialog && (
-        <div className="overlay" onClick={() => setConfirmDialog(null)}>
+        <div className="overlay">
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
             <div className="btn-group">

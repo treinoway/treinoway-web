@@ -30,43 +30,70 @@ describe('QuickCreateChallengeSheet', () => {
     api.post.mockReset();
     api.get.mockReset();
     api.get.mockResolvedValue({ data: mockConfig });
+    api.post.mockResolvedValue({ data: { count: 5 } });
   });
 
-  it('renders presets', async () => {
-    api.post.mockResolvedValue({ data: { count: 10 } });
+  it('renders template cards on open', async () => {
     renderWithRouter(<QuickCreateChallengeSheet onClose={vi.fn()} />);
     expect(await screen.findByText('Sprint de 7 dias')).toBeInTheDocument();
     expect(screen.getByText('Desafio quinzenal')).toBeInTheDocument();
     expect(screen.getByText('Campeonato mensal')).toBeInTheDocument();
+    expect(screen.getByText('Criar do zero')).toBeInTheDocument();
   });
 
-  it('expands preset details on click and shows participant count and points line', async () => {
+  it('navigates to full form on "Criar do zero" click', async () => {
     const user = userEvent.setup();
-    api.post.mockResolvedValue({ data: { count: 8 } });
-    renderWithRouter(<QuickCreateChallengeSheet onClose={vi.fn()} />);
-    await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith(
-        '/trainer/challenges/preview-participants',
-        { mode: 'all' }
-      );
-    });
-    await user.click(screen.getByText('Sprint de 7 dias'));
-    expect(await screen.findByText(/8 aluno\(s\) ativo\(s\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/preferências padrão/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /editar regras de pontuação/i })).toBeInTheDocument();
+    const onClose = vi.fn();
+    renderWithRouter(<QuickCreateChallengeSheet onClose={onClose} />);
+    await user.click(await screen.findByRole('button', { name: 'Criar do zero' }));
+    expect(onClose).toHaveBeenCalled();
   });
 
-  it('opens points editor when clicking Editar', async () => {
+  it('shows confirmation step after selecting a template', async () => {
     const user = userEvent.setup();
-    api.post.mockResolvedValue({ data: { count: 5 } });
     renderWithRouter(<QuickCreateChallengeSheet onClose={vi.fn()} />);
-    await user.click(await screen.findByText('Sprint de 7 dias'));
-    await user.click(await screen.findByRole('button', { name: /editar regras de pontuação/i }));
+    await user.click(await screen.findByRole('button', { name: 'Sprint de 7 dias' }));
+    expect(screen.getByLabelText('Nome do campeonato')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Sprint Semanal')).toBeInTheDocument();
     expect(screen.getByText('Regras de pontuação')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /salvar/i })).toBeInTheDocument();
+    expect(screen.getByText('Como vai funcionar')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /lançar campeonato/i })).toBeInTheDocument();
   });
 
-  it('creates challenge from preset', async () => {
+  it('back button returns to selection', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<QuickCreateChallengeSheet onClose={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Sprint de 7 dias' }));
+    expect(screen.getByLabelText('Nome do campeonato')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
+    expect(screen.getByText('Desafio quinzenal')).toBeInTheDocument();
+    expect(screen.getByText('Campeonato mensal')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Nome do campeonato')).not.toBeInTheDocument();
+  });
+
+  it('shows participant count', async () => {
+    api.post.mockImplementation((url) => {
+      if (url === '/trainer/challenges/preview-participants') return Promise.resolve({ data: { count: 8 } });
+      return Promise.reject(new Error('unexpected'));
+    });
+    const user = userEvent.setup();
+    renderWithRouter(<QuickCreateChallengeSheet onClose={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Sprint de 7 dias' }));
+    expect(await screen.findByText('8 alunos participam')).toBeInTheDocument();
+  });
+
+  it('shows reassuring message when 0 students', async () => {
+    api.post.mockImplementation((url) => {
+      if (url === '/trainer/challenges/preview-participants') return Promise.resolve({ data: { count: 0 } });
+      return Promise.reject(new Error('unexpected'));
+    });
+    const user = userEvent.setup();
+    renderWithRouter(<QuickCreateChallengeSheet onClose={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Sprint de 7 dias' }));
+    expect(await screen.findByText('Você poderá adicionar alunos após criar o campeonato')).toBeInTheDocument();
+  });
+
+  it('creates challenge on CTA click', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     const onCreated = vi.fn();
@@ -76,8 +103,8 @@ describe('QuickCreateChallengeSheet', () => {
       return Promise.reject(new Error('unexpected'));
     });
     renderWithRouter(<QuickCreateChallengeSheet onClose={onClose} onCreated={onCreated} />);
-    await user.click(await screen.findByText('Sprint de 7 dias'));
-    await user.click(await screen.findByRole('button', { name: 'Criar' }));
+    await user.click(await screen.findByRole('button', { name: 'Sprint de 7 dias' }));
+    await user.click(await screen.findByRole('button', { name: /lançar campeonato/i }));
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/trainer/challenges', expect.objectContaining({
         name: 'Sprint Semanal',
@@ -88,44 +115,31 @@ describe('QuickCreateChallengeSheet', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('sends edited name when creating preset challenge', async () => {
+  it('shows name validation error', async () => {
     const user = userEvent.setup();
-    api.post.mockImplementation((url) => {
-      if (url === '/trainer/challenges/preview-participants') return Promise.resolve({ data: { count: 5 } });
-      if (url === '/trainer/challenges') return Promise.resolve({ data: { id: 'ch-99' } });
-      return Promise.reject(new Error('unexpected'));
-    });
     renderWithRouter(<QuickCreateChallengeSheet onClose={vi.fn()} />);
-    await user.click(await screen.findByText('Sprint de 7 dias'));
-    const nameInput = await screen.findByLabelText('Nome');
+    await user.click(await screen.findByRole('button', { name: 'Sprint de 7 dias' }));
+    const nameInput = await screen.findByLabelText('Nome do campeonato');
     await user.clear(nameInput);
-    await user.type(nameInput, 'Meu Sprint Customizado');
-    await user.click(screen.getByRole('button', { name: 'Criar' }));
-    await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/trainer/challenges', expect.objectContaining({
-        name: 'Meu Sprint Customizado',
-      }));
-    });
-  });
-
-  it('shows error when trying to create with empty name', async () => {
-    const user = userEvent.setup();
-    api.post.mockResolvedValue({ data: { count: 5 } });
-    renderWithRouter(<QuickCreateChallengeSheet onClose={vi.fn()} />);
-    await user.click(await screen.findByText('Sprint de 7 dias'));
-    const nameInput = await screen.findByLabelText('Nome');
-    await user.clear(nameInput);
-    await user.click(screen.getByRole('button', { name: 'Criar' }));
-    expect(await screen.findByText('Nome é obrigatório.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /lançar campeonato/i }));
+    expect(await screen.findByText('Nome é obrigatório')).toBeInTheDocument();
     expect(api.post).not.toHaveBeenCalledWith('/trainer/challenges', expect.anything());
   });
 
-  it('calls onClose when backdrop clicked', async () => {
+  it('opens points editor when clicking Editar', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<QuickCreateChallengeSheet onClose={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Sprint de 7 dias' }));
+    await user.click(await screen.findByRole('button', { name: /editar regras de pontuação/i }));
+    expect(screen.getByRole('button', { name: /salvar/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /restaurar padrão/i })).toBeInTheDocument();
+  });
+
+  it('calls onClose when close button is clicked', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    api.post.mockResolvedValue({ data: { count: 0 } });
-    const { container } = renderWithRouter(<QuickCreateChallengeSheet onClose={onClose} />);
-    await user.click(container.querySelector('.overlay'));
+    renderWithRouter(<QuickCreateChallengeSheet onClose={onClose} />);
+    await user.click(await screen.findByRole('button', { name: /fechar/i }));
     expect(onClose).toHaveBeenCalled();
   });
 });
