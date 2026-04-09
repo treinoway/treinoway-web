@@ -119,7 +119,7 @@ describe('Dashboard', () => {
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.getByText('Assistente IA')).toBeInTheDocument();
+    expect(screen.getByText('iArnold')).toBeInTheDocument();
     expect(screen.getByText(/linguagem natural/i)).toBeInTheDocument();
   });
 
@@ -128,7 +128,7 @@ describe('Dashboard', () => {
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.queryByText('Assistente IA')).not.toBeInTheDocument();
+    expect(screen.queryByText('iArnold')).not.toBeInTheDocument();
   });
 
   it('renders stats section with counts when user is TRAINER', async () => {

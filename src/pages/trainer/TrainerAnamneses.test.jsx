@@ -88,7 +88,7 @@ describe('TrainerAnamneses', () => {
       expect(screen.getByText('Nenhuma anamnese ainda')).toBeInTheDocument();
     });
 
-    const ctaButton = screen.getByRole('button', { name: /nova anamnese/i });
+    const ctaButton = screen.getByRole('button', { name: /criar primeira anamnese/i });
     expect(ctaButton).toBeInTheDocument();
 
     await user.click(ctaButton);
@@ -170,14 +170,14 @@ describe('TrainerAnamneses', () => {
     });
   });
 
-  it('shows the create form when "Nova Anamnese" is clicked', async () => {
+  it('shows the create form when "Criar primeira anamnese" is clicked', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: [] });
     renderWithRouter(<TrainerAnamneses />);
     await waitFor(() => {
       expect(screen.queryByText(/carregando/i)).not.toBeInTheDocument();
     });
-    await user.click(screen.getByText('+ Nova Anamnese'));
+    await user.click(screen.getByText('+ Criar primeira anamnese'));
     expect(screen.getByLabelText(/^nome/i)).toBeInTheDocument();
   });
 
@@ -195,7 +195,7 @@ describe('TrainerAnamneses', () => {
       expect(screen.queryByText(/carregando/i)).not.toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('+ Nova Anamnese'));
+    await user.click(screen.getByText('+ Criar primeira anamnese'));
     await user.type(screen.getByLabelText(/^nome/i), 'Nova Anamnese Teste');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 

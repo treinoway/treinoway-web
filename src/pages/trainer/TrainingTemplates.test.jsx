@@ -106,7 +106,7 @@ describe('TrainingTemplates', () => {
 
     await waitFor(() => screen.getByText('Nenhum treino único ainda'));
 
-    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
+    await user.click(screen.getByRole('button', { name: /criar primeiro treino/i }));
 
     expect(screen.getByText('Criar novo treino único')).toBeInTheDocument();
   });

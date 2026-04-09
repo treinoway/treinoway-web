@@ -3,20 +3,28 @@ import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-  Sparkles,
-  Send,
-  RotateCcw,
+  Star,
+  ArrowUp,
+  Paperclip,
+  UserRound,
   Check,
   ChevronDown,
   ClipboardList,
   Dumbbell,
+  UtensilsCrossed,
+  TrendingUp,
+  RefreshCw,
+  Calendar,
+  Clock,
   Plus,
   History,
   X,
   Trash2,
   MessageSquare,
+  Sparkles,
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAiChat } from '../../contexts/AiChatContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -26,10 +34,32 @@ const MAX_INPUT_LENGTH = 1000;
 const CHAR_COUNT_THRESHOLD = 900;
 const SCROLL_THRESHOLD = 150;
 
-const EXAMPLE_PROMPTS = [
-  { text: 'Crie um protocolo de hipertrofia para o aluno João', Icon: ClipboardList },
-  { text: 'Monte um treino de pernas com 6 exercícios', Icon: Dumbbell },
-  { text: 'Adicione um treino de costas ao protocolo do aluno Maria', Icon: Plus },
+const CAPABILITY_CARDS = [
+  {
+    Icon: ClipboardList,
+    title: 'Criar protocolo',
+    description: 'Monte protocolos completos de treino com periodização',
+    prompt: 'Crie um protocolo de hipertrofia para o aluno João com 4 treinos por semana',
+  },
+  {
+    Icon: Dumbbell,
+    title: 'Montar treino',
+    description: 'Treinos avulsos personalizados com exercícios e séries',
+    prompt: 'Monte um treino de pernas focado em quadríceps com 6 exercícios',
+  },
+  {
+    Icon: UtensilsCrossed,
+    title: 'Plano alimentar',
+    description: 'Dietas completas com macros e refeições detalhadas',
+    prompt: 'Crie uma dieta de cutting de 1800kcal com 5 refeições para a aluna Marina',
+  },
+];
+
+const QUICK_PROMPTS = [
+  { Icon: TrendingUp, label: 'Analisar progresso', prompt: 'Analise o progresso dos meus alunos esta semana' },
+  { Icon: RefreshCw, label: 'Substituir exercícios', prompt: 'Sugira substituições de exercícios para alunos com lesão no ombro' },
+  { Icon: Calendar, label: 'Periodização', prompt: 'Me ajude a montar a periodização mensal do aluno Rafael' },
+  { Icon: Clock, label: 'Alunos inativos', prompt: 'Quais alunos não treinaram nos últimos 3 dias?' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -41,6 +71,14 @@ const formatConversationDate = (dateStr) => {
   const date = new Date(dateStr);
   if (isNaN(date)) return '—';
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+};
+
+const getUserInitials = (user) => {
+  if (!user) return 'V';
+  if (user.firstName) {
+    return `${user.firstName[0]}${user.lastName?.[0] || ''}`.toUpperCase();
+  }
+  return (user.email?.[0] || 'V').toUpperCase();
 };
 
 // ---------------------------------------------------------------------------
@@ -189,11 +227,30 @@ ConversationItem.propTypes = {
 };
 
 // ---------------------------------------------------------------------------
+// Message Avatar
+// ---------------------------------------------------------------------------
+
+const UserAvatar = ({ initials }) => (
+  <div className="ai-chat__avatar ai-chat__avatar--user" aria-hidden="true">
+    {initials}
+  </div>
+);
+
+UserAvatar.propTypes = { initials: PropTypes.string.isRequired };
+
+const ArnoldAvatar = () => (
+  <div className="ai-chat__avatar ai-chat__avatar--arnold" aria-hidden="true">
+    <Star size={16} strokeWidth={1.8} />
+  </div>
+);
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
 const AiAssistant = () => {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const {
     messages,
     conversationId,
@@ -212,6 +269,7 @@ const AiAssistant = () => {
 
   const [input, setInput] = useState('');
   const [isNearBottom, setIsNearBottom] = useState(true);
+  const [inputFocused, setInputFocused] = useState(false);
 
   // History panel state
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -223,6 +281,8 @@ const AiAssistant = () => {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
+
+  const userInitials = getUserInitials(user);
 
   useEffect(() => {
     if (hasNewResponse) clearNewResponse();
@@ -332,6 +392,10 @@ const AiAssistant = () => {
     inputRef.current?.focus();
   };
 
+  const handlePlaceholderAction = () => {
+    showToast('Em breve!', 'info');
+  };
+
   const handleInputChange = (e) => {
     const value = e.target.value;
     if (value.length <= MAX_INPUT_LENGTH) {
@@ -349,57 +413,86 @@ const AiAssistant = () => {
   const isCharCountWarn = input.length >= MAX_INPUT_LENGTH;
   const groupedConversations = groupConversationsByDate(conversations);
 
+  const inputContainerClass = [
+    'ai-chat__input-container',
+    inputFocused ? 'ai-chat__input-container--focused' : '',
+  ].filter(Boolean).join(' ');
+
   return (
     <div className="ai-chat">
+      {/* Top bar */}
       <div className="ai-chat__header">
-        <h1 className="ai-chat__header-title">
+        <div className="ai-chat__header-left">
           <span className="ai-chat__header-icon">
             <Sparkles size={22} strokeWidth={1.6} />
           </span>
-          Assistente IA
-        </h1>
+          <div className="ai-chat__header-text">
+            <h1 className="ai-chat__header-title">iArnold</h1>
+            <p className="ai-chat__header-subtitle">Seu assistente inteligente de treinos e nutrição</p>
+          </div>
+        </div>
         <div className="ai-chat__header-actions">
           <button
             onClick={handleOpenHistory}
-            className="ai-chat__new-btn"
+            className="ai-chat__header-btn"
             aria-label="Histórico de conversas"
           >
             <History size={14} strokeWidth={1.6} />
-            Histórico
+            <span className="ai-chat__header-btn-label">Histórico</span>
           </button>
-          {hasMessages && (
-            <button
-              onClick={handleNewConversation}
-              className="ai-chat__new-btn"
-              aria-label="Nova conversa"
-            >
-              <RotateCcw size={14} strokeWidth={1.6} />
-              Nova conversa
-            </button>
-          )}
+          <button
+            onClick={handleNewConversation}
+            className="ai-chat__header-btn"
+            aria-label="Nova conversa"
+          >
+            <Plus size={14} strokeWidth={1.6} />
+            <span className="ai-chat__header-btn-label">Nova conversa</span>
+          </button>
         </div>
       </div>
 
       {!hasMessages ? (
         <div className="ai-chat__empty">
-          <div className="ai-chat__empty-icon">
-            <Sparkles size={48} strokeWidth={1.2} />
+          {/* Animated logo */}
+          <div className="ai-chat__logo">
+            <Sparkles size={32} strokeWidth={1.4} />
           </div>
-          <h2 className="ai-chat__empty-title">Seu assistente de treinos com IA</h2>
+
+          {/* Title */}
+          <h2 className="ai-chat__empty-title">
+            Olá! Eu sou o <span className="ai-chat__gradient-text">iArnold</span>
+          </h2>
           <p className="ai-chat__empty-description">
-            Use linguagem natural para criar protocolos, treinos e exercícios para seus alunos.
+            Seu assistente inteligente para criar treinos, protocolos e planos alimentares personalizados.
           </p>
-          <div className="ai-chat__prompts">
-            {EXAMPLE_PROMPTS.map(({ text, Icon }) => (
+
+          {/* Capability cards */}
+          <div className="ai-chat__capability-cards">
+            {CAPABILITY_CARDS.map(({ Icon, title, description, prompt }) => (
               <button
-                key={text}
-                onClick={() => handlePromptClick(text)}
-                className="ai-chat__prompt-btn"
+                key={title}
+                className="ai-chat__capability-card"
+                onClick={() => handlePromptClick(prompt)}
               >
-                <span className="ai-chat__prompt-icon">
-                  <Icon size={16} strokeWidth={1.6} />
+                <span className="ai-chat__capability-icon">
+                  <Icon size={20} strokeWidth={1.6} />
                 </span>
-                {text}
+                <span className="ai-chat__capability-title">{title}</span>
+                <span className="ai-chat__capability-desc">{description}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Quick prompt pills */}
+          <div className="ai-chat__quick-pills">
+            {QUICK_PROMPTS.map(({ Icon, label, prompt }) => (
+              <button
+                key={label}
+                className="ai-chat__quick-pill"
+                onClick={() => handlePromptClick(prompt)}
+              >
+                <Icon size={14} strokeWidth={1.6} />
+                {label}
               </button>
             ))}
           </div>
@@ -415,7 +508,15 @@ const AiAssistant = () => {
               key={index}
               className={`ai-chat__message ai-chat__message--${msg.role} ai-chat__message--animate`}
             >
-              <div>
+              {msg.role === 'user' ? (
+                <UserAvatar initials={userInitials} />
+              ) : (
+                <ArnoldAvatar />
+              )}
+              <div className="ai-chat__message-body">
+                <span className="ai-chat__message-label">
+                  {msg.role === 'user' ? 'Você' : 'iArnold'}
+                </span>
                 {msg.isStreaming ? (
                   streamingText ? (
                     <>
@@ -484,17 +585,20 @@ const AiAssistant = () => {
         </div>
       )}
 
+      {/* Input area */}
       <div className="ai-chat__input-area">
-        <form onSubmit={handleSend} style={{ display: 'contents' }}>
-          <div style={{ flex: 1 }}>
+        <form onSubmit={handleSend} className="ai-chat__input-form">
+          <div className={inputContainerClass}>
             <textarea
               ref={inputRef}
               value={input}
               onChange={handleInputChange}
-              placeholder="Digite sua mensagem..."
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              placeholder="Pergunte ao iArnold..."
               className="ai-chat__input"
               disabled={loading}
-              rows={3}
+              rows={1}
               aria-label="Mensagem para o assistente"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -503,22 +607,46 @@ const AiAssistant = () => {
                 }
               }}
             />
-            {showCharCount && (
-              <div
-                className={`ai-chat__char-count${isCharCountWarn ? ' ai-chat__char-count--warn' : ''}`}
+            <div className="ai-chat__input-actions">
+              <button
+                type="button"
+                className="ai-chat__input-action-btn"
+                onClick={handlePlaceholderAction}
+                aria-label="Anexar contexto"
               >
-                {input.length}/{MAX_INPUT_LENGTH}
-              </div>
-            )}
+                <Paperclip size={16} strokeWidth={1.6} />
+              </button>
+              <button
+                type="button"
+                className="ai-chat__input-action-btn"
+                onClick={handlePlaceholderAction}
+                aria-label="Selecionar aluno"
+              >
+                <UserRound size={16} strokeWidth={1.6} />
+              </button>
+              <button
+                type="submit"
+                disabled={isSendDisabled}
+                className="ai-chat__send-btn"
+                aria-label="Enviar mensagem"
+              >
+                <ArrowUp size={18} strokeWidth={2} />
+              </button>
+            </div>
           </div>
-          <button
-            type="submit"
-            disabled={isSendDisabled}
-            className="ai-chat__send-btn"
-            aria-label="Enviar mensagem"
-          >
-            <Send size={18} strokeWidth={1.6} />
-          </button>
+          <div className="ai-chat__input-hints">
+            <span className="ai-chat__input-hint">
+              iArnold tem acesso aos dados dos seus alunos, treinos e dietas
+            </span>
+            <span className="ai-chat__input-hint">
+              {showCharCount && (
+                <span className={isCharCountWarn ? 'ai-chat__char-count--warn' : ''}>
+                  {input.length}/{MAX_INPUT_LENGTH} ·{' '}
+                </span>
+              )}
+              Enter para enviar
+            </span>
+          </div>
         </form>
       </div>
 
@@ -543,7 +671,7 @@ const AiAssistant = () => {
                   onClick={handleNewConversationFromSheet}
                   aria-label="Iniciar nova conversa"
                 >
-                  <RotateCcw size={14} strokeWidth={1.6} />
+                  <Plus size={14} strokeWidth={1.6} />
                   Nova conversa
                 </button>
               </div>
@@ -581,7 +709,7 @@ const AiAssistant = () => {
         </div>
       )}
 
-      {/* Delete confirmation dialog — rendered outside the history overlay */}
+      {/* Delete confirmation dialog */}
       {confirmDialog && (
         <div className="overlay">
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>

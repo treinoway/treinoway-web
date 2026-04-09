@@ -324,7 +324,10 @@ const Students = () => {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title" style={{ marginBottom: 0 }}>Meus Alunos</h1>
+        <div className="page-header-title-row">
+          <Users size={24} className="page-header-title-icon" />
+          <h1 className="page-title">Meus Alunos</h1>
+        </div>
         <div className="page-header-actions">
           <button onClick={() => setShowImportModal(true)} className="btn-secondary">
             <Upload size={16} strokeWidth={1.6} />
@@ -353,13 +356,13 @@ const Students = () => {
 
       {students.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">
-            <Users size={48} strokeWidth={1.2} />
+          <div className="empty-state-icon empty-state-icon--accent">
+            <Users size={32} strokeWidth={1.2} />
           </div>
           <p className="empty-state-title">Nenhum aluno vinculado ainda</p>
-          <p>Vincule seu primeiro aluno para começar a gerenciar treinos</p>
+          <p>Vincule seu primeiro aluno para começar a gerenciar treinos.</p>
           <button className="btn-primary" onClick={() => setShowLinkForm(true)}>
-            + Vincular Aluno
+            + Vincular primeiro aluno
           </button>
         </div>
       ) : filteredStudents.length === 0 ? (

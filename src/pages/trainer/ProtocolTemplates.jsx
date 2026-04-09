@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { ArrowLeft, GripVertical, LayoutGrid, List, BookOpen, Info } from 'lucide-react';
+import { ArrowLeft, GripVertical, LayoutGrid, List, BookOpen, Info, Calendar, Dumbbell } from 'lucide-react';
 import ExerciseTemplateForm from '../../components/ExerciseTemplateForm';
 import RowMenu from '../../components/RowMenu';
 import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
@@ -496,7 +496,10 @@ const ProtocolTemplates = () => {
       )}
 
       <div className="page-header">
-        <h1>Rotinas</h1>
+        <div className="page-header-title-row">
+          <BookOpen size={24} className="page-header-title-icon" />
+          <h1>Rotinas</h1>
+        </div>
         <div className="page-header-actions">
           {!showForm && (
             <div className="view-toggle-group">
@@ -722,53 +725,38 @@ const ProtocolTemplates = () => {
       {!showForm && !templatesLoading && templates.length > 0 && viewMode === 'card' && (
         <div className="grid-cards">
           {templates.map((template) => {
-            const genderLabel = { male: 'Masculino', female: 'Feminino', other: 'Outro' }[template.genderOrdination];
             const levelLabel = { beginner: 'Iniciante', intermediate: 'Intermediário', advanced: 'Avançado', athlete: 'Atleta' }[template.trainingLevel];
             const typeLabel = template.type ? getProtocolTypeLabel(template.type) : null;
+            const hasBadges = levelLabel || typeLabel;
+            const trainingsCount = template.scheduleTemplatesCount ?? template.trainingsCount ?? 0;
             return (
               <div key={template.id} className="card">
-                <div className="mb-md">
-                  <h3 className="card-subtitle mb-xs">
-                    {template.name}
-                  </h3>
-                  {template.description && (
-                    <p className="card-description mb-md text-clamp-2">
-                      {template.description}
-                    </p>
-                  )}
+                <div className="card-header-row">
+                  <h3 className="card-subtitle">{template.name}</h3>
+                  <RowMenu
+                    ariaLabel={`Ações da rotina ${template.name}`}
+                    onEdit={() => handleTemplateEdit(template)}
+                    onDelete={() => handleTemplateDelete(template.id)}
+                  />
                 </div>
-
-                <div className="info-list mb-md" style={{ paddingTop: 'var(--spacing-sm)', borderTop: '1px solid var(--color-outline-variant)' }}>
-                  <div className="text-sm text-light">
-                    <strong>Duração:</strong> {template.defaultDurationWeeks} semanas
+                {hasBadges && (
+                  <div className="card-badges">
+                    {levelLabel && <span className="badge badge-blue">{levelLabel}</span>}
+                    {typeLabel && <span className="badge badge-gray">{typeLabel}</span>}
                   </div>
-                  <div className="text-sm text-light">
-                    <strong>Treinos:</strong> {template.scheduleTemplatesCount ?? template.trainingsCount ?? 0}
-                  </div>
-                  {genderLabel && (
-                    <div className="text-sm text-light">
-                      <strong>Classificação:</strong> {genderLabel}
-                    </div>
-                  )}
-                  {levelLabel && (
-                    <div className="text-sm text-light">
-                      <strong>Nível:</strong> {levelLabel}
-                    </div>
-                  )}
-                  {typeLabel && (
-                    <div className="text-sm text-light">
-                      <strong>Tipo:</strong> {typeLabel}
-                    </div>
-                  )}
-                </div>
-
-                <div className="btn-group">
-                  <button onClick={() => handleTemplateEdit(template)} className="btn-edit">
-                    Editar
-                  </button>
-                  <button onClick={() => handleTemplateDelete(template.id)} className="btn-delete">
-                    Excluir
-                  </button>
+                )}
+                {template.description && (
+                  <p className="card-description text-clamp-2">{template.description}</p>
+                )}
+                <div className="card-stats">
+                  <span className="stat-chip">
+                    <Calendar size={14} strokeWidth={1.6} />
+                    {template.defaultDurationWeeks} semanas
+                  </span>
+                  <span className="stat-chip">
+                    <Dumbbell size={14} strokeWidth={1.6} />
+                    {trainingsCount} {trainingsCount === 1 ? 'treino' : 'treinos'}
+                  </span>
                 </div>
               </div>
             );
@@ -832,13 +820,13 @@ const ProtocolTemplates = () => {
 
       {templates.length === 0 && !showForm && !templatesLoading && (
         <div className="empty-state">
-          <div className="empty-state-icon">
-            <BookOpen size={48} strokeWidth={1.2} />
+          <div className="empty-state-icon empty-state-icon--accent">
+            <BookOpen size={32} strokeWidth={1.2} />
           </div>
-          <p className="empty-state-title">Nenhum modelo de rotina ainda</p>
-          <p>Crie seu primeiro modelo e use-o como base ao atribuir rotinas aos alunos</p>
+          <p className="empty-state-title">Nenhuma rotina ainda</p>
+          <p>Crie seu primeiro modelo e use-o como base ao montar rotinas para seus alunos.</p>
           <button className="btn-primary" onClick={() => setShowForm(true)}>
-            + Nova rotina
+            + Criar primeira rotina
           </button>
         </div>
       )}

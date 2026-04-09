@@ -222,7 +222,10 @@ const TrainingTemplates = () => {
   return (
     <div>
       <div className="page-header">
-        <h1>Treinos únicos</h1>
+        <div className="page-header-title-row">
+          <Dumbbell size={24} className="page-header-title-icon" />
+          <h1>Treinos únicos</h1>
+        </div>
         <div className="page-header-actions">
           {!showForm && (
             <div className="view-toggle-group">
@@ -424,38 +427,33 @@ const TrainingTemplates = () => {
 
       {!showForm && !templatesLoading && filteredTemplates.length > 0 && viewMode === 'card' && (
         <div className="grid-cards">
-          {filteredTemplates.map((template) => (
-            <div key={template.id} className="card">
-              <div className="card-header">
-                <h3 className="card-subtitle" style={{ marginBottom: 0 }}>{template.name}</h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
-                  {template.isPublic && (
-                    <span className="badge badge-green">Público</span>
-                  )}
+          {filteredTemplates.map((template) => {
+            const categoryLabel = CATEGORY_LABEL[template.category];
+            const bodySegmentLabel = BODY_SEGMENT_LABEL[template.bodySegment];
+            const hasBadges = categoryLabel || bodySegmentLabel || template.isPublic;
+            return (
+              <div key={template.id} className="card">
+                <div className="card-header-row">
+                  <h3 className="card-subtitle">{template.name}</h3>
                   <RowMenu
                     ariaLabel={`Ações do modelo ${template.name}`}
                     onEdit={() => handleEdit(template)}
                     onDelete={() => handleDelete(template.id)}
                   />
                 </div>
-              </div>
-              {template.description && (
-                <p className="card-description mb-md">{template.description}</p>
-              )}
-              <div className="info-list mb-md" style={{ paddingTop: 'var(--spacing-sm)', borderTop: '1px solid var(--color-outline-variant)' }}>
-                {template.category && (
-                  <div className="text-sm text-light">
-                    <strong>Categoria:</strong> {CATEGORY_LABEL[template.category] || template.category}
+                {hasBadges && (
+                  <div className="card-badges">
+                    {categoryLabel && <span className="badge badge-blue">{categoryLabel}</span>}
+                    {bodySegmentLabel && <span className="badge badge-gray">{bodySegmentLabel}</span>}
+                    {template.isPublic && <span className="badge badge-green">Público</span>}
                   </div>
                 )}
-                {template.bodySegment && (
-                  <div className="text-sm text-light">
-                    <strong>Segmento:</strong> {BODY_SEGMENT_LABEL[template.bodySegment] || template.bodySegment}
-                  </div>
+                {template.description && (
+                  <p className="card-description text-clamp-2">{template.description}</p>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -518,12 +516,12 @@ const TrainingTemplates = () => {
             <span><strong>O que é um treino único?</strong> Um treino único é uma ficha pré-configurada com categoria e segmento corporal que pode ser reutilizada em diferentes rotinas, agilizando a montagem dos treinos dos seus alunos.</span>
           </div>
           <div className="empty-state">
-            <div className="empty-state-icon">
-              <Dumbbell size={48} strokeWidth={1.2} />
+            <div className="empty-state-icon empty-state-icon--accent">
+              <Dumbbell size={32} strokeWidth={1.2} />
             </div>
             <p className="empty-state-title">Nenhum treino único ainda</p>
-            <p>Crie seu primeiro treino único para começar</p>
-            <button className="btn-primary" onClick={() => setShowForm(true)}>+ Novo treino único</button>
+            <p>Crie seu primeiro treino único e use-o como base ao montar rotinas para seus alunos.</p>
+            <button className="btn-primary" onClick={() => setShowForm(true)}>+ Criar primeiro treino</button>
           </div>
         </>
       )}

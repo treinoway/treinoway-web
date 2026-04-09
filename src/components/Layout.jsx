@@ -148,17 +148,22 @@ const Layout = ({ children, noPadding = false }) => {
                 {sidebarOpen && <span className="sidebar-link-label">Meus Alunos</span>}
               </Link>
 
-              {/* Assistente IA */}
+              {/* iArnold */}
               {showAi && (
                 <Link
                   to="/trainer/ai-assistant"
                   className={`sidebar-link ${isActive('/trainer/ai-assistant') ? 'sidebar-link--active' : ''}`}
-                  aria-label="Assistente IA"
+                  aria-label="iArnold"
                 >
                   <span className="sidebar-link-icon" aria-hidden="true">
                     <Sparkles size={20} strokeWidth={1.6} />
                   </span>
-                  {sidebarOpen && <span className="sidebar-link-label">Assistente IA</span>}
+                  {sidebarOpen && (
+                    <>
+                      <span className="sidebar-link-label">iArnold</span>
+                      <span className="sidebar-link-badge">IA</span>
+                    </>
+                  )}
                 </Link>
               )}
 
@@ -301,12 +306,12 @@ const Layout = ({ children, noPadding = false }) => {
           <Link
             to="/trainer/ai-assistant"
             className={`bottom-nav-item ${isActive('/trainer/ai-assistant') ? 'bottom-nav-item--active' : ''}`}
-            aria-label="Assistente IA"
+            aria-label="iArnold"
           >
             <span className="bottom-nav-item-icon" aria-hidden="true">
               <Sparkles size={22} strokeWidth={1.6} />
             </span>
-            <span>IA</span>
+            <span>iArnold</span>
           </Link>
         )}
 

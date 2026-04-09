@@ -81,7 +81,7 @@ describe('ExerciseTemplates', () => {
       expect(screen.getByText('Nenhum exercício ainda')).toBeInTheDocument();
     });
 
-    const ctaButton = screen.getByRole('button', { name: /novo exercício/i });
+    const ctaButton = screen.getByRole('button', { name: /criar primeiro exercício/i });
     expect(ctaButton).toBeInTheDocument();
 
     await user.click(ctaButton);

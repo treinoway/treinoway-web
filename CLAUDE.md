@@ -54,15 +54,23 @@ Never write frontend code directly. Every implementation task — components, pa
 - Button hierarchy: `btn-primary` = main action; `btn-secondary` = cancel/back; `btn-schedule-sm` = add/schedule; `btn-danger`/`btn-delete`/`btn-delete-sm` = destructive
 - `inline style` acceptable **only for dynamic values** (e.g. `style={{ width: \`${progress}%\` }}`). Never for fixed colors or spacing.
 - Forms: `.form`, `.form-group`, `.form-label`, `.form-input`, `.form-select`, `.form-textarea`, `.form-error`, `.form-input--error`
-- Cards: `.card`, `.card-link`, `.card-header`, `.card-title`, `.card-description`
+- Cards: `.card`, `.card-link`, `.card-header-row`, `.card-title`, `.card-subtitle`, `.card-description`, `.card-badges`, `.card-stats`, `.stat-chip`
 - Modals: `.bottom-sheet`, `.bottom-sheet-header`, `.bottom-sheet-body`, `.bottom-sheet-close`
 - Confirmation: `.overlay` + `.confirm-dialog` + `.confirm-dialog-message`
 - Badges: `.badge`, `.badge-blue`, `.badge-green`, `.badge-red`, `.badge-gray`
 - Grid: `.grid-cards` (1→2→3 columns), `.grid-2col`
 - Responsive tables: `.table-col-mobile-only`, `.table-col-desktop-only`
-- Utilities: `.text-muted`, `.text-sm`, `.mb-sm`, `.mb-md`, `.mt-md`, `.font-medium`
+- Page headers: `.page-header`, `.page-header-title-row`, `.page-header-title-icon`, `.page-header-actions`
+- Empty state: `.empty-state`, `.empty-state-title`, `.empty-state-icon`, `.empty-state-icon--accent`
+- Utilities: `.text-muted`, `.text-sm`, `.mb-sm`, `.mb-md`, `.mt-md`, `.font-medium`, `.fade-in`
 
 **Icons:** Lucide React (`lucide-react`). Never use another package.
+
+**Animations:** Content containers (`.grid-cards`, `.table-container`, `.empty-state`, `.card.card--mb`) have an automatic `fadeIn` animation (200ms, ease-out, opacity + translateY). Use `.fade-in` utility class for other elements that should animate on mount. Never add manual fade logic when these classes already handle it.
+
+**Page headers:** Every list/management page must have `<div className="page-header-title-row">` with a Lucide icon (`size={24} className="page-header-title-icon"`) matching the sidebar icon for that page, followed by the `<h1>`.
+
+**Empty states:** Always use `<div className="empty-state-icon empty-state-icon--accent">` with icon `size={32}` for the accent circle treatment.
 
 **CSS in BEM-like:** `.card`, `.card--highlighted`, `.card__title`.
 

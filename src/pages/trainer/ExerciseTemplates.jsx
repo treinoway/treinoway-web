@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutGrid, List, Dumbbell, Info } from 'lucide-react';
+import { LayoutGrid, List, Dumbbell, Info, Activity } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -182,7 +182,10 @@ const ExerciseTemplates = () => {
   return (
     <div>
       <div className="page-header">
-        <h1>Exercícios</h1>
+        <div className="page-header-title-row">
+          <Activity size={24} className="page-header-title-icon" />
+          <h1>Exercícios</h1>
+        </div>
         <div className="page-header-actions">
           {!showForm && (
             <div className="view-toggle-group">
@@ -422,21 +425,24 @@ const ExerciseTemplates = () => {
           {filteredTemplates.map((template) => {
             const meta = formatExerciseMeta(template);
             const youtubeId = getYoutubeVideoId(template.videoUrl);
+            const typeLabel = template.type ? getExerciseTypeLabel(template.type) : null;
+            const hasBadges = typeLabel || template.isPublic;
             return (
               <div key={template.id} className="card">
-                <div className="card-header">
-                  <h3 className="card-subtitle" style={{ marginBottom: 0 }}>{template.name}</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
-                    {template.isPublic && (
-                      <span className="badge badge-green">Público</span>
-                    )}
-                    <RowMenu
-                      ariaLabel={`Ações do modelo ${template.name}`}
-                      onEdit={() => handleEdit(template)}
-                      onDelete={() => handleDelete(template.id)}
-                    />
-                  </div>
+                <div className="card-header-row">
+                  <h3 className="card-subtitle">{template.name}</h3>
+                  <RowMenu
+                    ariaLabel={`Ações do modelo ${template.name}`}
+                    onEdit={() => handleEdit(template)}
+                    onDelete={() => handleDelete(template.id)}
+                  />
                 </div>
+                {hasBadges && (
+                  <div className="card-badges">
+                    {typeLabel && <span className="badge badge-blue">{typeLabel}</span>}
+                    {template.isPublic && <span className="badge badge-green">Público</span>}
+                  </div>
+                )}
                 {youtubeId && (
                   <div className="youtube-preview">
                     <iframe
@@ -448,8 +454,8 @@ const ExerciseTemplates = () => {
                   </div>
                 )}
                 {meta && (
-                  <div className="info-list mb-md" style={{ paddingTop: 'var(--spacing-sm)', borderTop: '1px solid var(--color-outline-variant)' }}>
-                    <div className="text-sm text-light">{meta}</div>
+                  <div className="card-stats">
+                    <span className="stat-chip">{meta}</span>
                   </div>
                 )}
               </div>
@@ -537,13 +543,13 @@ const ExerciseTemplates = () => {
             <span><strong>O que é um exercício?</strong> Um exercício é um movimento reutilizável que pode ser adicionado aos seus treinos. Defina séries, repetições, carga sugerida e até link de vídeo para facilitar a montagem das rotinas.</span>
           </div>
           <div className="empty-state">
-            <div className="empty-state-icon">
-              <Dumbbell size={48} strokeWidth={1.2} />
+            <div className="empty-state-icon empty-state-icon--accent">
+              <Dumbbell size={32} strokeWidth={1.2} />
             </div>
             <p className="empty-state-title">Nenhum exercício ainda</p>
-            <p>Crie seu primeiro exercício para começar</p>
+            <p>Crie seu primeiro exercício e use-o como base ao montar treinos para seus alunos.</p>
             <button className="btn-primary" onClick={() => setShowForm(true)}>
-              + Novo exercício
+              + Criar primeiro exercício
             </button>
           </div>
         </>

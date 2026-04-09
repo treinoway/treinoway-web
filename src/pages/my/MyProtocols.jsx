@@ -42,15 +42,18 @@ const MyProtocols = () => {
 
   return (
     <div>
-      <h1 className="page-title">Minhas Rotinas</h1>
+      <div className="page-header-title-row">
+        <ClipboardList size={24} className="page-header-title-icon" />
+        <h1 className="page-title">Minhas Rotinas</h1>
+      </div>
 
       {protocols.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">
-            <ClipboardList size={48} strokeWidth={1.2} />
+          <div className="empty-state-icon empty-state-icon--accent">
+            <ClipboardList size={32} strokeWidth={1.2} />
           </div>
           <p className="empty-state-title">Nenhuma rotina atribuída ainda</p>
-          <p>Seu treinador irá atribuir rotinas de treino a você</p>
+          <p>Seu treinador irá atribuir rotinas de treino a você.</p>
         </div>
       ) : (
         <div className="grid-cards">

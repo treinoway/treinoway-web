@@ -138,7 +138,7 @@ const Dashboard = () => {
               <div className="quick-action-icon quick-action-icon--ai">
                 <Sparkles size={20} strokeWidth={1.6} />
               </div>
-              <span className="quick-action-label quick-action-label--ai">Assistente IA</span>
+              <span className="quick-action-label quick-action-label--ai">iArnold</span>
               <p className="quick-action-desc quick-action-desc--ai">Crie treinos e rotinas com linguagem natural usando inteligência artificial</p>
             </Link>
           )}

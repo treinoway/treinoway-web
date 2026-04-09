@@ -75,9 +75,9 @@ describe('Students', () => {
       expect(screen.getByText('Nenhum aluno vinculado ainda')).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('button', { name: /vincular aluno/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /vincular primeiro aluno/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /vincular aluno/i }));
+    await user.click(screen.getByRole('button', { name: /vincular primeiro aluno/i }));
 
     expect(screen.getByRole('heading', { name: 'Vincular Aluno' })).toBeInTheDocument();
   });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, LogOut } from 'lucide-react';
+import { Check, LogOut, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
@@ -321,7 +321,10 @@ useEffect(() => {
 
   return (
     <div>
-      <h1 className="page-title">Meu Perfil</h1>
+      <div className="page-header-title-row">
+        <User size={24} className="page-header-title-icon" />
+        <h1>Meu Perfil</h1>
+      </div>
 
       <div className="card card--mb">
         <div className="card-header">

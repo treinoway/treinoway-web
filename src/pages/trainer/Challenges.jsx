@@ -264,7 +264,10 @@ const Challenges = () => {
   return (
     <div>
       <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
-        <h1 className="page-title" style={{ marginBottom: 0 }}>Campeonatos</h1>
+        <div className="page-header-title-row">
+          <Trophy size={24} className="page-header-title-icon" />
+          <h1 className="page-title">Campeonatos</h1>
+        </div>
         <button
           type="button"
           className="btn-primary"
@@ -302,7 +305,9 @@ const Challenges = () => {
 
       {!loading && challenges.length === 0 && (
         <div className="empty-state">
-          <Trophy size={48} strokeWidth={1.2} className="empty-state-icon" />
+          <div className="empty-state-icon empty-state-icon--accent">
+            <Trophy size={32} strokeWidth={1.2} />
+          </div>
           <p className="empty-state-title">
             Nenhum campeonato {CHALLENGE_STATUS_LABEL[statusFilter]?.toLowerCase() || ''}.
           </p>

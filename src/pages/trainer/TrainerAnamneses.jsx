@@ -123,7 +123,10 @@ const TrainerAnamneses = () => {
   return (
     <div>
       <div className="page-header">
-        <h1>Anamneses</h1>
+        <div className="page-header-title-row">
+          <ClipboardList size={24} className="page-header-title-icon" />
+          <h1>Anamneses</h1>
+        </div>
         {!showForm && anamneses.length > 0 && (
           <button onClick={() => setShowForm(true)} className="btn-primary">
             + Nova Anamnese
@@ -187,13 +190,13 @@ const TrainerAnamneses = () => {
 
       {!showForm && anamneses.length === 0 && (
         <div className="empty-state">
-          <div className="empty-state-icon">
-            <ClipboardList size={48} strokeWidth={1.2} />
+          <div className="empty-state-icon empty-state-icon--accent">
+            <ClipboardList size={32} strokeWidth={1.2} />
           </div>
           <p className="empty-state-title">Nenhuma anamnese ainda</p>
-          <p>Crie sua primeira anamnese para aplicar aos seus alunos</p>
+          <p>Crie sua primeira anamnese e aplique-a aos seus alunos.</p>
           <button className="btn-primary" onClick={() => setShowForm(true)}>
-            + Nova Anamnese
+            + Criar primeira anamnese
           </button>
         </div>
       )}

@@ -96,7 +96,10 @@ const MyChallenges = () => {
   if (ctxLoading) {
     return (
       <div>
-        <h1 className="page-title">Campeonatos</h1>
+          <div className="page-header-title-row">
+          <Trophy size={24} className="page-header-title-icon" />
+          <h1 className="page-title">Campeonatos</h1>
+        </div>
         <div className="skeleton skeleton-card" style={{ marginBottom: 'var(--spacing-md)' }} />
         <SkeletonCards />
       </div>
@@ -105,7 +108,10 @@ const MyChallenges = () => {
 
   return (
     <div>
-      <h1 className="page-title">Campeonatos</h1>
+      <div className="page-header-title-row">
+        <Trophy size={24} className="page-header-title-icon" />
+        <h1 className="page-title">Campeonatos</h1>
+      </div>
 
       {trainers.length > 0 && (
         <TrainerContextSelect trainers={trainers} trainerId={trainerId} onChange={setTrainerId} />

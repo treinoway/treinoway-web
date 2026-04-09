@@ -478,15 +478,18 @@ const MyAnamneses = () => {
 
   return (
     <div>
-      <h1 className="page-title">Minhas Anamneses</h1>
+      <div className="page-header-title-row">
+        <ClipboardList size={24} className="page-header-title-icon" />
+        <h1 className="page-title">Minhas Anamneses</h1>
+      </div>
 
       {links.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">
-            <ClipboardList size={48} strokeWidth={1.2} />
+          <div className="empty-state-icon empty-state-icon--accent">
+            <ClipboardList size={32} strokeWidth={1.2} />
           </div>
           <p className="empty-state-title">Nenhuma anamnese ainda</p>
-          <p>Seu treinador irá enviar anamneses para você responder</p>
+          <p>Seu treinador irá enviar anamneses para você responder.</p>
         </div>
       ) : (
         links.map((link) => (

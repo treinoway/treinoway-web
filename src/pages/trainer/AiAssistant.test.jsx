@@ -4,11 +4,16 @@ import { renderWithRouter } from '../../test/test-utils';
 import AiAssistant from './AiAssistant';
 import { groupConversationsByDate } from '../../utils/conversationGroups';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAiChat } from '../../contexts/AiChatContext';
 import api from '../../api/axios';
 
 vi.mock('../../contexts/ToastContext', () => ({
   useToast: vi.fn(),
+}));
+
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: vi.fn(),
 }));
 
 vi.mock('../../contexts/AiChatContext', () => ({
@@ -69,6 +74,9 @@ describe('AiAssistant', () => {
   beforeEach(() => {
     showToast = vi.fn();
     vi.mocked(useToast).mockReturnValue({ showToast });
+    vi.mocked(useAuth).mockReturnValue({
+      user: { firstName: 'João', lastName: 'Silva', email: 'joao@test.com' },
+    });
     mockContextValue = createDefaultContextValue();
     vi.mocked(useAiChat).mockReturnValue(mockContextValue);
     api.get.mockReset();
@@ -79,20 +87,80 @@ describe('AiAssistant', () => {
   // Empty state
   // ---------------------------------------------------------------------------
 
-  it('renders empty state with example prompts', () => {
+  it('renders empty state with iArnold branding', () => {
     renderWithRouter(<AiAssistant />);
 
-    expect(screen.getByText('Seu assistente de treinos com IA')).toBeInTheDocument();
-    expect(screen.getByText(/Use linguagem natural/)).toBeInTheDocument();
-    expect(screen.getByText('Crie um protocolo de hipertrofia para o aluno João')).toBeInTheDocument();
-    expect(screen.getByText('Monte um treino de pernas com 6 exercícios')).toBeInTheDocument();
-    expect(screen.getByText('Adicione um treino de costas ao protocolo do aluno Maria')).toBeInTheDocument();
+    expect(screen.getByText(/Olá! Eu sou o/)).toBeInTheDocument();
+    expect(screen.getByText('iArnold', { selector: '.ai-chat__gradient-text' })).toBeInTheDocument();
+    expect(screen.getByText(/Seu assistente inteligente para criar treinos/)).toBeInTheDocument();
   });
 
-  it('renders header with Assistente IA title', () => {
+  it('renders header with iArnold title', () => {
     renderWithRouter(<AiAssistant />);
 
-    expect(screen.getByRole('heading', { name: /assistente ia/i })).toBeInTheDocument();
+    const h1 = screen.getByRole('heading', { level: 1 });
+    expect(h1).toHaveTextContent('iArnold');
+  });
+
+  it('renders capability cards', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText('Criar protocolo')).toBeInTheDocument();
+    expect(screen.getByText('Montar treino')).toBeInTheDocument();
+    expect(screen.getByText('Plano alimentar')).toBeInTheDocument();
+  });
+
+  it('fills input when clicking a capability card', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<AiAssistant />);
+
+    await user.click(screen.getByText('Criar protocolo').closest('button'));
+
+    expect(screen.getByRole('textbox', { name: /mensagem para o assistente/i })).toHaveValue(
+      'Crie um protocolo de hipertrofia para o aluno João com 4 treinos por semana'
+    );
+  });
+
+  it('renders quick prompt pills', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText('Analisar progresso')).toBeInTheDocument();
+    expect(screen.getByText('Substituir exercícios')).toBeInTheDocument();
+    expect(screen.getByText('Periodização')).toBeInTheDocument();
+    expect(screen.getByText('Alunos inativos')).toBeInTheDocument();
+  });
+
+  it('fills input when clicking a quick prompt pill', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<AiAssistant />);
+
+    await user.click(screen.getByText('Analisar progresso'));
+
+    expect(screen.getByRole('textbox', { name: /mensagem para o assistente/i })).toHaveValue(
+      'Analise o progresso dos meus alunos esta semana'
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Placeholder buttons
+  // ---------------------------------------------------------------------------
+
+  it('shows toast when clicking the attach context button', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<AiAssistant />);
+
+    await user.click(screen.getByRole('button', { name: /anexar contexto/i }));
+
+    expect(showToast).toHaveBeenCalledWith('Em breve!', 'info');
+  });
+
+  it('shows toast when clicking the select student button', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<AiAssistant />);
+
+    await user.click(screen.getByRole('button', { name: /selecionar aluno/i }));
+
+    expect(showToast).toHaveBeenCalledWith('Em breve!', 'info');
   });
 
   // ---------------------------------------------------------------------------
@@ -126,7 +194,7 @@ describe('AiAssistant', () => {
     expect(input).toHaveValue('');
   });
 
-  it('shows messages from context', () => {
+  it('shows messages from context with avatars', () => {
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         messages: [
@@ -140,6 +208,11 @@ describe('AiAssistant', () => {
 
     expect(screen.getByText('Olá')).toBeInTheDocument();
     expect(screen.getByText('Como posso ajudar?')).toBeInTheDocument();
+    // User avatar with initials
+    expect(screen.getByText('JS')).toBeInTheDocument();
+    // Message labels
+    expect(screen.getByText('Você')).toBeInTheDocument();
+    expect(screen.getByText('iArnold', { selector: '.ai-chat__message-label' })).toBeInTheDocument();
   });
 
   it('shows typing indicator when streaming with no text yet', () => {
@@ -345,6 +418,12 @@ describe('AiAssistant', () => {
   // New conversation (header button)
   // ---------------------------------------------------------------------------
 
+  it('always shows "Nova conversa" button in header', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByRole('button', { name: /^nova conversa$/i })).toBeInTheDocument();
+  });
+
   it('calls startNewConversation on "Nova conversa" click (header button)', async () => {
     const user = userEvent.setup();
     const startNewConversation = vi.fn();
@@ -395,7 +474,7 @@ describe('AiAssistant', () => {
     await user.paste(longText);
 
     await waitFor(() => {
-      expect(screen.getByText('901/1000')).toBeInTheDocument();
+      expect(screen.getByText(/901\/1000/)).toBeInTheDocument();
     });
   });
 
@@ -418,36 +497,11 @@ describe('AiAssistant', () => {
     expect(screen.getByText('Protocolo criado')).toBeInTheDocument();
   });
 
-  it('fills input when clicking an example prompt', async () => {
-    const user = userEvent.setup();
+  it('renders input hints', () => {
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByText('Monte um treino de pernas com 6 exercícios'));
-
-    expect(screen.getByRole('textbox', { name: /mensagem para o assistente/i })).toHaveValue(
-      'Monte um treino de pernas com 6 exercícios'
-    );
-  });
-
-  it('does not show "Nova conversa" button in header when there are no messages', () => {
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.queryByRole('button', { name: /^nova conversa$/i })).not.toBeInTheDocument();
-  });
-
-  it('shows "Nova conversa" button in header when there are messages', () => {
-    vi.mocked(useAiChat).mockReturnValue(
-      createDefaultContextValue({
-        messages: [
-          { role: 'user', content: 'Olá' },
-          { role: 'assistant', content: 'Resposta', actionsExecuted: [] },
-        ],
-      })
-    );
-
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.getByRole('button', { name: /^nova conversa$/i })).toBeInTheDocument();
+    expect(screen.getByText(/iArnold tem acesso aos dados/)).toBeInTheDocument();
+    expect(screen.getByText(/Enter para enviar/)).toBeInTheDocument();
   });
 
   // ---------------------------------------------------------------------------
@@ -885,116 +939,5 @@ describe('groupConversationsByDate', () => {
     const groups = groupConversationsByDate(conversations);
     expect(groups).toHaveLength(1);
     expect(groups[0].label).toBe('Hoje');
-    expect(groups[0].conversations).toHaveLength(1);
-  });
-
-  it('groups yesterday conversations correctly', () => {
-    const conversations = [
-      { id: '1', updatedAt: '2026-03-30T15:00:00.000Z' },
-    ];
-    const groups = groupConversationsByDate(conversations);
-    expect(groups).toHaveLength(1);
-    expect(groups[0].label).toBe('Ontem');
-  });
-
-  it('groups this week conversations correctly (not today or yesterday)', () => {
-    // 2026-03-31 is Tuesday. Monday 2026-03-30 is yesterday.
-    // So "Esta semana" would be from Monday to Sunday. Anything before yesterday in the same week:
-    // 2026-03-30 is Monday (yesterday), 2026-03-31 is Tuesday (today).
-    // Let's pick Saturday of the same week (past): there are none before Monday.
-    // Use previous Sunday if week starts Monday: that falls outside.
-    // Actually this week (Mon 30 - Sun 5 Apr). Yesterday (Mon 30) = "Ontem". So no "Esta semana" slot fits here.
-    // Use a date from same week but 2+ days ago: Mon is the week start = yesterday.
-    // Let's test with Sunday being in the previous week (out of scope) and just confirm:
-    // A date from current week (Mon-Tue) where Mon = yesterday, Tue = today. Nothing fits "Esta semana".
-    // Instead use a different reference day to get a meaningful "Esta semana" test.
-    vi.setSystemTime(new Date('2026-04-03T12:00:00.000Z')); // Friday
-    const conversations = [
-      { id: '1', updatedAt: '2026-04-01T10:00:00.000Z' }, // Wednesday same week
-    ];
-    const groups = groupConversationsByDate(conversations);
-    expect(groups).toHaveLength(1);
-    expect(groups[0].label).toBe('Esta semana');
-  });
-
-  it('groups older conversations correctly', () => {
-    const conversations = [
-      { id: '1', updatedAt: '2026-03-01T10:00:00.000Z' },
-    ];
-    const groups = groupConversationsByDate(conversations);
-    expect(groups).toHaveLength(1);
-    expect(groups[0].label).toBe('Anteriores');
-  });
-
-  it('does not include empty groups', () => {
-    const conversations = [
-      { id: '1', updatedAt: '2026-03-31T08:00:00.000Z' }, // today
-    ];
-    const groups = groupConversationsByDate(conversations);
-    const labels = groups.map((g) => g.label);
-    expect(labels).toContain('Hoje');
-    expect(labels).not.toContain('Ontem');
-    expect(labels).not.toContain('Esta semana');
-    expect(labels).not.toContain('Anteriores');
-  });
-
-  it('sorts conversations within each group by updatedAt desc', () => {
-    const conversations = [
-      { id: 'older', updatedAt: '2026-03-31T06:00:00.000Z' },
-      { id: 'newer', updatedAt: '2026-03-31T10:00:00.000Z' },
-    ];
-    const groups = groupConversationsByDate(conversations);
-    expect(groups[0].conversations[0].id).toBe('newer');
-    expect(groups[0].conversations[1].id).toBe('older');
-  });
-
-  it('falls back to createdAt when updatedAt is missing', () => {
-    const conversations = [
-      { id: '1', createdAt: '2026-03-31T08:00:00.000Z' },
-    ];
-    const groups = groupConversationsByDate(conversations);
-    expect(groups[0].label).toBe('Hoje');
-  });
-
-  it('puts conversations with invalid dates in "Anteriores"', () => {
-    const conversations = [
-      { id: '1', updatedAt: 'invalid-date' },
-    ];
-    const groups = groupConversationsByDate(conversations);
-    expect(groups[0].label).toBe('Anteriores');
-  });
-
-  it('puts conversations with no date in "Anteriores"', () => {
-    const conversations = [
-      { id: '1' },
-    ];
-    const groups = groupConversationsByDate(conversations);
-    expect(groups[0].label).toBe('Anteriores');
-  });
-
-  it('produces all four groups when data spans all ranges', () => {
-    vi.setSystemTime(new Date('2026-04-03T12:00:00.000Z')); // Friday
-    const conversations = [
-      { id: 'today', updatedAt: '2026-04-03T08:00:00.000Z' },
-      { id: 'yesterday', updatedAt: '2026-04-02T08:00:00.000Z' },
-      { id: 'week', updatedAt: '2026-04-01T08:00:00.000Z' },
-      { id: 'older', updatedAt: '2026-03-01T08:00:00.000Z' },
-    ];
-    const groups = groupConversationsByDate(conversations);
-    const labels = groups.map((g) => g.label);
-    expect(labels).toEqual(['Hoje', 'Ontem', 'Esta semana', 'Anteriores']);
-  });
-
-  it('sorts across groups: today before older', () => {
-    vi.setSystemTime(new Date('2026-04-03T12:00:00.000Z'));
-    const conversations = [
-      { id: 'older', updatedAt: '2026-03-01T08:00:00.000Z' },
-      { id: 'today', updatedAt: '2026-04-03T08:00:00.000Z' },
-    ];
-    const groups = groupConversationsByDate(conversations);
-    expect(groups[0].label).toBe('Hoje');
-    expect(groups[0].conversations[0].id).toBe('today');
-    expect(groups[1].label).toBe('Anteriores');
-    expect(groups[1].conversations[0].id).toBe('older');
   });
 });

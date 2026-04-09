@@ -130,7 +130,7 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum modelo de rotina ainda')).toBeInTheDocument();
+      expect(screen.getByText('Nenhuma rotina ainda')).toBeInTheDocument();
     });
 
     expect(screen.getByText(/o que é um modelo\?/i)).toBeInTheDocument();
@@ -143,15 +143,37 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum modelo de rotina ainda')).toBeInTheDocument();
+      expect(screen.getByText('Nenhuma rotina ainda')).toBeInTheDocument();
     });
 
-    const ctaButton = screen.getByRole('button', { name: /nova rotina/i });
+    const ctaButton = screen.getByRole('button', { name: /criar primeira rotina/i });
     expect(ctaButton).toBeInTheDocument();
 
     await user.click(ctaButton);
 
     expect(screen.getByText('Criar nova rotina')).toBeInTheDocument();
+  });
+
+  it('shows level badge when template has trainingLevel', async () => {
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+
+    expect(screen.getByText('Intermediário')).toBeInTheDocument();
+  });
+
+  it('does not show level badge when template has no trainingLevel', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [{ id: 1, name: 'Sem Nível', defaultDurationWeeks: 8 }] });
+      return Promise.resolve({ data: [] });
+    });
+
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Sem Nível'));
+
+    const badges = document.querySelectorAll('.badge-blue');
+    expect(badges).toHaveLength(0);
   });
 
   it('shows loading and avoids info banner flash before GET resolves', async () => {
@@ -210,25 +232,35 @@ describe('ProtocolTemplates', () => {
     });
   });
 
-  it('populates form with existing data when Edit is clicked', async () => {
+  it('shows RowMenu for each template card in card view', async () => {
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+
+    expect(screen.getByRole('button', { name: /ações da rotina modelo força/i })).toBeInTheDocument();
+  });
+
+  it('populates form with existing data when Edit is clicked from RowMenu', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /editar/i }));
+    await user.click(screen.getByRole('button', { name: /ações da rotina modelo força/i }));
+    await user.click(screen.getByRole('button', { name: /^editar$/i }));
 
     expect(screen.getByText('Editar rotina')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Modelo Força')).toBeInTheDocument();
   });
 
-  it('calls PATCH on save when editing an existing template', async () => {
+  it('calls PATCH on save when editing an existing template via RowMenu', async () => {
     const user = userEvent.setup();
     api.patch.mockResolvedValue({ data: mockTemplates[0] });
 
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /editar/i }));
+    await user.click(screen.getByRole('button', { name: /ações da rotina modelo força/i }));
+    await user.click(screen.getByRole('button', { name: /^editar$/i }));
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -237,14 +269,15 @@ describe('ProtocolTemplates', () => {
     });
   });
 
-  it('calls DELETE and shows success toast on template delete with custom confirm dialog', async () => {
+  it('calls DELETE and shows success toast on template delete via RowMenu', async () => {
     const user = userEvent.setup();
     api.delete.mockResolvedValue({});
 
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /excluir/i }));
+    await user.click(screen.getByRole('button', { name: /ações da rotina modelo força/i }));
+    await user.click(screen.getByRole('button', { name: /^excluir$/i }));
     await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
     await user.click(screen.getByRole('button', { name: /confirmar/i }));
 
@@ -254,13 +287,14 @@ describe('ProtocolTemplates', () => {
     });
   });
 
-  it('does not delete when custom dialog confirmation is cancelled', async () => {
+  it('does not delete when custom dialog confirmation is cancelled via RowMenu', async () => {
     const user = userEvent.setup();
 
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => screen.getByText('Modelo Força'));
-    await user.click(screen.getByRole('button', { name: /excluir/i }));
+    await user.click(screen.getByRole('button', { name: /ações da rotina modelo força/i }));
+    await user.click(screen.getByRole('button', { name: /^excluir$/i }));
     await waitFor(() => screen.getByRole('button', { name: /cancelar/i }));
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
