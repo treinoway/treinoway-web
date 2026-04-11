@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import { Link, useNavigate } from 'react-router-dom';
-import { Dumbbell, ClipboardList, BookOpen, Sparkles, Trophy } from 'lucide-react';
+import { Dumbbell, ClipboardList, Palette, Sparkles, Trophy } from 'lucide-react';
 import api from '../api/axios';
 import NoStudentsModal from '../components/NoStudentsModal';
 
@@ -160,12 +160,12 @@ const Dashboard = () => {
           )}
 
           {hasRole('TRAINER') && (
-            <Link to="/trainer/protocol-templates" className="quick-action-card">
+            <Link to="/trainer/branding" className="quick-action-card">
               <div className="quick-action-icon">
-                <BookOpen size={20} strokeWidth={1.6} />
+                <Palette size={20} strokeWidth={1.6} />
               </div>
-              <span className="quick-action-label">Rotinas</span>
-              <p className="quick-action-desc">Crie estruturas de rotina reutilizáveis para agilizar a montagem dos treinos dos seus alunos</p>
+              <span className="quick-action-label">Personalize sua Marca</span>
+              <p className="quick-action-desc">Defina as cores e o visual da sua marca para criar uma experiência personalizada para seus alunos</p>
             </Link>
           )}
 

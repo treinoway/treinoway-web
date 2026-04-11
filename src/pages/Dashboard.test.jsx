@@ -79,7 +79,7 @@ describe('Dashboard', () => {
     renderWithRouter(<Dashboard />);
 
     expect(screen.getByText('Criar Rotina para um Aluno')).toBeInTheDocument();
-    expect(screen.getAllByText('Rotinas').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Personalize sua Marca')).toBeInTheDocument();
   });
 
   it('shows Campeonatos card for trainer', async () => {
@@ -218,7 +218,7 @@ describe('Dashboard', () => {
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.queryByText('Rotinas')).not.toBeInTheDocument();
+    expect(screen.queryByText('Personalize sua Marca')).not.toBeInTheDocument();
   });
 
   it('shows "Seja um Treinador" button when user is not a trainer', () => {

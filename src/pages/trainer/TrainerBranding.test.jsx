@@ -41,6 +41,7 @@ describe('TrainerBranding', () => {
     api.post.mockReset();
     URL.createObjectURL = vi.fn(() => 'blob:http://localhost/fake');
     URL.revokeObjectURL = vi.fn();
+    localStorage.clear();
   });
 
   it('shows loading state while fetching', () => {
@@ -61,35 +62,32 @@ describe('TrainerBranding', () => {
     api.get.mockResolvedValue({ data: null });
     renderWithRouter(<TrainerBranding />);
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Personalização', level: 1 })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Sua Marca', level: 1 })).toBeInTheDocument();
     });
   });
 
-  it('renders form with default values when branding is null', async () => {
+  it('renders welcome message textarea with default empty value when branding is null', async () => {
     api.get.mockResolvedValue({ data: null });
     renderWithRouter(<TrainerBranding />);
     await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toHaveValue('#1565C0');
+      expect(screen.getByLabelText('Mensagem de boas-vindas')).toHaveValue('');
     });
-    expect(screen.getByLabelText('Cor secundária')).toHaveValue('');
-    expect(screen.getByLabelText('Mensagem de boas-vindas')).toHaveValue('');
   });
 
-  it('populates form with existing branding data', async () => {
+  it('populates welcome message with existing branding data', async () => {
     api.get.mockResolvedValue({ data: mockBranding });
     renderWithRouter(<TrainerBranding />);
     await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toHaveValue('#FF5733');
+      expect(screen.getByLabelText('Mensagem de boas-vindas')).toHaveValue('Bem-vindo!');
     });
-    expect(screen.getByLabelText('Cor secundária')).toHaveValue('#33A1FF');
-    expect(screen.getByLabelText('Mensagem de boas-vindas')).toHaveValue('Bem-vindo!');
   });
 
   it('shows existing logo when branding has logoUrl', async () => {
     api.get.mockResolvedValue({ data: mockBranding });
     renderWithRouter(<TrainerBranding />);
     await waitFor(() => {
-      expect(screen.getByAltText('Logo atual')).toHaveAttribute('src', 'https://example.com/logo.png');
+      const logoImgs = screen.getAllByAltText('Logo');
+      expect(logoImgs[0]).toHaveAttribute('src', 'https://example.com/logo.png');
     });
   });
 
@@ -97,51 +95,14 @@ describe('TrainerBranding', () => {
     api.get.mockResolvedValue({ data: mockBranding });
     renderWithRouter(<TrainerBranding />);
     await waitFor(() => {
-      expect(screen.getByAltText('Capa atual')).toHaveAttribute('src', 'https://example.com/cover.png');
+      const coverImgs = screen.getAllByAltText('Imagem de capa');
+      expect(coverImgs[0]).toHaveAttribute('src', 'https://example.com/cover.png');
     });
-  });
-
-  it('shows validation error for invalid hex color', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: null });
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toBeInTheDocument();
-    });
-
-    const colorInput = screen.getByLabelText('Cor primária');
-    await user.clear(colorInput);
-    await user.type(colorInput, 'invalid');
-
-    expect(screen.getByText(/formato inválido/i)).toBeInTheDocument();
   });
 
   it('saves branding with PUT /trainer/branding', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: null });
-    api.put.mockResolvedValue({ data: { ...mockBranding, primaryColor: '#1565C0', secondaryColor: null, welcomeMessage: null } });
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: 'Salvar' }));
-
-    await waitFor(() => {
-      expect(api.put).toHaveBeenCalledWith('/trainer/branding', {
-        primaryColor: '#1565C0',
-        secondaryColor: null,
-        welcomeMessage: null,
-      });
-    });
-    expect(mockShowToast).toHaveBeenCalledWith('Personalização salva com sucesso!', 'success');
-  });
-
-  it('saves branding with welcome message', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: null });
+    api.get.mockResolvedValue({ data: mockBranding });
     api.put.mockResolvedValue({ data: mockBranding });
     renderWithRouter(<TrainerBranding />);
 
@@ -149,170 +110,30 @@ describe('TrainerBranding', () => {
       expect(screen.getByLabelText('Mensagem de boas-vindas')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText('Mensagem de boas-vindas'), 'Olá!');
-    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+    // Make it dirty first by changing welcome message
+    await user.clear(screen.getByLabelText('Mensagem de boas-vindas'));
+    await user.type(screen.getByLabelText('Mensagem de boas-vindas'), 'Nova mensagem');
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
 
     await waitFor(() => {
       expect(api.put).toHaveBeenCalledWith('/trainer/branding', {
-        primaryColor: '#1565C0',
-        secondaryColor: null,
-        welcomeMessage: 'Olá!',
+        primaryColor: '#FF5733',
+        secondaryColor: '#33A1FF',
+        welcomeMessage: 'Nova mensagem',
       });
     });
+    expect(mockShowToast).toHaveBeenCalledWith('Marca salva com sucesso!', 'success');
   });
 
-  it('does not submit when color is invalid', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: null });
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toBeInTheDocument();
-    });
-
-    const colorInput = screen.getByLabelText('Cor primária');
-    await user.clear(colorInput);
-    await user.type(colorInput, 'bad');
-    await user.click(screen.getByRole('button', { name: 'Salvar' }));
-
-    expect(api.put).not.toHaveBeenCalled();
-  });
-
-  it('shows error toast when save fails', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: null });
-    const error = new Error('fail');
-    error.userMessage = 'Erro ao salvar';
-    api.put.mockRejectedValue(error);
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: 'Salvar' }));
-
-    await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith('Erro ao salvar', 'error');
-    });
-  });
-
-  it('shows character count for welcome message', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: null });
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      expect(screen.getByText('0/200')).toBeInTheDocument();
-    });
-
-    await user.type(screen.getByLabelText('Mensagem de boas-vindas'), 'Hello');
-
-    expect(screen.getByText('5/200')).toBeInTheDocument();
-  });
-
-  it('rejects file with invalid type', async () => {
+  it('save button is disabled when form is not dirty', async () => {
     api.get.mockResolvedValue({ data: mockBranding });
     renderWithRouter(<TrainerBranding />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toBeInTheDocument();
+      expect(screen.getByLabelText('Mensagem de boas-vindas')).toBeInTheDocument();
     });
 
-    const file = new File(['content'], 'test.gif', { type: 'image/gif' });
-    const logoInput = document.querySelector('#logoInput');
-    fireEvent.change(logoInput, { target: { files: [file] } });
-
-    expect(mockShowToast).toHaveBeenCalledWith(
-      'Tipo de arquivo inválido. Apenas JPEG, PNG e WebP são permitidos.',
-      'error'
-    );
-  });
-
-  it('rejects file that is too large', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: mockBranding });
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toBeInTheDocument();
-    });
-
-    const largeContent = new ArrayBuffer(6 * 1024 * 1024);
-    const file = new File([largeContent], 'big.png', { type: 'image/png' });
-    const logoInput = document.querySelector('#logoInput');
-    await user.upload(logoInput, file);
-
-    expect(mockShowToast).toHaveBeenCalledWith(
-      'Arquivo muito grande. O tamanho máximo é 5MB.',
-      'error'
-    );
-  });
-
-  it('shows upload button after selecting a valid logo file', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: mockBranding });
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toBeInTheDocument();
-    });
-
-    const file = new File(['img'], 'logo.png', { type: 'image/png' });
-    const logoInput = document.querySelector('#logoInput');
-    await user.upload(logoInput, file);
-
-    expect(screen.getByRole('button', { name: 'Enviar logo' })).toBeInTheDocument();
-  });
-
-  it('uploads logo via POST /trainer/branding/logo', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: mockBranding });
-    api.post.mockResolvedValue({ data: { ...mockBranding, logoUrl: 'https://example.com/new-logo.png' } });
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toBeInTheDocument();
-    });
-
-    const file = new File(['img'], 'logo.png', { type: 'image/png' });
-    const logoInput = document.querySelector('#logoInput');
-    await user.upload(logoInput, file);
-    await user.click(screen.getByRole('button', { name: 'Enviar logo' }));
-
-    await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith(
-        '/trainer/branding/logo',
-        expect.any(FormData),
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      );
-    });
-    expect(mockShowToast).toHaveBeenCalledWith('Logo enviado com sucesso!', 'success');
-  });
-
-  it('uploads cover via POST /trainer/branding/cover', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: mockBranding });
-    api.post.mockResolvedValue({ data: { ...mockBranding, coverImageUrl: 'https://example.com/new-cover.png' } });
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toBeInTheDocument();
-    });
-
-    const file = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
-    const coverInput = document.querySelector('#coverInput');
-    await user.upload(coverInput, file);
-    await user.click(screen.getByRole('button', { name: 'Enviar capa' }));
-
-    await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith(
-        '/trainer/branding/cover',
-        expect.any(FormData),
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      );
-    });
-    expect(mockShowToast).toHaveBeenCalledWith('Capa enviada com sucesso!', 'success');
+    expect(screen.getByRole('button', { name: 'Salvar alterações' })).toBeDisabled();
   });
 
   it('shows error toast when fetch fails', async () => {
@@ -326,6 +147,47 @@ describe('TrainerBranding', () => {
     });
   });
 
+  it('shows error toast when all saves fail', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: null });
+    const error = new Error('fail');
+    error.userMessage = 'Erro ao salvar';
+    api.put.mockRejectedValue(error);
+    api.post.mockRejectedValue(new Error('upload fail'));
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Mensagem de boas-vindas')).toBeInTheDocument();
+      expect(screen.getByLabelText('Selecionar Logo')).toBeInTheDocument();
+    });
+
+    // Select both logo and cover files to trigger all 3 promises
+    const logoFile = new File(['img'], 'logo.png', { type: 'image/png' });
+    const coverFile = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Selecionar Logo'), { target: { files: [logoFile] } });
+    fireEvent.change(screen.getByLabelText('Selecionar Imagem de capa'), { target: { files: [coverFile] } });
+
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('Erro ao salvar', 'error');
+    });
+  });
+
+  it('shows character count for welcome message', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: null });
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('0/200')[0]).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText('Mensagem de boas-vindas'), 'Hello');
+
+    expect(screen.getAllByText('5/200')[0]).toBeInTheDocument();
+  });
+
   it('disables save button while saving', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: null });
@@ -333,108 +195,228 @@ describe('TrainerBranding', () => {
     renderWithRouter(<TrainerBranding />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toBeInTheDocument();
+      expect(screen.getByLabelText('Mensagem de boas-vindas')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+    await user.type(screen.getByLabelText('Mensagem de boas-vindas'), 'Olá!');
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
 
     expect(screen.getByRole('button', { name: 'Salvando...' })).toBeDisabled();
   });
 
-  it('shows color picker swatches synced with branding data', async () => {
-    api.get.mockResolvedValue({ data: mockBranding });
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      const primarySwatch = screen.getByLabelText('Pré-visualização da cor primária');
-      expect(primarySwatch).toHaveValue('#ff5733');
-    });
-    const secondarySwatch = screen.getByLabelText('Pré-visualização da cor secundária');
-    expect(secondarySwatch).toHaveValue('#33a1ff');
-  });
-
-  it('updating color picker updates the text input', async () => {
+  it('shows onboarding banner when branding is zeroed', async () => {
     api.get.mockResolvedValue({ data: null });
     renderWithRouter(<TrainerBranding />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Pré-visualização da cor primária')).toBeInTheDocument();
+      expect(screen.getByText('Personalize o app dos seus alunos')).toBeInTheDocument();
     });
-
-    const primarySwatch = screen.getByLabelText('Pré-visualização da cor primária');
-    fireEvent.change(primarySwatch, { target: { value: '#112233' } });
-
-    expect(screen.getByLabelText('Cor primária')).toHaveValue('#112233');
   });
 
-  it('allows removing a selected logo file', async () => {
+  it('does not show banner when already dismissed', async () => {
+    localStorage.setItem('branding_banner_dismissed', 'true');
+    api.get.mockResolvedValue({ data: null });
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Sua Marca', level: 1 })).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Personalize o app dos seus alunos')).not.toBeInTheDocument();
+  });
+
+  it('dismisses the banner and persists to localStorage', async () => {
     const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: null });
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Personalize o app dos seus alunos')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Fechar' }));
+
+    expect(screen.queryByText('Personalize o app dos seus alunos')).not.toBeInTheDocument();
+    expect(localStorage.getItem('branding_banner_dismissed')).toBe('true');
+  });
+
+  it('opens info bottom sheet when info button is clicked', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: null });
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Informações sobre personalização' })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Informações sobre personalização' }));
+
+    expect(screen.getByText('O que você pode personalizar')).toBeInTheDocument();
+  });
+
+  it('closes bottom sheet when close button is clicked', async () => {
+    const user = userEvent.setup();
+    // Use branding with data so banner is not shown (no extra "Fechar" button)
     api.get.mockResolvedValue({ data: mockBranding });
     renderWithRouter(<TrainerBranding />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Cor primária')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Informações sobre personalização' })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Informações sobre personalização' }));
+    expect(screen.getByText('O que você pode personalizar')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Fechar' }));
+
+    expect(screen.queryByText('O que você pode personalizar')).not.toBeInTheDocument();
+  });
+
+  it('toggles preview on mobile via the toggle button', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: null });
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /ver prévia/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ver prévia/i }));
+
+    expect(screen.getByRole('button', { name: /ocultar prévia/i })).toBeInTheDocument();
+  });
+
+  it('resets form values when discard is clicked', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: null });
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Mensagem de boas-vindas')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText('Mensagem de boas-vindas'), 'Teste');
+    expect(screen.getByLabelText('Mensagem de boas-vindas')).toHaveValue('Teste');
+
+    await user.click(screen.getByRole('button', { name: 'Descartar' }));
+
+    expect(screen.getByLabelText('Mensagem de boas-vindas')).toHaveValue('');
+  });
+
+  it('rejects file with invalid type via BrandingAssetUpload', async () => {
+    api.get.mockResolvedValue({ data: null });
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Selecionar Logo')).toBeInTheDocument();
+    });
+
+    const file = new File(['content'], 'test.gif', { type: 'image/gif' });
+    const logoInput = screen.getByLabelText('Selecionar Logo');
+    fireEvent.change(logoInput, { target: { files: [file] } });
+
+    expect(mockShowToast).toHaveBeenCalledWith(
+      'Tipo de arquivo inválido. Apenas JPEG, PNG e WebP são permitidos.',
+      'error'
+    );
+  });
+
+  it('rejects file that is too large via BrandingAssetUpload', async () => {
+    api.get.mockResolvedValue({ data: null });
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Selecionar Logo')).toBeInTheDocument();
+    });
+
+    const largeContent = new ArrayBuffer(6 * 1024 * 1024);
+    const file = new File([largeContent], 'big.png', { type: 'image/png' });
+    const logoInput = screen.getByLabelText('Selecionar Logo');
+    fireEvent.change(logoInput, { target: { files: [file] } });
+
+    expect(mockShowToast).toHaveBeenCalledWith(
+      'Arquivo muito grande. O tamanho máximo é 5MB.',
+      'error'
+    );
+  });
+
+  it('shows preview of selected logo file before saving', async () => {
+    api.get.mockResolvedValue({ data: null });
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Selecionar Logo')).toBeInTheDocument();
     });
 
     const file = new File(['img'], 'logo.png', { type: 'image/png' });
-    const logoInput = document.querySelector('#logoInput');
-    await user.upload(logoInput, file);
+    const logoInput = screen.getByLabelText('Selecionar Logo');
+    fireEvent.change(logoInput, { target: { files: [file] } });
 
-    expect(screen.getByRole('button', { name: 'Remover logo selecionado' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Remover logo selecionado' }));
-
-    expect(screen.queryByRole('button', { name: 'Enviar logo' })).not.toBeInTheDocument();
+    expect(URL.createObjectURL).toHaveBeenCalledWith(file);
   });
 
-  it('shows validation error for invalid secondary color', async () => {
+  it('uploads logo and cover via POST when saving with files', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: null });
+    api.put.mockResolvedValue({ data: { primaryColor: '#1565C0', secondaryColor: null, welcomeMessage: null } });
+    api.post.mockResolvedValue({ data: { logoUrl: 'https://example.com/new-logo.png', coverImageUrl: null } });
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Selecionar Logo')).toBeInTheDocument();
+    });
+
+    const file = new File(['img'], 'logo.png', { type: 'image/png' });
+    const logoInput = screen.getByLabelText('Selecionar Logo');
+    fireEvent.change(logoInput, { target: { files: [file] } });
+
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        '/trainer/branding/logo',
+        expect.any(FormData),
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+    });
+    expect(mockShowToast).toHaveBeenCalledWith('Marca salva com sucesso!', 'success');
+  });
+
+  it('shows partial error toast when some saves fail', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: null });
+    api.put.mockResolvedValue({ data: { primaryColor: '#1565C0' } });
+    api.post.mockRejectedValue(new Error('upload fail'));
+    renderWithRouter(<TrainerBranding />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Selecionar Logo')).toBeInTheDocument();
+    });
+
+    const file = new File(['img'], 'logo.png', { type: 'image/png' });
+    fireEvent.change(screen.getByLabelText('Selecionar Logo'), { target: { files: [file] } });
+    await user.type(screen.getByLabelText('Mensagem de boas-vindas'), 'Olá!');
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'Algumas alterações falharam ao salvar. Tente novamente.',
+        'warning'
+      );
+    });
+  });
+
+  it('opens bottom sheet from "Como funciona" link in banner', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: null });
     renderWithRouter(<TrainerBranding />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Cor secundária')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /como funciona/i })).toBeInTheDocument();
     });
 
-    const secondaryInput = screen.getByLabelText('Cor secundária');
-    await user.type(secondaryInput, 'bad');
+    await user.click(screen.getByRole('button', { name: /como funciona/i }));
 
-    expect(screen.getByText(/formato inválido.*#RRGGBB.*#33A1FF/i)).toBeInTheDocument();
-  });
-
-  it('does not submit when secondary color is invalid', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: null });
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Cor secundária')).toBeInTheDocument();
-    });
-
-    await user.type(screen.getByLabelText('Cor secundária'), 'bad');
-    await user.click(screen.getByRole('button', { name: 'Salvar' }));
-
-    expect(api.put).not.toHaveBeenCalled();
-  });
-
-  it('saves branding with secondary color', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: null });
-    api.put.mockResolvedValue({ data: mockBranding });
-    renderWithRouter(<TrainerBranding />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Cor secundária')).toBeInTheDocument();
-    });
-
-    await user.type(screen.getByLabelText('Cor secundária'), '#33A1FF');
-    await user.click(screen.getByRole('button', { name: 'Salvar' }));
-
-    await waitFor(() => {
-      expect(api.put).toHaveBeenCalledWith('/trainer/branding', {
-        primaryColor: '#1565C0',
-        secondaryColor: '#33A1FF',
-        welcomeMessage: null,
-      });
-    });
+    expect(screen.getByText('O que você pode personalizar')).toBeInTheDocument();
   });
 });

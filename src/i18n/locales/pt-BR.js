@@ -139,6 +139,65 @@ const ptBR = {
 
   fallback: 'Ocorreu um erro inesperado. Tente novamente.',
 
+  branding: {
+    pageTitle: 'Sua Marca',
+    saveSuccess: 'Marca salva com sucesso!',
+    savePartialError: 'Algumas alterações falharam ao salvar. Tente novamente.',
+    configured: 'Marca configurada',
+    preview: {
+      title: 'Prévia aproximada',
+      disclaimer: 'A aparência final pode variar conforme o dispositivo do aluno.',
+      expand: 'Ver prévia aproximada',
+      collapse: 'Ocultar prévia',
+    },
+    banner: {
+      title: 'Personalize o app dos seus alunos',
+      desc: 'Adicione sua logo, cores e mensagem de boas-vindas.',
+      howItWorks: 'Como funciona',
+    },
+    sections: {
+      logo: 'Logo',
+      logoDesc: 'Aparece no topo do app de todos os seus alunos.',
+      colors: 'Cores',
+      colorsDesc: 'Definem botões e destaques no app do aluno.',
+      primaryColor: 'Cor principal',
+      secondaryColor: 'Cor de destaque',
+      cover: 'Imagem de capa',
+      coverDesc: 'Banner exibido na tela inicial do aluno.',
+      message: 'Mensagem de boas-vindas',
+      messageDesc: 'Texto exibido para o aluno ao abrir o app.',
+      messagePlaceholder: 'Ex: Foco e consistência. Vamos treinar hoje!',
+    },
+    upload: {
+      logo: 'logo',
+      cover: 'imagem de capa',
+      hint: 'JPEG, PNG ou WebP · Máx. 5MB',
+      change: 'Trocar',
+    },
+    contrast: {
+      warning: 'Contraste baixo — textos brancos podem ficar ilegíveis.',
+    },
+    bottomSheet: {
+      title: 'O que você pode personalizar',
+      logo: {
+        title: 'Logo',
+        desc: 'Aparece no canto superior do app do aluno, identificando sua marca a cada acesso.',
+      },
+      colors: {
+        title: 'Cores',
+        desc: 'A cor principal define botões, títulos e destaques. A de destaque é opcional.',
+      },
+      cover: {
+        title: 'Imagem de capa',
+        desc: 'Banner que aparece na tela principal do aluno. Use uma foto do seu espaço ou logomarca.',
+      },
+      message: {
+        title: 'Mensagem de boas-vindas',
+        desc: 'Texto motivacional que saúda o aluno ao entrar. Máximo 200 caracteres.',
+      },
+    },
+  },
+
   fields: {
     email: 'e-mail',
     password: 'senha',

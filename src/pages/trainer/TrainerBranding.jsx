@@ -1,23 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
-import { Upload, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Palette, Info, X, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import { hasLowContrast } from '../../utils/colorContrast';
+import BrandingDismissibleBanner from './BrandingDismissibleBanner';
+import BrandingPreview from './BrandingPreview';
+import BrandingColorPicker from './BrandingColorPicker';
+import BrandingAssetUpload from './BrandingAssetUpload';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
 const MAX_WELCOME_LENGTH = 200;
-
-const validateFile = (file) => {
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return 'Tipo de arquivo inválido. Apenas JPEG, PNG e WebP são permitidos.';
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    return 'Arquivo muito grande. O tamanho máximo é 5MB.';
-  }
-  return null;
-};
+const DEFAULT_PRIMARY_COLOR = '#1565C0';
+const BANNER_DISMISSED_KEY = 'branding_banner_dismissed';
 
 const uploadFile = async (endpoint, file) => {
   const formData = new FormData();
@@ -31,24 +25,25 @@ const uploadFile = async (endpoint, file) => {
 const TrainerBranding = () => {
   const { showToast } = useToast();
   const [pageLoading, setPageLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [uploadingCover, setUploadingCover] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
 
-  const [branding, setBranding] = useState(null);
-  const [primaryColor, setPrimaryColor] = useState('#1565C0');
+  const [initialBranding, setInitialBranding] = useState(null);
+  const [primaryColor, setPrimaryColor] = useState(DEFAULT_PRIMARY_COLOR);
   const [secondaryColor, setSecondaryColor] = useState('');
   const [welcomeMessage, setWelcomeMessage] = useState('');
-  const [primaryColorError, setPrimaryColorError] = useState('');
-  const [secondaryColorError, setSecondaryColorError] = useState('');
+  const [logoUrl, setLogoUrl] = useState(null);
+  const [coverUrl, setCoverUrl] = useState(null);
 
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
   const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
 
-  const logoInputRef = useRef(null);
-  const coverInputRef = useRef(null);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(
+    () => localStorage.getItem(BANNER_DISMISSED_KEY) === 'true'
+  );
+  const [previewExpanded, setPreviewExpanded] = useState(false);
 
   useEffect(() => {
     fetchBranding();
@@ -60,12 +55,8 @@ const TrainerBranding = () => {
     try {
       const response = await api.get('/trainer/branding');
       const data = response.data;
-      setBranding(data);
-      if (data) {
-        setPrimaryColor(data.primaryColor || '#1565C0');
-        setSecondaryColor(data.secondaryColor || '');
-        setWelcomeMessage(data.welcomeMessage || '');
-      }
+      applyBrandingData(data);
+      setInitialBranding(data);
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
     } finally {
@@ -73,137 +64,140 @@ const TrainerBranding = () => {
     }
   };
 
-  const handlePrimaryColorChange = (value) => {
-    setPrimaryColor(value);
-    if (value && !HEX_COLOR_REGEX.test(value)) {
-      setPrimaryColorError('Formato inválido. Use #RRGGBB (ex: #FF5733)');
+  const applyBrandingData = (data) => {
+    if (data) {
+      setPrimaryColor(data.primaryColor || DEFAULT_PRIMARY_COLOR);
+      setSecondaryColor(data.secondaryColor || '');
+      setWelcomeMessage(data.welcomeMessage || '');
+      setLogoUrl(data.logoUrl || null);
+      setCoverUrl(data.coverImageUrl || null);
     } else {
-      setPrimaryColorError('');
+      setPrimaryColor(DEFAULT_PRIMARY_COLOR);
+      setSecondaryColor('');
+      setWelcomeMessage('');
+      setLogoUrl(null);
+      setCoverUrl(null);
     }
   };
 
-  const handleSecondaryColorChange = (value) => {
-    setSecondaryColor(value);
-    if (value && !HEX_COLOR_REGEX.test(value)) {
-      setSecondaryColorError('Formato inválido. Use #RRGGBB (ex: #33A1FF)');
-    } else {
-      setSecondaryColorError('');
-    }
-  };
-
-  const handleFileSelect = (file, type) => {
-    const error = validateFile(file);
+  const handleLogoSelect = (file, error) => {
     if (error) {
       showToast(error, 'error');
       return;
     }
-
-    const previewUrl = URL.createObjectURL(file);
-
-    if (type === 'logo') {
-      if (logoPreview) URL.revokeObjectURL(logoPreview);
-      setLogoFile(file);
-      setLogoPreview(previewUrl);
-    } else {
-      if (coverPreview) URL.revokeObjectURL(coverPreview);
-      setCoverFile(file);
-      setCoverPreview(previewUrl);
-    }
+    if (logoPreview) URL.revokeObjectURL(logoPreview);
+    setLogoFile(file);
+    setLogoPreview(file ? URL.createObjectURL(file) : null);
   };
 
-  const handleRemoveFile = (type) => {
-    if (type === 'logo') {
-      if (logoPreview) URL.revokeObjectURL(logoPreview);
-      setLogoFile(null);
-      setLogoPreview(null);
-      if (logoInputRef.current) logoInputRef.current.value = '';
-    } else {
-      if (coverPreview) URL.revokeObjectURL(coverPreview);
-      setCoverFile(null);
-      setCoverPreview(null);
-      if (coverInputRef.current) coverInputRef.current.value = '';
+  const handleCoverSelect = (file, error) => {
+    if (error) {
+      showToast(error, 'error');
+      return;
     }
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverFile(file);
+    setCoverPreview(file ? URL.createObjectURL(file) : null);
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
+  const handleDiscard = () => {
+    if (logoPreview) URL.revokeObjectURL(logoPreview);
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setLogoFile(null);
+    setLogoPreview(null);
+    setCoverFile(null);
+    setCoverPreview(null);
+    applyBrandingData(initialBranding);
+  };
 
-    if (!HEX_COLOR_REGEX.test(primaryColor)) {
-      setPrimaryColorError('Formato inválido. Use #RRGGBB (ex: #FF5733)');
-      return;
-    }
-
-    if (secondaryColor && !HEX_COLOR_REGEX.test(secondaryColor)) {
-      setSecondaryColorError('Formato inválido. Use #RRGGBB (ex: #33A1FF)');
-      return;
-    }
-
-    setSaving(true);
+  const handleSave = async () => {
+    setIsBusy(true);
     try {
-      const payload = { primaryColor };
-      payload.secondaryColor = secondaryColor && HEX_COLOR_REGEX.test(secondaryColor) ? secondaryColor : null;
-      if (welcomeMessage.trim()) {
-        payload.welcomeMessage = welcomeMessage.trim();
+      const results = await Promise.allSettled([
+        api.put('/trainer/branding', {
+          primaryColor,
+          secondaryColor: secondaryColor || null,
+          welcomeMessage: welcomeMessage.trim() || null,
+        }),
+        logoFile ? uploadFile('/trainer/branding/logo', logoFile) : Promise.resolve(null),
+        coverFile ? uploadFile('/trainer/branding/cover', coverFile) : Promise.resolve(null),
+      ]);
+
+      const failures = results.filter((r) => r.status === 'rejected');
+
+      if (failures.length === 0) {
+        showToast('Marca salva com sucesso!', 'success');
+        const putResult = results[0].value;
+        const newBranding = putResult?.data ?? initialBranding;
+        const logoResult = results[1].value?.data;
+        const coverResult = results[2].value?.data;
+        const merged = {
+          ...newBranding,
+          ...(logoResult ? { logoUrl: logoResult.logoUrl } : {}),
+          ...(coverResult ? { coverImageUrl: coverResult.coverImageUrl } : {}),
+        };
+        setInitialBranding(merged);
+        if (logoPreview) URL.revokeObjectURL(logoPreview);
+        if (coverPreview) URL.revokeObjectURL(coverPreview);
+        setLogoFile(null);
+        setLogoPreview(null);
+        setCoverFile(null);
+        setCoverPreview(null);
+        applyBrandingData(merged);
+      } else if (failures.length < results.length) {
+        showToast('Algumas alterações falharam ao salvar. Tente novamente.', 'warning');
       } else {
-        payload.welcomeMessage = null;
+        const firstError = failures[0].reason;
+        showToast(firstError?.userMessage || translateError(firstError), 'error');
       }
-
-      const response = await api.put('/trainer/branding', payload);
-      setBranding(response.data);
-      showToast('Personalização salva com sucesso!', 'success');
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
     } finally {
-      setSaving(false);
+      setIsBusy(false);
     }
   };
 
-  const handleUploadLogo = async () => {
-    if (!logoFile) return;
-    setUploadingLogo(true);
-    try {
-      const data = await uploadFile('/trainer/branding/logo', logoFile);
-      setBranding(data);
-      setLogoFile(null);
-      if (logoPreview) URL.revokeObjectURL(logoPreview);
-      setLogoPreview(null);
-      if (logoInputRef.current) logoInputRef.current.value = '';
-      showToast('Logo enviado com sucesso!', 'success');
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setUploadingLogo(false);
-    }
+  const handleDismissBanner = () => {
+    localStorage.setItem(BANNER_DISMISSED_KEY, 'true');
+    setBannerDismissed(true);
   };
 
-  const handleUploadCover = async () => {
-    if (!coverFile) return;
-    setUploadingCover(true);
-    try {
-      const data = await uploadFile('/trainer/branding/cover', coverFile);
-      setBranding(data);
-      setCoverFile(null);
-      if (coverPreview) URL.revokeObjectURL(coverPreview);
-      setCoverPreview(null);
-      if (coverInputRef.current) coverInputRef.current.value = '';
-      showToast('Capa enviada com sucesso!', 'success');
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setUploadingCover(false);
+  const isDirty = (() => {
+    const initial = initialBranding;
+    if (logoFile || coverFile) return true;
+    if (!initial) {
+      return (
+        primaryColor !== DEFAULT_PRIMARY_COLOR ||
+        secondaryColor !== '' ||
+        welcomeMessage !== ''
+      );
     }
-  };
+    return (
+      primaryColor !== (initial.primaryColor || DEFAULT_PRIMARY_COLOR) ||
+      secondaryColor !== (initial.secondaryColor || '') ||
+      welcomeMessage !== (initial.welcomeMessage || '')
+    );
+  })();
 
-  const isBusy = saving || uploadingLogo || uploadingCover;
-  const hasColorErrors = !!primaryColorError || !!secondaryColorError;
-  const logoSrc = logoPreview || branding?.logoUrl;
-  const coverSrc = coverPreview || branding?.coverImageUrl;
-  const welcomeLength = welcomeMessage.length;
+  const isBrandingConfigured =
+    !!logoUrl && primaryColor !== DEFAULT_PRIMARY_COLOR;
+
+  const showBanner =
+    !bannerDismissed &&
+    !logoUrl &&
+    !coverUrl &&
+    primaryColor === DEFAULT_PRIMARY_COLOR &&
+    !welcomeMessage;
+
+  const displayLogoUrl = logoPreview || logoUrl;
+  const displayCoverUrl = coverPreview || coverUrl;
+  const primaryContrastWarning = hasLowContrast(primaryColor);
 
   if (pageLoading) {
     return (
       <div>
-        <h1 className="page-title">Personalização</h1>
+        <div className="page-header-title-row">
+          <Palette size={24} className="page-header-title-icon" />
+          <h1>Sua Marca</h1>
+        </div>
         <div className="loading-screen">
           <span className="loading-text">Carregando...</span>
         </div>
@@ -211,202 +205,204 @@ const TrainerBranding = () => {
     );
   }
 
+  const formCard = (
+    <div className="card card--mb">
+      {/* Logo */}
+      <div className="branding-section">
+        <h2 className="branding-section-title">Logo</h2>
+        <BrandingAssetUpload
+          label="Logo"
+          description="Aparece no topo do app de todos os seus alunos."
+          currentUrl={displayLogoUrl}
+          onFileSelect={handleLogoSelect}
+          aspect="square"
+          isUploading={isBusy}
+        />
+      </div>
+
+      {/* Colors */}
+      <div className="branding-section">
+        <h2 className="branding-section-title">Cores</h2>
+        <p className="branding-section-desc">Definem botões e destaques no app do aluno.</p>
+        <BrandingColorPicker
+          label="Cor principal"
+          value={primaryColor}
+          onChange={setPrimaryColor}
+          contrastWarning={primaryContrastWarning}
+        />
+        <BrandingColorPicker
+          label="Cor de destaque"
+          value={secondaryColor}
+          onChange={setSecondaryColor}
+          optional
+        />
+      </div>
+
+      {/* Cover */}
+      <div className="branding-section">
+        <h2 className="branding-section-title">Imagem de capa</h2>
+        <BrandingAssetUpload
+          label="Imagem de capa"
+          description="Banner exibido na tela inicial do aluno."
+          currentUrl={displayCoverUrl}
+          onFileSelect={handleCoverSelect}
+          aspect="cover"
+          isUploading={isBusy}
+        />
+      </div>
+
+      {/* Welcome message */}
+      <div className="branding-section">
+        <h2 className="branding-section-title">Mensagem de boas-vindas</h2>
+        <p className="branding-section-desc">Texto exibido para o aluno ao abrir o app.</p>
+        <div className="form-group">
+          <textarea
+            id="welcomeMessage"
+            value={welcomeMessage}
+            onChange={(e) => setWelcomeMessage(e.target.value.slice(0, MAX_WELCOME_LENGTH))}
+            className="form-textarea"
+            placeholder="Ex: Foco e consistência. Vamos treinar hoje!"
+            rows={3}
+            maxLength={MAX_WELCOME_LENGTH}
+            disabled={isBusy}
+            aria-label="Mensagem de boas-vindas"
+          />
+          <span className="branding-char-count">
+            {welcomeMessage.length}/{MAX_WELCOME_LENGTH}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const footerButtons = (
+    <div className="branding-sticky-footer">
+      <button
+        type="button"
+        className="btn-secondary"
+        onClick={handleDiscard}
+        disabled={isBusy}
+      >
+        Descartar
+      </button>
+      <button
+        type="button"
+        className="btn-primary"
+        onClick={handleSave}
+        disabled={!isDirty || isBusy}
+      >
+        {isBusy ? 'Salvando...' : 'Salvar alterações'}
+      </button>
+    </div>
+  );
+
   return (
     <div>
-      <h1 className="page-title">Personalização</h1>
-
-      {/* Color and Message section */}
-      <div className="card card--mb">
-        <div className="card-header">
-          <h2 className="card-title">Cor e Mensagem</h2>
-        </div>
-
-        <form onSubmit={handleSave} className="form">
-          <div className="form-group">
-            <label className="form-label" htmlFor="primaryColor">Cor primária</label>
-            <div className="branding-color-row">
-              <input
-                id="primaryColor"
-                type="text"
-                value={primaryColor}
-                onChange={(e) => handlePrimaryColorChange(e.target.value)}
-                className={`form-input branding-color-input${primaryColorError ? ' form-input--error' : ''}`}
-                placeholder="#1565C0"
-                maxLength={7}
-                disabled={isBusy}
-              />
-              <input
-                type="color"
-                className="branding-color-swatch"
-                value={HEX_COLOR_REGEX.test(primaryColor) ? primaryColor : '#1565C0'}
-                onChange={(e) => handlePrimaryColorChange(e.target.value)}
-                aria-label="Pré-visualização da cor primária"
-                disabled={isBusy}
-              />
-            </div>
-            {primaryColorError && <span className="form-error">{primaryColorError}</span>}
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="secondaryColor">Cor secundária</label>
-            <div className="branding-color-row">
-              <input
-                id="secondaryColor"
-                type="text"
-                value={secondaryColor}
-                onChange={(e) => handleSecondaryColorChange(e.target.value)}
-                className={`form-input branding-color-input${secondaryColorError ? ' form-input--error' : ''}`}
-                placeholder="#33A1FF"
-                maxLength={7}
-                disabled={isBusy}
-              />
-              <input
-                type="color"
-                className="branding-color-swatch"
-                value={HEX_COLOR_REGEX.test(secondaryColor) ? secondaryColor : '#33A1FF'}
-                onChange={(e) => handleSecondaryColorChange(e.target.value)}
-                aria-label="Pré-visualização da cor secundária"
-                disabled={isBusy}
-              />
-            </div>
-            {secondaryColorError && <span className="form-error">{secondaryColorError}</span>}
-            <span className="text-sm text-muted">Opcional. Usada como cor de destaque.</span>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="welcomeMessage">Mensagem de boas-vindas</label>
-            <textarea
-              id="welcomeMessage"
-              value={welcomeMessage}
-              onChange={(e) => setWelcomeMessage(e.target.value.slice(0, MAX_WELCOME_LENGTH))}
-              className="form-textarea"
-              placeholder="Bem-vindo(a) ao meu espaço de treinos!"
-              rows={3}
-              maxLength={MAX_WELCOME_LENGTH}
-              disabled={isBusy}
-            />
-            <span className="branding-char-count">
-              {welcomeLength}/{MAX_WELCOME_LENGTH}
-            </span>
-          </div>
-
-          <div className="btn-group">
-            <button type="submit" disabled={isBusy || hasColorErrors} className="btn-primary">
-              {saving ? 'Salvando...' : 'Salvar'}
-            </button>
-          </div>
-        </form>
+      {/* Page header */}
+      <div className="page-header-title-row">
+        <Palette size={24} className="page-header-title-icon" />
+        <h1>Sua Marca</h1>
+        {isBrandingConfigured && (
+          <span className="branding-configured-badge">
+            <CheckCircle size={12} /> Marca configurada
+          </span>
+        )}
+        <button
+          type="button"
+          className="branding-info-btn"
+          onClick={() => setShowBottomSheet(true)}
+          aria-label="Informações sobre personalização"
+        >
+          <Info size={16} />
+        </button>
       </div>
 
-      {/* Logo section */}
-      <div className="card card--mb">
-        <div className="card-header">
-          <h2 className="card-title">Logo</h2>
-        </div>
+      {/* Onboarding banner */}
+      {showBanner && (
+        <BrandingDismissibleBanner
+          onHowItWorks={() => setShowBottomSheet(true)}
+          onDismiss={handleDismissBanner}
+        />
+      )}
 
-        <div className="branding-upload-section">
-          {logoSrc && (
-            <div className="branding-image-preview">
-              <img src={logoSrc} alt="Logo atual" className="branding-logo-img" />
-              {logoFile && (
-                <button
-                  type="button"
-                  className="branding-remove-btn"
-                  onClick={() => handleRemoveFile('logo')}
-                  aria-label="Remover logo selecionado"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
+      {/* Mobile: preview toggle */}
+      <div className="branding-split-layout">
+        <div className="branding-split-form">
+          <button
+            type="button"
+            className="branding-preview-toggle"
+            onClick={() => setPreviewExpanded((prev) => !prev)}
+          >
+            {previewExpanded ? <EyeOff size={16} /> : <Eye size={16} />}
+            {previewExpanded ? 'Ocultar prévia' : 'Ver prévia aproximada'}
+          </button>
+
+          {previewExpanded && (
+            <BrandingPreview
+              logoUrl={displayLogoUrl}
+              coverUrl={displayCoverUrl}
+              primaryColor={primaryColor}
+              welcomeMessage={welcomeMessage}
+            />
           )}
 
-          <div className="branding-upload-controls">
-            <label className="btn-secondary branding-file-label" htmlFor="logoInput">
-              <Upload size={16} />
-              Selecionar logo
-            </label>
-            <input
-              id="logoInput"
-              ref={logoInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="branding-file-input"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileSelect(file, 'logo');
-              }}
-              disabled={isBusy}
-            />
-            {logoFile && (
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleUploadLogo}
-                disabled={isBusy}
-              >
-                {uploadingLogo ? 'Enviando...' : 'Enviar logo'}
-              </button>
-            )}
-          </div>
-          <p className="text-sm text-muted">JPEG, PNG ou WebP. Máximo 5MB.</p>
+          {formCard}
+          {footerButtons}
+        </div>
+
+        <div className="branding-split-preview">
+          <BrandingPreview
+            logoUrl={displayLogoUrl}
+            coverUrl={displayCoverUrl}
+            primaryColor={primaryColor}
+            welcomeMessage={welcomeMessage}
+          />
         </div>
       </div>
 
-      {/* Cover section */}
-      <div className="card card--mb">
-        <div className="card-header">
-          <h2 className="card-title">Imagem de capa</h2>
-        </div>
-
-        <div className="branding-upload-section">
-          {coverSrc && (
-            <div className="branding-image-preview">
-              <img src={coverSrc} alt="Capa atual" className="branding-cover-img" />
-              {coverFile && (
-                <button
-                  type="button"
-                  className="branding-remove-btn"
-                  onClick={() => handleRemoveFile('cover')}
-                  aria-label="Remover capa selecionada"
-                >
-                  <X size={16} />
-                </button>
-              )}
+      {/* Info bottom sheet */}
+      {showBottomSheet && (
+        <div className="overlay" onClick={() => setShowBottomSheet(false)}>
+          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-header">
+              <h2 className="bottom-sheet-title">O que você pode personalizar</h2>
+              <button
+                className="bottom-sheet-close"
+                onClick={() => setShowBottomSheet(false)}
+                aria-label="Fechar"
+              >
+                <X size={16} />
+              </button>
             </div>
-          )}
-
-          <div className="branding-upload-controls">
-            <label className="btn-secondary branding-file-label" htmlFor="coverInput">
-              <Upload size={16} />
-              Selecionar capa
-            </label>
-            <input
-              id="coverInput"
-              ref={coverInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="branding-file-input"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileSelect(file, 'cover');
-              }}
-              disabled={isBusy}
-            />
-            {coverFile && (
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleUploadCover}
-                disabled={isBusy}
-              >
-                {uploadingCover ? 'Enviando...' : 'Enviar capa'}
-              </button>
-            )}
+            <div className="bottom-sheet-body">
+              <div className="branding-section">
+                <h3 className="branding-section-title">Logo</h3>
+                <p className="branding-section-desc">
+                  Aparece no canto superior do app do aluno, identificando sua marca a cada acesso.
+                </p>
+              </div>
+              <div className="branding-section">
+                <h3 className="branding-section-title">Cores</h3>
+                <p className="branding-section-desc">
+                  A cor principal define botões, títulos e destaques. A de destaque é opcional.
+                </p>
+              </div>
+              <div className="branding-section">
+                <h3 className="branding-section-title">Imagem de capa</h3>
+                <p className="branding-section-desc">
+                  Banner que aparece na tela principal do aluno. Use uma foto do seu espaço ou logomarca.
+                </p>
+              </div>
+              <div className="branding-section">
+                <h3 className="branding-section-title">Mensagem de boas-vindas</h3>
+                <p className="branding-section-desc">
+                  Texto motivacional que saúda o aluno ao entrar. Máximo 200 caracteres.
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-muted">JPEG, PNG ou WebP. Máximo 5MB.</p>
         </div>
-      </div>
+      )}
     </div>
   );
 };

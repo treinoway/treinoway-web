@@ -180,16 +180,16 @@ const Layout = ({ children, noPadding = false }) => {
               </Link>
 
 
-              {/* Personalização */}
+              {/* Sua Marca */}
               <Link
                 to="/trainer/branding"
                 className={`sidebar-link ${isActive('/trainer/branding') ? 'sidebar-link--active' : ''}`}
-                aria-label="Personalização"
+                aria-label="Sua Marca"
               >
                 <span className="sidebar-link-icon" aria-hidden="true">
                   <Palette size={20} strokeWidth={1.6} />
                 </span>
-                {sidebarOpen && <span className="sidebar-link-label">Personalização</span>}
+                {sidebarOpen && <span className="sidebar-link-label">Sua Marca</span>}
               </Link>
 
               {/* Biblioteca dropdown */}
