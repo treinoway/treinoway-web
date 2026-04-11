@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import Select from '../components/Select';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
@@ -120,18 +121,17 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
 
         <div>
           <label className="form-label" htmlFor="exercise-form-type">Tipo <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
-          <select
+          <Select
             id="exercise-form-type"
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-            className="form-select"
             required
           >
             <option value="">Selecione...</option>
             {EXERCISE_TYPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div>

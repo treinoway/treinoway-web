@@ -17,6 +17,7 @@ import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import CreateExerciseModal from '../../components/CreateExerciseModal';
 import ExerciseForm from '../../components/ExerciseForm';
 import RowMenu from '../../components/RowMenu';
+import Select from '../../components/Select';
 
 const SortableTrainingCard = ({ training, children, onEdit, onDelete }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -494,12 +495,11 @@ const ProtocolDetail = () => {
                 {!editingTrainingId && (
                   <div>
                     <label className="form-label">Importar treino único</label>
-                    <select
+                    <Select
                       value={trainingFormData.trainingTemplateId}
                       onChange={(e) =>
                         setTrainingFormData({ ...trainingFormData, trainingTemplateId: e.target.value })
                       }
-                      className="form-select"
                     >
                       <option value="">-- Selecione um treino --</option>
                       {trainingTemplates.map((template) => (
@@ -507,7 +507,7 @@ const ProtocolDetail = () => {
                           {template.name}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 )}
 
@@ -539,12 +539,11 @@ const ProtocolDetail = () => {
                 <div className="grid-responsive-2col">
                   <div>
                     <label className="form-label">Categoria</label>
-                    <select
+                    <Select
                       value={trainingFormData.category}
                       onChange={(e) =>
                         setTrainingFormData({ ...trainingFormData, category: e.target.value })
                       }
-                      className="form-select"
                       required
                     >
                       <option value="">Selecione...</option>
@@ -554,42 +553,40 @@ const ProtocolDetail = () => {
                       <option value="functional">Funcional</option>
                       <option value="mobility">Mobilidade</option>
                       <option value="rest">Descanso</option>
-                    </select>
+                    </Select>
                   </div>
 
                   <div>
                     <label className="form-label">Segmento Corporal</label>
-                    <select
+                    <Select
                       value={trainingFormData.bodySegment}
                       onChange={(e) =>
                         setTrainingFormData({ ...trainingFormData, bodySegment: e.target.value })
                       }
-                      className="form-select"
                     >
                       <option value="">Selecione...</option>
                       <option value="upper">Superior</option>
                       <option value="lower">Inferior</option>
                       <option value="core">Core</option>
                       <option value="full_body">Corpo Inteiro</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
                 <div className="grid-responsive-2col">
                   <div>
                     <label className="form-label">Dia da Semana</label>
-                    <select
+                    <Select
                       value={trainingFormData.weekDay}
                       onChange={(e) =>
                         setTrainingFormData({ ...trainingFormData, weekDay: e.target.value })
                       }
-                      className="form-select"
                     >
                       <option value="">— Sem dia definido —</option>
                       {WEEK_DAY_OPTIONS.map((d) => (
                         <option key={d.value} value={d.value}>{d.label}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
 
                   <div>
@@ -741,18 +738,17 @@ const ProtocolDetail = () => {
                   <form onSubmit={handleAddExerciseFromTemplate} className="form">
                     <div>
                       <label className="form-label" htmlFor="add-exercise-template">Exercício</label>
-                      <select
+                      <Select
                         id="add-exercise-template"
                         value={addExerciseTemplateId}
                         onChange={(e) => setAddExerciseTemplateId(e.target.value)}
-                        className="form-select"
                         required
                       >
                         <option value="">Selecione um exercício...</option>
                         {exerciseTemplates.map((t) => (
                           <option key={t.id} value={t.id}>{t.name}</option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
 
                     <div className="btn-group">
@@ -838,31 +834,29 @@ const ProtocolDetail = () => {
 
                 <div className="form-group">
                   <label className="form-label" htmlFor="edit-protocol-type">Tipo</label>
-                  <select
+                  <Select
                     id="edit-protocol-type"
                     value={editProtocolData.type}
                     onChange={(e) => setEditProtocolData({ ...editProtocolData, type: e.target.value })}
-                    className="form-select"
                   >
                     <option value="">— Sem tipo —</option>
                     {PROTOCOL_TYPE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div className="form-group">
                   <label className="form-label" htmlFor="edit-protocol-status">Status</label>
-                  <select
+                  <Select
                     id="edit-protocol-status"
                     value={editProtocolData.status}
                     onChange={(e) => setEditProtocolData({ ...editProtocolData, status: e.target.value })}
-                    className="form-select"
                   >
                     <option value="ACTIVE">Ativo</option>
                     <option value="COMPLETED">Concluído</option>
                     <option value="CANCELLED">Cancelado</option>
-                  </select>
+                  </Select>
                 </div>
 
                 <div className="btn-group">

@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { selectOption } from '../../test-utils/selectOption';
 import { renderWithRouter } from '../../test/test-utils';
 import ExerciseTemplates from './ExerciseTemplates';
 import { useToast } from '../../contexts/ToastContext';
@@ -136,7 +137,7 @@ describe('ExerciseTemplates', () => {
 
     const nameInput = screen.getByLabelText(/nome/i);
     await user.type(nameInput, 'Flexão');
-    await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+    await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
     await user.click(screen.getByRole('button', { name: /criar exercício/i }));
 
     await waitFor(() => {

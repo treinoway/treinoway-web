@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { selectOption } from '../../test-utils/selectOption';
 import { renderWithRouter } from '../../test/test-utils';
 import CreateChallenge from './CreateChallenge';
 import { useToast } from '../../contexts/ToastContext';
@@ -102,7 +103,7 @@ describe('CreateChallenge', () => {
     api.post.mockResolvedValue({ data: { id: 'ch-new' } });
     renderWithRouter(<CreateChallenge />);
     await screen.findByRole('heading', { name: 'Novo campeonato', level: 1 });
-    await user.selectOptions(screen.getByLabelText('Modo de seleção'), 'explicit');
+    await selectOption(user,screen.getByLabelText('Modo de seleção'), 'explicit');
     expect(screen.getByText(/adicionar participantes depois/i)).toBeInTheDocument();
   });
 
@@ -115,7 +116,7 @@ describe('CreateChallenge', () => {
     });
     renderWithRouter(<CreateChallenge />);
     await screen.findByRole('heading', { name: 'Novo campeonato', level: 1 });
-    await user.selectOptions(screen.getByLabelText('Modo de seleção'), 'explicit');
+    await selectOption(user,screen.getByLabelText('Modo de seleção'), 'explicit');
     expect(screen.getByText(/adicionar participantes depois/i)).toBeInTheDocument();
     await user.click(screen.getByLabelText(/Ana Silva/i));
     expect(screen.queryByText(/adicionar participantes depois/i)).not.toBeInTheDocument();
@@ -126,7 +127,7 @@ describe('CreateChallenge', () => {
     api.post.mockResolvedValue({ data: { studentIds: [], count: 0 } });
     renderWithRouter(<CreateChallenge />);
     await screen.findByRole('heading', { name: 'Novo campeonato', level: 1 });
-    await user.selectOptions(screen.getByLabelText('Modo de seleção'), 'filter');
+    await selectOption(user,screen.getByLabelText('Modo de seleção'), 'filter');
     await user.click(screen.getByRole('button', { name: /pré-visualizar/i }));
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(

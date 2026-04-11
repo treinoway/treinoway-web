@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import Select from '../../components/Select';
 
 const TrainerProfile = () => {
   const { showToast } = useToast();
@@ -97,15 +98,14 @@ const TrainerProfile = () => {
           <form onSubmit={handleSubmit} className="form">
             <div>
               <label className="form-label">Modo de Atendimento</label>
-              <select
+              <Select
                 value={trainerData.serviceMode}
                 onChange={(e) => setTrainerData({ ...trainerData, serviceMode: e.target.value })}
-                className="form-select"
               >
                 <option value="online">Online</option>
                 <option value="in_person">Presencial</option>
                 <option value="hybrid">Híbrido</option>
-              </select>
+              </Select>
             </div>
 
             <div>

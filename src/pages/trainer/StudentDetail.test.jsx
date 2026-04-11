@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { selectOption } from '../../test-utils/selectOption';
 import { renderWithRoute } from '../../test/test-utils';
 import StudentDetail from './StudentDetail';
 import { useToast } from '../../contexts/ToastContext';
@@ -281,7 +282,7 @@ describe('StudentDetail', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Selecionar anamnese')).toBeInTheDocument();
     });
-    await user.selectOptions(screen.getByLabelText('Selecionar anamnese'), 'anamnesis-1');
+    await selectOption(user,screen.getByLabelText('Selecionar anamnese'), 'anamnesis-1');
     await user.click(screen.getByRole('button', { name: 'Vincular' }));
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(

@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { selectOption } from '../../test-utils/selectOption';
 import { renderWithRouter } from '../../test/test-utils';
 import ProtocolTemplates from './ProtocolTemplates';
 import { useToast } from '../../contexts/ToastContext';
@@ -440,8 +441,8 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
-    await user.selectOptions(screen.getByLabelText(/Dia da Semana/i), 'monday');
+    await selectOption(user,screen.getByLabelText('Treino único'), '10');
+    await selectOption(user,screen.getByLabelText(/Dia da Semana/i), 'monday');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     expect(screen.queryByText('Adicionar Treino à Rotina')).not.toBeInTheDocument();
@@ -462,7 +463,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
     await user.type(screen.getByLabelText(/^nome/i, { selector: '#tt-modal-name' }), 'Treino Novo');
-    await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+    await selectOption(user,screen.getByLabelText('Categoria'), 'strength');
     await user.click(screen.getByRole('button', { name: /criar treino único/i }));
 
     await waitFor(() => {
@@ -482,7 +483,9 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
-    expect(screen.getByLabelText(/selecionar exercício existente/i)).toBeInTheDocument();
+    const picker = screen.getByLabelText(/selecionar exercício existente/i);
+    expect(picker).toBeInTheDocument();
+    await user.click(picker);
     expect(screen.getByRole('option', { name: 'Supino Reto' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Corrida' })).toBeInTheDocument();
   });
@@ -495,7 +498,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await selectOption(user,screen.getByLabelText(/selecionar exercício existente/i), '20');
     await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     expect(screen.getAllByText('Supino Reto').length).toBeGreaterThan(0);
@@ -515,7 +518,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await selectOption(user,screen.getByLabelText(/selecionar exercício existente/i), '20');
     await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
@@ -533,7 +536,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await selectOption(user,screen.getByLabelText(/selecionar exercício existente/i), '20');
     await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
@@ -550,7 +553,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /criar novo treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await selectOption(user,screen.getByLabelText(/selecionar exercício existente/i), '20');
     await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
@@ -578,7 +581,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
+    await selectOption(user,screen.getByLabelText('Treino único'), '10');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     expect(screen.getByRole('button', { name: /ações do treino treino a/i })).toBeInTheDocument();
@@ -592,7 +595,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
+    await selectOption(user,screen.getByLabelText('Treino único'), '10');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     await user.click(screen.getByRole('button', { name: /ações do treino treino a/i }));
@@ -617,7 +620,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
+    await selectOption(user,screen.getByLabelText('Treino único'), '10');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     await user.click(screen.getByRole('button', { name: /ações do treino treino a/i }));
@@ -646,7 +649,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /\+ nova rotina/i }));
     await user.click(screen.getByRole('button', { name: /selecionar treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
+    await selectOption(user,screen.getByLabelText('Treino único'), '10');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     await waitFor(() => {
@@ -711,7 +714,7 @@ describe('ProtocolTemplates', () => {
     expect(screen.queryByText('Supino Reto')).not.toBeInTheDocument();
     expect(screen.queryByText('Corrida')).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText('Treino único'), '10');
+    await selectOption(user,screen.getByLabelText('Treino único'), '10');
 
     await waitFor(() => {
       expect(screen.getByText('Supino Reto')).toBeInTheDocument();

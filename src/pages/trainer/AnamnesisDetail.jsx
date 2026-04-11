@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, Copy, Plus, Trash2 } from 'lucide-re
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import Select from '../../components/Select';
 import {
   ANAMNESIS_QUESTION_TYPE,
   QUESTION_TYPES_WITH_OPTIONS,
@@ -69,17 +70,16 @@ export const QuestionForm = ({ initialData, onSubmit, onCancel, saving }) => {
       <div className="grid-responsive-2col">
         <div>
           <label className="form-label" htmlFor="question-type">Tipo</label>
-          <select
+          <Select
             id="question-type"
             value={data.type}
             onChange={handleChange('type')}
-            className="form-select"
             disabled={saving}
           >
             {QUESTION_TYPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
-          </select>
+          </Select>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', paddingTop: 'var(--spacing-lg)' }}>
           <input

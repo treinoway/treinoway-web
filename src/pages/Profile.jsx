@@ -7,6 +7,7 @@ import { translateError } from '../i18n';
 import api from '../api/axios';
 import DateInput from '../components/DateInput';
 import TrainerProfileSection from '../components/TrainerProfileSection';
+import Select from '../components/Select';
 
 // Helper function to format date without timezone conversion
 const formatDateForDisplay = (dateString) => {
@@ -321,11 +322,6 @@ useEffect(() => {
 
   return (
     <div>
-      <div className="page-header-title-row">
-        <User size={24} className="page-header-title-icon" />
-        <h1>Meu Perfil</h1>
-      </div>
-
       <div className="card card--mb">
         <div className="card-header">
           <h2 className="card-title">Informações do Perfil</h2>
@@ -368,17 +364,16 @@ useEffect(() => {
               <div className="grid-responsive-2col">
                 <div>
                   <label className="form-label">Gênero</label>
-                  <select
+                  <Select
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    className="form-select"
                     disabled={loading}
                   >
                     <option value="">Selecione...</option>
                     <option value="male">Masculino</option>
                     <option value="female">Feminino</option>
                     <option value="other">Outro</option>
-                  </select>
+                  </Select>
                 </div>
 
                 <div>

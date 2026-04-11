@@ -11,6 +11,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import Select from '../../components/Select';
 import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
 import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
@@ -569,46 +570,43 @@ const ProtocolTemplates = () => {
             <div className="grid-responsive-2col">
               <div>
                 <label className="form-label">Sexo biológico</label>
-                <select
+                <Select
                   value={templateFormData.genderOrdination}
                   onChange={(e) => setTemplateFormData({ ...templateFormData, genderOrdination: e.target.value })}
-                  className="form-select"
                 >
                   <option value="">Selecione...</option>
                   <option value="male">Masculino</option>
                   <option value="female">Feminino</option>
                   <option value="other">Outro</option>
-                </select>
+                </Select>
               </div>
 
               <div>
                 <label className="form-label">Nível de Treino</label>
-                <select
+                <Select
                   value={templateFormData.trainingLevel}
                   onChange={(e) => setTemplateFormData({ ...templateFormData, trainingLevel: e.target.value })}
-                  className="form-select"
                 >
                   <option value="">Selecione...</option>
                   <option value="beginner">Iniciante</option>
                   <option value="intermediate">Intermediário</option>
                   <option value="advanced">Avançado</option>
                   <option value="athlete">Atleta</option>
-                </select>
+                </Select>
               </div>
             </div>
 
             <div>
               <label className="form-label">Tipo de Protocolo</label>
-              <select
+              <Select
                 value={templateFormData.type}
                 onChange={(e) => setTemplateFormData({ ...templateFormData, type: e.target.value })}
-                className="form-select"
               >
                 <option value="">Selecione...</option>
                 {PROTOCOL_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
@@ -865,21 +863,20 @@ const ProtocolTemplates = () => {
               <form onSubmit={handleAddTrainingModalSubmit} className="form">
                 <div>
                   <label className="form-label" htmlFor="add-training-template">Treino único</label>
-                  <select
+                  <Select
                     id="add-training-template"
                     value={addTrainingModalData.trainingTemplateId}
                     onChange={(e) => {
                       setAddTrainingModalData({ ...addTrainingModalData, trainingTemplateId: e.target.value });
                       fetchExercisesForTemplate(e.target.value);
                     }}
-                    className="form-select"
                     required
                   >
                     <option value="">Selecione um treino...</option>
                     {trainingTemplates.map((t) => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
-                  </select>
+                  </Select>
 
                   {addTrainingModalData.trainingTemplateId && (() => {
                     const previewExercises = getExercisesForTraining({ trainingTemplateId: addTrainingModalData.trainingTemplateId });
@@ -902,13 +899,12 @@ const ProtocolTemplates = () => {
 
                 <div>
                   <label className="form-label" htmlFor="add-training-weekday">Dia da Semana</label>
-                  <select
+                  <Select
                     id="add-training-weekday"
                     value={addTrainingModalData.weekDay}
                     onChange={(e) =>
                       setAddTrainingModalData({ ...addTrainingModalData, weekDay: e.target.value })
                     }
-                    className="form-select"
                   >
                     <option value="">— Sem dia definido —</option>
                     {WEEK_DAY_OPTIONS.map((day) => (
@@ -916,7 +912,7 @@ const ProtocolTemplates = () => {
                         {day.label}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
@@ -1009,11 +1005,10 @@ const ProtocolTemplates = () => {
                   <div className="grid-responsive-2col">
                     <div>
                       <label className="form-label" htmlFor="tt-modal-category">Categoria</label>
-                      <select
+                      <Select
                         id="tt-modal-category"
                         value={trainingTemplateFormData.category}
                         onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, category: e.target.value })}
-                        className="form-select"
                         required
                       >
                         <option value="">Selecione...</option>
@@ -1023,23 +1018,22 @@ const ProtocolTemplates = () => {
                         <option value="functional">Funcional</option>
                         <option value="mobility">Mobilidade</option>
                         <option value="rest">Descanso</option>
-                      </select>
+                      </Select>
                     </div>
 
                     <div>
                       <label className="form-label" htmlFor="tt-modal-bodySegment">Segmento Corporal</label>
-                      <select
+                      <Select
                         id="tt-modal-bodySegment"
                         value={trainingTemplateFormData.bodySegment}
                         onChange={(e) => setTrainingTemplateFormData({ ...trainingTemplateFormData, bodySegment: e.target.value })}
-                        className="form-select"
                       >
                         <option value="">Selecione...</option>
                         <option value="upper">Superior</option>
                         <option value="lower">Inferior</option>
                         <option value="core">Core</option>
                         <option value="full_body">Corpo Inteiro</option>
-                      </select>
+                      </Select>
                     </div>
                   </div>
 
@@ -1063,17 +1057,16 @@ const ProtocolTemplates = () => {
                     <div className="exercise-picker-row">
                       <div className="form-group">
                         <label className="form-label" htmlFor="pt-exercise-picker">Selecionar exercício existente</label>
-                        <select
+                        <Select
                           id="pt-exercise-picker"
                           value={exercisePickerValue}
                           onChange={(e) => setExercisePickerValue(e.target.value)}
-                          className="form-select"
                         >
                           <option value="">Selecione um exercício...</option>
                           {exerciseTemplates.map((et) => (
                             <option key={et.id} value={et.id}>{et.name}</option>
                           ))}
-                        </select>
+                        </Select>
                       </div>
                       <button
                         type="button"

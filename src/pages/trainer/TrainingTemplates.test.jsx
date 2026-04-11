@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { selectOption } from '../../test-utils/selectOption';
 import { renderWithRouter } from '../../test/test-utils';
 import TrainingTemplates from './TrainingTemplates';
 import { useToast } from '../../contexts/ToastContext';
@@ -183,7 +184,7 @@ describe('TrainingTemplates', () => {
 
     const nameInput = screen.getAllByRole('textbox')[0];
     await user.type(nameInput, 'Novo Treino');
-    await user.selectOptions(screen.getAllByRole('combobox')[0], 'strength');
+    await selectOption(user,screen.getAllByRole('combobox')[0], 'strength');
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -362,7 +363,9 @@ describe('TrainingTemplates', () => {
     await waitFor(() => screen.getByText('Treino A'));
     await user.click(screen.getByRole('button', { name: /novo treino único/i }));
 
-    expect(screen.getByLabelText(/selecionar exercício existente/i)).toBeInTheDocument();
+    const picker = screen.getByLabelText(/selecionar exercício existente/i);
+    expect(picker).toBeInTheDocument();
+    await user.click(picker);
     expect(screen.getByRole('option', { name: 'Supino Reto' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Corrida' })).toBeInTheDocument();
   });
@@ -374,7 +377,7 @@ describe('TrainingTemplates', () => {
     await waitFor(() => screen.getByText('Treino A'));
     await user.click(screen.getByRole('button', { name: /novo treino único/i }));
 
-    await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await selectOption(user,screen.getByLabelText(/selecionar exercício existente/i), '20');
     await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     expect(screen.getAllByText('Supino Reto').length).toBeGreaterThan(0);
@@ -393,12 +396,12 @@ describe('TrainingTemplates', () => {
 
     await waitFor(() => screen.getByText('Treino A'));
     await user.click(screen.getByRole('button', { name: /novo treino único/i }));
-    await user.selectOptions(screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await selectOption(user,screen.getByLabelText(/selecionar exercício existente/i), '20');
     await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     const nameInput = screen.getAllByRole('textbox')[0];
     await user.type(nameInput, 'Treino com Exercício');
-    await user.selectOptions(screen.getAllByRole('combobox')[0], 'strength');
+    await selectOption(user,screen.getAllByRole('combobox')[0], 'strength');
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {

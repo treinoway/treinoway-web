@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { selectOption } from '../../test-utils/selectOption';
 import { renderWithRoute } from '../../test/test-utils';
 import CreateProtocol from './CreateProtocol';
 import { useToast } from '../../contexts/ToastContext';
@@ -250,7 +251,7 @@ describe('CreateProtocol', () => {
     renderPage();
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
-    await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
+    await selectOption(user,screen.getByLabelText('Importar rotina'), '1');
     fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
     fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
@@ -271,7 +272,7 @@ describe('CreateProtocol', () => {
     renderPage();
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
-    await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
+    await selectOption(user,screen.getByLabelText('Importar rotina'), '1');
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/trainer/protocol-templates/1');
@@ -290,7 +291,7 @@ describe('CreateProtocol', () => {
     renderPage();
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
-    await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
+    await selectOption(user,screen.getByLabelText('Importar rotina'), '1');
 
     await waitFor(() => {
       expect(screen.getByText('Treino A')).toBeInTheDocument();
@@ -318,13 +319,13 @@ describe('CreateProtocol', () => {
     renderPage();
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
-    await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
+    await selectOption(user,screen.getByLabelText('Importar rotina'), '1');
 
     await waitFor(() => {
       expect(screen.getByText('Treino A')).toBeInTheDocument();
     });
 
-    await user.selectOptions(screen.getByLabelText('Importar rotina'), '');
+    await selectOption(user,screen.getByLabelText('Importar rotina'), '');
 
     await waitFor(() => {
       expect(screen.queryByText('Treino A')).not.toBeInTheDocument();
@@ -367,7 +368,7 @@ describe('CreateProtocol', () => {
     await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
 
     await user.type(screen.getByLabelText('Nome'), 'Treino Manual');
-    await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+    await selectOption(user,screen.getByLabelText('Categoria'), 'strength');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     expect(screen.queryByText('Adicionar Treino')).not.toBeInTheDocument();
@@ -392,7 +393,7 @@ describe('CreateProtocol', () => {
     renderPage();
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
-    await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
+    await selectOption(user,screen.getByLabelText('Importar rotina'), '1');
 
     await waitFor(() => {
       expect(screen.getByText('Treino A')).toBeInTheDocument();
@@ -413,11 +414,11 @@ describe('CreateProtocol', () => {
     await waitFor(() => screen.getByText('Aluno Exemplo'));
     await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
 
-    await user.selectOptions(
+    await selectOption(user,
       screen.getByLabelText(/importar treino único/i),
       'tt-1',
     );
-    await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+    await selectOption(user,screen.getByLabelText('Categoria'), 'strength');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     await waitFor(() => {
@@ -437,7 +438,7 @@ describe('CreateProtocol', () => {
     const modal = screen.getByText('Adicionar Treino').closest('.bottom-sheet');
     expect(within(modal).queryByText('Exercícios inclusos')).not.toBeInTheDocument();
 
-    await user.selectOptions(
+    await selectOption(user,
       within(modal).getByLabelText(/importar treino único/i),
       'tt-1',
     );
@@ -458,13 +459,13 @@ describe('CreateProtocol', () => {
     await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
 
     const modal = screen.getByText('Adicionar Treino').closest('.bottom-sheet');
-    await user.selectOptions(within(modal).getByLabelText(/importar treino único/i), 'tt-1');
+    await selectOption(user,within(modal).getByLabelText(/importar treino único/i), 'tt-1');
 
     await waitFor(() => {
       expect(within(modal).getByText('Supino Reto')).toBeInTheDocument();
     });
 
-    await user.selectOptions(within(modal).getByLabelText(/importar treino único/i), '');
+    await selectOption(user,within(modal).getByLabelText(/importar treino único/i), '');
 
     await waitFor(() => {
       expect(within(modal).queryByText('Exercícios inclusos')).not.toBeInTheDocument();
@@ -481,7 +482,7 @@ describe('CreateProtocol', () => {
     await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
 
     await user.type(screen.getByLabelText('Nome'), 'Treino Sem Modelo');
-    await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+    await selectOption(user,screen.getByLabelText('Categoria'), 'strength');
     await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
     expect(screen.getByText('Treino Sem Modelo')).toBeInTheDocument();
@@ -553,7 +554,7 @@ describe('CreateProtocol', () => {
       await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
 
       await user.type(screen.getByLabelText('Nome'), 'Treino Com Exercício');
-      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await selectOption(user,screen.getByLabelText('Categoria'), 'strength');
       await user.click(screen.getByRole('button', { name: /\+ criar exercício/i }));
       await user.click(screen.getByRole('button', { name: /salvar exercício/i }));
       await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
@@ -586,7 +587,9 @@ describe('CreateProtocol', () => {
       await user.click(screen.getByRole('button', { name: /importar exercício/i }));
 
       expect(screen.queryByTestId('create-exercise-modal')).not.toBeInTheDocument();
-      expect(screen.getByLabelText('Modelo de exercício')).toBeInTheDocument();
+      const exercisePicker = screen.getByLabelText('Modelo de exercício');
+      expect(exercisePicker).toBeInTheDocument();
+      await user.click(exercisePicker);
       expect(screen.getByRole('option', { name: 'Supino Reto' })).toBeInTheDocument();
     });
 
@@ -600,7 +603,7 @@ describe('CreateProtocol', () => {
       await user.click(screen.getByRole('button', { name: /importar exercício/i }));
 
       const fromTemplateOverlay = screen.getByLabelText('Modelo de exercício').closest('.bottom-sheet');
-      await user.selectOptions(within(fromTemplateOverlay).getByLabelText('Modelo de exercício'), 'ex-1');
+      await selectOption(user,within(fromTemplateOverlay).getByLabelText('Modelo de exercício'), 'ex-1');
       await user.click(within(fromTemplateOverlay).getByRole('button', { name: /^adicionar$/i }));
 
       const modal = screen.getByText('Adicionar Treino').closest('.bottom-sheet');
@@ -629,14 +632,14 @@ describe('CreateProtocol', () => {
       await waitFor(() => screen.getByText('Aluno Exemplo'));
       await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
       await user.type(screen.getByLabelText('Nome'), 'Treino Manual');
-      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await selectOption(user,screen.getByLabelText('Categoria'), 'strength');
       await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
       await user.click(screen.getByRole('button', { name: /\+ adicionar exercício/i }));
       await user.click(screen.getByRole('button', { name: /importar exercício/i }));
 
       const fromTemplateOverlay = screen.getByLabelText('Modelo de exercício').closest('.bottom-sheet');
-      await user.selectOptions(within(fromTemplateOverlay).getByLabelText('Modelo de exercício'), 'ex-2');
+      await selectOption(user,within(fromTemplateOverlay).getByLabelText('Modelo de exercício'), 'ex-2');
       await user.click(within(fromTemplateOverlay).getByRole('button', { name: /^adicionar$/i }));
 
       expect(screen.getByText('Tríceps Polia')).toBeInTheDocument();
@@ -651,7 +654,7 @@ describe('CreateProtocol', () => {
       await waitFor(() => screen.getByText('Aluno Exemplo'));
       await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
       await user.type(screen.getByLabelText('Nome'), 'Treino Manual');
-      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await selectOption(user,screen.getByLabelText('Categoria'), 'strength');
       await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
       expect(screen.getByRole('button', { name: /\+ adicionar exercício/i })).toBeInTheDocument();
@@ -662,7 +665,7 @@ describe('CreateProtocol', () => {
       renderPage();
 
       await waitFor(() => screen.getByText('Aluno Exemplo'));
-      await user.selectOptions(screen.getByLabelText('Importar rotina'), '1');
+      await selectOption(user,screen.getByLabelText('Importar rotina'), '1');
 
       await waitFor(() => screen.getByText('Treino A'));
 
@@ -676,7 +679,7 @@ describe('CreateProtocol', () => {
       await waitFor(() => screen.getByText('Aluno Exemplo'));
       await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
       await user.type(screen.getByLabelText('Nome'), 'Treino Manual');
-      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await selectOption(user,screen.getByLabelText('Categoria'), 'strength');
       await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
       await user.click(screen.getByRole('button', { name: /\+ adicionar exercício/i }));
@@ -700,7 +703,7 @@ describe('CreateProtocol', () => {
 
       await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
       await user.type(screen.getByLabelText('Nome'), 'Treino Com Exercício');
-      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await selectOption(user,screen.getByLabelText('Categoria'), 'strength');
       await user.click(screen.getByRole('button', { name: /\+ criar exercício/i }));
       await user.click(screen.getByRole('button', { name: /salvar exercício/i }));
       await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
@@ -738,8 +741,8 @@ describe('CreateProtocol', () => {
 
       // Add a training via the modal, selecting a training template (tt-1 has ex-1 and ex-2)
       await user.click(screen.getByRole('button', { name: /\+ adicionar treino/i }));
-      await user.selectOptions(screen.getByLabelText(/importar treino único/i), 'tt-1');
-      await user.selectOptions(screen.getByLabelText('Categoria'), 'strength');
+      await selectOption(user,screen.getByLabelText(/importar treino único/i), 'tt-1');
+      await selectOption(user,screen.getByLabelText('Categoria'), 'strength');
       await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
       // Wait for exercises from tt-1 to be fetched and rendered

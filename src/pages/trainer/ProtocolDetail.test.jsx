@@ -1,5 +1,6 @@
 import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { selectOption } from '../../test-utils/selectOption';
 import { renderWithRoute } from '../../test/test-utils';
 import ProtocolDetail from './ProtocolDetail';
 import { useToast } from '../../contexts/ToastContext';
@@ -336,6 +337,8 @@ describe('ProtocolDetail', () => {
       await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
       await user.click(screen.getByRole('button', { name: /importar de modelo/i }));
 
+      const picker = screen.getByRole('combobox', { name: /exercício/i });
+      await user.click(picker);
       expect(screen.getByRole('option', { name: 'Supino Reto' })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: 'Corrida' })).toBeInTheDocument();
     });
@@ -349,7 +352,7 @@ describe('ProtocolDetail', () => {
       await waitFor(() => screen.getByText('Treino de Peito'));
       await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
       await user.click(screen.getByRole('button', { name: /importar de modelo/i }));
-      await user.selectOptions(screen.getByRole('combobox', { name: /exercício/i }), '20');
+      await selectOption(user,screen.getByRole('combobox', { name: /exercício/i }), '20');
       await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
       await waitFor(() => {

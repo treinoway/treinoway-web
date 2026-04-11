@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { selectOption } from '../test-utils/selectOption';
 import { renderWithRouter } from '../test/test-utils';
 import Profile from './Profile';
 import { useAuth } from '../contexts/AuthContext';
@@ -97,10 +98,10 @@ describe('Profile', () => {
     });
   });
 
-  it('renders the profile page title', () => {
+  it('renders the profile card title', () => {
     renderWithRouter(<Profile />);
 
-    expect(screen.getByText('Meu Perfil')).toBeInTheDocument();
+    expect(screen.getByText('Informações do Perfil')).toBeInTheDocument();
   });
 
   it('displays user email in view mode', () => {
@@ -293,7 +294,7 @@ describe('Profile', () => {
     const genderSelect = screen.getByRole('combobox');
 
     await user.type(firstNameInput, 'João');
-    await user.selectOptions(genderSelect, 'male');
+    await selectOption(user,genderSelect, 'male');
 
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 

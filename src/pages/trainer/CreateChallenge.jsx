@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import Select from '../../components/Select';
 import DateInput from '../../components/DateInput';
 import PointsSummaryCard from '../../components/PointsSummaryCard';
 import PointsBottomSheet from '../../components/PointsBottomSheet';
@@ -290,9 +291,8 @@ const CreateChallenge = () => {
 
           <div className="form-group">
             <label className="form-label" htmlFor="ch-mode">Modo de seleção</label>
-            <select
+            <Select
               id="ch-mode"
-              className="form-select"
               value={participantMode}
               onChange={(e) => setParticipantMode(e.target.value)}
               disabled={submitting}
@@ -300,7 +300,7 @@ const CreateChallenge = () => {
               {PARTICIPANT_MODE_VALUES.map((m) => (
                 <option key={m} value={m}>{PARTICIPANT_MODE_LABEL[m]}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {participantMode === PARTICIPANT_MODE.EXPLICIT && (
@@ -334,9 +334,8 @@ const CreateChallenge = () => {
             <>
               <div className="form-group">
                 <label className="form-label" htmlFor="ch-gender">Gênero</label>
-                <select
+                <Select
                   id="ch-gender"
-                  className="form-select"
                   value={filterGender}
                   onChange={(e) => setFilterGender(e.target.value)}
                   disabled={submitting}
@@ -345,7 +344,7 @@ const CreateChallenge = () => {
                   <option value="male">Masculino</option>
                   <option value="female">Feminino</option>
                   <option value="other">Outro</option>
-                </select>
+                </Select>
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="ch-minAge">Idade mínima</label>

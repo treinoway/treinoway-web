@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
+import Select from '../components/Select';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
@@ -138,16 +139,15 @@ const TrainerProfileSection = () => {
         <form onSubmit={handleSubmit} className="form fade-in">
           <div>
             <label className="form-label">Modo de Atendimento</label>
-            <select
+            <Select
               value={formData.serviceMode}
               onChange={(e) => setFormData({ ...formData, serviceMode: e.target.value })}
-              className="form-select"
               disabled={loading}
             >
               <option value="online">Online</option>
               <option value="in_person">Presencial</option>
               <option value="hybrid">Híbrido</option>
-            </select>
+            </Select>
           </div>
 
           <div>

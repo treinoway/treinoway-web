@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
+import Select from '../components/Select';
 
 const TrainerContextSelect = ({ trainers, trainerId, onChange, disabled = false }) => {
   if (trainers.length === 0) return null;
   return (
     <div className="form-group">
       <label className="form-label" htmlFor="trainer-context-select">Treinador</label>
-      <select
+      <Select
         id="trainer-context-select"
-        className="form-select"
         value={trainerId}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
@@ -15,7 +15,7 @@ const TrainerContextSelect = ({ trainers, trainerId, onChange, disabled = false 
         {trainers.map((t) => (
           <option key={t.id} value={t.id}>{t.name}</option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 };

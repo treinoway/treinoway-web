@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { selectOption } from '../test-utils/selectOption';
 import ExerciseForm from './ExerciseForm';
 import { useToast } from '../contexts/ToastContext';
 import api from '../api/axios';
@@ -75,7 +76,7 @@ describe('ExerciseForm', () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
-    await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+    await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
     await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
     await waitFor(() => {
@@ -92,7 +93,7 @@ describe('ExerciseForm', () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
-    await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+    await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
     await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
     await waitFor(() => {
@@ -106,7 +107,7 @@ describe('ExerciseForm', () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
-    await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+    await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
     await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
     await waitFor(() => {
@@ -120,7 +121,7 @@ describe('ExerciseForm', () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
-    await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+    await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
     await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
     await waitFor(() => {
@@ -148,7 +149,7 @@ describe('ExerciseForm', () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
-    await user.selectOptions(screen.getByLabelText(/tipo/i), 'mobility');
+    await selectOption(user,screen.getByLabelText(/tipo/i), 'mobility');
     await user.type(screen.getByLabelText(/séries/i), '4');
     await user.type(screen.getByLabelText(/repetições mínimas/i), '8');
     await user.type(screen.getByLabelText(/repetições máximas/i), '10');
@@ -179,7 +180,7 @@ describe('ExerciseForm', () => {
     it('hides Duração when type is strength', async () => {
       const user = userEvent.setup();
       renderForm();
-      await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+      await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
       expect(screen.queryByLabelText(/duração em segundos/i)).not.toBeInTheDocument();
       expect(screen.getByLabelText(/repetições mínimas/i)).toBeInTheDocument();
     });
@@ -187,7 +188,7 @@ describe('ExerciseForm', () => {
     it('hides Repetições when type is cardio', async () => {
       const user = userEvent.setup();
       renderForm();
-      await user.selectOptions(screen.getByLabelText(/tipo/i), 'cardio');
+      await selectOption(user,screen.getByLabelText(/tipo/i), 'cardio');
       expect(screen.queryByLabelText(/repetições mínimas/i)).not.toBeInTheDocument();
       expect(screen.getByLabelText(/duração em segundos/i)).toBeInTheDocument();
     });
@@ -195,7 +196,7 @@ describe('ExerciseForm', () => {
     it('shows both Repetições and Duração when type is mobility', async () => {
       const user = userEvent.setup();
       renderForm();
-      await user.selectOptions(screen.getByLabelText(/tipo/i), 'mobility');
+      await selectOption(user,screen.getByLabelText(/tipo/i), 'mobility');
       expect(screen.getByLabelText(/repetições mínimas/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/duração em segundos/i)).toBeInTheDocument();
     });
@@ -222,7 +223,7 @@ describe('ExerciseForm', () => {
       renderDraftForm();
 
       await user.type(screen.getByLabelText(/nome/i), 'Remada Curvada');
-      await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+      await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
       await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
       await waitFor(() => {
@@ -236,7 +237,7 @@ describe('ExerciseForm', () => {
       renderDraftForm();
 
       await user.type(screen.getByLabelText(/nome/i), 'Remada Curvada');
-      await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+      await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
       await user.type(screen.getByLabelText(/séries/i), '3');
       await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
@@ -256,7 +257,7 @@ describe('ExerciseForm', () => {
       renderDraftForm();
 
       await user.type(screen.getByLabelText(/nome/i), 'Remada Curvada');
-      await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
+      await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
       await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
       await waitFor(() => {

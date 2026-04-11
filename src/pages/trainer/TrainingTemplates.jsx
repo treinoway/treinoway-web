@@ -4,6 +4,7 @@ import { LayoutGrid, List, Dumbbell, Info } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import Select from '../../components/Select';
 import CreateExerciseTemplateModal from '../../components/CreateExerciseTemplateModal';
 import RowMenu from '../../components/RowMenu';
 import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
@@ -305,30 +306,28 @@ const TrainingTemplates = () => {
             <div className="grid-responsive-2col">
               <div>
                 <label className="form-label">Categoria</label>
-                <select
+                <Select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="form-select"
                   required
                 >
                   <option value="">Selecione...</option>
                   <option value="strength">Força</option>
                   <option value="cardio">Cardio</option>
-                </select>
+                </Select>
               </div>
 
               <div>
                 <label className="form-label">Segmento Corporal</label>
-                <select
+                <Select
                   value={formData.bodySegment}
                   onChange={(e) => setFormData({ ...formData, bodySegment: e.target.value })}
-                  className="form-select"
                 >
                   <option value="">Selecione...</option>
                   <option value="upper">Superior</option>
                   <option value="lower">Inferior</option>
                   <option value="full_body">Corpo Inteiro</option>
-                </select>
+                </Select>
               </div>
             </div>
 
@@ -352,17 +351,16 @@ const TrainingTemplates = () => {
               <div className="exercise-picker-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="tt-exercise-picker">Selecionar exercício existente</label>
-                  <select
+                  <Select
                     id="tt-exercise-picker"
                     value={exercisePickerValue}
                     onChange={(e) => setExercisePickerValue(e.target.value)}
-                    className="form-select"
                   >
                     <option value="">Selecione um exercício...</option>
                     {exerciseTemplates.map((et) => (
                       <option key={et.id} value={et.id}>{et.name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <button
                   type="button"

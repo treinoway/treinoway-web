@@ -4,6 +4,7 @@ import { ArrowLeft, X } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import Select from '../../components/Select';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
 import RowMenu from '../../components/RowMenu';
@@ -333,11 +334,10 @@ const AnamnesisTab = ({ studentId }) => {
               <form onSubmit={handleLink} className="form">
                 <div>
                   <label className="form-label" htmlFor="anamnesis-select">Selecionar anamnese</label>
-                  <select
+                  <Select
                     id="anamnesis-select"
                     value={selectedAnamnesisId}
                     onChange={(e) => setSelectedAnamnesisId(e.target.value)}
-                    className="form-select"
                     required
                     disabled={linking}
                   >
@@ -347,7 +347,7 @@ const AnamnesisTab = ({ studentId }) => {
                         {a.title}{a.isGeneral ? ' (Geral)' : ''}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div className="btn-group">
                   <button type="submit" disabled={linking || !selectedAnamnesisId} className="btn-primary" style={{ flex: 1 }}>

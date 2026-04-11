@@ -11,6 +11,7 @@ import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import DateInput from '../../components/DateInput';
 import CreateExerciseModal from '../../components/CreateExerciseModal';
+import Select from '../../components/Select';
 import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
 import { PROTOCOL_TYPE_OPTIONS } from '../../constants/protocolTypes';
 import { EXERCISE_TYPE_OPTIONS } from '../../constants/exerciseTypes';
@@ -727,12 +728,10 @@ const CreateProtocol = () => {
 
           <div>
             <label className="form-label" htmlFor="protocol-template-id">Importar rotina</label>
-            <select
+            <Select
               id="protocol-template-id"
-              name="templateId"
               value={formData.templateId}
               onChange={handleProtocolTemplateChange}
-              className="form-select"
             >
               <option value="">-- Selecione uma rotina --</option>
               {templates.map((template) => (
@@ -740,7 +739,7 @@ const CreateProtocol = () => {
                   {template.name} ({template.defaultDurationWeeks} semanas)
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div>
@@ -796,52 +795,46 @@ const CreateProtocol = () => {
           <div className="grid-responsive-2col">
             <div>
               <label className="form-label" htmlFor="protocol-gender-ordination">Sexo biológico</label>
-              <select
+              <Select
                 id="protocol-gender-ordination"
-                name="genderOrdination"
                 value={formData.genderOrdination}
                 onChange={handleProtocolInputChange}
-                className="form-select"
               >
                 <option value="">Selecione...</option>
                 <option value="male">Masculino</option>
                 <option value="female">Feminino</option>
                 <option value="other">Outro</option>
-              </select>
+              </Select>
             </div>
 
             <div>
               <label className="form-label" htmlFor="protocol-training-level">Nível de Treino</label>
-              <select
+              <Select
                 id="protocol-training-level"
-                name="trainingLevel"
                 value={formData.trainingLevel}
                 onChange={handleProtocolInputChange}
-                className="form-select"
               >
                 <option value="">Selecione...</option>
                 <option value="beginner">Iniciante</option>
                 <option value="intermediate">Intermediário</option>
                 <option value="advanced">Avançado</option>
                 <option value="athlete">Atleta</option>
-              </select>
+              </Select>
             </div>
           </div>
 
           <div>
             <label className="form-label" htmlFor="protocol-type">Tipo de Protocolo</label>
-            <select
+            <Select
               id="protocol-type"
-              name="type"
               value={formData.type}
               onChange={handleProtocolInputChange}
-              className="form-select"
             >
               <option value="">Selecione...</option>
               {PROTOCOL_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div>
@@ -957,17 +950,16 @@ const CreateProtocol = () => {
                         (pré-preenche os campos)
                       </span>
                     </label>
-                    <select
+                    <Select
                       id="add-training-template-id"
                       value={addTrainingModalData.trainingTemplateId}
                       onChange={(e) => handleAddTrainingModalTemplateSelect(e.target.value)}
-                      className="form-select"
                     >
                       <option value="">-- Nenhum --</option>
                       {trainingTemplates.map((t) => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 )}
 
@@ -1009,11 +1001,10 @@ const CreateProtocol = () => {
                 <div className="grid-responsive-2col">
                   <div>
                     <label className="form-label" htmlFor="add-training-category">Categoria</label>
-                    <select
+                    <Select
                       id="add-training-category"
                       value={addTrainingModalData.category}
                       onChange={(e) => setAddTrainingModalData((prev) => ({ ...prev, category: e.target.value }))}
-                      className="form-select"
                       required
                     >
                       <option value="">Selecione...</option>
@@ -1023,40 +1014,38 @@ const CreateProtocol = () => {
                       <option value="functional">Funcional</option>
                       <option value="mobility">Mobilidade</option>
                       <option value="rest">Descanso</option>
-                    </select>
+                    </Select>
                   </div>
 
                   <div>
                     <label className="form-label" htmlFor="add-training-body-segment">Segmento Corporal</label>
-                    <select
+                    <Select
                       id="add-training-body-segment"
                       value={addTrainingModalData.bodySegment}
                       onChange={(e) => setAddTrainingModalData((prev) => ({ ...prev, bodySegment: e.target.value }))}
-                      className="form-select"
                     >
                       <option value="">Selecione...</option>
                       <option value="upper">Superior</option>
                       <option value="lower">Inferior</option>
                       <option value="core">Core</option>
                       <option value="full_body">Corpo Inteiro</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
                 <div className="grid-responsive-2col">
                   <div>
                     <label className="form-label" htmlFor="add-training-weekday">Dia da Semana</label>
-                    <select
+                    <Select
                       id="add-training-weekday"
                       value={addTrainingModalData.weekDay}
                       onChange={(e) => setAddTrainingModalData((prev) => ({ ...prev, weekDay: e.target.value }))}
-                      className="form-select"
                     >
                       <option value="">— Sem dia definido —</option>
                       {WEEK_DAY_OPTIONS.map((day) => (
                         <option key={day.value} value={day.value}>{day.label}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
 
                   <div>
@@ -1173,18 +1162,17 @@ const CreateProtocol = () => {
               <form onSubmit={handleInlineExerciseFromTemplate} className="form">
                 <div>
                   <label className="form-label" htmlFor="inline-exercise-template">Modelo de exercício</label>
-                  <select
+                  <Select
                     id="inline-exercise-template"
                     value={inlineExerciseTemplateId}
                     onChange={(e) => handleInlineExerciseTemplateSelect(e.target.value)}
-                    className="form-select"
                     required
                   >
                     <option value="">Selecione um exercício...</option>
                     {exerciseTemplates.map((t) => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 {inlineExerciseTemplateId && (
                   <>
@@ -1201,9 +1189,8 @@ const CreateProtocol = () => {
                     </div>
                     <div>
                       <label className="form-label" htmlFor="ietf-type">Tipo</label>
-                      <select
+                      <Select
                         id="ietf-type"
-                        className="form-select"
                         value={inlineExerciseTemplateFields.type}
                         onChange={(e) => setInlineExerciseTemplateFields((prev) => ({ ...prev, type: e.target.value }))}
                         required
@@ -1212,7 +1199,7 @@ const CreateProtocol = () => {
                         {EXERCISE_TYPE_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
                     <div>
                       <label className="form-label" htmlFor="ietf-sets">Séries</label>
