@@ -70,6 +70,13 @@ export function translateError(error, fallbackMessage) {
     return translations.httpStatus[status];
   }
 
+  // The backend now sends pre-translated `message` in the response body (PR1 i18n).
+  // Use it as a fallback when we don't have a local translation — it's already
+  // in the correct language for the user (pt-BR default, or whatever the backend resolved).
+  if (data?.message && typeof data.message === 'string') {
+    return data.message;
+  }
+
   return fallbackMessage || translations.fallback;
 }
 

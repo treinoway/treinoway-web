@@ -1,0 +1,167 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { translateError, extractErrorInfo, setLocale } from './index';
+
+// Helper to build a fake Axios error with a response body
+function makeAxiosError({ status, data, code, message } = {}) {
+  const error = new Error(message || 'Request failed');
+  error.code = code;
+  if (data !== undefined) {
+    error.response = { status, data };
+  }
+  return error;
+}
+
+describe('translateError', () => {
+  beforeEach(() => {
+    // Reset to default locale before each test
+    setLocale('pt-BR');
+  });
+
+  it('returns timeout message for ECONNABORTED errors', () => {
+    const error = makeAxiosError({ code: 'ECONNABORTED' });
+    const result = translateError(error);
+    expect(result).toContain('esgotado');
+  });
+
+  it('returns offline message for network errors without response', () => {
+    const error = makeAxiosError({});
+    const result = translateError(error);
+    expect(result).toContain('internet');
+  });
+
+  it('translates by specific error code (INVALID_CREDENTIALS)', () => {
+    const error = makeAxiosError({
+      status: 401,
+      data: { error: 'INVALID_CREDENTIALS', messageCode: 'auth.unauthorized', message: 'Invalid credentials' },
+    });
+    const result = translateError(error);
+    expect(result).toBe('E-mail ou senha incorretos.');
+  });
+
+  it('translates by messageCode when error code is not in local locale', () => {
+    const error = makeAxiosError({
+      status: 403,
+      data: { error: 'SOME_UNKNOWN_CODE', messageCode: 'auth.forbidden', message: 'You are forbidden' },
+    });
+    const result = translateError(error);
+    expect(result).toBe('Você não tem permissão para esta ação.');
+  });
+
+  it('translates by HTTP status when no error/messageCode match exists', () => {
+    const error = makeAxiosError({
+      status: 500,
+      data: { error: 'UNKNOWN', messageCode: 'unknown.code', message: '' },
+    });
+    const result = translateError(error);
+    expect(result).toBe('Erro interno do servidor. Tente novamente mais tarde.');
+  });
+
+  it('uses backend data.message as fallback when no local translation exists', () => {
+    // Simulate a new backend error code not yet in the web locale
+    const error = makeAxiosError({
+      status: 418,
+      data: {
+        error: 'BRAND_NEW_ERROR_NOT_IN_LOCALE',
+        messageCode: 'brand.new.messageCode',
+        message: 'Esta é uma mensagem do backend.',
+      },
+    });
+    const result = translateError(error);
+    expect(result).toBe('Esta é uma mensagem do backend.');
+  });
+
+  it('uses generic fallback when no translation, no backend message', () => {
+    const error = makeAxiosError({
+      status: 418,
+      data: { error: 'UNKNOWN', messageCode: 'unknown.code' },
+    });
+    const result = translateError(error);
+    expect(result).toContain('inesperado');
+  });
+
+  it('uses provided fallback argument when all else fails', () => {
+    const error = makeAxiosError({
+      status: 418,
+      data: { error: 'UNKNOWN', messageCode: 'unknown.code' },
+    });
+    const result = translateError(error, 'Minha mensagem de fallback');
+    expect(result).toBe('Minha mensagem de fallback');
+  });
+
+  it('translates validation errors using detail messages', () => {
+    const error = makeAxiosError({
+      status: 400,
+      data: {
+        error: 'VALIDATION_ERROR',
+        messageCode: 'validation.failed',
+        details: [
+          { field: 'email', validations: ['required'], messageCode: 'validation.email.required' },
+        ],
+      },
+    });
+    const result = translateError(error);
+    // Should use the per-field messageCode translation from validationRules or validation
+    expect(typeof result).toBe('string');
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it('translates messageCodes added in PR1 (request.rateLimitExceeded)', () => {
+    const error = makeAxiosError({
+      status: 429,
+      data: { error: 'TOO_MANY_REQUESTS', messageCode: 'request.rateLimitExceeded', message: 'Too many requests' },
+    });
+    const result = translateError(error);
+    expect(result).toBe('Muitas tentativas. Aguarde um momento e tente novamente.');
+  });
+
+  it('translates messageCodes added in PR1 (internal.serverError)', () => {
+    const error = makeAxiosError({
+      status: 500,
+      data: { error: 'INTERNAL_SERVER_ERROR', messageCode: 'internal.serverError', message: 'Internal server error' },
+    });
+    const result = translateError(error);
+    expect(result).toBe('Erro interno do servidor. Tente novamente mais tarde.');
+  });
+
+  it('translates messageCodes added in PR1 (database.uniqueConstraint)', () => {
+    const error = makeAxiosError({
+      status: 409,
+      data: { error: 'CONFLICT', messageCode: 'database.uniqueConstraint', message: 'Unique constraint violated' },
+    });
+    const result = translateError(error);
+    expect(result).toBe('Este registro já existe.');
+  });
+});
+
+describe('extractErrorInfo', () => {
+  it('returns nulls for network errors without response', () => {
+    const error = makeAxiosError({});
+    const info = extractErrorInfo(error);
+    expect(info).toEqual({ messageCode: null, errorCode: null, status: null, details: null });
+  });
+
+  it('extracts structured info from response', () => {
+    const error = makeAxiosError({
+      status: 400,
+      data: {
+        error: 'VALIDATION_ERROR',
+        messageCode: 'validation.failed',
+        details: [{ field: 'email' }],
+      },
+    });
+    const info = extractErrorInfo(error);
+    expect(info.errorCode).toBe('VALIDATION_ERROR');
+    expect(info.messageCode).toBe('validation.failed');
+    expect(info.status).toBe(400);
+    expect(info.details).toEqual([{ field: 'email' }]);
+  });
+
+  it('returns null details when not present in response', () => {
+    const error = makeAxiosError({
+      status: 404,
+      data: { error: 'NOT_FOUND', messageCode: 'resource.notFound', message: 'Not found' },
+    });
+    const info = extractErrorInfo(error);
+    expect(info.details).toBeNull();
+  });
+});

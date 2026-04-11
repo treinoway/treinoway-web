@@ -86,7 +86,7 @@ describe('ExerciseTemplates', () => {
 
     await user.click(ctaButton);
 
-    expect(screen.getByLabelText('Nome')).toBeInTheDocument();
+    expect(screen.getByLabelText(/nome/i)).toBeInTheDocument();
   });
 
   it('shows loading before GET resolves', async () => {
@@ -137,7 +137,7 @@ describe('ExerciseTemplates', () => {
     const nameInput = screen.getByLabelText(/nome/i);
     await user.type(nameInput, 'Flexão');
     await user.selectOptions(screen.getByLabelText(/tipo/i), 'strength');
-    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(

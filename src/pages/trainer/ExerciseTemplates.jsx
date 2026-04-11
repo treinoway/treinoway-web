@@ -3,36 +3,21 @@ import { LayoutGrid, List, Dumbbell, Info, Activity } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel } from '../../constants/exerciseTypes';
+import { getExerciseTypeLabel } from '../../constants/exerciseTypes';
 import { getYoutubeVideoId } from '../../utils/youtube';
 import RowMenu from '../../components/RowMenu';
+import ExerciseTemplateForm from '../../components/ExerciseTemplateForm';
 import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
 
 const ExerciseTemplates = () => {
   const { showToast } = useToast();
   const [templates, setTemplates] = useState([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
-  const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [viewMode, setViewMode] = usePersistedViewMode(VIEW_MODE_KEYS.exerciseTemplates);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const [formData, setFormData] = useState({
-    name: '',
-    type: '',
-    videoUrl: '',
-    isPublic: false,
-    sets: '',
-    repetitionsMin: '',
-    repetitionsMax: '',
-    duration: '',
-    restInterval: '',
-    hasLoad: false,
-    suggestedLoad: '',
-    notes: '',
-  });
 
   useEffect(() => {
     fetchTemplates();
@@ -50,64 +35,7 @@ const ExerciseTemplates = () => {
     }
   };
 
-  const buildPayload = (data) => {
-    const payload = {
-      name: data.name,
-      type: data.type,
-      isPublic: data.isPublic,
-      hasLoad: data.hasLoad,
-    };
-    if (data.videoUrl?.trim()) payload.videoUrl = data.videoUrl.trim();
-    if (data.sets !== '' && data.sets != null) payload.sets = parseInt(data.sets, 10);
-    if (data.repetitionsMin !== '' && data.repetitionsMin != null && data.repetitionsMax !== '' && data.repetitionsMax != null) {
-      payload.repetitions = { min: parseInt(data.repetitionsMin, 10), max: parseInt(data.repetitionsMax, 10) };
-    }
-    if (data.duration !== '' && data.duration != null) payload.duration = parseInt(data.duration, 10);
-    if (data.restInterval !== '' && data.restInterval != null) payload.restInterval = parseInt(data.restInterval, 10);
-    if (data.hasLoad && data.suggestedLoad !== '' && data.suggestedLoad != null) {
-      payload.suggestedLoad = parseFloat(data.suggestedLoad, 10);
-    }
-    if (data.notes?.trim()) payload.notes = data.notes.trim();
-    return payload;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const payload = buildPayload(formData);
-      if (editingId) {
-        await api.patch(`/trainer/exercise-templates/${editingId}`, payload);
-        showToast('Exercício atualizado com sucesso!', 'success');
-      } else {
-        await api.post('/trainer/exercise-templates', payload);
-        showToast('Exercício criado com sucesso!', 'success');
-      }
-      fetchTemplates();
-      resetForm();
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleEdit = (template) => {
-    setFormData({
-      name: template.name || '',
-      type: template.type || '',
-      videoUrl: template.videoUrl || '',
-      isPublic: template.isPublic || false,
-      sets: template.sets ?? '',
-      repetitionsMin: template.repetitions?.min ?? '',
-      repetitionsMax: template.repetitions?.max ?? '',
-      duration: template.duration ?? '',
-      restInterval: template.restInterval ?? '',
-      hasLoad: template.hasLoad || false,
-      suggestedLoad: template.suggestedLoad ?? '',
-      notes: template.notes || '',
-    });
     setEditingId(template.id);
     setShowForm(true);
   };
@@ -129,20 +57,6 @@ const ExerciseTemplates = () => {
   };
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      type: '',
-      videoUrl: '',
-      isPublic: false,
-      sets: '',
-      repetitionsMin: '',
-      repetitionsMax: '',
-      duration: '',
-      restInterval: '',
-      hasLoad: false,
-      suggestedLoad: '',
-      notes: '',
-    });
     setEditingId(null);
     setShowForm(false);
   };
@@ -235,182 +149,11 @@ const ExerciseTemplates = () => {
           <h2 className="card-title mb-md">
             {editingId ? 'Editar exercício' : 'Criar novo exercício'}
           </h2>
-          <form onSubmit={handleSubmit} className="form">
-            <div>
-              <label className="form-label" htmlFor="exercise-name">Nome</label>
-              <input
-                id="exercise-name"
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="form-input"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="form-label" htmlFor="exercise-type">Tipo</label>
-              <select
-                id="exercise-type"
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="form-select"
-                required
-              >
-                <option value="">Selecione...</option>
-                {EXERCISE_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="form-label" htmlFor="exercise-videoUrl">URL do vídeo</label>
-              <input
-                id="exercise-videoUrl"
-                type="url"
-                value={formData.videoUrl}
-                onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                className="form-input"
-                placeholder="https://..."
-              />
-              {getYoutubeVideoId(formData.videoUrl) && (
-                <div className="youtube-preview" style={{ marginTop: 'var(--spacing-sm)' }}>
-                  <iframe
-                    src={`https://www.youtube.com/embed/${getYoutubeVideoId(formData.videoUrl)}`}
-                    title="Preview do vídeo do exercício"
-                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="grid-responsive-2col">
-              <div>
-                <label className="form-label" htmlFor="exercise-sets">Séries</label>
-                <input
-                  id="exercise-sets"
-                  type="number"
-                  min="1"
-                  value={formData.sets}
-                  onChange={(e) => setFormData({ ...formData, sets: e.target.value })}
-                  className="form-input"
-                />
-              </div>
-              <div>
-                <label className="form-label">Repetições</label>
-                <div className="grid-2col" style={{ gap: 'var(--spacing-xs)' }}>
-                  <input
-                    id="exercise-repetitions-min"
-                    type="number"
-                    min="1"
-                    value={formData.repetitionsMin}
-                    onChange={(e) => setFormData({ ...formData, repetitionsMin: e.target.value })}
-                    className="form-input"
-                    aria-label="Repetições mínimas"
-                    placeholder="Mín"
-                  />
-                  <input
-                    id="exercise-repetitions-max"
-                    type="number"
-                    min="1"
-                    value={formData.repetitionsMax}
-                    onChange={(e) => setFormData({ ...formData, repetitionsMax: e.target.value })}
-                    className="form-input"
-                    aria-label="Repetições máximas"
-                    placeholder="Máx"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="form-label" htmlFor="exercise-duration">Duração em segundos</label>
-              <input
-                id="exercise-duration"
-                type="number"
-                min="1"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                className="form-input"
-                placeholder="Ex: 60"
-              />
-            </div>
-
-            <div>
-              <label className="form-label" htmlFor="exercise-restInterval">Intervalo de descanso (segundos)</label>
-              <input
-                id="exercise-restInterval"
-                type="number"
-                min="0"
-                value={formData.restInterval}
-                onChange={(e) => setFormData({ ...formData, restInterval: e.target.value })}
-                className="form-input"
-                placeholder="Ex: 60"
-              />
-            </div>
-
-            <div className="form-checkbox-row">
-              <input
-                type="checkbox"
-                id="exercise-hasLoad"
-                checked={formData.hasLoad}
-                onChange={(e) => setFormData({ ...formData, hasLoad: e.target.checked })}
-              />
-              <label htmlFor="exercise-hasLoad" className="form-label mb-0">
-                Exercício com carga
-              </label>
-            </div>
-
-            {formData.hasLoad && (
-              <div>
-                <label className="form-label" htmlFor="exercise-suggestedLoad">Carga sugerida (kg)</label>
-                <input
-                  id="exercise-suggestedLoad"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={formData.suggestedLoad}
-                  onChange={(e) => setFormData({ ...formData, suggestedLoad: e.target.value })}
-                  className="form-input"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="form-label" htmlFor="exercise-notes">Observações</label>
-              <textarea
-                id="exercise-notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
-                className="form-textarea"
-                placeholder="Orientações ou anotações sobre este exercício"
-              />
-            </div>
-
-            <div className="form-checkbox-row">
-              <input
-                type="checkbox"
-                id="exercise-isPublic"
-                checked={formData.isPublic}
-                onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
-              />
-              <label htmlFor="exercise-isPublic" className="form-label mb-0">
-                Tornar este modelo público
-              </label>
-            </div>
-
-            <div className="btn-group">
-              <button type="submit" disabled={loading} className="btn-primary">
-                {loading ? 'Salvando...' : 'Salvar'}
-              </button>
-              <button type="button" onClick={resetForm} className="btn-secondary">
-                Cancelar
-              </button>
-            </div>
-          </form>
+          <ExerciseTemplateForm
+            exerciseTemplate={editingId ? templates.find((t) => t.id === editingId) : null}
+            onSuccess={() => { fetchTemplates(); resetForm(); }}
+            onCancel={resetForm}
+          />
         </div>
       )}
 
