@@ -1,22 +1,28 @@
 import { useState, useRef, useEffect } from 'react';
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 
 /**
  * Custom Select — drop-in replacement for <select className="form-select">.
  * Accepts <option> children and calls onChange with { target: { value } }.
+ * The dropdown is rendered via a portal to document.body so it escapes
+ * overflow:auto containers (e.g. bottom-sheet).
  */
 export default function Select({
   children,
   value,
   onChange,
   id,
+  name,
   disabled,
   required,
   className = '',
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [dropdownStyle, setDropdownStyle] = useState({});
+  const triggerRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const options = React.Children.toArray(children)
     .filter((child) => React.isValidElement(child) && child.type === 'option')
@@ -31,24 +37,64 @@ export default function Select({
 
   useEffect(() => {
     if (!open) return;
+
+    const rect = triggerRef.current.getBoundingClientRect();
+    setDropdownStyle({
+      position: 'fixed',
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+      zIndex: 1000,
+    });
+
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      const insideTrigger = triggerRef.current?.contains(e.target);
+      const insideDropdown = dropdownRef.current?.contains(e.target);
+      if (!insideTrigger && !insideDropdown) setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
   const handleSelect = (optValue) => {
-    // Native <select> always returns a string via e.target.value — match that behavior.
-    onChange({ target: { value: String(optValue) } });
+    onChange({ target: { value: String(optValue), name } });
     setOpen(false);
   };
 
   const errorClass = className.includes('form-select--error') ? ' custom-select--error' : '';
 
+  const dropdown = (
+    <ul
+      ref={dropdownRef}
+      className="custom-select__dropdown"
+      role="listbox"
+      style={dropdownStyle}
+    >
+      {options.map((opt) => (
+        <li
+          key={opt.value}
+          role="option"
+          data-value={opt.value}
+          aria-selected={String(opt.value) === String(value)}
+          className={[
+            'custom-select__option',
+            String(opt.value) === String(value) ? 'custom-select__option--selected' : '',
+            opt.disabled ? 'custom-select__option--disabled' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          onClick={() => !opt.disabled && handleSelect(opt.value)}
+        >
+          {opt.label}
+        </li>
+      ))}
+    </ul>
+  );
+
   return (
-    <div className={`custom-select${errorClass}`} ref={ref}>
+    <div className={`custom-select${errorClass}`}>
       <button
+        ref={triggerRef}
         type="button"
         role="combobox"
         id={id}
@@ -69,28 +115,7 @@ export default function Select({
         />
       </button>
 
-      {open && (
-        <ul className="custom-select__dropdown" role="listbox">
-          {options.map((opt) => (
-            <li
-              key={opt.value}
-              role="option"
-              data-value={opt.value}
-              aria-selected={String(opt.value) === String(value)}
-              className={[
-                'custom-select__option',
-                String(opt.value) === String(value) ? 'custom-select__option--selected' : '',
-                opt.disabled ? 'custom-select__option--disabled' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onClick={() => !opt.disabled && handleSelect(opt.value)}
-            >
-              {opt.label}
-            </li>
-          ))}
-        </ul>
-      )}
+      {open && ReactDOM.createPortal(dropdown, document.body)}
     </div>
   );
 }

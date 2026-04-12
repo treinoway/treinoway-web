@@ -797,6 +797,7 @@ const CreateProtocol = () => {
               <label className="form-label" htmlFor="protocol-gender-ordination">Sexo biológico</label>
               <Select
                 id="protocol-gender-ordination"
+                name="genderOrdination"
                 value={formData.genderOrdination}
                 onChange={handleProtocolInputChange}
               >
@@ -811,6 +812,7 @@ const CreateProtocol = () => {
               <label className="form-label" htmlFor="protocol-training-level">Nível de Treino</label>
               <Select
                 id="protocol-training-level"
+                name="trainingLevel"
                 value={formData.trainingLevel}
                 onChange={handleProtocolInputChange}
               >
@@ -827,6 +829,7 @@ const CreateProtocol = () => {
             <label className="form-label" htmlFor="protocol-type">Tipo de Protocolo</label>
             <Select
               id="protocol-type"
+              name="type"
               value={formData.type}
               onChange={handleProtocolInputChange}
             >

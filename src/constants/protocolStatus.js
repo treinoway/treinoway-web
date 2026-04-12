@@ -1,23 +1,23 @@
 export const PROTOCOL_STATUS_OPTIONS = [
-  { value: 'ACTIVE', label: 'Ativo' },
-  { value: 'COMPLETED', label: 'Concluído' },
-  { value: 'CANCELLED', label: 'Cancelado' },
+  { value: 'active', label: 'Ativo' },
+  { value: 'completed', label: 'Concluído' },
+  { value: 'archived', label: 'Arquivado' },
 ];
 
 export function getStatusLabel(status) {
-  switch (status?.toUpperCase()) {
-    case 'ACTIVE': return 'Ativo';
-    case 'COMPLETED': return 'Concluído';
-    case 'CANCELLED': return 'Cancelado';
+  switch (status?.toLowerCase()) {
+    case 'active': return 'Ativo';
+    case 'completed': return 'Concluído';
+    case 'archived': return 'Arquivado';
     default: return status ?? '—';
   }
 }
 
 export function getStatusBadgeClass(status) {
-  switch (status?.toUpperCase()) {
-    case 'ACTIVE': return 'badge badge-green';
-    case 'COMPLETED': return 'badge badge-gray';
-    case 'CANCELLED': return 'badge badge-red';
+  switch (status?.toLowerCase()) {
+    case 'active': return 'badge badge-green';
+    case 'completed': return 'badge badge-gray';
+    case 'archived': return 'badge badge-red';
     default: return 'badge badge-gray';
   }
 }

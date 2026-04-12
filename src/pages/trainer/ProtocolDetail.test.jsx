@@ -48,7 +48,7 @@ const mockShowToast = vi.fn();
 const mockProtocol = {
   id: 1,
   name: 'Rotina Teste',
-  status: 'ACTIVE',
+  status: 'active',
   startDate: '2024-01-01',
   expirationDate: '2024-03-31',
   assignee: { firstName: 'Aluno', lastName: 'Teste', email: 'aluno@example.com' },
@@ -541,7 +541,7 @@ describe('ProtocolDetail', () => {
       await waitFor(() => {
         expect(api.patch).toHaveBeenCalledWith(
           '/trainer/protocols/1',
-          expect.objectContaining({ name: 'Rotina Teste', status: 'ACTIVE' })
+          expect.objectContaining({ name: 'Rotina Teste', status: 'active' })
         );
       });
     });

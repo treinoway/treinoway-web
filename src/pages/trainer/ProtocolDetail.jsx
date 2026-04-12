@@ -853,9 +853,9 @@ const ProtocolDetail = () => {
                     value={editProtocolData.status}
                     onChange={(e) => setEditProtocolData({ ...editProtocolData, status: e.target.value })}
                   >
-                    <option value="ACTIVE">Ativo</option>
-                    <option value="COMPLETED">Concluído</option>
-                    <option value="CANCELLED">Cancelado</option>
+                    <option value="active">Ativo</option>
+                    <option value="completed">Concluído</option>
+                    <option value="archived">Arquivado</option>
                   </Select>
                 </div>
 
