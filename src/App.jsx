@@ -27,6 +27,7 @@ import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
 import AnamnesisDetail from './pages/trainer/AnamnesisDetail';
 import AiAssistant from './pages/trainer/AiAssistant';
 import TrainerBranding from './pages/trainer/TrainerBranding';
+import ProtocolTemplateWizard from './pages/trainer/ProtocolTemplateWizard';
 import StudentPoints from './pages/trainer/StudentPoints';
 import Challenges from './pages/trainer/Challenges';
 import CreateChallenge from './pages/trainer/CreateChallenge';
@@ -114,6 +115,26 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <ProtocolTemplates />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/protocol-templates/new"
+            element={
+              <ProtectedRoute>
+                <Layout noPadding>
+                  <ProtocolTemplateWizard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/protocol-templates/:id/edit"
+            element={
+              <ProtectedRoute>
+                <Layout noPadding>
+                  <ProtocolTemplateWizard />
                 </Layout>
               </ProtectedRoute>
             }

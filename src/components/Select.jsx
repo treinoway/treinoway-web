@@ -18,6 +18,7 @@ export default function Select({
   disabled,
   required,
   className = '',
+  'aria-label': ariaLabel,
 }) {
   const [open, setOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState({});
@@ -105,6 +106,7 @@ export default function Select({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-required={required}
+        aria-label={ariaLabel}
       >
         <span className={`custom-select__value${isPlaceholder ? ' custom-select__value--placeholder' : ''}`}>
           {selectedOption?.label ?? options[0]?.label ?? ''}

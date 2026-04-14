@@ -9,11 +9,12 @@ import CreateExerciseTemplateModal from '../../components/CreateExerciseTemplate
 import RowMenu from '../../components/RowMenu';
 import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
+import { TRAINING_CATEGORY_OPTIONS, TRAINING_CATEGORY_LABEL } from '../../constants/trainingCategories';
 
 /** @deprecated Use RowMenu from '../../components/RowMenu' instead */
 export const TemplateRowMenu = RowMenu;
 
-const CATEGORY_LABEL = { strength: 'Força', cardio: 'Cardio' };
+const CATEGORY_LABEL = TRAINING_CATEGORY_LABEL;
 const BODY_SEGMENT_LABEL = { upper: 'Superior', lower: 'Inferior', full_body: 'Corpo Inteiro' };
 
 const exerciseBadgeStyle = {
@@ -312,8 +313,9 @@ const TrainingTemplates = () => {
                   required
                 >
                   <option value="">Selecione...</option>
-                  <option value="strength">Força</option>
-                  <option value="cardio">Cardio</option>
+                  {TRAINING_CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </Select>
               </div>
 
