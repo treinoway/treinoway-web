@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1">
+<title>Treinoway · Concept 2 — Pular exercício</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .scrim {
+    position: absolute; inset: 0;
+    background: rgba(28, 28, 30, 0.35);
+    z-index: 20;
+  }
+  .skip-sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 10px 20px 28px;
+    z-index: 21;
+    box-shadow: 0 -24px 60px rgba(0, 0, 0, 0.18);
+  }
+  .sheet-handle {
+    width: 40px; height: 4px;
+    background: var(--border-strong);
+    border-radius: var(--radius-full);
+    margin: 0 auto 12px;
+  }
+  .skip-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    letter-spacing: 0.01em;
+    margin-bottom: 4px;
+    text-align: center;
+    color: var(--text);
+  }
+  .skip-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .skip-ex {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: var(--radius-full);
+    background: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 0 auto 20px;
+  }
+  .skip-ex-wrap { display: flex; justify-content: center; }
+
+  .reason-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .reason-chip {
+    padding: 16px 10px;
+    background: var(--bg-soft);
+    border: 1.5px solid transparent;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all .15s ease;
+    font-family: var(--font-body);
+  }
+  .reason-chip svg { color: var(--text-muted); }
+  .reason-chip:hover { background: var(--color-primary-soft); }
+  .reason-chip--selected {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary-container);
+  }
+  .reason-chip--selected svg { color: var(--color-primary); }
+
+  .reason-textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 13px;
+    resize: none;
+    outline: none;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .skip-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 10px;
+  }
+  .skip-cancel {
+    height: 56px;
+    border-radius: var(--radius-full);
+    background: var(--bg-soft);
+    border: 0;
+    color: var(--text-dim);
+    font-family: var(--font-display);
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .skip-confirm {
+    height: 56px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary);
+    border: 0;
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 10px 24px rgba(21, 101, 192, 0.3);
+  }
+  .skip-hint {
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+  }
+  .skip-hint svg { color: var(--color-primary); }
+</style>
+</head>
+<body>
+<div class="mockup-label"><strong>C2·06</strong>Por que não fez</div>
+<nav class="mockup-nav">
+  <a href="6-timed.html">‹ Anterior</a>
+  <a href="index.html">Índice</a>
+  <a aria-disabled="true">Próximo ›</a>
+</nav>
+
+<div class="device">
+  <div class="status-notch"></div>
+  <div class="status-bar">
+    <span>10:31</span>
+    <span class="right">
+      <i data-lucide="signal" width="14" height="14"></i>
+      <i data-lucide="wifi" width="14" height="14"></i>
+      <i data-lucide="battery-full" width="18" height="18"></i>
+    </span>
+  </div>
+
+  <div class="top-bar" style="opacity: 0.35;">
+    <button class="icon-btn"><i data-lucide="chevron-left" width="22" height="22"></i></button>
+    <div class="top-bar-center">
+      <span class="workout-label">Treino A</span>
+      <span class="workout-name">Peito e Tríceps</span>
+    </div>
+    <button class="timer-chip"><i data-lucide="clock" width="14" height="14"></i> 17:02</button>
+  </div>
+
+  <div class="ex-progress" style="opacity: 0.35;">
+    <div class="ex-seg ex-seg--done"></div>
+    <div class="ex-seg ex-seg--active"></div>
+    <div class="ex-seg"></div>
+    <div class="ex-seg"></div>
+    <div class="ex-seg"></div>
+  </div>
+
+  <div class="stage" style="opacity: 0.35;">
+    <div class="ex-title-row">
+      <div class="ex-title-main">
+        <h1 class="ex-title">Supino Reto<br>com Barra</h1>
+        <div class="ex-meta">Exercício 2 de 5</div>
+      </div>
+      <button class="video-btn"><i data-lucide="play" width="20" height="20" fill="currentColor"></i></button>
+    </div>
+  </div>
+
+  <div class="scrim"></div>
+
+  <div class="skip-sheet">
+    <div class="sheet-handle"></div>
+
+    <h2 class="skip-title">Por que não fez?</h2>
+    <p class="skip-sub">Ajuda seu personal a entender e ajustar</p>
+
+    <div class="skip-ex-wrap">
+      <div class="skip-ex">
+        <i data-lucide="skip-forward" width="12" height="12"></i>
+        Pulando · Supino Reto
+      </div>
+    </div>
+
+    <div class="reason-grid">
+      <button class="reason-chip reason-chip--selected">
+        <i data-lucide="dumbbell" width="20" height="20"></i>
+        Equipamento ocupado
+      </button>
+      <button class="reason-chip">
+        <i data-lucide="heart-pulse" width="20" height="20"></i>
+        Dor ou desconforto
+      </button>
+      <button class="reason-chip">
+        <i data-lucide="battery-low" width="20" height="20"></i>
+        Fadiga
+      </button>
+      <button class="reason-chip">
+        <i data-lucide="clock" width="20" height="20"></i>
+        Falta de tempo
+      </button>
+      <button class="reason-chip" style="grid-column: 1 / -1;">
+        <i data-lucide="message-square" width="20" height="20"></i>
+        Outro motivo
+      </button>
+    </div>
+
+    <textarea class="reason-textarea" rows="2" placeholder="Adicionar observação (opcional)"></textarea>
+
+    <div class="skip-actions">
+      <button class="skip-cancel">Cancelar</button>
+      <button class="skip-confirm">
+        <i data-lucide="skip-forward" width="16" height="16"></i>
+        Não fiz
+      </button>
+    </div>
+
+    <div class="skip-hint">
+      <i data-lucide="info" width="12" height="12"></i>
+      Você pode refazer este exercício depois
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="interactions.js"></script>
+</body>
+</html>

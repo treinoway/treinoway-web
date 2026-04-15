@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1">
+<title>Treinoway · Concept 2 — Focus Set</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="mockup-label"><strong>C2·01</strong>Focus Set — uma série por vez</div>
+<nav class="mockup-nav">
+  <a href="5-overview.html">‹ Anterior</a>
+  <a href="index.html">Índice</a>
+  <a href="2-superset.html">Próximo ›</a>
+</nav>
+
+<div class="device">
+  <div class="status-notch"></div>
+  <div class="status-bar">
+    <span>10:24</span>
+    <span class="right">
+      <i data-lucide="signal" width="14" height="14"></i>
+      <i data-lucide="wifi" width="14" height="14"></i>
+      <i data-lucide="battery-full" width="18" height="18"></i>
+    </span>
+  </div>
+
+  <div class="top-bar">
+    <button class="icon-btn"><i data-lucide="chevron-left" width="22" height="22"></i></button>
+    <div class="top-bar-center">
+      <span class="workout-label">Treino A</span>
+      <span class="workout-name">Peito e Tríceps</span>
+    </div>
+    <button class="timer-chip"><i data-lucide="clock" width="14" height="14"></i> 12:34</button>
+  </div>
+
+  <!-- Progress de exercícios: 5 segmentos, 1 done, 1 active -->
+  <div class="ex-progress">
+    <div class="ex-seg ex-seg--done"></div>
+    <div class="ex-seg ex-seg--active"></div>
+    <div class="ex-seg"></div>
+    <div class="ex-seg"></div>
+    <div class="ex-seg"></div>
+  </div>
+
+  <div class="stage">
+    <div class="ex-title-row">
+      <div class="ex-title-main">
+        <h1 class="ex-title">Supino Reto<br>com Barra</h1>
+        <div class="ex-meta">Exercício 2 de 5</div>
+      </div>
+      <button class="video-btn" aria-label="Vídeo">
+        <i data-lucide="play" width="20" height="20" fill="currentColor"></i>
+      </button>
+    </div>
+
+    <!-- Set pills -->
+    <div class="set-pills">
+      <div class="set-pill set-pill--done"></div>
+      <div class="set-pill set-pill--active"></div>
+      <div class="set-pill"></div>
+    </div>
+
+    <div class="set-context">
+      <span class="set-index">Série <strong>2</strong> de 3</span>
+      <span class="last-week">
+        <i data-lucide="history" width="12" height="12"></i>
+        Anterior: <strong>10 × 37,5kg</strong>
+      </span>
+    </div>
+
+    <!-- Hero inputs: steppers -->
+    <div class="hero-inputs">
+      <div class="stepper stepper--active">
+        <div class="stepper-label">Reps</div>
+        <div class="stepper-value">10</div>
+        <span class="stepper-unit">repetições</span>
+        <div class="stepper-controls">
+          <button class="step-btn"><i data-lucide="minus" width="16" height="16"></i></button>
+          <button class="step-btn step-btn--plus"><i data-lucide="plus" width="16" height="16"></i></button>
+        </div>
+      </div>
+
+      <div class="stepper stepper--active">
+        <div class="stepper-label">Carga</div>
+        <div class="stepper-value">40</div>
+        <span class="stepper-unit">kg</span>
+        <div class="stepper-controls">
+          <button class="step-btn"><i data-lucide="minus" width="16" height="16"></i></button>
+          <button class="step-btn step-btn--plus"><i data-lucide="plus" width="16" height="16"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <button class="confirm-btn">
+      <i data-lucide="check" width="24" height="24"></i>
+      Concluir série
+    </button>
+
+    <div class="obs-row" style="justify-content: space-between; padding: 0 4px;">
+      <button class="obs-btn">
+        <i data-lucide="message-square" width="12" height="12"></i>
+        Adicionar observação
+      </button>
+      <a class="obs-btn" href="7-skip.html" style="color: var(--color-error); text-decoration: none;">
+        <i data-lucide="skip-forward" width="12" height="12"></i>
+        Não fiz este exercício
+      </a>
+    </div>
+  </div>
+
+  <!-- Dock: próximos exercícios -->
+  <div class="dock">
+    <div class="dock-label">
+      <span>A seguir · 3</span>
+      <a href="#">Ver tudo</a>
+    </div>
+    <div class="dock-scroll">
+      <div class="dock-card">
+        <div class="dock-thumb"><i data-lucide="dumbbell" width="18" height="18"></i></div>
+        <div class="dock-info">
+          <div class="dock-name">Supino Inclinado</div>
+          <div class="dock-meta">3 × 10–12</div>
+        </div>
+      </div>
+      <a class="dock-card" href="2-superset.html">
+        <div class="dock-thumb"><i data-lucide="link-2" width="18" height="18"></i></div>
+        <div class="dock-info">
+          <div class="dock-name">Superset · Tríceps</div>
+          <div class="dock-meta">3 rodadas</div>
+        </div>
+      </a>
+      <div class="dock-card">
+        <div class="dock-thumb"><i data-lucide="dumbbell" width="18" height="18"></i></div>
+        <div class="dock-info">
+          <div class="dock-name">Tríceps Francês</div>
+          <div class="dock-meta">3 × 10</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="interactions.js"></script>
+</body>
+</html>

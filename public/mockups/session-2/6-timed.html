@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1">
+<title>Treinoway · Concept 2 — Exercício por tempo</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .timed-stepper {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-primary);
+    background: linear-gradient(180deg, var(--color-primary-soft) 0%, var(--surface) 60%);
+    padding: 20px 16px 16px;
+    box-shadow: 0 0 0 3px rgba(21, 144, 226, 0.08);
+  }
+  .timed-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .timed-value {
+    font-family: var(--font-display);
+    font-size: 96px;
+    line-height: 1;
+    text-align: center;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+  }
+  .timed-unit {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .timed-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .timed-controls .step-btn { height: 42px; }
+  .timed-start {
+    width: 100%;
+    height: 52px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary);
+    color: #fff;
+    border: 0;
+    font-family: var(--font-display);
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+    border-radius: var(--radius-full);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    align-self: flex-start;
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="mockup-label"><strong>C2·06</strong>Exercício por tempo — isométrico</div>
+<nav class="mockup-nav">
+  <a href="4-editing-completed.html">‹ Anterior</a>
+  <a href="index.html">Índice</a>
+  <a href="7-skip.html">Próximo ›</a>
+</nav>
+
+<div class="device">
+  <div class="status-notch"></div>
+  <div class="status-bar">
+    <span>11:02</span>
+    <span class="right">
+      <i data-lucide="signal" width="14" height="14"></i>
+      <i data-lucide="wifi" width="14" height="14"></i>
+      <i data-lucide="battery-full" width="18" height="18"></i>
+    </span>
+  </div>
+
+  <div class="top-bar">
+    <button class="icon-btn"><i data-lucide="chevron-left" width="22" height="22"></i></button>
+    <div class="top-bar-center">
+      <span class="workout-label">Treino C</span>
+      <span class="workout-name">Core</span>
+    </div>
+    <button class="timer-chip"><i data-lucide="clock" width="14" height="14"></i> 18:22</button>
+  </div>
+
+  <div class="ex-progress">
+    <div class="ex-seg ex-seg--done"></div>
+    <div class="ex-seg ex-seg--done"></div>
+    <div class="ex-seg ex-seg--done"></div>
+    <div class="ex-seg ex-seg--active"></div>
+    <div class="ex-seg"></div>
+    <div class="ex-seg"></div>
+  </div>
+
+  <div class="stage">
+    <span class="mode-badge">
+      <i data-lucide="timer" width="11" height="11"></i>
+      Por tempo
+    </span>
+
+    <div class="ex-title-row">
+      <div class="ex-title-main">
+        <h1 class="ex-title">Prancha<br>Isométrica</h1>
+        <div class="ex-meta">Exercício 4 de 6</div>
+      </div>
+      <button class="video-btn" aria-label="Vídeo">
+        <i data-lucide="play" width="20" height="20" fill="currentColor"></i>
+      </button>
+    </div>
+
+    <div class="set-pills">
+      <div class="set-pill set-pill--done"></div>
+      <div class="set-pill set-pill--active"></div>
+      <div class="set-pill"></div>
+    </div>
+
+    <div class="set-context">
+      <span class="set-index">Série <strong>2</strong> de 3</span>
+      <span class="last-week">
+        <i data-lucide="history" width="12" height="12"></i>
+        Anterior: <strong>3 × 40s</strong>
+      </span>
+    </div>
+
+    <div class="hero-inputs" style="grid-template-columns: 1fr;">
+      <div class="timed-stepper">
+        <div class="timed-label">Tempo sob tensão</div>
+        <div class="timed-value">00:45</div>
+        <div class="timed-unit">minutos</div>
+
+        <button class="timed-start">
+          <i data-lucide="play" width="18" height="18" fill="currentColor"></i>
+          Iniciar cronômetro
+        </button>
+
+        <div class="timed-controls" style="margin-top: 12px;">
+          <button class="step-btn">−15s</button>
+          <button class="step-btn">−5s</button>
+          <button class="step-btn step-btn--plus">+5s</button>
+          <button class="step-btn step-btn--plus">+15s</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="confirm-btn">
+      <i data-lucide="check" width="24" height="24"></i>
+      Concluir série
+    </button>
+
+    <div class="obs-row">
+      <button class="obs-btn">
+        <i data-lucide="message-square" width="12" height="12"></i>
+        Adicionar observação
+      </button>
+    </div>
+  </div>
+
+  <div class="dock">
+    <div class="dock-label">
+      <span>A seguir · 2</span>
+      <a href="#">Ver tudo</a>
+    </div>
+    <div class="dock-scroll">
+      <div class="dock-card">
+        <div class="dock-thumb"><i data-lucide="dumbbell" width="18" height="18"></i></div>
+        <div class="dock-info">
+          <div class="dock-name">Abdominal Infra</div>
+          <div class="dock-meta">3 × 15 reps</div>
+        </div>
+      </div>
+      <div class="dock-card">
+        <div class="dock-thumb"><i data-lucide="timer" width="18" height="18"></i></div>
+        <div class="dock-info">
+          <div class="dock-name">Prancha Lateral</div>
+          <div class="dock-meta">2 × 30s</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="interactions.js"></script>
+</body>
+</html>

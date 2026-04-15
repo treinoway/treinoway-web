@@ -1,0 +1,11 @@
+{
+  "cleanUrls": false,
+  "rewrites": [
+    { "source": "mockups", "destination": "/mockups/session/index.html" },
+    { "source": "mockups/", "destination": "/mockups/session/index.html" },
+    { "source": "mockups/session", "destination": "/mockups/session/index.html" },
+    { "source": "mockups/session/", "destination": "/mockups/session/index.html" },
+    { "source": "mockups/session-2", "destination": "/mockups/session-2/index.html" },
+    { "source": "mockups/session-2/", "destination": "/mockups/session-2/index.html" }
+  ]
+}

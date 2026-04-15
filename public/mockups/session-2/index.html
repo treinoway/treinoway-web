@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Treinoway · Concept 2 — Focus Set</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { display: block; padding: 48px 24px; background: var(--bg); }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 { font-family: var(--font-display); font-size: 48px; letter-spacing: 0.02em; margin-bottom: 6px; color: var(--text); }
+  .sub { color: var(--text-dim); font-size: 15px; margin-bottom: 8px; max-width: 640px; line-height: 1.5; }
+  .pitch { color: var(--color-primary); font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 40px; }
+  .compare { display: inline-flex; gap: 8px; margin-bottom: 40px; background: var(--surface); padding: 6px; border-radius: var(--radius-full); border: 1px solid var(--border); }
+  .compare a { color: var(--text-dim); padding: 8px 16px; border-radius: var(--radius-full); font-size: 13px; font-weight: 600; text-decoration: none; }
+  .compare a.active { background: var(--color-primary); color: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+  .tile { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; text-decoration: none; color: var(--text); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; transition: all .2s ease; }
+  .tile:hover { border-color: var(--color-primary); transform: translateY(-3px); }
+  .tile-num { font-size: 11px; font-weight: 700; color: var(--color-primary); letter-spacing: 0.14em; text-transform: uppercase; }
+  .tile-title { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.015em; line-height: 1.15; }
+  .tile-desc { font-size: 13px; color: var(--text-dim); line-height: 1.55; }
+  .tile-arrow { margin-top: auto; padding-top: 14px; color: var(--color-primary); font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.1em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pitch">Concept 2 · Focus Set</div>
+  <h1>Uma série por vez.<br>Os números como protagonistas.</h1>
+  <p class="sub">Tema escuro, tipografia display (Fjalla One) nos valores, steppers ± no lugar de teclado numérico, exercícios futuros num carrossel horizontal na base. Feeling de console de treino, não de planilha.</p>
+
+  <div class="compare">
+    <a href="../session/index.html">Concept 1 · Lista</a>
+    <a href="#" class="active">Concept 2 · Focus</a>
+  </div>
+
+  <div class="grid">
+    <a class="tile" href="5-overview.html">
+      <span class="tile-num">C2 · 00 · Entrada</span>
+      <span class="tile-title">Visão geral</span>
+      <span class="tile-desc">Tela de entrada da sessão. Stats no topo, exercícios por status, exercício atual expandido com séries, CTA "Continuar execução".</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="12" height="12"></i></span>
+    </a>
+    <a class="tile" href="1-focus-set.html">
+      <span class="tile-num">C2 · 01</span>
+      <span class="tile-title">Focus Set</span>
+      <span class="tile-desc">Uma série hero no centro, set pills mostrando posição, steppers ± para reps e carga, botão Concluir chunky, dock horizontal com próximos exercícios.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="12" height="12"></i></span>
+    </a>
+    <a class="tile" href="2-superset.html">
+      <span class="tile-num">C2 · 02</span>
+      <span class="tile-title">Superset</span>
+      <span class="tile-desc">Bloco A1+A2 com toggle segmentado para alternar, indicador de rodada laranja (accent secundário) com dots, foco ainda é uma série por vez.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="12" height="12"></i></span>
+    </a>
+    <a class="tile" href="3-rest-timer.html">
+      <span class="tile-num">C2 · 03</span>
+      <span class="tile-title">Rest Timer · fullscreen</span>
+      <span class="tile-desc">Timer ocupa a tela inteira (não é modal), ring luminoso, preview da próxima série embaixo, tempo editável inline, controles grandes ±15s / Pausar.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="12" height="12"></i></span>
+    </a>
+    <a class="tile" href="4-editing-completed.html">
+      <span class="tile-num">C2 · 04</span>
+      <span class="tile-title">Editando série concluída</span>
+      <span class="tile-desc">Tap numa pill verde traz a série pro hero. Banner de edição, CTA vira "Salvar" (laranja), valor alterado destacado em secundário. Desfazer conclusão disponível.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="12" height="12"></i></span>
+    </a>
+    <a class="tile" href="6-timed.html">
+      <span class="tile-num">C2 · 05</span>
+      <span class="tile-title">Exercício por tempo</span>
+      <span class="tile-desc">Prancha isométrica. Stepper vira 00:45 em Fjalla One 96px, botão Iniciar cronômetro, ajustes ±5s / ±15s. Badge "Por tempo" em accent laranja.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="12" height="12"></i></span>
+    </a>
+    <a class="tile" href="7-skip.html">
+      <span class="tile-num">C2 · 06</span>
+      <span class="tile-title">Pular exercício</span>
+      <span class="tile-desc">Bottom sheet "Por que não fez?" com chips de motivo. Estado "Pulado" aparece no overview com pills tracejadas laranja e tag "Não fiz".</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="12" height="12"></i></span>
+    </a>
+  </div>
+
+  <div style="margin-top: 48px; padding: 24px; background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); color: var(--text-dim); font-size: 13px; line-height: 1.6;">
+    <strong style="color: var(--text); font-family: var(--font-display); font-size: 15px; letter-spacing: 0.02em;">Trade-offs vs Concept 1</strong><br>
+    <span style="color: var(--color-success);">+</span> Foco total na série ativa · números 56px tocáveis · steppers mais rápidos que teclado · dock preserva contexto sem poluir<br>
+    <span style="color: var(--color-secondary);">−</span> Aluno não vê todas as séries de uma vez (precisa confiar nas pills) · tema escuro pode destoar do resto do app · edição de série passada exige navegação extra
+  </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="interactions.js"></script>
+</body>
+</html>

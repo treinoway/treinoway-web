@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Treinoway · Revamp Sessão de Treino</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { display: block; padding: 48px 24px; }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 8px; }
+  .sub { color: var(--on-surface-variant); font-size: 16px; margin-bottom: 40px; max-width: 640px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+  .tile { background: var(--surface); border-radius: var(--radius-xl); padding: 24px; text-decoration: none; color: inherit; box-shadow: var(--shadow-sm); transition: all .2s ease; display: flex; flex-direction: column; gap: 10px; }
+  .tile:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .tile-num { font-family: var(--font-family-base); font-size: 13px; font-weight: 600; color: var(--color-primary); letter-spacing: 0.04em; }
+  .tile-title { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+  .tile-desc { font-size: 13px; color: var(--on-surface-variant); line-height: 1.5; }
+  .tile-arrow { margin-top: auto; padding-top: 14px; color: var(--color-primary); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+  .compare { display: inline-flex; gap: 8px; margin-bottom: 40px; background: var(--surface); padding: 6px; border-radius: var(--radius-full); box-shadow: var(--shadow-sm); }
+  .compare a { color: var(--on-surface-variant); padding: 8px 16px; border-radius: var(--radius-full); font-size: 13px; font-weight: 600; text-decoration: none; }
+  .compare a.active { background: var(--color-primary); color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Sessão de Treino · Revamp</h1>
+  <p class="sub">Mockups de alta fidelidade para a nova tela de execução de treino no app do aluno. 375px, mobile-first.</p>
+
+  <div class="compare">
+    <a href="#" class="active">Concept 1 · Lista</a>
+    <a href="../session-2/index.html">Concept 2 · Focus</a>
+  </div>
+
+  <div class="grid">
+    <a class="tile" href="0-overview.html">
+      <span class="tile-num">00 · Entrada</span>
+      <span class="tile-title">Visão geral</span>
+      <span class="tile-desc">Primeira tela ao abrir a sessão. Stats no topo, exercícios agrupados por status (concluído / agora / depois), atual expandido com séries. Aluno continua de onde parou.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="14" height="14"></i></span>
+    </a>
+    <a class="tile" href="1-active-set.html">
+      <span class="tile-num">01</span>
+      <span class="tile-title">Série ativa</span>
+      <span class="tile-desc">Exercício simples em execução. Série 2 destacada, série 1 concluída, série 3 pendente. Dica de peso da semana anterior.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="14" height="14"></i></span>
+    </a>
+    <a class="tile" href="3-superset.html">
+      <span class="tile-num">02</span>
+      <span class="tile-title">Superset</span>
+      <span class="tile-desc">Bloco unificado A1+A2. Rodada 2 de 3, A1 concluído com affordance de edição, A2 ativo. Rodada anterior colapsada.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="14" height="14"></i></span>
+    </a>
+    <a class="tile" href="4-rest-timer.html">
+      <span class="tile-num">03</span>
+      <span class="tile-title">Timer de descanso</span>
+      <span class="tile-desc">Bottom sheet com countdown circular, contexto da série, tempo editável inline, atalhos ±15s e pausa.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="14" height="14"></i></span>
+    </a>
+    <a class="tile" href="2-completed-set.html">
+      <span class="tile-num">04</span>
+      <span class="tile-title">Editando série concluída</span>
+      <span class="tile-desc">Tap numa série já feita reabre os inputs inline. Affordance de edição via ícone Pencil e hint contextual.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="14" height="14"></i></span>
+    </a>
+    <a class="tile" href="5-upcoming.html">
+      <span class="tile-num">05</span>
+      <span class="tile-title">Próximo + Depois</span>
+      <span class="tile-desc">Card "próximo" preview de superset como bloco, lista "depois" minimalista, CTA finalizar antes.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="14" height="14"></i></span>
+    </a>
+    <a class="tile" href="6-timed-exercise.html">
+      <span class="tile-num">06</span>
+      <span class="tile-title">Exercício por tempo</span>
+      <span class="tile-desc">Prancha isométrica. Input troca de reps para mm:ss, play inline, badge "Por tempo".</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="14" height="14"></i></span>
+    </a>
+    <a class="tile" href="7-skip.html">
+      <span class="tile-num">07</span>
+      <span class="tile-title">Pular exercício</span>
+      <span class="tile-desc">Bottom sheet "Por que não fez?" com chips de motivo (equipamento ocupado, dor, fadiga, tempo, outro) + observação opcional. Estado "Pulado" aparece no overview com tag âmbar.</span>
+      <span class="tile-arrow">Abrir <i data-lucide="arrow-right" width="14" height="14"></i></span>
+    </a>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="interactions.js"></script>
+</body>
+</html>

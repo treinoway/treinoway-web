@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1">
+<title>Treinoway · Concept 2 — Visão geral</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .ov-stage {
+    flex: 1;
+    padding: 4px 20px 120px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /* Hero */
+  .hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 8px 4px 20px;
+    gap: 16px;
+  }
+  .hero-num {
+    font-family: var(--font-display);
+    font-size: 72px;
+    line-height: 0.9;
+    letter-spacing: 0.01em;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-num .slash { color: var(--text-muted); margin: 0 2px; }
+  .hero-num .total { color: var(--text-dim); }
+  .hero-sub {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 6px;
+    display: block;
+  }
+  .hero-side {
+    text-align: right;
+    padding-bottom: 8px;
+  }
+  .hero-side-val {
+    font-family: var(--font-display);
+    font-size: 24px;
+    color: var(--text);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+  }
+  .hero-side-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .hero-side + .hero-side { margin-top: 10px; }
+
+  /* List */
+  .ex-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .ex-row {
+    padding: 16px 4px;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    position: relative;
+    transition: background .15s ease;
+  }
+  .ex-row:hover { background: rgba(21,101,192,0.03); }
+
+  .ex-row-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .ex-status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border-strong);
+    flex-shrink: 0;
+  }
+  .ex-row--done .ex-status-dot { background: var(--color-success); }
+  .ex-row--now .ex-status-dot {
+    background: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(21,101,192,0.2);
+  }
+
+  .ex-idx {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 22px;
+  }
+  .ex-row--done .ex-idx { color: var(--color-success); }
+  .ex-row--now .ex-idx { color: var(--color-primary); }
+
+  .ex-name {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 0.015em;
+    color: var(--text);
+    line-height: 1.2;
+    min-width: 0;
+  }
+  .ex-row--done .ex-name { color: var(--text-dim); }
+
+  .ex-right {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .ex-row--now .ex-right {
+    color: var(--color-primary);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* pills row */
+  .ex-pills {
+    display: flex;
+    gap: 6px;
+    padding-left: 18px;
+  }
+  .ex-pill {
+    flex: 1;
+    height: 5px;
+    border-radius: var(--radius-full);
+    background: var(--surface-high);
+  }
+  .ex-pill--done { background: var(--color-success); opacity: 0.65; }
+  .ex-pill--active {
+    background: var(--color-primary);
+    box-shadow: 0 0 10px var(--color-primary);
+  }
+  .ex-pill--skipped {
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--color-secondary-container),
+      var(--color-secondary-container) 4px,
+      var(--surface-high) 4px,
+      var(--surface-high) 8px
+    );
+  }
+
+  .ex-row--skipped { opacity: 0.75; }
+  .ex-row--skipped .ex-name { text-decoration: line-through; text-decoration-color: var(--border-strong); }
+  .ex-row--skipped .ex-status-dot { background: var(--color-secondary); }
+  .ex-row--skipped .ex-idx { color: var(--color-secondary); }
+  .skip-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-left: 6px;
+    vertical-align: 2px;
+  }
+
+  /* Superset group */
+  .ss-group {
+    padding: 16px 4px;
+    border-top: 1px solid var(--border);
+  }
+  .ss-group-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .ss-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    background: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .ss-rounds {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    margin-left: auto;
+  }
+  .ss-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-left: 18px;
+  }
+  .ss-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ss-item-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--color-secondary);
+    min-width: 22px;
+  }
+  .ss-item-name {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: 15px;
+    letter-spacing: 0.01em;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .ss-item-pills {
+    display: flex;
+    gap: 4px;
+    width: 80px;
+  }
+  .ss-item-pills .ex-pill { height: 4px; }
+
+  /* Section labels */
+  .sec {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 14px 4px 4px;
+  }
+
+  /* Fixed footer CTA */
+  .ov-cta {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 16px 20px 28px;
+    background: linear-gradient(180deg, rgba(248, 249, 251, 0) 0%, var(--bg) 40%);
+    z-index: 5;
+  }
+  .ov-cta button {
+    width: 100%;
+    height: 64px;
+    border-radius: var(--radius-lg);
+    background: var(--color-primary);
+    color: #fff;
+    border: 0;
+    font-family: var(--font-display);
+    font-size: 16px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    box-shadow:
+      0 12px 28px rgba(21, 101, 192, 0.35),
+      inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .ov-cta .small-cta {
+    display: block;
+    margin: 12px auto 0;
+    background: transparent;
+    color: var(--color-error);
+    box-shadow: none;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    height: auto;
+    padding: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="mockup-label"><strong>C2·00</strong>Visão geral · entrada</div>
+<nav class="mockup-nav">
+  <a aria-disabled="true">‹ Anterior</a>
+  <a href="index.html">Índice</a>
+  <a href="1-focus-set.html">Próximo ›</a>
+</nav>
+
+<div class="device">
+  <div class="status-notch"></div>
+  <div class="status-bar">
+    <span>10:18</span>
+    <span class="right">
+      <i data-lucide="signal" width="14" height="14"></i>
+      <i data-lucide="wifi" width="14" height="14"></i>
+      <i data-lucide="battery-full" width="18" height="18"></i>
+    </span>
+  </div>
+
+  <div class="top-bar">
+    <button class="icon-btn"><i data-lucide="x" width="22" height="22"></i></button>
+    <div class="top-bar-center">
+      <span class="workout-label">Treino A</span>
+      <span class="workout-name">Peito e Tríceps</span>
+    </div>
+    <button class="icon-btn"><i data-lucide="more-vertical" width="22" height="22"></i></button>
+  </div>
+
+  <div class="ov-stage">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div>
+        <div class="hero-num">1<span class="slash">/</span><span class="total">5</span></div>
+        <span class="hero-sub">Exercícios concluídos</span>
+      </div>
+      <div>
+        <div class="hero-side">
+          <div class="hero-side-val">12:34</div>
+          <div class="hero-side-lbl">Duração</div>
+        </div>
+        <div class="hero-side">
+          <div class="hero-side-val">400<span style="font-size: 13px; color: var(--text-muted); margin-left: 3px;">kg</span></div>
+          <div class="hero-side-lbl">Volume</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ex-list">
+
+      <div class="sec">Concluído · 1 · Pulado · 1</div>
+
+      <div class="ex-row ex-row--done">
+        <div class="ex-row-head">
+          <span class="ex-status-dot"></span>
+          <span class="ex-idx">01</span>
+          <span class="ex-name">Aquecimento · Esteira</span>
+          <span class="ex-right">5:00</span>
+        </div>
+        <div class="ex-pills">
+          <div class="ex-pill ex-pill--done" style="flex: none; width: 100%;"></div>
+        </div>
+      </div>
+
+      <div class="ex-row ex-row--skipped">
+        <div class="ex-row-head">
+          <span class="ex-status-dot"></span>
+          <span class="ex-idx">1½</span>
+          <span class="ex-name">Crucifixo com Halteres<span class="skip-tag">Não fiz</span></span>
+          <span class="ex-right" style="color: var(--color-secondary); text-transform: none; letter-spacing: 0.02em;">Equipamento ocupado</span>
+        </div>
+        <div class="ex-pills">
+          <div class="ex-pill ex-pill--skipped"></div>
+          <div class="ex-pill ex-pill--skipped"></div>
+          <div class="ex-pill ex-pill--skipped"></div>
+        </div>
+      </div>
+
+      <div class="sec">Agora</div>
+
+      <div class="ex-row ex-row--now">
+        <div class="ex-row-head">
+          <span class="ex-status-dot"></span>
+          <span class="ex-idx">02</span>
+          <span class="ex-name">Supino Reto com Barra</span>
+          <span class="ex-right">Em execução</span>
+        </div>
+        <div class="ex-pills">
+          <div class="ex-pill ex-pill--done"></div>
+          <div class="ex-pill ex-pill--active"></div>
+          <div class="ex-pill"></div>
+        </div>
+      </div>
+
+      <div class="sec">Depois · 3</div>
+
+      <div class="ex-row">
+        <div class="ex-row-head">
+          <span class="ex-status-dot"></span>
+          <span class="ex-idx">03</span>
+          <span class="ex-name">Supino Inclinado com Halteres</span>
+          <span class="ex-right">3 × 10–12</span>
+        </div>
+        <div class="ex-pills">
+          <div class="ex-pill"></div>
+          <div class="ex-pill"></div>
+          <div class="ex-pill"></div>
+        </div>
+      </div>
+
+      <!-- Superset agrupado -->
+      <div class="ss-group">
+        <div class="ss-group-head">
+          <span class="ex-status-dot"></span>
+          <span class="ex-idx">04</span>
+          <span class="ss-badge">
+            <i data-lucide="link-2" width="10" height="10"></i>
+            Superset
+          </span>
+          <span class="ss-rounds">3 rodadas</span>
+        </div>
+        <div class="ss-items">
+          <div class="ss-item">
+            <span class="ss-item-label">A1</span>
+            <span class="ss-item-name">Tríceps Pulley</span>
+            <div class="ss-item-pills">
+              <div class="ex-pill"></div>
+              <div class="ex-pill"></div>
+              <div class="ex-pill"></div>
+            </div>
+          </div>
+          <div class="ss-item">
+            <span class="ss-item-label">A2</span>
+            <span class="ss-item-name">Tríceps Francês</span>
+            <div class="ss-item-pills">
+              <div class="ex-pill"></div>
+              <div class="ex-pill"></div>
+              <div class="ex-pill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ex-row">
+        <div class="ex-row-head">
+          <span class="ex-status-dot"></span>
+          <span class="ex-idx">05</span>
+          <span class="ex-name">
+            Prancha Isométrica
+            <i data-lucide="timer" width="11" height="11" style="color: var(--color-secondary); vertical-align: 0;"></i>
+          </span>
+          <span class="ex-right">3 × 45s</span>
+        </div>
+        <div class="ex-pills">
+          <div class="ex-pill"></div>
+          <div class="ex-pill"></div>
+          <div class="ex-pill"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Fixed footer -->
+  <div class="ov-cta">
+    <button onclick="location.href='1-focus-set.html'">
+      <i data-lucide="arrow-right" width="22" height="22"></i>
+      Continuar execução
+    </button>
+    <button class="small-cta">
+      <i data-lucide="flag" width="13" height="13" style="vertical-align: -2px; margin-right: 4px;"></i>
+      Finalizar antes do previsto
+    </button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="interactions.js"></script>
+</body>
+</html>
