@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronLeft, ChevronRight, ChevronDown, FileText, Sparkles, Palette, Trophy } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, Palette, Trophy, PanelLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 
@@ -9,7 +9,7 @@ const BIBLIOTECA_PATHS = ['/trainer/protocol-templates', '/trainer/training-temp
 
 const Layout = ({ children, noPadding = false }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [bibliotecaOpen, setBibliotecaOpen] = useState(false);
+  const [bibliotecaOpen, setBibliotecaOpen] = useState(false); // closed by default; auto-opens on active route via useEffect
   const [bibliotecaPopover, setBibliotecaPopover] = useState(false);
   const { user, logout, hasRole } = useAuth();
   const { loading: aiLoading, hasNewResponse: aiHasNewResponse } = useAiChat();
@@ -83,32 +83,26 @@ const Layout = ({ children, noPadding = false }) => {
       </div>
 
       {/* Sidebar — visible only on tablet+ */}
-      <aside className={`sidebar ${sidebarOpen ? 'sidebar--open' : 'sidebar--closed'}`}>
+      <aside className={`sidebar ${sidebarOpen ? 'sidebar--open' : 'sidebar--collapsed'}`}>
         <div className="sidebar-header">
           <div className="sidebar-header-inner">
-            {sidebarOpen ? (
-              <img
-                src="/img/treino_way_transparente.png"
-                alt="Treinoway"
-                className="sidebar-logo"
-              />
-            ) : (
-              <img
-                src="/img/treinoway.ico"
-                alt="Treinoway"
-                className="sidebar-logo-icon"
-              />
-            )}
             <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="sidebar-toggle"
+              type="button"
+              className="sidebar-logo-btn"
+              onClick={() => setSidebarOpen(o => !o)}
               aria-label={sidebarOpen ? 'Recolher menu lateral' : 'Expandir menu lateral'}
               aria-expanded={sidebarOpen}
             >
-              {sidebarOpen
-                ? <ChevronLeft size={16} strokeWidth={1.6} />
-                : <ChevronRight size={16} strokeWidth={1.6} />
-              }
+              <img src="/img/treinoway.ico" alt="Treinoway" className="sidebar-logo-icon" />
+            </button>
+            <button
+              type="button"
+              className="sidebar-toggle-btn"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Recolher menu lateral"
+              tabIndex={sidebarOpen ? 0 : -1}
+            >
+              <PanelLeft size={18} strokeWidth={2} />
             </button>
           </div>
         </div>
@@ -125,16 +119,14 @@ const Layout = ({ children, noPadding = false }) => {
               <span className="sidebar-link-icon" aria-hidden="true">
                 <link.Icon size={20} strokeWidth={1.6} />
               </span>
-              {sidebarOpen && <span className="sidebar-link-label">{link.label}</span>}
+              <span className="sidebar-link-label">{link.label}</span>
             </Link>
           ))}
 
           {/* Trainer section */}
           {hasRole('TRAINER') && (
             <>
-              {sidebarOpen && (
-                <div className="sidebar-section-label">Treinador</div>
-              )}
+              <div className="sidebar-section-label">Treinador</div>
 
               {/* Alunos — direct link (no dropdown needed) */}
               <Link
@@ -145,7 +137,7 @@ const Layout = ({ children, noPadding = false }) => {
                 <span className="sidebar-link-icon" aria-hidden="true">
                   <Users size={20} strokeWidth={1.6} />
                 </span>
-                {sidebarOpen && <span className="sidebar-link-label">Meus Alunos</span>}
+                <span className="sidebar-link-label">Meus Alunos</span>
               </Link>
 
               {/* iArnold */}
@@ -158,12 +150,10 @@ const Layout = ({ children, noPadding = false }) => {
                   <span className="sidebar-link-icon" aria-hidden="true">
                     <Sparkles size={20} strokeWidth={1.6} />
                   </span>
-                  {sidebarOpen && (
-                    <>
-                      <span className="sidebar-link-label">iArnold</span>
-                      <span className="sidebar-link-badge">IA</span>
-                    </>
-                  )}
+                  <>
+                    <span className="sidebar-link-label">iArnold</span>
+                    <span className="sidebar-link-badge">IA</span>
+                  </>
                 </Link>
               )}
 
@@ -176,7 +166,7 @@ const Layout = ({ children, noPadding = false }) => {
                 <span className="sidebar-link-icon" aria-hidden="true">
                   <Trophy size={20} strokeWidth={1.6} />
                 </span>
-                {sidebarOpen && <span className="sidebar-link-label">Campeonatos</span>}
+                <span className="sidebar-link-label">Campeonatos</span>
               </Link>
 
 
@@ -189,37 +179,26 @@ const Layout = ({ children, noPadding = false }) => {
                 <span className="sidebar-link-icon" aria-hidden="true">
                   <Palette size={20} strokeWidth={1.6} />
                 </span>
-                {sidebarOpen && <span className="sidebar-link-label">Sua Marca</span>}
+                <span className="sidebar-link-label">Sua Marca</span>
               </Link>
 
               {/* Biblioteca dropdown */}
               <button
-                onClick={() => {
-                  if (!sidebarOpen) {
-                    setSidebarOpen(true);
-                    setBibliotecaOpen(true);
-                  } else {
-                    setBibliotecaOpen(o => !o);
-                  }
-                }}
+                onClick={() => setBibliotecaOpen(o => !o)}
                 className={`sidebar-dropdown-toggle ${isBibliotecaActive() ? 'sidebar-link--active' : ''}`}
                 aria-label="Biblioteca"
-                aria-expanded={bibliotecaOpen && sidebarOpen}
+                aria-expanded={bibliotecaOpen}
               >
                 <span className="sidebar-link-icon" aria-hidden="true">
                   <BookOpen size={20} strokeWidth={1.6} />
                 </span>
-                {sidebarOpen && (
-                  <>
-                    <span className="sidebar-link-label">Biblioteca</span>
-                    <span className={`sidebar-dropdown-chevron ${bibliotecaOpen ? 'sidebar-dropdown-chevron--open' : ''}`}>
-                      <ChevronDown size={14} strokeWidth={1.6} />
-                    </span>
-                  </>
-                )}
+                <span className="sidebar-link-label">Biblioteca</span>
+                <span className={`sidebar-dropdown-chevron ${bibliotecaOpen ? 'sidebar-dropdown-chevron--open' : ''}`}>
+                  <ChevronDown size={14} strokeWidth={1.6} />
+                </span>
               </button>
 
-              {sidebarOpen && bibliotecaOpen && (
+              {bibliotecaOpen && (
                 <div className="sidebar-dropdown-children">
                   {bibliotecaChildren.map((child) => (
                     <Link
@@ -241,20 +220,18 @@ const Layout = ({ children, noPadding = false }) => {
         </nav>
 
         <div className="sidebar-footer">
-          {sidebarOpen && (
-            <div className="sidebar-user-info">
-              <div className="sidebar-user-avatar">
-                {user?.firstName ? `${user.firstName[0]}${user.lastName?.[0] || ''}`.toUpperCase() : (user?.email?.[0] || '?').toUpperCase()}
-              </div>
-              <div>
-                <div className="sidebar-user-name">{user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : ''}</div>
-                <div className="sidebar-user-email">{user?.email}</div>
-              </div>
+          <div className="sidebar-user-info">
+            <div className="sidebar-user-avatar">
+              {user?.firstName ? `${user.firstName[0]}${user.lastName?.[0] || ''}`.toUpperCase() : (user?.email?.[0] || '?').toUpperCase()}
             </div>
-          )}
+            <div>
+              <div className="sidebar-user-name">{user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : ''}</div>
+              <div className="sidebar-user-email">{user?.email}</div>
+            </div>
+          </div>
           <button onClick={handleLogout} className="btn-logout" aria-label="Sair da conta">
             <LogOut size={18} strokeWidth={1.6} />
-            {sidebarOpen && <span>Sair</span>}
+            <span>Sair</span>
           </button>
         </div>
       </aside>

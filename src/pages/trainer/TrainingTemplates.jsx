@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
 import { LayoutGrid, List, Dumbbell, Info } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import Select from '../../components/Select';
 import CreateExerciseTemplateModal from '../../components/CreateExerciseTemplateModal';
+import EditExerciseSheet from '../../components/EditExerciseSheet';
+import ExerciseRowCard from '../../components/ExerciseRowCard';
 import RowMenu from '../../components/RowMenu';
 import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
-import { formatExerciseMeta } from '../../utils/exerciseMeta';
+import { formatSnapshotSummary } from '../../utils/exerciseMeta';
 import { TRAINING_CATEGORY_OPTIONS, TRAINING_CATEGORY_LABEL } from '../../constants/trainingCategories';
 
 /** @deprecated Use RowMenu from '../../components/RowMenu' instead */
@@ -16,40 +17,6 @@ export const TemplateRowMenu = RowMenu;
 
 const CATEGORY_LABEL = TRAINING_CATEGORY_LABEL;
 const BODY_SEGMENT_LABEL = { upper: 'Superior', lower: 'Inferior', full_body: 'Corpo Inteiro' };
-
-const exerciseBadgeStyle = {
-  background: 'var(--color-surface)',
-  border: '1px solid var(--color-outline-variant)',
-  color: 'var(--color-on-surface-variant)',
-};
-
-const ExerciseRow = ({ name, meta, onEdit, onRemove }) => (
-  <div className="schedule-template-row">
-    <div className="schedule-template-fields" style={{ alignItems: 'center' }}>
-      <span style={{ fontWeight: 600, flex: 1 }}>{name}</span>
-      {meta && (
-        <div style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
-          <span className="badge" style={exerciseBadgeStyle}>
-            {meta}
-          </span>
-        </div>
-      )}
-    </div>
-    <TemplateRowMenu
-      ariaLabel={`Ações do exercício ${name}`}
-      onEdit={onEdit}
-      onDelete={onRemove}
-      deleteLabel="Remover"
-    />
-  </div>
-);
-
-ExerciseRow.propTypes = {
-  name: PropTypes.string.isRequired,
-  meta: PropTypes.string,
-  onEdit: PropTypes.func,
-  onRemove: PropTypes.func.isRequired,
-};
 
 const TrainingTemplates = () => {
   const { showToast } = useToast();
@@ -66,6 +33,8 @@ const TrainingTemplates = () => {
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [viewMode, setViewMode] = usePersistedViewMode(VIEW_MODE_KEYS.trainingTemplates);
   const [searchQuery, setSearchQuery] = useState('');
+  const [exerciseJunctions, setExerciseJunctions] = useState([]);
+  const [editingJunctionId, setEditingJunctionId] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -121,6 +90,32 @@ const TrainingTemplates = () => {
     return list.map((e) => e.exerciseTemplateId ?? e.id ?? e.exerciseTemplate?.id).filter((id) => id != null);
   };
 
+  const buildExerciseTemplatesPayload = (ids) => {
+    const normalizedIds = normalizeExerciseTemplateIds(ids);
+    return normalizedIds.map((etId, index) => {
+      const junction = exerciseJunctions.find(
+        (j) => String(j.exerciseTemplateId) === String(etId),
+      );
+      if (!junction) {
+        return { exerciseTemplateId: etId, order: index };
+      }
+      return {
+        exerciseTemplateId: etId,
+        order: index,
+        name: junction.name,
+        type: junction.type,
+        videoUrl: junction.videoUrl,
+        sets: junction.sets,
+        repetitions: junction.repetitions,
+        duration: junction.duration,
+        hasLoad: junction.hasLoad,
+        suggestedLoad: junction.suggestedLoad,
+        restInterval: junction.restInterval,
+        notes: junction.notes,
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -128,7 +123,13 @@ const TrainingTemplates = () => {
     try {
       const { exerciseTemplateIds, ...rest } = formData;
       const normalizedIds = normalizeExerciseTemplateIds(exerciseTemplateIds);
-      const payload = { ...rest, ...(normalizedIds.length > 0 && { exerciseTemplateIds: normalizedIds }) };
+      const exerciseTemplatesPayload = buildExerciseTemplatesPayload(normalizedIds);
+      const payload = {
+        ...rest,
+        ...(normalizedIds.length > 0
+          ? { exerciseTemplates: exerciseTemplatesPayload }
+          : { exerciseTemplates: [] }),
+      };
       if (editingId) {
         await api.patch(`/trainer/training-templates/${editingId}`, payload);
         showToast('Treino único atualizado com sucesso!', 'success');
@@ -143,6 +144,13 @@ const TrainingTemplates = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getExerciseJunctionsFromTemplate = (template) => {
+    if (Array.isArray(template?.trainingTemplateExerciseTemplates)) {
+      return template.trainingTemplateExerciseTemplates;
+    }
+    return [];
   };
 
   const handleEdit = async (template) => {
@@ -160,6 +168,7 @@ const TrainingTemplates = () => {
         isPublic: full.isPublic || false,
         exerciseTemplateIds: getExerciseTemplateIdsFromTemplate(full),
       });
+      setExerciseJunctions(getExerciseJunctionsFromTemplate(full));
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
       setShowForm(false);
@@ -167,6 +176,74 @@ const TrainingTemplates = () => {
     } finally {
       setLoadingEdit(false);
     }
+  };
+
+  const handleOpenJunctionEdit = (exerciseTemplateId) => {
+    setEditingJunctionId(exerciseTemplateId);
+  };
+
+  const handleCloseJunctionEdit = () => {
+    setEditingJunctionId(null);
+  };
+
+  const applyPayloadToDraft = (junction, payload) => ({
+    ...junction,
+    ...(payload.name !== undefined && { name: payload.name }),
+    ...(payload.type !== undefined && { type: payload.type }),
+    ...(payload.videoUrl !== undefined && { videoUrl: payload.videoUrl }),
+    ...(payload.sets !== undefined && { sets: payload.sets }),
+    ...(payload.repetitions !== undefined && { repetitions: payload.repetitions }),
+    ...(payload.duration !== undefined && { duration: payload.duration }),
+    ...(payload.hasLoad !== undefined && { hasLoad: payload.hasLoad }),
+    ...(payload.suggestedLoad !== undefined && { suggestedLoad: payload.suggestedLoad }),
+    ...(payload.restInterval !== undefined && { restInterval: payload.restInterval }),
+    ...(payload.notes !== undefined && { notes: payload.notes }),
+  });
+
+  const handleSubmitJunctionEdit = async (payload) => {
+    if (!editingJunctionId) return;
+    const junction = exerciseJunctions.find(
+      (j) => String(j.exerciseTemplateId) === String(editingJunctionId),
+    );
+    if (!junction) return;
+
+    // Persisted junction (template already saved + junction has id): PATCH to snapshot endpoint
+    if (junction.id && editingId) {
+      try {
+        const response = await api.patch(
+          `/trainer/training-templates/${editingId}/exercises/${junction.id}`,
+          payload,
+        );
+        showToast('Exercício atualizado', 'success');
+        setEditingJunctionId(null);
+        // Merge API response into local state so UI reflects server truth
+        setExerciseJunctions((prev) =>
+          prev.map((j) => (j.id === response.data.id ? { ...j, ...response.data } : j)),
+        );
+      } catch (error) {
+        showToast(error.userMessage || translateError(error), 'error', {
+          actionLabel: 'Tentar novamente',
+          onAction: () => handleSubmitJunctionEdit(payload),
+        });
+      }
+      return;
+    }
+
+    // Draft junction (template not yet saved, or exercise just added): update local state only.
+    // The overrides are persisted when the main form is submitted (via buildExerciseTemplatesPayload).
+    setExerciseJunctions((prev) =>
+      prev.map((j) =>
+        String(j.exerciseTemplateId) === String(editingJunctionId)
+          ? applyPayloadToDraft(j, payload)
+          : j,
+      ),
+    );
+    showToast('Exercício atualizado', 'success');
+    setEditingJunctionId(null);
+  };
+
+  const handleLightDiscard = () => {
+    showToast('Alterações descartadas', 'success');
   };
 
   const handleDelete = (id) => {
@@ -185,13 +262,38 @@ const TrainingTemplates = () => {
     });
   };
 
+  const buildDraftJunctionFromTemplate = (et) => ({
+    // No `id` — this marks the row as a draft. Persisted via the main form's POST/PATCH.
+    exerciseTemplateId: et.id,
+    name: et.name ?? null,
+    type: et.type ?? null,
+    videoUrl: et.videoUrl ?? null,
+    sets: et.sets ?? null,
+    repetitions: et.repetitions ?? null,
+    duration: et.duration ?? null,
+    hasLoad: et.hasLoad ?? false,
+    suggestedLoad: et.suggestedLoad ?? null,
+    restInterval: et.restInterval ?? null,
+    notes: et.notes ?? null,
+    exerciseTemplate: { id: et.id, name: et.name, type: et.type },
+  });
+
   const handleExercisePickerAdd = () => {
     if (!exercisePickerValue) return;
     if (formData.exerciseTemplateIds.includes(exercisePickerValue)) return;
+    const et = exerciseTemplates.find(
+      (t) => String(t.id) === String(exercisePickerValue),
+    );
     setFormData((prev) => ({
       ...prev,
       exerciseTemplateIds: [...prev.exerciseTemplateIds, exercisePickerValue],
     }));
+    if (et) {
+      setExerciseJunctions((prev) => {
+        if (prev.some((j) => String(j.exerciseTemplateId) === String(et.id))) return prev;
+        return [...prev, buildDraftJunctionFromTemplate(et)];
+      });
+    }
     setExercisePickerValue('');
   };
 
@@ -200,6 +302,9 @@ const TrainingTemplates = () => {
       ...prev,
       exerciseTemplateIds: prev.exerciseTemplateIds.filter((id) => id !== templateId),
     }));
+    setExerciseJunctions((prev) =>
+      prev.filter((j) => String(j.exerciseTemplateId) !== String(templateId)),
+    );
   };
 
   const resetForm = () => {
@@ -214,6 +319,8 @@ const TrainingTemplates = () => {
     setExercisePickerValue('');
     setEditingId(null);
     setShowForm(false);
+    setExerciseJunctions([]);
+    setEditingJunctionId(null);
   };
 
   const normalizedQuery = searchQuery.toLowerCase().trim();
@@ -378,17 +485,28 @@ const TrainingTemplates = () => {
               {formData.exerciseTemplateIds.length > 0 && (
                 <div className="exercise-list">
                   {formData.exerciseTemplateIds.map((etId) => {
+                    const junction = exerciseJunctions.find(
+                      (j) => String(j.exerciseTemplateId) === String(etId),
+                    );
                     const et = exerciseTemplates.find((t) => String(t.id) === String(etId));
-                    const name = et?.name || String(etId);
-                    const meta = et ? formatExerciseMeta(et) : null;
+                    const name = junction?.name || et?.name || String(etId);
+                    const summary = junction ? formatSnapshotSummary(junction) : null;
+                    const sourceDeleted = !!junction && junction.exerciseTemplate == null;
                     return (
-                      <ExerciseRow
-                        key={etId}
-                        name={name}
-                        meta={meta}
-                        onEdit={et ? () => setEditingExerciseTemplate(et) : undefined}
-                        onRemove={() => handleExercisePickerRemove(etId)}
-                      />
+                      <div key={etId} className="training-template-exercise-row">
+                        <ExerciseRowCard
+                          name={name}
+                          summary={summary}
+                          sourceDeleted={sourceDeleted}
+                          onClick={() => handleOpenJunctionEdit(etId)}
+                          ariaLabel={`Editar exercício ${name}`}
+                        />
+                        <RowMenu
+                          ariaLabel={`Ações do exercício ${name}`}
+                          onDelete={() => handleExercisePickerRemove(etId)}
+                          deleteLabel="Remover"
+                        />
+                      </div>
                     );
                   })}
                 </div>
@@ -548,6 +666,24 @@ const TrainingTemplates = () => {
           }}
         />
       )}
+
+      {editingJunctionId && (() => {
+        const junction = exerciseJunctions.find(
+          (j) => String(j.exerciseTemplateId) === String(editingJunctionId),
+        );
+        if (!junction) return null;
+        const sourceDeleted = junction.exerciseTemplate == null;
+        return (
+          <EditExerciseSheet
+            snapshot={junction}
+            exerciseName={junction.name || junction.exerciseTemplate?.name || 'Exercício'}
+            sourceDeleted={sourceDeleted}
+            onSubmit={handleSubmitJunctionEdit}
+            onClose={handleCloseJunctionEdit}
+            onLightDiscard={handleLightDiscard}
+          />
+        );
+      })()}
 
       {confirmDialog && (
         <div className="overlay">

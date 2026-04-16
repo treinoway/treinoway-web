@@ -54,6 +54,177 @@ function setupAuth({ email = 'ana@example.com', isTrainer = false } = {}) {
 }
 
 describe('Layout', () => {
+  // ---------------------------------------------------------------------------
+  // Sidebar — logo icon always present regardless of state
+  // ---------------------------------------------------------------------------
+
+  // Helper: get the sidebar-logo-btn by its class (avoids ambiguity with
+  // the toggle-btn which shares the same aria-label in open state).
+  function getLogoBtnFromSidebar() {
+    return document.querySelector('.sidebar .sidebar-logo-btn');
+  }
+
+  it('renders sidebar-logo-icon in open state', () => {
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const sidebar = document.querySelector('.sidebar');
+    expect(sidebar).toHaveClass('sidebar--open');
+
+    const icon = sidebar.querySelector('.sidebar-logo-icon');
+    expect(icon).toBeInTheDocument();
+    expect(icon.tagName).toBe('IMG');
+    expect(icon).toHaveAttribute('alt', 'Treinoway');
+  });
+
+  it('renders same sidebar-logo-icon in collapsed state', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    await user.click(getLogoBtnFromSidebar());
+
+    const sidebar = document.querySelector('.sidebar');
+    expect(sidebar).toHaveClass('sidebar--collapsed');
+
+    const icon = sidebar.querySelector('.sidebar-logo-icon');
+    expect(icon).toBeInTheDocument();
+    expect(icon.tagName).toBe('IMG');
+    expect(icon).toHaveAttribute('alt', 'Treinoway');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Sidebar — logo button aria attributes
+  // ---------------------------------------------------------------------------
+
+  it('logo button has aria-label "Recolher menu lateral" and aria-expanded=true when open', () => {
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const logoBtn = getLogoBtnFromSidebar();
+    expect(logoBtn).toHaveClass('sidebar-logo-btn');
+    expect(logoBtn).toHaveAttribute('aria-label', 'Recolher menu lateral');
+    expect(logoBtn).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('logo button has aria-label "Expandir menu lateral" and aria-expanded=false when collapsed', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    await user.click(getLogoBtnFromSidebar());
+
+    const logoBtn = getLogoBtnFromSidebar();
+    expect(logoBtn).toHaveAttribute('aria-label', 'Expandir menu lateral');
+    expect(logoBtn).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Sidebar — PanelLeft toggle button always in DOM, tabIndex managed
+  // ---------------------------------------------------------------------------
+
+  it('PanelLeft toggle button is in the DOM when open with tabIndex 0', () => {
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const panelLeftBtn = document.querySelector('.sidebar .sidebar-toggle-btn');
+    expect(panelLeftBtn).toBeInTheDocument();
+    expect(panelLeftBtn.getAttribute('tabindex')).not.toBe('-1');
+  });
+
+  it('PanelLeft toggle button stays in DOM when collapsed with tabIndex -1', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    await user.click(getLogoBtnFromSidebar());
+
+    const panelLeftBtn = document.querySelector('.sidebar .sidebar-toggle-btn');
+    expect(panelLeftBtn).toBeInTheDocument();
+    expect(panelLeftBtn.getAttribute('tabindex')).toBe('-1');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Sidebar — toggling via logo button
+  // ---------------------------------------------------------------------------
+
+  it('clicking logo button collapses the sidebar', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    await user.click(getLogoBtnFromSidebar());
+
+    const sidebar = document.querySelector('.sidebar');
+    expect(sidebar).toHaveClass('sidebar--collapsed');
+    expect(sidebar).not.toHaveClass('sidebar--open');
+  });
+
+  it('clicking logo button again expands the sidebar', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    await user.click(getLogoBtnFromSidebar()); // collapse
+    await user.click(getLogoBtnFromSidebar()); // expand
+
+    const sidebar = document.querySelector('.sidebar');
+    expect(sidebar).toHaveClass('sidebar--open');
+    expect(sidebar).not.toHaveClass('sidebar--collapsed');
+  });
+
+  it('sidebar has sidebar--open class initially', () => {
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    expect(document.querySelector('.sidebar')).toHaveClass('sidebar--open');
+  });
+
+  it('sidebar gets sidebar--collapsed class after collapsing', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    await user.click(getLogoBtnFromSidebar());
+
+    expect(document.querySelector('.sidebar')).toHaveClass('sidebar--collapsed');
+    expect(document.querySelector('.sidebar')).not.toHaveClass('sidebar--open');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Layout structure
+  // ---------------------------------------------------------------------------
+
   it('renders children inside main-content-inner by default', () => {
     renderWithRouter(
       <Layout>
@@ -73,8 +244,7 @@ describe('Layout', () => {
       </Layout>
     );
 
-    const inner = document.querySelector('.main-content-inner');
-    expect(inner).not.toBeInTheDocument();
+    expect(document.querySelector('.main-content-inner')).not.toBeInTheDocument();
     expect(screen.getByText('Conteudo sem padding')).toBeInTheDocument();
   });
 
@@ -85,8 +255,7 @@ describe('Layout', () => {
       </Layout>
     );
 
-    const inner = document.querySelector('.main-content-inner');
-    expect(inner).toBeInTheDocument();
+    expect(document.querySelector('.main-content-inner')).toBeInTheDocument();
   });
 
   it('renders user first name in the top app bar', () => {
@@ -201,7 +370,6 @@ describe('Layout', () => {
         </Layout>
       );
 
-      // Both sidebar and bottom-nav render "Minhas Rotinas" links for the student user
       const rotinasLinks = screen.getAllByRole('link', { name: 'Minhas Rotinas' });
       expect(rotinasLinks.length).toBeGreaterThanOrEqual(1);
       expect(screen.getByRole('link', { name: 'Anamneses' })).toBeInTheDocument();
@@ -216,7 +384,6 @@ describe('Layout', () => {
         </Layout>
       );
 
-      // At least one "Minhas Rotinas" link present (sidebar + bottom nav)
       const rotinasLinks = screen.getAllByRole('link', { name: 'Minhas Rotinas' });
       expect(rotinasLinks.length).toBeGreaterThanOrEqual(1);
     });
@@ -243,7 +410,6 @@ describe('Layout', () => {
         </Layout>
       );
 
-      // The bottom-nav Rotinas link should not be present
       expect(screen.queryByRole('link', { name: 'Minhas Rotinas' })).not.toBeInTheDocument();
     });
 

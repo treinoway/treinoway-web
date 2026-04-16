@@ -131,7 +131,7 @@ describe('Dashboard', () => {
     expect(screen.queryByText('iArnold')).not.toBeInTheDocument();
   });
 
-  it('renders stats section with counts when user is TRAINER', async () => {
+  it('renders stats section with counts when user is TRAINER and counts > 0', async () => {
     mockHasRole.mockImplementation((role) => role === 'TRAINER');
     api.get.mockImplementation((url) => {
       if (url === '/trainer/students') return Promise.resolve({ data: [{ id: 1 }, { id: 2 }] });
@@ -148,6 +148,41 @@ describe('Dashboard', () => {
 
     expect(screen.getByText('Alunos')).toBeInTheDocument();
     expect(screen.getAllByText('Rotinas').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('stats are clickable links when counts > 0', async () => {
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [{ id: 1 }] });
+      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [{ id: 1 }] });
+      return Promise.reject(new Error('unexpected'));
+    });
+
+    renderWithRouter(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Alunos')).toBeInTheDocument();
+    });
+
+    const statLinks = document.querySelectorAll('.dashboard-stat-link');
+    expect(statLinks).toHaveLength(2);
+    expect(statLinks[0]).toHaveAttribute('href', '/trainer/students');
+    expect(statLinks[1]).toHaveAttribute('href', '/trainer/protocols');
+  });
+
+  it('hides stats when both counts are 0', async () => {
+    mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [] });
+      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+      return Promise.reject(new Error('unexpected'));
+    });
+
+    renderWithRouter(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Alunos')).not.toBeInTheDocument();
+    });
   });
 
   it('renders skeleton loaders while stats are loading', () => {
@@ -169,7 +204,7 @@ describe('Dashboard', () => {
 
     renderWithRouter(<Dashboard />);
 
-    const statsSection = screen.getByText('Alunos').closest('section');
+    const statsSection = screen.getByRole('region', { name: /estatísticas/i });
     expect(statsSection).toHaveAttribute('aria-busy', 'true');
   });
 
@@ -187,11 +222,11 @@ describe('Dashboard', () => {
       expect(container.querySelectorAll('.stat-card-skeleton')).toHaveLength(0);
     });
 
-    const statsSection = screen.getByText('Alunos').closest('section');
+    const statsSection = screen.getByRole('region', { name: /estatísticas/i });
     expect(statsSection).toHaveAttribute('aria-busy', 'false');
   });
 
-  it('shows zero counts on API error without skeletons', async () => {
+  it('shows zero counts on API error without skeletons and hides stats', async () => {
     mockHasRole.mockImplementation((role) => role === 'TRAINER');
     api.get.mockRejectedValue(new Error('network error'));
 
@@ -201,8 +236,8 @@ describe('Dashboard', () => {
       expect(container.querySelectorAll('.stat-card-skeleton')).toHaveLength(0);
     });
 
-    const statValues = screen.getAllByText('0');
-    expect(statValues.length).toBeGreaterThanOrEqual(2);
+    // Both counts become 0 on error → stats section is hidden (showStats = false)
+    expect(screen.queryByText('Alunos')).not.toBeInTheDocument();
   });
 
   it('does not render stats section when user is not TRAINER', () => {
@@ -237,7 +272,7 @@ describe('Dashboard', () => {
     expect(screen.queryByText('Seja um Treinador')).not.toBeInTheDocument();
   });
 
-  it('shows "Completar perfil" link when user status is pending', () => {
+  it('shows alert banner when user status is pending', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 1, firstName: 'João', status: 'pending', roles: [] },
       hasRole: mockHasRole,
@@ -248,15 +283,47 @@ describe('Dashboard', () => {
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.getByText(/completar perfil/i)).toBeInTheDocument();
+    expect(screen.getByText(/seu perfil está incompleto/i)).toBeInTheDocument();
+    expect(screen.getByText('COMPLETAR →')).toBeInTheDocument();
   });
 
-  it('hides "Completar perfil" link when user status is not pending', () => {
+  it('alert banner links to /profile', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: 1, firstName: 'João', status: 'pending', roles: [] },
+      hasRole: mockHasRole,
+      refreshUser: mockRefreshUser,
+      updateTokens: mockUpdateTokens,
+    });
     mockHasRole.mockReturnValue(false);
 
     renderWithRouter(<Dashboard />);
 
-    expect(screen.queryByText(/completar perfil/i)).not.toBeInTheDocument();
+    const banner = screen.getByText(/seu perfil está incompleto/i).closest('a');
+    expect(banner).toHaveAttribute('href', '/profile');
+  });
+
+  it('hides alert banner when user status is not pending', () => {
+    mockHasRole.mockReturnValue(false);
+
+    renderWithRouter(<Dashboard />);
+
+    expect(screen.queryByText(/seu perfil está incompleto/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('COMPLETAR →')).not.toBeInTheDocument();
+  });
+
+  it('does not render hero CTA link inside hero when status is pending', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: 1, firstName: 'João', status: 'pending', roles: [] },
+      hasRole: mockHasRole,
+      refreshUser: mockRefreshUser,
+      updateTokens: mockUpdateTokens,
+    });
+    mockHasRole.mockReturnValue(false);
+
+    renderWithRouter(<Dashboard />);
+
+    // The old in-hero "Completar perfil →" link should not exist — replaced by banner
+    expect(screen.queryByText(/completar perfil →/i)).not.toBeInTheDocument();
   });
 
   it('calls refreshUser on mount', async () => {
@@ -283,9 +350,120 @@ describe('Dashboard', () => {
     await waitFor(() => {
       expect(api.patch).toHaveBeenCalledWith('/become-trainer');
       expect(mockShowToast).toHaveBeenCalledWith(
-        'Parabéns! Você agora é um treinador!',
+        'Conta de treinador ativada.',
         'success'
       );
+    });
+  });
+
+  describe('Onboarding stepper', () => {
+    it('shows onboarding stepper when trainer has status pending', async () => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 1, firstName: 'João', status: 'pending', roles: [] },
+        hasRole: mockHasRole,
+        refreshUser: mockRefreshUser,
+        updateTokens: mockUpdateTokens,
+      });
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+      api.get.mockImplementation((url) => {
+        if (url === '/trainer/students') return Promise.resolve({ data: [] });
+        if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+        return Promise.reject(new Error('unexpected'));
+      });
+
+      renderWithRouter(<Dashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Primeiros passos')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Complete seu perfil')).toBeInTheDocument();
+      expect(screen.getByText('Adicione um aluno')).toBeInTheDocument();
+      expect(screen.getByText('Crie uma rotina')).toBeInTheDocument();
+    });
+
+    it('shows onboarding stepper when trainer has no students yet', async () => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+      api.get.mockImplementation((url) => {
+        if (url === '/trainer/students') return Promise.resolve({ data: [] });
+        if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+        return Promise.reject(new Error('unexpected'));
+      });
+
+      renderWithRouter(<Dashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Primeiros passos')).toBeInTheDocument();
+      });
+    });
+
+    it('hides onboarding stepper when all steps are done', async () => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+      api.get.mockImplementation((url) => {
+        if (url === '/trainer/students') return Promise.resolve({ data: [{ id: 1 }] });
+        if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [{ id: 1 }] });
+        return Promise.reject(new Error('unexpected'));
+      });
+
+      renderWithRouter(<Dashboard />);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Primeiros passos')).not.toBeInTheDocument();
+      });
+    });
+
+    it('does not show onboarding stepper while stats are loading', () => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+      api.get.mockImplementation(() => new Promise(() => {}));
+
+      renderWithRouter(<Dashboard />);
+
+      expect(screen.queryByText('Primeiros passos')).not.toBeInTheDocument();
+    });
+
+    it('does not show onboarding stepper for non-trainer users', () => {
+      mockHasRole.mockReturnValue(false);
+
+      renderWithRouter(<Dashboard />);
+
+      expect(screen.queryByText('Primeiros passos')).not.toBeInTheDocument();
+    });
+
+    it('marks profile step as done when user status is not pending', async () => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+      api.get.mockImplementation((url) => {
+        if (url === '/trainer/students') return Promise.resolve({ data: [] });
+        if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+        return Promise.reject(new Error('unexpected'));
+      });
+
+      renderWithRouter(<Dashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Primeiros passos')).toBeInTheDocument();
+      });
+
+      // Step 1 number shows ✓ when status is not pending (user is 'active' in default mock)
+      const stepNumbers = document.querySelectorAll('.onboarding-step-number');
+      expect(stepNumbers[0].textContent).toBe('✓');
+    });
+
+    it('marks students step as done when studentsCount > 0', async () => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+      api.get.mockImplementation((url) => {
+        if (url === '/trainer/students') return Promise.resolve({ data: [{ id: 1 }] });
+        if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+        return Promise.reject(new Error('unexpected'));
+      });
+
+      renderWithRouter(<Dashboard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Primeiros passos')).toBeInTheDocument();
+      });
+
+      const stepNumbers = document.querySelectorAll('.onboarding-step-number');
+      expect(stepNumbers[1].textContent).toBe('✓');
     });
   });
 

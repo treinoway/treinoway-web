@@ -1,4 +1,11 @@
 const en = {
+  errors: {
+    TRAINING_TEMPLATE_EXERCISE_NOT_FOUND: 'Exercise not found in this training template.',
+    FORBIDDEN_NOT_TEMPLATE_OWNER: 'You do not have permission to edit this template.',
+  },
+  messageCodes: {
+    'trainingTemplateExercise.notFound': 'Exercise not found in this training template.',
+  },
   challenge: {
     create: {
       addParticipantsLater: 'You can add participants after creating the challenge.',

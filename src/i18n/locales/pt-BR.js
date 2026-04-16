@@ -12,6 +12,8 @@ const ptBR = {
     ACCOUNT_SUSPENDED: 'Conta suspensa. Entre em contato com o suporte.',
     GOOGLE_AUTH_FAILED: 'Falha na autenticação com Google.',
     TRAINING_TEMPLATE_NOT_FOUND: 'Modelo de treino não encontrado.',
+    TRAINING_TEMPLATE_EXERCISE_NOT_FOUND: 'Exercício não encontrado neste template.',
+    FORBIDDEN_NOT_TEMPLATE_OWNER: 'Você não tem permissão para editar este template.',
     FORBIDDEN_TRAINING_TEMPLATE_ACCESS: 'Você não tem acesso a este modelo de treino.',
     INVALID_WEEK_DAY_FOR_SCHEDULE: 'Dia da semana inválido para este agendamento.',
     STUDENT_NOT_FOUND: 'Nenhum usuário encontrado com este e-mail.',
@@ -50,7 +52,7 @@ const ptBR = {
     CHALLENGE_ALREADY_STARTED: 'Este campeonato já começou e não pode ser alterado dessa forma.',
     CHALLENGE_ALREADY_ENDED: 'Este campeonato já terminou.',
     CHALLENGE_ALREADY_CANCELLED: 'Este campeonato já foi cancelado.',
-    CHALLENGE_NOT_DELETABLE: 'Este campeonato não pode ser excluído. Apenas campeonatos agendados podem ser removidos.',
+    CHALLENGE_NOT_DELETABLE: 'Este campeonato não pode ser excluído. Apenas campeonatos agendados podem ser excluídos.',
     CHALLENGE_FORBIDDEN_NOT_OWNER: 'Você não tem permissão para acessar este campeonato.',
     CHALLENGE_PARTICIPANT_NOT_TRAINEE: 'Um ou mais alunos selecionados não pertencem ao seu cadastro.',
     CHALLENGE_PARTICIPANT_DUPLICATE: 'Este aluno já participa do campeonato.',
@@ -91,6 +93,7 @@ const ptBR = {
     'anamnesis.response.notFound': 'Nenhuma resposta encontrada para esta anamnese.',
     'anamnesis.notLinkedToStudent': 'Esta anamnese não está vinculada ao seu perfil.',
     'trainer.notFound': 'Perfil de treinador não encontrado.',
+    'trainingTemplateExercise.notFound': 'Exercício não encontrado neste template.',
     'branding.notFound': 'Personalização não encontrada. Salve as configurações primeiro.',
     'import.primecoaching.formatChanged': 'O arquivo não corresponde ao formato esperado do PrimeCoaching. Verifique se você exportou a planilha correta.',
     'ai.conversationNotFound': 'Conversa não encontrada.',
@@ -107,7 +110,7 @@ const ptBR = {
     'challenge.alreadyStarted': 'Este campeonato já começou e não pode ser alterado dessa forma.',
     'challenge.alreadyEnded': 'Este campeonato já terminou.',
     'challenge.alreadyCancelled': 'Este campeonato já foi cancelado.',
-    'challenge.notDeletable': 'Este campeonato não pode ser excluído. Apenas campeonatos agendados podem ser removidos.',
+    'challenge.notDeletable': 'Este campeonato não pode ser excluído. Apenas campeonatos agendados podem ser excluídos.',
     'challenge.forbidden.notOwner': 'Você não tem permissão para acessar este campeonato.',
     'challenge.participant.notTrainee': 'Um ou mais alunos selecionados não pertencem ao seu cadastro.',
     'challenge.participant.duplicate': 'Este aluno já participa do campeonato.',
@@ -141,7 +144,7 @@ const ptBR = {
 
   branding: {
     pageTitle: 'Sua Marca',
-    saveSuccess: 'Marca salva com sucesso!',
+    saveSuccess: 'Marca salva com sucesso.',
     savePartialError: 'Algumas alterações falharam ao salvar. Tente novamente.',
     configured: 'Marca configurada',
     preview: {

@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { selectOption } from '../../test-utils/selectOption';
 import { renderWithRouter } from '../../test/test-utils';
@@ -389,19 +389,19 @@ describe('TrainingTemplates', () => {
     expect(screen.queryByRole('button', { name: /ações do exercício supino reto/i })).not.toBeInTheDocument();
   });
 
-  it('sends exerciseTemplateIds in payload when creating template with exercises', async () => {
+  it('sends exerciseTemplates with draft overrides in payload when creating template with exercises', async () => {
     const user = userEvent.setup();
     api.post.mockResolvedValue({ data: { id: 1 } });
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
     await user.click(screen.getByRole('button', { name: /novo treino único/i }));
-    await selectOption(user,screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await selectOption(user, screen.getByLabelText(/selecionar exercício existente/i), '20');
     await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
     const nameInput = screen.getAllByRole('textbox')[0];
     await user.type(nameInput, 'Treino com Exercício');
-    await selectOption(user,screen.getAllByRole('combobox')[0], 'strength');
+    await selectOption(user, screen.getAllByRole('combobox')[0], 'strength');
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -409,8 +409,64 @@ describe('TrainingTemplates', () => {
         '/trainer/training-templates',
         expect.objectContaining({
           name: 'Treino com Exercício',
-          exerciseTemplateIds: [20],
-        })
+          exerciseTemplates: [
+            expect.objectContaining({ exerciseTemplateId: 20, order: 0 }),
+          ],
+        }),
+      );
+    });
+  });
+
+  it('persists snapshot edits made in create mode into the POST payload', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: { id: 1 } });
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/exercise-templates') return Promise.resolve({
+        data: [
+          {
+            id: 20,
+            name: 'Supino Reto',
+            type: 'strength',
+            sets: 3,
+            repetitions: { min: 10, max: 10 },
+            hasLoad: true,
+            suggestedLoad: 20,
+            restInterval: 60,
+          },
+        ],
+      });
+      return Promise.resolve({ data: [] });
+    });
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
+    await selectOption(user, screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+
+    // Open the snapshot sheet for the draft row and bump sets from 3 to 4.
+    await user.click(screen.getByRole('button', { name: /editar exercício supino reto/i }));
+    const dialog = screen.getByRole('dialog', { name: /editar supino reto/i });
+    await user.click(within(dialog).getByRole('button', { name: /aumentar séries/i }));
+    await user.click(within(dialog).getByRole('button', { name: /^salvar$/i }));
+
+    // Draft edits are held locally — no PATCH call until the template is persisted.
+    expect(api.patch).not.toHaveBeenCalled();
+
+    const nameInput = screen.getAllByRole('textbox')[0];
+    await user.type(nameInput, 'Treino Draft');
+    await selectOption(user, screen.getAllByRole('combobox')[0], 'strength');
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        '/trainer/training-templates',
+        expect.objectContaining({
+          exerciseTemplates: [
+            expect.objectContaining({ exerciseTemplateId: 20, sets: 4 }),
+          ],
+        }),
       );
     });
   });
@@ -490,15 +546,6 @@ describe('TrainingTemplates', () => {
     });
   };
 
-  const openExerciseActionsMenu = async (user) => {
-    await waitFor(() => screen.getByText('Treino A'));
-    const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
-    await user.click(menuTrigger);
-    await user.click(screen.getByText('Editar'));
-    await waitFor(() => screen.getByRole('button', { name: /ações do exercício supino reto/i }));
-    await user.click(screen.getByRole('button', { name: /ações do exercício supino reto/i }));
-  };
-
   it('shows actions menu on exercise rows in the form', async () => {
     const user = userEvent.setup();
     setupEditExerciseTest();
@@ -514,38 +561,191 @@ describe('TrainingTemplates', () => {
     });
   });
 
-  it('opens exercise template modal in edit mode when edit exercise is clicked', async () => {
+  it('opens the snapshot edit sheet (not the global template modal) when tapping an exercise row in create mode', async () => {
     const user = userEvent.setup();
-    setupEditExerciseTest();
     renderWithRouter(<TrainingTemplates />);
 
-    await openExerciseActionsMenu(user);
-    await user.click(screen.getByRole('button', { name: /^editar$/i }));
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
+    await selectOption(user, screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
 
-    expect(screen.getByTestId('create-exercise-template-modal')).toBeInTheDocument();
-    expect(screen.getByTestId('editing-exercise-id')).toHaveTextContent('20');
+    await user.click(screen.getByRole('button', { name: /editar exercício supino reto/i }));
+
+    expect(screen.getByRole('dialog', { name: /editar supino reto/i })).toBeInTheDocument();
+    // Global exercise template modal must NOT open from the template form.
+    expect(screen.queryByTestId('create-exercise-template-modal')).not.toBeInTheDocument();
   });
 
-  it('refreshes exercise templates after editing without duplicating IDs', async () => {
-    const user = userEvent.setup();
-    setupEditExerciseTest();
-    renderWithRouter(<TrainingTemplates />);
+  describe('Snapshot edit flow', () => {
+    const templateUuid = '11111111-1111-1111-1111-111111111111';
+    const exerciseTemplateUuid = '22222222-2222-2222-2222-222222222222';
+    const junctionUuid = '33333333-3333-3333-3333-333333333333';
 
-    await openExerciseActionsMenu(user);
-    await user.click(screen.getByRole('button', { name: /^editar$/i }));
+    const baseTemplateWithSnapshot = {
+      id: templateUuid,
+      name: 'Treino A',
+      description: 'Descrição',
+      isPublic: false,
+      category: 'strength',
+      bodySegment: 'upper',
+      trainingTemplateExerciseTemplates: [
+        {
+          id: junctionUuid,
+          trainingTemplateId: templateUuid,
+          exerciseTemplateId: exerciseTemplateUuid,
+          order: 0,
+          name: 'Supino Reto',
+          type: 'strength',
+          sets: 4,
+          repetitions: { min: 10, max: 10 },
+          duration: null,
+          hasLoad: true,
+          suggestedLoad: 20,
+          restInterval: 60,
+          notes: null,
+          exerciseTemplate: { id: exerciseTemplateUuid, name: 'Supino Reto', type: 'strength' },
+        },
+      ],
+    };
 
-    const getCallsBefore = api.get.mock.calls.length;
-    await user.click(screen.getByRole('button', { name: /simular exercício editado/i }));
+    const setupSnapshotTest = () => {
+      api.get.mockImplementation((url) => {
+        if (url === '/trainer/training-templates') {
+          return Promise.resolve({
+            data: [{ id: templateUuid, name: 'Treino A', isPublic: false, category: 'strength', bodySegment: 'upper' }],
+          });
+        }
+        if (url === `/trainer/training-templates/${templateUuid}`) {
+          return Promise.resolve({ data: baseTemplateWithSnapshot });
+        }
+        if (url === '/trainer/exercise-templates') {
+          return Promise.resolve({
+            data: [{ id: exerciseTemplateUuid, name: 'Supino Reto', type: 'strength' }],
+          });
+        }
+        return Promise.resolve({ data: [] });
+      });
+    };
 
-    await waitFor(() => {
-      const exerciseFetches = api.get.mock.calls.slice(getCallsBefore).filter(
-        ([url]) => url === '/trainer/exercise-templates'
-      );
-      expect(exerciseFetches.length).toBeGreaterThan(0);
+    const openSnapshotEditSheet = async (user) => {
+      await waitFor(() => screen.getByText('Treino A'));
+      const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
+      await user.click(menuTrigger);
+      await user.click(screen.getByText('Editar'));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /editar exercício supino reto/i })).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole('button', { name: /editar exercício supino reto/i }));
+      await waitFor(() => {
+        expect(screen.getByRole('dialog', { name: /editar supino reto/i })).toBeInTheDocument();
+      });
+    };
+
+    it('renders a tappable exercise row with summary when junction snapshot is available', async () => {
+      const user = userEvent.setup();
+      setupSnapshotTest();
+      renderWithRouter(<TrainingTemplates />);
+
+      await waitFor(() => screen.getByText('Treino A'));
+      const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
+      await user.click(menuTrigger);
+      await user.click(screen.getByText('Editar'));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /editar exercício supino reto/i })).toBeInTheDocument();
+      });
+      expect(screen.getByText('4\u00d710 · 60s · 20kg')).toBeInTheDocument();
     });
 
-    // Should still have only one actions menu (no duplicate exercise)
-    const actionsMenus = screen.getAllByRole('button', { name: /ações do exercício/i });
-    expect(actionsMenus).toHaveLength(1);
+    it('opens the edit sheet with pre-filled fields when the row is tapped', async () => {
+      const user = userEvent.setup();
+      setupSnapshotTest();
+      renderWithRouter(<TrainingTemplates />);
+
+      await openSnapshotEditSheet(user);
+
+      expect(screen.getByLabelText('Séries')).toHaveValue(4);
+      expect(screen.getByLabelText('Descanso')).toHaveValue(60);
+      expect(screen.getByLabelText('Carga')).toHaveValue(20);
+    });
+
+    it('sends a PATCH to the snapshot endpoint on save and shows a success toast', async () => {
+      const user = userEvent.setup();
+      setupSnapshotTest();
+      api.patch.mockResolvedValue({ data: { ...baseTemplateWithSnapshot.trainingTemplateExerciseTemplates[0], sets: 5 } });
+      renderWithRouter(<TrainingTemplates />);
+
+      await openSnapshotEditSheet(user);
+
+      const dialog = screen.getByRole('dialog', { name: /editar supino reto/i });
+      await user.click(within(dialog).getByRole('button', { name: /aumentar séries/i }));
+      await user.click(within(dialog).getByRole('button', { name: /^salvar$/i }));
+
+      await waitFor(() => {
+        expect(api.patch).toHaveBeenCalledWith(
+          `/trainer/training-templates/${templateUuid}/exercises/${junctionUuid}`,
+          expect.objectContaining({ sets: 5 }),
+        );
+      });
+      expect(mockShowToast).toHaveBeenCalledWith('Exercício atualizado', 'success');
+    });
+
+    it('keeps the sheet open and shows a retry toast on save error', async () => {
+      const user = userEvent.setup();
+      setupSnapshotTest();
+      const error = { userMessage: 'Falha' };
+      api.patch.mockRejectedValue(error);
+      renderWithRouter(<TrainingTemplates />);
+
+      await openSnapshotEditSheet(user);
+
+      const dialog = screen.getByRole('dialog', { name: /editar supino reto/i });
+      await user.click(within(dialog).getByRole('button', { name: /aumentar séries/i }));
+      await user.click(within(dialog).getByRole('button', { name: /^salvar$/i }));
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith(
+          'Falha',
+          'error',
+          expect.objectContaining({ actionLabel: 'Tentar novamente' }),
+        );
+      });
+      expect(screen.getByRole('dialog', { name: /editar supino reto/i })).toBeInTheDocument();
+    });
+
+    it('preserves snapshot overrides when saving the main template form', async () => {
+      const user = userEvent.setup();
+      setupSnapshotTest();
+      api.patch.mockResolvedValue({ data: baseTemplateWithSnapshot });
+      renderWithRouter(<TrainingTemplates />);
+
+      await waitFor(() => screen.getByText('Treino A'));
+      const menuTrigger = screen.getByRole('button', { name: /ações do modelo treino a/i });
+      await user.click(menuTrigger);
+      await user.click(screen.getByText('Editar'));
+      await waitFor(() => expect(screen.getByDisplayValue('Treino A')).toBeInTheDocument());
+
+      await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+      await waitFor(() => {
+        expect(api.patch).toHaveBeenCalledWith(
+          `/trainer/training-templates/${templateUuid}`,
+          expect.objectContaining({
+            exerciseTemplates: [
+              expect.objectContaining({
+                exerciseTemplateId: exerciseTemplateUuid,
+                order: 0,
+                sets: 4,
+                repetitions: { min: 10, max: 10 },
+                hasLoad: true,
+                suggestedLoad: 20,
+                restInterval: 60,
+              }),
+            ],
+          }),
+        );
+      });
+    });
   });
 });

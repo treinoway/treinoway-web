@@ -38,41 +38,11 @@ Never write frontend code directly. Every implementation task — components, pa
 
 ## RULE 2: Design System (CSS)
 
-**All visual code MUST use tokens and existing classes from `src/index.css`.** Never hardcoded values.
+The canonical design system reference is the `apply-design` skill (`treinoway-web/.claude/skills/apply-design/SKILL.md`). **Always invoke `/apply-design` before finalising any UI change** — it contains the complete token tables, component catalog, interaction state matrix, anti-pattern list, and review checklist. The skill is the single source of truth; what follows here is a brief orientation only.
 
-**Mobile-first required:** base styles = mobile. Breakpoints: `min-width: 768px` and `1024px`.
+All visual code must use tokens from `src/index.css` — never hardcoded hex, px, or inline fixed values. Mobile-first is non-negotiable: base styles target 375px, all breakpoints use `min-width` at 768px and 1024px. Icons come exclusively from `lucide-react` with `strokeWidth={2}`. New CSS goes in `src/index.css` in the appropriate section; check for an existing class before creating a new one.
 
-**CSS Tokens (always use via variable):**
-- Colors: `--md-primary`, `--md-on-primary`, `--md-primary-container`, `--md-secondary`, `--md-error`, `--md-success`, `--md-surface`, `--md-on-surface`
-- Spacing: `--spacing-xs/sm/md/lg/xl/xxl` (4/8/16/24/32/48px)
-- Radius: `--radius-xs/sm/md/lg/xl/full`
-- Shadows: `--shadow-sm/md/lg`
-- Typography: `--font-h1-size/weight`, `--font-h2-size/weight`, `--font-h3-size/weight`, `--font-body-size/weight`, `--font-body-small-size`, `--font-caption-size`, `--font-button-label-size/weight/letter-spacing`, `--font-family-base`
-
-**Reusable classes (check before creating new ones):**
-- Buttons: `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-delete`, `.btn-delete-sm`, `.btn-schedule-sm` + variants `-sm`/`-full`
-- Button hierarchy: `btn-primary` = main action; `btn-secondary` = cancel/back; `btn-schedule-sm` = add/schedule; `btn-danger`/`btn-delete`/`btn-delete-sm` = destructive
-- `inline style` acceptable **only for dynamic values** (e.g. `style={{ width: \`${progress}%\` }}`). Never for fixed colors or spacing.
-- Forms: `.form`, `.form-group`, `.form-label`, `.form-input`, `.form-select`, `.form-textarea`, `.form-error`, `.form-input--error`
-- Cards: `.card`, `.card-link`, `.card-header-row`, `.card-title`, `.card-subtitle`, `.card-description`, `.card-badges`, `.card-stats`, `.stat-chip`
-- Modals: `.bottom-sheet`, `.bottom-sheet-header`, `.bottom-sheet-body`, `.bottom-sheet-close`
-- Confirmation: `.overlay` + `.confirm-dialog` + `.confirm-dialog-message`
-- Badges: `.badge`, `.badge-blue`, `.badge-green`, `.badge-red`, `.badge-gray`
-- Grid: `.grid-cards` (1→2→3 columns), `.grid-2col`
-- Responsive tables: `.table-col-mobile-only`, `.table-col-desktop-only`
-- Page headers: `.page-header`, `.page-header-title-row`, `.page-header-title-icon`, `.page-header-actions`
-- Empty state: `.empty-state`, `.empty-state-title`, `.empty-state-icon`, `.empty-state-icon--accent`
-- Utilities: `.text-muted`, `.text-sm`, `.mb-sm`, `.mb-md`, `.mt-md`, `.font-medium`, `.fade-in`
-
-**Icons:** Lucide React (`lucide-react`). Never use another package.
-
-**Animations:** Content containers (`.grid-cards`, `.table-container`, `.empty-state`, `.card.card--mb`) have an automatic `fadeIn` animation (200ms, ease-out, opacity + translateY). Use `.fade-in` utility class for other elements that should animate on mount. Never add manual fade logic when these classes already handle it.
-
-**Page headers:** Every list/management page must have `<div className="page-header-title-row">` with a Lucide icon (`size={24} className="page-header-title-icon"`) matching the sidebar icon for that page, followed by the `<h1>`.
-
-**Empty states:** Always use `<div className="empty-state-icon empty-state-icon--accent">` with icon `size={32}` for the accent circle treatment.
-
-**CSS in BEM-like:** `.card`, `.card--highlighted`, `.card__title`.
+**Brand expression:** Athletic-Tech DNA (Space Grotesk display + Inter body, UPPERCASE tracking-wide on buttons/labels, `--radius-brand: 8px`, kinetic motion). Use `StatDisplay` for performance numbers. Use `.theme-stadium` wrapper for dark stats/execution screens. See skill §3.5–3.8 for full spec.
 
 ---
 

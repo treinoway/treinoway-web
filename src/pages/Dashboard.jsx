@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Dumbbell, ClipboardList, Palette, Sparkles, Trophy } from 'lucide-react';
 import api from '../api/axios';
 import NoStudentsModal from '../components/NoStudentsModal';
+import StatDisplay from '../components/StatDisplay';
 
 const SKIP_STORAGE_KEY = 'treinoway.skipNoStudentsWarning';
 
@@ -87,7 +88,7 @@ const Dashboard = () => {
 
       updateTokens(newAccessToken, newRefreshToken);
 
-      showToast('Parabéns! Você agora é um treinador!', 'success');
+      showToast('Conta de treinador ativada.', 'success');
 
       await refreshUser();
     } catch (error) {
@@ -97,36 +98,85 @@ const Dashboard = () => {
     }
   };
 
+  const allOnboardingDone = hasRole('TRAINER') &&
+    user?.status !== 'pending' &&
+    studentsCount > 0 &&
+    protocolsCount > 0;
+
+  const showOnboarding = hasRole('TRAINER') &&
+    studentsCount !== null &&
+    protocolsCount !== null &&
+    !allOnboardingDone;
+
+  const showStats = hasRole('TRAINER') &&
+    studentsCount !== null &&
+    protocolsCount !== null &&
+    (studentsCount > 0 || protocolsCount > 0);
+
   return (
     <div>
+      {user?.status === 'pending' && (
+        <Link to="/profile" className="dashboard-alert-banner">
+          <span className="dashboard-alert-banner-text">Seu perfil está incompleto — complete para começar a usar o Treinoway</span>
+          <span className="dashboard-alert-banner-cta">COMPLETAR →</span>
+        </Link>
+      )}
+
       <div className="dashboard-hero">
-        <h1 className="dashboard-hero-greeting">{user?.firstName ? `Olá, ${user.firstName}! 👋` : 'Bem-vindo! 👋'}</h1>
+        <h1 className="dashboard-hero-greeting">{user?.firstName ? `Olá, ${user.firstName}!` : 'Bem-vindo!'}</h1>
         <p className="dashboard-hero-subtitle">Pronto para o trabalho de hoje?</p>
-        {user?.status === 'pending' && (
-          <Link to="/profile" className="dashboard-hero-cta">
-            Completar perfil →
+        {user?.status !== 'pending' && hasRole('TRAINER') && (
+          <Link to="/trainer/students" className="dashboard-hero-cta">
+            Ver meus alunos →
           </Link>
         )}
       </div>
 
+      {showOnboarding && (
+        <section className="onboarding-steps">
+          <h2 className="onboarding-title">Primeiros passos</h2>
+          <div className="onboarding-grid">
+            <Link to="/profile" className={`onboarding-step ${user?.status !== 'pending' ? 'onboarding-step--done' : ''}`}>
+              <span className="onboarding-step-number">{user?.status !== 'pending' ? '✓' : '1'}</span>
+              <div>
+                <span className="onboarding-step-label">Complete seu perfil</span>
+                <span className="onboarding-step-desc">Adicione suas informações profissionais</span>
+              </div>
+            </Link>
+            <Link to="/trainer/students" className={`onboarding-step ${studentsCount > 0 ? 'onboarding-step--done' : ''}`}>
+              <span className="onboarding-step-number">{studentsCount > 0 ? '✓' : '2'}</span>
+              <div>
+                <span className="onboarding-step-label">Adicione um aluno</span>
+                <span className="onboarding-step-desc">Cadastre seu primeiro aluno para começar</span>
+              </div>
+            </Link>
+            <Link to="/trainer/protocols/new" className={`onboarding-step ${protocolsCount > 0 ? 'onboarding-step--done' : ''}`}>
+              <span className="onboarding-step-number">{protocolsCount > 0 ? '✓' : '3'}</span>
+              <div>
+                <span className="onboarding-step-label">Crie uma rotina</span>
+                <span className="onboarding-step-desc">Monte o primeiro treino para seu aluno</span>
+              </div>
+            </Link>
+          </div>
+        </section>
+      )}
+
       {hasRole('TRAINER') && (
-        <section className="dashboard-stats" aria-busy={studentsCount === null || protocolsCount === null}>
-          <div className="stat-card">
-            <span className="stat-card-value">
-              {studentsCount === null
-                ? <span className="skeleton stat-card-skeleton" aria-hidden="true" />
-                : studentsCount}
-            </span>
-            <span className="stat-card-label">Alunos</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-card-value">
-              {protocolsCount === null
-                ? <span className="skeleton stat-card-skeleton" aria-hidden="true" />
-                : protocolsCount}
-            </span>
-            <span className="stat-card-label">Rotinas</span>
-          </div>
+        <section className="dashboard-stats" aria-label="Estatísticas" aria-busy={studentsCount === null || protocolsCount === null}>
+          {studentsCount === null ? (
+            <div className="stat-card"><span className="skeleton stat-card-skeleton" aria-hidden="true" /></div>
+          ) : showStats ? (
+            <Link to="/trainer/students" className="dashboard-stat-link">
+              <StatDisplay value={studentsCount} label="Alunos" variant="hero" className="dashboard-stat" />
+            </Link>
+          ) : null}
+          {protocolsCount === null ? (
+            <div className="stat-card"><span className="skeleton stat-card-skeleton" aria-hidden="true" /></div>
+          ) : showStats ? (
+            <Link to="/trainer/protocols" className="dashboard-stat-link">
+              <StatDisplay value={protocolsCount} label="Rotinas" variant="hero" className="dashboard-stat" />
+            </Link>
+          ) : null}
         </section>
       )}
 
@@ -136,7 +186,7 @@ const Dashboard = () => {
           {hasRole('TRAINER') && user?.email !== 'gabriel.araujo.lima2011@gmail.com' && (
             <Link to="/trainer/ai-assistant" className="quick-action-card quick-action-card--ai">
               <div className="quick-action-icon quick-action-icon--ai">
-                <Sparkles size={20} strokeWidth={1.6} />
+                <Sparkles size={20} strokeWidth={2} />
               </div>
               <span className="quick-action-label quick-action-label--ai">iArnold</span>
               <p className="quick-action-desc quick-action-desc--ai">Crie treinos e rotinas com linguagem natural usando inteligência artificial</p>
@@ -147,10 +197,10 @@ const Dashboard = () => {
             <button
               onClick={handleCreateRoutine}
               disabled={checkingStudents}
-              className="quick-action-card"
+              className="quick-action-card quick-action-card--highlight"
             >
               <div className="quick-action-icon">
-                <ClipboardList size={20} strokeWidth={1.6} />
+                <ClipboardList size={20} strokeWidth={2} />
               </div>
               <span className="quick-action-label">
                 {checkingStudents ? 'Verificando...' : 'Criar Rotina para um Aluno'}
@@ -162,7 +212,7 @@ const Dashboard = () => {
           {hasRole('TRAINER') && (
             <Link to="/trainer/branding" className="quick-action-card">
               <div className="quick-action-icon">
-                <Palette size={20} strokeWidth={1.6} />
+                <Palette size={20} strokeWidth={2} />
               </div>
               <span className="quick-action-label">Personalize sua Marca</span>
               <p className="quick-action-desc">Defina as cores e o visual da sua marca para criar uma experiência personalizada para seus alunos</p>
@@ -172,7 +222,7 @@ const Dashboard = () => {
           {hasRole('TRAINER') && (
             <Link to="/trainer/challenges" className="quick-action-card">
               <div className="quick-action-icon">
-                <Trophy size={20} strokeWidth={1.6} />
+                <Trophy size={20} strokeWidth={2} />
               </div>
               <span className="quick-action-label">Campeonatos</span>
               <p className="quick-action-desc">Veja os campeonatos e desafios dos seus alunos</p>
@@ -182,7 +232,7 @@ const Dashboard = () => {
           {isStudentUser && (
             <Link to="/my/challenges" className="quick-action-card">
               <div className="quick-action-icon">
-                <Trophy size={20} strokeWidth={1.6} />
+                <Trophy size={20} strokeWidth={2} />
               </div>
               <span className="quick-action-label">Campeonatos</span>
               <p className="quick-action-desc">Participe de campeonatos e acompanhe seu desempenho</p>
@@ -196,7 +246,7 @@ const Dashboard = () => {
               className="quick-action-card"
             >
               <div className="quick-action-icon">
-                <Dumbbell size={20} strokeWidth={1.6} />
+                <Dumbbell size={20} strokeWidth={2} />
               </div>
               <span className="quick-action-label">
                 {loading ? 'Processando...' : 'Seja um Treinador'}
