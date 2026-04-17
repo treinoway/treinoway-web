@@ -26,8 +26,10 @@ const getStudentName = (student) => {
 
 const ProtocolsTab = ({ studentId }) => {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [protocols, setProtocols] = useState([]);
   const [protocolsLoading, setProtocolsLoading] = useState(true);
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   const fetchProtocols = useCallback(async () => {
     setProtocolsLoading(true);
@@ -44,6 +46,23 @@ const ProtocolsTab = ({ studentId }) => {
   useEffect(() => {
     fetchProtocols();
   }, [fetchProtocols]);
+
+  const handleDeleteProtocol = (protocol) => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir esta rotina? Esta ação não pode ser desfeita.',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/trainer/protocols/${protocol.id}`);
+          showToast('Rotina excluída', 'success');
+          fetchProtocols();
+        } catch (err) {
+          showToast(err.userMessage || translateError(err), 'error');
+        } finally {
+          setConfirmDialog(null);
+        }
+      },
+    });
+  };
 
   if (protocolsLoading) {
     return (
@@ -70,21 +89,62 @@ const ProtocolsTab = ({ studentId }) => {
 
   return (
     <div className="stack-md">
-      {protocols.map((protocol) => (
-        <Link key={protocol.id} to={`/trainer/protocols/${protocol.id}`} className="card-link">
-          <div className="card-header">
-            <span className="card-title" style={{ marginBottom: 0 }}>{protocol.name}</span>
-            <span className={getStatusBadgeClass(protocol.status)}>
-              {getStatusLabel(protocol.status)}
-            </span>
+      {protocols.map((protocol) => {
+        const openProtocol = () => navigate(`/trainer/protocols/${protocol.id}`);
+        const handleKeyDown = (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openProtocol();
+          }
+        };
+        return (
+          <div
+            key={protocol.id}
+            className="card-link"
+            role="link"
+            tabIndex={0}
+            onClick={openProtocol}
+            onKeyDown={handleKeyDown}
+          >
+            <div className="card-header">
+              <span className="card-title" style={{ marginBottom: 0 }}>{protocol.name}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+                <span className={getStatusBadgeClass(protocol.status)}>
+                  {getStatusLabel(protocol.status)}
+                </span>
+                <RowMenu
+                  ariaLabel={`Ações da rotina ${protocol.name}`}
+                  extraItems={[{ label: 'Abrir', onClick: openProtocol }]}
+                  onDelete={() => handleDeleteProtocol(protocol)}
+                  deleteDisabled={protocol.status === 'active'}
+                  deleteDisabledTitle="Arquive a rotina antes de excluir"
+                />
+              </div>
+            </div>
+            <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+              {formatDateForDisplay(protocol.startDate)}
+              {' – '}
+              {formatDateForDisplay(protocol.expirationDate)}
+            </p>
           </div>
-          <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
-            {formatDateForDisplay(protocol.startDate)}
-            {' – '}
-            {formatDateForDisplay(protocol.expirationDate)}
-          </p>
-        </Link>
-      ))}
+        );
+      })}
+
+      {confirmDialog && (
+        <div className="overlay">
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-dialog-message">{confirmDialog.message}</p>
+            <div className="btn-group">
+              <button onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>
+                Confirmar
+              </button>
+              <button onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

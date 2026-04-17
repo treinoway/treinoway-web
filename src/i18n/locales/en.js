@@ -5,6 +5,7 @@ const en = {
   },
   messageCodes: {
     'trainingTemplateExercise.notFound': 'Exercise not found in this training template.',
+    'legacy.PROTOCOL_STATUS_NOT_DELETABLE': 'Active routines cannot be deleted. Archive the routine first.',
   },
   challenge: {
     create: {

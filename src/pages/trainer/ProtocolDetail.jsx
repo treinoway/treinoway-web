@@ -366,6 +366,23 @@ const ProtocolDetail = () => {
     }
   };
 
+  const handleDeleteProtocol = () => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir esta rotina? Esta ação não pode ser desfeita.',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/trainer/protocols/${protocol.id}`);
+          showToast('Rotina excluída', 'success');
+          navigate(`/trainer/students/${protocol.assignee?.id}`);
+        } catch (error) {
+          showToast(error.userMessage || translateError(error), 'error');
+        } finally {
+          setConfirmDialog(null);
+        }
+      },
+    });
+  };
+
   const segmentedToggle = (
     <div className="segmented-toggle">
       <button
@@ -421,13 +438,24 @@ const ProtocolDetail = () => {
           <h1 className="page-title" style={{ marginBottom: 0 }}>
             {protocol.name}
           </h1>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={handleOpenEditProtocol}
-          >
-            Editar
-          </button>
+          <div className="btn-group" style={{ width: 'auto' }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={handleOpenEditProtocol}
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              className="btn-danger"
+              onClick={handleDeleteProtocol}
+              disabled={protocol.status === 'active'}
+              title={protocol.status === 'active' ? 'Arquive a rotina antes de excluir' : undefined}
+            >
+              Excluir
+            </button>
+          </div>
         </div>
         <div className="grid-2col text-sm">
           <div>

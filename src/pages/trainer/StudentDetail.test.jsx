@@ -6,6 +6,15 @@ import StudentDetail from './StudentDetail';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
 vi.mock('../../contexts/ToastContext', () => ({
   useToast: vi.fn(),
 }));
@@ -95,6 +104,7 @@ function renderStudentDetail({ withState = true } = {}) {
 describe('StudentDetail', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
+    mockNavigate.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockReset();
     api.post.mockReset();
@@ -160,6 +170,136 @@ describe('StudentDetail', () => {
     await waitFor(() => {
       expect(screen.getByText('01/01/2025 – 31/03/2025')).toBeInTheDocument();
     });
+  });
+
+  it('navigates to protocol detail when protocol card is clicked', async () => {
+    const user = userEvent.setup();
+    renderStudentDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Protocolo Full Body'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/protocols/proto-1');
+  });
+
+  it('renders 3-dot menu on each protocol card', async () => {
+    renderStudentDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: /ações da rotina protocolo full body/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ações da rotina protocolo cardio/i })).toBeInTheDocument();
+  });
+
+  it('opens menu without navigating when the menu trigger is clicked', async () => {
+    const user = userEvent.setup();
+    renderStudentDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo full body/i }));
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Abrir' })).toBeInTheDocument();
+  });
+
+  it('navigates via "Abrir" menu option', async () => {
+    const user = userEvent.setup();
+    renderStudentDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo full body/i }));
+    await user.click(screen.getByRole('button', { name: 'Abrir' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/protocols/proto-1');
+  });
+
+  it('disables "Excluir" in menu for active protocols', async () => {
+    const user = userEvent.setup();
+    renderStudentDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo full body/i }));
+
+    const deleteBtn = screen.getByRole('button', { name: 'Excluir' });
+    expect(deleteBtn).toBeDisabled();
+    expect(deleteBtn).toHaveAttribute('title', 'Arquive a rotina antes de excluir');
+  });
+
+  it('enables "Excluir" in menu for non-active protocols', async () => {
+    const user = userEvent.setup();
+    renderStudentDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Protocolo Cardio')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo cardio/i }));
+
+    expect(screen.getByRole('button', { name: 'Excluir' })).not.toBeDisabled();
+  });
+
+  it('deletes a protocol via the menu and shows success toast', async () => {
+    const user = userEvent.setup();
+    api.delete.mockResolvedValue({});
+    renderStudentDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Protocolo Cardio')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo cardio/i }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+
+    expect(screen.getByText(/tem certeza que deseja excluir esta rotina/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^confirmar$/i }));
+
+    await waitFor(() => {
+      expect(api.delete).toHaveBeenCalledWith('/trainer/protocols/proto-2');
+      expect(mockShowToast).toHaveBeenCalledWith('Rotina excluída', 'success');
+    });
+  });
+
+  it('shows error toast when delete fails', async () => {
+    const user = userEvent.setup();
+    api.delete.mockRejectedValue({ userMessage: 'Rotinas ativas não podem ser excluídas. Arquive a rotina antes.' });
+    renderStudentDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Protocolo Cardio')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo cardio/i }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: /^confirmar$/i }));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'Rotinas ativas não podem ser excluídas. Arquive a rotina antes.',
+        'error',
+      );
+    });
+  });
+
+  it('closes confirm dialog on "Cancelar" without calling delete', async () => {
+    const user = userEvent.setup();
+    renderStudentDetail();
+    await waitFor(() => {
+      expect(screen.getByText('Protocolo Cardio')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo cardio/i }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: /^cancelar$/i }));
+
+    expect(screen.queryByText(/tem certeza que deseja excluir esta rotina/i)).not.toBeInTheDocument();
+    expect(api.delete).not.toHaveBeenCalled();
   });
 
   it('shows empty state when no protocols', async () => {

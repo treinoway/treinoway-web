@@ -6,6 +6,15 @@ import ProtocolDetail from './ProtocolDetail';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
 vi.mock('../../contexts/ToastContext', () => ({
   useToast: vi.fn(),
 }));
@@ -51,7 +60,7 @@ const mockProtocol = {
   status: 'active',
   startDate: '2024-01-01',
   expirationDate: '2024-03-31',
-  assignee: { firstName: 'Aluno', lastName: 'Teste', email: 'aluno@example.com' },
+  assignee: { id: 'student-1', firstName: 'Aluno', lastName: 'Teste', email: 'aluno@example.com' },
 };
 
 const mockTrainings = [
@@ -89,6 +98,7 @@ function renderProtocolDetail() {
 describe('ProtocolDetail', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
+    mockNavigate.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
 
     api.get.mockImplementation((url) => {
@@ -228,7 +238,8 @@ describe('ProtocolDetail', () => {
 
     await waitFor(() => screen.getByText('Treino de Peito'));
     await user.click(screen.getByRole('button', { name: /ações do treino treino de peito/i }));
-    await user.click(screen.getByRole('button', { name: /excluir/i }));
+    const excluirButtons = screen.getAllByRole('button', { name: /^excluir$/i });
+    await user.click(excluirButtons[excluirButtons.length - 1]);
     await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
     await user.click(screen.getByRole('button', { name: /confirmar/i }));
 
@@ -590,6 +601,116 @@ describe('ProtocolDetail', () => {
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith('Erro ao atualizar rotina', 'error');
+      });
+    });
+  });
+
+  describe('delete protocol', () => {
+    it('shows an "Excluir" button in the protocol header', async () => {
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      expect(screen.getByRole('button', { name: /^excluir$/i })).toBeInTheDocument();
+    });
+
+    it('disables the "Excluir" button when protocol is active', async () => {
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      const deleteBtn = screen.getByRole('button', { name: /^excluir$/i });
+      expect(deleteBtn).toBeDisabled();
+      expect(deleteBtn).toHaveAttribute('title', 'Arquive a rotina antes de excluir');
+    });
+
+    it('enables the "Excluir" button when protocol is archived', async () => {
+      api.get.mockImplementation((url) => {
+        if (url.endsWith('/trainer/protocols/1'))
+          return Promise.resolve({ data: { ...mockProtocol, status: 'archived' } });
+        if (url === '/trainer/protocols/1/trainings') return Promise.resolve({ data: mockTrainings });
+        if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+        if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
+        if (url.match(/\/trainer\/trainings\/\d+\/exercises/)) return Promise.resolve({ data: [] });
+        return Promise.resolve({ data: [] });
+      });
+
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      expect(screen.getByRole('button', { name: /^excluir$/i })).not.toBeDisabled();
+    });
+
+    it('opens confirm dialog when "Excluir" is clicked', async () => {
+      const user = userEvent.setup();
+      api.get.mockImplementation((url) => {
+        if (url.endsWith('/trainer/protocols/1'))
+          return Promise.resolve({ data: { ...mockProtocol, status: 'archived' } });
+        if (url === '/trainer/protocols/1/trainings') return Promise.resolve({ data: mockTrainings });
+        if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+        if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
+        if (url.match(/\/trainer\/trainings\/\d+\/exercises/)) return Promise.resolve({ data: [] });
+        return Promise.resolve({ data: [] });
+      });
+
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      await user.click(screen.getByRole('button', { name: /^excluir$/i }));
+
+      expect(
+        screen.getByText(/tem certeza que deseja excluir esta rotina/i),
+      ).toBeInTheDocument();
+    });
+
+    it('calls DELETE, shows success toast and navigates to student on confirm', async () => {
+      const user = userEvent.setup();
+      api.get.mockImplementation((url) => {
+        if (url.endsWith('/trainer/protocols/1'))
+          return Promise.resolve({ data: { ...mockProtocol, status: 'archived' } });
+        if (url === '/trainer/protocols/1/trainings') return Promise.resolve({ data: mockTrainings });
+        if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+        if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
+        if (url.match(/\/trainer\/trainings\/\d+\/exercises/)) return Promise.resolve({ data: [] });
+        return Promise.resolve({ data: [] });
+      });
+      api.delete.mockResolvedValue({});
+
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      await user.click(screen.getByRole('button', { name: /^excluir$/i }));
+      await user.click(screen.getByRole('button', { name: /^confirmar$/i }));
+
+      await waitFor(() => {
+        expect(api.delete).toHaveBeenCalledWith('/trainer/protocols/1');
+        expect(mockShowToast).toHaveBeenCalledWith('Rotina excluída', 'success');
+        expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1');
+      });
+    });
+
+    it('shows error toast when delete fails', async () => {
+      const user = userEvent.setup();
+      api.get.mockImplementation((url) => {
+        if (url.endsWith('/trainer/protocols/1'))
+          return Promise.resolve({ data: { ...mockProtocol, status: 'archived' } });
+        if (url === '/trainer/protocols/1/trainings') return Promise.resolve({ data: mockTrainings });
+        if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTrainingTemplates });
+        if (url === '/trainer/exercise-templates') return Promise.resolve({ data: mockExerciseTemplates });
+        if (url.match(/\/trainer\/trainings\/\d+\/exercises/)) return Promise.resolve({ data: [] });
+        return Promise.resolve({ data: [] });
+      });
+      api.delete.mockRejectedValue({ userMessage: 'Rotinas ativas não podem ser excluídas. Arquive a rotina antes.' });
+
+      renderProtocolDetail();
+
+      await waitFor(() => screen.getByText('Rotina Teste'));
+      await user.click(screen.getByRole('button', { name: /^excluir$/i }));
+      await user.click(screen.getByRole('button', { name: /^confirmar$/i }));
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith(
+          'Rotinas ativas não podem ser excluídas. Arquive a rotina antes.',
+          'error',
+        );
       });
     });
   });

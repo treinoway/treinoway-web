@@ -140,4 +140,56 @@ describe('RowMenu', () => {
     await user.click(trigger);
     expect(screen.queryByText('Editar')).not.toBeInTheDocument();
   });
+
+  it('disables the delete button when deleteDisabled is true', async () => {
+    const user = userEvent.setup();
+    render(
+      <RowMenu
+        ariaLabel="Ações"
+        onDelete={onDelete}
+        deleteDisabled
+        deleteDisabledTitle="Não é permitido"
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+
+    const deleteBtn = screen.getByRole('button', { name: 'Excluir' });
+    expect(deleteBtn).toBeDisabled();
+    expect(deleteBtn).toHaveAttribute('title', 'Não é permitido');
+
+    await user.click(deleteBtn);
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  it('does not trigger parent onClick when trigger is clicked', async () => {
+    const user = userEvent.setup();
+    const parentClick = vi.fn();
+
+    render(
+      <div onClick={parentClick}>
+        <RowMenu ariaLabel="Ações" onDelete={onDelete} onEdit={onEdit} />
+      </div>
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+    expect(parentClick).not.toHaveBeenCalled();
+  });
+
+  it('does not trigger parent onClick when menu item is clicked', async () => {
+    const user = userEvent.setup();
+    const parentClick = vi.fn();
+
+    render(
+      <div onClick={parentClick}>
+        <RowMenu ariaLabel="Ações" onDelete={onDelete} onEdit={onEdit} />
+      </div>
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+    await user.click(screen.getByText('Excluir'));
+
+    expect(onDelete).toHaveBeenCalledOnce();
+    expect(parentClick).not.toHaveBeenCalled();
+  });
 });

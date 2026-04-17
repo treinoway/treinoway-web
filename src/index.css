@@ -4469,6 +4469,14 @@ html:has(.auth-page) {
   background: var(--color-error-container);
 }
 
+.row-menu-item:disabled,
+.row-menu-item:disabled:hover {
+  color: var(--color-on-surface-variant);
+  background: transparent;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Responsive table column visibility */
 .table-col-mobile-only {
   display: block;

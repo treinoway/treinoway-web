@@ -2,7 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { MoreVertical } from 'lucide-react';
 
-const RowMenu = ({ ariaLabel, onEdit, onDelete, deleteLabel = 'Excluir', extraItems = [] }) => {
+const RowMenu = ({
+  ariaLabel,
+  onEdit,
+  onDelete,
+  deleteLabel = 'Excluir',
+  deleteDisabled = false,
+  deleteDisabledTitle,
+  extraItems = [],
+}) => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -15,21 +23,32 @@ const RowMenu = ({ ariaLabel, onEdit, onDelete, deleteLabel = 'Excluir', extraIt
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  const handleTriggerClick = (e) => {
+    e.stopPropagation();
+    setOpen((prev) => !prev);
+  };
+
+  const handleItemClick = (e, callback) => {
+    e.stopPropagation();
+    setOpen(false);
+    callback();
+  };
+
   return (
-    <div className="row-menu" ref={menuRef}>
+    <div className="row-menu" ref={menuRef} onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
         className="row-menu-trigger"
         aria-label={ariaLabel}
         aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={handleTriggerClick}
       >
         <MoreVertical size={18} strokeWidth={1.6} />
       </button>
       {open && (
         <div className="row-menu-dropdown">
           {onEdit && (
-            <button type="button" className="row-menu-item" onClick={() => { setOpen(false); onEdit(); }}>
+            <button type="button" className="row-menu-item" onClick={(e) => handleItemClick(e, onEdit)}>
               Editar
             </button>
           )}
@@ -38,12 +57,18 @@ const RowMenu = ({ ariaLabel, onEdit, onDelete, deleteLabel = 'Excluir', extraIt
               key={item.label}
               type="button"
               className={`row-menu-item${item.danger ? ' row-menu-item--danger' : ''}`}
-              onClick={() => { setOpen(false); item.onClick(); }}
+              onClick={(e) => handleItemClick(e, item.onClick)}
             >
               {item.label}
             </button>
           ))}
-          <button type="button" className="row-menu-item row-menu-item--danger" onClick={() => { setOpen(false); onDelete(); }}>
+          <button
+            type="button"
+            className="row-menu-item row-menu-item--danger"
+            onClick={(e) => handleItemClick(e, onDelete)}
+            disabled={deleteDisabled}
+            title={deleteDisabled ? deleteDisabledTitle : undefined}
+          >
             {deleteLabel}
           </button>
         </div>
@@ -57,6 +82,8 @@ RowMenu.propTypes = {
   onEdit: PropTypes.func,
   onDelete: PropTypes.func.isRequired,
   deleteLabel: PropTypes.string,
+  deleteDisabled: PropTypes.bool,
+  deleteDisabledTitle: PropTypes.string,
   extraItems: PropTypes.arrayOf(PropTypes.shape({
     label: PropTypes.string.isRequired,
     onClick: PropTypes.func.isRequired,

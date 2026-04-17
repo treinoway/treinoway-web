@@ -119,6 +119,7 @@ const ptBR = {
     'challenge.durationExceeded': 'A duração do campeonato não pode ultrapassar 365 dias.',
     'challenge.notActive': 'Este campeonato não está ativo.',
     'gamification.globalRankingRemoved': 'O ranking global foi descontinuado. Use os campeonatos.',
+    'legacy.PROTOCOL_STATUS_NOT_DELETABLE': 'Rotinas ativas não podem ser excluídas. Arquive a rotina antes.',
   },
 
   httpStatus: {
