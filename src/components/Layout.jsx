@@ -184,7 +184,14 @@ const Layout = ({ children, noPadding = false }) => {
 
               {/* Biblioteca dropdown */}
               <button
-                onClick={() => setBibliotecaOpen(o => !o)}
+                onClick={() => {
+                  if (!sidebarOpen) {
+                    setSidebarOpen(true);
+                    setBibliotecaOpen(true);
+                  } else {
+                    setBibliotecaOpen(o => !o);
+                  }
+                }}
                 className={`sidebar-dropdown-toggle ${isBibliotecaActive() ? 'sidebar-link--active' : ''}`}
                 aria-label="Biblioteca"
                 aria-expanded={bibliotecaOpen}

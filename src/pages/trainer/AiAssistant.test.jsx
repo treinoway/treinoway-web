@@ -84,83 +84,152 @@ describe('AiAssistant', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Empty state
+  // Empty state — layout structure
   // ---------------------------------------------------------------------------
 
-  it('renders empty state with iArnold branding', () => {
+  it('renders empty state with header and briefing in normal page flow', () => {
     renderWithRouter(<AiAssistant />);
 
-    expect(screen.getByText(/Olá! Eu sou o/)).toBeInTheDocument();
-    expect(screen.getByText('iArnold', { selector: '.ai-chat__gradient-text' })).toBeInTheDocument();
-    expect(screen.getByText(/Seu assistente inteligente para criar treinos/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'iArnold', level: 1 })).toBeInTheDocument();
+
+    // No scroll-area wrapper — page scroll is used instead
+    expect(document.querySelector('.ai-chat__scroll-area')).not.toBeInTheDocument();
+
+    // Briefing, create cards and prompts render directly
+    expect(screen.getByLabelText('Briefing de alunos')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Criar rotina completa' })).toBeInTheDocument();
+    expect(screen.getByText('Atenção')).toBeInTheDocument();
   });
 
-  it('renders header with iArnold title', () => {
+  it('renders messages view with .ai-chat__messages when messages are present', () => {
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [
+          { role: 'user', content: 'Olá' },
+          { role: 'assistant', content: 'Oi!', actionsExecuted: [] },
+        ],
+      })
+    );
+
     renderWithRouter(<AiAssistant />);
 
-    const h1 = screen.getByRole('heading', { level: 1 });
-    expect(h1).toHaveTextContent('iArnold');
+    expect(document.querySelector('.ai-chat__scroll-area')).not.toBeInTheDocument();
+    expect(document.querySelector('.ai-chat__messages')).toBeInTheDocument();
   });
 
-  it('renders capability cards', () => {
+  it('header is always rendered regardless of messages state', () => {
+    // Empty state
+    const { unmount } = renderWithRouter(<AiAssistant />);
+    expect(screen.getByRole('heading', { name: 'iArnold', level: 1 })).toBeInTheDocument();
+    unmount();
+
+    // Messages state
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [{ role: 'user', content: 'Oi' }],
+      })
+    );
+    renderWithRouter(<AiAssistant />);
+    expect(screen.getByRole('heading', { name: 'iArnold', level: 1 })).toBeInTheDocument();
+  });
+
+  it('renders briefing strip placeholders', () => {
     renderWithRouter(<AiAssistant />);
 
-    expect(screen.getByText('Criar protocolo')).toBeInTheDocument();
-    expect(screen.getByText('Montar treino')).toBeInTheDocument();
-    expect(screen.getByText('Plano alimentar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Briefing de alunos')).toBeInTheDocument();
+    expect(screen.getByText('Alunos ativos')).toBeInTheDocument();
+    expect(screen.getByText('Progresso estagnado')).toBeInTheDocument();
+    expect(screen.getByText('Inativos')).toBeInTheDocument();
+    expect(screen.getByText('Adesão geral')).toBeInTheDocument();
   });
 
-  it('fills input when clicking a capability card', async () => {
+  it('renders create cards with correct titles', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByRole('heading', { name: 'Criar rotina completa' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Montar treino' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Plano alimentar' })).toBeInTheDocument();
+  });
+
+  it('fills input when clicking a create card', async () => {
     const user = userEvent.setup();
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByText('Criar protocolo').closest('button'));
+    await user.click(screen.getByRole('heading', { name: 'Criar rotina completa' }).closest('button'));
 
     expect(screen.getByRole('textbox', { name: /mensagem para o assistente/i })).toHaveValue(
-      'Crie um protocolo de hipertrofia para o aluno João com 4 treinos por semana'
+      'Crie uma rotina de hipertrofia de 8 semanas para um aluno intermediário com 4 treinos por semana'
     );
   });
 
-  it('renders quick prompt pills', () => {
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.getByText('Analisar progresso')).toBeInTheDocument();
-    expect(screen.getByText('Substituir exercícios')).toBeInTheDocument();
-    expect(screen.getByText('Periodização')).toBeInTheDocument();
-    expect(screen.getByText('Alunos inativos')).toBeInTheDocument();
-  });
-
-  it('fills input when clicking a quick prompt pill', async () => {
+  it('fills input when clicking a contextual prompt row', async () => {
     const user = userEvent.setup();
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByText('Analisar progresso'));
+    // Click the first prompt row (Atenção / Reativar Aluno A)
+    const promptRows = screen.getAllByRole('button', { name: /aluno a/i });
+    await user.click(promptRows[0]);
 
     expect(screen.getByRole('textbox', { name: /mensagem para o assistente/i })).toHaveValue(
-      'Analise o progresso dos meus alunos esta semana'
+      'Sugira uma mensagem de reengajamento e ajuste de rotina para um aluno que não treina há 9 dias'
     );
   });
 
+  it('renders contextual prompts with correct tags', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText('Atenção')).toBeInTheDocument();
+    // Two rows with "Progresso" tag
+    expect(screen.getAllByText('Progresso').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Dieta')).toBeInTheDocument();
+    expect(screen.getByText('Análise')).toBeInTheDocument();
+  });
+
   // ---------------------------------------------------------------------------
-  // Placeholder buttons
+  // Composer toolbar
   // ---------------------------------------------------------------------------
 
-  it('shows toast when clicking the attach context button', async () => {
+  it('renders composer toolbar buttons', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByRole('button', { name: /anexar arquivo/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /selecionar aluno/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /abrir biblioteca/i })).toBeInTheDocument();
+  });
+
+  it('shows toast when clicking the attach button', async () => {
     const user = userEvent.setup();
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /anexar contexto/i }));
+    await user.click(screen.getByRole('button', { name: /anexar arquivo/i }));
 
     expect(showToast).toHaveBeenCalledWith('Em breve!', 'info');
   });
 
-  it('shows toast when clicking the select student button', async () => {
+  it('shows toast when clicking the student selector button', async () => {
     const user = userEvent.setup();
     renderWithRouter(<AiAssistant />);
 
     await user.click(screen.getByRole('button', { name: /selecionar aluno/i }));
 
     expect(showToast).toHaveBeenCalledWith('Em breve!', 'info');
+  });
+
+  it('shows toast when clicking the biblioteca button', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<AiAssistant />);
+
+    await user.click(screen.getByRole('button', { name: /abrir biblioteca/i }));
+
+    expect(showToast).toHaveBeenCalledWith('Em breve!', 'info');
+  });
+
+  it('renders composer meta line with context chip', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText(/contexto ativo: 24 alunos/i)).toBeInTheDocument();
+    expect(screen.getByText(/iArnold tem acesso aos dados/i)).toBeInTheDocument();
+    expect(screen.getByText('Powered by Claude')).toBeInTheDocument();
   });
 
   // ---------------------------------------------------------------------------
@@ -415,16 +484,24 @@ describe('AiAssistant', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // New conversation (header button)
+  // Header action buttons
   // ---------------------------------------------------------------------------
 
-  it('always shows "Nova conversa" button in header', () => {
+  it('renders history button in empty state', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByRole('button', { name: /^histórico$/i })).toBeInTheDocument();
+  });
+
+
+
+  it('renders nova conversa button in empty state', () => {
     renderWithRouter(<AiAssistant />);
 
     expect(screen.getByRole('button', { name: /^nova conversa$/i })).toBeInTheDocument();
   });
 
-  it('calls startNewConversation on "Nova conversa" click (header button)', async () => {
+  it('calls startNewConversation when clicking nova conversa button in messages view', async () => {
     const user = userEvent.setup();
     const startNewConversation = vi.fn();
     vi.mocked(useAiChat).mockReturnValue(
@@ -497,30 +574,17 @@ describe('AiAssistant', () => {
     expect(screen.getByText('Protocolo criado')).toBeInTheDocument();
   });
 
-  it('renders input hints', () => {
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.getByText(/iArnold tem acesso aos dados/)).toBeInTheDocument();
-    expect(screen.getByText(/Enter para enviar/)).toBeInTheDocument();
-  });
-
   // ---------------------------------------------------------------------------
   // Conversation history panel
   // ---------------------------------------------------------------------------
 
-  it('shows "Histórico" button always', () => {
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.getByRole('button', { name: /histórico de conversas/i })).toBeInTheDocument();
-  });
-
-  it('opens history panel and loads conversations when clicking "Histórico"', async () => {
+  it('opens history panel and loads conversations when clicking history button', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: mockConversations });
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/trainer/ai/conversations');
@@ -539,7 +603,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Nenhuma conversa ainda.')).toBeInTheDocument();
@@ -552,7 +616,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Histórico de conversas')).toBeInTheDocument();
@@ -570,7 +634,7 @@ describe('AiAssistant', () => {
     const user = userEvent.setup();
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     expect(screen.getByText('Carregando...')).toBeInTheDocument();
 
@@ -591,7 +655,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /iniciar nova conversa/i })).toBeInTheDocument();
@@ -606,7 +670,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /iniciar nova conversa/i })).toBeInTheDocument();
@@ -631,7 +695,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -655,7 +719,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -680,7 +744,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -699,7 +763,6 @@ describe('AiAssistant', () => {
 
   it('deletes conversation and removes from list on confirm', async () => {
     const user = userEvent.setup();
-    // First call returns both; second call (on re-open) returns only the remaining one
     api.get
       .mockResolvedValueOnce({ data: mockConversations })
       .mockResolvedValueOnce({ data: [mockConversations[1]] });
@@ -707,7 +770,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -721,7 +784,7 @@ describe('AiAssistant', () => {
     });
 
     // Re-open history to verify
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.queryByText('Primeira conversa')).not.toBeInTheDocument();
@@ -740,7 +803,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -760,7 +823,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -768,7 +831,6 @@ describe('AiAssistant', () => {
 
     await user.click(screen.getByRole('button', { name: /excluir conversa: primeira conversa/i }));
 
-    // Confirm dialog is shown, history is closed
     expect(screen.getByText(/Excluir a conversa "Primeira conversa"/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /^Cancelar$/ }));
@@ -777,7 +839,7 @@ describe('AiAssistant', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Delete button always visible (no hover dependency)
+  // Delete button always visible
   // ---------------------------------------------------------------------------
 
   it('renders the delete button for each conversation item', async () => {
@@ -786,7 +848,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /excluir conversa: primeira conversa/i })).toBeInTheDocument();
@@ -813,7 +875,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Prévia da mensagem aqui')).toBeInTheDocument();
@@ -826,7 +888,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /histórico de conversas/i }));
+    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();

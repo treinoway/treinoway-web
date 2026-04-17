@@ -4,7 +4,7 @@ import { Plus, ArrowLeft } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import DateInput from '../../components/DateInput';
+import BrandCalendar, { todayIso } from '../../components/BrandCalendar';
 
 const DEFAULT_RULES = [
   { event: 'workout_completed', label: 'Treino concluído', description: 'Por cada treino registrado', points: 10 },
@@ -76,14 +76,14 @@ const CreateChampionship = () => {
     setEndDateError('');
   };
 
-  const handleStartDateChange = (e) => {
-    setStartDate(e.target.value);
+  const handleStartDateChange = (iso) => {
+    setStartDate(iso || '');
     setStartDateError('');
     setEndDateError('');
   };
 
-  const handleEndDateChange = (e) => {
-    setEndDate(e.target.value);
+  const handleEndDateChange = (iso) => {
+    setEndDate(iso || '');
     setEndDateError('');
   };
 
@@ -241,14 +241,22 @@ const CreateChampionship = () => {
         <div className="date-row">
           <div className="form-group">
             <label className="form-label" htmlFor="cs-startDate">Início</label>
-            <DateInput
+            <BrandCalendar
+              mode="single"
               id="cs-startDate"
+              label="Início"
               value={startDate}
               onChange={handleStartDateChange}
-              className={`form-input${startDateError ? ' form-input--error' : ''}`}
+              minDate={todayIso()}
+              error={!!startDateError}
               disabled={submitting}
+              required
             />
-            {startDateError && <span className="form-error">{startDateError}</span>}
+            {startDateError && (
+              <span id="cs-startDate-error" className="form-error" role="alert">
+                {startDateError}
+              </span>
+            )}
           </div>
 
           <span className="date-row__separator" aria-hidden="true">→</span>
@@ -257,14 +265,22 @@ const CreateChampionship = () => {
             <label className="form-label" htmlFor="cs-endDate">
               Término {isEndDateDisabled ? '(calculado)' : ''}
             </label>
-            <DateInput
+            <BrandCalendar
+              mode="single"
               id="cs-endDate"
+              label="Término"
               value={endDateValue}
               onChange={handleEndDateChange}
-              className={`form-input${endDateError ? ' form-input--error' : ''}`}
+              minDate={startDate || todayIso()}
+              error={!!endDateError}
               disabled={submitting || isEndDateDisabled}
+              required
             />
-            {endDateError && <span className="form-error">{endDateError}</span>}
+            {endDateError && (
+              <span id="cs-endDate-error" className="form-error" role="alert">
+                {endDateError}
+              </span>
+            )}
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import api from '../api/axios';
 import { translateError } from '../i18n';
+import { clearOnboardingSessionState } from '../hooks/useOnboardingStatus';
 
 const AuthContext = createContext(null);
 
@@ -100,6 +101,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('accessToken', token);
       if (refresh) localStorage.setItem('refreshToken', refresh);
 
+      // Clear per-user session state before fetching /me so optimistic flags
+      // from a previous account don't bleed into the new session.
+      clearOnboardingSessionState();
+
       // Fetch user data from /me
       const meResponse = await api.get('/me?include=address,socials');
       const userData = meResponse.data;
@@ -132,6 +137,10 @@ export const AuthProvider = ({ children }) => {
       // Save token to localStorage early so the interceptor can use it for /me
       localStorage.setItem('accessToken', token);
       if (refresh) localStorage.setItem('refreshToken', refresh);
+
+      // Clear per-user session state before fetching /me so optimistic flags
+      // from a previous account don't bleed into the new session.
+      clearOnboardingSessionState();
 
       // Fetch user data from /me
       const meResponse = await api.get('/me?include=address,socials');
@@ -172,6 +181,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('accessToken', token);
       if (refresh) localStorage.setItem('refreshToken', refresh);
 
+      // Clear per-user session state before fetching /me so optimistic flags
+      // from a previous account don't bleed into the new session.
+      clearOnboardingSessionState();
+
       const meResponse = await api.get('/me?include=address,socials');
       const userData = meResponse.data;
 
@@ -200,6 +213,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+    clearOnboardingSessionState();
   };
 
   const updateUser = (updatedUser) => {

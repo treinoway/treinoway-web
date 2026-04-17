@@ -58,4 +58,5 @@ describe('BrandIllustration', () => {
     const img = screen.getByRole('presentation');
     expect(img).toHaveAttribute('alt', '');
   });
+
 });

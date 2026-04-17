@@ -3,19 +3,17 @@ import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-  Star,
   ArrowUp,
   Paperclip,
   UserRound,
+  BookOpen,
   Check,
-  ChevronDown,
+  ChevronRight,
   ClipboardList,
   Dumbbell,
   UtensilsCrossed,
-  TrendingUp,
-  RefreshCw,
-  Calendar,
-  Clock,
+  Zap,
+  Circle,
   Plus,
   History,
   X,
@@ -32,34 +30,80 @@ import { groupConversationsByDate } from '../../utils/conversationGroups';
 
 const MAX_INPUT_LENGTH = 1000;
 const CHAR_COUNT_THRESHOLD = 900;
-const SCROLL_THRESHOLD = 150;
 
-const CAPABILITY_CARDS = [
+// ---------------------------------------------------------------------------
+// Constants — empty state data (placeholders until data integration)
+// ---------------------------------------------------------------------------
+
+const CREATE_CARDS = [
   {
     Icon: ClipboardList,
-    title: 'Criar protocolo',
-    description: 'Monte protocolos completos de treino com periodização',
-    prompt: 'Crie um protocolo de hipertrofia para o aluno João com 4 treinos por semana',
+    eyebrow: 'Rotina',
+    title: 'Criar rotina completa',
+    desc: 'Periodização, progressão e divisão semanal com base no histórico do aluno.',
+    hint: '4–12 semanas',
+    prompt: 'Crie uma rotina de hipertrofia de 8 semanas para um aluno intermediário com 4 treinos por semana',
   },
   {
     Icon: Dumbbell,
+    eyebrow: 'Treino avulso',
     title: 'Montar treino',
-    description: 'Treinos avulsos personalizados com exercícios e séries',
-    prompt: 'Monte um treino de pernas focado em quadríceps com 6 exercícios',
+    desc: 'Um treino específico — grupo muscular, tempo disponível, equipamento e objetivo.',
+    hint: '30–90 min',
+    prompt: 'Monte um treino de pernas focado em quadríceps com 6 exercícios em 60 minutos',
   },
   {
     Icon: UtensilsCrossed,
+    eyebrow: 'Nutrição',
     title: 'Plano alimentar',
-    description: 'Dietas completas com macros e refeições detalhadas',
-    prompt: 'Crie uma dieta de cutting de 1800kcal com 5 refeições para a aluna Marina',
+    desc: 'Macros e refeições ajustados ao peso, objetivo e restrições do aluno.',
+    hint: 'Cutting · Bulk · Manutenção',
+    prompt: 'Crie uma dieta de cutting de 1800kcal com 5 refeições para uma aluna com intolerância à lactose',
   },
 ];
 
-const QUICK_PROMPTS = [
-  { Icon: TrendingUp, label: 'Analisar progresso', prompt: 'Analise o progresso dos meus alunos esta semana' },
-  { Icon: RefreshCw, label: 'Substituir exercícios', prompt: 'Sugira substituições de exercícios para alunos com lesão no ombro' },
-  { Icon: Calendar, label: 'Periodização', prompt: 'Me ajude a montar a periodização mensal do aluno Rafael' },
-  { Icon: Clock, label: 'Alunos inativos', prompt: 'Quais alunos não treinaram nos últimos 3 dias?' },
+const CONTEXTUAL_PROMPTS = [
+  // TODO(data-integration): nomes/métricas de alunos reais
+  {
+    tag: 'alert',
+    label: 'Atenção',
+    text: (
+      <>
+        Reativar <strong>Aluno A</strong> — sem treino há 9 dias, mandar mensagem + ajuste
+      </>
+    ),
+    prompt: 'Sugira uma mensagem de reengajamento e ajuste de rotina para um aluno que não treina há 9 dias',
+  },
+  {
+    tag: 'progress',
+    label: 'Progresso',
+    text: (
+      <>
+        Nova progressão de <strong>peito</strong> para <strong>Aluno B</strong> — estagnada há 3 semanas
+      </>
+    ),
+    prompt: 'Sugira uma nova progressão de peito para um aluno estagnado há 3 semanas',
+  },
+  {
+    tag: 'nutrition',
+    label: 'Dieta',
+    text: (
+      <>
+        Revisar macros de <strong>Aluno C</strong> — perdeu 2,3kg nas últimas 2 semanas
+      </>
+    ),
+    prompt: 'Revise os macros de um aluno que perdeu 2,3kg em 2 semanas, avaliando se é saudável',
+  },
+  {
+    tag: 'progress',
+    label: 'Análise',
+    text: (
+      <>
+        Comparar evolução de <strong>supino</strong> entre todos os alunos no último trimestre
+      </>
+    ),
+    prompt: 'Compare a evolução do supino entre todos os alunos no último trimestre',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -227,7 +271,7 @@ ConversationItem.propTypes = {
 };
 
 // ---------------------------------------------------------------------------
-// Message Avatar
+// Message avatars
 // ---------------------------------------------------------------------------
 
 const UserAvatar = ({ initials }) => (
@@ -240,9 +284,54 @@ UserAvatar.propTypes = { initials: PropTypes.string.isRequired };
 
 const ArnoldAvatar = () => (
   <div className="ai-chat__avatar ai-chat__avatar--arnold" aria-hidden="true">
-    <Star size={16} strokeWidth={1.8} />
+    <Sparkles size={16} strokeWidth={2} />
   </div>
 );
+
+// ---------------------------------------------------------------------------
+// Empty state sub-components
+// ---------------------------------------------------------------------------
+
+const CreateCard = ({ Icon, eyebrow, title, desc, hint, prompt, onClick }) => (
+  <button className="ai-chat__create-card" onClick={() => onClick(prompt)}>
+    <div className="ai-chat__create-card-icon">
+      <Icon size={20} strokeWidth={2} />
+    </div>
+    <span className="ai-chat__create-card-eyebrow">{eyebrow}</span>
+    <h3 className="ai-chat__create-card-title">{title}</h3>
+    <p className="ai-chat__create-card-desc">{desc}</p>
+    <div className="ai-chat__create-card-hint">
+      <Zap size={10} strokeWidth={2} />
+      {hint}
+    </div>
+  </button>
+);
+
+CreateCard.propTypes = {
+  Icon: PropTypes.elementType.isRequired,
+  eyebrow: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
+  desc: PropTypes.string.isRequired,
+  hint: PropTypes.string.isRequired,
+  prompt: PropTypes.string.isRequired,
+  onClick: PropTypes.func.isRequired,
+};
+
+const PromptRow = ({ tag, label, text, prompt, onClick }) => (
+  <button className="ai-chat__prompt-row" onClick={() => onClick(prompt)}>
+    <span className={`ai-chat__prompt-tag ai-chat__prompt-tag--${tag}`}>{label}</span>
+    <span className="ai-chat__prompt-text">{text}</span>
+    <ChevronRight size={16} strokeWidth={2} className="ai-chat__prompt-arrow" />
+  </button>
+);
+
+PromptRow.propTypes = {
+  tag: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  text: PropTypes.node.isRequired,
+  prompt: PropTypes.string.isRequired,
+  onClick: PropTypes.func.isRequired,
+};
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -268,8 +357,6 @@ const AiAssistant = () => {
   } = useAiChat();
 
   const [input, setInput] = useState('');
-  const [isNearBottom, setIsNearBottom] = useState(true);
-  const [inputFocused, setInputFocused] = useState(false);
 
   // History panel state
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -279,7 +366,6 @@ const AiAssistant = () => {
   const [confirmDialog, setConfirmDialog] = useState(null);
 
   const messagesEndRef = useRef(null);
-  const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
 
   const userInitials = getUserInitials(user);
@@ -290,23 +376,13 @@ const AiAssistant = () => {
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current && typeof messagesEndRef.current.scrollIntoView === 'function') {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
-  }, []);
-
-  const checkScrollPosition = useCallback(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-    const nearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < SCROLL_THRESHOLD;
-    setIsNearBottom(nearBottom);
   }, []);
 
   useEffect(() => {
-    if (isNearBottom) {
-      scrollToBottom();
-    }
-  }, [messages, loading, streamingText, statusMessage, isNearBottom, scrollToBottom]);
+    scrollToBottom();
+  }, [messages, loading, streamingText, statusMessage, scrollToBottom]);
 
   const loadConversations = useCallback(async () => {
     setConversationsLoading(true);
@@ -413,189 +489,176 @@ const AiAssistant = () => {
   const isCharCountWarn = input.length >= MAX_INPUT_LENGTH;
   const groupedConversations = groupConversationsByDate(conversations);
 
-  const inputContainerClass = [
-    'ai-chat__input-container',
-    inputFocused ? 'ai-chat__input-container--focused' : '',
-  ].filter(Boolean).join(' ');
-
   return (
     <div className="ai-chat">
-      {/* Top bar */}
-      <div className="ai-chat__header">
-        <div className="ai-chat__header-left">
-          <span className="ai-chat__header-icon">
-            <Sparkles size={22} strokeWidth={1.6} />
-          </span>
-          <div className="ai-chat__header-text">
-            <h1 className="ai-chat__header-title">iArnold</h1>
-            <p className="ai-chat__header-subtitle">Seu assistente inteligente de treinos e nutrição</p>
-          </div>
+      {/* Header — always rendered, never duplicated */}
+      <div className="page-header">
+        <div className="page-header-title-row">
+          <Sparkles size={24} strokeWidth={1.6} className="page-header-title-icon" />
+          <h1 className="page-title">iArnold</h1>
         </div>
-        <div className="ai-chat__header-actions">
-          <button
-            onClick={handleOpenHistory}
-            className="ai-chat__header-btn"
-            aria-label="Histórico de conversas"
-          >
-            <History size={14} strokeWidth={1.6} />
-            <span className="ai-chat__header-btn-label">Histórico</span>
+        <div className="page-header-actions">
+          <button className="btn-secondary" onClick={handleOpenHistory}>
+            <History size={16} strokeWidth={1.6} />
+            Histórico
           </button>
-          <button
-            onClick={handleNewConversation}
-            className="ai-chat__header-btn"
-            aria-label="Nova conversa"
-          >
-            <Plus size={14} strokeWidth={1.6} />
-            <span className="ai-chat__header-btn-label">Nova conversa</span>
+          <button className="btn-primary" onClick={handleNewConversation}>
+            <Plus size={16} strokeWidth={2} />
+            Nova conversa
           </button>
         </div>
       </div>
 
       {!hasMessages ? (
-        <div className="ai-chat__empty">
-          {/* Animated logo */}
-          <div className="ai-chat__logo">
-            <Sparkles size={32} strokeWidth={1.4} />
-          </div>
-
-          {/* Title */}
-          <h2 className="ai-chat__empty-title">
-            Olá! Eu sou o <span className="ai-chat__gradient-text">iArnold</span>
-          </h2>
-          <p className="ai-chat__empty-description">
-            Seu assistente inteligente para criar treinos, protocolos e planos alimentares personalizados.
-          </p>
-
-          {/* Capability cards */}
-          <div className="ai-chat__capability-cards">
-            {CAPABILITY_CARDS.map(({ Icon, title, description, prompt }) => (
-              <button
-                key={title}
-                className="ai-chat__capability-card"
-                onClick={() => handlePromptClick(prompt)}
-              >
-                <span className="ai-chat__capability-icon">
-                  <Icon size={20} strokeWidth={1.6} />
+        /* Empty state: content flows naturally in page scroll */
+        <>
+          {/* Briefing strip */}
+          <section className="ai-chat__briefing" aria-label="Briefing de alunos">
+            <header className="ai-chat__briefing-header">
+              <span className="ai-chat__briefing-label">
+                <span className="ai-chat__live-dot" />
+                Briefing · Seus alunos agora
+              </span>
+              {/* TODO(data-integration): replace with real timestamp */}
+              <span className="ai-chat__briefing-timestamp">Atualizado 22:00</span>
+            </header>
+            <div className="ai-chat__briefing-grid">
+              {/* TODO(data-integration): replace all values below with real API data */}
+              <div className="ai-chat__briefing-stat">
+                <span className="ai-chat__briefing-stat-value">24</span>
+                <span className="ai-chat__briefing-stat-label">Alunos ativos</span>
+                <span className="ai-chat__briefing-stat-trend ai-chat__briefing-stat-trend--up">
+                  +2 esta semana
                 </span>
-                <span className="ai-chat__capability-title">{title}</span>
-                <span className="ai-chat__capability-desc">{description}</span>
-              </button>
+              </div>
+              <div className="ai-chat__briefing-stat">
+                <span className="ai-chat__briefing-stat-value ai-chat__briefing-stat-value--accent">3</span>
+                <span className="ai-chat__briefing-stat-label">Progresso estagnado</span>
+                <span className="ai-chat__briefing-stat-trend">Sem evolução 14+ dias</span>
+              </div>
+              <div className="ai-chat__briefing-stat">
+                <span className="ai-chat__briefing-stat-value ai-chat__briefing-stat-value--warning">2</span>
+                <span className="ai-chat__briefing-stat-label">Inativos</span>
+                <span className="ai-chat__briefing-stat-trend">Sem treino há 7+ dias</span>
+              </div>
+              <div className="ai-chat__briefing-stat">
+                <span className="ai-chat__briefing-stat-value">87%</span>
+                <span className="ai-chat__briefing-stat-label">Adesão geral</span>
+                <span className="ai-chat__briefing-stat-trend ai-chat__briefing-stat-trend--up">
+                  +4pp vs mês ant.
+                </span>
+              </div>
+            </div>
+          </section>
+
+          {/* Create cards */}
+          <div className="ai-chat__section-header">
+            <h2 className="ai-chat__section-title">Criar do zero</h2>
+            <span className="ai-chat__section-subtitle">iArnold monta para você</span>
+          </div>
+          <div className="ai-chat__create-grid">
+            {CREATE_CARDS.map((card) => (
+              <CreateCard key={card.title} {...card} onClick={handlePromptClick} />
             ))}
           </div>
 
-          {/* Quick prompt pills */}
-          <div className="ai-chat__quick-pills">
-            {QUICK_PROMPTS.map(({ Icon, label, prompt }) => (
-              <button
-                key={label}
-                className="ai-chat__quick-pill"
-                onClick={() => handlePromptClick(prompt)}
-              >
-                <Icon size={14} strokeWidth={1.6} />
-                {label}
-              </button>
+          {/* Contextual prompts */}
+          <div className="ai-chat__section-header">
+            <h2 className="ai-chat__section-title">Sugestões para agora</h2>
+            <span className="ai-chat__section-subtitle">Baseado nos dados dos seus alunos</span>
+          </div>
+          <div className="ai-chat__prompts-list">
+            {CONTEXTUAL_PROMPTS.map((p) => (
+              <PromptRow key={p.prompt} {...p} onClick={handlePromptClick} />
             ))}
           </div>
-        </div>
+        </>
       ) : (
-        <div
-          className="ai-chat__messages"
-          ref={messagesContainerRef}
-          onScroll={checkScrollPosition}
-        >
+        /* Messages view: page scroll handles overflow — no internal scroll container */
+        <div className="ai-chat__messages">
           {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`ai-chat__message ai-chat__message--${msg.role} ai-chat__message--animate`}
-            >
-              {msg.role === 'user' ? (
-                <UserAvatar initials={userInitials} />
-              ) : (
-                <ArnoldAvatar />
-              )}
-              <div className="ai-chat__message-body">
-                <span className="ai-chat__message-label">
-                  {msg.role === 'user' ? 'Você' : 'iArnold'}
-                </span>
-                {msg.isStreaming ? (
-                  streamingText ? (
+              <div
+                key={index}
+                className={`ai-chat__message ai-chat__message--${msg.role} ai-chat__message--animate`}
+              >
+                {msg.role === 'user' ? (
+                  <UserAvatar initials={userInitials} />
+                ) : (
+                  <ArnoldAvatar />
+                )}
+                <div className="ai-chat__message-body">
+                  <span className="ai-chat__message-label">
+                    {msg.role === 'user' ? 'Você' : 'iArnold'}
+                  </span>
+                  {msg.isStreaming ? (
+                    streamingText ? (
+                      <>
+                        <div className="ai-chat__message-content">
+                          {msg.role === 'assistant' ? (
+                            <MarkdownMessage content={streamingText} />
+                          ) : (
+                            streamingText
+                          )}
+                        </div>
+                        {statusMessage ? (
+                          <p className="ai-chat__status-text">{statusMessage}</p>
+                        ) : (
+                          <TypingIndicator />
+                        )}
+                      </>
+                    ) : statusMessage ? (
+                      <p className="ai-chat__status-text">{statusMessage}</p>
+                    ) : (
+                      <TypingIndicator />
+                    )
+                  ) : (
                     <>
                       <div className="ai-chat__message-content">
                         {msg.role === 'assistant' ? (
-                          <MarkdownMessage content={streamingText} />
+                          <MarkdownMessage content={msg.content} />
                         ) : (
-                          streamingText
+                          msg.content
                         )}
                       </div>
-                      {statusMessage ? (
-                        <p className="ai-chat__status-text">{statusMessage}</p>
-                      ) : (
-                        <TypingIndicator />
+                      {msg.actionsExecuted?.length > 0 && (
+                        <ActionBadge actions={msg.actionsExecuted} />
                       )}
                     </>
-                  ) : statusMessage ? (
-                    <p className="ai-chat__status-text">{statusMessage}</p>
-                  ) : (
-                    <TypingIndicator />
-                  )
-                ) : (
-                  <>
-                    <div className="ai-chat__message-content">
-                      {msg.role === 'assistant' ? (
-                        <MarkdownMessage content={msg.content} />
-                      ) : (
-                        msg.content
-                      )}
-                    </div>
-                    {msg.actionsExecuted?.length > 0 && (
-                      <ActionBadge actions={msg.actionsExecuted} />
-                    )}
-                  </>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-          {errorRetry && !loading && (
-            <div className="ai-chat__error-card">
-              <p className="ai-chat__error-text">
-                {errorCode === 'AI_OVERLOADED'
-                  ? 'O assistente está sobrecarregado no momento. Tente novamente em instantes.'
-                  : 'Não foi possível processar sua mensagem.'}
-              </p>
-              <button
-                onClick={handleRetry}
-                className="ai-chat__error-retry"
-                aria-label="Tentar novamente"
-              >
-                Tentar novamente
-              </button>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
+            ))}
 
-          {!isNearBottom && hasMessages && (
-            <button
-              className="ai-chat__scroll-btn"
-              onClick={scrollToBottom}
-              aria-label="Rolar para o final"
-            >
-              <ChevronDown size={18} strokeWidth={2} />
-            </button>
-          )}
-        </div>
+            {errorRetry && !loading && (
+              <div className="ai-chat__error-card">
+                <p className="ai-chat__error-text">
+                  {errorCode === 'AI_OVERLOADED'
+                    ? 'O assistente está sobrecarregado no momento. Tente novamente em instantes.'
+                    : 'Não foi possível processar sua mensagem.'}
+                </p>
+                <button
+                  onClick={handleRetry}
+                  className="ai-chat__error-retry"
+                  aria-label="Tentar novamente"
+                >
+                  Tentar novamente
+                </button>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
       )}
 
-      {/* Input area */}
-      <div className="ai-chat__input-area">
-        <form onSubmit={handleSend} className="ai-chat__input-form">
-          <div className={inputContainerClass}>
+      {/* Composer — sticky bottom, always rendered as last flex child */}
+      <div className="ai-chat__composer-wrap">
+        <form onSubmit={handleSend}>
+          <div className="ai-chat__composer">
             <textarea
               ref={inputRef}
               value={input}
               onChange={handleInputChange}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => setInputFocused(false)}
-              placeholder="Pergunte ao iArnold..."
+              placeholder="Pergunte ao iArnold…"
               className="ai-chat__input"
               disabled={loading}
               rows={1}
@@ -607,47 +670,65 @@ const AiAssistant = () => {
                 }
               }}
             />
-            <div className="ai-chat__input-actions">
-              <button
-                type="button"
-                className="ai-chat__input-action-btn"
-                onClick={handlePlaceholderAction}
-                aria-label="Anexar contexto"
-              >
-                <Paperclip size={16} strokeWidth={1.6} />
-              </button>
-              <button
-                type="button"
-                className="ai-chat__input-action-btn"
-                onClick={handlePlaceholderAction}
-                aria-label="Selecionar aluno"
-              >
-                <UserRound size={16} strokeWidth={1.6} />
-              </button>
-              <button
-                type="submit"
-                disabled={isSendDisabled}
-                className="ai-chat__send-btn"
-                aria-label="Enviar mensagem"
-              >
-                <ArrowUp size={18} strokeWidth={2} />
-              </button>
+            <div className="ai-chat__composer-toolbar">
+              <div className="ai-chat__composer-tools">
+                <button
+                  type="button"
+                  className="ai-chat__tool-btn"
+                  onClick={handlePlaceholderAction}
+                  aria-label="Anexar arquivo"
+                >
+                  <Paperclip size={14} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  className="ai-chat__tool-btn ai-chat__tool-btn--active"
+                  onClick={handlePlaceholderAction}
+                  aria-label="Selecionar aluno"
+                >
+                  <UserRound size={14} strokeWidth={2} />
+                  Aluno
+                </button>
+                <button
+                  type="button"
+                  className="ai-chat__tool-btn"
+                  onClick={handlePlaceholderAction}
+                  aria-label="Abrir biblioteca"
+                >
+                  <BookOpen size={14} strokeWidth={2} />
+                  Biblioteca
+                </button>
+              </div>
+              <div className="ai-chat__composer-right">
+                {showCharCount && (
+                  <span className={isCharCountWarn ? 'ai-chat__char-count--warn' : ''}>
+                    {input.length}/{MAX_INPUT_LENGTH}
+                  </span>
+                )}
+                <span className="ai-chat__composer-hint">Enter para enviar</span>
+                <button
+                  type="submit"
+                  disabled={isSendDisabled}
+                  className="ai-chat__send-btn"
+                  aria-label="Enviar mensagem"
+                >
+                  <ArrowUp size={14} strokeWidth={2.4} />
+                </button>
+              </div>
             </div>
           </div>
-          <div className="ai-chat__input-hints">
-            <span className="ai-chat__input-hint">
-              iArnold tem acesso aos dados dos seus alunos, treinos e dietas
-            </span>
-            <span className="ai-chat__input-hint">
-              {showCharCount && (
-                <span className={isCharCountWarn ? 'ai-chat__char-count--warn' : ''}>
-                  {input.length}/{MAX_INPUT_LENGTH} ·{' '}
-                </span>
-              )}
-              Enter para enviar
-            </span>
-          </div>
         </form>
+        <div className="ai-chat__composer-meta">
+          <div className="ai-chat__composer-meta-left">
+            {/* TODO(data-integration): replace 24 with real student count */}
+            <span className="ai-chat__meta-chip">
+              <Circle size={8} strokeWidth={0} fill="currentColor" style={{ color: 'var(--md-success)' }} />
+              Contexto ativo: 24 alunos
+            </span>
+            <span>iArnold tem acesso aos dados dos seus alunos, treinos e dietas</span>
+          </div>
+          <span>Powered by Claude</span>
+        </div>
       </div>
 
       {/* History panel */}
@@ -661,7 +742,7 @@ const AiAssistant = () => {
                 onClick={() => setHistoryOpen(false)}
                 aria-label="Fechar histórico"
               >
-                <X size={18} strokeWidth={1.6} />
+                <X size={18} strokeWidth={2} />
               </button>
             </div>
             <div className="bottom-sheet-body">
@@ -671,18 +752,18 @@ const AiAssistant = () => {
                   onClick={handleNewConversationFromSheet}
                   aria-label="Iniciar nova conversa"
                 >
-                  <Plus size={14} strokeWidth={1.6} />
+                  <Plus size={14} strokeWidth={2} />
                   Nova conversa
                 </button>
               </div>
 
               {conversationsLoading ? (
-                <p style={{ textAlign: 'center', color: 'var(--color-on-surface-variant)' }}>
+                <p style={{ textAlign: 'center', color: 'var(--brand-steel)' }}>
                   Carregando...
                 </p>
               ) : conversations.length === 0 ? (
                 <div className="ai-history__empty-state">
-                  <MessageSquare size={32} strokeWidth={1.2} />
+                  <MessageSquare size={32} strokeWidth={1.6} />
                   <p className="ai-history__empty-state-text">Nenhuma conversa ainda.</p>
                 </div>
               ) : (
@@ -711,7 +792,7 @@ const AiAssistant = () => {
 
       {/* Delete confirmation dialog */}
       {confirmDialog && (
-        <div className="overlay">
+        <div className="overlay" onClick={() => setConfirmDialog(null)}>
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
             <div className="btn-group">

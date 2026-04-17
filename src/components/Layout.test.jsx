@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter } from '../test/test-utils';
 import Layout from './Layout';
@@ -413,7 +413,69 @@ describe('Layout', () => {
       expect(screen.queryByRole('link', { name: 'Minhas Rotinas' })).not.toBeInTheDocument();
     });
 
-    it('hides student items even when the user has no email set', () => {
+    // ---------------------------------------------------------------------------
+  // Biblioteca dropdown — sidebar collapsed behaviour
+  // ---------------------------------------------------------------------------
+
+  describe('Biblioteca dropdown — sidebar collapse interaction', () => {
+    function getLogoBtnFromSidebar() {
+      return document.querySelector('.sidebar .sidebar-logo-btn');
+    }
+
+    it('clicking Biblioteca when sidebar is collapsed expands the sidebar and opens the dropdown', async () => {
+      setupAuth({ isTrainer: true });
+      const user = userEvent.setup();
+      renderWithRouter(
+        <Layout>
+          <span>Content</span>
+        </Layout>
+      );
+
+      // Collapse the sidebar first
+      await user.click(getLogoBtnFromSidebar());
+      expect(document.querySelector('.sidebar')).toHaveClass('sidebar--collapsed');
+
+      // Click Biblioteca while collapsed — scoped to sidebar to avoid ambiguity with bottom-nav button
+      const sidebar = document.querySelector('.sidebar');
+      await user.click(within(sidebar).getByRole('button', { name: 'Biblioteca' }));
+
+      // Sidebar must now be expanded
+      expect(document.querySelector('.sidebar')).toHaveClass('sidebar--open');
+      expect(document.querySelector('.sidebar')).not.toHaveClass('sidebar--collapsed');
+
+      // Dropdown children must be visible
+      expect(within(sidebar).getByRole('link', { name: 'Rotinas' })).toBeInTheDocument();
+    });
+
+    it('clicking Biblioteca when sidebar is open toggles the dropdown without changing sidebar state', async () => {
+      setupAuth({ isTrainer: true });
+      const user = userEvent.setup();
+      renderWithRouter(
+        <Layout>
+          <span>Content</span>
+        </Layout>
+      );
+
+      // Sidebar starts open
+      const sidebar = document.querySelector('.sidebar');
+      expect(sidebar).toHaveClass('sidebar--open');
+
+      // Scoped to sidebar to avoid ambiguity with bottom-nav button
+      const bibliotecaBtn = within(sidebar).getByRole('button', { name: 'Biblioteca' });
+
+      // First click — opens dropdown
+      await user.click(bibliotecaBtn);
+      expect(within(sidebar).getByRole('link', { name: 'Rotinas' })).toBeInTheDocument();
+      expect(sidebar).toHaveClass('sidebar--open');
+
+      // Second click — closes dropdown
+      await user.click(bibliotecaBtn);
+      expect(within(sidebar).queryByRole('link', { name: 'Rotinas' })).not.toBeInTheDocument();
+      expect(sidebar).toHaveClass('sidebar--open');
+    });
+  });
+
+  it('hides student items even when the user has no email set', () => {
       useAuth.mockReturnValue({
         user: { firstName: 'Sem', lastName: 'Email' },
         logout: mockLogout,

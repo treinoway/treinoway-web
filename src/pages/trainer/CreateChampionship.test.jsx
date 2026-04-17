@@ -20,25 +20,31 @@ vi.mock('../../api/axios', () => ({
   },
 }));
 
-vi.mock('../../components/DateInput', () => ({
-  default: ({ value, onChange, disabled, id, className, ...props }) => (
-    <input
-      id={id}
-      type="text"
-      value={value || ''}
-      onChange={(e) => onChange({ target: { value: e.target.value } })}
-      disabled={disabled}
-      className={className}
-      {...props}
-    />
-  ),
-}));
+// BrandCalendar uses window.matchMedia to detect mobile. Set up a desktop
+// environment so the real component renders without errors.
+beforeEach(() => {
+  vi.clearAllMocks();
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+  Object.defineProperty(window, 'innerWidth', {
+    writable: true,
+    configurable: true,
+    value: 1280,
+  });
+});
 
 describe('CreateChampionship', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('renders page title and subtitle', () => {
     render(<CreateChampionship />);
     expect(screen.getByRole('heading', { name: 'Novo campeonato', level: 1 })).toBeInTheDocument();
@@ -76,12 +82,16 @@ describe('CreateChampionship', () => {
     expect(screen.getByRole('button', { name: '7 dias' })).not.toHaveClass('pill-btn--active');
   });
 
-  it('selecting "Personalizado" enables end date input', async () => {
+  it('selecting "Personalizado" enables the end date input', async () => {
     const user = userEvent.setup();
     render(<CreateChampionship />);
-    const endDateInput = screen.getByLabelText(/Término/i);
+
+    // With "7 dias" active (default), the Término text input is disabled
+    const endDateInput = screen.getByRole('textbox', { name: /Término/i });
     expect(endDateInput).toBeDisabled();
+
     await user.click(screen.getByRole('button', { name: 'Personalizado' }));
+
     expect(endDateInput).not.toBeDisabled();
   });
 
@@ -177,7 +187,12 @@ describe('CreateChampionship', () => {
     render(<CreateChampionship />);
 
     await user.type(screen.getByLabelText('Nome do campeonato'), 'Campeonato de Verão');
-    await user.type(screen.getByLabelText('Início'), '2026-01-01');
+
+    // Type a future start date directly into the BrandCalendar text input.
+    // Must be >= today (2026-04-16) to pass the minDate constraint.
+    const startInput = screen.getByRole('textbox', { name: /Início/i });
+    await user.type(startInput, '20062026');
+
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
 
     await waitFor(() => {
@@ -185,7 +200,7 @@ describe('CreateChampionship', () => {
         '/trainer/challenges',
         expect.objectContaining({
           name: 'Campeonato de Verão',
-          startDate: '2026-01-01',
+          startDate: '2026-06-20',
           participantMode: 'all',
           ptsWorkoutCompleted: 10,
           ptsDailyCheckin: 2,

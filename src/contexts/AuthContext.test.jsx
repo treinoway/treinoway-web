@@ -88,6 +88,7 @@ describe('AuthContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   describe('initial state', () => {
@@ -255,6 +256,33 @@ describe('AuthContext', () => {
         expect(screen.getByLabelText('isAuthenticated').textContent).toBe('false');
       });
     });
+
+    it('clears onboarding sessionStorage keys before /me resolves on login', async () => {
+      sessionStorage.setItem('treinoway:onboardingOptimistic', JSON.stringify({ firstStudentLinked: true }));
+      sessionStorage.setItem('treinoway:onboardingDismissed', '1');
+
+      api.post.mockResolvedValue(AUTH_RESPONSE);
+
+      let resolveMe;
+      const mePromise = new Promise((res) => { resolveMe = res; });
+      api.get.mockReturnValue(mePromise);
+
+      renderProvider();
+
+      act(() => {
+        screen.getByRole('button', { name: 'Login' }).click();
+      });
+
+      // Keys must be cleared before /me resolves — verify they are gone now
+      await waitFor(() => {
+        expect(sessionStorage.getItem('treinoway:onboardingOptimistic')).toBeNull();
+        expect(sessionStorage.getItem('treinoway:onboardingDismissed')).toBeNull();
+      });
+
+      await act(async () => {
+        resolveMe({ data: TRAINER_USER });
+      });
+    });
   });
 
   describe('signup', () => {
@@ -385,6 +413,22 @@ describe('AuthContext', () => {
       expect(localStorage.getItem('accessToken')).toBeNull();
       expect(localStorage.getItem('refreshToken')).toBeNull();
       expect(localStorage.getItem('user')).toBeNull();
+    });
+
+    it('clears onboarding sessionStorage keys on logout', async () => {
+      localStorage.setItem('accessToken', 'stored-token');
+      localStorage.setItem('user', JSON.stringify(TRAINER_USER));
+      sessionStorage.setItem('treinoway:onboardingOptimistic', JSON.stringify({ profileCompleted: true }));
+      sessionStorage.setItem('treinoway:onboardingDismissed', '1');
+
+      renderProvider();
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Logout' }).click();
+      });
+
+      expect(sessionStorage.getItem('treinoway:onboardingOptimistic')).toBeNull();
+      expect(sessionStorage.getItem('treinoway:onboardingDismissed')).toBeNull();
     });
   });
 

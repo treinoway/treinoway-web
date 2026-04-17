@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Dumbbell, ClipboardList, Palette, Sparkles, Trophy } from 'lucide-react';
 import api from '../api/axios';
 import NoStudentsModal from '../components/NoStudentsModal';
-import StatDisplay from '../components/StatDisplay';
+import OnboardingChecklistCard from '../components/OnboardingChecklistCard';
 
 const SKIP_STORAGE_KEY = 'treinoway.skipNoStudentsWarning';
 
@@ -18,8 +18,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [checkingStudents, setCheckingStudents] = useState(false);
   const [showNoStudentsModal, setShowNoStudentsModal] = useState(false);
-  const [studentsCount, setStudentsCount] = useState(null);
-  const [protocolsCount, setProtocolsCount] = useState(null);
 
   useEffect(() => {
     if (refreshUser) {
@@ -27,27 +25,6 @@ const Dashboard = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (!hasRole('TRAINER')) return;
-
-    const fetchStats = async () => {
-      try {
-        const [studentsRes, protocolsRes] = await Promise.all([
-          api.get('/trainer/students'),
-          api.get('/trainer/protocol-templates'),
-        ]);
-        setStudentsCount(studentsRes.data.length);
-        setProtocolsCount(protocolsRes.data.length);
-      } catch {
-        setStudentsCount(0);
-        setProtocolsCount(0);
-      }
-    };
-
-    fetchStats();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   const handleCreateRoutine = async () => {
     try {
@@ -98,87 +75,19 @@ const Dashboard = () => {
     }
   };
 
-  const allOnboardingDone = hasRole('TRAINER') &&
-    user?.status !== 'pending' &&
-    studentsCount > 0 &&
-    protocolsCount > 0;
-
-  const showOnboarding = hasRole('TRAINER') &&
-    studentsCount !== null &&
-    protocolsCount !== null &&
-    !allOnboardingDone;
-
-  const showStats = hasRole('TRAINER') &&
-    studentsCount !== null &&
-    protocolsCount !== null &&
-    (studentsCount > 0 || protocolsCount > 0);
-
   return (
     <div>
-      {user?.status === 'pending' && (
-        <Link to="/profile" className="dashboard-alert-banner">
-          <span className="dashboard-alert-banner-text">Seu perfil está incompleto — complete para começar a usar o Treinoway</span>
-          <span className="dashboard-alert-banner-cta">COMPLETAR →</span>
-        </Link>
-      )}
-
       <div className="dashboard-hero">
         <h1 className="dashboard-hero-greeting">{user?.firstName ? `Olá, ${user.firstName}!` : 'Bem-vindo!'}</h1>
         <p className="dashboard-hero-subtitle">Pronto para o trabalho de hoje?</p>
-        {user?.status !== 'pending' && hasRole('TRAINER') && (
+        {hasRole('TRAINER') && (
           <Link to="/trainer/students" className="dashboard-hero-cta">
             Ver meus alunos →
           </Link>
         )}
       </div>
 
-      {showOnboarding && (
-        <section className="onboarding-steps">
-          <h2 className="onboarding-title">Primeiros passos</h2>
-          <div className="onboarding-grid">
-            <Link to="/profile" className={`onboarding-step ${user?.status !== 'pending' ? 'onboarding-step--done' : ''}`}>
-              <span className="onboarding-step-number">{user?.status !== 'pending' ? '✓' : '1'}</span>
-              <div>
-                <span className="onboarding-step-label">Complete seu perfil</span>
-                <span className="onboarding-step-desc">Adicione suas informações profissionais</span>
-              </div>
-            </Link>
-            <Link to="/trainer/students" className={`onboarding-step ${studentsCount > 0 ? 'onboarding-step--done' : ''}`}>
-              <span className="onboarding-step-number">{studentsCount > 0 ? '✓' : '2'}</span>
-              <div>
-                <span className="onboarding-step-label">Adicione um aluno</span>
-                <span className="onboarding-step-desc">Cadastre seu primeiro aluno para começar</span>
-              </div>
-            </Link>
-            <Link to="/trainer/protocols/new" className={`onboarding-step ${protocolsCount > 0 ? 'onboarding-step--done' : ''}`}>
-              <span className="onboarding-step-number">{protocolsCount > 0 ? '✓' : '3'}</span>
-              <div>
-                <span className="onboarding-step-label">Crie uma rotina</span>
-                <span className="onboarding-step-desc">Monte o primeiro treino para seu aluno</span>
-              </div>
-            </Link>
-          </div>
-        </section>
-      )}
-
-      {hasRole('TRAINER') && (
-        <section className="dashboard-stats" aria-label="Estatísticas" aria-busy={studentsCount === null || protocolsCount === null}>
-          {studentsCount === null ? (
-            <div className="stat-card"><span className="skeleton stat-card-skeleton" aria-hidden="true" /></div>
-          ) : showStats ? (
-            <Link to="/trainer/students" className="dashboard-stat-link">
-              <StatDisplay value={studentsCount} label="Alunos" variant="hero" className="dashboard-stat" />
-            </Link>
-          ) : null}
-          {protocolsCount === null ? (
-            <div className="stat-card"><span className="skeleton stat-card-skeleton" aria-hidden="true" /></div>
-          ) : showStats ? (
-            <Link to="/trainer/protocols" className="dashboard-stat-link">
-              <StatDisplay value={protocolsCount} label="Rotinas" variant="hero" className="dashboard-stat" />
-            </Link>
-          ) : null}
-        </section>
-      )}
+      {hasRole('TRAINER') && <OnboardingChecklistCard />}
 
       <section>
         <h2 className="dashboard-section-title">Ações Rápidas</h2>

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { X, MoreVertical, Upload, FileSpreadsheet, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import { markOnboardingStepOptimistic } from '../../hooks/useOnboardingStatus';
 
 const StudentRowMenu = ({ student, onUnlink }) => {
   const [open, setOpen] = useState(false);
@@ -170,6 +171,7 @@ ImportSummaryBar.propTypes = {
 
 const Students = () => {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
@@ -204,11 +206,16 @@ const Students = () => {
   const handleLinkStudent = async (e) => {
     e.preventDefault();
     setLinking(true);
+    const wasFirstStudent = students.length === 0;
     try {
       const response = await api.post('/trainer/students', { email });
       setStudents((prev) => [...prev, response.data]);
       showToast('Aluno vinculado com sucesso!', 'success');
       handleCloseForm();
+      if (wasFirstStudent) {
+        markOnboardingStepOptimistic('firstStudentLinked');
+        navigate('/', { state: { justCompleted: 'firstStudent' } });
+      }
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
     } finally {

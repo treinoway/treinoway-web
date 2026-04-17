@@ -16,6 +16,7 @@ import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
 import { PROTOCOL_TYPE_OPTIONS } from '../../constants/protocolTypes';
 import { EXERCISE_TYPE_OPTIONS } from '../../constants/exerciseTypes';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
+import { markOnboardingStepOptimistic } from '../../hooks/useOnboardingStatus';
 
 const categoryLabels = {
   strength: 'Força', cardio: 'Cardio', flexibility: 'Flexibilidade',
@@ -618,6 +619,7 @@ const CreateProtocol = () => {
         formData.trainings.filter((t) => !t.fromTemplate)
       );
 
+      markOnboardingStepOptimistic('firstProtocolCreated');
       showToast('Rotina criada com sucesso!', 'success');
       navigate(`/trainer/protocols/${protocolResponse.data?.id}`);
     } catch (error) {

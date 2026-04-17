@@ -8,6 +8,8 @@ import api from '../api/axios';
 import DateInput from '../components/DateInput';
 import TrainerProfileSection from '../components/TrainerProfileSection';
 import Select from '../components/Select';
+import { computeMissingProfileFields } from '../utils/onboardingProfile';
+import { markOnboardingStepOptimistic } from '../hooks/useOnboardingStatus';
 
 // Helper function to format date without timezone conversion
 const formatDateForDisplay = (dateString) => {
@@ -252,6 +254,13 @@ useEffect(() => {
       updateUser(response.data);
       showToast('Perfil atualizado com sucesso!', 'success');
       setEditing(false);
+
+      const wasIncomplete = computeMissingProfileFields(user).length > 0;
+      const isNowComplete = computeMissingProfileFields(response.data).length === 0;
+      if (hasRole('TRAINER') && wasIncomplete && isNowComplete) {
+        markOnboardingStepOptimistic('profileCompleted');
+        navigate('/', { state: { justCompleted: 'profile' } });
+      }
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
     } finally {

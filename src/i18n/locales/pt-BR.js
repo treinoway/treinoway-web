@@ -387,6 +387,78 @@ const ptBR = {
     },
   },
 
+  onboarding: {
+    title: 'Primeiros passos',
+    progressPill: '{done} de 3',
+    encouragement: {
+      zero: 'Vamos começar — 3 passos rápidos.',
+      one: 'Boa! Mais 2 para você decolar.',
+      two: 'Quase lá — falta só 1!',
+    },
+    profileCompleted: {
+      title: 'Complete seu perfil',
+      description: 'Adicione seus dados pessoais e endereço',
+      doneSubtitle: 'Concluído',
+      missing: {
+        prefix: 'Falta: {fields}',
+        connector: 'e',
+        more: 'mais {count}',
+      },
+      raceFallback: 'Revise seus dados',
+    },
+    firstStudentLinked: {
+      title: 'Vincule seu primeiro aluno',
+      description: 'Você pode começar com um aluno real ou de teste',
+      doneSubtitle: 'Concluído',
+    },
+    firstProtocolCreated: {
+      title: 'Crie seu primeiro protocolo',
+      description: 'Monte um treino do zero ou use um template',
+      doneSubtitle: 'Concluído',
+    },
+    allDone: {
+      title: 'Tudo pronto!',
+      description: 'Você já tem o essencial configurado. Bons treinos!',
+      secondaryLink: 'Ver meus alunos',
+    },
+    dismiss: {
+      ariaLabel: 'Dispensar checklist',
+    },
+    fields: {
+      firstName: 'nome',
+      lastName: 'sobrenome',
+      birthDate: 'data de nascimento',
+      gender: 'gênero',
+      line1: 'endereço',
+      city: 'cidade',
+      state: 'estado',
+      postalCode: 'CEP',
+      country: 'país',
+    },
+    aria: {
+      pendingRow: 'Complete {title}, pendente. {subtitle}',
+      doneRow: 'Complete {title}, concluído. Ir para {title}.',
+    },
+  },
+
+  brandCalendar: {
+    monthsLong: ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'],
+    weekdaysShort: ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'],
+    weekdaysLong: ['segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado','domingo'],
+    dialogTitleFallback: 'Escolha a data',
+    placeholder: 'dd/mm/aaaa',
+    btnClear: 'Limpar',
+    ariaPrevMonth: 'Mês anterior',
+    ariaNextMonth: 'Próximo mês',
+    ariaClose: 'Fechar calendário',
+    ariaOpenCalendar: 'Abrir calendário',
+    errorOutOfRange: 'Data fora do período permitido',
+    ariaDayLabel: (weekdayLong, day, monthLong, year) => `${weekdayLong}, ${day} de ${monthLong} de ${year}`,
+    ariaToday: 'Hoje',
+    ariaSelected: 'Selecionado',
+    ariaDisabledDay: 'Indisponível',
+  },
+
   validation: {
     'validation.email.required': 'O e-mail é obrigatório.',
     'validation.email.format': 'E-mail em formato inválido.',

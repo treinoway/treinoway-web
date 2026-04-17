@@ -11,6 +11,78 @@ const en = {
       addParticipantsLater: 'You can add participants after creating the challenge.',
     },
   },
+  onboarding: {
+    title: 'First steps',
+    progressPill: '{done} of 3',
+    encouragement: {
+      zero: 'Let\u2019s get started \u2014 3 quick steps.',
+      one: 'Nice! 2 more to take off.',
+      two: 'Almost there \u2014 just 1 left!',
+    },
+    profileCompleted: {
+      title: 'Complete your profile',
+      description: 'Add your personal info and address',
+      doneSubtitle: 'Done',
+      missing: {
+        prefix: 'Missing: {fields}',
+        connector: 'and',
+        more: '{count} more',
+      },
+      raceFallback: 'Review your info',
+    },
+    firstStudentLinked: {
+      title: 'Link your first student',
+      description: 'You can start with a real or test student',
+      doneSubtitle: 'Done',
+    },
+    firstProtocolCreated: {
+      title: 'Create your first protocol',
+      description: 'Build a workout from scratch or use a template',
+      doneSubtitle: 'Done',
+    },
+    allDone: {
+      title: 'All set!',
+      description: 'You have the essentials configured. Happy training!',
+      secondaryLink: 'See my students',
+    },
+    dismiss: {
+      ariaLabel: 'Dismiss checklist',
+    },
+    fields: {
+      firstName: 'first name',
+      lastName: 'last name',
+      birthDate: 'birth date',
+      gender: 'gender',
+      line1: 'address',
+      city: 'city',
+      state: 'state',
+      postalCode: 'ZIP code',
+      country: 'country',
+    },
+    aria: {
+      pendingRow: 'Complete {title}, pending. {subtitle}',
+      doneRow: 'Complete {title}, done. Go to {title}.',
+    },
+  },
+
+  brandCalendar: {
+    monthsLong: ['january','february','march','april','may','june','july','august','september','october','november','december'],
+    weekdaysShort: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    weekdaysLong: ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'],
+    dialogTitleFallback: 'Choose a date',
+    placeholder: 'mm/dd/yyyy',
+    btnClear: 'Clear',
+    ariaPrevMonth: 'Previous month',
+    ariaNextMonth: 'Next month',
+    ariaClose: 'Close calendar',
+    ariaOpenCalendar: 'Open calendar',
+    errorOutOfRange: 'Date outside the allowed range',
+    ariaDayLabel: (weekdayLong, day, monthLong, year) => `${weekdayLong}, ${monthLong} ${day}, ${year}`,
+    ariaToday: 'Today',
+    ariaSelected: 'Selected',
+    ariaDisabledDay: 'Unavailable',
+  },
+
   gamification: {
     config: {
       defaultPreferences: 'Points preferences',

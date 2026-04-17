@@ -208,7 +208,7 @@ function App() {
             path="/trainer/ai-assistant"
             element={
               <ProtectedRoute>
-                <Layout noPadding>
+                <Layout>
                   <AiAssistant />
                 </Layout>
               </ProtectedRoute>
