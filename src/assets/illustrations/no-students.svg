@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" width="200" height="160">
+  <title>No students yet</title>
+  <g stroke="#0A5FCC" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="100" cy="62" r="22"></circle>
+    <path d="M58 128 Q100 92 142 128"></path>
+    <line x1="58" y1="128" x2="142" y2="128"></line>
+  </g>
+  <g fill="#FF6B1A">
+    <circle cx="148" cy="40" r="4"></circle>
+    <circle cx="52" cy="50" r="3"></circle>
+  </g>
+</svg>

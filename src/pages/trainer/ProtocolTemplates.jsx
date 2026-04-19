@@ -148,7 +148,7 @@ const ProtocolTemplates = () => {
                     <div className="card-stats">
                       <span className="stat-chip">
                         <Calendar size={14} strokeWidth={1.6} />
-                        {template.defaultDurationWeeks} semanas
+                        {template.defaultDurationWeeks ? `${template.defaultDurationWeeks} semanas` : '–'}
                       </span>
                       <span className="stat-chip">
                         <Dumbbell size={14} strokeWidth={1.6} />
@@ -184,7 +184,7 @@ const ProtocolTemplates = () => {
                           <span style={{ fontWeight: 600 }}>{template.name}</span>
                           <span className="table-col-mobile-only" style={{ display: 'block', fontSize: 'var(--font-caption-size)', color: 'var(--color-on-surface-variant)', marginTop: '2px' }}>
                             {[
-                              `${template.defaultDurationWeeks} sem.`,
+                              template.defaultDurationWeeks ? `${template.defaultDurationWeeks} sem.` : null,
                               `${trainingsCount} treinos`,
                               levelLabel,
                               typeLabel,
@@ -192,7 +192,7 @@ const ProtocolTemplates = () => {
                           </span>
                         </td>
                         <td className="table-col-desktop-only" style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-body-small-size)' }}>
-                          {template.defaultDurationWeeks} semanas
+                          {template.defaultDurationWeeks ? `${template.defaultDurationWeeks} semanas` : '–'}
                         </td>
                         <td className="table-col-desktop-only" style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-body-small-size)' }}>
                           {trainingsCount}

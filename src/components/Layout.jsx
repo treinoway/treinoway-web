@@ -205,7 +205,7 @@ const Layout = ({ children, noPadding = false }) => {
                 </span>
               </button>
 
-              {bibliotecaOpen && (
+              {bibliotecaOpen && sidebarOpen && (
                 <div className="sidebar-dropdown-children">
                   {bibliotecaChildren.map((child) => (
                     <Link

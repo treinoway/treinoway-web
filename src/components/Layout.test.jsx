@@ -447,6 +447,28 @@ describe('Layout', () => {
       expect(within(sidebar).getByRole('link', { name: 'Rotinas' })).toBeInTheDocument();
     });
 
+    it('hides biblioteca subitems when the sidebar is collapsed even if the dropdown was previously opened', async () => {
+      setupAuth({ isTrainer: true });
+      const user = userEvent.setup();
+      renderWithRouter(
+        <Layout>
+          <span>Content</span>
+        </Layout>
+      );
+
+      const sidebar = document.querySelector('.sidebar');
+
+      // Open the Biblioteca dropdown while sidebar is expanded
+      const bibliotecaBtn = within(sidebar).getByRole('button', { name: 'Biblioteca' });
+      await user.click(bibliotecaBtn);
+      expect(within(sidebar).getByRole('link', { name: 'Rotinas' })).toBeInTheDocument();
+
+      // Collapse the sidebar — subitems must disappear
+      await user.click(getLogoBtnFromSidebar());
+      expect(document.querySelector('.sidebar')).toHaveClass('sidebar--collapsed');
+      expect(within(sidebar).queryByRole('link', { name: 'Rotinas' })).not.toBeInTheDocument();
+    });
+
     it('clicking Biblioteca when sidebar is open toggles the dropdown without changing sidebar state', async () => {
       setupAuth({ isTrainer: true });
       const user = userEvent.setup();
