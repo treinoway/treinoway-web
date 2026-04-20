@@ -38,9 +38,15 @@ import CreateChampionship from './pages/trainer/CreateChampionship';
 
 // Nutritionist pages
 import NutritionistOnboardingPage from './pages/nutritionist/NutritionistOnboardingPage';
+import NutritionistPatients from './pages/nutritionist/NutritionistPatients';
+import DietTemplates from './pages/nutritionist/DietTemplates';
+import DietProtocols from './pages/nutritionist/DietProtocols';
+import DietProtocolEditor from './pages/nutritionist/DietProtocolEditor';
 import NutritionistRoute from './components/NutritionistRoute';
 
-// Student pages
+// Student pages (diet)
+import MyDietProtocol from './pages/my/MyDietProtocol';
+
 import MyProtocols from './pages/my/MyProtocols';
 import MyAnamneses from './pages/my/MyAnamneses';
 import MyProtocolDetail from './pages/my/MyProtocolDetail';
@@ -322,6 +328,46 @@ function App() {
               </NutritionistRoute>
             }
           />
+          <Route
+            path="/nutritionist/patients"
+            element={
+              <NutritionistRoute>
+                <Layout>
+                  <NutritionistPatients />
+                </Layout>
+              </NutritionistRoute>
+            }
+          />
+          <Route
+            path="/nutritionist/diet-templates"
+            element={
+              <NutritionistRoute>
+                <Layout>
+                  <DietTemplates />
+                </Layout>
+              </NutritionistRoute>
+            }
+          />
+          <Route
+            path="/nutritionist/diet-protocols"
+            element={
+              <NutritionistRoute>
+                <Layout>
+                  <DietProtocols />
+                </Layout>
+              </NutritionistRoute>
+            }
+          />
+          <Route
+            path="/nutritionist/diet-protocols/:id/edit"
+            element={
+              <NutritionistRoute>
+                <Layout>
+                  <DietProtocolEditor />
+                </Layout>
+              </NutritionistRoute>
+            }
+          />
           {/* Redirect removed nutritionist profile page to unified profile */}
           <Route path="/nutritionist/profile" element={<Navigate to="/profile" replace />} />
 
@@ -383,6 +429,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <MyChallengeDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my/diet"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <MyDietProtocol />
                 </Layout>
               </ProtectedRoute>
             }

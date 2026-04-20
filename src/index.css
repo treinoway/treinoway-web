@@ -10767,3 +10767,648 @@ nav.onboarding-steps {
   gap: var(--spacing-xs);
   margin-bottom: var(--spacing-lg);
 }
+
+/* ============================================
+   Diet Module
+   ============================================ */
+
+/* MacroBar */
+.macro-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.macro-bar {
+  display: flex;
+  height: 8px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-surface-container-high);
+}
+
+.macro-bar-segment {
+  height: 100%;
+  transition: width var(--duration-base) var(--ease-out);
+}
+
+.macro-bar-segment--protein { background: #3B82F6; }
+.macro-bar-segment--carbs   { background: #F59E0B; }
+.macro-bar-segment--fat     { background: #EF4444; }
+.macro-bar-segment--empty   { background: var(--color-outline-variant); }
+
+.macro-bar-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs) var(--spacing-md);
+}
+
+.macro-bar-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-caption-size);
+  color: var(--color-on-surface-variant);
+}
+
+.macro-bar-label-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.macro-bar-label-dot--protein { background: #3B82F6; }
+.macro-bar-label-dot--carbs   { background: #F59E0B; }
+.macro-bar-label-dot--fat     { background: #EF4444; }
+
+.macro-bar-label-pct {
+  color: var(--color-outline);
+}
+
+/* Diet Summary Card */
+.diet-summary-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-brand);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-brand-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.diet-summary-kcal {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-xs);
+}
+
+.diet-summary-kcal-value {
+  font-family: var(--font-family-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  line-height: 1;
+}
+
+.diet-summary-kcal-unit {
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+}
+
+/* GoalDeltaIndicator */
+.goal-delta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  font-size: var(--font-body-small-size);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-xs);
+}
+
+.goal-delta--neutral { color: var(--color-on-surface-variant); }
+.goal-delta--ok      { color: var(--color-success); background: var(--color-success-container); }
+.goal-delta--warn    { color: #92400E; background: var(--md-warning-container); }
+.goal-delta--danger  { color: var(--color-error); background: var(--color-error-container); }
+
+.goal-delta-aware {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Diet Editor Layout */
+.diet-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.diet-editor-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  background: var(--color-surface);
+  border-radius: var(--radius-brand);
+  padding: var(--spacing-sm) var(--spacing-md);
+  box-shadow: var(--shadow-brand-sm);
+  flex-wrap: wrap;
+}
+
+.diet-editor-bar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.diet-editor-bar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.diet-editor-patient {
+  font-weight: 600;
+  font-size: var(--font-body-size);
+  color: var(--color-on-surface);
+}
+
+.diet-editor-summary {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.diet-editor-meals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Meal Card */
+.meal-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-sm);
+  overflow: hidden;
+}
+
+.meal-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  gap: var(--spacing-sm);
+  background: var(--color-surface-container);
+}
+
+.meal-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.meal-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.meal-card-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-xs);
+}
+
+.meal-card-toggle:hover {
+  color: var(--color-on-surface);
+  background: var(--color-outline-variant);
+}
+
+.meal-card-type {
+  font-weight: 600;
+  font-size: var(--font-body-size);
+  color: var(--color-on-surface);
+}
+
+.meal-card-time {
+  font-size: var(--font-caption-size);
+  color: var(--color-on-surface-variant);
+  background: var(--color-surface-container-high);
+  border-radius: var(--radius-full);
+  padding: 2px var(--spacing-xs);
+}
+
+.meal-card-kcal {
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+  font-weight: 600;
+}
+
+.meal-card-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+}
+
+.meal-card-delete:hover {
+  color: var(--color-error);
+  background: var(--color-error-container);
+}
+
+.meal-card-body {
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.meal-card-empty {
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+  font-style: italic;
+  padding: var(--spacing-xs) 0;
+}
+
+/* Food Item Row */
+.food-item-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--color-outline-variant);
+  font-size: var(--font-body-small-size);
+}
+
+.food-item-row:last-of-type {
+  border-bottom: none;
+}
+
+.food-item-row-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  color: var(--color-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.food-item-row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+  color: var(--color-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.food-item-row-sep {
+  color: var(--color-outline-variant);
+}
+
+.food-item-row-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.food-item-row-delete:hover {
+  color: var(--color-error);
+  background: var(--color-error-container);
+}
+
+/* Read-only variant */
+.food-item-row--readonly {
+  justify-content: space-between;
+}
+
+.food-item-row--readonly .food-item-row-qty,
+.food-item-row--readonly .food-item-row-kcal {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-caption-size);
+}
+
+/* Add Food / Add Meal CTAs */
+.btn-add-food {
+  background: none;
+  border: 1px dashed var(--color-outline-variant);
+  border-radius: var(--radius-xs);
+  color: var(--color-primary);
+  font-size: var(--font-body-small-size);
+  font-weight: 600;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  margin-top: var(--spacing-xs);
+  transition: background-color var(--duration-fast);
+}
+
+.btn-add-food:hover {
+  background: var(--color-primary-container);
+}
+
+.btn-add-meal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  background: none;
+  border: 1px dashed var(--color-outline-variant);
+  border-radius: var(--radius-brand);
+  color: var(--color-primary);
+  font-size: var(--font-body-size);
+  font-weight: 600;
+  padding: var(--spacing-md);
+  cursor: pointer;
+  width: 100%;
+  transition: background-color var(--duration-fast);
+}
+
+.btn-add-meal:hover {
+  background: var(--color-primary-container);
+}
+
+/* Food Search Drawer */
+.food-search-drawer {
+  /* On desktop, it becomes a side drawer */
+}
+
+@media (min-width: 768px) {
+  .food-search-drawer.bottom-sheet {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    left: auto;
+    width: 400px;
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+    animation: slide-in-right 0.25s var(--ease-out);
+  }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+.food-search-step,
+.food-quantity-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+}
+
+.food-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: var(--color-surface-container);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.food-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: var(--font-body-size);
+  color: var(--color-on-surface);
+}
+
+.food-search-input::placeholder {
+  color: var(--color-on-surface-variant);
+}
+
+.food-search-results {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.food-search-result-item {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-xs);
+  border-radius: var(--radius-xs);
+  text-align: left;
+  gap: var(--spacing-sm);
+}
+
+.food-search-result-item:hover {
+  background: var(--color-surface-container);
+}
+
+.food-search-result-name {
+  font-size: var(--font-body-size);
+  color: var(--color-on-surface);
+  flex: 1;
+  min-width: 0;
+}
+
+.food-search-result-meta {
+  font-size: var(--font-caption-size);
+  color: var(--color-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.food-search-empty,
+.food-search-hint {
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+  text-align: center;
+  padding: var(--spacing-lg) 0;
+}
+
+.food-search-loading {
+  text-align: center;
+  padding: var(--spacing-lg) 0;
+}
+
+.food-quantity-food-name {
+  font-weight: 600;
+  font-size: var(--font-body-large-size);
+  color: var(--color-on-surface);
+}
+
+.food-quantity-macros {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.food-macro-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--color-surface-container);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  min-width: 56px;
+}
+
+.food-macro-chip-label {
+  font-size: var(--font-overline-size);
+  font-weight: var(--font-overline-weight);
+  letter-spacing: var(--font-overline-letter-spacing);
+  color: var(--color-on-surface-variant);
+  text-transform: uppercase;
+}
+
+.food-macro-chip-value {
+  font-family: var(--font-family-stat);
+  font-size: var(--font-body-small-size);
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+
+/* Metabolic Profile Card */
+.metabolic-card {
+  background: var(--color-surface-container);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.metabolic-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.metabolic-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex: 1;
+  min-width: 0;
+}
+
+.metabolic-card-title {
+  font-size: var(--font-body-small-size);
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metabolic-card-results {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.metabolic-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.metabolic-result-label {
+  font-size: var(--font-overline-size);
+  font-weight: 700;
+  color: var(--color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.metabolic-result-value {
+  font-family: var(--font-family-stat);
+  font-size: var(--font-body-small-size);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.metabolic-result-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--color-outline-variant);
+}
+
+.metabolic-card-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.metabolic-card-toggle:hover {
+  background: var(--color-outline-variant);
+  color: var(--color-on-surface);
+}
+
+.metabolic-card-cta {
+  background: none;
+  border: 1px dashed var(--color-outline-variant);
+  border-radius: var(--radius-xs);
+  color: var(--color-primary);
+  font-size: var(--font-body-small-size);
+  font-weight: 600;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+}
+
+.metabolic-card-cta:hover {
+  background: var(--color-primary-container);
+}
+
+.metabolic-card-form {
+  padding-top: var(--spacing-sm);
+}
+
+/* bottom-sheet-body and footer */
+.bottom-sheet-body {
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg);
+}
+
+.bottom-sheet-footer {
+  padding-top: var(--spacing-md);
+}
+
+/* btn-icon utility */
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-xs);
+  font-size: var(--font-body-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.btn-icon:hover {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+}

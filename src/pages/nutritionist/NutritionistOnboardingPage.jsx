@@ -378,14 +378,13 @@ const NutritionistOnboardingPage = () => {
           </div>
         </div>
 
-        <div className="sticky-footer">
+        <div className="btn-group profile-form-actions">
           <button
             type="submit"
             className="btn-primary"
             disabled={loading || !isRequiredFilled()}
-            style={{ width: '100%' }}
           >
-            {loading ? 'Carregando...' : 'Concluir cadastro'}
+            {loading ? 'Salvando...' : 'Concluir cadastro'}
           </button>
         </div>
       </form>

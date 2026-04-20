@@ -6,6 +6,16 @@ const en = {
   messageCodes: {
     'trainingTemplateExercise.notFound': 'Exercise not found in this training template.',
     'legacy.PROTOCOL_STATUS_NOT_DELETABLE': 'Active routines cannot be deleted. Archive the routine first.',
+    'diet.patientNotFound': 'Patient not found.',
+    'diet.patientAlreadyLinked': 'This patient is already linked.',
+    'diet.patientNotLinked': 'This patient is not linked.',
+    'diet.templateNotFound': 'Diet template not found.',
+    'diet.protocolNotFound': 'Diet protocol not found.',
+    'diet.forbiddenNotTemplateOwner': 'You do not have permission to edit this template.',
+    'diet.forbiddenNotProtocolOwner': 'You do not have permission to edit this protocol.',
+    'diet.forbiddenNotYourProtocol': 'This protocol is not assigned to you.',
+    'diet.mealNotFound': 'Meal not found.',
+    'diet.foodItemNotFound': 'Food item not found.',
   },
   challenge: {
     create: {

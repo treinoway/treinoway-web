@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, Palette, Trophy, PanelLeft, Salad } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, Palette, Trophy, PanelLeft, Salad, Utensils } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import useActiveMode from '../hooks/useActiveMode';
@@ -78,6 +78,7 @@ const Layout = ({ children, noPadding = false }) => {
     { path: '/profile', label: 'Meu Perfil', Icon: User },
     ...(isStudentUser ? [
       { path: '/my/protocols', label: 'Minhas Rotinas', Icon: ClipboardList },
+      { path: '/my/diet', label: 'Minha Dieta', Icon: Utensils },
       { path: '/my/anamneses', label: 'Anamneses', Icon: FileText },
       { path: '/my/challenges', label: 'Campeonatos', Icon: Trophy },
     ] : []),
@@ -159,6 +160,43 @@ const Layout = ({ children, noPadding = false }) => {
               <span className="sidebar-link-label">{link.label}</span>
             </Link>
           ))}
+
+          {/* Nutritionist section — hidden when dual-role and trainer mode is active */}
+          {hasRole('NUTRITIONIST') && (!isDualRole || activeMode === 'nutritionist') && (
+            <>
+              <div className="sidebar-section-label">Nutricionista</div>
+              <Link
+                to="/nutritionist/patients"
+                className={`sidebar-link ${isActive('/nutritionist/patients') ? 'sidebar-link--active' : ''}`}
+                aria-label="Pacientes"
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <Users size={20} strokeWidth={1.6} />
+                </span>
+                <span className="sidebar-link-label">Pacientes</span>
+              </Link>
+              <Link
+                to="/nutritionist/diet-protocols"
+                className={`sidebar-link ${isActive('/nutritionist/diet-protocols') ? 'sidebar-link--active' : ''}`}
+                aria-label="Protocolos"
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <ClipboardList size={20} strokeWidth={1.6} />
+                </span>
+                <span className="sidebar-link-label">Protocolos</span>
+              </Link>
+              <Link
+                to="/nutritionist/diet-templates"
+                className={`sidebar-link ${isActive('/nutritionist/diet-templates') ? 'sidebar-link--active' : ''}`}
+                aria-label="Modelos de Dieta"
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <Salad size={20} strokeWidth={1.6} />
+                </span>
+                <span className="sidebar-link-label">Modelos</span>
+              </Link>
+            </>
+          )}
 
           {/* Trainer section — hidden when dual-role and nutritionist mode is active */}
           {hasRole('TRAINER') && (!isDualRole || activeMode === 'trainer') && (
@@ -307,6 +345,19 @@ const Layout = ({ children, noPadding = false }) => {
               <ClipboardList size={22} strokeWidth={1.6} />
             </span>
             <span>Rotinas</span>
+          </Link>
+        )}
+
+        {isStudentUser && (
+          <Link
+            to="/my/diet"
+            className={`bottom-nav-item ${isActive('/my/diet') ? 'bottom-nav-item--active' : ''}`}
+            aria-label="Minha Dieta"
+          >
+            <span className="bottom-nav-item-icon" aria-hidden="true">
+              <Utensils size={22} strokeWidth={1.6} />
+            </span>
+            <span>Dieta</span>
           </Link>
         )}
 
