@@ -7,6 +7,7 @@ import { translateError } from '../i18n';
 import api from '../api/axios';
 import DateInput from '../components/DateInput';
 import TrainerProfileSection from '../components/TrainerProfileSection';
+import NutritionistProfileSection from '../components/NutritionistProfileSection';
 import Select from '../components/Select';
 import { computeMissingProfileFields } from '../utils/onboardingProfile';
 import { markOnboardingStepOptimistic } from '../hooks/useOnboardingStatus';
@@ -663,6 +664,7 @@ useEffect(() => {
       </div>
 
       {hasRole('TRAINER') && <TrainerProfileSection />}
+      {hasRole('NUTRITIONIST') && <NutritionistProfileSection />}
 
       <div className="card card--account">
         <div className="card-header">

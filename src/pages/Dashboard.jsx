@@ -3,10 +3,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import { Link, useNavigate } from 'react-router-dom';
-import { Dumbbell, ClipboardList, Palette, Sparkles, Trophy } from 'lucide-react';
+import { Dumbbell, ClipboardList, Palette, Sparkles, Trophy, Salad } from 'lucide-react';
 import api from '../api/axios';
 import NoStudentsModal from '../components/NoStudentsModal';
 import OnboardingChecklistCard from '../components/OnboardingChecklistCard';
+import NutritionistActivationSheet from '../components/NutritionistActivationSheet';
+import NutritionistOnboardingCard from '../components/NutritionistOnboardingCard';
+import useActiveMode from '../hooks/useActiveMode';
 
 const SKIP_STORAGE_KEY = 'treinoway.skipNoStudentsWarning';
 
@@ -15,14 +18,30 @@ const Dashboard = () => {
   const isStudentUser = user?.email === 'n.santos1897@gmail.com';
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [activeMode] = useActiveMode();
+  const isDualRole = hasRole('TRAINER') && hasRole('NUTRITIONIST');
+  const showTrainerCards = hasRole('TRAINER') && (!isDualRole || activeMode === 'trainer');
+  const showNutritionistOnboarding = hasRole('NUTRITIONIST') && (!isDualRole || activeMode === 'nutritionist');
   const [loading, setLoading] = useState(false);
   const [checkingStudents, setCheckingStudents] = useState(false);
   const [showNoStudentsModal, setShowNoStudentsModal] = useState(false);
+  const [showNutritionistSheet, setShowNutritionistSheet] = useState(false);
+  const [nutritionistIncomplete, setNutritionistIncomplete] = useState(false);
 
   useEffect(() => {
     if (refreshUser) {
       refreshUser();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!hasRole('NUTRITIONIST')) return;
+    api.get('/nutritionist').then((res) => {
+      setNutritionistIncomplete(!res.data.profileCompletedAt);
+    }).catch(() => {
+      // silently ignore — the card simply won't show
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -52,6 +71,14 @@ const Dashboard = () => {
     } finally {
       setCheckingStudents(false);
     }
+  };
+
+  const handleNutritionistActivationSuccess = (data) => {
+    const newAccessToken = data.token?.accessToken || data.accessToken;
+    const newRefreshToken = data.refreshToken;
+    updateTokens(newAccessToken, newRefreshToken);
+    setShowNutritionistSheet(false);
+    navigate('/nutritionist/onboarding');
   };
 
   const handleBecomeTrainer = async () => {
@@ -87,12 +114,13 @@ const Dashboard = () => {
         )}
       </div>
 
-      {hasRole('TRAINER') && <OnboardingChecklistCard />}
+      {showTrainerCards && <OnboardingChecklistCard />}
+      {showNutritionistOnboarding && nutritionistIncomplete && <NutritionistOnboardingCard />}
 
       <section>
         <h2 className="dashboard-section-title">Ações Rápidas</h2>
         <div className="quick-actions">
-          {hasRole('TRAINER') && user?.email !== 'gabriel.araujo.lima2011@gmail.com' && (
+          {showTrainerCards && user?.email !== 'gabriel.araujo.lima2011@gmail.com' && (
             <Link to="/trainer/ai-assistant" className="quick-action-card quick-action-card--ai">
               <div className="quick-action-icon quick-action-icon--ai">
                 <Sparkles size={20} strokeWidth={2} />
@@ -102,7 +130,7 @@ const Dashboard = () => {
             </Link>
           )}
 
-          {hasRole('TRAINER') && (
+          {showTrainerCards && (
             <button
               onClick={handleCreateRoutine}
               disabled={checkingStudents}
@@ -118,7 +146,7 @@ const Dashboard = () => {
             </button>
           )}
 
-          {hasRole('TRAINER') && (
+          {showTrainerCards && (
             <Link to="/trainer/branding" className="quick-action-card">
               <div className="quick-action-icon">
                 <Palette size={20} strokeWidth={2} />
@@ -128,7 +156,7 @@ const Dashboard = () => {
             </Link>
           )}
 
-          {hasRole('TRAINER') && (
+          {showTrainerCards && (
             <Link to="/trainer/challenges" className="quick-action-card">
               <div className="quick-action-icon">
                 <Trophy size={20} strokeWidth={2} />
@@ -163,6 +191,19 @@ const Dashboard = () => {
               <p className="quick-action-desc">Habilite sua conta para criar rotinas, gerenciar alunos e muito mais</p>
             </button>
           )}
+
+          {!hasRole('NUTRITIONIST') && (
+            <button
+              onClick={() => setShowNutritionistSheet(true)}
+              className="quick-action-card"
+            >
+              <div className="quick-action-icon">
+                <Salad size={20} strokeWidth={2} />
+              </div>
+              <span className="quick-action-label">Seja um Nutricionista</span>
+              <p className="quick-action-desc">Ative seu perfil de nutricionista e comece a atender clientes na plataforma</p>
+            </button>
+          )}
         </div>
       </section>
 
@@ -174,6 +215,13 @@ const Dashboard = () => {
           navigate('/trainer/students');
         }}
       />
+
+      {showNutritionistSheet && (
+        <NutritionistActivationSheet
+          onClose={() => setShowNutritionistSheet(false)}
+          onSuccess={handleNutritionistActivationSuccess}
+        />
+      )}
     </div>
   );
 };

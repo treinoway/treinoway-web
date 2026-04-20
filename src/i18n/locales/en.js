@@ -84,6 +84,19 @@ const en = {
     ariaDisabledDay: 'Unavailable',
   },
 
+  nutritionist: {
+    activationTitle: 'Activate nutritionist profile?',
+    activationBody: 'Once activated, you can fill in your professional details and start seeing clients as a nutritionist on the platform.',
+    activateProfile: 'Activate profile',
+    cancel: 'Cancel',
+    profileActivated: 'Profile activated successfully.',
+    goToOnboarding: 'Complete registration',
+    notFoundToast: 'This profile is not active. Activate it at Dashboard → Become a Nutritionist.',
+    onboardingIncompleteTitle: 'Nutritionist profile incomplete',
+    onboardingIncompleteDesc: 'Complete your nutritionist profile to start seeing clients.',
+    activationFailed: 'Could not activate. Please try again.',
+  },
+
   gamification: {
     config: {
       defaultPreferences: 'Points preferences',

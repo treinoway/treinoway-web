@@ -19,6 +19,8 @@ import Trainers from './pages/Trainers';
 import TrainingTemplates from './pages/trainer/TrainingTemplates';
 import ExerciseTemplates from './pages/trainer/ExerciseTemplates';
 import ProtocolDetail from './pages/trainer/ProtocolDetail';
+import ProtocolView from './pages/trainer/ProtocolView';
+import ProtocolTemplateView from './pages/trainer/ProtocolTemplateView';
 import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
 import CreateProtocol from './pages/trainer/CreateProtocol';
 import Students from './pages/trainer/Students';
@@ -33,6 +35,10 @@ import Challenges from './pages/trainer/Challenges';
 import CreateChallenge from './pages/trainer/CreateChallenge';
 import ChallengeDetail from './pages/trainer/ChallengeDetail';
 import CreateChampionship from './pages/trainer/CreateChampionship';
+
+// Nutritionist pages
+import NutritionistOnboardingPage from './pages/nutritionist/NutritionistOnboardingPage';
+import NutritionistRoute from './components/NutritionistRoute';
 
 // Student pages
 import MyProtocols from './pages/my/MyProtocols';
@@ -130,6 +136,16 @@ function App() {
             }
           />
           <Route
+            path="/trainer/protocol-templates/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ProtocolTemplateView />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/trainer/protocol-templates/:id/edit"
             element={
               <ProtectedRoute>
@@ -151,6 +167,16 @@ function App() {
           />
           <Route
             path="/trainer/protocols/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ProtocolView />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/protocols/:id/edit"
             element={
               <ProtectedRoute>
                 <Layout>
@@ -284,6 +310,20 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Nutritionist routes */}
+          <Route
+            path="/nutritionist/onboarding"
+            element={
+              <NutritionistRoute>
+                <Layout>
+                  <NutritionistOnboardingPage />
+                </Layout>
+              </NutritionistRoute>
+            }
+          />
+          {/* Redirect removed nutritionist profile page to unified profile */}
+          <Route path="/nutritionist/profile" element={<Navigate to="/profile" replace />} />
 
           {/* Student routes */}
           <Route

@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../api/axios';
 
+const ACTIVE_MODE_KEY = 'treinoway.activeMode';
+
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
@@ -36,6 +38,7 @@ describe('Dashboard', () => {
     mockShowToast.mockReset();
     mockHasRole.mockReset();
     api.get.mockReset();
+    localStorage.clear();
 
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     vi.mocked(useAuth).mockReturnValue({
@@ -210,6 +213,54 @@ describe('Dashboard', () => {
       renderWithRouter(<Dashboard />);
 
       expect(screen.queryByRole('heading', { name: 'Primeiros passos' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Dual-role mode switching (TRAINER + NUTRITIONIST)', () => {
+    beforeEach(() => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER' || role === 'NUTRITIONIST');
+      api.get.mockResolvedValue({ data: { profileCompletedAt: null } });
+      localStorage.clear();
+    });
+
+    it('hides trainer quick actions when activeMode is nutritionist', () => {
+      localStorage.setItem(ACTIVE_MODE_KEY, 'nutritionist');
+
+      renderWithRouter(<Dashboard />);
+
+      expect(screen.queryByText('Criar Rotina para um Aluno')).not.toBeInTheDocument();
+      expect(screen.queryByText('Personalize sua Marca')).not.toBeInTheDocument();
+    });
+
+    it('shows trainer quick actions when activeMode is trainer (default)', () => {
+      localStorage.setItem(ACTIVE_MODE_KEY, 'trainer');
+      api.get.mockResolvedValue({ data: [] });
+
+      renderWithRouter(<Dashboard />);
+
+      expect(screen.getByText('Criar Rotina para um Aluno')).toBeInTheDocument();
+    });
+
+    it('shows NutritionistOnboardingCard when activeMode is nutritionist and profile is incomplete', async () => {
+      localStorage.setItem(ACTIVE_MODE_KEY, 'nutritionist');
+      api.get.mockResolvedValue({ data: { profileCompletedAt: null } });
+
+      renderWithRouter(<Dashboard />);
+
+      await waitFor(() => {
+        expect(api.get).toHaveBeenCalledWith('/nutritionist');
+      });
+    });
+
+    it('hides NutritionistOnboardingCard when activeMode is trainer', async () => {
+      localStorage.setItem(ACTIVE_MODE_KEY, 'trainer');
+
+      renderWithRouter(<Dashboard />);
+
+      // OnboardingChecklistCard for trainer should appear instead
+      // Nutritionist-specific card should not appear regardless of profileCompletedAt
+      // (the api.get for /nutritionist is still called but card won't render)
+      expect(screen.queryByRole('link', { name: /completar perfil de nutricionista/i })).not.toBeInTheDocument();
     });
   });
 

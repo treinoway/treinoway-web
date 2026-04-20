@@ -127,7 +127,15 @@ const ProtocolTemplates = () => {
                 const hasBadges = levelLabel || typeLabel;
                 const trainingsCount = template.scheduleTemplatesCount ?? template.trainingsCount ?? 0;
                 return (
-                  <div key={template.id} className="card">
+                  <div
+                    key={template.id}
+                    className="card card-link"
+                    onClick={() => navigate(`/trainer/protocol-templates/${template.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && navigate(`/trainer/protocol-templates/${template.id}`)}
+                    aria-label={`Ver rotina ${template.name}`}
+                  >
                     <div className="card-header-row">
                       <h3 className="card-subtitle">{template.name}</h3>
                       <RowMenu
@@ -179,7 +187,11 @@ const ProtocolTemplates = () => {
                     const trainingsCount = template.scheduleTemplatesCount ?? template.trainingsCount ?? 0;
                     const typeLabel = template.type ? getProtocolTypeLabel(template.type) : null;
                     return (
-                      <tr key={template.id}>
+                      <tr
+                        key={template.id}
+                        onClick={() => navigate(`/trainer/protocol-templates/${template.id}`)}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <td>
                           <span style={{ fontWeight: 600 }}>{template.name}</span>
                           <span className="table-col-mobile-only" style={{ display: 'block', fontSize: 'var(--font-caption-size)', color: 'var(--color-on-surface-variant)', marginTop: '2px' }}>

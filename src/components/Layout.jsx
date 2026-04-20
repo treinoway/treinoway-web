@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, Palette, Trophy, PanelLeft } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, Palette, Trophy, PanelLeft, Salad } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
+import useActiveMode from '../hooks/useActiveMode';
 
 const BIBLIOTECA_PATHS = ['/trainer/protocol-templates', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
 
@@ -17,6 +18,8 @@ const Layout = ({ children, noPadding = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const popoverRef = useRef(null);
+  const [activeMode, setActiveMode] = useActiveMode();
+  const isDualRole = hasRole('TRAINER') && hasRole('NUTRITIONIST');
 
   const handleLogout = () => {
     logout();
@@ -35,6 +38,16 @@ const Layout = ({ children, noPadding = false }) => {
   useEffect(() => {
     if (isBibliotecaActive()) {
       setBibliotecaOpen(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  // Auto-switch mode based on current path
+  useEffect(() => {
+    if (location.pathname.startsWith('/nutritionist/')) {
+      setActiveMode('nutritionist');
+    } else if (location.pathname.startsWith('/trainer/')) {
+      setActiveMode('trainer');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
@@ -108,6 +121,30 @@ const Layout = ({ children, noPadding = false }) => {
         </div>
 
         <nav className="sidebar-nav">
+          {/* Mode switcher — only for dual-role users (TRAINER + NUTRITIONIST) */}
+          {isDualRole && sidebarOpen && (
+            <div className="segmented-toggle" role="group" aria-label="Alternar modo">
+              <button
+                type="button"
+                className={`segmented-toggle-btn${activeMode === 'trainer' ? ' segmented-toggle-btn--active' : ''}`}
+                onClick={() => setActiveMode('trainer')}
+                aria-pressed={activeMode === 'trainer'}
+              >
+                <Dumbbell size={14} strokeWidth={2} />
+                <span>Treinador</span>
+              </button>
+              <button
+                type="button"
+                className={`segmented-toggle-btn${activeMode === 'nutritionist' ? ' segmented-toggle-btn--active' : ''}`}
+                onClick={() => setActiveMode('nutritionist')}
+                aria-pressed={activeMode === 'nutritionist'}
+              >
+                <Salad size={14} strokeWidth={2} />
+                <span>Nutricionista</span>
+              </button>
+            </div>
+          )}
+
           {/* Regular nav links */}
           {navLinks.map((link) => (
             <Link
@@ -123,8 +160,8 @@ const Layout = ({ children, noPadding = false }) => {
             </Link>
           ))}
 
-          {/* Trainer section */}
-          {hasRole('TRAINER') && (
+          {/* Trainer section — hidden when dual-role and nutritionist mode is active */}
+          {hasRole('TRAINER') && (!isDualRole || activeMode === 'trainer') && (
             <>
               <div className="sidebar-section-label">Treinador</div>
 
@@ -168,7 +205,6 @@ const Layout = ({ children, noPadding = false }) => {
                 </span>
                 <span className="sidebar-link-label">Campeonatos</span>
               </Link>
-
 
               {/* Sua Marca */}
               <Link
@@ -224,6 +260,7 @@ const Layout = ({ children, noPadding = false }) => {
               )}
             </>
           )}
+
         </nav>
 
         <div className="sidebar-footer">

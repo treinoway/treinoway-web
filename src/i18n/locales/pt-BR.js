@@ -120,6 +120,9 @@ const ptBR = {
     'challenge.notActive': 'Este campeonato não está ativo.',
     'gamification.globalRankingRemoved': 'O ranking global foi descontinuado. Use os campeonatos.',
     'legacy.PROTOCOL_STATUS_NOT_DELETABLE': 'Rotinas ativas não podem ser excluídas. Arquive a rotina antes.',
+    'nutritionist.notFound': 'Perfil do nutricionista não encontrado.',
+    'nutritionist.becomeSuccess': 'Conta de nutricionista ativada.',
+    'nutritionist.profileCompleted': 'Perfil ativado. Você já aparece na listagem.',
   },
 
   httpStatus: {
@@ -485,6 +488,19 @@ const ptBR = {
     'validation.address.postalCode.pattern': 'CEP em formato inválido.',
     'validation.code.minLength': 'CEP em formato inválido.',
     'validation.code.maxLength': 'CEP em formato inválido.',
+  },
+
+  nutritionist: {
+    activationTitle: 'Ativar perfil de nutricionista?',
+    activationBody: 'Ao ativar, você poderá preencher seus dados profissionais e atender clientes como nutricionista na plataforma.',
+    activateProfile: 'Ativar perfil',
+    cancel: 'Cancelar',
+    profileActivated: 'Perfil ativado com sucesso.',
+    goToOnboarding: 'Completar cadastro',
+    notFoundToast: 'Este perfil não está ativo. Ative em Painel → Seja um Nutricionista.',
+    onboardingIncompleteTitle: 'Perfil de nutricionista incompleto',
+    onboardingIncompleteDesc: 'Complete seu perfil de nutricionista para começar a atender.',
+    activationFailed: 'Não foi possível ativar. Tente novamente.',
   },
 };
 

@@ -2456,6 +2456,65 @@ html:has(.auth-page) {
   font-style: italic;
 }
 
+/* ── Collapsible training card toggle (read-only view pages) ── */
+.training-card-collapse-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-sm) 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  gap: var(--spacing-sm);
+  min-height: 44px;
+}
+
+.training-card-collapse-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-brand);
+}
+
+.training-card-collapse-toggle__left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  flex: 1;
+}
+
+.training-card-collapse-toggle__right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+  color: var(--brand-steel);
+  font-size: var(--font-caption-size);
+}
+
+.training-card-collapse-toggle__count {
+  font-size: var(--font-caption-size);
+  color: var(--brand-steel);
+  white-space: nowrap;
+}
+
+.training-card-collapse-toggle__chevron {
+  color: var(--brand-steel);
+  transition: transform var(--duration-fast) var(--ease-brand);
+  flex-shrink: 0;
+}
+
+.training-card-collapse-toggle__chevron--open {
+  transform: rotate(180deg);
+}
+
+.training-card-collapse-toggle:hover .training-card-collapse-toggle__chevron,
+.training-card-collapse-toggle:hover .training-card-collapse-toggle__count {
+  color: var(--brand-primary);
+}
+
 .training-actions {
   display: flex;
   gap: 0.5rem;
@@ -2774,7 +2833,8 @@ html:has(.auth-page) {
 .grid-cards,
 .table-container,
 .empty-state,
-.card.card--mb {
+.card.card--mb,
+.routine-hero {
   animation: fadeIn 200ms ease-out;
 }
 
@@ -5083,6 +5143,7 @@ html:has(.auth-page) {
   padding: 20px var(--spacing-lg);
   margin-bottom: 28px;
   overflow: hidden;
+  animation: students-fade-in var(--duration-base) var(--ease-brand);
 }
 
 /* Two radial gradients for depth — brand-specific fine-tune colors, intentional */
@@ -10233,3 +10294,476 @@ html:has(.auth-page) {
   to   { opacity: 1; transform: none; }
 }
 
+/* ── Routine View — Hero card ──────────────────────────────── */
+.routine-hero {
+  background: var(--md-surface);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-sm);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.lead-description {
+  font-size: 15px;
+  line-height: var(--line-height-normal);
+  color: var(--brand-steel);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Status hero badge */
+.status-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 14px;
+  border-radius: var(--radius-brand);
+  font-family: var(--font-family-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  align-self: flex-start;
+}
+.status-hero--active {
+  background: var(--md-success-container);
+  color: #1b4d1f;
+}
+.status-hero--warning {
+  background: var(--brand-accent-container);
+  color: #8a3a07;
+  animation: routine-status-pulse 2s ease-in-out infinite;
+}
+.status-hero--danger {
+  background: var(--md-error-container);
+  color: #7a1515;
+  animation: routine-status-pulse 2s ease-in-out infinite;
+}
+.status-hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+@keyframes routine-status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+
+/* Stat strip */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  justify-content: start;
+  gap: var(--spacing-xl);
+}
+
+/* Routine-scoped stat-display — resets dashboard card style */
+.routine-hero .stat-display {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+.routine-hero .stat-display__label {
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+}
+.routine-hero .stat-display__value {
+  font-family: var(--font-family-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--brand-ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.routine-hero .stat-display__value--text {
+  font-size: 18px;
+  padding-top: 6px;
+}
+.routine-hero .stat-display__unit {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--brand-steel);
+  margin-top: 2px;
+}
+
+/* Period */
+.routine-hero__period {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 13px;
+  color: var(--brand-steel);
+}
+.routine-hero__period-divider {
+  opacity: 0.4;
+}
+
+/* Week grid */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.week-grid__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) 0 6px;
+  border-radius: var(--radius-stat);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-steel);
+  background: var(--md-surface-container);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-height: 44px;
+}
+.week-grid__cell--active {
+  background: var(--brand-primary);
+  color: #fff;
+}
+.week-grid__count {
+  font-family: var(--font-family-display);
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* Page header eyebrow override — flex for inline badges */
+.page-header-eyebrow--flex {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+/* Inline badges (used in eyebrow) */
+.badge-inline {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  background: var(--md-surface-container-high);
+  color: var(--brand-ink);
+}
+.badge-inline--brand {
+  background: rgba(10, 95, 204, 0.1);
+  color: var(--brand-primary);
+}
+
+/* btn-icon */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-brand);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-variant);
+  cursor: pointer;
+  color: var(--brand-steel);
+  transition: background var(--duration-fast) var(--ease-brand), color var(--duration-fast) var(--ease-brand);
+}
+.btn-icon:hover {
+  background: var(--md-surface-container);
+  color: var(--brand-ink);
+}
+
+/* ── Training card — Routine View redesign ──────────────────── */
+.training-card--view {
+  background: var(--md-surface);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-sm);
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: box-shadow var(--duration-fast) var(--ease-brand);
+}
+.training-card--view:hover {
+  box-shadow: var(--shadow-brand-md);
+}
+.training-card--view .training-card__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding: 14px var(--spacing-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  min-height: 64px;
+}
+.training-card--view .training-card__toggle:active {
+  transform: scale(0.99);
+}
+.training-card--view .training-card__order {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-stat);
+  background: var(--brand-primary);
+  color: #fff;
+  font-family: var(--font-family-display);
+  font-size: 14px;
+  font-weight: 700;
+}
+.training-card--view .training-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.training-card--view .training-card__row1 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.training-card--view .training-card__title {
+  font-family: var(--font-family-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--brand-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.training-card--view .training-card__day {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(10, 95, 204, 0.08);
+}
+.training-card--view .training-card__day--free {
+  color: var(--brand-accent);
+  background: var(--brand-accent-container);
+}
+.training-card--view .training-card__preview {
+  font-size: 12px;
+  color: var(--brand-steel);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.training-card--view .training-card__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.training-card--view .training-card__count {
+  font-family: var(--font-family-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand-ink);
+}
+.training-card--view .training-card__count-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--brand-steel);
+}
+.training-card--view .training-card__chevron {
+  color: var(--brand-steel);
+  margin-left: 4px;
+  transition: transform var(--duration-base) var(--ease-brand);
+  flex-shrink: 0;
+}
+.training-card--view.training-card--open .training-card__chevron {
+  transform: rotate(180deg);
+}
+.training-card--view .training-card__exercises {
+  padding: 0 var(--spacing-md) var(--spacing-md) 58px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+.training-card--view .exercise-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--md-surface-container-high);
+}
+.training-card--view .exercise-row:last-child {
+  border-bottom: none;
+}
+.training-card--view .exercise-row__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--brand-ink);
+}
+.training-card--view .exercise-row__meta {
+  font-family: var(--font-family-display);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-steel);
+  white-space: nowrap;
+}
+
+/* Section header — routine view variant */
+.section-header--routine {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 24px 0 12px;
+}
+.section-header--routine .section-title {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: var(--font-family-display);
+}
+.section-action {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  padding: var(--spacing-sm) 4px;
+}
+.section-action:hover {
+  color: var(--brand-primary-dark);
+}
+
+
+/* ─── Nutritionist feature ──────────────────────────────────────────────── */
+
+.badge-yellow {
+  background: var(--color-warning-container, #fff3cd);
+  color: var(--color-warning, #856404);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+@media (max-width: 767px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-optional {
+  font-weight: 400;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-body-small-size);
+}
+
+.sticky-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-surface);
+  padding: var(--spacing-md) 0;
+  border-top: 1px solid var(--color-surface-variant);
+  margin-top: var(--spacing-md);
+}
+
+.nutritionist-preview--incomplete {
+  opacity: 0.4;
+  pointer-events: none;
+  user-select: none;
+}
+
+.nutritionist-preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-lg);
+  color: var(--color-on-surface);
+}
+
+.nutritionist-activation-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-primary);
+}
+
+.nutritionist-activation-body {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-body-size);
+  margin-bottom: var(--spacing-lg);
+  line-height: 1.5;
+}
+
+.one-time-banner__link {
+  color: var(--color-primary);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.one-time-banner__link:hover {
+  opacity: 0.8;
+}
+
+.onboarding-step-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-surface-container);
+  border-radius: var(--radius-full);
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+}
+
+.onboarding-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+nav.onboarding-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+}
