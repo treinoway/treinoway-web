@@ -112,7 +112,7 @@ describe('NutritionistPatients', () => {
 
     await waitFor(() =>
       expect(api.post).toHaveBeenCalledWith('/nutritionist/patients', {
-        patientId: 'bruno@example.com',
+        email: 'bruno@example.com',
       }),
     );
     await waitFor(() => expect(showToast).toHaveBeenCalledWith('Paciente vinculado com sucesso', 'success'));

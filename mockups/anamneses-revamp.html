@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Treinoway — Anamneses Revamp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --font-family-base:'Inter',-apple-system,system-ui,sans-serif;
+  --font-family-display:'Space Grotesk',system-ui,-apple-system,sans-serif;
+  --font-family-stat:'Space Grotesk',ui-monospace,monospace;
+  --spacing-2xs:2px;--spacing-xs:4px;--spacing-sm:8px;--spacing-md:16px;
+  --spacing-lg:24px;--spacing-xl:32px;--spacing-xxl:48px;
+  --radius-brand:8px;--radius-stat:4px;--radius-full:9999px;
+  --tracking-tight:-0.02em;--tracking-wide:0.08em;--tracking-wider:0.12em;
+  --line-height-tight:1.2;--line-height-normal:1.5;
+  --brand-primary:#0A5FCC;--brand-primary-dark:#083E85;--brand-accent:#FF6B1A;
+  --brand-ink:#0A0F1C;--brand-slate:#1E293B;--brand-steel:#64748B;
+  --brand-mist:#F1F5F9;--brand-divider:#E2E8F0;--brand-accent-container:#FFF1EA;
+  --stadium-bg:#0A0F1C;--stadium-surface:#111827;--stadium-surface-elevated:#1E293B;
+  --stadium-text:#F1F5F9;--stadium-text-muted:#94A3B8;--stadium-accent:#38BDF8;
+  --color-surface:#FFFFFF;--color-on-surface:#1C1C1E;
+  --color-surface-container:#F0F1F4;--color-surface-container-high:#E6E7EB;
+  --color-surface-container-highest:#DCDDE2;
+  --color-outline:#8E8E93;--color-outline-variant:#C7C7CC;
+  --color-error:#D32F2F;--color-error-container:#FDDEDE;
+  --color-success:#2E7D32;--color-success-container:#D4EDDA;
+  --color-warning:#B55A02;--color-warning-container:#FDDCBA;
+  --color-primary-container:#D4E3F7;--color-on-primary-container:#0D3B6F;
+  --shadow-brand-sm:0 1px 3px rgba(10,15,28,.08),0 0 0 1px rgba(10,15,28,.04);
+  --shadow-brand-md:0 4px 12px -2px rgba(10,15,28,.1),0 0 0 1px rgba(10,15,28,.05);
+  --shadow-brand-lg:0 16px 40px -8px rgba(10,15,28,.18),0 0 0 1px rgba(10,15,28,.06);
+  --shadow-focus:0 0 0 2px var(--brand-primary);
+  --duration-fast:150ms;--duration-base:200ms;--duration-achievement:280ms;
+  --ease-brand:cubic-bezier(0.22,1,0.36,1);--ease-kinetic:cubic-bezier(0.34,1.56,0.64,1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:var(--font-family-base);color:var(--brand-ink);background:#E8ECF2;min-height:100vh;line-height:var(--line-height-normal)}
+button{cursor:pointer;border:none;background:none;font-family:inherit}
+input,textarea,select{font-family:inherit}
+a{color:inherit;text-decoration:none}
+
+/* Shell */
+.shell{display:flex;flex-direction:column;min-height:100vh}
+.shell-topbar{background:var(--brand-slate);color:var(--stadium-text);padding:0 var(--spacing-lg);display:flex;align-items:center;gap:var(--spacing-md);height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-brand-md)}
+.shell-logo{font-family:var(--font-family-display);font-weight:700;font-size:18px;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:#fff;white-space:nowrap}
+.shell-breadcrumb{font-size:12px;color:var(--stadium-text-muted);flex:1;display:none}
+@media(min-width:768px){.shell-breadcrumb{display:block}}
+.shell-breadcrumb span{color:var(--stadium-text)}
+.shell-user{display:flex;align-items:center;gap:var(--spacing-sm);margin-left:auto}
+.avatar{width:32px;height:32px;border-radius:var(--radius-full);background:var(--brand-primary);color:#fff;font-family:var(--font-family-display);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;letter-spacing:0;text-transform:uppercase;flex-shrink:0}
+.avatar--lg{width:64px;height:64px;font-size:22px}
+.shell-username{font-size:13px;font-weight:500;display:none}
+@media(min-width:768px){.shell-username{display:block}}
+
+/* Tab bar */
+.tab-bar{background:#fff;border-bottom:1px solid var(--brand-divider);padding:0 var(--spacing-lg);position:sticky;top:56px;z-index:99;display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{font-family:var(--font-family-display);font-size:11px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;padding:var(--spacing-md) var(--spacing-lg);color:var(--brand-steel);border-bottom:2px solid transparent;white-space:nowrap;transition:color var(--duration-fast) var(--ease-brand),border-color var(--duration-fast) var(--ease-brand);background:none;border-left:none;border-right:none;border-top:none}
+.tab-btn:hover{color:var(--brand-ink)}
+.tab-btn.active{color:var(--brand-primary);border-bottom-color:var(--brand-primary)}
+
+/* Main content */
+.main-content{flex:1;padding:var(--spacing-xl) var(--spacing-lg)}
+.screen{display:none}
+.screen.active{display:block}
+
+/* Frame wrapper — shows mobile + desktop side by side */
+.frames-wrapper{display:flex;flex-direction:column;gap:var(--spacing-xl);align-items:flex-start}
+@media(min-width:900px){.frames-wrapper{flex-direction:row;align-items:flex-start}}
+.frame-container{flex-shrink:0}
+.frame-label{font-family:var(--font-family-display);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);margin-bottom:var(--spacing-sm);display:flex;align-items:center;gap:var(--spacing-xs)}
+.frame-label-dot{width:6px;height:6px;border-radius:var(--radius-full);background:var(--brand-primary)}
+.frame{background:#fff;border-radius:12px;overflow:hidden;box-shadow:var(--shadow-brand-lg)}
+.frame--mobile{width:375px}
+.frame--desktop{width:1024px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:var(--spacing-xs);font-family:var(--font-family-display);font-size:12px;font-weight:700;letter-spacing:var(--tracking-wide);text-transform:uppercase;padding:10px var(--spacing-md);border-radius:var(--radius-brand);transition:transform var(--duration-fast) var(--ease-brand),box-shadow var(--duration-fast) var(--ease-brand),background-color var(--duration-fast) var(--ease-brand);white-space:nowrap;line-height:1}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-brand-sm)}
+.btn:active{transform:scale(0.98)}
+.btn-primary{background:var(--brand-primary);color:#fff}
+.btn-primary:hover{background:var(--brand-primary-dark)}
+.btn-secondary{background:transparent;color:var(--brand-primary);border:1px solid var(--brand-primary)}
+.btn-secondary:hover{background:var(--color-primary-container)}
+.btn-ghost{background:transparent;color:var(--brand-steel);padding:8px var(--spacing-sm)}
+.btn-ghost:hover{background:var(--brand-mist);color:var(--brand-ink)}
+.btn-danger{background:var(--color-error);color:#fff}
+.btn-danger:hover{background:#b71c1c}
+.btn-sm{padding:6px 12px;font-size:11px}
+.btn-icon{padding:8px;border-radius:var(--radius-brand);color:var(--brand-steel);transition:background var(--duration-fast) var(--ease-brand),color var(--duration-fast) var(--ease-brand)}
+.btn-icon:hover{background:var(--brand-mist);color:var(--brand-ink)}
+.btn-icon svg{display:block}
+
+/* Badges / chips */
+.badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-family-display);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;padding:3px 8px;border-radius:var(--radius-stat);line-height:1}
+.badge-primary{background:var(--color-primary-container);color:var(--color-on-primary-container)}
+.badge-accent{background:var(--brand-accent-container);color:var(--brand-accent)}
+.badge-success{background:var(--color-success-container);color:var(--color-success)}
+.badge-warning{background:var(--color-warning-container);color:var(--color-warning)}
+.badge-error{background:var(--color-error-container);color:var(--color-error)}
+.badge-neutral{background:var(--color-surface-container);color:var(--brand-steel)}
+
+/* Stat display */
+.stat-row{display:flex;gap:var(--spacing-md);flex-wrap:wrap}
+.stat-tile{background:#fff;border-radius:var(--radius-brand);padding:var(--spacing-md) var(--spacing-lg);box-shadow:var(--shadow-brand-sm);flex:1;min-width:120px;display:flex;flex-direction:column;gap:var(--spacing-xs);transition:box-shadow var(--duration-fast) var(--ease-brand),transform var(--duration-fast) var(--ease-brand)}
+.stat-tile:hover{box-shadow:var(--shadow-brand-md);transform:translateY(-1px)}
+.stat-eyebrow{font-family:var(--font-family-display);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);display:flex;align-items:center;gap:var(--spacing-xs)}
+.stat-value{font-family:var(--font-family-stat);font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--brand-ink);line-height:1}
+.stat-value--accent{color:var(--brand-accent)}
+.stat-meta{font-size:12px;color:var(--brand-steel)}
+.stat-dot{width:8px;height:8px;border-radius:var(--radius-full);background:var(--brand-accent);flex-shrink:0}
+.stat-trend{font-size:11px;font-weight:600;color:var(--color-success);font-family:var(--font-family-display)}
+
+/* Alerts banner */
+.alert-banner{border-radius:var(--radius-brand);padding:var(--spacing-sm) var(--spacing-md);display:flex;align-items:center;gap:var(--spacing-sm);font-size:13px;font-weight:600;cursor:pointer;transition:opacity var(--duration-fast) var(--ease-brand)}
+.alert-banner--accent{background:var(--brand-accent-container);color:var(--brand-accent);border:1px solid rgba(255,107,26,.2)}
+.alert-banner--health{background:var(--color-error-container);color:var(--color-error);border:1px solid rgba(211,47,47,.2)}
+.alert-banner svg{flex-shrink:0}
+.alert-content{flex:1}
+.alert-banner-chevron{transition:transform var(--duration-fast) var(--ease-brand);color:currentColor}
+.alert-banner.open .alert-banner-chevron{transform:rotate(180deg)}
+.alert-body{overflow:hidden;max-height:0;transition:max-height var(--duration-base) var(--ease-brand);font-size:13px}
+.alert-body.open{max-height:200px}
+.alert-body ul{padding:var(--spacing-sm) 0 var(--spacing-sm) var(--spacing-lg);display:flex;flex-direction:column;gap:var(--spacing-xs)}
+.alert-body li{font-weight:400;line-height:1.4}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;gap:var(--spacing-sm);flex-wrap:wrap}
+.search-input-wrap{display:flex;align-items:center;gap:var(--spacing-sm);background:var(--brand-mist);border:1px solid var(--brand-divider);border-radius:var(--radius-brand);padding:8px var(--spacing-sm);flex:1;min-width:180px;max-width:280px;transition:border-color var(--duration-fast) var(--ease-brand),box-shadow var(--duration-fast) var(--ease-brand)}
+.search-input-wrap:focus-within{border-color:var(--brand-primary);box-shadow:var(--shadow-focus)}
+.search-input-wrap input{background:none;border:none;outline:none;font-size:13px;flex:1;color:var(--brand-ink)}
+.search-input-wrap input::placeholder{color:var(--brand-steel)}
+.filter-chips{display:flex;gap:var(--spacing-xs);flex-wrap:wrap;align-items:center}
+.filter-chip{font-family:var(--font-family-display);font-size:11px;font-weight:700;letter-spacing:var(--tracking-wide);text-transform:uppercase;padding:6px 12px;border-radius:var(--radius-full);border:1px solid var(--brand-divider);color:var(--brand-steel);background:#fff;cursor:pointer;transition:all var(--duration-fast) var(--ease-brand)}
+.filter-chip:hover{border-color:var(--brand-primary);color:var(--brand-primary)}
+.filter-chip.active{background:var(--brand-primary);color:#fff;border-color:var(--brand-primary)}
+.toolbar-spacer{flex:1}
+
+/* Row menu */
+.row-menu-wrap{position:relative;display:inline-block}
+.row-menu-trigger{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-brand);color:var(--brand-steel);transition:background var(--duration-fast) var(--ease-brand);background:none;border:none;cursor:pointer}
+.row-menu-trigger:hover{background:var(--brand-mist);color:var(--brand-ink)}
+.row-menu-dropdown{position:absolute;right:0;top:calc(100% + 4px);background:#fff;border-radius:var(--radius-brand);box-shadow:var(--shadow-brand-lg);min-width:160px;z-index:200;overflow:hidden;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity var(--duration-fast) var(--ease-brand),transform var(--duration-fast) var(--ease-brand)}
+.row-menu-dropdown.open{opacity:1;pointer-events:all;transform:translateY(0)}
+.row-menu-item{display:flex;align-items:center;gap:var(--spacing-sm);padding:10px var(--spacing-md);font-size:13px;font-weight:500;color:var(--brand-ink);cursor:pointer;transition:background var(--duration-fast) var(--ease-brand);width:100%;text-align:left;border:none;background:none}
+.row-menu-item:hover{background:var(--brand-mist)}
+.row-menu-item--danger{color:var(--color-error)}
+.row-menu-item--danger:hover{background:var(--color-error-container)}
+.row-menu-divider{height:1px;background:var(--brand-divider);margin:var(--spacing-xs) 0}
+
+/* Card & list */
+.card{background:#fff;border-radius:var(--radius-brand);box-shadow:var(--shadow-brand-sm);overflow:hidden;transition:box-shadow var(--duration-fast) var(--ease-brand),transform var(--duration-fast) var(--ease-brand)}
+.card:hover{box-shadow:var(--shadow-brand-md);transform:translateY(-1px)}
+.card-body{padding:var(--spacing-md)}
+.section-header{display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-sm);margin-bottom:var(--spacing-md)}
+.section-title{font-family:var(--font-family-display);font-size:16px;font-weight:700;color:var(--brand-ink)}
+.eyebrow{font-family:var(--font-family-display);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel)}
+
+/* Rich list row */
+.rich-list{display:flex;flex-direction:column;gap:0;border-radius:var(--radius-brand);overflow:hidden;box-shadow:var(--shadow-brand-sm)}
+.rich-row{display:flex;align-items:center;gap:var(--spacing-md);padding:var(--spacing-md);background:#fff;border-bottom:1px solid var(--brand-divider);cursor:pointer;transition:background var(--duration-fast) var(--ease-brand);position:relative}
+.rich-row:last-child{border-bottom:none}
+.rich-row:hover{background:var(--brand-mist)}
+.rich-row-main{flex:1;min-width:0}
+.rich-row-title{font-family:var(--font-family-display);font-size:14px;font-weight:600;color:var(--brand-ink);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rich-row-sub{font-size:12px;color:var(--brand-steel)}
+.rich-row-stats{display:flex;gap:var(--spacing-md);align-items:center;flex-shrink:0}
+.inline-stat{display:flex;flex-direction:column;align-items:center;gap:1px}
+.inline-stat-value{font-family:var(--font-family-stat);font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--brand-ink);line-height:1}
+.inline-stat-label{font-family:var(--font-family-display);font-size:9px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel)}
+
+/* Confirm dialog / overlay */
+.overlay{position:fixed;inset:0;background:rgba(10,15,28,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:var(--spacing-md)}
+.confirm-dialog{background:#fff;border-radius:12px;padding:var(--spacing-xl);max-width:400px;width:100%;box-shadow:var(--shadow-brand-lg)}
+.confirm-dialog-title{font-family:var(--font-family-display);font-size:16px;font-weight:700;margin-bottom:var(--spacing-sm)}
+.confirm-dialog-message{font-size:14px;color:var(--brand-steel);line-height:1.5;margin-bottom:var(--spacing-lg)}
+.btn-group{display:flex;gap:var(--spacing-sm)}
+
+/* Form elements */
+.form-label{font-family:var(--font-family-display);font-size:11px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);display:block;margin-bottom:var(--spacing-xs)}
+.form-input{width:100%;padding:10px var(--spacing-sm);border:1px solid var(--brand-divider);border-radius:var(--radius-brand);font-size:14px;color:var(--brand-ink);background:#fff;transition:border-color var(--duration-fast) var(--ease-brand),box-shadow var(--duration-fast) var(--ease-brand)}
+.form-input:focus{outline:none;border-color:var(--brand-primary);box-shadow:var(--shadow-focus)}
+.form-textarea{resize:vertical;min-height:80px}
+.toggle-wrap{display:flex;align-items:center;gap:var(--spacing-sm)}
+.toggle{width:40px;height:22px;border-radius:11px;background:var(--brand-divider);position:relative;cursor:pointer;transition:background var(--duration-base) var(--ease-brand);flex-shrink:0;border:none}
+.toggle.on{background:var(--brand-primary)}
+.toggle::after{content:'';width:16px;height:16px;border-radius:var(--radius-full);background:#fff;position:absolute;top:3px;left:3px;transition:transform var(--duration-base) var(--ease-brand);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{transform:translateX(18px)}
+.toggle-label{font-size:13px;font-weight:500;color:var(--brand-ink)}
+
+/* Checkbox */
+.checkbox-wrap{display:flex;align-items:center;gap:var(--spacing-sm);cursor:pointer;padding:10px var(--spacing-sm);border-radius:var(--radius-brand);transition:background var(--duration-fast) var(--ease-brand)}
+.checkbox-wrap:hover{background:var(--brand-mist)}
+.checkbox{width:18px;height:18px;border:2px solid var(--brand-divider);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all var(--duration-fast) var(--ease-brand)}
+.checkbox.checked{background:var(--brand-primary);border-color:var(--brand-primary)}
+.checkbox.checked svg{display:block}
+.checkbox svg{display:none;color:#fff}
+
+/* Segmented toggle */
+.seg-toggle{display:flex;background:var(--brand-mist);border-radius:var(--radius-brand);padding:3px;gap:2px}
+.seg-btn{font-family:var(--font-family-display);font-size:11px;font-weight:700;letter-spacing:var(--tracking-wide);text-transform:uppercase;padding:6px 12px;border-radius:6px;color:var(--brand-steel);transition:all var(--duration-fast) var(--ease-brand);flex:1;text-align:center;border:none;background:none;cursor:pointer}
+.seg-btn.active{background:#fff;color:var(--brand-primary);box-shadow:var(--shadow-brand-sm)}
+.seg-btn:not(.active):hover{color:var(--brand-ink)}
+
+/* Divider */
+.divider{height:1px;background:var(--brand-divider);margin:var(--spacing-md) 0}
+
+/* Spacing utilities */
+.gap-sm{gap:var(--spacing-sm)}
+.gap-md{gap:var(--spacing-md)}
+.mb-sm{margin-bottom:var(--spacing-sm)}
+.mb-md{margin-bottom:var(--spacing-md)}
+.mb-lg{margin-bottom:var(--spacing-lg)}
+.p-md{padding:var(--spacing-md)}
+.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-between{justify-content:space-between}.flex-1{flex:1}.flex-wrap{flex-wrap:wrap}
+.text-sm{font-size:12px}.text-steel{color:var(--brand-steel)}.font-display{font-family:var(--font-family-display)}.font-bold{font-weight:700}
+.w-full{width:100%}
+
+/* Screen placeholder style */
+.screen-placeholder{padding:var(--spacing-xxl);text-align:center;color:var(--brand-steel);font-family:var(--font-family-display);font-size:20px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- Top bar -->
+  <header class="shell-topbar">
+    <div class="shell-logo">TR&#8803;INOWAY</div>
+    <div class="shell-breadcrumb">
+      Treinador &rsaquo; Anamneses &rsaquo; <span id="breadcrumb-context">Lista</span>
+    </div>
+    <div class="shell-user">
+      <div class="avatar">CM</div>
+      <span class="shell-username">Carlos Mendonça</span>
+    </div>
+  </header>
+
+  <!-- Tab bar -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-screen="lista" onclick="switchScreen('lista')">Lista</button>
+    <button class="tab-btn" data-screen="editor" onclick="switchScreen('editor')">Editor</button>
+    <button class="tab-btn" data-screen="vincular" onclick="switchScreen('vincular')">Vincular</button>
+    <button class="tab-btn" data-screen="respostas" onclick="switchScreen('respostas')">Respostas</button>
+  </nav>
+
+  <!-- Main -->
+  <main class="main-content">
+    <!-- LISTA -->
+    <section id="lista" class="screen active">
+      <div class="frames-wrapper">
+        <div class="frame-container">
+          <div class="frame-label"><div class="frame-label-dot"></div> MOBILE 375</div>
+          <div class="frame frame--mobile" id="lista-mobile">
+            <div class="screen-placeholder">Carregando lista mobile...</div>
+          </div>
+        </div>
+        <div class="frame-container">
+          <div class="frame-label"><div class="frame-label-dot"></div> DESKTOP 1024</div>
+          <div class="frame frame--desktop" id="lista-desktop">
+            <div class="screen-placeholder">Carregando lista desktop...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EDITOR -->
+    <section id="editor" class="screen">
+      <div class="frames-wrapper">
+        <div class="frame-container">
+          <div class="frame-label"><div class="frame-label-dot"></div> MOBILE 375</div>
+          <div class="frame frame--mobile" id="editor-mobile">
+            <div class="screen-placeholder">Carregando editor mobile...</div>
+          </div>
+        </div>
+        <div class="frame-container">
+          <div class="frame-label"><div class="frame-label-dot"></div> DESKTOP 1024</div>
+          <div class="frame frame--desktop" id="editor-desktop">
+            <div class="screen-placeholder">Carregando editor desktop...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VINCULAR -->
+    <section id="vincular" class="screen">
+      <div class="frames-wrapper">
+        <div class="frame-container">
+          <div class="frame-label"><div class="frame-label-dot"></div> MOBILE 375</div>
+          <div class="frame frame--mobile" id="vincular-mobile">
+            <div class="screen-placeholder">Carregando vincular mobile...</div>
+          </div>
+        </div>
+        <div class="frame-container">
+          <div class="frame-label"><div class="frame-label-dot"></div> DESKTOP 1024</div>
+          <div class="frame frame--desktop" id="vincular-desktop">
+            <div class="screen-placeholder">Carregando vincular desktop...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESPOSTAS -->
+    <section id="respostas" class="screen">
+      <div class="frames-wrapper">
+        <div class="frame-container">
+          <div class="frame-label"><div class="frame-label-dot"></div> MOBILE 375</div>
+          <div class="frame frame--mobile" id="respostas-mobile">
+            <div class="screen-placeholder">Carregando respostas mobile...</div>
+          </div>
+        </div>
+        <div class="frame-container">
+          <div class="frame-label"><div class="frame-label-dot"></div> DESKTOP 1024</div>
+          <div class="frame frame--desktop" id="respostas-desktop">
+            <div class="screen-placeholder">Carregando respostas desktop...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Overlay (confirm dialog example) -->
+<div class="overlay" id="confirm-overlay" style="display:none" onclick="closeOverlay(event)">
+  <div class="confirm-dialog" onclick="event.stopPropagation()">
+    <div class="confirm-dialog-title">Confirmar reatribuição</div>
+    <p class="confirm-dialog-message">Maria Santos já possui esta anamnese respondida. Vincular novamente irá sobrescrever a resposta anterior. Esta ação não pode ser desfeita.</p>
+    <div class="btn-group">
+      <button class="btn btn-danger" style="flex:1" onclick="closeOverlayDirect()">Sobrescrever</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="closeOverlayDirect()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Screen switching ----
+const SCREENS = ['lista','editor','vincular','respostas'];
+const BREADCRUMBS = {lista:'Lista',editor:'Saúde & Histórico Clínico',vincular:'João Silva › Vincular',respostas:'João Silva › Respostas'};
+
+function switchScreen(name) {
+  SCREENS.forEach(s => {
+    document.getElementById(s).classList.toggle('active', s === name);
+    const btn = document.querySelector(`[data-screen="${s}"]`);
+    if(btn) btn.classList.toggle('active', s === name);
+  });
+  document.getElementById('breadcrumb-context').textContent = BREADCRUMBS[name] || name;
+  location.hash = name;
+}
+
+// Row menus
+function toggleMenu(id) {
+  const el = document.getElementById(id);
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.row-menu-dropdown.open').forEach(d => d.classList.remove('open'));
+  if(!isOpen) el.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('.row-menu-wrap')) {
+    document.querySelectorAll('.row-menu-dropdown.open').forEach(d => d.classList.remove('open'));
+  }
+});
+
+// Alert banners
+function toggleAlert(id) {
+  const banner = document.getElementById(id);
+  const body = document.getElementById(id + '-body');
+  if(!banner || !body) return;
+  banner.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+// Filter chips
+function toggleChip(el) {
+  const group = el.closest('.filter-chips');
+  group.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Student checkboxes
+function toggleStudent(el) {
+  const wrap = el.closest('.checkbox-wrap');
+  const box = wrap.querySelector('.checkbox');
+  box.classList.toggle('checked');
+  updateVincularCounter();
+}
+
+function updateVincularCounter() {
+  const checked = document.querySelectorAll('#vincular-desktop .checkbox.checked, #vincular-mobile .checkbox.checked');
+  const unique = new Set([...checked].map(c => c.dataset.student));
+  const n = unique.size;
+  document.querySelectorAll('.vincular-counter').forEach(el => el.textContent = n + ' ALUNOS SELECIONADOS');
+  document.querySelectorAll('.vincular-btn').forEach(el => {
+    el.textContent = 'VINCULAR A ' + n + ' ALUNOS';
+    el.disabled = n === 0;
+  });
+}
+
+// Overlay
+function openOverlay() { document.getElementById('confirm-overlay').style.display = 'flex'; }
+function closeOverlay(e) { if(e.target === document.getElementById('confirm-overlay')) closeOverlayDirect(); }
+function closeOverlayDirect() { document.getElementById('confirm-overlay').style.display = 'none'; }
+
+// Seg toggle (editor mobile)
+function switchEditorTab(tab, el) {
+  const wrap = el.closest('.seg-toggle');
+  wrap.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const frame = el.closest('.frame');
+  frame.querySelectorAll('.editor-tab-panel').forEach(p => p.style.display = 'none');
+  const target = frame.querySelector('#editor-tab-' + tab);
+  if(target) target.style.display = 'block';
+}
+
+// Vincular seg toggle (mobile)
+function switchVincularTab(tab, el) {
+  const wrap = el.closest('.seg-toggle');
+  wrap.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const frame = el.closest('.frame');
+  frame.querySelectorAll('.vincular-tab-panel').forEach(p => p.style.display = 'none');
+  const target = frame.querySelector('#vincular-tab-' + tab);
+  if(target) target.style.display = 'block';
+}
+
+// Boot: read hash
+window.addEventListener('DOMContentLoaded', () => {
+  const hash = location.hash.replace('#','');
+  if(SCREENS.includes(hash)) switchScreen(hash);
+  else switchScreen('lista');
+  buildLista();
+  buildEditor();
+  buildVincular();
+  buildRespostas();
+});
+
+// ---- SVG helpers ----
+function svgPlus(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`}
+function svgMore(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>`}
+function svgSearch(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`}
+function svgAlert(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`}
+function svgChevron(s=16,dir='down'){const r=dir==='up'?'180':dir==='left'?'90':dir==='right'?'-90':'0';return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${r}deg)"><polyline points="6 9 12 15 18 9"/></svg>`}
+function svgCheck(s=14){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`}
+function svgGrip(s=14){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>`}
+function svgFile(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`}
+function svgUsers(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`}
+function svgSend(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`}
+function svgEye(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`}
+function svgDownload(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`}
+function svgRefresh(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`}
+function svgEdit(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`}
+function svgCopy(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`}
+function svgArchive(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`}
+function svgTrash(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`}
+function svgType(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`}
+function svgToggle(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="5" width="22" height="14" rx="7"/><circle cx="16" cy="12" r="3"/></svg>`}
+function svgList(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`}
+function svgHash(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>`}
+function svgGrid(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`}
+function svgNum(s=16){return`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`}
+
+// ---- BUILD FUNCTIONS (populated in next edits) ----
+function buildLista() {
+  const templates = [
+    {id:1,name:'Anamnese Geral',sub:'V3 · Atualizada 08 Abr 2026',origin:'MINHA',originClass:'badge-primary',alunos:23,rate:'87%',tempo:'8min',version:'v3'},
+    {id:2,name:'Saúde & Histórico Clínico',sub:'V2 · Atualizada 12 Abr 2026',origin:'MINHA',originClass:'badge-primary',alunos:15,rate:'73%',tempo:'12min',version:'v2'},
+    {id:3,name:'Perfil de Treino',sub:'V1 · Criada 01 Mar 2026',origin:'GERAL',originClass:'badge-accent',alunos:47,rate:'91%',tempo:'5min',version:'v1'},
+    {id:4,name:'Avaliação Nutricional',sub:'V1 · Atualizada 05 Abr 2026',origin:'DERIVADA',originClass:'badge-neutral',alunos:9,rate:'56%',tempo:'15min',version:'v1'},
+    {id:5,name:'Retorno Pós-Lesão',sub:'V2 · Atualizada 18 Abr 2026',origin:'MINHA',originClass:'badge-primary',alunos:4,rate:'100%',tempo:'10min',version:'v2'},
+  ];
+
+  function rowMenu(id) {
+    return `<div class="row-menu-wrap">
+      <button class="row-menu-trigger" onclick="toggleMenu('rm-${id}');event.stopPropagation();">${svgMore()}</button>
+      <div class="row-menu-dropdown" id="rm-${id}">
+        <button class="row-menu-item" onclick="switchScreen('editor')">${svgEdit(14)} Editar</button>
+        <button class="row-menu-item">${svgCopy(14)} Duplicar</button>
+        <button class="row-menu-item">${svgRefresh(14)} Nova versão</button>
+        <div class="row-menu-divider"></div>
+        <button class="row-menu-item">${svgArchive(14)} Arquivar</button>
+        <button class="row-menu-item row-menu-item--danger">${svgTrash(14)} Excluir</button>
+      </div>
+    </div>`;
+  }
+
+  function desktopRow(t, idx) {
+    return `<div class="rich-row" onclick="switchScreen('editor')" style="gap:12px">
+      <div class="rich-row-main" style="min-width:0;flex:1">
+        <div class="rich-row-title">${t.name}</div>
+        <div class="eyebrow" style="font-size:9px;color:var(--brand-steel)">${t.sub}</div>
+      </div>
+      <span class="badge ${t.originClass}">${t.origin}</span>
+      <div class="rich-row-stats" style="gap:20px">
+        <div class="inline-stat">
+          <span class="inline-stat-value">${t.alunos}</span>
+          <span class="inline-stat-label">Alunos</span>
+        </div>
+        <div class="inline-stat">
+          <span class="inline-stat-value">${t.rate}</span>
+          <span class="inline-stat-label">Taxa</span>
+        </div>
+        <div class="inline-stat">
+          <span class="inline-stat-value">${t.tempo}</span>
+          <span class="inline-stat-label">Tempo</span>
+        </div>
+      </div>
+      <span class="badge badge-neutral" style="font-size:11px;padding:4px 8px">${t.version}</span>
+      ${rowMenu('d'+idx)}
+    </div>`;
+  }
+
+  function mobileCard(t, idx) {
+    return `<div class="card mb-sm" style="border-radius:var(--radius-brand)">
+      <div class="card-body" style="padding:12px">
+        <div class="flex items-center justify-between mb-sm">
+          <span class="badge ${t.originClass}">${t.origin}</span>
+          <div class="flex items-center gap-sm">
+            <span class="badge badge-neutral">${t.version}</span>
+            ${rowMenu('m'+idx)}
+          </div>
+        </div>
+        <div style="font-family:var(--font-family-display);font-size:14px;font-weight:600;color:var(--brand-ink);margin-bottom:2px">${t.name}</div>
+        <div class="eyebrow" style="margin-bottom:10px">${t.sub}</div>
+        <div class="flex" style="gap:16px;border-top:1px solid var(--brand-divider);padding-top:10px">
+          <div class="inline-stat"><span class="inline-stat-value">${t.alunos}</span><span class="inline-stat-label">Alunos</span></div>
+          <div class="inline-stat"><span class="inline-stat-value">${t.rate}</span><span class="inline-stat-label">Taxa</span></div>
+          <div class="inline-stat"><span class="inline-stat-value">${t.tempo}</span><span class="inline-stat-label">Tempo</span></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const sharedStats = `
+    <div class="stat-row" style="margin-bottom:var(--spacing-md)">
+      <div class="stat-tile">
+        <div class="stat-eyebrow">${svgFile(12)} Templates Ativos</div>
+        <div class="stat-value">12</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-eyebrow">${svgUsers(12)} Alunos c/ Anamnese</div>
+        <div class="stat-value">47</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-eyebrow"><div class="stat-dot"></div> Pendentes</div>
+        <div class="stat-value stat-value--accent">8</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-eyebrow">Respondidas 7D</div>
+        <div class="stat-value">14 <span class="stat-trend">+23%</span></div>
+      </div>
+    </div>`;
+
+  const alertBanner = `
+    <div class="alert-banner alert-banner--health mb-md" id="lista-alert" onclick="toggleAlert('lista-alert')">
+      ${svgAlert(16)}
+      <div class="alert-content">
+        <strong>3 respostas com alertas de saúde</strong> — revisar antes do próximo treino
+      </div>
+      <span class="alert-banner-chevron">${svgChevron(14)}</span>
+    </div>
+    <div class="alert-body" id="lista-alert-body">
+      <ul>
+        <li>João Silva — Hérnia de disco L4-L5 (Saúde & Histórico Clínico)</li>
+        <li>Maria Santos — Uso contínuo de anti-hipertensivo (Anamnese Geral)</li>
+        <li>Pedro Costa — Alergia grave a amendoim (Avaliação Nutricional)</li>
+      </ul>
+    </div>`;
+
+  // Desktop
+  document.getElementById('lista-desktop').innerHTML = `
+    <div style="padding:var(--spacing-lg)">
+      ${sharedStats}
+      ${alertBanner}
+      <!-- Toolbar -->
+      <div class="toolbar mb-md" style="gap:var(--spacing-sm)">
+        <div class="search-input-wrap">
+          ${svgSearch(14)}
+          <input type="text" placeholder="Buscar anamnese...">
+        </div>
+        <div class="filter-chips">
+          <button class="filter-chip active" onclick="toggleChip(this)">Todos</button>
+          <button class="filter-chip" onclick="toggleChip(this)">Meus</button>
+          <button class="filter-chip" onclick="toggleChip(this)">Gerais</button>
+          <button class="filter-chip" onclick="toggleChip(this)">Rascunho</button>
+          <button class="filter-chip" onclick="toggleChip(this)">Arquivados</button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <button class="btn btn-primary" onclick="switchScreen('editor')">${svgPlus(14)} Nova Anamnese</button>
+      </div>
+      <!-- List -->
+      <div class="rich-list">
+        <div style="display:flex;align-items:center;padding:8px 16px;background:var(--brand-mist);border-bottom:1px solid var(--brand-divider)">
+          <div class="eyebrow" style="flex:1">Template</div>
+          <div style="width:80px"></div>
+          <div class="eyebrow" style="width:220px;text-align:right;padding-right:8px">Telemetria</div>
+          <div class="eyebrow" style="width:48px;text-align:center">Versão</div>
+          <div style="width:40px"></div>
+        </div>
+        ${templates.map((t,i) => desktopRow(t,i)).join('')}
+      </div>
+    </div>`;
+
+  // Mobile
+  document.getElementById('lista-mobile').innerHTML = `
+    <div style="padding:var(--spacing-md)">
+      <div class="flex" style="gap:var(--spacing-sm);margin-bottom:var(--spacing-md);flex-wrap:wrap">
+        <div class="stat-tile" style="min-width:0;flex:1;padding:10px 12px">
+          <div class="stat-eyebrow" style="font-size:9px">Ativos</div>
+          <div class="stat-value" style="font-size:24px">12</div>
+        </div>
+        <div class="stat-tile" style="min-width:0;flex:1;padding:10px 12px">
+          <div class="stat-eyebrow" style="font-size:9px;display:flex;align-items:center;gap:3px"><div class="stat-dot" style="width:6px;height:6px"></div>Pendentes</div>
+          <div class="stat-value stat-value--accent" style="font-size:24px">8</div>
+        </div>
+      </div>
+      <div class="alert-banner alert-banner--health mb-md" style="font-size:12px">
+        ${svgAlert(14)} <div><strong>3 alertas</strong> — revisar respostas</div>
+      </div>
+      <div class="toolbar mb-md">
+        <div class="search-input-wrap" style="max-width:100%;flex:1">
+          ${svgSearch(14)}<input type="text" placeholder="Buscar...">
+        </div>
+        <button class="btn btn-primary btn-sm">${svgPlus(12)}</button>
+      </div>
+      <div class="filter-chips mb-md" style="gap:6px">
+        <button class="filter-chip active" style="font-size:10px;padding:5px 10px" onclick="toggleChip(this)">Todos</button>
+        <button class="filter-chip" style="font-size:10px;padding:5px 10px" onclick="toggleChip(this)">Meus</button>
+        <button class="filter-chip" style="font-size:10px;padding:5px 10px" onclick="toggleChip(this)">Gerais</button>
+      </div>
+      ${templates.map((t,i) => mobileCard(t,i)).join('')}
+    </div>`;
+}
+function buildEditor() {
+  const outlineHTML = `
+    <div style="padding:var(--spacing-md);border-right:1px solid var(--brand-divider);width:280px;flex-shrink:0;display:flex;flex-direction:column;min-height:500px">
+      <div class="eyebrow" style="margin-bottom:var(--spacing-sm)">Seções</div>
+      <!-- Section 1 -->
+      <div style="margin-bottom:var(--spacing-xs)">
+        <div style="display:flex;align-items:center;gap:6px;padding:8px;border-radius:var(--radius-brand);cursor:pointer;color:var(--brand-steel)" onmouseover="this.style.background='var(--brand-mist)'" onmouseout="this.style.background='none'">
+          <span style="color:var(--brand-divider)">${svgGrip(12)}</span>
+          <span style="flex:1;font-size:13px;font-weight:600;color:var(--brand-ink)">Dados Gerais</span>
+          <span class="badge badge-neutral" style="font-size:9px">4</span>
+        </div>
+      </div>
+      <!-- Section 2 — selected -->
+      <div style="margin-bottom:var(--spacing-xs);background:var(--color-primary-container);border-radius:var(--radius-brand)">
+        <div style="display:flex;align-items:center;gap:6px;padding:8px;border-radius:var(--radius-brand);cursor:pointer">
+          <span style="color:var(--brand-primary)">${svgGrip(12)}</span>
+          <span style="flex:1;font-size:13px;font-weight:700;color:var(--brand-primary)">Histórico Clínico</span>
+          <span class="badge badge-primary" style="font-size:9px">7</span>
+        </div>
+        <!-- Questions under selected section -->
+        <div style="padding:0 8px 8px 24px;display:flex;flex-direction:column;gap:2px">
+          ${['Doenças crônicas?','Cirurgias anteriores?','Uso de medicamentos?','Dores frequentes?','Pressão arterial?','Histórico familiar?','Alergias alimentares?'].map((q,i)=>`
+            <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12px;${i===0?'background:#fff;font-weight:600;color:var(--brand-primary);box-shadow:var(--shadow-brand-sm)':'color:var(--brand-steel)'}" onmouseover="if(${i!==0})this.style.background='rgba(10,95,204,.06)'" onmouseout="if(${i!==0})this.style.background='none'">
+              <span style="color:var(--brand-divider)">${svgGrip(10)}</span>${q}
+            </div>`).join('')}
+        </div>
+      </div>
+      <!-- Section 3 -->
+      <div style="margin-bottom:var(--spacing-xs)">
+        <div style="display:flex;align-items:center;gap:6px;padding:8px;border-radius:var(--radius-brand);cursor:pointer;color:var(--brand-steel)" onmouseover="this.style.background='var(--brand-mist)'" onmouseout="this.style.background='none'">
+          <span style="color:var(--brand-divider)">${svgGrip(12)}</span>
+          <span style="flex:1;font-size:13px;font-weight:600;color:var(--brand-ink)">Rotina e Treino</span>
+          <span class="badge badge-neutral" style="font-size:9px">5</span>
+        </div>
+      </div>
+      <div style="margin-top:auto;padding-top:var(--spacing-md);border-top:1px solid var(--brand-divider)">
+        <button class="btn btn-secondary w-full btn-sm">${svgPlus(12)} Nova seção</button>
+      </div>
+    </div>`;
+
+  const canvasHTML = `
+    <div style="flex:1;padding:var(--spacing-lg);background:var(--brand-mist);overflow:auto">
+      <!-- Question card -->
+      <div style="background:#fff;border-radius:var(--radius-brand);box-shadow:var(--shadow-brand-md);padding:var(--spacing-lg);margin-bottom:var(--spacing-md)">
+        <div class="eyebrow" style="margin-bottom:var(--spacing-xs);color:var(--brand-steel)">SIM / NÃO · OBRIGATÓRIA</div>
+        <div style="font-family:var(--font-family-display);font-size:22px;font-weight:700;color:var(--brand-ink);margin-bottom:var(--spacing-md);line-height:1.2" contenteditable="true">Você possui alguma doença crônica?</div>
+        <div style="display:flex;align-items:center;gap:var(--spacing-md);margin-bottom:var(--spacing-md)">
+          <div class="toggle-wrap">
+            <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            <span class="toggle-label">Obrigatória</span>
+          </div>
+          <div class="toggle-wrap">
+            <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            <span class="toggle-label">Lógica condicional</span>
+          </div>
+        </div>
+        <!-- Answer options -->
+        <div style="display:flex;gap:var(--spacing-sm);margin-bottom:var(--spacing-md)">
+          <div style="flex:1;padding:10px 16px;border:2px solid var(--brand-primary);border-radius:var(--radius-brand);font-weight:600;text-align:center;background:var(--color-primary-container);color:var(--brand-primary)">Sim</div>
+          <div style="flex:1;padding:10px 16px;border:1px solid var(--brand-divider);border-radius:var(--radius-brand);font-weight:600;text-align:center;color:var(--brand-steel)">Não</div>
+        </div>
+        <!-- Conditional follow-up -->
+        <div style="background:var(--brand-mist);border-radius:var(--radius-brand);padding:var(--spacing-md);border-left:3px solid var(--brand-accent)">
+          <div class="eyebrow" style="margin-bottom:var(--spacing-xs);color:var(--brand-accent)">Se SIM — pergunta de acompanhamento</div>
+          <div style="font-size:14px;color:var(--brand-ink)">Se sim, quais doenças? Descreva brevemente.</div>
+          <div style="margin-top:var(--spacing-sm);font-size:11px;color:var(--brand-steel)">Tipo: Texto livre · Não obrigatória</div>
+        </div>
+      </div>
+      <!-- Helper text -->
+      <div style="background:#fff;border-radius:var(--radius-brand);padding:var(--spacing-md);box-shadow:var(--shadow-brand-sm)">
+        <label class="form-label">Texto de Apoio (opcional)</label>
+        <textarea class="form-input form-textarea" style="min-height:60px" placeholder="Ex: Inclua condições como diabetes, hipertensão, doenças cardíacas..."></textarea>
+      </div>
+      <!-- Nav arrows -->
+      <div style="display:flex;justify-content:space-between;margin-top:var(--spacing-md)">
+        <button class="btn btn-ghost btn-sm">${svgChevron(14,'left')} Anterior</button>
+        <span style="font-size:12px;color:var(--brand-steel);align-self:center">1 de 7</span>
+        <button class="btn btn-ghost btn-sm">Próxima ${svgChevron(14,'right')}</button>
+      </div>
+    </div>`;
+
+  const libraryHTML = `
+    <div style="width:240px;flex-shrink:0;border-left:1px solid var(--brand-divider);padding:var(--spacing-md);overflow-y:auto">
+      <div class="eyebrow" style="margin-bottom:var(--spacing-sm)">Tipos de Pergunta</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-xs);margin-bottom:var(--spacing-md)">
+        ${[
+          {icon:svgType()   ,label:'Texto Livre'},
+          {icon:svgToggle() ,label:'Sim / Não'},
+          {icon:svgList()   ,label:'Escolha Única'},
+          {icon:svgList()   ,label:'Múltipla Escolha'},
+          {icon:svgNum()    ,label:'Numérico'},
+          {icon:svgGrid()   ,label:'Matriz'},
+        ].map(t=>`
+          <div style="padding:10px 6px;border:1px solid var(--brand-divider);border-radius:var(--radius-brand);text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all var(--duration-fast) var(--ease-brand);color:var(--brand-steel)" onmouseover="this.style.borderColor='var(--brand-primary)';this.style.color='var(--brand-primary)';this.style.background='var(--color-primary-container)'" onmouseout="this.style.borderColor='var(--brand-divider)';this.style.color='var(--brand-steel)';this.style.background='none'">
+            ${t.icon}
+            <span style="font-family:var(--font-family-display);font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase">${t.label}</span>
+          </div>`).join('')}
+      </div>
+      <div class="divider"></div>
+      <div class="eyebrow" style="margin-bottom:var(--spacing-sm)">Presets Sugeridos</div>
+      ${['Histórico familiar de diabetes','Uso de medicamentos','Alergias alimentares'].map(p=>`
+        <div style="padding:8px;border-radius:var(--radius-brand);font-size:12px;color:var(--brand-ink);cursor:pointer;border:1px solid var(--brand-divider);margin-bottom:6px;display:flex;align-items:center;gap:6px;transition:all var(--duration-fast) var(--ease-brand)" onmouseover="this.style.borderColor='var(--brand-primary)';this.style.background='var(--color-primary-container)'" onmouseout="this.style.borderColor='var(--brand-divider)';this.style.background='none'">
+          ${svgPlus(12)}<span>${p}</span>
+        </div>`).join('')}
+    </div>`;
+
+  const editorHeader = `
+    <div style="padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--brand-divider);background:#fff;display:flex;align-items:center;gap:var(--spacing-md);flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <div class="eyebrow" style="margin-bottom:2px">Treinador › Anamneses › Editor</div>
+        <div style="display:flex;align-items:center;gap:var(--spacing-sm)">
+          <div style="font-family:var(--font-family-display);font-size:20px;font-weight:700;color:var(--brand-ink)" contenteditable="true">Saúde &amp; Histórico Clínico</div>
+          <span class="badge badge-neutral">v2</span>
+          <span class="badge badge-warning">Em uso por 23 alunos</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--spacing-sm);flex-shrink:0">
+        <span style="font-size:11px;color:var(--brand-steel);display:flex;align-items:center;gap:4px">${svgCheck(11)} Salvo há 2s</span>
+        <button class="btn btn-ghost btn-sm">${svgEye(12)} Pré-visualizar</button>
+        <button class="btn btn-secondary btn-sm">${svgRefresh(12)} Nova versão</button>
+        <button class="btn btn-primary btn-sm">${svgSend(12)} Publicar</button>
+      </div>
+    </div>`;
+
+  // Desktop editor
+  document.getElementById('editor-desktop').innerHTML = `
+    <div style="background:#fff">
+      ${editorHeader}
+      <div style="display:flex;height:600px">
+        ${outlineHTML}
+        ${canvasHTML}
+        ${libraryHTML}
+      </div>
+    </div>`;
+
+  // Mobile editor
+  document.getElementById('editor-mobile').innerHTML = `
+    <div style="background:#fff">
+      <div style="padding:var(--spacing-md);border-bottom:1px solid var(--brand-divider)">
+        <div class="eyebrow" style="margin-bottom:2px">Editor</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:var(--spacing-sm)">
+          <div style="font-family:var(--font-family-display);font-size:16px;font-weight:700;flex:1">Saúde &amp; Histórico Clínico</div>
+          <span class="badge badge-neutral">v2</span>
+        </div>
+        <span class="badge badge-warning" style="margin-bottom:var(--spacing-sm);display:inline-flex">Em uso por 23 alunos</span>
+        <div style="display:flex;gap:6px;margin-bottom:var(--spacing-sm)">
+          <button class="btn btn-ghost btn-sm" style="flex:1">${svgEye(12)} Preview</button>
+          <button class="btn btn-primary btn-sm" style="flex:1">${svgSend(12)} Publicar</button>
+        </div>
+        <div class="seg-toggle">
+          <button class="seg-btn" onclick="switchEditorTab('outline',this)">Outline</button>
+          <button class="seg-btn active" onclick="switchEditorTab('canvas',this)">Canvas</button>
+          <button class="seg-btn" onclick="switchEditorTab('tipos',this)">Tipos</button>
+        </div>
+      </div>
+      <!-- Tab panels -->
+      <div id="editor-tab-outline" class="editor-tab-panel" style="display:none;padding:var(--spacing-md)">
+        <div class="eyebrow" style="margin-bottom:var(--spacing-sm)">Seções</div>
+        ${['Dados Gerais','Histórico Clínico','Rotina e Treino'].map((s,i)=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:var(--radius-brand);margin-bottom:4px;${i===1?'background:var(--color-primary-container)':''}border:1px solid var(--brand-divider);cursor:pointer">
+            ${svgGrip(12)}
+            <span style="flex:1;font-size:13px;font-weight:600;color:${i===1?'var(--brand-primary)':'var(--brand-ink)'}">${s}</span>
+            <span class="badge badge-neutral" style="font-size:9px">${[4,7,5][i]}</span>
+          </div>`).join('')}
+      </div>
+      <div id="editor-tab-canvas" class="editor-tab-panel" style="display:block;padding:var(--spacing-md)">
+        <div style="background:var(--brand-mist);border-radius:var(--radius-brand);padding:var(--spacing-md)">
+          <div class="eyebrow" style="margin-bottom:6px;color:var(--brand-steel)">SIM / NÃO · OBRIGATÓRIA</div>
+          <div style="font-family:var(--font-family-display);font-size:16px;font-weight:700;margin-bottom:var(--spacing-md)">Você possui alguma doença crônica?</div>
+          <div style="display:flex;gap:8px;margin-bottom:var(--spacing-md)">
+            <div style="flex:1;padding:10px;border:2px solid var(--brand-primary);border-radius:var(--radius-brand);text-align:center;font-weight:600;background:var(--color-primary-container);color:var(--brand-primary)">Sim</div>
+            <div style="flex:1;padding:10px;border:1px solid var(--brand-divider);border-radius:var(--radius-brand);text-align:center;font-weight:600;color:var(--brand-steel)">Não</div>
+          </div>
+          <div class="toggle-wrap" style="margin-bottom:var(--spacing-sm)">
+            <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            <span class="toggle-label">Obrigatória</span>
+          </div>
+          <div style="background:#fff;border-radius:var(--radius-brand);padding:var(--spacing-sm);border-left:3px solid var(--brand-accent);font-size:12px;color:var(--brand-steel)">
+            <strong style="color:var(--brand-accent)">Se SIM:</strong> Se sim, quais doenças?
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:var(--spacing-md)">
+          <button class="btn btn-ghost btn-sm">${svgChevron(12,'left')} Ant.</button>
+          <span style="font-size:11px;color:var(--brand-steel);align-self:center">1/7</span>
+          <button class="btn btn-ghost btn-sm">Próx. ${svgChevron(12,'right')}</button>
+        </div>
+      </div>
+      <div id="editor-tab-tipos" class="editor-tab-panel" style="display:none;padding:var(--spacing-md)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${[{icon:svgType(),label:'Texto Livre'},{icon:svgToggle(),label:'Sim / Não'},{icon:svgList(),label:'Escolha Única'},{icon:svgList(),label:'Múltipla'},{icon:svgNum(),label:'Numérico'},{icon:svgGrid(),label:'Matriz'}].map(t=>`
+            <div style="padding:12px 8px;border:1px solid var(--brand-divider);border-radius:var(--radius-brand);text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--brand-steel)">
+              ${t.icon}<span style="font-family:var(--font-family-display);font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase">${t.label}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div style="padding:var(--spacing-sm) var(--spacing-md);border-top:1px solid var(--brand-divider);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:11px;color:var(--brand-steel);display:flex;align-items:center;gap:4px">${svgCheck(10)} Salvo há 2s</span>
+        <button class="btn btn-secondary btn-sm">${svgRefresh(10)} Nova versão</button>
+      </div>
+    </div>`;
+}
+function buildVincular() {
+  const students = [
+    {id:'JS',name:'João Silva',email:'joao@email.com',color:'#0A5FCC',checked:true,hasAnamnese:false},
+    {id:'MS',name:'Maria Santos',email:'maria@email.com',color:'#FF6B1A',checked:true,hasAnamnese:true},
+    {id:'PC',name:'Pedro Costa',email:'pedro@email.com',color:'#2E7D32',checked:true,hasAnamnese:false},
+    {id:'AR',name:'Ana Ribeiro',email:'ana@email.com',color:'#7B1FA2',checked:false,hasAnamnese:false},
+    {id:'LO',name:'Lucas Oliveira',email:'lucas@email.com',color:'#B55A02',checked:false,hasAnamnese:false},
+    {id:'BL',name:'Beatriz Lima',email:'beatriz@email.com',color:'#0097A7',checked:false,hasAnamnese:false},
+  ];
+
+  function studentRow(s, prefix) {
+    return `<div class="checkbox-wrap" onclick="toggleStudent(this);event.stopPropagation()" style="border-bottom:1px solid var(--brand-divider);border-radius:0;padding:10px 16px">
+      <div class="checkbox ${s.checked?'checked':''}" data-student="${s.id}">${s.checked?svgCheck(10):''}</div>
+      <div class="avatar" style="background:${s.color};width:36px;height:36px;font-size:13px;flex-shrink:0">${s.id}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;color:var(--brand-ink)">${s.name}</div>
+        <div style="font-size:11px;color:var(--brand-steel)">${s.email}</div>
+      </div>
+      ${s.hasAnamnese?`<span class="badge badge-warning" style="font-size:9px;flex-shrink:0">Já respondida</span>`:''}
+    </div>`;
+  }
+
+  const previewCard = `
+    <div style="background:var(--brand-mist);border-radius:var(--radius-brand);padding:var(--spacing-md);margin-bottom:var(--spacing-md)">
+      <div class="eyebrow" style="margin-bottom:var(--spacing-xs)">Template Selecionado</div>
+      <div style="font-family:var(--font-family-display);font-size:16px;font-weight:700;color:var(--brand-ink);margin-bottom:4px">Saúde &amp; Histórico Clínico</div>
+      <div style="display:flex;gap:var(--spacing-sm);flex-wrap:wrap">
+        <span class="badge badge-neutral">v2</span>
+        <span style="font-size:12px;color:var(--brand-steel)">3 seções · 16 perguntas</span>
+      </div>
+    </div>`;
+
+  const configFields = `
+    <div style="margin-bottom:var(--spacing-md)">
+      <label class="form-label">Data Limite (opcional)</label>
+      <input type="date" class="form-input" value="2026-04-30">
+    </div>
+    <div style="margin-bottom:var(--spacing-md)">
+      <label class="form-label">Mensagem ao Aluno (opcional)</label>
+      <textarea class="form-input form-textarea" style="min-height:90px" placeholder="Mensagem personalizada...">Preencha com calma antes do nosso próximo encontro. Qualquer dúvida, fale comigo!</textarea>
+    </div>
+    <div style="padding:var(--spacing-md);background:var(--brand-mist);border-radius:var(--radius-brand);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--brand-ink)">Notificar por e-mail</div>
+        <div style="font-size:11px;color:var(--brand-steel)">Aluno receberá link por e-mail</div>
+      </div>
+      <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+    </div>`;
+
+  const stickyFooter = (mobile=false) => `
+    <div style="padding:var(--spacing-md) var(--spacing-lg);background:#fff;border-top:1px solid var(--brand-divider);display:flex;align-items:center;gap:var(--spacing-sm);${mobile?'':'position:sticky;bottom:0'}">
+      <span class="badge badge-primary vincular-counter" style="font-size:11px">3 ALUNOS SELECIONADOS</span>
+      <div style="flex:1"></div>
+      <button class="btn btn-secondary btn-sm">Cancelar</button>
+      <button class="btn btn-primary btn-sm vincular-btn">VINCULAR A 3 ALUNOS</button>
+    </div>`;
+
+  // Confirm dialog overlay trigger hint
+  const conflictNote = `
+    <div style="background:var(--color-warning-container);border-radius:var(--radius-brand);padding:var(--spacing-sm) var(--spacing-md);font-size:12px;color:var(--color-warning);margin-bottom:var(--spacing-md);display:flex;gap:6px;align-items:flex-start;border:1px solid rgba(181,90,2,.2)">
+      ${svgAlert(14)}
+      <span><strong>Maria Santos</strong> já tem esta anamnese respondida. <button onclick="openOverlay()" style="background:none;border:none;font-weight:700;color:var(--color-warning);cursor:pointer;text-decoration:underline;padding:0;font-size:12px">Clique para revisar</button> antes de vincular.</span>
+    </div>`;
+
+  // Desktop
+  document.getElementById('vincular-desktop').innerHTML = `
+    <div style="display:flex;flex-direction:column;height:700px">
+      <div style="padding:var(--spacing-md) var(--spacing-lg);border-bottom:1px solid var(--brand-divider);background:#fff">
+        <div class="eyebrow" style="margin-bottom:4px">Treinador › Alunos › Vincular Anamnese</div>
+        <div style="display:flex;align-items:center;gap:var(--spacing-sm)">
+          <div style="font-family:var(--font-family-display);font-size:18px;font-weight:700">Vincular Anamnese a Alunos</div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;overflow:hidden">
+        <!-- Left: student selector -->
+        <div style="width:360px;flex-shrink:0;border-right:1px solid var(--brand-divider);display:flex;flex-direction:column">
+          <div style="padding:var(--spacing-md);border-bottom:1px solid var(--brand-divider)">
+            <div class="search-input-wrap" style="max-width:100%">${svgSearch(14)}<input type="text" placeholder="Buscar aluno..."></div>
+          </div>
+          <div style="flex:1;overflow-y:auto">
+            ${students.map(s => studentRow(s,'d')).join('')}
+          </div>
+        </div>
+        <!-- Right: config -->
+        <div style="flex:1;padding:var(--spacing-lg);overflow-y:auto">
+          ${previewCard}
+          ${conflictNote}
+          ${configFields}
+        </div>
+      </div>
+      ${stickyFooter()}
+    </div>`;
+
+  // Mobile
+  document.getElementById('vincular-mobile').innerHTML = `
+    <div style="display:flex;flex-direction:column;min-height:600px">
+      <div style="padding:var(--spacing-md);border-bottom:1px solid var(--brand-divider);background:#fff">
+        <div class="eyebrow" style="margin-bottom:4px">Vincular Anamnese</div>
+        <div style="font-family:var(--font-family-display);font-size:15px;font-weight:700;margin-bottom:var(--spacing-sm)">Saúde &amp; Histórico Clínico</div>
+        <div class="seg-toggle">
+          <button class="seg-btn active" onclick="switchVincularTab('alunos',this)">Alunos</button>
+          <button class="seg-btn" onclick="switchVincularTab('config',this)">Config.</button>
+        </div>
+      </div>
+      <div id="vincular-tab-alunos" class="vincular-tab-panel" style="display:block;flex:1;overflow-y:auto">
+        <div style="padding:var(--spacing-md);border-bottom:1px solid var(--brand-divider)">
+          <div class="search-input-wrap" style="max-width:100%">${svgSearch(14)}<input type="text" placeholder="Buscar aluno..."></div>
+        </div>
+        ${students.map(s => studentRow(s,'m')).join('')}
+      </div>
+      <div id="vincular-tab-config" class="vincular-tab-panel" style="display:none;padding:var(--spacing-md)">
+        ${previewCard}
+        ${conflictNote}
+        ${configFields}
+      </div>
+      ${stickyFooter(true)}
+    </div>`;
+}
+function buildRespostas() {
+  const hero = `
+    <div style="background:var(--brand-slate);color:#fff;padding:var(--spacing-lg)">
+      <div style="display:flex;align-items:flex-start;gap:var(--spacing-md);margin-bottom:var(--spacing-md)">
+        <div class="avatar avatar--lg" style="background:var(--brand-primary);flex-shrink:0">JS</div>
+        <div>
+          <div style="font-family:var(--font-family-display);font-size:22px;font-weight:700;line-height:1.1;margin-bottom:4px">João Silva</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--spacing-sm)">
+            <span class="badge" style="background:rgba(255,255,255,.15);color:#fff">32 anos</span>
+            <span class="badge" style="background:rgba(255,255,255,.15);color:#fff">Hipertrofia</span>
+            <span class="badge" style="background:rgba(255,255,255,.15);color:#fff">2 anos de treino</span>
+          </div>
+          <!-- Compact stats row -->
+          <div style="display:flex;gap:var(--spacing-md);flex-wrap:wrap">
+            ${[{l:'Peso',v:'84',u:'KG'},{l:'Altura',v:'178',u:'CM'},{l:'IMC',v:'26.5',u:''},{l:'Idade',v:'32',u:''}].map(s=>`
+              <div>
+                <div style="font-family:var(--font-family-display);font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--stadium-text-muted);margin-bottom:1px">${s.l}</div>
+                <div style="font-family:var(--font-family-stat);font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;line-height:1">${s.v}<span style="font-size:11px;margin-left:2px;color:var(--stadium-text-muted)">${s.u}</span></div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <!-- Meta bar -->
+      <div style="display:flex;align-items:center;gap:var(--spacing-md);flex-wrap:wrap;padding-top:var(--spacing-md);border-top:1px solid rgba(255,255,255,.12)">
+        <div style="font-size:11px;color:var(--stadium-text-muted);letter-spacing:0.06em;text-transform:uppercase;font-family:var(--font-family-display);font-weight:600">
+          Respondida em 15 Abr · V2 do Template · Atualizada 3 vezes
+        </div>
+        <button class="btn btn-ghost btn-sm" style="color:var(--stadium-text);border:1px solid rgba(255,255,255,.2)">${svgRefresh(12)} Comparar com anterior</button>
+      </div>
+    </div>`;
+
+  const alertBanner = `
+    <div style="padding:0 var(--spacing-lg);background:#fff">
+      <div class="alert-banner alert-banner--health" id="respostas-alert" onclick="toggleAlert('respostas-alert')" style="margin:var(--spacing-md) 0 0 0">
+        ${svgAlert(16)}
+        <div class="alert-content"><strong>3 PONTOS DE ATENÇÃO</strong> — revisar antes do próximo treino</div>
+        <span class="alert-banner-chevron">${svgChevron(14)}</span>
+      </div>
+      <div class="alert-body open" id="respostas-alert-body" style="max-height:200px;padding:0 0 0 8px">
+        <ul style="padding:var(--spacing-sm) 0 var(--spacing-sm) var(--spacing-lg)">
+          <li style="margin-bottom:4px"><strong>Hérnia de disco L4-L5</strong> — histórico de lesão na coluna</li>
+          <li style="margin-bottom:4px"><strong>Losartana 50mg</strong> — uso contínuo de anti-hipertensivo</li>
+          <li><strong>Alergia grave a amendoim</strong> — alergia alimentar severa</li>
+        </ul>
+      </div>
+    </div>`;
+
+  const sectionNav = `
+    <div style="width:220px;flex-shrink:0;border-right:1px solid var(--brand-divider);padding:var(--spacing-md)">
+      <div class="eyebrow" style="margin-bottom:var(--spacing-sm)">Seções</div>
+      ${[
+        {label:'Dados Gerais',count:0,icon:svgFile(14)},
+        {label:'Histórico Clínico',count:3,icon:svgAlert(14)},
+        {label:'Rotina e Treino',count:0,icon:svgList(14)},
+      ].map((s,i)=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:var(--radius-brand);margin-bottom:4px;cursor:pointer;${i===0?'background:var(--color-primary-container);':''}transition:background var(--duration-fast) var(--ease-brand)" onmouseover="if(${i!==0})this.style.background='var(--brand-mist)'" onmouseout="if(${i!==0})this.style.background='none'">
+          <span style="color:${i===0?'var(--brand-primary)':'var(--brand-steel)'}">${s.icon}</span>
+          <span style="flex:1;font-size:13px;font-weight:${i===0?'700':'500'};color:${i===0?'var(--brand-primary)':'var(--brand-ink)'}">${s.label}</span>
+          ${s.count>0?`<span style="background:var(--color-error);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:var(--radius-full)">${s.count}</span>`:''}
+        </div>`).join('')}
+    </div>`;
+
+  const qaBlock = (question, answerHtml, flag=false, highlight=false) => `
+    <div style="margin-bottom:var(--spacing-md);padding-bottom:var(--spacing-md);border-bottom:1px solid var(--brand-divider)">
+      <div style="display:flex;align-items:flex-start;gap:var(--spacing-sm);margin-bottom:6px">
+        <div style="font-size:13px;font-weight:600;color:var(--brand-steel);flex:1">${question}</div>
+        ${flag?`<span class="badge badge-error" style="font-size:9px;flex-shrink:0">${svgAlert(10)} Atenção</span>`:''}
+      </div>
+      ${answerHtml}
+    </div>`;
+
+  const sections = `
+    <!-- Dados Gerais -->
+    <div style="margin-bottom:var(--spacing-lg)">
+      <div style="font-family:var(--font-family-display);font-size:14px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--brand-steel);margin-bottom:var(--spacing-md);padding-bottom:var(--spacing-sm);border-bottom:2px solid var(--brand-divider)">Dados Gerais</div>
+      ${qaBlock('Qual é o seu peso atual?',`<div style="display:inline-flex;align-items:baseline;gap:4px"><span style="font-family:var(--font-family-stat);font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--brand-ink)">84</span><span style="font-family:var(--font-family-display);font-size:12px;font-weight:700;text-transform:uppercase;color:var(--brand-steel)">KG</span></div>`)}
+      ${qaBlock('Qual é a sua altura?',`<div style="display:inline-flex;align-items:baseline;gap:4px"><span style="font-family:var(--font-family-stat);font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--brand-ink)">178</span><span style="font-family:var(--font-family-display);font-size:12px;font-weight:700;text-transform:uppercase;color:var(--brand-steel)">CM</span></div>`)}
+      ${qaBlock('Qual é o seu objetivo principal?',`<blockquote style="border-left:3px solid var(--brand-primary);padding:var(--spacing-sm) var(--spacing-md);background:var(--color-primary-container);border-radius:0 var(--radius-brand) var(--radius-brand) 0;font-size:14px;color:var(--brand-ink);margin:0">Ganho de massa muscular, principalmente no upper body. Quero aumentar a definição para o verão.</blockquote>`)}
+    </div>
+    <!-- Histórico Clínico -->
+    <div style="margin-bottom:var(--spacing-lg)">
+      <div style="font-family:var(--font-family-display);font-size:14px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--brand-steel);margin-bottom:var(--spacing-md);padding-bottom:var(--spacing-sm);border-bottom:2px solid var(--color-error)" id="historico">Histórico Clínico</div>
+      ${qaBlock('Você possui alguma doença crônica?',`<div style="display:flex;align-items:center;gap:8px"><div style="padding:8px 16px;border:2px solid var(--color-error);border-radius:var(--radius-brand);font-weight:700;color:var(--color-error);background:var(--color-error-container)">Sim</div></div>`,true)}
+      ${qaBlock('Se sim, quais doenças?',`<blockquote style="border-left:3px solid var(--brand-accent);padding:var(--spacing-sm) var(--spacing-md);background:var(--brand-accent-container);border-radius:0 var(--radius-brand) var(--radius-brand) 0;font-size:14px;color:var(--brand-ink);margin:0">Hipertensão arterial sistêmica (diagnosticada em 2021). Controlada com medicação.</blockquote>`,false)}
+      ${qaBlock('Usa medicamentos de uso contínuo?',`<div style="display:flex;flex-direction:column;gap:6px"><div style="padding:8px 16px;border:2px solid var(--color-error);border-radius:var(--radius-brand);font-weight:700;color:var(--color-error);background:var(--color-error-container);display:inline-block">Sim</div><blockquote style="border-left:3px solid var(--brand-accent);padding:var(--spacing-sm) var(--spacing-md);background:var(--brand-accent-container);border-radius:0 var(--radius-brand) var(--radius-brand) 0;font-size:14px;color:var(--brand-ink);margin:0">Losartana 50mg — 1x ao dia pela manhã.</blockquote></div>`,true)}
+      ${qaBlock('Possui histórico de lesões?',`<div style="display:flex;flex-direction:column;gap:6px"><div style="padding:8px 16px;border:2px solid var(--color-error);border-radius:var(--radius-brand);font-weight:700;color:var(--color-error);background:var(--color-error-container);display:inline-block">Sim</div><blockquote style="border-left:3px solid var(--brand-accent);padding:var(--spacing-sm) var(--spacing-md);background:var(--brand-accent-container);border-radius:0 var(--radius-brand) var(--radius-brand) 0;font-size:14px;color:var(--brand-ink);margin:0">Hérnia de disco L4-L5. Operado em 2019. Evito movimentos de flexão extrema da coluna.</blockquote></div>`,true)}
+      ${qaBlock('Possui alergias alimentares?',`<div style="display:flex;gap:6px;flex-wrap:wrap"><span style="padding:6px 12px;border-radius:var(--radius-full);border:2px solid var(--color-error);background:var(--color-error-container);color:var(--color-error);font-size:13px;font-weight:600">Amendoim</span><span style="padding:6px 12px;border-radius:var(--radius-full);border:1px solid var(--brand-divider);background:var(--brand-mist);color:var(--brand-steel);font-size:13px">Frutos do mar</span></div>`,true)}
+    </div>
+    <!-- Rotina e Treino -->
+    <div style="margin-bottom:var(--spacing-lg)">
+      <div style="font-family:var(--font-family-display);font-size:14px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--brand-steel);margin-bottom:var(--spacing-md);padding-bottom:var(--spacing-sm);border-bottom:2px solid var(--brand-divider)">Rotina e Treino</div>
+      ${qaBlock('Frequência e disponibilidade de treino (matriz)',`
+        <div style="overflow-x:auto;margin-top:4px">
+          <table style="border-collapse:collapse;font-size:12px;min-width:100%">
+            <thead><tr>
+              <th style="padding:6px 10px;text-align:left;background:var(--brand-mist);font-family:var(--font-family-display);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;border:1px solid var(--brand-divider)">Período</th>
+              ${['Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=>`<th style="padding:6px 10px;text-align:center;background:var(--brand-mist);font-family:var(--font-family-display);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;border:1px solid var(--brand-divider)">${d}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${[['Manhã','✓','✓','','✓','',''],['Tarde','','','✓','','✓',''],['Noite','','','','','','✓']].map(r=>`<tr>
+                ${r.map((c,i)=>`<td style="padding:6px 10px;border:1px solid var(--brand-divider);text-align:${i===0?'left':'center'};font-weight:${c==='✓'?'700':'400'};color:${c==='✓'?'var(--color-success)':'var(--brand-steel)'}${i===0?';font-weight:500':''}">${c||'-'}</td>`).join('')}
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`)}
+    </div>`;
+
+  const actionsBar = `
+    <div style="padding:var(--spacing-md) var(--spacing-lg);background:#fff;border-top:1px solid var(--brand-divider);display:flex;gap:var(--spacing-sm);flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm">${svgDownload(12)} Exportar PDF</button>
+      <button class="btn btn-ghost btn-sm">${svgSend(12)} Enviar para Dietista</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-primary">${svgCheck(14)} Marcar como Revisada</button>
+    </div>`;
+
+  // Desktop
+  document.getElementById('respostas-desktop').innerHTML = `
+    <div style="display:flex;flex-direction:column">
+      ${hero}
+      ${alertBanner}
+      <div style="display:flex;flex:1;overflow:hidden">
+        ${sectionNav}
+        <div style="flex:1;overflow-y:auto;padding:var(--spacing-lg);max-height:580px">
+          ${sections}
+        </div>
+      </div>
+      ${actionsBar}
+    </div>`;
+
+  // Mobile
+  const mobileStepper = `
+    <div style="display:flex;overflow-x:auto;padding:var(--spacing-sm) var(--spacing-md);gap:var(--spacing-sm);border-bottom:1px solid var(--brand-divider);scrollbar-width:none;background:#fff">
+      ${[{label:'Dados Gerais',count:0},{label:'Hist. Clínico',count:3},{label:'Rotina',count:0}].map((s,i)=>`
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;cursor:pointer">
+          <div style="width:28px;height:28px;border-radius:var(--radius-full);${i===0?'background:var(--brand-primary);color:#fff':i===1?'background:var(--color-error);color:#fff':'background:var(--brand-divider);color:var(--brand-steel)'};display:flex;align-items:center;justify-content:center;font-family:var(--font-family-display);font-size:11px;font-weight:700;position:relative">
+            ${i+1}
+            ${s.count>0?`<span style="position:absolute;top:-4px;right:-4px;background:var(--color-error);color:#fff;font-size:8px;font-weight:700;width:14px;height:14px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;border:2px solid #fff">${s.count}</span>`:''}
+          </div>
+          <div style="font-family:var(--font-family-display);font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${i===0?'var(--brand-primary)':i===1?'var(--color-error)':'var(--brand-steel)'};white-space:nowrap">${s.label}</div>
+        </div>
+        ${i<2?`<div style="width:24px;height:1px;background:var(--brand-divider);align-self:flex-start;margin-top:14px;flex-shrink:0"></div>`:''}`).join('')}
+    </div>`;
+
+  document.getElementById('respostas-mobile').innerHTML = `
+    <div>
+      <!-- Compact hero -->
+      <div style="background:var(--brand-slate);color:#fff;padding:var(--spacing-md)">
+        <div style="display:flex;align-items:center;gap:var(--spacing-md);margin-bottom:var(--spacing-sm)">
+          <div class="avatar" style="background:var(--brand-primary);width:48px;height:48px;font-size:16px;flex-shrink:0">JS</div>
+          <div>
+            <div style="font-family:var(--font-family-display);font-size:18px;font-weight:700">João Silva</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">
+              <span class="badge" style="background:rgba(255,255,255,.15);color:#fff;font-size:9px">32 anos</span>
+              <span class="badge" style="background:rgba(255,255,255,.15);color:#fff;font-size:9px">Hipertrofia</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:var(--spacing-md)">
+          ${[{l:'Peso',v:'84kg'},{l:'Altura',v:'178cm'},{l:'IMC',v:'26.5'}].map(s=>`<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--stadium-text-muted)">${s.l}</div><div style="font-family:var(--font-family-stat);font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;color:#fff">${s.v}</div></div>`).join('')}
+        </div>
+        <div style="margin-top:var(--spacing-sm);padding-top:var(--spacing-sm);border-top:1px solid rgba(255,255,255,.12);font-size:10px;color:var(--stadium-text-muted);font-family:var(--font-family-display);letter-spacing:0.06em;text-transform:uppercase">Respondida 15 Abr · V2 · 3 atualizações</div>
+      </div>
+      <!-- Alerts (collapsed) -->
+      <div style="padding:var(--spacing-sm) var(--spacing-md);background:#fff">
+        <div class="alert-banner alert-banner--health" id="respostas-m-alert" onclick="toggleAlert('respostas-m-alert')" style="margin:0">
+          ${svgAlert(14)}<div class="alert-content"><strong>3 pontos de atenção</strong></div>
+          <span class="alert-banner-chevron">${svgChevron(12)}</span>
+        </div>
+        <div class="alert-body" id="respostas-m-alert-body">
+          <ul><li>Hérnia de disco L4-L5</li><li>Losartana 50mg</li><li>Alergia a amendoim</li></ul>
+        </div>
+      </div>
+      ${mobileStepper}
+      <div style="padding:var(--spacing-md)">
+        ${sections}
+      </div>
+      <div style="padding:var(--spacing-md);border-top:1px solid var(--brand-divider);display:flex;flex-direction:column;gap:var(--spacing-sm)">
+        <button class="btn btn-primary w-full">${svgCheck(14)} Marcar como Revisada</button>
+        <div style="display:flex;gap:var(--spacing-sm)">
+          <button class="btn btn-ghost btn-sm" style="flex:1">${svgDownload(12)} PDF</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1">${svgSend(12)} Dietista</button>
+        </div>
+      </div>
+    </div>`
+}
+</script>
+</body>
+</html>
