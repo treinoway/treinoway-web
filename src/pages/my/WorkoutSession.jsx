@@ -394,6 +394,7 @@ ExerciseLogCard.propTypes = {
     exercise: PropTypes.shape({
       name: PropTypes.string,
       notes: PropTypes.string,
+      videoUrl: PropTypes.string,
     }),
     setLogs: PropTypes.array,
   }).isRequired,

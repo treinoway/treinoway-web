@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -87,6 +88,20 @@ const PointHistoryList = ({ transactions, page, pageCount, onPageChange }) => {
       )}
     </>
   );
+};
+
+PointsSummaryCard.propTypes = {
+  summary: PropTypes.shape({
+    totalPoints: PropTypes.number,
+    breakdown: PropTypes.object,
+  }),
+};
+
+PointHistoryList.propTypes = {
+  transactions: PropTypes.array.isRequired,
+  page: PropTypes.number.isRequired,
+  pageCount: PropTypes.number.isRequired,
+  onPageChange: PropTypes.func.isRequired,
 };
 
 const MyChallengeDetail = () => {

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
 import { ANAMNESIS_QUESTION_TYPE } from '../constants/anamnesis';
 
@@ -191,6 +192,58 @@ const AnamnesisPreviewModal = ({ anamnesis, open, onClose }) => {
       </div>
     </div>
   );
+};
+
+const questionShape = PropTypes.shape({
+  id: PropTypes.string,
+  type: PropTypes.string,
+  text: PropTypes.string,
+  required: PropTypes.bool,
+  options: PropTypes.arrayOf(PropTypes.shape({ text: PropTypes.string })),
+  config: PropTypes.shape({
+    min: PropTypes.number,
+    max: PropTypes.number,
+    unit: PropTypes.string,
+    rows: PropTypes.arrayOf(PropTypes.string),
+    columns: PropTypes.arrayOf(PropTypes.string),
+  }),
+});
+
+PreviewSingleChoice.propTypes = {
+  options: PropTypes.arrayOf(PropTypes.shape({ text: PropTypes.string })),
+};
+
+PreviewMultipleChoice.propTypes = {
+  options: PropTypes.arrayOf(PropTypes.shape({ text: PropTypes.string })),
+};
+
+PreviewNumeric.propTypes = {
+  config: PropTypes.shape({
+    min: PropTypes.number,
+    max: PropTypes.number,
+    unit: PropTypes.string,
+  }),
+};
+
+PreviewMatrix.propTypes = {
+  config: PropTypes.shape({
+    rows: PropTypes.arrayOf(PropTypes.string),
+    columns: PropTypes.arrayOf(PropTypes.string),
+  }),
+};
+
+AnamnesisPreviewModal.propTypes = {
+  anamnesis: PropTypes.shape({
+    title: PropTypes.string,
+    sections: PropTypes.arrayOf(PropTypes.shape({
+      id: PropTypes.string,
+      title: PropTypes.string,
+      order: PropTypes.number,
+      questions: PropTypes.arrayOf(questionShape),
+    })),
+  }).isRequired,
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
 };
 
 export default AnamnesisPreviewModal;

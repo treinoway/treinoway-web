@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import {
   emptyStudents,
   emptyTrainings,
@@ -30,6 +31,12 @@ const BrandIllustration = ({ name, className = '', size = 200 }) => {
       className={`brand-illustration${className ? ` ${className}` : ''}`}
     />
   );
+};
+
+BrandIllustration.propTypes = {
+  name: PropTypes.string.isRequired,
+  className: PropTypes.string,
+  size: PropTypes.number,
 };
 
 export default BrandIllustration;

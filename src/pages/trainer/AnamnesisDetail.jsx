@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -68,6 +69,13 @@ const ToggleSwitch = ({ on, onChange, disabled, label }) => (
     <span className="toggle-label">{label}</span>
   </div>
 );
+
+ToggleSwitch.propTypes = {
+  on: PropTypes.bool.isRequired,
+  onChange: PropTypes.func.isRequired,
+  disabled: PropTypes.bool,
+  label: PropTypes.string,
+};
 
 /* ── CanvasQuestionCard ──────────────────────────────────── */
 
@@ -308,6 +316,24 @@ const CanvasQuestionCard = ({ question, sectionId, anamnesisId, isGeneral, autoF
   );
 };
 
+CanvasQuestionCard.propTypes = {
+  question: PropTypes.shape({
+    id: PropTypes.string,
+    text: PropTypes.string,
+    type: PropTypes.string,
+    required: PropTypes.bool,
+    options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
+    config: PropTypes.shape({ min: PropTypes.number, max: PropTypes.number, unit: PropTypes.string, rows: PropTypes.array, columns: PropTypes.array }),
+  }).isRequired,
+  sectionId: PropTypes.string.isRequired,
+  anamnesisId: PropTypes.string.isRequired,
+  isGeneral: PropTypes.bool,
+  autoFocus: PropTypes.bool,
+  onAutoFocusConsumed: PropTypes.func,
+  onUpdated: PropTypes.func.isRequired,
+  onDeleteQuestion: PropTypes.func.isRequired,
+};
+
 /* ── OutlineSectionItem ──────────────────────────────────── */
 
 const OutlineSectionItem = ({
@@ -458,6 +484,24 @@ const OutlineSectionItem = ({
   );
 };
 
+OutlineSectionItem.propTypes = {
+  section: PropTypes.shape({
+    id: PropTypes.string,
+    title: PropTypes.string,
+    description: PropTypes.string,
+    questions: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
+  }).isRequired,
+  isActive: PropTypes.bool,
+  isGeneral: PropTypes.bool,
+  selectedQuestionId: PropTypes.string,
+  onSelectSection: PropTypes.func.isRequired,
+  onSelectQuestion: PropTypes.func.isRequired,
+  onDeleteSection: PropTypes.func.isRequired,
+  onEditSection: PropTypes.func.isRequired,
+  onDeleteQuestion: PropTypes.func.isRequired,
+  dragHandlers: PropTypes.object,
+};
+
 /* ── CanvasEmptyBoard ────────────────────────────────────── */
 
 const CanvasEmptyBoard = ({ variant, section, isGeneral, onAddSection, onAddQuestion, onPresetClick, savingSection, sectionForm, onSectionFormChange }) => {
@@ -542,6 +586,20 @@ const CanvasEmptyBoard = ({ variant, section, isGeneral, onAddSection, onAddQues
   );
 };
 
+CanvasEmptyBoard.propTypes = {
+  variant: PropTypes.string,
+  section: PropTypes.shape({
+    title: PropTypes.string,
+  }),
+  isGeneral: PropTypes.bool,
+  onAddSection: PropTypes.func,
+  onAddQuestion: PropTypes.func,
+  onPresetClick: PropTypes.func,
+  savingSection: PropTypes.bool,
+  sectionForm: PropTypes.shape({ title: PropTypes.string }),
+  onSectionFormChange: PropTypes.func,
+};
+
 /* ── AnamnesisDetail (main) ──────────────────────────────── */
 
 const AnamnesisDetail = () => {
@@ -622,6 +680,7 @@ const AnamnesisDetail = () => {
       setShowSectionForm(false);
       await fetchAnamnesis({ silent: true });
       setSelectedSectionId(response.data.id ?? null);
+      setSelectedQuestionId(null);
     } catch (error) {
       if (isStudentLinksConflict(error)) {
         setForkConflictDialog(true);

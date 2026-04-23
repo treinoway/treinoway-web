@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import PropTypes from 'prop-types';
 import { Upload } from 'lucide-react';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -79,6 +80,15 @@ const BrandingAssetUpload = ({
       }
     </div>
   );
+};
+
+BrandingAssetUpload.propTypes = {
+  label: PropTypes.string.isRequired,
+  description: PropTypes.string,
+  currentUrl: PropTypes.string,
+  onFileSelect: PropTypes.func.isRequired,
+  aspect: PropTypes.string,
+  isUploading: PropTypes.bool,
 };
 
 export default BrandingAssetUpload;

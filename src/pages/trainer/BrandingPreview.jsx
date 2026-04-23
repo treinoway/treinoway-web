@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Eye, Image, Info } from 'lucide-react';
 
 const BrandingPreview = ({ logoUrl, coverUrl, primaryColor, welcomeMessage }) => {
@@ -45,6 +46,13 @@ const BrandingPreview = ({ logoUrl, coverUrl, primaryColor, welcomeMessage }) =>
       </div>
     </div>
   );
+};
+
+BrandingPreview.propTypes = {
+  logoUrl: PropTypes.string,
+  coverUrl: PropTypes.string,
+  primaryColor: PropTypes.string,
+  welcomeMessage: PropTypes.string,
 };
 
 export default BrandingPreview;

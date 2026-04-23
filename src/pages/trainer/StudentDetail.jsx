@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, X } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
@@ -146,6 +147,10 @@ const ProtocolsTab = ({ studentId }) => {
       )}
     </div>
   );
+};
+
+ProtocolsTab.propTypes = {
+  studentId: PropTypes.string.isRequired,
 };
 
 const AnamnesisTab = ({ studentId }) => {
@@ -379,6 +384,10 @@ const AnamnesisTab = ({ studentId }) => {
       )}
     </div>
   );
+};
+
+AnamnesisTab.propTypes = {
+  studentId: PropTypes.string.isRequired,
 };
 
 const TABS = [

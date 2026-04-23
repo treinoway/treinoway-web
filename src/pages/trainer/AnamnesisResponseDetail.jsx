@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Printer, FileText } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
@@ -190,6 +191,22 @@ const DossierSection = ({ section, answerMap, sectionRef }) => {
       })}
     </div>
   );
+};
+
+HeroStat.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  unit: PropTypes.string,
+};
+
+DossierSection.propTypes = {
+  section: PropTypes.shape({
+    id: PropTypes.string,
+    title: PropTypes.string,
+    questions: PropTypes.array,
+  }).isRequired,
+  answerMap: PropTypes.object.isRequired,
+  sectionRef: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
 };
 
 // ─── Main component ──────────────────────────────────────────────────────────

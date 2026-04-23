@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { Check, LogOut, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -60,6 +61,11 @@ const SectionHeader = ({ title, emptyCount }) => (
     )}
   </div>
 );
+
+SectionHeader.propTypes = {
+  title: PropTypes.string.isRequired,
+  emptyCount: PropTypes.number.isRequired,
+};
 
 const Profile = () => {
   const { user, updateUser, refreshUser, hasRole, logout } = useAuth();
@@ -125,7 +131,7 @@ useEffect(() => {
         },
       });
     }
-  }, [user]);
+  }, [user, editing]);
 
   const handleCepLookup = async (cep) => {
     const cleanCep = cep.replace(/\D/g, '');

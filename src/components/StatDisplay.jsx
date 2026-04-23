@@ -6,6 +6,8 @@ const resolveTrendDirection = (trend, trendDirection) => {
   return 'neutral';
 };
 
+import PropTypes from 'prop-types';
+
 const StatDisplay = ({ value, unit, label, trend, trendDirection, variant = 'default', className }) => {
   const resolvedDirection = resolveTrendDirection(trend, trendDirection);
 
@@ -33,6 +35,16 @@ const StatDisplay = ({ value, unit, label, trend, trendDirection, variant = 'def
       </div>
     </div>
   );
+};
+
+StatDisplay.propTypes = {
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  unit: PropTypes.string,
+  label: PropTypes.string,
+  trend: PropTypes.string,
+  trendDirection: PropTypes.oneOf(['up', 'down', 'neutral']),
+  variant: PropTypes.string,
+  className: PropTypes.string,
 };
 
 export default StatDisplay;

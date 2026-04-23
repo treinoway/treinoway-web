@@ -73,7 +73,7 @@ describe('ProtocolTemplates', () => {
   it('shows loading state initially', () => {
     api.get.mockImplementation(() => new Promise(() => {}));
     renderWithRouter(<ProtocolTemplates />);
-    expect(screen.getByText('Carregando...')).toBeInTheDocument();
+    expect(screen.getByText('Carregando…')).toBeInTheDocument();
   });
 
   it('shows error toast when fetch fails', async () => {
@@ -99,7 +99,7 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhuma rotina ainda')).toBeInTheDocument();
+      expect(screen.getByText('Sem rotinas ainda')).toBeInTheDocument();
     });
   });
 
@@ -172,7 +172,7 @@ describe('ProtocolTemplates', () => {
 
     expect(api.delete).toHaveBeenCalledWith('/trainer/protocol-templates/1');
     await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith('Rotina excluída com sucesso!', 'success');
+      expect(mockShowToast).toHaveBeenCalledWith('Rotina excluída.', 'success');
     });
   });
 
@@ -223,7 +223,7 @@ describe('ProtocolTemplates', () => {
 
     const menuBtn = screen.getAllByRole('button', { name: /ações da rotina/i })[0];
     await user.click(menuBtn);
-    await user.click(screen.getByRole('button', { name: /editar/i }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/protocol-templates/1/edit');
   });

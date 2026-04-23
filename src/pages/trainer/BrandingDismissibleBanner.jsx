@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Sparkles, ChevronRight, X } from 'lucide-react';
 
 const BrandingDismissibleBanner = ({ onHowItWorks, onDismiss }) => {
@@ -20,6 +21,11 @@ const BrandingDismissibleBanner = ({ onHowItWorks, onDismiss }) => {
       </button>
     </div>
   );
+};
+
+BrandingDismissibleBanner.propTypes = {
+  onHowItWorks: PropTypes.func.isRequired,
+  onDismiss: PropTypes.func.isRequired,
 };
 
 export default BrandingDismissibleBanner;

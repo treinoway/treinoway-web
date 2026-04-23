@@ -620,6 +620,107 @@ describe('AnamnesisDetail', () => {
     });
   });
 
+  // ── Add section — selectedQuestionId reset ───────────────
+
+  it('after creating a new section the empty-question board for the new section is shown', async () => {
+    const user = userEvent.setup();
+
+    // Start with an anamnesis that has one section with a question already selected
+    const anamnesisWithTwoSections = {
+      ...mockAnamnesis,
+      sections: [
+        ...mockAnamnesis.sections,
+        { id: 'new-section-id', title: 'Atividade Física', order: 2, questions: [] },
+      ],
+    };
+
+    // First GET: original anamnesis (section-1 with q1/q2, section-2 with q3)
+    // Second GET (silent refetch after POST): anamnesis with the new empty section appended
+    api.get
+      .mockResolvedValueOnce({ data: mockAnamnesis })
+      .mockResolvedValue({ data: anamnesisWithTwoSections });
+    api.post.mockResolvedValue({ data: { id: 'new-section-id' } });
+
+    renderAnamnesisDetail();
+
+    // Wait for auto-selection of q1 in section-1
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: /texto da pergunta/i })).toBeInTheDocument()
+    );
+
+    // Open the "Nova seção" form
+    await user.click(screen.getByRole('button', { name: /nova seção/i }));
+    const titleInput = screen.getByRole('textbox', { name: /título da seção/i });
+    await user.type(titleInput, 'Atividade Física');
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }));
+
+    // The canvas must now show the no-question empty board for the new section
+    await waitFor(() => {
+      expect(screen.getByText('Adicione a primeira pergunta')).toBeInTheDocument();
+    });
+
+    // The eyebrow must contain the new section title in uppercase
+    expect(screen.getByText('ATIVIDADE FÍSICA')).toBeInTheDocument();
+
+    // The question editor card must NOT be present (selectedQuestionId was reset)
+    expect(screen.queryByRole('textbox', { name: /texto da pergunta/i })).not.toBeInTheDocument();
+  });
+
+  it('after creating a new section a library tile adds a question to the new section, not the previous one', async () => {
+    const user = userEvent.setup();
+
+    const anamnesisWithTwoSections = {
+      ...mockAnamnesis,
+      sections: [
+        ...mockAnamnesis.sections,
+        { id: 'new-section-id', title: 'Atividade Física', order: 2, questions: [] },
+      ],
+    };
+
+    api.get
+      .mockResolvedValueOnce({ data: mockAnamnesis })
+      .mockResolvedValue({ data: anamnesisWithTwoSections });
+
+    // First POST creates the section, second POST creates the question
+    api.post
+      .mockResolvedValueOnce({ data: { id: 'new-section-id' } })
+      .mockResolvedValue({ data: { id: 'new-q-id' } });
+
+    renderAnamnesisDetail();
+
+    // Wait for q1 to be auto-selected (section-1 active)
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: /texto da pergunta/i })).toBeInTheDocument()
+    );
+
+    // Create the new empty section
+    await user.click(screen.getByRole('button', { name: /nova seção/i }));
+    const titleInput = screen.getByRole('textbox', { name: /título da seção/i });
+    await user.type(titleInput, 'Atividade Física');
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }));
+
+    // Wait for the empty board to appear (proves activeSectionId switched)
+    await waitFor(() =>
+      expect(screen.getByText('Adicione a primeira pergunta')).toBeInTheDocument()
+    );
+
+    // Click a library tile — must POST to the NEW section, not section-1
+    const numericTile = screen.getByRole('button', { name: 'Adicionar pergunta Numérico' });
+    await user.click(numericTile);
+
+    await waitFor(() => {
+      // The second api.post call must target the new section id
+      const questionCall = api.post.mock.calls.find(([url]) =>
+        url.includes('/questions')
+      );
+      expect(questionCall).toBeDefined();
+      expect(questionCall[0]).toBe(
+        '/trainer/anamneses/anamnesis-1/sections/new-section-id/questions',
+      );
+      expect(questionCall[1]).toEqual(expect.objectContaining({ type: 'numeric' }));
+    });
+  });
+
   // ── Add section ──────────────────────────────────────────
 
   it('clicking "Nova seção" shows inline form and submitting calls POST', async () => {

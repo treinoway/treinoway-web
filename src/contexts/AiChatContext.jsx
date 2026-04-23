@@ -126,7 +126,7 @@ export const AiChatProvider = ({ children }) => {
     }
 
     return accumulated;
-  }, [showToast]);
+  }, [showToast, setConversationId]);
 
   const readStream = useCallback(async (reader, decoder) => {
     let buffer = '';
@@ -300,7 +300,7 @@ export const AiChatProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [showToast, user]);
+  }, [showToast, user, setConversationId]);
 
   const clearNewResponse = useCallback(() => {
     setHasNewResponse(false);

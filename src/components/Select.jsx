@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 import { ChevronDown } from 'lucide-react';
 
 /**
@@ -121,3 +122,15 @@ export default function Select({
     </div>
   );
 }
+
+Select.propTypes = {
+  children: PropTypes.node.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onChange: PropTypes.func.isRequired,
+  id: PropTypes.string,
+  name: PropTypes.string,
+  disabled: PropTypes.bool,
+  required: PropTypes.bool,
+  className: PropTypes.string,
+  'aria-label': PropTypes.string,
+};

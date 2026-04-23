@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { LayoutGrid, List, Dumbbell, Info, Activity } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
@@ -19,11 +19,7 @@ const ExerciseTemplates = () => {
   const [viewMode, setViewMode] = usePersistedViewMode(VIEW_MODE_KEYS.exerciseTemplates);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     setTemplatesLoading(true);
     try {
       const response = await api.get('/trainer/exercise-templates');
@@ -33,7 +29,11 @@ const ExerciseTemplates = () => {
     } finally {
       setTemplatesLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
 
   const handleEdit = (template) => {
     setEditingId(template.id);

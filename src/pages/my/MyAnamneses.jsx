@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
@@ -69,6 +70,21 @@ const QuestionItem = ({ question, index }) => {
   );
 };
 
+QuestionItem.propTypes = {
+  question: PropTypes.shape({
+    type: PropTypes.string,
+    text: PropTypes.string,
+    required: PropTypes.bool,
+    config: PropTypes.shape({
+      min: PropTypes.number,
+      max: PropTypes.number,
+      unit: PropTypes.string,
+    }),
+    options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
+  }).isRequired,
+  index: PropTypes.number.isRequired,
+};
+
 const SectionAccordion = ({ section }) => {
   const [expanded, setExpanded] = useState(false);
   const sortedQuestions = [...(section.questions ?? [])].sort((a, b) => a.order - b.order);
@@ -121,6 +137,13 @@ const SectionAccordion = ({ section }) => {
       )}
     </div>
   );
+};
+
+SectionAccordion.propTypes = {
+  section: PropTypes.shape({
+    title: PropTypes.string,
+    questions: PropTypes.array,
+  }).isRequired,
 };
 
 const QuestionAnswerField = ({ question, index, value, onChange, error }) => {
@@ -243,6 +266,21 @@ const QuestionAnswerField = ({ question, index, value, onChange, error }) => {
       {error && <p className="form-error">{error}</p>}
     </div>
   );
+};
+
+QuestionAnswerField.propTypes = {
+  question: PropTypes.shape({
+    id: PropTypes.string,
+    type: PropTypes.string,
+    text: PropTypes.string,
+    required: PropTypes.bool,
+    options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
+    config: PropTypes.shape({ min: PropTypes.number, max: PropTypes.number }),
+  }).isRequired,
+  index: PropTypes.number.isRequired,
+  value: PropTypes.any,
+  onChange: PropTypes.func.isRequired,
+  error: PropTypes.string,
 };
 
 const AnamnesisCard = ({ link }) => {
@@ -446,6 +484,25 @@ const AnamnesisCard = ({ link }) => {
       )}
     </div>
   );
+};
+
+AnamnesisCard.propTypes = {
+  link: PropTypes.shape({
+    anamnesisId: PropTypes.string,
+    createdAt: PropTypes.string,
+    anamnesis: PropTypes.shape({
+      title: PropTypes.string,
+      isGeneral: PropTypes.bool,
+      description: PropTypes.string,
+      sections: PropTypes.array,
+    }),
+    trainer: PropTypes.shape({
+      user: PropTypes.shape({
+        firstName: PropTypes.string,
+        lastName: PropTypes.string,
+      }),
+    }),
+  }).isRequired,
 };
 
 const MyAnamneses = () => {

@@ -497,6 +497,97 @@ describe('Layout', () => {
     });
   });
 
+  // ---------------------------------------------------------------------------
+  // Mode switcher — dual-role users (TRAINER + NUTRITIONIST)
+  // ---------------------------------------------------------------------------
+
+  describe('mode switcher', () => {
+    function setupDualRole() {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' },
+        logout: mockLogout,
+        hasRole: (role) => role === 'TRAINER' || role === 'NUTRITIONIST',
+      });
+    }
+
+    it('renders both mode buttons for dual-role users when sidebar is open', () => {
+      setupDualRole();
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.getByRole('button', { name: /treinador/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /nutricionista/i })).toBeInTheDocument();
+    });
+
+    it('does not render mode switcher for trainer-only users', () => {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' },
+        logout: mockLogout,
+        hasRole: (role) => role === 'TRAINER',
+      });
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.queryByRole('button', { name: /treinador/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /nutricionista/i })).not.toBeInTheDocument();
+    });
+
+    it('mode switcher group has role="group" and aria-label', () => {
+      setupDualRole();
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.getByRole('group', { name: 'Alternar modo' })).toBeInTheDocument();
+    });
+
+    it('Treinador button has aria-pressed=true by default', () => {
+      setupDualRole();
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.getByRole('button', { name: /treinador/i })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: /nutricionista/i })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('clicking Nutricionista switches aria-pressed', async () => {
+      setupDualRole();
+      const user = userEvent.setup();
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      await user.click(screen.getByRole('button', { name: /nutricionista/i }));
+
+      expect(screen.getByRole('button', { name: /nutricionista/i })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: /treinador/i })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('clicking Nutricionista applies the active class to that button', async () => {
+      setupDualRole();
+      const user = userEvent.setup();
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      await user.click(screen.getByRole('button', { name: /nutricionista/i }));
+
+      expect(screen.getByRole('button', { name: /nutricionista/i })).toHaveClass('segmented-toggle-btn--active');
+      expect(screen.getByRole('button', { name: /treinador/i })).not.toHaveClass('segmented-toggle-btn--active');
+    });
+
+    it('mode switcher container carries the mode-switch modifier class', () => {
+      setupDualRole();
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const group = screen.getByRole('group', { name: 'Alternar modo' });
+      expect(group).toHaveClass('segmented-toggle--mode-switch');
+    });
+
+    it('hides mode switcher when sidebar is collapsed', async () => {
+      setupDualRole();
+      const user = userEvent.setup();
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.getByRole('group', { name: 'Alternar modo' })).toBeInTheDocument();
+
+      await user.click(document.querySelector('.sidebar .sidebar-logo-btn'));
+
+      expect(screen.queryByRole('group', { name: 'Alternar modo' })).not.toBeInTheDocument();
+    });
+  });
+
   it('hides student items even when the user has no email set', () => {
       useAuth.mockReturnValue({
         user: { firstName: 'Sem', lastName: 'Email' },

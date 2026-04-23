@@ -31,7 +31,7 @@ import AssignAnamnesis from './pages/trainer/AssignAnamnesis';
 import AnamnesisResponseDetail from './pages/trainer/AnamnesisResponseDetail';
 import AiAssistant from './pages/trainer/AiAssistant';
 import TrainerBranding from './pages/trainer/TrainerBranding';
-import ProtocolTemplateWizard from './pages/trainer/ProtocolTemplateWizard';
+import ProtocolTemplateBuilder from './pages/trainer/ProtocolTemplateBuilder';
 import StudentPoints from './pages/trainer/StudentPoints';
 import Challenges from './pages/trainer/Challenges';
 import CreateChallenge from './pages/trainer/CreateChallenge';
@@ -138,7 +138,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout noPadding>
-                  <ProtocolTemplateWizard />
+                  <ProtocolTemplateBuilder />
                 </Layout>
               </ProtectedRoute>
             }
@@ -158,7 +158,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout noPadding>
-                  <ProtocolTemplateWizard />
+                  <ProtocolTemplateBuilder />
                 </Layout>
               </ProtectedRoute>
             }

@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import PropTypes from 'prop-types';
 import { AlertTriangle } from 'lucide-react';
 
 const BrandingColorPicker = ({ label, value, onChange, optional, contrastWarning }) => {
@@ -34,6 +35,14 @@ const BrandingColorPicker = ({ label, value, onChange, optional, contrastWarning
       )}
     </div>
   );
+};
+
+BrandingColorPicker.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  optional: PropTypes.bool,
+  contrastWarning: PropTypes.bool,
 };
 
 export default BrandingColorPicker;

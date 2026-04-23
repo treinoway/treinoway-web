@@ -124,14 +124,14 @@ const Layout = ({ children, noPadding = false }) => {
         <nav className="sidebar-nav">
           {/* Mode switcher — only for dual-role users (TRAINER + NUTRITIONIST) */}
           {isDualRole && sidebarOpen && (
-            <div className="segmented-toggle" role="group" aria-label="Alternar modo">
+            <div className="segmented-toggle segmented-toggle--mode-switch" role="group" aria-label="Alternar modo">
               <button
                 type="button"
                 className={`segmented-toggle-btn${activeMode === 'trainer' ? ' segmented-toggle-btn--active' : ''}`}
                 onClick={() => setActiveMode('trainer')}
                 aria-pressed={activeMode === 'trainer'}
               >
-                <Dumbbell size={14} strokeWidth={2} />
+                <Dumbbell size={18} strokeWidth={2} />
                 <span>Treinador</span>
               </button>
               <button
@@ -140,7 +140,7 @@ const Layout = ({ children, noPadding = false }) => {
                 onClick={() => setActiveMode('nutritionist')}
                 aria-pressed={activeMode === 'nutritionist'}
               >
-                <Salad size={14} strokeWidth={2} />
+                <Salad size={18} strokeWidth={2} />
                 <span>Nutricionista</span>
               </button>
             </div>
