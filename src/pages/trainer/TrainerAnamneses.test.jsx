@@ -27,16 +27,33 @@ const mockAnamneses = [
     title: 'Anamnese Saúde Geral',
     description: 'Questionário de saúde',
     isGeneral: false,
+    parentId: null,
     version: 1,
     sections: [{ id: 's1' }, { id: 's2' }],
+    updatedAt: '2026-04-08T10:00:00Z',
+    createdAt: '2026-03-01T10:00:00Z',
   },
   {
     id: 'anamnesis-2',
     title: 'Anamnese Geral da Plataforma',
     description: null,
     isGeneral: true,
+    parentId: null,
+    version: 3,
+    sections: [],
+    updatedAt: '2026-04-12T10:00:00Z',
+    createdAt: '2026-01-01T10:00:00Z',
+  },
+  {
+    id: 'anamnesis-3',
+    title: 'Anamnese Derivada',
+    description: null,
+    isGeneral: false,
+    parentId: 'anamnesis-2',
     version: 1,
     sections: [],
+    updatedAt: '2026-04-05T10:00:00Z',
+    createdAt: '2026-04-05T10:00:00Z',
   },
 ];
 
@@ -88,53 +105,159 @@ describe('TrainerAnamneses', () => {
       expect(screen.getByText('Nenhuma anamnese ainda')).toBeInTheDocument();
     });
 
-    const ctaButton = screen.getByRole('button', { name: /criar primeira anamnese/i });
-    expect(ctaButton).toBeInTheDocument();
-
-    await user.click(ctaButton);
-
+    await user.click(screen.getByRole('button', { name: /criar primeira anamnese/i }));
     expect(screen.getByLabelText(/^nome/i)).toBeInTheDocument();
   });
 
-  it('renders anamnesis cards with title and section count', async () => {
+  it('renders 3 anamneses with correct origin badges', async () => {
     api.get.mockResolvedValue({ data: mockAnamneses });
     renderWithRouter(<TrainerAnamneses />);
     await waitFor(() => {
       expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
-      expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
     });
-    expect(screen.getByText('2 seções')).toBeInTheDocument();
-    expect(screen.getByText('0 seções')).toBeInTheDocument();
+    expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
+    expect(screen.getByText('Anamnese Derivada')).toBeInTheDocument();
+    expect(screen.getByText('MINHA')).toBeInTheDocument();
+    expect(screen.getByText('GERAL')).toBeInTheDocument();
+    expect(screen.getByText('DERIVADA')).toBeInTheDocument();
   });
 
-  it('shows "Geral" badge for general anamneses', async () => {
+  it('filters to only own anamneses when "Meus" chip is clicked', async () => {
+    const user = userEvent.setup();
     api.get.mockResolvedValue({ data: mockAnamneses });
     renderWithRouter(<TrainerAnamneses />);
     await waitFor(() => {
-      expect(screen.getByText('Geral')).toBeInTheDocument();
+      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
     });
+
+    await user.click(screen.getByRole('button', { name: /^meus$/i }));
+
+    expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
+    expect(screen.getByText('Anamnese Derivada')).toBeInTheDocument();
+    expect(screen.queryByText('Anamnese Geral da Plataforma')).not.toBeInTheDocument();
   });
 
-  it('hides options menu for general anamneses', async () => {
+  it('filters to only general anamneses when "Gerais" chip is clicked', async () => {
+    const user = userEvent.setup();
     api.get.mockResolvedValue({ data: mockAnamneses });
     renderWithRouter(<TrainerAnamneses />);
     await waitFor(() => {
-      expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
+      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
     });
-    const menus = screen.getAllByRole('button', { name: /opções de/i });
-    expect(menus).toHaveLength(1); // only for non-general
+
+    await user.click(screen.getByRole('button', { name: /^gerais$/i }));
+
+    expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
+    expect(screen.queryByText('Anamnese Saúde Geral')).not.toBeInTheDocument();
+    expect(screen.queryByText('Anamnese Derivada')).not.toBeInTheDocument();
   });
 
-  it('shows "Copiar" button for general anamneses', async () => {
+  it('filters rows by search query (case-insensitive)', async () => {
+    const user = userEvent.setup();
     api.get.mockResolvedValue({ data: mockAnamneses });
     renderWithRouter(<TrainerAnamneses />);
     await waitFor(() => {
-      expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
+      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: /copiar anamnese geral da plataforma/i })).toBeInTheDocument();
+
+    await user.type(screen.getByRole('textbox', { name: /buscar anamnese/i }), 'saúde');
+
+    expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
+    expect(screen.queryByText('Anamnese Geral da Plataforma')).not.toBeInTheDocument();
+    expect(screen.queryByText('Anamnese Derivada')).not.toBeInTheDocument();
   });
 
-  it('calls copy endpoint and navigates on success', async () => {
+  it('navigates to anamnesis detail when row is clicked', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    renderWithRoute(<TrainerAnamneses />, {
+      route: '/trainer/anamneses',
+      path: '/trainer/anamneses',
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /abrir anamnese saúde geral/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('redirected')).toBeInTheDocument();
+    });
+  });
+
+  it('opens confirm dialog when "Excluir" is clicked via row menu', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    renderWithRouter(<TrainerAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+
+    expect(screen.getByText(/excluir "anamnese saúde geral"/i)).toBeInTheDocument();
+  });
+
+  it('calls DELETE and shows toast after confirm delete', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    api.delete.mockResolvedValue({});
+    renderWithRouter(<TrainerAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+
+    await waitFor(() => {
+      expect(api.delete).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1');
+      expect(mockShowToast).toHaveBeenCalledWith('Anamnese excluída com sucesso!', 'success');
+    });
+  });
+
+  it('does not call DELETE when cancel is clicked in confirm dialog', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    renderWithRouter(<TrainerAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(api.delete).not.toHaveBeenCalled();
+  });
+
+  it('calls fork endpoint and navigates on "Nova versão"', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    api.post.mockResolvedValue({ data: { id: 'forked-id' } });
+    renderWithRoute(<TrainerAnamneses />, {
+      route: '/trainer/anamneses',
+      path: '/trainer/anamneses',
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
+    await user.click(screen.getByRole('button', { name: 'Nova versão' }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1/fork');
+      expect(mockShowToast).toHaveBeenCalledWith('Nova versão criada com sucesso!', 'success');
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('redirected')).toBeInTheDocument();
+    });
+  });
+
+  it('calls copy endpoint and navigates when "Duplicar" is clicked on general anamnesis', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: mockAnamneses });
     api.post.mockResolvedValue({ data: { id: 'copied-id' } });
@@ -145,7 +268,10 @@ describe('TrainerAnamneses', () => {
     await waitFor(() => {
       expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
     });
-    await user.click(screen.getByRole('button', { name: /copiar anamnese geral da plataforma/i }));
+
+    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Geral da Plataforma' }));
+    await user.click(screen.getByRole('button', { name: 'Duplicar' }));
+
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-2/copy');
       expect(mockShowToast).toHaveBeenCalledWith('Anamnese copiada com sucesso!', 'success');
@@ -155,69 +281,45 @@ describe('TrainerAnamneses', () => {
     });
   });
 
-  it('shows error toast when copy fails', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: mockAnamneses });
-    const error = { userMessage: 'Erro ao copiar' };
-    api.post.mockRejectedValue(error);
-    renderWithRouter(<TrainerAnamneses />);
-    await waitFor(() => {
-      expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: /copiar anamnese geral da plataforma/i }));
-    await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith('Erro ao copiar', 'error');
-    });
-  });
-
-  it('shows the create form when "Criar primeira anamnese" is clicked', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: [] });
-    renderWithRouter(<TrainerAnamneses />);
-    await waitFor(() => {
-      expect(screen.queryByText(/carregando/i)).not.toBeInTheDocument();
-    });
-    await user.click(screen.getByText('+ Criar primeira anamnese'));
-    expect(screen.getByLabelText(/^nome/i)).toBeInTheDocument();
-  });
-
-  it('after creating, navigates to the anamnesis detail page', async () => {
+  it('submitting create form calls POST and navigates to new anamnesis', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: [] });
     api.post.mockResolvedValue({ data: { id: 'new-id' } });
-
     renderWithRoute(<TrainerAnamneses />, {
       route: '/trainer/anamneses',
       path: '/trainer/anamneses',
     });
-
     await waitFor(() => {
       expect(screen.queryByText(/carregando/i)).not.toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('+ Criar primeira anamnese'));
+    await user.click(screen.getByRole('button', { name: /criar primeira anamnese/i }));
     await user.type(screen.getByLabelText(/^nome/i), 'Nova Anamnese Teste');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/trainer/anamneses', expect.objectContaining({ title: 'Nova Anamnese Teste' }));
+      expect(api.post).toHaveBeenCalledWith(
+        '/trainer/anamneses',
+        expect.objectContaining({ title: 'Nova Anamnese Teste' }),
+      );
       expect(mockShowToast).toHaveBeenCalledWith('Anamnese criada com sucesso!', 'success');
     });
-
     await waitFor(() => {
       expect(screen.getByTestId('redirected')).toBeInTheDocument();
     });
   });
 
-  it('shows the edit form prefilled when "Editar" is clicked via menu', async () => {
+  it('shows the edit form prefilled when "Editar" is clicked via row menu', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: mockAnamneses });
     renderWithRouter(<TrainerAnamneses />);
     await waitFor(() => {
       expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
     });
+
     await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
     await user.click(screen.getByRole('button', { name: 'Editar' }));
+
     expect(screen.getByDisplayValue('Anamnese Saúde Geral')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Questionário de saúde')).toBeInTheDocument();
   });
@@ -230,55 +332,18 @@ describe('TrainerAnamneses', () => {
     await waitFor(() => {
       expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
     });
+
     await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
     await user.click(screen.getByRole('button', { name: 'Editar' }));
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
     await waitFor(() => {
-      expect(api.patch).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1', expect.any(Object));
+      expect(api.patch).toHaveBeenCalledWith(
+        '/trainer/anamneses/anamnesis-1',
+        expect.any(Object),
+      );
       expect(mockShowToast).toHaveBeenCalledWith('Anamnese atualizada com sucesso!', 'success');
     });
-  });
-
-  it('shows confirm dialog when "Excluir" is clicked via menu', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: mockAnamneses });
-    renderWithRouter(<TrainerAnamneses />);
-    await waitFor(() => {
-      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
-    await user.click(screen.getByRole('button', { name: 'Excluir' }));
-    expect(screen.getByText(/excluir "anamnese saúde geral"/i)).toBeInTheDocument();
-  });
-
-  it('deletes anamnesis after confirm and shows success toast', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: mockAnamneses });
-    api.delete.mockResolvedValue({});
-    renderWithRouter(<TrainerAnamneses />);
-    await waitFor(() => {
-      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
-    await user.click(screen.getByRole('button', { name: 'Excluir' }));
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
-    await waitFor(() => {
-      expect(api.delete).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1');
-      expect(mockShowToast).toHaveBeenCalledWith('Anamnese excluída com sucesso!', 'success');
-    });
-  });
-
-  it('cancels delete when "Cancelar" is clicked', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: mockAnamneses });
-    renderWithRouter(<TrainerAnamneses />);
-    await waitFor(() => {
-      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
-    await user.click(screen.getByRole('button', { name: 'Excluir' }));
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(api.delete).not.toHaveBeenCalled();
   });
 
   it('shows error toast when fetch fails', async () => {
@@ -290,23 +355,26 @@ describe('TrainerAnamneses', () => {
     });
   });
 
-  it('shows version badge for versioned anamneses', async () => {
-    const anamnesesWithVersion = [
-      ...mockAnamneses,
-      {
-        id: 'anamnesis-3',
-        title: 'Anamnese Versão 2',
-        description: null,
-        isGeneral: false,
-        version: 2,
-        sections: [],
-      },
-    ];
-    api.get.mockResolvedValue({ data: anamnesesWithVersion });
+  it('shows version badge for every anamnesis', async () => {
+    api.get.mockResolvedValue({ data: mockAnamneses });
     renderWithRouter(<TrainerAnamneses />);
     await waitFor(() => {
-      expect(screen.getByText('Anamnese Versão 2')).toBeInTheDocument();
+      expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
     });
-    expect(screen.getByText('v2')).toBeInTheDocument();
+    // version badges: v1 (×2 own + derived), v3 (general)
+    expect(screen.getByText('v3')).toBeInTheDocument();
+    expect(screen.getAllByText('v1').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('general anamnesis does not show "Nova versão" option', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    renderWithRouter(<TrainerAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Geral da Plataforma' }));
+    expect(screen.queryByRole('button', { name: 'Nova versão' })).not.toBeInTheDocument();
   });
 });

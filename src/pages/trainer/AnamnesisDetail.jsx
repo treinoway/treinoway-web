@@ -1,385 +1,576 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, ChevronUp, Copy, Plus, Trash2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Copy,
+  Plus,
+  Trash2,
+  Pencil,
+  GripVertical,
+  Type,
+  ToggleLeft,
+  List,
+  CheckSquare,
+  Hash,
+  Grid3x3,
+  Eye,
+  GitBranch,
+} from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import Select from '../../components/Select';
 import {
   ANAMNESIS_QUESTION_TYPE,
   QUESTION_TYPES_WITH_OPTIONS,
   getQuestionTypeLabel,
-  defaultQuestionForm,
   defaultSectionForm,
 } from '../../constants/anamnesis';
-import RowMenu from '../../components/RowMenu';
+import AnamnesisPreviewModal from '../../components/AnamnesisPreviewModal';
 
-const QUESTION_TYPE_OPTIONS = Object.values(ANAMNESIS_QUESTION_TYPE).map((value) => ({
-  value,
-  label: getQuestionTypeLabel(value),
-}));
+/* ── helpers ─────────────────────────────────────────────── */
 
+const LIBRARY_TILES = [
+  { type: ANAMNESIS_QUESTION_TYPE.FREE_TEXT,       icon: Type,       label: 'Texto Livre' },
+  { type: ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS,     icon: ToggleLeft, label: 'Sim / Não' },
+  { type: ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE,   icon: List,       label: 'Escolha Única' },
+  { type: ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE, icon: CheckSquare,label: 'Múltipla Escolha' },
+  { type: ANAMNESIS_QUESTION_TYPE.NUMERIC,         icon: Hash,       label: 'Numérico' },
+  { type: ANAMNESIS_QUESTION_TYPE.MATRIX,          icon: Grid3x3,    label: 'Matriz' },
+];
 
-export const QuestionForm = ({ initialData, onSubmit, onCancel, saving }) => {
-  const [data, setData] = useState(initialData ?? defaultQuestionForm());
-  const [newOption, setNewOption] = useState('');
+const PRESETS = [
+  { text: 'Histórico familiar de diabetes', type: ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS },
+  { text: 'Uso de medicamentos',             type: ANAMNESIS_QUESTION_TYPE.FREE_TEXT },
+  { text: 'Alergias alimentares',            type: ANAMNESIS_QUESTION_TYPE.FREE_TEXT },
+];
 
-  const needsOptions = QUESTION_TYPES_WITH_OPTIONS.includes(data.type);
+const buildTypeEyebrow = (question) => {
+  const typeLabel = getQuestionTypeLabel(question.type).toUpperCase();
+  return question.required ? `${typeLabel} · OBRIGATÓRIA` : typeLabel;
+};
 
-  const handleChange = (field) => (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setData((prev) => ({ ...prev, [field]: value }));
+const buildAllQuestions = (sections) =>
+  sections.flatMap((s) => (s.questions ?? []).map((q) => ({ ...q, sectionId: s.id })));
+
+/* ── ToggleSwitch ────────────────────────────────────────── */
+
+const ToggleSwitch = ({ on, onChange, disabled, label }) => (
+  <div className="toggle-wrap">
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      className={`toggle-switch${on ? ' toggle-switch--on' : ''}`}
+      onClick={onChange}
+      disabled={disabled}
+    />
+    <span className="toggle-label">{label}</span>
+  </div>
+);
+
+/* ── CanvasQuestionCard ──────────────────────────────────── */
+
+const CanvasQuestionCard = ({ question, sectionId, anamnesisId, isGeneral, autoFocus, onAutoFocusConsumed, onUpdated, onDeleteQuestion }) => {
+  const { showToast } = useToast();
+  const [saving, setSaving] = useState(false);
+  const [localText, setLocalText] = useState(question.text);
+  const [newOption, setNewOption]  = useState('');
+  const titleRef = useRef(null);
+
+  const hasOptions = QUESTION_TYPES_WITH_OPTIONS.includes(question.type);
+
+  useEffect(() => {
+    if (!autoFocus || !titleRef.current) return;
+    titleRef.current.focus();
+    titleRef.current.select();
+    onAutoFocusConsumed?.();
+  }, [question.id, autoFocus, onAutoFocusConsumed]);
+
+  const patchQuestion = useCallback(async (payload) => {
+    setSaving(true);
+    try {
+      await api.patch(
+        `/trainer/anamneses/${anamnesisId}/sections/${sectionId}/questions/${question.id}`,
+        payload,
+      );
+      onUpdated();
+    } catch (error) {
+      if (
+        error.response?.status === 409 &&
+        error.response?.data?.error === 'ANAMNESIS_HAS_STUDENT_LINKS'
+      ) {
+        onUpdated('conflict');
+      } else {
+        showToast(error.userMessage || translateError(error), 'error');
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [anamnesisId, sectionId, question.id, onUpdated, showToast]);
+
+  const handleTitleBlur = () => {
+    const trimmed = localText.trim();
+    if (!trimmed || trimmed === question.text) return;
+    patchQuestion({ text: trimmed });
   };
 
-  const handleAddOption = () => {
+  const handleToggleRequired = () => {
+    patchQuestion({ required: !question.required });
+  };
+
+  const handleAddOption = async () => {
     const trimmed = newOption.trim();
     if (!trimmed) return;
-    setData((prev) => ({ ...prev, options: [...(prev.options ?? []), { text: trimmed }] }));
+    const updatedOptions = [...(question.options ?? []), { text: trimmed }];
     setNewOption('');
+    await patchQuestion({ options: updatedOptions });
   };
 
   const handleRemoveOption = (index) => {
-    setData((prev) => ({ ...prev, options: prev.options.filter((_, i) => i !== index) }));
+    const updatedOptions = question.options.filter((_, i) => i !== index);
+    patchQuestion({ options: updatedOptions });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const payload = { ...data };
-    if (!needsOptions) {
-      payload.options = [];
-    }
-    onSubmit(payload);
+  const handleNumericField = (field) => (e) => {
+    const val = e.target.value;
+    patchQuestion({ config: { ...(question.config ?? {}), [field]: val } });
+  };
+
+  const handleKeyDownOption = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); handleAddOption(); }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="form">
-      <div>
-        <label className="form-label" htmlFor="question-text">Pergunta</label>
-        <input
-          id="question-text"
-          type="text"
-          value={data.text}
-          onChange={handleChange('text')}
-          className="form-input"
-          placeholder="Ex: Você pratica exercícios regularmente?"
-          required
+    <div className="question-card">
+      <div className="question-card-header">
+        <p className="eyebrow question-card-eyebrow">{buildTypeEyebrow(question)}</p>
+        {!isGeneral && (
+          <button
+            type="button"
+            className="btn btn-ghost-danger btn-sm"
+            onClick={() => onDeleteQuestion()}
+            disabled={saving}
+            aria-label="Excluir pergunta"
+          >
+            <Trash2 size={14} strokeWidth={2} />
+            Excluir pergunta
+          </button>
+        )}
+      </div>
+
+      {isGeneral ? (
+        <p className="question-card-title question-card-title--static">{question.text}</p>
+      ) : (
+        <textarea
+          ref={titleRef}
+          className="question-card-title"
+          value={localText}
+          onChange={(e) => setLocalText(e.target.value)}
+          onBlur={handleTitleBlur}
           disabled={saving}
+          rows={2}
+          aria-label="Texto da pergunta"
+        />
+      )}
+
+      <div className="question-toggles">
+        <ToggleSwitch
+          on={question.required}
+          onChange={isGeneral ? undefined : handleToggleRequired}
+          disabled={isGeneral || saving}
+          label="Obrigatória"
         />
       </div>
 
-      <div className="grid-responsive-2col">
-        <div>
-          <label className="form-label" htmlFor="question-type">Tipo</label>
-          <Select
-            id="question-type"
-            value={data.type}
-            onChange={handleChange('type')}
-            disabled={saving}
-          >
-            {QUESTION_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </Select>
+      {question.type === ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS && (
+        <div className="choice-options">
+          <div className="choice-option choice-option--active">Sim</div>
+          <div className="choice-option">Não</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', paddingTop: 'var(--spacing-lg)' }}>
-          <input
-            id="question-required"
-            type="checkbox"
-            checked={data.required}
-            onChange={handleChange('required')}
-            disabled={saving}
-          />
-          <label htmlFor="question-required" className="form-label" style={{ marginBottom: 0 }}>
-            Obrigatória
-          </label>
-        </div>
-      </div>
+      )}
 
-      {needsOptions && (
+      {hasOptions && question.type !== ANAMNESIS_QUESTION_TYPE.MATRIX && (
         <div>
-          <label className="form-label">Opções</label>
-          <div style={{ display: 'flex', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)' }}>
-            <input
-              type="text"
-              value={newOption}
-              onChange={(e) => setNewOption(e.target.value)}
-              className="form-input"
-              placeholder="Adicionar opção..."
-              disabled={saving}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddOption(); } }}
-            />
-            <button type="button" className="btn-secondary" onClick={handleAddOption} disabled={saving}>
-              Adicionar
-            </button>
-          </div>
-          {data.options?.length > 0 && (
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {data.options.map((opt, index) => (
-                <li
-                  key={index}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: 'var(--spacing-xs) var(--spacing-sm)',
-                    background: 'var(--color-surface)',
-                    borderRadius: 'var(--radius-sm)',
-                    marginBottom: 'var(--spacing-xs)',
-                    border: '1px solid var(--color-outline-variant)',
-                  }}
-                >
-                  <span className="text-sm">{opt.text}</span>
+          <div className="options-list">
+            {(question.options ?? []).map((opt, i) => (
+              <div key={i} className="options-list-item">
+                <span className="options-list-item-text">{opt.text}</span>
+                {!isGeneral && (
                   <button
                     type="button"
-                    onClick={() => handleRemoveOption(index)}
+                    onClick={() => handleRemoveOption(i)}
                     disabled={saving}
                     aria-label={`Remover opção ${opt.text}`}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-error)', padding: 0 }}
+                    className="options-list-item-remove"
                   >
-                    <Trash2 size={14} strokeWidth={1.6} />
+                    <Trash2 size={14} strokeWidth={2} />
                   </button>
-                </li>
-              ))}
-            </ul>
+                )}
+              </div>
+            ))}
+          </div>
+          {!isGeneral && (
+            <div className="options-list-add">
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Nova opção..."
+                value={newOption}
+                onChange={(e) => setNewOption(e.target.value)}
+                onKeyDown={handleKeyDownOption}
+                disabled={saving}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleAddOption}
+                disabled={saving || !newOption.trim()}
+              >
+                Adicionar
+              </button>
+            </div>
           )}
         </div>
       )}
 
-      <div className="btn-group">
-        <button type="submit" disabled={saving} className="btn-primary">
-          {saving ? 'Salvando...' : 'Salvar'}
-        </button>
-        <button type="button" onClick={onCancel} className="btn-secondary" disabled={saving}>
-          Cancelar
-        </button>
-      </div>
-    </form>
+      {question.type === ANAMNESIS_QUESTION_TYPE.NUMERIC && (
+        <div className="numeric-config">
+          <div>
+            <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--spacing-xs)' }}>Mín</label>
+            <input
+              type="number"
+              className="form-input"
+              defaultValue={question.config?.min ?? ''}
+              onBlur={handleNumericField('min')}
+              disabled={isGeneral || saving}
+            />
+          </div>
+          <div>
+            <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--spacing-xs)' }}>Máx</label>
+            <input
+              type="number"
+              className="form-input"
+              defaultValue={question.config?.max ?? ''}
+              onBlur={handleNumericField('max')}
+              disabled={isGeneral || saving}
+            />
+          </div>
+          <div>
+            <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--spacing-xs)' }}>Unidade</label>
+            <input
+              type="text"
+              className="form-input"
+              defaultValue={question.config?.unit ?? ''}
+              onBlur={handleNumericField('unit')}
+              disabled={isGeneral || saving}
+              placeholder="kg, cm…"
+            />
+          </div>
+        </div>
+      )}
+
+      {question.type === ANAMNESIS_QUESTION_TYPE.MATRIX && (
+        <div className="matrix-config">
+          <div>
+            <p className="matrix-config-col-title">Linhas</p>
+            <div className="options-list">
+              {(question.config?.rows ?? []).map((row, i) => (
+                <div key={i} className="options-list-item">
+                  <span className="options-list-item-text">{row}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="matrix-config-col-title">Colunas</p>
+            <div className="options-list">
+              {(question.config?.columns ?? []).map((col, i) => (
+                <div key={i} className="options-list-item">
+                  <span className="options-list-item-text">{col}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {question.type === ANAMNESIS_QUESTION_TYPE.FREE_TEXT && (
+        <textarea
+          className="form-input form-textarea"
+          disabled
+          placeholder="Resposta do aluno..."
+          rows={3}
+          style={{ marginTop: 'var(--spacing-sm)' }}
+        />
+      )}
+    </div>
   );
 };
 
-export const SectionBlock = ({
+/* ── OutlineSectionItem ──────────────────────────────────── */
+
+const OutlineSectionItem = ({
   section,
+  isActive,
   isGeneral,
+  selectedQuestionId,
+  onSelectSection,
+  onSelectQuestion,
   onDeleteSection,
   onEditSection,
-  onAddQuestion,
   onDeleteQuestion,
-  onEditQuestion,
-  setConfirmDialog,
+  dragHandlers,
 }) => {
-  const [expanded, setExpanded] = useState(true);
-  const [showQuestionForm, setShowQuestionForm] = useState(false);
-  const [editingQuestionId, setEditingQuestionId] = useState(null);
-  const [showSectionEditForm, setShowSectionEditForm] = useState(false);
-  const [sectionEditForm, setSectionEditForm] = useState({ title: section.title, description: section.description ?? '' });
+  const [editingSection, setEditingSection] = useState(false);
+  const [sectionForm, setSectionForm] = useState({ title: section.title, description: section.description ?? '' });
   const [saving, setSaving] = useState(false);
-  const [savingQuestion, setSavingQuestion] = useState(false);
 
-  const handleAddQuestion = async (questionData) => {
-    setSaving(true);
-    try {
-      await onAddQuestion(section.id, questionData);
-      setShowQuestionForm(false);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDeleteQuestion = (question) => {
-    setConfirmDialog({
-      message: `Excluir a pergunta "${question.text}"? Esta ação não pode ser desfeita.`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        await onDeleteQuestion(section.id, question.id);
-      },
-    });
-  };
-
-  const handleEditQuestionSubmit = async (questionData) => {
-    setSavingQuestion(true);
-    const success = await onEditQuestion(section.id, editingQuestionId, questionData);
-    setSavingQuestion(false);
-    if (success) setEditingQuestionId(null);
-  };
-
-  const handleSectionEditSubmit = async (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    const success = await onEditSection(section.id, sectionEditForm);
+    const ok = await onEditSection(section.id, sectionForm);
     setSaving(false);
-    if (success) setShowSectionEditForm(false);
+    if (ok) setEditingSection(false);
   };
 
-  const handleStartSectionEdit = () => {
-    setSectionEditForm({ title: section.title, description: section.description ?? '' });
-    setShowSectionEditForm(true);
+  const handleStartEdit = (e) => {
+    e.stopPropagation();
+    setSectionForm({ title: section.title, description: section.description ?? '' });
+    setEditingSection(true);
   };
+
+  if (editingSection) {
+    return (
+      <div className="outline-section-edit">
+        <form onSubmit={handleEditSubmit} className="form" style={{ gap: 'var(--spacing-xs)' }}>
+          <input
+            type="text"
+            className="form-input"
+            value={sectionForm.title}
+            onChange={(e) => setSectionForm((p) => ({ ...p, title: e.target.value }))}
+            aria-label="Título da seção"
+            required
+            disabled={saving}
+          />
+          <div className="btn-group" style={{ marginTop: 'var(--spacing-xs)' }}>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+              {saving ? 'Salvando...' : 'Salvar'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setEditingSection(false)}
+              disabled={saving}
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
 
   return (
-    <div className="card card--mb">
-      <div className="card-header" style={{ cursor: 'pointer' }} onClick={() => setExpanded((p) => !p)}>
-        <span className="card-title" style={{ marginBottom: 0 }}>{section.title}</span>
-        <div style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'center' }}>
-          {!isGeneral && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <RowMenu
-                ariaLabel={`Ações da seção ${section.title}`}
-                onEdit={() => { setExpanded(true); handleStartSectionEdit(); }}
-                onDelete={() => onDeleteSection(section)}
-                deleteLabel="Excluir seção"
-              />
-            </div>
-          )}
-          {expanded ? <ChevronUp size={16} strokeWidth={1.6} /> : <ChevronDown size={16} strokeWidth={1.6} />}
-        </div>
+    <div className="outline-section-row">
+      <div
+        role="button"
+        tabIndex={0}
+        className={`outline-section-btn${isActive ? ' outline-section-btn--active' : ''}`}
+        onClick={() => onSelectSection(section.id)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectSection(section.id); } }}
+        aria-expanded={isActive}
+        {...(isGeneral ? {} : dragHandlers)}
+      >
+        <span
+          className={isGeneral ? 'outline-grip--inert' : 'outline-grip'}
+          aria-hidden="true"
+        >
+          <GripVertical size={12} strokeWidth={2} />
+        </span>
+        <span className="outline-label">{section.title}</span>
+        <span className="outline-count">{section.questions?.length ?? 0}</span>
+        {!isGeneral && (
+          <span
+            className="outline-inline-actions"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="outline-inline-action"
+              aria-label={`Editar seção ${section.title}`}
+              onClick={handleStartEdit}
+            >
+              <Pencil size={12} strokeWidth={2} />
+            </button>
+            <button
+              type="button"
+              className="outline-inline-action outline-inline-action--danger"
+              aria-label={`Excluir seção ${section.title}`}
+              onClick={(e) => { e.stopPropagation(); onDeleteSection(section); }}
+            >
+              <Trash2 size={12} strokeWidth={2} />
+            </button>
+          </span>
+        )}
       </div>
 
-      {expanded && (
-        <div style={{ marginTop: 'var(--spacing-md)' }}>
-          {showSectionEditForm && (
-            <div style={{ marginBottom: 'var(--spacing-md)', paddingBottom: 'var(--spacing-md)', borderBottom: '1px solid var(--color-outline-variant)' }}>
-              <h4 className="text-sm font-medium" style={{ marginBottom: 'var(--spacing-sm)' }}>Editar seção</h4>
-              <form onSubmit={handleSectionEditSubmit} className="form">
-                <div>
-                  <label className="form-label" htmlFor={`edit-section-title-${section.id}`}>Título da seção</label>
-                  <input
-                    id={`edit-section-title-${section.id}`}
-                    type="text"
-                    value={sectionEditForm.title}
-                    onChange={(e) => setSectionEditForm((prev) => ({ ...prev, title: e.target.value }))}
-                    className="form-input"
-                    required
-                    disabled={saving}
-                  />
-                </div>
-                <div>
-                  <label className="form-label" htmlFor={`edit-section-description-${section.id}`}>Descrição</label>
-                  <textarea
-                    id={`edit-section-description-${section.id}`}
-                    value={sectionEditForm.description}
-                    onChange={(e) => setSectionEditForm((prev) => ({ ...prev, description: e.target.value }))}
-                    className="form-textarea"
-                    rows={2}
-                    placeholder="Descrição opcional"
-                    disabled={saving}
-                  />
-                </div>
-                <div className="btn-group">
-                  <button type="submit" disabled={saving} className="btn-primary">
-                    {saving ? 'Salvando...' : 'Salvar'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowSectionEditForm(false)}
-                    className="btn-secondary"
-                    disabled={saving}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {section.questions?.length === 0 && (
-            <p className="text-sm text-muted" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Nenhuma pergunta nesta seção.
-            </p>
-          )}
-
-          {section.questions?.map((question, index) => (
+      {isActive && (
+        <div className="outline-questions">
+          {(section.questions ?? []).map((q) => (
             <div
-              key={question.id}
-              style={{
-                padding: 'var(--spacing-sm) var(--spacing-md)',
-                background: 'var(--color-surface)',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--color-outline-variant)',
-                marginBottom: 'var(--spacing-sm)',
+              key={q.id}
+              role="button"
+              tabIndex={0}
+              className={`outline-question-btn${selectedQuestionId === q.id ? ' outline-question-btn--active' : ''}`}
+              onClick={() => onSelectQuestion(q.id, section.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectQuestion(q.id, section.id);
+                }
               }}
             >
-              {editingQuestionId === question.id ? (
-                <div>
-                  <h4 className="text-sm font-medium" style={{ marginBottom: 'var(--spacing-sm)' }}>Editar pergunta</h4>
-                  <QuestionForm
-                    initialData={{ text: question.text, type: question.type, required: question.required, options: question.options ?? [] }}
-                    onSubmit={handleEditQuestionSubmit}
-                    onCancel={() => setEditingQuestionId(null)}
-                    saving={savingQuestion}
-                  />
-                </div>
-              ) : (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--spacing-sm)' }}>
-                  <div style={{ flex: 1 }}>
-                    <span className="font-medium">{index + 1}. {question.text}</span>
-                    <div style={{ marginTop: 'var(--spacing-xs)', display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
-                      <span className="badge badge-gray">{getQuestionTypeLabel(question.type)}</span>
-                      {question.required && <span className="badge badge-blue">Obrigatória</span>}
-                    </div>
-                    {question.options?.length > 0 && (
-                      <ul className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)', paddingLeft: 'var(--spacing-md)' }}>
-                        {question.options.map((opt) => (
-                          <li key={opt.id}>{opt.text}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                  {!isGeneral && (
-                    <RowMenu
-                      ariaLabel={`Ações da pergunta ${question.text}`}
-                      onEdit={() => setEditingQuestionId(question.id)}
-                      onDelete={() => handleDeleteQuestion(question)}
-                    />
-                  )}
-                </div>
+              <span className="outline-grip--inert" aria-hidden="true">
+                <GripVertical size={10} strokeWidth={2} />
+              </span>
+              <span className="outline-question-label">{q.text}</span>
+              {!isGeneral && (
+                <span
+                  className="outline-inline-actions"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className="outline-inline-action outline-inline-action--danger"
+                    aria-label={`Excluir pergunta ${q.text}`}
+                    onClick={() => onDeleteQuestion(section, q)}
+                  >
+                    <Trash2 size={12} strokeWidth={2} />
+                  </button>
+                </span>
               )}
             </div>
           ))}
-
-          {!isGeneral && !showQuestionForm && (
-            <button
-              type="button"
-              className="btn-schedule-sm"
-              onClick={() => setShowQuestionForm(true)}
-              style={{ marginTop: 'var(--spacing-sm)' }}
-            >
-              <Plus size={14} strokeWidth={1.6} /> Adicionar pergunta
-            </button>
-          )}
-
-          {!isGeneral && showQuestionForm && (
-            <div style={{ marginTop: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--color-outline-variant)' }}>
-              <h4 className="text-sm font-medium" style={{ marginBottom: 'var(--spacing-sm)' }}>Nova pergunta</h4>
-              <QuestionForm
-                onSubmit={handleAddQuestion}
-                onCancel={() => setShowQuestionForm(false)}
-                saving={saving}
-              />
-            </div>
-          )}
         </div>
       )}
     </div>
   );
 };
 
+/* ── CanvasEmptyBoard ────────────────────────────────────── */
+
+const CanvasEmptyBoard = ({ variant, section, isGeneral, onAddSection, onAddQuestion, onPresetClick, savingSection, sectionForm, onSectionFormChange }) => {
+  if (isGeneral) {
+    return (
+      <div className="canvas-empty-board">
+        <p className="eyebrow canvas-empty-board-eyebrow">SOMENTE LEITURA</p>
+        <p className="canvas-empty-board-title">Esta anamnese geral não pode ser editada</p>
+        <p className="canvas-empty-board-desc">
+          Use &ldquo;Copiar para minha coleção&rdquo; para criar uma versão editável.
+        </p>
+      </div>
+    );
+  }
+
+  if (variant === 'no-section') {
+    return (
+      <div className="canvas-empty-board">
+        <p className="eyebrow canvas-empty-board-eyebrow">PASSO 1 DE 3</p>
+        <p className="canvas-empty-board-title">Crie sua primeira seção</p>
+        <p className="canvas-empty-board-desc">
+          Seções organizam perguntas por tema — histórico, treino, lesões.
+        </p>
+        <form onSubmit={onAddSection} className="canvas-empty-board-form">
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Ex: Histórico clínico"
+            value={sectionForm.title}
+            onChange={(e) => onSectionFormChange(e.target.value)}
+            aria-label="Título da seção"
+            required
+            disabled={savingSection}
+          />
+          <button type="submit" className="btn btn-primary" disabled={savingSection}>
+            {savingSection ? 'Criando...' : '+ Criar primeira seção'}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // variant === 'no-question'
+  const sectionEyebrow = section ? section.title.toUpperCase() : '';
+  return (
+    <div className="canvas-empty-board">
+      <p className="eyebrow canvas-empty-board-eyebrow">{sectionEyebrow}</p>
+      <p className="canvas-empty-board-title">Adicione a primeira pergunta</p>
+      <p className="canvas-empty-board-desc">
+        Escolha um tipo à direita ou use um preset abaixo.
+      </p>
+      <div className="canvas-empty-board-shortcuts">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => onAddQuestion({ text: 'Digite a pergunta…', type: 'free_text', required: false, options: [] })}
+        >
+          + Texto Livre
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => onAddQuestion({ text: 'Digite a pergunta…', type: 'dichotomous', required: false, options: [] })}
+        >
+          + Sim/Não
+        </button>
+      </div>
+      <div className="canvas-empty-board-presets">
+        {PRESETS.map(({ text, type }) => (
+          <button
+            key={text}
+            type="button"
+            className="preset-row"
+            onClick={() => onPresetClick({ text, type, required: false, options: [] })}
+          >
+            <Plus size={12} strokeWidth={2} />
+            {text}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ── AnamnesisDetail (main) ──────────────────────────────── */
+
 const AnamnesisDetail = () => {
   const { anamnesisId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const [anamnesis, setAnamnesis] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [anamnesis, setAnamnesis]             = useState(null);
+  const [loading, setLoading]                 = useState(true);
+  const [selectedSectionId, setSelectedSectionId] = useState(null);
+  const [selectedQuestionId, setSelectedQuestionId] = useState(null);
   const [showSectionForm, setShowSectionForm] = useState(false);
-  const [savingSection, setSavingSection] = useState(false);
-  const [sectionForm, setSectionForm] = useState(defaultSectionForm());
-  const [confirmDialog, setConfirmDialog] = useState(null);
-  const [forking, setForking] = useState(false);
-  const [copying, setCopying] = useState(false);
+  const [sectionForm, setSectionForm]         = useState(defaultSectionForm());
+  const [savingSection, setSavingSection]     = useState(false);
+  const [confirmDialog, setConfirmDialog]     = useState(null);
   const [forkConflictDialog, setForkConflictDialog] = useState(false);
+  const [forking, setForking]                 = useState(false);
+  const [copying, setCopying]                 = useState(false);
+  const [showPreview, setShowPreview]         = useState(false);
+  const [activeTab, setActiveTab]             = useState('outline');
+  const [addingQuestion, setAddingQuestion]   = useState(false);
+  const [justCreatedQuestionId, setJustCreatedQuestionId] = useState(null);
 
-  const fetchAnamnesis = useCallback(async () => {
-    setLoading(true);
+  // Drag state for section reorder
+  const dragSectionRef = useRef(null);
+  const [dragOverId, setDragOverId]           = useState(null);
+
+  const fetchAnamnesis = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const response = await api.get(`/trainer/anamneses/${anamnesisId}`);
       setAnamnesis(response.data);
@@ -387,7 +578,7 @@ const AnamnesisDetail = () => {
       showToast(error.userMessage || translateError(error), 'error');
       navigate('/trainer/anamneses');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [anamnesisId, navigate, showToast]);
 
@@ -395,22 +586,45 @@ const AnamnesisDetail = () => {
     fetchAnamnesis();
   }, [fetchAnamnesis]);
 
+  // Auto-select first section and first question when anamnesis loads
+  useEffect(() => {
+    if (!anamnesis) return;
+    const sorted = [...(anamnesis.sections ?? [])].sort((a, b) => a.order - b.order);
+    if (selectedSectionId === null && sorted.length > 0) {
+      const firstSection = sorted[0];
+      setSelectedSectionId(firstSection.id);
+      if (selectedQuestionId === null && (firstSection.questions ?? []).length > 0) {
+        setSelectedQuestionId(firstSection.questions[0].id);
+      }
+      return;
+    }
+    if (selectedSectionId !== null && selectedQuestionId === null) {
+      const activeSection = sorted.find((s) => s.id === selectedSectionId);
+      if (activeSection && (activeSection.questions ?? []).length > 0) {
+        setSelectedQuestionId(activeSection.questions[0].id);
+      }
+    }
+  }, [anamnesis]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const isStudentLinksConflict = (error) =>
     error.response?.status === 409 &&
     error.response?.data?.error === 'ANAMNESIS_HAS_STUDENT_LINKS';
+
+  /* ── Section CRUD ─────────────────────────────────────── */
 
   const handleAddSection = async (e) => {
     e.preventDefault();
     setSavingSection(true);
     try {
-      await api.post(`/trainer/anamneses/${anamnesisId}/sections`, sectionForm);
+      const response = await api.post(`/trainer/anamneses/${anamnesisId}/sections`, sectionForm);
       showToast('Seção adicionada com sucesso!', 'success');
       setSectionForm(defaultSectionForm());
       setShowSectionForm(false);
-      fetchAnamnesis();
+      await fetchAnamnesis({ silent: true });
+      setSelectedSectionId(response.data.id ?? null);
     } catch (error) {
       if (isStudentLinksConflict(error)) {
-        handleStudentLinksConflict();
+        setForkConflictDialog(true);
       } else {
         showToast(error.userMessage || translateError(error), 'error');
       }
@@ -427,10 +641,14 @@ const AnamnesisDetail = () => {
         try {
           await api.delete(`/trainer/anamneses/${anamnesisId}/sections/${section.id}`);
           showToast('Seção excluída com sucesso!', 'success');
-          fetchAnamnesis();
+          if (selectedSectionId === section.id) {
+            setSelectedSectionId(null);
+            setSelectedQuestionId(null);
+          }
+          fetchAnamnesis({ silent: true });
         } catch (error) {
           if (isStudentLinksConflict(error)) {
-            handleStudentLinksConflict();
+            setForkConflictDialog(true);
           } else {
             showToast(error.userMessage || translateError(error), 'error');
           }
@@ -439,43 +657,15 @@ const AnamnesisDetail = () => {
     });
   };
 
-  const handleAddQuestion = async (sectionId, questionData) => {
-    try {
-      await api.post(`/trainer/anamneses/${anamnesisId}/sections/${sectionId}/questions`, questionData);
-      showToast('Pergunta adicionada com sucesso!', 'success');
-      fetchAnamnesis();
-    } catch (error) {
-      if (isStudentLinksConflict(error)) {
-        handleStudentLinksConflict();
-      } else {
-        showToast(error.userMessage || translateError(error), 'error');
-      }
-    }
-  };
-
-  const handleDeleteQuestion = async (sectionId, questionId) => {
-    try {
-      await api.delete(`/trainer/anamneses/${anamnesisId}/sections/${sectionId}/questions/${questionId}`);
-      showToast('Pergunta excluída com sucesso!', 'success');
-      fetchAnamnesis();
-    } catch (error) {
-      if (isStudentLinksConflict(error)) {
-        handleStudentLinksConflict();
-      } else {
-        showToast(error.userMessage || translateError(error), 'error');
-      }
-    }
-  };
-
   const handleEditSection = async (sectionId, data) => {
     try {
       await api.patch(`/trainer/anamneses/${anamnesisId}/sections/${sectionId}`, data);
       showToast('Seção atualizada com sucesso!', 'success');
-      fetchAnamnesis();
+      fetchAnamnesis({ silent: true });
       return true;
     } catch (error) {
       if (isStudentLinksConflict(error)) {
-        handleStudentLinksConflict();
+        setForkConflictDialog(true);
       } else {
         showToast(error.userMessage || translateError(error), 'error');
       }
@@ -483,21 +673,74 @@ const AnamnesisDetail = () => {
     }
   };
 
-  const handleEditQuestion = async (sectionId, questionId, data) => {
+  /* ── Question CRUD ────────────────────────────────────── */
+
+  const handleAddQuestion = useCallback(async (sectionId, payload) => {
+    if (!sectionId) {
+      showToast('Selecione uma seção antes de adicionar uma pergunta.', 'error');
+      return;
+    }
+    setAddingQuestion(true);
     try {
-      await api.patch(`/trainer/anamneses/${anamnesisId}/sections/${sectionId}/questions/${questionId}`, data);
-      showToast('Pergunta atualizada com sucesso!', 'success');
-      fetchAnamnesis();
-      return true;
+      const response = await api.post(
+        `/trainer/anamneses/${anamnesisId}/sections/${sectionId}/questions`,
+        payload,
+      );
+      showToast('Pergunta adicionada com sucesso!', 'success');
+      await fetchAnamnesis({ silent: true });
+      const newId = response.data?.id;
+      if (newId) {
+        setSelectedQuestionId(newId);
+        setJustCreatedQuestionId(newId);
+      }
+      setActiveTab('canvas');
     } catch (error) {
       if (isStudentLinksConflict(error)) {
-        handleStudentLinksConflict();
+        setForkConflictDialog(true);
       } else {
         showToast(error.userMessage || translateError(error), 'error');
       }
-      return false;
+    } finally {
+      setAddingQuestion(false);
     }
-  };
+  }, [anamnesisId, fetchAnamnesis, showToast]);
+
+  /* ── Delete question ─────────────────────────────────── */
+
+  const handleDeleteQuestion = useCallback((section, question) => {
+    setConfirmDialog({
+      message: `Excluir a pergunta "${question.text}"? Esta ação não pode ser desfeita.`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await api.delete(
+            `/trainer/anamneses/${anamnesisId}/sections/${section.id}/questions/${question.id}`,
+          );
+          showToast('Pergunta excluída com sucesso!', 'success');
+          setSelectedQuestionId(null);
+          fetchAnamnesis({ silent: true });
+        } catch (error) {
+          if (isStudentLinksConflict(error)) {
+            setForkConflictDialog(true);
+          } else {
+            showToast(error.userMessage || translateError(error), 'error');
+          }
+        }
+      },
+    });
+  }, [anamnesisId, fetchAnamnesis, showToast]);
+
+  /* ── Canvas update callback ───────────────────────────── */
+
+  const handleQuestionUpdated = useCallback((signal) => {
+    if (signal === 'conflict') {
+      setForkConflictDialog(true);
+    } else {
+      fetchAnamnesis({ silent: true });
+    }
+  }, [fetchAnamnesis]);
+
+  /* ── Fork / Copy ─────────────────────────────────────── */
 
   const handleFork = async () => {
     setForking(true);
@@ -526,9 +769,72 @@ const AnamnesisDetail = () => {
     }
   };
 
-  const handleStudentLinksConflict = () => {
-    setForkConflictDialog(true);
+  /* ── Section drag-to-reorder ─────────────────────────── */
+
+  const handleDragStart = (sectionId) => {
+    dragSectionRef.current = sectionId;
   };
+
+  const handleDragOver = (e, sectionId) => {
+    e.preventDefault();
+    setDragOverId(sectionId);
+  };
+
+  const handleDrop = async (targetId) => {
+    setDragOverId(null);
+    const sourceId = dragSectionRef.current;
+    dragSectionRef.current = null;
+    if (!sourceId || sourceId === targetId) return;
+
+    const sorted = [...(anamnesis.sections ?? [])].sort((a, b) => a.order - b.order);
+    const sourceIdx = sorted.findIndex((s) => s.id === sourceId);
+    const targetIdx = sorted.findIndex((s) => s.id === targetId);
+    if (sourceIdx === -1 || targetIdx === -1) return;
+
+    const reordered = [...sorted];
+    const [moved] = reordered.splice(sourceIdx, 1);
+    reordered.splice(targetIdx, 0, moved);
+    const orderedIds = reordered.map((s) => s.id);
+
+    // Optimistic update
+    setAnamnesis((prev) => ({
+      ...prev,
+      sections: reordered.map((s, i) => ({ ...s, order: i })),
+    }));
+
+    try {
+      await api.patch(`/trainer/anamneses/${anamnesisId}/sections/reorder`, { orderedIds });
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+      fetchAnamnesis({ silent: true }); // rollback
+    }
+  };
+
+  /* ── Navigation helpers ───────────────────────────────── */
+
+  const handleSelectSection = (sectionId) => {
+    setSelectedSectionId((prev) => (prev === sectionId ? null : sectionId));
+    setSelectedQuestionId(null);
+  };
+
+  const handleSelectQuestion = (questionId, sectionId) => {
+    setSelectedSectionId(sectionId);
+    setSelectedQuestionId(questionId);
+    setActiveTab('canvas');
+  };
+
+  const navigateQuestion = (direction) => {
+    const all = buildAllQuestions(sortedSections);
+    const idx = all.findIndex((q) => q.id === selectedQuestionId);
+    const nextIdx = idx + direction;
+    if (nextIdx >= 0 && nextIdx < all.length) {
+      const next = all[nextIdx];
+      setSelectedQuestionId(next.id);
+      setSelectedSectionId(next.sectionId);
+    }
+  };
+
+  /* ── Render ───────────────────────────────────────────── */
 
   if (loading) {
     return (
@@ -543,147 +849,295 @@ const AnamnesisDetail = () => {
   const sortedSections = [...(anamnesis.sections ?? [])].sort((a, b) => a.order - b.order);
   const isGeneral = anamnesis.isGeneral;
 
+  const selectedSection = sortedSections.find((s) => s.id === selectedSectionId) ?? null;
+  const selectedQuestion = selectedSection
+    ? (selectedSection.questions ?? []).find((q) => q.id === selectedQuestionId) ?? null
+    : null;
+
+  const allQuestions = buildAllQuestions(sortedSections);
+  const selectedQuestionGlobalIdx = allQuestions.findIndex((q) => q.id === selectedQuestionId);
+
+  const sectionForQuestion = selectedQuestionId
+    ? sortedSections.find((s) => s.questions?.some((q) => q.id === selectedQuestionId))
+    : selectedSection;
+
+  const activeSectionId = sectionForQuestion?.id ?? selectedSectionId;
+
+  /* ── Outline panel ──────────────────────────────────── */
+  const outlinePanel = (
+    <div className="editor-outline">
+      <p className="eyebrow library-section-title">Seções</p>
+      {sortedSections.map((section) => (
+        <OutlineSectionItem
+          key={section.id}
+          section={section}
+          isActive={selectedSectionId === section.id}
+          isGeneral={isGeneral}
+          selectedQuestionId={selectedQuestionId}
+          onSelectSection={handleSelectSection}
+          onSelectQuestion={handleSelectQuestion}
+          onDeleteSection={handleDeleteSection}
+          onEditSection={handleEditSection}
+          onDeleteQuestion={handleDeleteQuestion}
+          dragHandlers={{
+            draggable: true,
+            onDragStart: () => handleDragStart(section.id),
+            onDragOver: (e) => handleDragOver(e, section.id),
+            onDrop: () => handleDrop(section.id),
+            onDragEnd: () => setDragOverId(null),
+            style: dragOverId === section.id
+              ? { opacity: 0.5, outline: `2px dashed var(--brand-primary)`, borderRadius: 'var(--radius-brand)' }
+              : undefined,
+          }}
+        />
+      ))}
+
+      {!isGeneral && (
+        <div className="outline-footer">
+          {showSectionForm ? (
+            <form onSubmit={handleAddSection} className="form" style={{ gap: 'var(--spacing-xs)' }}>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Título da nova seção"
+                value={sectionForm.title}
+                onChange={(e) => setSectionForm((p) => ({ ...p, title: e.target.value }))}
+                aria-label="Título da seção"
+                required
+                disabled={savingSection}
+              />
+              <div className="btn-group" style={{ marginTop: 'var(--spacing-xs)' }}>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={savingSection}>
+                  {savingSection ? 'Salvando...' : 'Adicionar'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => { setShowSectionForm(false); setSectionForm(defaultSectionForm()); }}
+                  disabled={savingSection}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-secondary w-full btn-sm"
+              onClick={() => setShowSectionForm(true)}
+            >
+              <Plus size={12} strokeWidth={2} /> Nova seção
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  /* ── Canvas panel ───────────────────────────────────── */
+  const activeSectionForBoard = sortedSections.find((s) => s.id === activeSectionId) ?? null;
+  const activeSectionHasQuestions = (activeSectionForBoard?.questions ?? []).length > 0;
+
+  const canvasPanel = (
+    <div className="editor-canvas">
+      {selectedQuestion ? (
+        <>
+          <CanvasQuestionCard
+            key={selectedQuestion.id}
+            question={selectedQuestion}
+            sectionId={activeSectionId}
+            anamnesisId={anamnesisId}
+            isGeneral={isGeneral}
+            autoFocus={justCreatedQuestionId === selectedQuestion.id}
+            onAutoFocusConsumed={() => setJustCreatedQuestionId(null)}
+            onUpdated={handleQuestionUpdated}
+            onDeleteQuestion={() => handleDeleteQuestion(
+              sortedSections.find((s) => s.id === activeSectionId),
+              selectedQuestion,
+            )}
+          />
+          <div className="canvas-nav">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => navigateQuestion(-1)}
+              disabled={selectedQuestionGlobalIdx <= 0}
+            >
+              ← Anterior
+            </button>
+            <span className="canvas-nav-counter">
+              {selectedQuestionGlobalIdx + 1} de {allQuestions.length}
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => navigateQuestion(1)}
+              disabled={selectedQuestionGlobalIdx >= allQuestions.length - 1}
+            >
+              Próxima →
+            </button>
+          </div>
+        </>
+      ) : isGeneral ? (
+        <CanvasEmptyBoard isGeneral />
+      ) : sortedSections.length === 0 ? (
+        <CanvasEmptyBoard
+          variant="no-section"
+          onAddSection={handleAddSection}
+          savingSection={savingSection}
+          sectionForm={sectionForm}
+          onSectionFormChange={(val) => setSectionForm((p) => ({ ...p, title: val }))}
+        />
+      ) : !activeSectionHasQuestions ? (
+        <CanvasEmptyBoard
+          variant="no-question"
+          section={activeSectionForBoard}
+          onAddQuestion={(payload) => handleAddQuestion(activeSectionId, payload)}
+          onPresetClick={(payload) => handleAddQuestion(activeSectionId, payload)}
+        />
+      ) : null}
+    </div>
+  );
+
+  /* ── Library panel ──────────────────────────────────── */
+  const libraryPanel = (
+    <div className="editor-library">
+      <p className="eyebrow library-section-title">TIPOS DE PERGUNTA</p>
+      <div className="library-grid">
+        {LIBRARY_TILES.map(({ type, icon: Icon, label }) => (
+          <button
+            key={type}
+            type="button"
+            className="library-tile"
+            disabled={isGeneral || addingQuestion || !activeSectionId}
+            onClick={() => handleAddQuestion(activeSectionId, { text: 'Digite a pergunta…', type, required: false, options: [] })}
+            aria-label={`Adicionar pergunta ${label}`}
+          >
+            <Icon size={18} strokeWidth={2} />
+            <span className="library-tile-label">{label}</span>
+          </button>
+        ))}
+      </div>
+      <hr className="library-divider" />
+      <p className="eyebrow library-section-title">Presets Sugeridos</p>
+      {PRESETS.map(({ text, type }) => (
+        <button
+          key={text}
+          type="button"
+          className="preset-row"
+          disabled={isGeneral || addingQuestion || !activeSectionId}
+          onClick={() => handleAddQuestion(activeSectionId, { text, type, required: false, options: [] })}
+        >
+          <Plus size={12} strokeWidth={2} />
+          {text}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div>
-      <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
+      {/* Back button */}
+      <div style={{ marginBottom: 'var(--spacing-md)' }}>
         <button
           onClick={() => navigate('/trainer/anamneses')}
           className="btn-back"
           aria-label="Voltar para anamneses"
         >
-          <ArrowLeft size={16} strokeWidth={1.6} />
+          <ArrowLeft size={16} strokeWidth={2} />
           Anamneses
         </button>
       </div>
 
-      <div className="card card--mb">
-        <div className="card-header">
-          <h1 className="card-title" style={{ marginBottom: 0 }}>{anamnesis.title}</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
-            {anamnesis.version > 1 && <span className="badge badge-gray">v{anamnesis.version}</span>}
-            {isGeneral && <span className="badge badge-blue">Geral</span>}
+      <div className="editor-shell">
+        {/* Header */}
+        <div className="editor-header">
+          <div className="editor-header-main">
+            <p className="eyebrow" style={{ marginBottom: 2 }}>
+              Treinador › Anamneses › Editor
+            </p>
+            <div className="editor-title-row">
+              <span className="editor-title">{anamnesis.title}</span>
+              <span className="badge badge-neutral">v{anamnesis.version}</span>
+              {isGeneral && <span className="badge badge-accent">Geral</span>}
+              {anamnesis.parentId && !isGeneral && <span className="badge badge-neutral">Derivada</span>}
+            </div>
+            {isGeneral && (
+              <p className="text-sm" style={{ color: 'var(--brand-steel)', marginTop: 'var(--spacing-xs)' }}>
+                Esta é uma anamnese geral da plataforma e não pode ser editada.
+              </p>
+            )}
           </div>
-        </div>
-        {anamnesis.description && (
-          <p className="card-description" style={{ marginTop: 'var(--spacing-xs)' }}>
-            {anamnesis.description}
-          </p>
-        )}
-        {anamnesis.parentId && (
-          <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
-            Nova versão criada a partir de uma anamnese anterior.
-          </p>
-        )}
-        {isGeneral && (
-          <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-sm)' }}>
-            Esta é uma anamnese geral da plataforma e não pode ser editada.
-          </p>
-        )}
-        {isGeneral && (
-          <div style={{ marginTop: 'var(--spacing-md)' }}>
+
+          <div className="editor-header-actions">
             <button
               type="button"
-              className="btn-primary"
-              onClick={handleCopy}
-              disabled={copying}
+              className="btn btn-ghost btn-sm"
+              onClick={() => setShowPreview(true)}
+              disabled={sortedSections.length === 0}
             >
-              <Copy size={14} strokeWidth={1.6} style={{ marginRight: 'var(--spacing-xs)' }} />
-              {copying ? 'Copiando...' : 'Copiar para minha coleção'}
+              <Eye size={14} strokeWidth={2} /> Pré-visualizar
             </button>
-          </div>
-        )}
-        {!isGeneral && (
-          <div style={{ marginTop: 'var(--spacing-md)' }}>
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={handleFork}
-              disabled={forking}
-            >
-              {forking ? 'Criando...' : 'Criar nova versão'}
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
-        <h2 className="card-title" style={{ marginBottom: 0 }}>Seções</h2>
-        {!isGeneral && !showSectionForm && (
-          <button onClick={() => setShowSectionForm(true)} className="btn-primary">
-            + Adicionar seção
-          </button>
-        )}
-      </div>
-
-      {!isGeneral && showSectionForm && (
-        <div className="card card--mb">
-          <h3 className="card-title mb-md">Nova seção</h3>
-          <form onSubmit={handleAddSection} className="form">
-            <div>
-              <label className="form-label" htmlFor="section-title">Título da seção</label>
-              <input
-                id="section-title"
-                type="text"
-                value={sectionForm.title}
-                onChange={(e) => setSectionForm((prev) => ({ ...prev, title: e.target.value }))}
-                className="form-input"
-                placeholder="Ex: Histórico de saúde"
-                required
-                disabled={savingSection}
-              />
-            </div>
-            <div>
-              <label className="form-label" htmlFor="section-description">Descrição</label>
-              <textarea
-                id="section-description"
-                value={sectionForm.description}
-                onChange={(e) => setSectionForm((prev) => ({ ...prev, description: e.target.value }))}
-                className="form-textarea"
-                rows={2}
-                placeholder="Descrição opcional"
-                disabled={savingSection}
-              />
-            </div>
-            <div className="btn-group">
-              <button type="submit" disabled={savingSection} className="btn-primary">
-                {savingSection ? 'Salvando...' : 'Adicionar'}
-              </button>
+            {isGeneral ? (
               <button
                 type="button"
-                onClick={() => { setShowSectionForm(false); setSectionForm(defaultSectionForm()); }}
-                className="btn-secondary"
-                disabled={savingSection}
+                className="btn btn-primary btn-sm"
+                onClick={handleCopy}
+                disabled={copying}
               >
-                Cancelar
+                <Copy size={14} strokeWidth={2} />
+                {copying ? 'Copiando...' : 'Copiar para minha coleção'}
               </button>
-            </div>
-          </form>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleFork}
+                disabled={forking}
+              >
+                <GitBranch size={14} strokeWidth={2} />
+                {forking ? 'Criando...' : 'Nova versão'}
+              </button>
+            )}
+          </div>
         </div>
-      )}
 
-      {sortedSections.length === 0 && (
-        <div className="empty-state">
-          <p className="empty-state-title">Nenhuma seção ainda</p>
-          {!isGeneral && <p>Adicione uma seção para começar a criar perguntas</p>}
+        {/* Mobile tabs */}
+        <div className="editor-mobile-tabs" role="tablist">
+          {[
+            { id: 'outline', label: 'Outline' },
+            { id: 'canvas',  label: 'Canvas' },
+            { id: 'tipos',   label: 'Tipos' },
+          ].map(({ id, label }) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={activeTab === id}
+              className={`editor-mobile-tab${activeTab === id ? ' editor-mobile-tab--active' : ''}`}
+              onClick={() => setActiveTab(id)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-      )}
 
-      {sortedSections.map((section) => (
-        <SectionBlock
-          key={section.id}
-          section={section}
-          isGeneral={isGeneral}
-          onDeleteSection={handleDeleteSection}
-          onEditSection={handleEditSection}
-          onAddQuestion={handleAddQuestion}
-          onDeleteQuestion={handleDeleteQuestion}
-          onEditQuestion={handleEditQuestion}
-          setConfirmDialog={setConfirmDialog}
-        />
-      ))}
+        {/* Body */}
+        <div className="editor-body">
+          <div className={`editor-panel${activeTab === 'outline' ? ' editor-panel--active' : ''}`}>
+            {outlinePanel}
+          </div>
+          <div className={`editor-panel${activeTab === 'canvas' ? ' editor-panel--active' : ''}`}>
+            {canvasPanel}
+          </div>
+          <div className={`editor-panel${activeTab === 'tipos' ? ' editor-panel--active' : ''}`}>
+            {libraryPanel}
+          </div>
+        </div>
+      </div>
 
+      {/* Confirm dialog */}
       {confirmDialog && (
-        <div className="overlay">
+        <div className="overlay" onClick={() => setConfirmDialog(null)}>
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
             <div className="btn-group">
@@ -698,8 +1152,9 @@ const AnamnesisDetail = () => {
         </div>
       )}
 
+      {/* Fork conflict dialog */}
       {forkConflictDialog && (
-        <div className="overlay">
+        <div className="overlay" onClick={() => setForkConflictDialog(false)}>
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">
               Esta anamnese está vinculada a alunos e não pode ser editada diretamente.
@@ -715,6 +1170,15 @@ const AnamnesisDetail = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Preview modal */}
+      {showPreview && (
+        <AnamnesisPreviewModal
+          anamnesis={anamnesis}
+          open={showPreview}
+          onClose={() => setShowPreview(false)}
+        />
       )}
     </div>
   );

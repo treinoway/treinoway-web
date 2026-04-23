@@ -27,6 +27,8 @@ import Students from './pages/trainer/Students';
 import StudentDetail from './pages/trainer/StudentDetail';
 import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
 import AnamnesisDetail from './pages/trainer/AnamnesisDetail';
+import AssignAnamnesis from './pages/trainer/AssignAnamnesis';
+import AnamnesisResponseDetail from './pages/trainer/AnamnesisResponseDetail';
 import AiAssistant from './pages/trainer/AiAssistant';
 import TrainerBranding from './pages/trainer/TrainerBranding';
 import ProtocolTemplateWizard from './pages/trainer/ProtocolTemplateWizard';
@@ -231,6 +233,28 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <AnamnesisDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/anamneses/:anamnesisId/assign"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <AssignAnamnesis />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/students/:studentId/anamneses/:anamnesisId/response"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <AnamnesisResponseDetail />
                 </Layout>
               </ProtectedRoute>
             }

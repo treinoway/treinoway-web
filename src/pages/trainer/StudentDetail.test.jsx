@@ -51,27 +51,11 @@ const mockProtocols = [
 const mockLinkedAnamneses = [
   {
     id: 'link-1',
+    createdAt: '2026-01-15',
     anamnesis: {
       id: 'anamnesis-1',
       title: 'Anamnese de Saúde',
       isGeneral: false,
-      sections: [
-        {
-          id: 'section-1',
-          title: 'Histórico',
-          order: 0,
-          questions: [
-            {
-              id: 'q1',
-              text: 'Você pratica exercícios?',
-              type: 'dichotomous',
-              required: true,
-              order: 0,
-              options: [],
-            },
-          ],
-        },
-      ],
     },
   },
 ];
@@ -84,10 +68,6 @@ function renderStudentDetail({ withState = true } = {}) {
     if (url === '/trainer/protocols') return Promise.resolve({ data: mockProtocols });
     if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: [] });
     if (url === '/trainer/anamneses') return Promise.resolve({ data: [] });
-    if (url.includes('/response')) {
-      const err = Object.assign(new Error('Not found'), { response: { status: 404 } });
-      return Promise.reject(err);
-    }
     return Promise.resolve({ data: [] });
   });
 
@@ -353,48 +333,151 @@ describe('StudentDetail', () => {
     });
   });
 
-  it('renders linked anamneses on anamneses tab', async () => {
+  it('renders linked anamnesis cards with title', async () => {
     const user = userEvent.setup();
     api.get.mockImplementation((url) => {
       if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
       if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
       if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
-      if (url.includes('/response')) {
-        const err = Object.assign(new Error('Not found'), { response: { status: 404 } });
-        return Promise.reject(err);
-      }
       return Promise.resolve({ data: [] });
     });
     renderWithRoute(<StudentDetail />, {
       route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
       path: '/trainer/students/:id',
     });
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Anamneses' }));
     await waitFor(() => {
       expect(screen.getByText('Anamnese de Saúde')).toBeInTheDocument();
     });
   });
 
-  it('opens link form when "Vincular Anamnese" button is clicked', async () => {
+  it('renders "Ver respostas" and "Abrir template" buttons for each linked anamnesis', async () => {
     const user = userEvent.setup();
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
+      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
+      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
+      return Promise.resolve({ data: [] });
     });
+    renderWithRoute(<StudentDetail />, {
+      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
+      path: '/trainer/students/:id',
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Anamneses' }));
     await waitFor(() => {
-      expect(screen.getByText('+ Vincular Anamnese')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Ver respostas' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Abrir template' })).toBeInTheDocument();
     });
+  });
+
+  it('"Ver respostas" navigates to the response detail route', async () => {
+    const user = userEvent.setup();
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
+      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
+      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
+      return Promise.resolve({ data: [] });
+    });
+    renderWithRoute(<StudentDetail />, {
+      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
+      path: '/trainer/students/:id',
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ver respostas' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Ver respostas' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/trainer/students/student-1/anamneses/anamnesis-1/response',
+    );
+  });
+
+  it('"Abrir template" navigates to the anamnesis detail route', async () => {
+    const user = userEvent.setup();
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
+      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
+      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
+      return Promise.resolve({ data: [] });
+    });
+    renderWithRoute(<StudentDetail />, {
+      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
+      path: '/trainer/students/:id',
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Abrir template' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Abrir template' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1');
+  });
+
+  it('"Desvincular" opens confirm dialog', async () => {
+    const user = userEvent.setup();
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
+      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
+      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
+      return Promise.resolve({ data: [] });
+    });
+    renderWithRoute(<StudentDetail />, {
+      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
+      path: '/trainer/students/:id',
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Desvincular' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Desvincular' }));
+
+    expect(screen.getByText(/desvincular a anamnese "anamnese de saúde"/i)).toBeInTheDocument();
+  });
+
+  it('"Desvincular" confirmed calls api.delete and shows success toast', async () => {
+    const user = userEvent.setup();
+    api.delete.mockResolvedValue({});
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
+      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
+      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
+      return Promise.resolve({ data: [] });
+    });
+    renderWithRoute(<StudentDetail />, {
+      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
+      path: '/trainer/students/:id',
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Desvincular' })).toBeInTheDocument());
+    // Open the confirm dialog
+    await user.click(screen.getByRole('button', { name: 'Desvincular' }));
+    // Now both the card button and the confirm dialog btn-danger are present;
+    // pick the last one (confirm dialog's destructive button)
+    const desvincularBtns = screen.getAllByRole('button', { name: /desvincular/i });
+    await user.click(desvincularBtns[desvincularBtns.length - 1]);
+
+    await waitFor(() => {
+      expect(api.delete).toHaveBeenCalledWith(
+        '/trainer/students/student-1/anamneses/anamnesis-1',
+      );
+      expect(mockShowToast).toHaveBeenCalledWith('Anamnese desvinculada com sucesso!', 'success');
+    });
+  });
+
+  it('opens link form (picker modal) when "Vincular Anamnese" is clicked', async () => {
+    const user = userEvent.setup();
+    renderStudentDetail();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
+    await waitFor(() => expect(screen.getByText('+ Vincular Anamnese')).toBeInTheDocument());
     await user.click(screen.getByText('+ Vincular Anamnese'));
     await waitFor(() => {
       expect(screen.getByLabelText('Selecionar anamnese')).toBeInTheDocument();
     });
   });
 
-  it('links anamnesis and shows success toast', async () => {
+  it('links anamnesis via picker modal and shows success toast', async () => {
     const user = userEvent.setup();
     api.get.mockImplementation((url) => {
       if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
@@ -411,19 +494,14 @@ describe('StudentDetail', () => {
       route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
       path: '/trainer/students/:id',
     });
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => {
-      expect(screen.getByText('+ Vincular Anamnese')).toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getByText('+ Vincular Anamnese')).toBeInTheDocument());
     await user.click(screen.getByText('+ Vincular Anamnese'));
-    await waitFor(() => {
-      expect(screen.getByLabelText('Selecionar anamnese')).toBeInTheDocument();
-    });
-    await selectOption(user,screen.getByLabelText('Selecionar anamnese'), 'anamnesis-1');
+    await waitFor(() => expect(screen.getByLabelText('Selecionar anamnese')).toBeInTheDocument());
+    await selectOption(user, screen.getByLabelText('Selecionar anamnese'), 'anamnesis-1');
     await user.click(screen.getByRole('button', { name: 'Vincular' }));
+
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
         '/trainer/students/student-1/anamneses',
@@ -431,34 +509,6 @@ describe('StudentDetail', () => {
       );
       expect(mockShowToast).toHaveBeenCalledWith('Anamnese vinculada com sucesso!', 'success');
     });
-  });
-
-  it('shows confirm dialog when "Desvincular" is clicked via menu', async () => {
-    const user = userEvent.setup();
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
-      if (url.includes('/response')) {
-        const err = Object.assign(new Error('Not found'), { response: { status: 404 } });
-        return Promise.reject(err);
-      }
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => {
-      expect(screen.getByText('Anamnese de Saúde')).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: /opções de anamnese de saúde/i }));
-    await user.click(screen.getByRole('button', { name: 'Desvincular' }));
-    expect(screen.getByText(/desvincular a anamnese "anamnese de saúde"/i)).toBeInTheDocument();
   });
 
   it('fallback: fetches /trainer/students when no location state', async () => {
@@ -489,124 +539,6 @@ describe('StudentDetail', () => {
     renderStudentDetail();
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /voltar para alunos/i })).toBeInTheDocument();
-    });
-  });
-
-  it('shows "Ver resposta" button for each linked anamnesis', async () => {
-    const user = userEvent.setup();
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
-      if (url.includes('/response')) {
-        const err = Object.assign(new Error('Not found'), { response: { status: 404 } });
-        return Promise.reject(err);
-      }
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => {
-      expect(screen.getByText('Anamnese de Saúde')).toBeInTheDocument();
-    });
-    expect(screen.getByRole('button', { name: 'Ver resposta' })).toBeInTheDocument();
-  });
-
-  it('shows student answers after clicking "Ver resposta"', async () => {
-    const user = userEvent.setup();
-    const mockStudentResponse = {
-      id: 'response-1',
-      anamnesisId: 'anamnesis-1',
-      studentId: 'student-1',
-      submittedAt: '2026-03-01T10:00:00.000Z',
-      answers: [
-        { id: 'ans-1', responseId: 'response-1', questionId: 'q1', value: 'yes' },
-      ],
-    };
-    const mockFullAnamnesis = {
-      id: 'anamnesis-1',
-      title: 'Anamnese de Saúde',
-      sections: [
-        {
-          id: 'section-1',
-          title: 'Histórico',
-          order: 0,
-          questions: [
-            {
-              id: 'q1',
-              text: 'Você pratica exercícios?',
-              type: 'dichotomous',
-              required: true,
-              order: 0,
-              options: [],
-            },
-          ],
-        },
-      ],
-    };
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
-      if (url === '/trainer/students/student-1/anamneses/anamnesis-1/response') {
-        return Promise.resolve({ data: mockStudentResponse });
-      }
-      if (url === '/trainer/anamneses/anamnesis-1') {
-        return Promise.resolve({ data: mockFullAnamnesis });
-      }
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Ver resposta' })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Ver resposta' }));
-    await waitFor(() => {
-      expect(screen.getByText('Você pratica exercícios?')).toBeInTheDocument();
-      expect(screen.getByText('Sim')).toBeInTheDocument();
-    });
-    expect(screen.getByRole('button', { name: 'Ocultar resposta' })).toBeInTheDocument();
-  });
-
-  it('shows "não respondeu" message when no response found', async () => {
-    const user = userEvent.setup();
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
-      if (url.includes('/response')) {
-        const err = Object.assign(new Error('Not found'), { response: { status: 404, data: { error: 'ANAMNESIS_RESPONSE_NOT_FOUND' } } });
-        return Promise.reject(err);
-      }
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Ver resposta' })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Ver resposta' }));
-    await waitFor(() => {
-      expect(screen.getByText('O aluno ainda não respondeu esta anamnese.')).toBeInTheDocument();
     });
   });
 });

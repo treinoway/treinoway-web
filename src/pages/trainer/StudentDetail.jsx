@@ -8,7 +8,6 @@ import Select from '../../components/Select';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
 import RowMenu from '../../components/RowMenu';
-import { ANAMNESIS_QUESTION_TYPE } from '../../constants/anamnesis';
 
 const getAvatarInitial = (student) => {
   if (student?.firstName) return student.firstName.charAt(0).toUpperCase();
@@ -149,112 +148,6 @@ const ProtocolsTab = ({ studentId }) => {
   );
 };
 
-const formatAnswerValue = (question, value) => {
-  if (value === null || value === undefined) return '—';
-  if (question.type === ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS) {
-    return value === 'yes' ? 'Sim' : 'Não';
-  }
-  if (question.type === ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE && Array.isArray(value)) {
-    return value.join(', ') || '—';
-  }
-  return String(value);
-};
-
-const AnamnesisResponseView = ({ studentId, link }) => {
-  const { showToast } = useToast();
-  const [loadingResponse, setLoadingResponse] = useState(false);
-  const [response, setResponse] = useState(null);
-  const [fullAnamnesis, setFullAnamnesis] = useState(null);
-  const [notFound, setNotFound] = useState(false);
-  const [visible, setVisible] = useState(false);
-
-  const anamnesisId = link.anamnesis.id;
-
-  const source = fullAnamnesis ?? link.anamnesis;
-  const allQuestions = (source.sections ?? [])
-    .slice()
-    .sort((a, b) => a.order - b.order)
-    .flatMap((s) =>
-      (s.questions ?? []).slice().sort((a, b) => a.order - b.order)
-    );
-
-  const handleToggle = async () => {
-    if (visible) {
-      setVisible(false);
-      return;
-    }
-    setVisible(true);
-    if (response || notFound) return;
-
-    setLoadingResponse(true);
-    try {
-      const [resResponse, resAnamnesis] = await Promise.all([
-        api.get(`/trainer/students/${studentId}/anamneses/${anamnesisId}/response`),
-        api.get(`/trainer/anamneses/${anamnesisId}`).catch(() => null),
-      ]);
-      setResponse(resResponse.data);
-      if (resAnamnesis) {
-        setFullAnamnesis(resAnamnesis.data);
-      }
-    } catch (err) {
-      if (err.response?.status === 404) {
-        setNotFound(true);
-      } else {
-        showToast(err.userMessage || translateError(err), 'error');
-        setVisible(false);
-      }
-    } finally {
-      setLoadingResponse(false);
-    }
-  };
-
-  return (
-    <div>
-      <button type="button" className="btn-secondary" onClick={handleToggle}>
-        {visible ? 'Ocultar resposta' : 'Ver resposta'}
-      </button>
-
-      {visible && loadingResponse && (
-        <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-sm)' }}>
-          Carregando resposta...
-        </p>
-      )}
-
-      {visible && !loadingResponse && notFound && (
-        <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-sm)' }}>
-          O aluno ainda não respondeu esta anamnese.
-        </p>
-      )}
-
-      {visible && !loadingResponse && response && (
-        <div style={{ marginTop: 'var(--spacing-sm)' }}>
-          {response.answers.length === 0 && (
-            <p className="text-sm text-muted">Nenhuma resposta registrada.</p>
-          )}
-          {response.answers.map((answer) => {
-            const question = allQuestions.find((q) => q.id === answer.questionId);
-            const displayValue = question
-              ? formatAnswerValue(question, answer.value)
-              : String(answer.value ?? '—');
-            return (
-              <div
-                key={answer.id ?? answer.questionId}
-                style={{
-                  padding: 'var(--spacing-xs) var(--spacing-sm)',
-                  borderBottom: '1px solid var(--color-outline-variant)',
-                }}
-              >
-                {question && <p className="text-sm font-medium">{question.text}</p>}
-                <p className="text-sm text-muted">{displayValue}</p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const AnamnesisTab = ({ studentId }) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -329,6 +222,12 @@ const AnamnesisTab = ({ studentId }) => {
     });
   };
 
+  const formatLinkedAt = (link) => {
+    const raw = link.createdAt ?? link.linkedAt ?? null;
+    if (!raw) return null;
+    return formatDateForDisplay(raw);
+  };
+
   if (loading) {
     return (
       <div className="loading-screen">
@@ -341,7 +240,7 @@ const AnamnesisTab = ({ studentId }) => {
     <div>
       <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
         <span />
-        <button onClick={handleOpenLinkForm} className="btn-primary">
+        <button type="button" onClick={handleOpenLinkForm} className="btn-primary">
           + Vincular Anamnese
         </button>
       </div>
@@ -354,26 +253,55 @@ const AnamnesisTab = ({ studentId }) => {
       )}
 
       {linkedAnamneses.length > 0 && (
-        <div className="stack-md">
-          {linkedAnamneses.map((link) => (
-            <div key={link.id} className="card">
-              <div className="card-header">
-                <span className="card-title" style={{ marginBottom: 0 }}>{link.anamnesis.title}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
-                  {link.anamnesis.isGeneral && <span className="badge badge-blue">Geral</span>}
-                  <RowMenu
-                    ariaLabel={`Opções de ${link.anamnesis.title}`}
-                    onEdit={() => navigate(`/trainer/anamneses/${link.anamnesis.id}`)}
-                    onDelete={() => handleUnlink(link)}
-                    deleteLabel="Desvincular"
-                  />
+        <div>
+          {linkedAnamneses.map((link) => {
+            const linkedAt = formatLinkedAt(link);
+            return (
+              <div key={link.id} className="anamnesis-link-card">
+                <div className="anamnesis-link-card-header">
+                  <div>
+                    <span className="anamnesis-link-card-title">{link.anamnesis.title}</span>
+                    {link.anamnesis.isGeneral && (
+                      <span className="badge badge-blue" style={{ marginLeft: 'var(--spacing-xs)' }}>
+                        Geral
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {linkedAt && (
+                  <p className="anamnesis-link-card-meta">Vinculada em {linkedAt}</p>
+                )}
+                <div className="anamnesis-link-card-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() =>
+                      navigate(
+                        `/trainer/students/${studentId}/anamneses/${link.anamnesis.id}/response`,
+                      )
+                    }
+                  >
+                    Ver respostas
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => navigate(`/trainer/anamneses/${link.anamnesis.id}`)}
+                  >
+                    Abrir template
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: 'var(--md-error)' }}
+                    onClick={() => handleUnlink(link)}
+                  >
+                    Desvincular
+                  </button>
                 </div>
               </div>
-              <div style={{ marginTop: 'var(--spacing-sm)' }}>
-                <AnamnesisResponseView studentId={studentId} link={link} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -383,11 +311,12 @@ const AnamnesisTab = ({ studentId }) => {
             <div className="bottom-sheet-header">
               <h2 className="bottom-sheet-title">Vincular Anamnese</h2>
               <button
+                type="button"
                 onClick={() => setShowLinkForm(false)}
                 className="bottom-sheet-close"
                 aria-label="Fechar"
               >
-                <X size={20} strokeWidth={1.6} />
+                <X size={20} strokeWidth={2} />
               </button>
             </div>
             <div className="bottom-sheet-body">
@@ -410,10 +339,20 @@ const AnamnesisTab = ({ studentId }) => {
                   </Select>
                 </div>
                 <div className="btn-group">
-                  <button type="submit" disabled={linking || !selectedAnamnesisId} className="btn-primary" style={{ flex: 1 }}>
+                  <button
+                    type="submit"
+                    disabled={linking || !selectedAnamnesisId}
+                    className="btn-primary"
+                    style={{ flex: 1 }}
+                  >
                     {linking ? 'Vinculando...' : 'Vincular'}
                   </button>
-                  <button type="button" onClick={() => setShowLinkForm(false)} className="btn-secondary" style={{ flex: 1 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowLinkForm(false)}
+                    className="btn-secondary"
+                    style={{ flex: 1 }}
+                  >
                     Cancelar
                   </button>
                 </div>
