@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Check, Search } from 'lucide-react';
+import { ArrowLeft, Check, Eye, Search } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -238,10 +238,10 @@ const AssignAnamnesis = () => {
 
       <button
         type="button"
-        className="btn btn-secondary btn-sm"
+        className="btn-secondary btn-sm"
         onClick={() => setPreviewOpen(true)}
       >
-        Pré-visualizar
+        <Eye size={16} strokeWidth={2} /> Pré-visualizar
       </button>
     </div>
   );

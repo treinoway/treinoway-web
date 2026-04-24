@@ -1,6 +1,7 @@
+import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
-import { ANAMNESIS_QUESTION_TYPE } from '../constants/anamnesis';
+import { ANAMNESIS_QUESTION_TYPE, isQuestionVisible } from '../constants/anamnesis';
 
 /* ── per-type disabled input renderers ───────────────────── */
 
@@ -13,22 +14,52 @@ const PreviewFreeText = () => (
   />
 );
 
-const PreviewDichotomous = () => (
+/**
+ * Dichotomous preview — interactive so the trainer can toggle parent answers
+ * and see conditional children appear / disappear.
+ */
+const PreviewDichotomous = ({ questionId, value, onChange }) => (
   <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
-    {['Sim', 'Não'].map((label) => (
-      <label key={label} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'not-allowed', color: 'var(--brand-steel)' }}>
-        <input type="radio" name={`preview-${label}`} disabled />
-        {label}
-      </label>
-    ))}
+    <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'pointer', color: 'var(--brand-ink)' }}>
+      <input
+        type="radio"
+        name={`preview-dich-${questionId}`}
+        value="yes"
+        checked={value === 'yes'}
+        onChange={() => onChange('yes')}
+      />
+      Sim
+    </label>
+    <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'pointer', color: 'var(--brand-ink)' }}>
+      <input
+        type="radio"
+        name={`preview-dich-${questionId}`}
+        value="no"
+        checked={value === 'no'}
+        onChange={() => onChange('no')}
+      />
+      Não
+    </label>
   </div>
 );
 
-const PreviewSingleChoice = ({ options }) => (
+PreviewDichotomous.propTypes = {
+  questionId: PropTypes.string.isRequired,
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+};
+
+const PreviewSingleChoice = ({ questionId, options, value, onChange }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
-    {(options ?? []).map((opt, i) => (
-      <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'not-allowed', color: 'var(--brand-steel)' }}>
-        <input type="radio" name={`preview-single-${i}`} disabled />
+    {(options ?? []).map((opt) => (
+      <label key={opt.id ?? opt.text} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'pointer', color: 'var(--brand-ink)' }}>
+        <input
+          type="radio"
+          name={`preview-single-${questionId}`}
+          value={opt.id ?? opt.text}
+          checked={value === (opt.id ?? opt.text)}
+          onChange={() => onChange(opt.id ?? opt.text)}
+        />
         {opt.text}
       </label>
     ))}
@@ -38,19 +69,47 @@ const PreviewSingleChoice = ({ options }) => (
   </div>
 );
 
-const PreviewMultipleChoice = ({ options }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
-    {(options ?? []).map((opt, i) => (
-      <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'not-allowed', color: 'var(--brand-steel)' }}>
-        <input type="checkbox" disabled />
-        {opt.text}
-      </label>
-    ))}
-    {(!options || options.length === 0) && (
-      <p style={{ fontSize: 12, color: 'var(--brand-steel)' }}>Sem opções cadastradas</p>
-    )}
-  </div>
-);
+PreviewSingleChoice.propTypes = {
+  questionId: PropTypes.string.isRequired,
+  options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+};
+
+const PreviewMultipleChoice = ({ options, value, onChange }) => {
+  const selected = Array.isArray(value) ? value : [];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
+      {(options ?? []).map((opt) => {
+        const optValue = opt.id ?? opt.text;
+        const isChecked = selected.includes(optValue);
+        return (
+          <label key={optValue} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'pointer', color: 'var(--brand-ink)' }}>
+            <input
+              type="checkbox"
+              value={optValue}
+              checked={isChecked}
+              onChange={(e) => {
+                if (e.target.checked) onChange([...selected, optValue]);
+                else onChange(selected.filter((v) => v !== optValue));
+              }}
+            />
+            {opt.text}
+          </label>
+        );
+      })}
+      {(!options || options.length === 0) && (
+        <p style={{ fontSize: 12, color: 'var(--brand-steel)' }}>Sem opções cadastradas</p>
+      )}
+    </div>
+  );
+};
+
+PreviewMultipleChoice.propTypes = {
+  options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
+  value: PropTypes.arrayOf(PropTypes.string),
+  onChange: PropTypes.func.isRequired,
+};
 
 const PreviewNumeric = ({ config }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
@@ -103,16 +162,18 @@ const PreviewMatrix = ({ config }) => {
   );
 };
 
-const renderPreviewInput = (question) => {
+const renderPreviewInput = (question, answers, setAnswer) => {
+  const value = answers[question.id];
+  const onChange = (next) => setAnswer(question.id, next);
   switch (question.type) {
     case ANAMNESIS_QUESTION_TYPE.FREE_TEXT:
       return <PreviewFreeText />;
     case ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS:
-      return <PreviewDichotomous />;
+      return <PreviewDichotomous questionId={question.id} value={value} onChange={onChange} />;
     case ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE:
-      return <PreviewSingleChoice options={question.options} />;
+      return <PreviewSingleChoice questionId={question.id} options={question.options} value={value} onChange={onChange} />;
     case ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE:
-      return <PreviewMultipleChoice options={question.options} />;
+      return <PreviewMultipleChoice options={question.options} value={value} onChange={onChange} />;
     case ANAMNESIS_QUESTION_TYPE.NUMERIC:
       return <PreviewNumeric config={question.config} />;
     case ANAMNESIS_QUESTION_TYPE.MATRIX:
@@ -122,12 +183,64 @@ const renderPreviewInput = (question) => {
   }
 };
 
+/** Human-readable trigger value for the condition hint. */
+const formatConditionValue = (parentQuestion, condition) => {
+  if (!parentQuestion || !condition) return '';
+  if (parentQuestion.type === ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS) {
+    if (condition.value === 'yes') return 'Sim';
+    if (condition.value === 'no') return 'Não';
+    return String(condition.value ?? '');
+  }
+  if (parentQuestion.type === ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE) {
+    const match = (parentQuestion.options ?? []).find((opt) => opt.id === condition.optionId);
+    return match?.text ?? '';
+  }
+  if (parentQuestion.type === ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE) {
+    const ids = Array.isArray(condition.optionIds) ? condition.optionIds : [];
+    const texts = ids
+      .map((id) => (parentQuestion.options ?? []).find((opt) => opt.id === id)?.text)
+      .filter(Boolean);
+    return texts.join(' ou ');
+  }
+  return '';
+};
+
 /* ── AnamnesisPreviewModal ───────────────────────────────── */
 
 const AnamnesisPreviewModal = ({ anamnesis, open, onClose }) => {
+  const [answers, setAnswers] = useState({});
+
+  const sortedSections = useMemo(
+    () => [...(anamnesis?.sections ?? [])].sort((a, b) => a.order - b.order),
+    [anamnesis],
+  );
+
+  const allQuestions = useMemo(
+    () => sortedSections.flatMap((s) => [...(s.questions ?? [])].sort((a, b) => a.order - b.order)),
+    [sortedSections],
+  );
+
+  const questionById = useMemo(() => {
+    const map = {};
+    for (const q of allQuestions) map[q.id] = q;
+    return map;
+  }, [allQuestions]);
+
   if (!open) return null;
 
-  const sortedSections = [...(anamnesis.sections ?? [])].sort((a, b) => a.order - b.order);
+  const setAnswer = (questionId, value) => {
+    setAnswers((prev) => {
+      const next = { ...prev, [questionId]: value };
+      // Clear stale values for now-hidden children to keep preview in sync.
+      for (const q of allQuestions) {
+        if (!q.parentQuestionId) continue;
+        if (!isQuestionVisible(q, next) && next[q.id] !== undefined) {
+          delete next[q.id];
+        }
+      }
+      return next;
+    });
+  };
 
   return (
     <div
@@ -157,7 +270,7 @@ const AnamnesisPreviewModal = ({ anamnesis, open, onClose }) => {
 
         <div className="preview-modal-body">
           <p style={{ fontSize: 12, color: 'var(--brand-steel)', marginBottom: 'var(--spacing-lg)' }}>
-            Visualização de como o aluno verá esta anamnese. Campos desabilitados.
+            Visualização de como o aluno verá esta anamnese. Experimente responder para ver perguntas condicionais aparecerem.
           </p>
 
           {sortedSections.length === 0 && (
@@ -165,26 +278,38 @@ const AnamnesisPreviewModal = ({ anamnesis, open, onClose }) => {
           )}
 
           {sortedSections.map((section) => {
-            const sortedQuestions = [...(section.questions ?? [])].sort((a, b) => a.order - b.order);
+            const sortedQuestions = [...(section.questions ?? [])]
+              .sort((a, b) => a.order - b.order)
+              .filter((q) => isQuestionVisible(q, answers));
             return (
               <div key={section.id} className="preview-section">
                 <h3 className="preview-section-title">{section.title}</h3>
 
                 {sortedQuestions.length === 0 && (
-                  <p style={{ fontSize: 12, color: 'var(--brand-steel)' }}>Seção sem perguntas.</p>
+                  <p style={{ fontSize: 12, color: 'var(--brand-steel)' }}>Seção sem perguntas visíveis.</p>
                 )}
 
-                {sortedQuestions.map((question) => (
-                  <div key={question.id} className="preview-question">
-                    <p className="preview-question-label">
-                      {question.text}
-                      {question.required && (
-                        <span className="preview-question-required" aria-label="obrigatória">*</span>
+                {sortedQuestions.map((question) => {
+                  const parentQ = question.parentQuestionId ? questionById[question.parentQuestionId] : null;
+                  const isConditional = Boolean(parentQ && question.condition);
+                  const triggerText = isConditional ? formatConditionValue(parentQ, question.condition) : '';
+                  return (
+                    <div key={question.id} className="preview-question">
+                      {isConditional && (
+                        <span className="preview-question-conditional-hint">
+                          Condicional: mostrado se «{parentQ.text}» = «{triggerText}»
+                        </span>
                       )}
-                    </p>
-                    {renderPreviewInput(question)}
-                  </div>
-                ))}
+                      <p className="preview-question-label">
+                        {question.text}
+                        {question.required && (
+                          <span className="preview-question-required" aria-label="obrigatória">*</span>
+                        )}
+                      </p>
+                      {renderPreviewInput(question, answers, setAnswer)}
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -199,7 +324,7 @@ const questionShape = PropTypes.shape({
   type: PropTypes.string,
   text: PropTypes.string,
   required: PropTypes.bool,
-  options: PropTypes.arrayOf(PropTypes.shape({ text: PropTypes.string })),
+  options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
   config: PropTypes.shape({
     min: PropTypes.number,
     max: PropTypes.number,
@@ -207,15 +332,9 @@ const questionShape = PropTypes.shape({
     rows: PropTypes.arrayOf(PropTypes.string),
     columns: PropTypes.arrayOf(PropTypes.string),
   }),
+  parentQuestionId: PropTypes.string,
+  condition: PropTypes.object,
 });
-
-PreviewSingleChoice.propTypes = {
-  options: PropTypes.arrayOf(PropTypes.shape({ text: PropTypes.string })),
-};
-
-PreviewMultipleChoice.propTypes = {
-  options: PropTypes.arrayOf(PropTypes.shape({ text: PropTypes.string })),
-};
 
 PreviewNumeric.propTypes = {
   config: PropTypes.shape({

@@ -609,7 +609,12 @@ describe('AnamnesisDetail', () => {
     api.get.mockResolvedValue({ data: mockAnamnesis });
     api.post.mockResolvedValue({ data: { id: 'preset-q-id' } });
     renderAnamnesisDetail();
+    // Wait for the section title AND for the auto-selected question card to be active
+    // (the useEffect that sets selectedQuestionId runs after the fetch render).
+    // Without this, getAllByRole may also pick up the canvas-empty-board preset buttons,
+    // which call onPresetClick (not handleAddQuestion) and don't trigger a POST.
     await waitFor(() => expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('switch', { name: /obrigatória/i })).toBeInTheDocument());
     const presetBtns = screen.getAllByRole('button', { name: /histórico familiar de diabetes/i });
     await user.click(presetBtns[0]);
     await waitFor(() => {
@@ -1065,6 +1070,211 @@ describe('AnamnesisDetail', () => {
     expect(
       screen.queryByRole('button', { name: /excluir pergunta você tem alguma doença crônica\?/i })
     ).not.toBeInTheDocument();
+  });
+
+  // ── Conditional questions ─────────────────────────────────
+
+  describe('conditional questions (Condição de exibição)', () => {
+    const makeAnamnesisWithParents = () => ({
+      id: 'anamnesis-c',
+      title: 'Cond',
+      description: null,
+      isGeneral: false,
+      version: 1,
+      parentId: null,
+      sections: [
+        {
+          id: 'sec-1',
+          title: 'Seção',
+          order: 0,
+          questions: [
+            // dichotomous parent
+            { id: 'p-dich', text: 'Você treina?', type: 'dichotomous', required: false, order: 0, options: [], config: null, parentQuestionId: null, condition: null },
+            // single-choice parent
+            { id: 'p-single', text: 'Qual tipo?', type: 'single_choice', required: false, order: 1, options: [{ id: 'o-a', text: 'Força' }, { id: 'o-b', text: 'Cardio' }], config: null, parentQuestionId: null, condition: null },
+            // multiple-choice parent
+            { id: 'p-multi', text: 'Quais sintomas?', type: 'multiple_choice', required: false, order: 2, options: [{ id: 'm-a', text: 'Fadiga' }, { id: 'm-b', text: 'Tontura' }], config: null, parentQuestionId: null, condition: null },
+            // free-text (ineligible as parent)
+            { id: 'p-free', text: 'Comentários?', type: 'free_text', required: false, order: 3, options: [], config: null, parentQuestionId: null, condition: null },
+            // numeric child (will be linked in tests)
+            { id: 'c-numeric', text: 'Há quanto tempo?', type: 'numeric', required: false, order: 4, options: [], config: {}, parentQuestionId: null, condition: null },
+          ],
+        },
+      ],
+    });
+
+    const renderCondDetail = () => renderAnamnesisDetail('anamnesis-c');
+
+    // Helper: select a question in the outline (or via navigation)
+    async function selectQuestion(user, name) {
+      const btns = screen.getAllByRole('button', { name: new RegExp(name, 'i') });
+      await user.click(btns[0]);
+    }
+
+    it('dropdown lists eligible parents (dichotomous, single, multiple) in the same section', async () => {
+      api.get.mockResolvedValue({ data: makeAnamnesisWithParents() });
+      renderCondDetail();
+      // Wait until the first question is auto-selected and condition editor is rendered
+      await waitFor(() =>
+        expect(screen.getByLabelText('Pergunta pai para exibição condicional')).toBeInTheDocument()
+      );
+      // Select the numeric child
+      const user = userEvent.setup();
+      await selectQuestion(user, 'Há quanto tempo\\?');
+      const select = screen.getByLabelText('Pergunta pai para exibição condicional');
+      const optionTexts = Array.from(select.querySelectorAll('option')).map((o) => o.textContent);
+      expect(optionTexts).toContain('Você treina?');
+      expect(optionTexts).toContain('Qual tipo?');
+      expect(optionTexts).toContain('Quais sintomas?');
+      // The free-text question must NOT be eligible
+      expect(optionTexts).not.toContain('Comentários?');
+      // The question itself must NOT be eligible
+      expect(optionTexts).not.toContain('Há quanto tempo?');
+    });
+
+    it('selecting a dichotomous parent renders Sim/Não radios and saves on pick', async () => {
+      api.get.mockResolvedValue({ data: makeAnamnesisWithParents() });
+      api.patch.mockResolvedValue({ data: {} });
+      renderCondDetail();
+      const user = userEvent.setup();
+      await waitFor(() =>
+        expect(screen.getByLabelText('Pergunta pai para exibição condicional')).toBeInTheDocument()
+      );
+      // Focus the numeric child
+      await selectQuestion(user, 'Há quanto tempo\\?');
+      const select = screen.getByLabelText('Pergunta pai para exibição condicional');
+      await user.selectOptions(select, 'p-dich');
+      await waitFor(() => {
+        expect(api.patch).toHaveBeenCalledWith(
+          '/trainer/anamneses/anamnesis-c/sections/sec-1/questions/c-numeric',
+          expect.objectContaining({
+            parentQuestionId: 'p-dich',
+            condition: { operator: 'equals', value: 'yes' },
+          }),
+        );
+      });
+    });
+
+    it('selecting a single-choice parent renders radios of its options', async () => {
+      const anamnesis = makeAnamnesisWithParents();
+      // Pre-link the numeric child to the single-choice parent so the trigger picker renders
+      anamnesis.sections[0].questions[4].parentQuestionId = 'p-single';
+      anamnesis.sections[0].questions[4].condition = { operator: 'equals', optionId: 'o-a' };
+      api.get.mockResolvedValue({ data: anamnesis });
+      renderCondDetail();
+      const user = userEvent.setup();
+      await waitFor(() =>
+        expect(screen.getByLabelText('Pergunta pai para exibição condicional')).toBeInTheDocument()
+      );
+      await selectQuestion(user, 'Há quanto tempo\\?');
+      // Force radio should be checked; Cardio should be present
+      // Use within the condition fieldset to avoid matching the parent card's own option list
+      expect(screen.getByRole('radio', { name: 'Força' })).toBeChecked();
+      expect(screen.getByRole('radio', { name: 'Cardio' })).toBeInTheDocument();
+    });
+
+    it('selecting a multiple-choice parent renders checkboxes', async () => {
+      const anamnesis = makeAnamnesisWithParents();
+      anamnesis.sections[0].questions[4].parentQuestionId = 'p-multi';
+      anamnesis.sections[0].questions[4].condition = { operator: 'includesAny', optionIds: [] };
+      api.get.mockResolvedValue({ data: anamnesis });
+      renderCondDetail();
+      const user = userEvent.setup();
+      await waitFor(() =>
+        expect(screen.getByLabelText('Pergunta pai para exibição condicional')).toBeInTheDocument()
+      );
+      await selectQuestion(user, 'Há quanto tempo\\?');
+      expect(screen.getByRole('checkbox', { name: 'Fadiga' })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: 'Tontura' })).toBeInTheDocument();
+    });
+
+    it('"Remover condição" clears parent + condition via PATCH nulls', async () => {
+      const anamnesis = makeAnamnesisWithParents();
+      anamnesis.sections[0].questions[4].parentQuestionId = 'p-dich';
+      anamnesis.sections[0].questions[4].condition = { operator: 'equals', value: 'yes' };
+      api.get.mockResolvedValue({ data: anamnesis });
+      api.patch.mockResolvedValue({ data: {} });
+      renderCondDetail();
+      const user = userEvent.setup();
+      await waitFor(() =>
+        expect(screen.getByLabelText('Pergunta pai para exibição condicional')).toBeInTheDocument()
+      );
+      await selectQuestion(user, 'Há quanto tempo\\?');
+      const removeBtn = screen.getByRole('button', { name: /remover condição/i });
+      await user.click(removeBtn);
+      await waitFor(() => {
+        expect(api.patch).toHaveBeenCalledWith(
+          '/trainer/anamneses/anamnesis-c/sections/sec-1/questions/c-numeric',
+          expect.objectContaining({ parentQuestionId: null, condition: null }),
+        );
+      });
+    });
+
+    it('shows hint "Nenhuma pergunta elegível nesta seção." when no candidates exist', async () => {
+      const anamnesis = {
+        id: 'a-none',
+        title: 'none',
+        description: null,
+        isGeneral: false,
+        version: 1,
+        parentId: null,
+        sections: [
+          {
+            id: 'sec-1',
+            title: 's',
+            order: 0,
+            questions: [
+              // Only numeric + free-text; neither can be a parent
+              { id: 'n1', text: 'Peso', type: 'numeric', required: false, order: 0, options: [], config: null, parentQuestionId: null, condition: null },
+              { id: 'n2', text: 'Altura', type: 'numeric', required: false, order: 1, options: [], config: null, parentQuestionId: null, condition: null },
+            ],
+          },
+        ],
+      };
+      api.get.mockResolvedValue({ data: anamnesis });
+      renderAnamnesisDetail('a-none');
+      await waitFor(() =>
+        expect(screen.getByText(/nenhuma pergunta elegível nesta seção/i)).toBeInTheDocument()
+      );
+    });
+
+    it('shows type-locked hint when a question has dependents', async () => {
+      const anamnesis = makeAnamnesisWithParents();
+      // Link the numeric child to the dichotomous parent → dichotomous parent has a dependent
+      anamnesis.sections[0].questions[4].parentQuestionId = 'p-dich';
+      anamnesis.sections[0].questions[4].condition = { operator: 'equals', value: 'yes' };
+      api.get.mockResolvedValue({ data: anamnesis });
+      renderCondDetail();
+      const user = userEvent.setup();
+      await waitFor(() =>
+        expect(screen.getAllByText('Você treina?').length).toBeGreaterThan(0)
+      );
+      // Select the parent (it has dependents) — click the outline row
+      await selectQuestion(user, 'Você treina\\?');
+      await waitFor(() =>
+        expect(
+          screen.getByText(/não é possível alterar o tipo enquanto houver perguntas condicionais vinculadas/i)
+        ).toBeInTheDocument()
+      );
+    });
+
+    it('outline renders conditional child with indentation class and badge', async () => {
+      const anamnesis = makeAnamnesisWithParents();
+      anamnesis.sections[0].questions[4].parentQuestionId = 'p-dich';
+      anamnesis.sections[0].questions[4].condition = { operator: 'equals', value: 'yes' };
+      api.get.mockResolvedValue({ data: anamnesis });
+      renderCondDetail();
+      await waitFor(() =>
+        expect(screen.getByText('Há quanto tempo?')).toBeInTheDocument()
+      );
+      // The conditional child's outline row has the conditional modifier class
+      const childRows = screen.getAllByRole('button', { name: /há quanto tempo\?/i });
+      const outlineRow = childRows.find((el) => el.className.includes('outline-question-btn--conditional'));
+      expect(outlineRow).toBeTruthy();
+      // The "↳ condicional" badge is rendered inside
+      const badge = screen.getByLabelText('Pergunta condicional');
+      expect(badge).toBeInTheDocument();
+    });
   });
 
   it('pressing Enter on outline question div selects the question (a11y)', async () => {

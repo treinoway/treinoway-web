@@ -4,6 +4,12 @@ const en = {
     FORBIDDEN_NOT_TEMPLATE_OWNER: 'You do not have permission to edit this template.',
   },
   messageCodes: {
+    'anamnesis.invalidCondition': 'Invalid condition for the parent question type.',
+    'anamnesis.parentNotEligible': 'Only Yes/No, Single Choice or Multiple Choice questions can be parent questions.',
+    'anamnesis.parentMustBeSameSection': 'The parent question must be in the same section.',
+    'anamnesis.parentTypeLocked': 'The question type cannot be changed because it has linked conditional questions.',
+    'anamnesis.conditionReferencesRemovedOption': 'Cannot remove an option referenced by a conditional question.',
+    'anamnesis.conditionalDepthExceeded': 'Conditional questions cannot be chained (single level only).',
     'trainingTemplateExercise.notFound': 'Exercise not found in this training template.',
     'legacy.PROTOCOL_STATUS_NOT_DELETABLE': 'Active routines cannot be deleted. Archive the routine first.',
     'diet.patientNotFound': 'Patient not found.',

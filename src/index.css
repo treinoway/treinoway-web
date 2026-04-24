@@ -12319,6 +12319,111 @@ nav.onboarding-steps {
   margin-top: var(--spacing-md);
 }
 
+/* ── Conditional visibility editor (inside question-card) ── */
+.condition-editor {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px dashed var(--brand-divider);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.condition-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.condition-editor-title {
+  margin: 0;
+  color: var(--brand-steel);
+}
+
+.condition-editor-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--brand-steel);
+  line-height: var(--line-height-normal);
+}
+
+.condition-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.condition-editor-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-steel);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.condition-editor-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.condition-editor-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--brand-ink);
+}
+
+.condition-editor-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--brand-steel);
+  font-style: italic;
+}
+
+/* Outline: indented conditional question + badge ─────────── */
+.outline-question-btn--conditional {
+  margin-left: var(--spacing-lg);
+}
+
+.outline-conditional-badge {
+  font-family: var(--font-family-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  background: var(--brand-mist);
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+/* Preview modal: conditional question hint banner ─────────── */
+.preview-question-conditional-hint {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-steel);
+  letter-spacing: var(--tracking-wide);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+  background: var(--brand-mist);
+  border-left: 2px solid var(--brand-primary);
+  border-radius: var(--radius-brand);
+}
+
+/* Type-locked hint (when a question has dependents) ─────── */
+.question-card-type-locked-hint {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 11px;
+  color: var(--brand-steel);
+  font-style: italic;
+}
+
 /* ── CanvasEmptyBoard ────────────────────────────────────── */
 .canvas-empty-board {
   background: var(--md-surface);

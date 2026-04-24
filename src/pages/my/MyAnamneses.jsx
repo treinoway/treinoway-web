@@ -1,16 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import { getQuestionTypeLabel, ANAMNESIS_QUESTION_TYPE } from '../../constants/anamnesis';
+import {
+  getQuestionTypeLabel,
+  ANAMNESIS_QUESTION_TYPE,
+  isQuestionVisible,
+} from '../../constants/anamnesis';
 
 const getTrainerName = (trainer) => {
   const user = trainer?.user;
   if (!user) return '—';
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
   return name || '—';
+};
+
+/**
+ * Build the `answersByQuestionId` map used by `isQuestionVisible`.
+ * For single/multiple-choice questions the form stores option *text* as value
+ * (backend contract), but conditions reference option *ids* — translate here.
+ */
+const buildAnswersMap = (formAnswers, allQuestions) => {
+  const map = {};
+  for (const q of allQuestions) {
+    const raw = formAnswers[q.id];
+    if (raw === undefined) continue;
+    if (q.type === ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE && typeof raw === 'string') {
+      const matched = (q.options ?? []).find((opt) => opt.text === raw);
+      map[q.id] = matched?.id ?? raw;
+    } else if (q.type === ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE && Array.isArray(raw)) {
+      map[q.id] = raw.map((text) => {
+        const matched = (q.options ?? []).find((opt) => opt.text === text);
+        return matched?.id ?? text;
+      });
+    } else {
+      map[q.id] = raw;
+    }
+  }
+  return map;
 };
 
 const QuestionItem = ({ question, index }) => {
@@ -305,6 +334,19 @@ const AnamnesisCard = ({ link }) => {
     [...(s.questions ?? [])].sort((a, b) => a.order - b.order)
   );
 
+  const answersByQuestionId = useMemo(
+    () => buildAnswersMap(formAnswers, allQuestions),
+    [allQuestions, formAnswers],
+  );
+
+  const visibleQuestionIds = useMemo(() => {
+    const visible = new Set();
+    for (const q of allQuestions) {
+      if (isQuestionVisible(q, answersByQuestionId)) visible.add(q.id);
+    }
+    return visible;
+  }, [allQuestions, answersByQuestionId]);
+
   useEffect(() => {
     const fetchResponse = async () => {
       setLoadingResponse(true);
@@ -337,7 +379,19 @@ const AnamnesisCard = ({ link }) => {
   };
 
   const handleAnswerChange = (questionId, value) => {
-    setFormAnswers((prev) => ({ ...prev, [questionId]: value }));
+    setFormAnswers((prev) => {
+      const next = { ...prev, [questionId]: value };
+      // When a parent's answer changes, any child that is no longer visible
+      // should have its stale answer cleared so it is not submitted.
+      const syntheticAnswers = buildAnswersMap(next, allQuestions);
+      for (const q of allQuestions) {
+        if (!q.parentQuestionId) continue;
+        if (!isQuestionVisible(q, syntheticAnswers) && next[q.id] !== undefined) {
+          delete next[q.id];
+        }
+      }
+      return next;
+    });
     setValidationErrors((prev) => ({ ...prev, [questionId]: undefined }));
   };
 
@@ -347,6 +401,7 @@ const AnamnesisCard = ({ link }) => {
     setValidationErrors({});
 
     const answers = allQuestions
+      .filter((q) => visibleQuestionIds.has(q.id))
       .filter((q) => {
         const val = formAnswers[q.id];
         if (val === undefined || val === null || val === '') return false;
@@ -438,7 +493,9 @@ const AnamnesisCard = ({ link }) => {
         <div style={{ marginTop: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--color-outline-variant)' }}>
           <form onSubmit={handleSubmit} className="form">
             {sortedSections.map((section) => {
-              const sectionQuestions = [...(section.questions ?? [])].sort((a, b) => a.order - b.order);
+              const sectionQuestions = [...(section.questions ?? [])]
+                .sort((a, b) => a.order - b.order)
+                .filter((q) => visibleQuestionIds.has(q.id));
               return (
                 <div key={section.id} style={{ marginBottom: 'var(--spacing-md)' }}>
                   <h4 className="font-medium" style={{ marginBottom: 'var(--spacing-sm)' }}>{section.title}</h4>

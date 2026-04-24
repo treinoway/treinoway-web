@@ -60,15 +60,17 @@ describe('AnamnesisPreviewModal', () => {
     expect(asterisks.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('renders dichotomous question as two disabled radios (Sim / Não)', () => {
+  it('renders dichotomous question as two interactive radios (Sim / Não)', () => {
     renderModal();
-    const radios = screen.getAllByRole('radio');
     const simLabel = screen.getByText('Sim');
     const naoLabel = screen.getByText('Não');
     expect(simLabel).toBeInTheDocument();
     expect(naoLabel).toBeInTheDocument();
-    // All radios must be disabled
-    radios.forEach((r) => expect(r).toBeDisabled());
+    // In the new preview behavior, dichotomous / single / multiple radios are
+    // interactive so the trainer can toggle parent answers and see conditional
+    // children appear/disappear. Only free-text / numeric / matrix inputs remain disabled.
+    expect(screen.getByRole('radio', { name: 'Sim' })).not.toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'Não' })).not.toBeDisabled();
   });
 
   it('renders free_text question as a disabled textarea', () => {
@@ -84,11 +86,12 @@ describe('AnamnesisPreviewModal', () => {
     expect(screen.getByText('3-4')).toBeInTheDocument();
   });
 
-  it('renders multiple_choice question as disabled checkboxes', () => {
+  it('renders multiple_choice question as interactive checkboxes', () => {
     renderModal();
     const checkboxes = screen.getAllByRole('checkbox');
     expect(checkboxes.length).toBeGreaterThanOrEqual(2);
-    checkboxes.forEach((cb) => expect(cb).toBeDisabled());
+    // Checkboxes are interactive in the new preview so trainers can toggle parents.
+    checkboxes.forEach((cb) => expect(cb).not.toBeDisabled());
     expect(screen.getByText('Fadiga')).toBeInTheDocument();
     expect(screen.getByText('Tontura')).toBeInTheDocument();
   });
@@ -146,5 +149,121 @@ describe('AnamnesisPreviewModal', () => {
   it('shows empty state when anamnesis has no sections', () => {
     renderModal({ anamnesis: makeAnamnesis({ sections: [] }) });
     expect(screen.getByText(/não possui seções/i)).toBeInTheDocument();
+  });
+
+  // ── Conditional visibility ────────────────────────────────
+
+  const makeConditionalAnamnesis = () => ({
+    id: 'a-cond',
+    title: 'Anamnese com Condicionais',
+    sections: [
+      {
+        id: 's1',
+        title: 'Treino',
+        order: 0,
+        questions: [
+          {
+            id: 'parent-dich',
+            text: 'Você treina atualmente?',
+            type: 'dichotomous',
+            required: true,
+            order: 0,
+            options: [],
+            config: null,
+            parentQuestionId: null,
+            condition: null,
+          },
+          {
+            id: 'child-numeric',
+            text: 'Há quantos anos você treina?',
+            type: 'numeric',
+            required: false,
+            order: 1,
+            options: [],
+            config: { unit: 'anos' },
+            parentQuestionId: 'parent-dich',
+            condition: { operator: 'equals', value: 'yes' },
+          },
+        ],
+      },
+    ],
+  });
+
+  it('hides a conditional child until the parent answer matches', async () => {
+    const user = userEvent.setup();
+    renderModal({ anamnesis: makeConditionalAnamnesis() });
+
+    // The child starts hidden because the parent is unanswered
+    expect(screen.queryByText('Há quantos anos você treina?')).not.toBeInTheDocument();
+
+    // Answer parent "Sim" → child appears
+    await user.click(screen.getByRole('radio', { name: 'Sim' }));
+    expect(screen.getByText('Há quantos anos você treina?')).toBeInTheDocument();
+
+    // Switch parent to "Não" → child disappears
+    await user.click(screen.getByRole('radio', { name: 'Não' }));
+    expect(screen.queryByText('Há quantos anos você treina?')).not.toBeInTheDocument();
+  });
+
+  it('renders the conditional hint above a visible conditional child', async () => {
+    const user = userEvent.setup();
+    renderModal({ anamnesis: makeConditionalAnamnesis() });
+
+    await user.click(screen.getByRole('radio', { name: 'Sim' }));
+    // The hint text includes parent and formatted trigger value
+    expect(
+      screen.getByText(/condicional: mostrado se «você treina atualmente\?» = «sim»/i)
+    ).toBeInTheDocument();
+  });
+
+  it('formats single_choice trigger by option text in the hint', async () => {
+    const singleChoiceAnamnesis = {
+      id: 'a-single',
+      title: 'a',
+      sections: [
+        {
+          id: 's1',
+          title: 'Seção',
+          order: 0,
+          questions: [
+            {
+              id: 'parent-single',
+              text: 'Qual tipo de treino?',
+              type: 'single_choice',
+              required: false,
+              order: 0,
+              options: [
+                { id: 'opt-force', text: 'Força' },
+                { id: 'opt-cardio', text: 'Cardio' },
+              ],
+              config: null,
+              parentQuestionId: null,
+              condition: null,
+            },
+            {
+              id: 'child',
+              text: 'Detalhes sobre força?',
+              type: 'free_text',
+              required: false,
+              order: 1,
+              options: [],
+              config: null,
+              parentQuestionId: 'parent-single',
+              condition: { operator: 'equals', optionId: 'opt-force' },
+            },
+          ],
+        },
+      ],
+    };
+    const user = userEvent.setup();
+    renderModal({ anamnesis: singleChoiceAnamnesis });
+
+    // Child hidden initially
+    expect(screen.queryByText('Detalhes sobre força?')).not.toBeInTheDocument();
+
+    // Select "Força" → child appears with hint showing the option text
+    await user.click(screen.getByRole('radio', { name: 'Força' }));
+    expect(screen.getByText('Detalhes sobre força?')).toBeInTheDocument();
+    expect(screen.getByText(/«força»/i)).toBeInTheDocument();
   });
 });

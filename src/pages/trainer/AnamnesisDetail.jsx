@@ -21,6 +21,8 @@ import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import {
+  ANAMNESIS_CONDITION_OPERATOR,
+  ANAMNESIS_PARENT_ELIGIBLE_TYPES,
   ANAMNESIS_QUESTION_TYPE,
   QUESTION_TYPES_WITH_OPTIONS,
   getQuestionTypeLabel,
@@ -79,7 +81,53 @@ ToggleSwitch.propTypes = {
 
 /* ── CanvasQuestionCard ──────────────────────────────────── */
 
-const CanvasQuestionCard = ({ question, sectionId, anamnesisId, isGeneral, autoFocus, onAutoFocusConsumed, onUpdated, onDeleteQuestion }) => {
+/**
+ * Build the list of eligible parent candidates from the same section.
+ * - type must be in ANAMNESIS_PARENT_ELIGIBLE_TYPES
+ * - must not be the question itself
+ * - must not itself have a parentQuestionId (single-level rule)
+ */
+const getEligibleParentCandidates = (question, sectionQuestions) =>
+  (sectionQuestions ?? []).filter((candidate) =>
+    candidate.id !== question.id
+    && !candidate.parentQuestionId
+    && ANAMNESIS_PARENT_ELIGIBLE_TYPES.includes(candidate.type)
+  );
+
+/** Does this question have any dependent (conditional child) in the same section? */
+const hasDependents = (question, sectionQuestions) =>
+  (sectionQuestions ?? []).some((q) => q.parentQuestionId === question.id);
+
+/** Default `condition` object for a freshly-selected parent of a given type. */
+const buildInitialCondition = (parentQuestion) => {
+  if (!parentQuestion) return null;
+  switch (parentQuestion.type) {
+    case ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS:
+      return { operator: ANAMNESIS_CONDITION_OPERATOR.EQUALS, value: 'yes' };
+    case ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE: {
+      const firstOptionId = parentQuestion.options?.[0]?.id ?? null;
+      return firstOptionId
+        ? { operator: ANAMNESIS_CONDITION_OPERATOR.EQUALS, optionId: firstOptionId }
+        : null;
+    }
+    case ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE:
+      return { operator: ANAMNESIS_CONDITION_OPERATOR.INCLUDES_ANY, optionIds: [] };
+    default:
+      return null;
+  }
+};
+
+const CanvasQuestionCard = ({
+  question,
+  sectionId,
+  anamnesisId,
+  isGeneral,
+  autoFocus,
+  onAutoFocusConsumed,
+  onUpdated,
+  onDeleteQuestion,
+  sectionQuestions,
+}) => {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
   const [localText, setLocalText] = useState(question.text);
@@ -87,6 +135,11 @@ const CanvasQuestionCard = ({ question, sectionId, anamnesisId, isGeneral, autoF
   const titleRef = useRef(null);
 
   const hasOptions = QUESTION_TYPES_WITH_OPTIONS.includes(question.type);
+  const parentCandidates = getEligibleParentCandidates(question, sectionQuestions);
+  const hasAnyDependent = hasDependents(question, sectionQuestions);
+  const parentQuestion = question.parentQuestionId
+    ? (sectionQuestions ?? []).find((q) => q.id === question.parentQuestionId) ?? null
+    : null;
 
   useEffect(() => {
     if (!autoFocus || !titleRef.current) return;
@@ -148,6 +201,192 @@ const CanvasQuestionCard = ({ question, sectionId, anamnesisId, isGeneral, autoF
   const handleKeyDownOption = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); handleAddOption(); }
   };
+
+  /* ── Conditional visibility handlers ───────────────────── */
+
+  const handleSelectParent = (nextParentId) => {
+    if (!nextParentId) {
+      patchQuestion({ parentQuestionId: null, condition: null });
+      return;
+    }
+    const nextParent = (sectionQuestions ?? []).find((q) => q.id === nextParentId);
+    const nextCondition = buildInitialCondition(nextParent);
+    patchQuestion({ parentQuestionId: nextParentId, condition: nextCondition });
+  };
+
+  const handleDichotomousTrigger = (value) => {
+    patchQuestion({
+      parentQuestionId: question.parentQuestionId,
+      condition: { operator: ANAMNESIS_CONDITION_OPERATOR.EQUALS, value },
+    });
+  };
+
+  const handleSingleChoiceTrigger = (optionId) => {
+    patchQuestion({
+      parentQuestionId: question.parentQuestionId,
+      condition: { operator: ANAMNESIS_CONDITION_OPERATOR.EQUALS, optionId },
+    });
+  };
+
+  const handleMultipleChoiceTrigger = (optionId, checked) => {
+    const currentIds = Array.isArray(question.condition?.optionIds) ? question.condition.optionIds : [];
+    const nextIds = checked
+      ? [...new Set([...currentIds, optionId])]
+      : currentIds.filter((id) => id !== optionId);
+    patchQuestion({
+      parentQuestionId: question.parentQuestionId,
+      condition: { operator: ANAMNESIS_CONDITION_OPERATOR.INCLUDES_ANY, optionIds: nextIds },
+    });
+  };
+
+  const handleRemoveCondition = () => {
+    patchQuestion({ parentQuestionId: null, condition: null });
+  };
+
+  /* ── Condition editor renderer ─────────────────────────── */
+
+  const renderTriggerValuePicker = () => {
+    if (!parentQuestion) return null;
+
+    if (parentQuestion.type === ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS) {
+      const current = question.condition?.value;
+      return (
+        <fieldset className="condition-editor-field">
+          <legend className="condition-editor-label">Mostrar se a resposta for</legend>
+          <div className="condition-editor-options">
+            <label className="condition-editor-option">
+              <input
+                type="radio"
+                name={`condition-dich-${question.id}`}
+                value="yes"
+                checked={current === 'yes'}
+                onChange={() => handleDichotomousTrigger('yes')}
+                disabled={saving}
+              />
+              Sim
+            </label>
+            <label className="condition-editor-option">
+              <input
+                type="radio"
+                name={`condition-dich-${question.id}`}
+                value="no"
+                checked={current === 'no'}
+                onChange={() => handleDichotomousTrigger('no')}
+                disabled={saving}
+              />
+              Não
+            </label>
+          </div>
+        </fieldset>
+      );
+    }
+
+    if (parentQuestion.type === ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE) {
+      const current = question.condition?.optionId;
+      const options = parentQuestion.options ?? [];
+      if (options.length === 0) {
+        return <p className="condition-editor-empty">A pergunta pai não possui opções cadastradas.</p>;
+      }
+      return (
+        <fieldset className="condition-editor-field">
+          <legend className="condition-editor-label">Mostrar se a opção selecionada for</legend>
+          <div className="condition-editor-options">
+            {options.map((opt) => (
+              <label key={opt.id} className="condition-editor-option">
+                <input
+                  type="radio"
+                  name={`condition-single-${question.id}`}
+                  value={opt.id}
+                  checked={current === opt.id}
+                  onChange={() => handleSingleChoiceTrigger(opt.id)}
+                  disabled={saving}
+                />
+                {opt.text}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      );
+    }
+
+    if (parentQuestion.type === ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE) {
+      const selectedIds = Array.isArray(question.condition?.optionIds) ? question.condition.optionIds : [];
+      const options = parentQuestion.options ?? [];
+      if (options.length === 0) {
+        return <p className="condition-editor-empty">A pergunta pai não possui opções cadastradas.</p>;
+      }
+      return (
+        <fieldset className="condition-editor-field">
+          <legend className="condition-editor-label">Mostrar se qualquer uma estiver marcada</legend>
+          <p className="condition-editor-hint">Selecione uma ou mais opções que devem ativar esta pergunta.</p>
+          <div className="condition-editor-options">
+            {options.map((opt) => (
+              <label key={opt.id} className="condition-editor-option">
+                <input
+                  type="checkbox"
+                  value={opt.id}
+                  checked={selectedIds.includes(opt.id)}
+                  onChange={(e) => handleMultipleChoiceTrigger(opt.id, e.target.checked)}
+                  disabled={saving}
+                />
+                {opt.text}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      );
+    }
+
+    return null;
+  };
+
+  const conditionEditor = !isGeneral && (
+    <div className="condition-editor">
+      <div className="condition-editor-header">
+        <p className="eyebrow condition-editor-title">Condição de exibição</p>
+        {question.parentQuestionId && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={handleRemoveCondition}
+            disabled={saving}
+          >
+            Remover condição
+          </button>
+        )}
+      </div>
+
+      <div className="condition-editor-field">
+        <label className="condition-editor-label" htmlFor={`parent-select-${question.id}`}>
+          Mostrar somente se…
+        </label>
+        {parentCandidates.length === 0 && !question.parentQuestionId ? (
+          <p className="condition-editor-empty">Nenhuma pergunta elegível nesta seção.</p>
+        ) : (
+          <select
+            id={`parent-select-${question.id}`}
+            className="form-input"
+            value={question.parentQuestionId ?? ''}
+            onChange={(e) => handleSelectParent(e.target.value || null)}
+            disabled={saving}
+            aria-label="Pergunta pai para exibição condicional"
+          >
+            <option value="">Sempre mostrar (sem condição)</option>
+            {parentQuestion && !parentCandidates.find((c) => c.id === parentQuestion.id) && (
+              <option value={parentQuestion.id}>{parentQuestion.text}</option>
+            )}
+            {parentCandidates.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.text}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {renderTriggerValuePicker()}
+    </div>
+  );
 
   return (
     <div className="question-card">
@@ -312,6 +551,17 @@ const CanvasQuestionCard = ({ question, sectionId, anamnesisId, isGeneral, autoF
           style={{ marginTop: 'var(--spacing-sm)' }}
         />
       )}
+
+      {hasAnyDependent && !isGeneral && (
+        <p
+          className="question-card-type-locked-hint"
+          title="Não é possível alterar o tipo enquanto houver perguntas condicionais vinculadas."
+        >
+          Não é possível alterar o tipo enquanto houver perguntas condicionais vinculadas.
+        </p>
+      )}
+
+      {conditionEditor}
     </div>
   );
 };
@@ -324,6 +574,8 @@ CanvasQuestionCard.propTypes = {
     required: PropTypes.bool,
     options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
     config: PropTypes.shape({ min: PropTypes.number, max: PropTypes.number, unit: PropTypes.string, rows: PropTypes.array, columns: PropTypes.array }),
+    parentQuestionId: PropTypes.string,
+    condition: PropTypes.object,
   }).isRequired,
   sectionId: PropTypes.string.isRequired,
   anamnesisId: PropTypes.string.isRequired,
@@ -332,6 +584,7 @@ CanvasQuestionCard.propTypes = {
   onAutoFocusConsumed: PropTypes.func,
   onUpdated: PropTypes.func.isRequired,
   onDeleteQuestion: PropTypes.func.isRequired,
+  sectionQuestions: PropTypes.arrayOf(PropTypes.object),
 };
 
 /* ── OutlineSectionItem ──────────────────────────────────── */
@@ -443,41 +696,58 @@ const OutlineSectionItem = ({
 
       {isActive && (
         <div className="outline-questions">
-          {(section.questions ?? []).map((q) => (
-            <div
-              key={q.id}
-              role="button"
-              tabIndex={0}
-              className={`outline-question-btn${selectedQuestionId === q.id ? ' outline-question-btn--active' : ''}`}
-              onClick={() => onSelectQuestion(q.id, section.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onSelectQuestion(q.id, section.id);
-                }
-              }}
-            >
-              <span className="outline-grip--inert" aria-hidden="true">
-                <GripVertical size={10} strokeWidth={2} />
-              </span>
-              <span className="outline-question-label">{q.text}</span>
-              {!isGeneral && (
-                <span
-                  className="outline-inline-actions"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    className="outline-inline-action outline-inline-action--danger"
-                    aria-label={`Excluir pergunta ${q.text}`}
-                    onClick={() => onDeleteQuestion(section, q)}
-                  >
-                    <Trash2 size={12} strokeWidth={2} />
-                  </button>
+          {(section.questions ?? []).map((q) => {
+            const isConditional = Boolean(q.parentQuestionId);
+            const classes = [
+              'outline-question-btn',
+              selectedQuestionId === q.id ? 'outline-question-btn--active' : '',
+              isConditional ? 'outline-question-btn--conditional' : '',
+            ].filter(Boolean).join(' ');
+            return (
+              <div
+                key={q.id}
+                role="button"
+                tabIndex={0}
+                className={classes}
+                onClick={() => onSelectQuestion(q.id, section.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectQuestion(q.id, section.id);
+                  }
+                }}
+              >
+                <span className="outline-grip--inert" aria-hidden="true">
+                  <GripVertical size={10} strokeWidth={2} />
                 </span>
-              )}
-            </div>
-          ))}
+                <span className="outline-question-label">{q.text}</span>
+                {isConditional && (
+                  <span
+                    className="outline-conditional-badge"
+                    aria-label="Pergunta condicional"
+                    title="Condicional"
+                  >
+                    ↳ condicional
+                  </span>
+                )}
+                {!isGeneral && (
+                  <span
+                    className="outline-inline-actions"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      className="outline-inline-action outline-inline-action--danger"
+                      aria-label={`Excluir pergunta ${q.text}`}
+                      onClick={() => onDeleteQuestion(section, q)}
+                    >
+                      <Trash2 size={12} strokeWidth={2} />
+                    </button>
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -489,7 +759,11 @@ OutlineSectionItem.propTypes = {
     id: PropTypes.string,
     title: PropTypes.string,
     description: PropTypes.string,
-    questions: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
+    questions: PropTypes.arrayOf(PropTypes.shape({
+      id: PropTypes.string,
+      text: PropTypes.string,
+      parentQuestionId: PropTypes.string,
+    })),
   }).isRequired,
   isActive: PropTypes.bool,
   isGeneral: PropTypes.bool,
@@ -1014,6 +1288,7 @@ const AnamnesisDetail = () => {
               sortedSections.find((s) => s.id === activeSectionId),
               selectedQuestion,
             )}
+            sectionQuestions={sortedSections.find((s) => s.id === activeSectionId)?.questions ?? []}
           />
           <div className="canvas-nav">
             <button
@@ -1131,11 +1406,11 @@ const AnamnesisDetail = () => {
           <div className="editor-header-actions">
             <button
               type="button"
-              className="btn btn-ghost btn-sm"
+              className={isGeneral ? 'btn-secondary btn-sm' : 'btn-primary btn-sm'}
               onClick={() => setShowPreview(true)}
               disabled={sortedSections.length === 0}
             >
-              <Eye size={14} strokeWidth={2} /> Pré-visualizar
+              <Eye size={16} strokeWidth={2} /> Pré-visualizar
             </button>
             {isGeneral ? (
               <button
