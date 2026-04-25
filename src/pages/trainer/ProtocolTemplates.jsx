@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Calendar, Copy, Dumbbell, List, Plus, Search } from 'lucide-react';
+import { BookOpen, Calendar, Dumbbell, List, Plus, Search } from 'lucide-react';
 import RowMenu from '../../components/RowMenu';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
@@ -68,12 +68,6 @@ const ProtocolTemplates = () => {
         }
       },
     });
-  };
-
-  // TODO: ligar endpoint de duplicate quando criado
-  const handleDuplicate = () => {
-    console.warn('TODO duplicate — endpoint not yet created');
-    showToast('Em breve: duplicar rotina existente.', 'info');
   };
 
   const handleContinueDraft = () => navigate('/trainer/routines/new');
@@ -159,14 +153,6 @@ const ProtocolTemplates = () => {
           </div>
         </div>
         <div className="page-header-actions">
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={handleDuplicate}
-          >
-            <Copy size={16} strokeWidth={2} aria-hidden="true" />
-            <span className="table-col-desktop-only">Duplicar existente</span>
-          </button>
           <button
             type="button"
             className="btn-primary"
@@ -311,13 +297,6 @@ const ProtocolTemplates = () => {
                     ariaLabel={`Ações da rotina ${template.name}`}
                     onEdit={() => navigate(`/trainer/routines/${template.id}/edit`)}
                     onDelete={() => handleDelete(template.id, template.name)}
-                    extraItems={[
-                      {
-                        label: 'Duplicar',
-                        onClick: handleDuplicate,
-                        danger: false,
-                      },
-                    ]}
                   />
                 </div>
 

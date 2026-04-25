@@ -285,22 +285,6 @@ describe('ProtocolTemplates', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines/1/edit');
   });
 
-  // ── Duplicate stub ─────────────────────────────────────────────────────────
-  it('shows "Em breve" toast when clicking Duplicar existente', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<ProtocolTemplates />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Modelo Força')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /duplicar existente/i }));
-    expect(mockShowToast).toHaveBeenCalledWith(
-      'Em breve: duplicar rotina existente.',
-      'info',
-    );
-  });
-
   // ── Delete flow ────────────────────────────────────────────────────────────
   it('shows confirm dialog before deleting', async () => {
     const user = userEvent.setup();
