@@ -201,7 +201,7 @@ const ProtocolTemplateView = () => {
     } catch (error) {
       console.error('Failed to fetch protocol template:', error);
       showToast(error.userMessage || translateError(error), 'error');
-      navigate('/trainer/protocol-templates');
+      navigate('/trainer/routines');
     } finally {
       setLoading(false);
     }
@@ -215,7 +215,7 @@ const ProtocolTemplateView = () => {
         try {
           await api.delete(`/trainer/protocol-templates/${id}`);
           showToast('Rotina excluída com sucesso!', 'success');
-          navigate('/trainer/protocol-templates');
+          navigate('/trainer/routines');
         } catch (error) {
           showToast(error.userMessage || translateError(error), 'error');
         }
@@ -235,7 +235,7 @@ const ProtocolTemplateView = () => {
     return (
       <div className="empty-state">
         <p className="empty-state-title">Rotina não encontrada</p>
-        <button className="btn-primary" onClick={() => navigate('/trainer/protocol-templates')}>
+        <button className="btn-primary" onClick={() => navigate('/trainer/routines')}>
           Voltar para Rotinas
         </button>
       </div>
@@ -254,7 +254,7 @@ const ProtocolTemplateView = () => {
 
   return (
     <div>
-      <button className="btn-back" onClick={() => navigate('/trainer/protocol-templates')}>
+      <button className="btn-back" onClick={() => navigate('/trainer/routines')}>
         <ArrowLeft size={16} strokeWidth={2} />
         Templates de Rotina
       </button>
@@ -279,7 +279,7 @@ const ProtocolTemplateView = () => {
           <button
             type="button"
             className="btn-primary"
-            onClick={() => navigate(`/trainer/protocol-templates/${id}/edit`)}
+            onClick={() => navigate(`/trainer/routines/${id}/edit`)}
           >
             <Pencil size={14} strokeWidth={2} />
             Editar

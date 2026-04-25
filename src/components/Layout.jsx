@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import useActiveMode from '../hooks/useActiveMode';
 
-const BIBLIOTECA_PATHS = ['/trainer/protocol-templates', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
+const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
 
 const Layout = ({ children, noPadding = false }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -65,7 +65,7 @@ const Layout = ({ children, noPadding = false }) => {
   }, [bibliotecaPopover]);
 
   const bibliotecaChildren = [
-    { path: '/trainer/protocol-templates', label: 'Rotinas', Icon: ClipboardList },
+    { path: '/trainer/routines', label: 'Rotinas', Icon: ClipboardList },
     { path: '/trainer/training-templates', label: 'Treinos únicos', Icon: Dumbbell },
     { path: '/trainer/exercise-templates', label: 'Exercícios', Icon: Activity },
     { path: '/trainer/anamneses', label: 'Anamneses', Icon: FileText },

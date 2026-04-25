@@ -163,6 +163,7 @@
   --z-sidebar: 300;
   --z-overlay: 1000;
   --z-modal: 1100;
+  --z-popover-portal: 1200; /* portaled popovers that must clear modals + sticky bars */
   --z-toast: 2000;
   --z-tooltip: 3000;
 
@@ -236,6 +237,14 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+button {
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 }
 
 body {
@@ -1081,8 +1090,8 @@ html:has(.auth-page) {
   width: 64px;
   height: 64px;
   border-radius: var(--radius-full);
-  background: var(--color-primary-container);
-  color: var(--color-primary);
+  background: var(--brand-accent-container);
+  color: var(--brand-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1207,6 +1216,10 @@ html:has(.auth-page) {
   border-radius: var(--radius-brand);
   margin-bottom: var(--spacing-md);
   min-height: 48px;
+}
+
+.segmented-toggle--tight {
+  margin-bottom: var(--spacing-sm);
 }
 
 .segmented-toggle-btn {
@@ -1396,18 +1409,23 @@ html:has(.auth-page) {
 
 .card-stats {
   display: flex;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
-  padding-top: var(--spacing-md);
-  border-top: 1px solid var(--color-outline-variant);
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--brand-divider);
 }
 
 .stat-chip {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
-  font-size: var(--font-body-small-size);
-  color: var(--color-on-surface-variant);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--brand-steel);
+  background: var(--brand-mist);
+  padding: 4px 8px;
+  border-radius: var(--radius-stat);
 }
 
 /* Gradient card for special CTAs */
@@ -2207,30 +2225,46 @@ html:has(.auth-page) {
    Badges
    ============================================ */
 .badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  border-radius: var(--radius-stat);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .badge-green {
-  background: var(--color-success-container);
-  color: var(--color-success);
+  background: var(--md-success-container);
+  color: var(--md-success);
 }
 
 .badge-blue {
-  background: var(--color-primary-container);
-  color: var(--color-primary);
+  background: #E3EEFC;
+  color: var(--brand-primary);
 }
 
 .badge-red {
-  background: var(--color-error-container);
-  color: var(--color-error);
+  background: var(--md-error-container);
+  color: var(--md-error);
 }
 
 .badge-gray {
-  background: var(--color-surface-container-high);
-  color: var(--color-on-surface-variant);
+  background: var(--md-surface-container-high);
+  color: var(--brand-steel);
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .badge-role {
@@ -3672,6 +3706,37 @@ html:has(.auth-page) {
   color: var(--md-on-surface-variant);
   margin-top: var(--spacing-xs);
   display: block;
+}
+
+/* ── Input with inline suffix (unit label) ── */
+.form-input-with-suffix {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.form-input-with-suffix .form-input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.form-input-suffix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--spacing-sm);
+  background: var(--brand-mist);
+  border: 1px solid var(--md-outline-variant);
+  border-left: none;
+  border-top-right-radius: var(--radius-brand);
+  border-bottom-right-radius: var(--radius-brand);
+  font-size: var(--font-caption-size);
+  font-weight: 600;
+  font-family: var(--font-family-base);
+  color: var(--brand-steel);
+  white-space: nowrap;
+  user-select: none;
 }
 
 @media (min-width: 768px) {
@@ -11612,6 +11677,46 @@ nav.onboarding-steps {
   flex: 1;
 }
 
+/* Toolbar search compound — icon + input inside a bordered container */
+.toolbar-search {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-brand);
+  padding: 8px 12px;
+  flex: 1;
+  min-width: 220px;
+  transition: border-color var(--duration-fast) var(--ease-brand),
+    box-shadow var(--duration-fast) var(--ease-brand);
+}
+
+.toolbar-search:focus-within {
+  border-color: var(--brand-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.toolbar-search svg {
+  color: var(--brand-steel);
+  flex-shrink: 0;
+}
+
+.toolbar-search-input {
+  border: none;
+  outline: none;
+  background: none;
+  flex: 1;
+  font-size: 13px;
+  font-family: var(--font-family-base);
+  color: var(--brand-ink);
+  min-width: 0;
+}
+
+.toolbar-search-input::placeholder {
+  color: var(--brand-steel);
+}
+
 /* Search input wrap */
 .search-input-wrap {
   display: flex;
@@ -13458,6 +13563,18 @@ nav.onboarding-steps {
   flex-shrink: 0;
 }
 
+/* RoutineBuilder variant: hide actions on mobile, show on desktop.
+   On mobile, Save/Cancel are available in .builder-bottom-bar. */
+.builder-topbar-actions--responsive {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .builder-topbar-actions--responsive {
+    display: flex;
+  }
+}
+
 .builder-save-status {
   font-size: 11px;
   color: var(--brand-steel);
@@ -13564,7 +13681,7 @@ nav.onboarding-steps {
 /* ── Builder stats row ── */
 .builder-stats-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-md) 0;
   flex-shrink: 0;
@@ -13572,7 +13689,6 @@ nav.onboarding-steps {
 
 @media (min-width: 768px) {
   .builder-stats-row {
-    grid-template-columns: repeat(4, 1fr);
     gap: var(--spacing-md);
     padding: var(--spacing-md) var(--spacing-xl) 0;
   }
@@ -14314,6 +14430,22 @@ nav.onboarding-steps {
   opacity: 1;
 }
 
+/* ── Exercise row menu wrapper (position context for dropdown) ── */
+.exercise-row-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* ── Confirm dialog action row — buttons stretch equally ── */
+.confirm-dialog-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.confirm-dialog-actions > button {
+  flex: 1;
+}
+
 /* ── Inline add exercise CTA (repouso state) ── */
 .inline-add-btn-wide {
   display: flex;
@@ -14994,9 +15126,133 @@ nav.onboarding-steps {
   align-items: center;
   box-shadow: 0 -4px 12px -2px rgba(10, 15, 28, 0.05);
   flex-shrink: 0;
+  /* Only visible on mobile; desktop uses builder-topbar-actions */
+}
+
+/* Cancel button shrinks to content; save button fills remaining space */
+.builder-bottom-bar-cancel {
+  flex: 0 0 auto;
+}
+
+.builder-bottom-bar-save {
+  flex: 1;
+}
+
+/* Desktop: hide mobile bottom bar */
+@media (min-width: 768px) {
+  .builder-bottom-bar {
+    display: none;
+  }
+
+  .identity-chip--desktop-only {
+    display: inline-flex;
+  }
+
+  .builder-stat-card--desktop-only {
+    display: flex;
+  }
+
+  .first-training-hero-title--mobile {
+    display: none;
+  }
+
+  .first-training-hero-title--desktop-only {
+    display: block;
+  }
+
+  .first-training-hero-cta-label--mobile {
+    display: none;
+  }
+
+  .first-training-hero-cta-label--desktop {
+    display: inline;
+  }
+}
+
+/* Identity chip — 5th chip (Descrição) desktop only */
+.identity-chip--desktop-only {
+  display: none;
+}
+
+/* Builder stat cards — 3rd + 4th desktop only */
+.builder-stat-card--desktop-only {
+  display: none;
+}
+
+/* First-training hero — responsive title + CTA label */
+.first-training-hero-title--mobile {
+  font-family: var(--font-family-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--brand-ink);
+  line-height: var(--line-height-tight);
+}
+
+.first-training-hero-title--desktop-only {
+  display: none;
+  font-family: var(--font-family-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--brand-ink);
+  line-height: var(--line-height-tight);
+}
+
+/* CTA button inside the hero — full width on mobile */
+.first-training-hero-cta {
+  margin-top: var(--spacing-xs);
+  min-height: 44px;
+}
+
+@media (min-width: 768px) {
+  .first-training-hero-cta {
+    min-height: 40px;
+  }
+}
+
+.first-training-hero-cta-label--mobile {
+  display: inline;
+}
+
+.first-training-hero-cta-label--desktop {
+  display: none;
+}
+
+/* Readiness legend bar colour variants */
+.readiness-legend-inline-bar--empty {
+  background: var(--md-outline-variant);
+}
+
+.readiness-legend-inline-bar--partial {
+  background: var(--brand-accent);
+}
+
+.readiness-legend-inline-bar--ready {
+  background: var(--md-success);
+}
+
+/* Builder canvas — spacing between weekly distribution and trainings header */
+.builder-canvas-trainings-header {
+  margin-top: var(--spacing-sm);
 }
 
 /* ── Training picker sheet ── */
+@keyframes builder-sheet-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes builder-sheet-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes builder-sheet-slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
 .builder-sheet-overlay {
   position: fixed;
   inset: 0;
@@ -15005,6 +15261,7 @@ nav.onboarding-steps {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  animation: builder-sheet-overlay-in var(--duration-base) var(--ease-brand);
 }
 
 @media (min-width: 768px) {
@@ -15023,6 +15280,7 @@ nav.onboarding-steps {
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-brand-lg);
+  animation: builder-sheet-slide-up var(--duration-base) var(--ease-brand);
 }
 
 @media (min-width: 768px) {
@@ -15032,6 +15290,14 @@ nav.onboarding-steps {
     height: 100%;
     width: 480px;
     max-width: 100%;
+    animation: builder-sheet-slide-in-right var(--duration-base) var(--ease-brand);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .builder-sheet-overlay,
+  .builder-bottom-sheet {
+    animation: none;
   }
 }
 
@@ -15163,18 +15429,118 @@ nav.onboarding-steps {
   box-shadow: var(--shadow-focus);
 }
 
-/* ── Identity chip popover (click to edit chip values) ── */
+.weekday-popover-item--clear {
+  color: var(--brand-steel);
+  font-size: 12px;
+  border-bottom: 1px solid var(--brand-divider);
+  border-radius: 0;
+  margin-bottom: 2px;
+}
+
+/* ── Identity chip popover (portaled via createPortal; position/top/left/z-index set inline) ── */
 .identity-chip-popover {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
   background: var(--md-surface);
   border: 1px solid var(--md-outline-variant);
   border-radius: var(--radius-brand);
   box-shadow: var(--shadow-brand-md);
-  z-index: var(--z-dropdown);
-  padding: var(--spacing-sm);
+  padding: var(--spacing-xs);
   min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.identity-chip-popover-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--brand-ink);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-brand);
+  text-align: left;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.identity-chip-popover-item:hover {
+  background: var(--brand-mist);
+}
+
+.identity-chip-popover-item--active {
+  background: rgba(10, 95, 204, 0.08);
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.identity-chip-popover-item:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.identity-chip-popover-item--clear {
+  color: var(--brand-steel);
+  font-size: 12px;
+  border-bottom: 1px solid var(--brand-divider);
+  border-radius: 0;
+  margin-bottom: 2px;
+  min-height: 32px;
+}
+
+/* ── Description inline expander (below identity strip) ── */
+.identity-description-expander {
+  background: var(--md-surface);
+  border-bottom: 1px solid var(--brand-divider);
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+  animation: fadeIn var(--duration-base) var(--ease-brand);
+}
+
+@media (min-width: 768px) {
+  .identity-description-expander {
+    padding: var(--spacing-sm) var(--spacing-xl);
+  }
+}
+
+.identity-description-expander-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+}
+
+.identity-description-textarea {
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--brand-ink);
+  background: var(--brand-mist);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-brand);
+  padding: var(--spacing-sm) var(--spacing-md);
+  resize: vertical;
+  min-height: 80px;
+  line-height: var(--line-height-normal);
+  transition: border-color var(--duration-fast) var(--ease-brand),
+    box-shadow var(--duration-fast) var(--ease-brand);
+  width: 100%;
+}
+
+.identity-description-textarea:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.identity-description-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
 }
 
 /* ── Routine list page (Cena 1) — filter group ── */
@@ -15214,3 +15580,366 @@ nav.onboarding-steps {
   outline: none;
   box-shadow: var(--shadow-focus);
 }
+
+/* Count badge inside filter button */
+.routines-filter-count {
+  font-family: var(--font-family-stat);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-steel);
+  margin-left: var(--spacing-xs);
+}
+
+.routines-filter-btn--active .routines-filter-count {
+  color: var(--brand-primary);
+}
+
+/* Eyebrow above page title — primary accent variant */
+.page-header-eyebrow--primary {
+  color: var(--brand-primary);
+}
+
+/* Mobile-only sticky bottom CTA bar for the routines list page */
+.routines-bottom-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--md-surface);
+  border-top: 1px solid var(--brand-divider);
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-bottom: max(var(--spacing-sm), env(safe-area-inset-bottom));
+  display: flex;
+  z-index: var(--z-sticky);
+}
+
+.routines-bottom-cta .btn-primary {
+  flex: 1;
+  min-height: 44px;
+  justify-content: center;
+}
+
+/* Hide on tablet and up — desktop uses page-header-actions */
+@media (min-width: 768px) {
+  .routines-bottom-cta {
+    display: none;
+  }
+}
+
+/* On mobile, add padding so the grid doesn't hide behind the sticky bar */
+.routines-page-content {
+  padding-bottom: calc(44px + var(--spacing-md) + var(--spacing-sm));
+}
+
+@media (min-width: 768px) {
+  .routines-page-content {
+    padding-bottom: 0;
+  }
+}
+
+/* ── Draft card modifier (localStorage in-progress routine) ── */
+.card-link--draft {
+  border: 1px dashed var(--brand-accent);
+  background: var(--brand-accent-container);
+}
+
+.card-link--draft:hover {
+  border-color: var(--brand-accent);
+  background: var(--brand-accent-container);
+}
+
+/* ── Composer label hint (secondary annotation beside label) ── */
+.composer-label-hint {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 10px;
+  color: var(--brand-steel);
+}
+
+/* ── Training item — inline title input ── */
+.training-item-title-input {
+  font-family: var(--font-family-display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
+  color: var(--brand-ink);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--brand-primary);
+  outline: none;
+  padding: 2px 4px;
+  width: 100%;
+  min-width: 0;
+  transition: border-color var(--duration-fast) var(--ease-brand);
+}
+
+@media (min-width: 768px) {
+  .training-item-title-input {
+    font-size: 20px;
+  }
+}
+
+.training-item-title-input:focus {
+  border-color: var(--brand-primary);
+}
+
+/* ── Quick-create training form (inline at bottom of list) ── */
+.quick-create-training {
+  background: var(--md-surface);
+  border: 2px solid var(--brand-primary);
+  border-radius: 10px;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  box-shadow: var(--shadow-brand-md);
+}
+
+.quick-create-training-title {
+  font-family: var(--font-family-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+/* ── Training item menu wrap (position context for row-menu-dropdown) ── */
+.training-item-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* ── Weekday chip wrap (position context for popover) ── */
+.weekday-chip-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   AddTrainingSheet
+   ============================================ */
+
+/* Overlay modifier: mobile = sheet from bottom (inherited from .overlay),
+   desktop = right-side panel (overrides alignment) */
+.add-training-sheet-overlay {
+  z-index: var(--z-modal);
+}
+
+@media (min-width: 768px) {
+  .add-training-sheet-overlay {
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+}
+
+/* Sheet modifier: mobile = full-width bottom sheet (inherited),
+   desktop = fixed-width side panel flush right */
+.add-training-sheet {
+  display: flex;
+  flex-direction: column;
+  background: var(--md-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slide-up var(--duration-slow) var(--ease-brand);
+  box-shadow: var(--shadow-brand-lg);
+}
+
+@media (min-width: 768px) {
+  .add-training-sheet {
+    width: 460px;
+    max-width: 460px;
+    height: 100%;
+    max-height: 100%;
+    border-radius: var(--radius-brand) 0 0 var(--radius-brand);
+    animation: add-training-slide-in var(--duration-slow) var(--ease-brand);
+  }
+}
+
+@keyframes add-training-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Handle bar — mobile only decorative element */
+.bottom-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--brand-divider);
+  border-radius: var(--radius-full);
+  margin: var(--spacing-sm) auto 0;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .bottom-sheet-handle {
+    display: none;
+  }
+}
+
+/* Sheet title wrap for eyebrow + title stacking */
+.bottom-sheet-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Eyebrow above the sheet title */
+.bottom-sheet-eyebrow {
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+}
+
+/* Override bottom-sheet-title to use brand tokens */
+.add-training-sheet .bottom-sheet-title {
+  font-family: var(--font-family-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--brand-ink);
+  letter-spacing: var(--tracking-tight);
+}
+
+/* Footer: stacks buttons in a row with flex */
+.add-training-sheet .bottom-sheet-footer {
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg);
+  border-top: 1px solid var(--brand-divider);
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+.add-training-sheet .bottom-sheet-footer .btn-group {
+  margin-top: 0;
+}
+
+/* Each footer button fills half the available space */
+.add-training-sheet-btn {
+  flex: 1;
+  justify-content: center;
+}
+
+/* Create tab layout */
+.add-training-create-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* 2-column grid: stacked on mobile, side-by-side on desktop */
+.add-training-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .add-training-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Library tab layout */
+.add-training-library-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Search wrapper inside the sheet */
+.add-training-search {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Template list */
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* Individual template item — full-width button */
+.template-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--md-surface);
+  border: 1px solid var(--brand-divider);
+  border-radius: var(--radius-brand);
+  cursor: pointer;
+  text-align: left;
+  min-height: 56px;
+  transition: background var(--duration-fast) var(--ease-brand),
+    border-color var(--duration-fast) var(--ease-brand),
+    box-shadow var(--duration-fast) var(--ease-brand);
+}
+
+.template-item:hover {
+  background: var(--brand-mist);
+  border-color: var(--brand-primary);
+}
+
+.template-item:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.template-item--selected {
+  background: var(--brand-mist);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 1px var(--brand-primary);
+}
+
+/* Template item body (name + meta) */
+.template-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.template-item-name {
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.template-item-meta {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--brand-steel);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Check icon when selected */
+.template-item-check {
+  color: var(--brand-primary);
+  flex-shrink: 0;
+}
+

@@ -98,8 +98,8 @@ const setupApiMocks = () => {
 
 const renderView = () =>
   renderWithRoute(<ProtocolTemplateView />, {
-    route: '/trainer/protocol-templates/1',
-    path: '/trainer/protocol-templates/:id',
+    route: '/trainer/routines/1',
+    path: '/trainer/routines/:id',
   });
 
 describe('ProtocolTemplateView', () => {
@@ -232,7 +232,7 @@ describe('ProtocolTemplateView', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /editar/i }));
-    expect(mockNavigate).toHaveBeenCalledWith('/trainer/protocol-templates/1/edit');
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines/1/edit');
   });
 
   it('navigates back to list when back button is clicked', async () => {
@@ -244,7 +244,7 @@ describe('ProtocolTemplateView', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /templates de rotina/i }));
-    expect(mockNavigate).toHaveBeenCalledWith('/trainer/protocol-templates');
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines');
   });
 
   it('shows confirm dialog when delete icon button is clicked', async () => {
@@ -276,7 +276,7 @@ describe('ProtocolTemplateView', () => {
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/protocol-templates/1');
     });
-    expect(mockNavigate).toHaveBeenCalledWith('/trainer/protocol-templates');
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines');
     expect(mockShowToast).toHaveBeenCalledWith('Rotina excluída com sucesso!', 'success');
   });
 
@@ -305,7 +305,7 @@ describe('ProtocolTemplateView', () => {
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Erro ao carregar rotina.', 'error');
     });
-    expect(mockNavigate).toHaveBeenCalledWith('/trainer/protocol-templates');
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines');
   });
 
   it('renders exercise preview text in collapsed card after exercises load', async () => {

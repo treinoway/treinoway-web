@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { AuthProvider } from './contexts/AuthContext';
 import { AiChatProvider } from './contexts/AiChatContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -31,7 +32,7 @@ import AssignAnamnesis from './pages/trainer/AssignAnamnesis';
 import AnamnesisResponseDetail from './pages/trainer/AnamnesisResponseDetail';
 import AiAssistant from './pages/trainer/AiAssistant';
 import TrainerBranding from './pages/trainer/TrainerBranding';
-import ProtocolTemplateBuilder from './pages/trainer/ProtocolTemplateBuilder';
+import RoutineBuilder from './pages/trainer/RoutineBuilder';
 import StudentPoints from './pages/trainer/StudentPoints';
 import Challenges from './pages/trainer/Challenges';
 import CreateChallenge from './pages/trainer/CreateChallenge';
@@ -56,6 +57,15 @@ import WorkoutSessions from './pages/my/WorkoutSessions';
 import WorkoutSession from './pages/my/WorkoutSession';
 import MyChallenges from './pages/my/MyChallenges';
 import MyChallengeDetail from './pages/my/MyChallengeDetail';
+
+const RedirectWithId = ({ to }) => {
+  const { id } = useParams();
+  return <Navigate to={to.replace(':id', id)} replace />;
+};
+
+RedirectWithId.propTypes = {
+  to: PropTypes.string.isRequired,
+};
 
 function App() {
   return (
@@ -123,8 +133,9 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* ── Routines ── */}
           <Route
-            path="/trainer/protocol-templates"
+            path="/trainer/routines"
             element={
               <ProtectedRoute>
                 <Layout>
@@ -134,17 +145,17 @@ function App() {
             }
           />
           <Route
-            path="/trainer/protocol-templates/new"
+            path="/trainer/routines/new"
             element={
               <ProtectedRoute>
                 <Layout noPadding>
-                  <ProtocolTemplateBuilder />
+                  <RoutineBuilder />
                 </Layout>
               </ProtectedRoute>
             }
           />
           <Route
-            path="/trainer/protocol-templates/:id"
+            path="/trainer/routines/:id"
             element={
               <ProtectedRoute>
                 <Layout>
@@ -154,15 +165,21 @@ function App() {
             }
           />
           <Route
-            path="/trainer/protocol-templates/:id/edit"
+            path="/trainer/routines/:id/edit"
             element={
               <ProtectedRoute>
                 <Layout noPadding>
-                  <ProtocolTemplateBuilder />
+                  <RoutineBuilder />
                 </Layout>
               </ProtectedRoute>
             }
           />
+          {/* ── Backwards-compat redirects from legacy /trainer/protocol-templates URLs ── */}
+          <Route path="/trainer/protocol-templates" element={<Navigate to="/trainer/routines" replace />} />
+          <Route path="/trainer/protocol-templates/new" element={<Navigate to="/trainer/routines/new" replace />} />
+          <Route path="/trainer/protocol-templates/:id" element={<RedirectWithId to="/trainer/routines/:id" />} />
+          <Route path="/trainer/protocol-templates/:id/edit" element={<RedirectWithId to="/trainer/routines/:id/edit" />} />
+
           <Route
             path="/trainer/protocols/new"
             element={

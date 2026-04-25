@@ -1,0 +1,2367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Treinoway — Rotina Builder (Revamp)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+:root{
+  --font-family-base:'Inter',-apple-system,system-ui,sans-serif;
+  --font-family-display:'Space Grotesk',system-ui,-apple-system,sans-serif;
+  --font-family-stat:'Space Grotesk',ui-monospace,monospace;
+
+  --spacing-2xs:2px;--spacing-xs:4px;--spacing-sm:8px;--spacing-md:16px;
+  --spacing-lg:24px;--spacing-xl:32px;--spacing-xxl:48px;
+
+  --radius-brand:8px;--radius-stat:4px;--radius-full:9999px;--radius-lg:20px;
+
+  --tracking-tight:-0.02em;--tracking-wide:0.08em;--tracking-wider:0.12em;
+  --line-height-tight:1.2;--line-height-normal:1.5;
+
+  --brand-primary:#0A5FCC;--brand-primary-dark:#083E85;
+  --brand-accent:#FF6B1A;--brand-accent-container:#FFF1EA;
+  --brand-ink:#0A0F1C;--brand-slate:#1E293B;--brand-steel:#64748B;
+  --brand-mist:#F1F5F9;--brand-divider:#E2E8F0;
+
+  --md-surface:#FFFFFF;--md-surface-container:#F0F1F4;
+  --md-surface-container-high:#E6E7EB;--md-outline-variant:#C7C7CC;
+  --md-success:#2E7D32;--md-success-container:#D4EDDA;
+  --md-error:#D32F2F;--md-error-container:#FDDEDE;
+  --md-warning:#B55A02;--md-warning-container:#FDDCBA;
+
+  --stadium-bg:#0A0F1C;--stadium-surface:#111827;--stadium-surface-elevated:#1E293B;
+  --stadium-text:#F1F5F9;--stadium-text-muted:#94A3B8;--stadium-accent:#38BDF8;
+  --stadium-divider:#1E293B;
+
+  --shadow-brand-sm:0 1px 3px rgba(10,15,28,.08),0 0 0 1px rgba(10,15,28,.04);
+  --shadow-brand-md:0 4px 12px -2px rgba(10,15,28,.1),0 0 0 1px rgba(10,15,28,.05);
+  --shadow-brand-lg:0 16px 40px -8px rgba(10,15,28,.18),0 0 0 1px rgba(10,15,28,.06);
+  --shadow-focus:0 0 0 2px var(--brand-primary);
+
+  --duration-fast:150ms;--duration-base:200ms;--duration-slow:300ms;
+  --ease-brand:cubic-bezier(0.22,1,0.36,1);--ease-kinetic:cubic-bezier(0.34,1.56,0.64,1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:var(--font-family-base);color:var(--brand-ink);background:#E8ECF2;min-height:100vh;line-height:var(--line-height-normal);-webkit-font-smoothing:antialiased}
+button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit}
+input,textarea,select{font-family:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+[data-lucide]{display:inline-block;vertical-align:middle}
+
+/* ─── Workbench layout (side-by-side mobile + desktop) ─────────────────── */
+.workbench{max-width:1680px;margin:0 auto;padding:var(--spacing-xl) var(--spacing-lg)}
+.workbench-title{font-family:var(--font-family-display);font-size:24px;font-weight:700;letter-spacing:var(--tracking-tight);color:var(--brand-ink);margin-bottom:var(--spacing-xs)}
+.workbench-subtitle{font-size:13px;color:var(--brand-steel);margin-bottom:var(--spacing-xl)}
+.workbench-subtitle strong{color:var(--brand-ink);font-weight:600}
+
+.scenario-section{margin-bottom:var(--spacing-xxl)}
+.scenario-header{margin-bottom:var(--spacing-lg);padding-bottom:var(--spacing-md);border-bottom:1px solid var(--brand-divider)}
+.scenario-eyebrow{font-family:var(--font-family-display);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-primary);margin-bottom:var(--spacing-xs);display:inline-flex;align-items:center;gap:var(--spacing-xs)}
+.scenario-eyebrow::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:var(--brand-primary)}
+.scenario-title{font-family:var(--font-family-display);font-size:20px;font-weight:600;letter-spacing:var(--tracking-tight);color:var(--brand-ink);margin-bottom:var(--spacing-xs)}
+.scenario-description{font-size:13px;color:var(--brand-steel);line-height:var(--line-height-normal);max-width:720px}
+
+.frames-wrapper{display:flex;flex-direction:column;gap:var(--spacing-xl);align-items:flex-start}
+@media(min-width:1280px){.frames-wrapper{flex-direction:row}}
+.frame-wrap{flex-shrink:0}
+.frame-label{font-family:var(--font-family-display);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);margin-bottom:var(--spacing-sm);display:flex;align-items:center;gap:var(--spacing-xs)}
+.frame-label::before{content:"";width:6px;height:6px;border-radius:var(--radius-full);background:var(--brand-accent)}
+.frame{background:#fff;border-radius:12px;overflow:hidden;box-shadow:var(--shadow-brand-lg)}
+.frame--mobile{width:375px;max-height:812px;overflow:hidden;display:flex;flex-direction:column}
+.frame--desktop{width:1200px;max-width:100%;max-height:900px;overflow:hidden;display:flex;flex-direction:column}
+
+/* ─── App shell inside frame ───────────────────────────────────────────── */
+.app{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--md-surface-container)}
+.app--desktop{flex-direction:row}
+
+.sidebar{background:var(--brand-ink);color:var(--stadium-text);width:240px;padding:var(--spacing-lg) 0;display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid var(--stadium-divider)}
+.sidebar-logo{padding:0 var(--spacing-lg);margin-bottom:var(--spacing-xl);display:flex;align-items:center;gap:var(--spacing-sm);font-family:var(--font-family-display);font-size:15px;font-weight:700;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:#fff}
+.sidebar-logo-mark{width:28px;height:28px;background:var(--brand-primary);border-radius:var(--radius-brand);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
+.sidebar-nav{display:flex;flex-direction:column;gap:2px;padding:0 var(--spacing-sm)}
+.sidebar-item{display:flex;align-items:center;gap:var(--spacing-sm);padding:10px var(--spacing-md);font-size:13px;color:var(--stadium-text-muted);border-radius:var(--radius-brand);font-weight:500;transition:all var(--duration-fast) var(--ease-brand)}
+.sidebar-item:hover{background:rgba(255,255,255,.05);color:var(--stadium-text)}
+.sidebar-item.active{background:var(--brand-primary);color:#fff}
+.sidebar-item svg{width:18px;height:18px;flex-shrink:0}
+
+.mobile-topbar{background:var(--md-surface);border-bottom:1px solid var(--brand-divider);height:56px;display:flex;align-items:center;padding:0 var(--spacing-md);gap:var(--spacing-sm);flex-shrink:0}
+.mobile-topbar-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-brand);color:var(--brand-ink)}
+.mobile-topbar-icon:hover{background:var(--md-surface-container-high)}
+.mobile-topbar-title{font-family:var(--font-family-display);font-weight:700;font-size:15px;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--brand-ink);flex:1;text-align:center;padding-right:40px}
+
+.main{flex:1;overflow-y:auto;background:var(--md-surface-container);display:flex;flex-direction:column;min-height:0}
+
+/* ─── Page header ──────────────────────────────────────────────────────── */
+.page-header{padding:var(--spacing-lg) var(--spacing-xl);background:var(--md-surface);border-bottom:1px solid var(--brand-divider)}
+.page-header--mobile{padding:var(--spacing-md)}
+.page-header-top{display:flex;align-items:center;gap:var(--spacing-sm);margin-bottom:var(--spacing-md)}
+.page-header-back{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-brand);color:var(--brand-steel);flex-shrink:0}
+.page-header-back:hover{background:var(--md-surface-container-high);color:var(--brand-ink)}
+.page-header-title-row{display:flex;align-items:center;gap:var(--spacing-sm)}
+.page-header-title-icon{color:var(--brand-primary)}
+.page-header h1{font-family:var(--font-family-display);font-size:28px;font-weight:700;letter-spacing:var(--tracking-tight);line-height:var(--line-height-tight);color:var(--brand-ink)}
+.page-header--mobile h1{font-size:22px}
+
+/* ─── Buttons ──────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--spacing-xs);font-family:var(--font-family-base);font-size:13px;font-weight:600;letter-spacing:var(--tracking-wide);text-transform:uppercase;padding:10px var(--spacing-md);border-radius:var(--radius-brand);min-height:40px;line-height:1;white-space:nowrap;transition:all var(--duration-fast) var(--ease-brand);border:1px solid transparent}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-brand-sm)}
+.btn:active{transform:scale(0.98)}
+.btn:focus-visible{outline:none;box-shadow:var(--shadow-focus)}
+.btn-primary{background:var(--brand-primary);color:#fff}
+.btn-primary:hover{background:var(--brand-primary-dark)}
+.btn-secondary{background:var(--md-surface);color:var(--brand-ink);border-color:var(--md-outline-variant)}
+.btn-secondary:hover{background:var(--md-surface-container-high)}
+.btn-danger{background:var(--md-error);color:#fff}
+.btn-sm{padding:6px 12px;font-size:11px;min-height:32px}
+.btn-ghost{background:transparent;color:var(--brand-steel);padding:8px var(--spacing-sm);min-height:36px}
+.btn-ghost:hover{background:var(--brand-mist);color:var(--brand-ink)}
+.btn-icon-only{padding:8px;min-width:36px;min-height:36px;width:36px;height:36px}
+.btn-disabled{opacity:.5;pointer-events:none}
+.btn svg{width:16px;height:16px;flex-shrink:0}
+.btn-sm svg{width:14px;height:14px}
+
+/* ─── Badges ───────────────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;padding:4px 8px;border-radius:var(--radius-stat);line-height:1;white-space:nowrap}
+.badge-blue{background:#E3EEFC;color:var(--brand-primary)}
+.badge-green{background:var(--md-success-container);color:var(--md-success)}
+.badge-gray{background:var(--md-surface-container-high);color:var(--brand-steel)}
+.badge-accent{background:var(--brand-accent-container);color:var(--brand-accent)}
+.badge-red{background:var(--md-error-container);color:var(--md-error)}
+.badge-warn{background:var(--md-warning-container);color:var(--md-warning)}
+.badge-dot{width:6px;height:6px;border-radius:var(--radius-full);background:currentColor;display:inline-block}
+
+/* ─── Cards ────────────────────────────────────────────────────────────── */
+.card{background:var(--md-surface);border-radius:var(--radius-brand);padding:var(--spacing-md);box-shadow:var(--shadow-brand-sm);transition:box-shadow var(--duration-fast) var(--ease-brand)}
+.card:hover{box-shadow:var(--shadow-brand-md)}
+.card-link{cursor:pointer}
+.card-link:hover{transform:translateY(-1px)}
+.card-header-row{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--spacing-sm);margin-bottom:var(--spacing-sm)}
+.card-title{font-family:var(--font-family-display);font-size:18px;font-weight:600;letter-spacing:var(--tracking-tight);line-height:var(--line-height-tight);color:var(--brand-ink)}
+.card-subtitle{font-family:var(--font-family-display);font-size:16px;font-weight:600;line-height:var(--line-height-tight);color:var(--brand-ink)}
+.card-badges{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:var(--spacing-sm)}
+.card-description{font-size:13px;color:var(--brand-steel);line-height:var(--line-height-normal);margin-bottom:var(--spacing-sm)}
+.card-stats{display:flex;flex-wrap:wrap;gap:var(--spacing-xs);margin-top:var(--spacing-sm)}
+.stat-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:var(--brand-steel);background:var(--brand-mist);padding:4px 8px;border-radius:var(--radius-stat)}
+.stat-chip svg{width:12px;height:12px}
+.grid-cards{display:grid;grid-template-columns:1fr;gap:var(--spacing-md)}
+@media(min-width:768px){.grid-cards{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1024px){.grid-cards{grid-template-columns:repeat(3,1fr)}}
+
+/* ─── Row menu ─────────────────────────────────────────────────────────── */
+.row-menu-trigger{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-brand);color:var(--brand-steel);flex-shrink:0}
+.row-menu-trigger:hover{background:var(--md-surface-container-high);color:var(--brand-ink)}
+
+/* ─── Stat display ─────────────────────────────────────────────────────── */
+.stat-display{display:flex;flex-direction:column;gap:2px}
+.stat-display-value{font-family:var(--font-family-stat);font-weight:600;font-size:28px;line-height:1;letter-spacing:var(--tracking-tight);color:var(--brand-ink);font-variant-numeric:tabular-nums}
+.stat-display-unit{font-size:14px;font-weight:500;margin-left:2px;color:var(--brand-steel)}
+.stat-display-label{font-family:var(--font-family-base);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);margin-top:var(--spacing-xs)}
+.stat-display-trend{font-family:var(--font-family-stat);font-size:11px;font-weight:600;color:var(--md-success);font-variant-numeric:tabular-nums}
+.stat-display-trend--down{color:var(--md-error)}
+
+/* ─── Routine list (entry point) ──────────────────────────────────────── */
+.page-body{padding:var(--spacing-xl)}
+.page-body--mobile{padding:var(--spacing-md)}
+
+.toolbar{display:flex;gap:var(--spacing-sm);margin-bottom:var(--spacing-lg);flex-wrap:wrap;align-items:center}
+.toolbar-search{display:flex;align-items:center;gap:var(--spacing-xs);background:var(--md-surface);border:1px solid var(--md-outline-variant);border-radius:var(--radius-brand);padding:8px 12px;flex:1;min-width:220px}
+.toolbar-search input{border:none;outline:none;background:none;flex:1;font-size:13px;min-width:0}
+.toolbar-search input::placeholder{color:var(--brand-steel)}
+.toolbar-search svg{color:var(--brand-steel);width:16px;height:16px;flex-shrink:0}
+.toolbar-filter-group{display:flex;gap:2px;background:var(--md-surface-container-high);padding:2px;border-radius:var(--radius-brand)}
+.toolbar-filter-btn{font-family:var(--font-family-base);font-size:11px;font-weight:600;letter-spacing:var(--tracking-wide);text-transform:uppercase;padding:7px 12px;border-radius:6px;color:var(--brand-steel);transition:all var(--duration-fast) var(--ease-brand)}
+.toolbar-filter-btn:hover{color:var(--brand-ink)}
+.toolbar-filter-btn.active{background:var(--md-surface);color:var(--brand-ink);box-shadow:var(--shadow-brand-sm)}
+
+/* ─── Builder shell (the star of the show) ───────────────────────────── */
+.builder{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--md-surface-container)}
+
+.builder-topbar{background:var(--md-surface);border-bottom:1px solid var(--brand-divider);padding:var(--spacing-md) var(--spacing-xl);display:flex;align-items:center;gap:var(--spacing-md);position:sticky;top:0;z-index:20;box-shadow:var(--shadow-brand-sm);flex-shrink:0}
+.builder-topbar--mobile{padding:var(--spacing-sm) var(--spacing-md);gap:var(--spacing-sm)}
+.builder-topbar-back{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-brand);color:var(--brand-steel);flex-shrink:0}
+.builder-topbar-back:hover{background:var(--md-surface-container-high);color:var(--brand-ink)}
+
+.builder-title-wrap{flex:1;min-width:0}
+.builder-eyebrow{font-family:var(--font-family-base);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);line-height:1;margin-bottom:4px;display:flex;align-items:center;gap:var(--spacing-xs)}
+.builder-title{font-family:var(--font-family-display);font-size:20px;font-weight:700;letter-spacing:var(--tracking-tight);line-height:1.15;color:var(--brand-ink);display:flex;align-items:center;gap:var(--spacing-xs);cursor:text;padding:2px 6px;margin:-2px -6px;border-radius:6px;transition:background var(--duration-fast) var(--ease-brand)}
+.builder-title:hover{background:var(--brand-mist)}
+.builder-title--empty{color:var(--brand-steel);font-style:normal}
+.builder-title-edit{color:var(--brand-steel);width:14px;height:14px;opacity:0;transition:opacity var(--duration-fast) var(--ease-brand)}
+.builder-title:hover .builder-title-edit{opacity:1}
+.builder-title--editing{background:var(--md-surface);border:2px solid var(--brand-primary);padding:2px 6px;box-shadow:var(--shadow-focus)}
+.builder-title-input{font-family:var(--font-family-display);font-size:20px;font-weight:700;letter-spacing:var(--tracking-tight);color:var(--brand-ink);background:transparent;border:none;outline:none;width:100%;padding:0}
+
+.builder-topbar-actions{display:flex;gap:var(--spacing-xs);align-items:center;flex-shrink:0}
+.builder-save-status{font-size:11px;color:var(--brand-steel);display:inline-flex;align-items:center;gap:var(--spacing-xs);margin-right:var(--spacing-sm)}
+.builder-save-status svg{width:12px;height:12px;color:var(--md-success)}
+
+/* Identity strip — chips under the topbar */
+.identity-strip{background:var(--md-surface);border-bottom:1px solid var(--brand-divider);padding:var(--spacing-sm) var(--spacing-xl);display:flex;align-items:center;gap:var(--spacing-xs);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.identity-strip--mobile{padding:var(--spacing-sm) var(--spacing-md)}
+.identity-strip::-webkit-scrollbar{display:none}
+.identity-chip{display:inline-flex;align-items:center;gap:var(--spacing-xs);padding:6px 10px;background:var(--brand-mist);border:1px solid transparent;border-radius:var(--radius-brand);font-size:11px;font-weight:600;color:var(--brand-ink);white-space:nowrap;transition:all var(--duration-fast) var(--ease-brand);cursor:pointer}
+.identity-chip:hover{background:var(--md-surface-container-high);border-color:var(--md-outline-variant)}
+.identity-chip-label{font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel)}
+.identity-chip-value{font-weight:600;color:var(--brand-ink)}
+.identity-chip--empty{background:transparent;border:1px dashed var(--md-outline-variant);color:var(--brand-steel)}
+.identity-chip svg{width:12px;height:12px;color:var(--brand-steel)}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--spacing-sm);padding:var(--spacing-md) var(--spacing-lg) 0;flex-shrink:0}
+.stats-row--mobile{padding:var(--spacing-md) var(--spacing-md) 0;grid-template-columns:repeat(2,1fr)}
+@media(min-width:768px){.stats-row:not(.stats-row--mobile){grid-template-columns:repeat(4,1fr);gap:var(--spacing-md)}}
+.stat-card{background:var(--md-surface);border-radius:var(--radius-brand);padding:var(--spacing-sm) var(--spacing-md);display:flex;flex-direction:column;gap:2px;box-shadow:var(--shadow-brand-sm)}
+.stat-card-label{font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel)}
+.stat-card-value{font-family:var(--font-family-stat);font-size:22px;font-weight:600;letter-spacing:var(--tracking-tight);color:var(--brand-ink);line-height:1;font-variant-numeric:tabular-nums}
+.stat-card-value-unit{font-size:11px;color:var(--brand-steel);margin-left:2px;font-weight:500}
+.stat-card-sub{font-size:10px;color:var(--brand-steel)}
+.stat-card--accent .stat-card-value{color:var(--brand-primary)}
+.stat-card--warn .stat-card-value{color:var(--brand-accent)}
+
+/* ─── Week canvas — DESKTOP 5-col default, 4-col <1200px, 7-col ≥1536px, MOBILE vertical ─ */
+.week-canvas{padding:var(--spacing-md) var(--spacing-lg);flex:1;min-height:0}
+.week-canvas--mobile{padding:var(--spacing-md)}
+.week-canvas-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;gap:var(--spacing-sm);flex-wrap:wrap}
+.week-canvas-title{font-family:var(--font-family-display);font-size:14px;font-weight:700;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--brand-ink)}
+.week-canvas-title-count{color:var(--brand-steel);font-weight:500;margin-left:var(--spacing-xs)}
+
+/* Builder density: 5 cols default, 7 cols ≥1536px, 4 cols on narrower desktop */
+.week-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;grid-auto-rows:auto}
+.week-grid--mobile{display:flex;flex-direction:column;gap:var(--spacing-sm)}
+@media(max-width:1199px){.week-grid:not(.week-grid--mobile){grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--spacing-sm)}}
+@media(min-width:1536px){.week-grid:not(.week-grid--mobile){grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--spacing-sm)}}
+
+.week-day{background:var(--md-surface);border-radius:var(--radius-brand);padding:12px;display:flex;flex-direction:column;gap:10px;min-height:200px;border:1px solid var(--brand-divider);transition:border-color var(--duration-fast) var(--ease-brand)}
+.week-day:hover{border-color:var(--md-outline-variant)}
+.week-day--active{border-color:var(--brand-primary);border-width:2px;padding:11px}
+/* Mobile preserves pre-densify dimensions for training/exercise rows */
+.week-day--mobile{min-height:auto;padding:var(--spacing-md);gap:var(--spacing-sm)}
+.week-day--mobile .week-day-label{font-size:13px}
+.week-day--mobile .week-day-count{font-size:11px;padding:2px 8px}
+.week-day--mobile .training-row{padding:var(--spacing-md) var(--spacing-sm) var(--spacing-md) 14px;gap:var(--spacing-sm);align-items:flex-start}
+.week-day--mobile .training-row-body{gap:var(--spacing-xs)}
+.week-day--mobile .training-row-title{font-size:18px;font-weight:700;line-height:1.15}
+.week-day--mobile .training-row-meta{font-size:12px}
+.week-day--mobile .training-details{padding:var(--spacing-md)}
+.week-day--mobile .training-details-section-title{margin-bottom:var(--spacing-sm);font-size:10px}
+.week-day--mobile .exercise-list{gap:var(--spacing-xs)}
+.week-day--mobile .exercise-row{padding:var(--spacing-sm) var(--spacing-md);gap:var(--spacing-sm);min-height:auto;border-radius:6px}
+.week-day--mobile .exercise-row-name{font-size:14px}
+.week-day--mobile .exercise-row-meta{font-size:11px;margin-top:2px}
+.week-day--mobile .exercise-row-menu{width:28px;height:28px}
+.week-day--mobile .training-card-menu-btn,.week-day--mobile .training-card-chevron{width:28px;height:28px;border-radius:var(--radius-brand)}
+.week-day--mobile .inline-composer{padding:var(--spacing-md);margin-top:var(--spacing-sm)}
+.week-day--mobile .inline-composer-title{font-size:11px;margin-bottom:var(--spacing-sm)}
+.week-day--mobile .composer-fields{gap:var(--spacing-sm)}
+.week-day--mobile .composer-input{padding:8px 10px;font-size:13px;border-radius:6px}
+.week-day--mobile .composer-label{font-size:10px;margin-bottom:4px}
+.week-day--mobile .composer-row-3{gap:var(--spacing-sm)}
+.week-day--mobile .composer-actions{gap:var(--spacing-sm);margin-top:var(--spacing-md);padding-top:var(--spacing-sm)}
+.week-day--mobile .composer-actions .btn{min-height:36px;font-size:11px;padding:8px 12px}
+.week-day--mobile .segmented-toggle{margin-bottom:var(--spacing-sm)}
+.week-day--mobile .segmented-toggle-btn{font-size:11px;padding:7px 8px}
+.week-day--mobile .inline-add-btn{padding:10px var(--spacing-md);font-size:12px;margin-top:var(--spacing-sm)}
+.week-day--mobile .inline-add-btn svg{width:14px;height:14px}
+.week-day--mobile .add-training-btn{padding:12px var(--spacing-md);font-size:12px;border-radius:8px}
+.week-day--mobile .add-training-btn svg{width:16px;height:16px}
+.week-day--mobile.week-day--compact{padding:10px var(--spacing-md)}
+.week-day--mobile.week-day--compact .week-day-compact-hint{font-size:11px;text-transform:none;letter-spacing:normal}
+.week-day--mobile.week-day--compact .week-day-compact-add{width:28px;height:28px;border-radius:var(--radius-brand)}
+
+/* Compact empty day — short rectangle instead of full 200px column */
+.week-day--compact{min-height:auto;padding:8px 10px;background:transparent;border:1.5px dashed var(--md-outline-variant);display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:var(--spacing-xs);cursor:pointer;transition:all var(--duration-fast) var(--ease-brand)}
+.week-day--compact:hover{border-color:var(--brand-primary);border-style:solid;background:rgba(10,95,204,.03)}
+.week-day--compact .week-day-header{margin:0;padding:0;flex:0 0 auto;cursor:inherit}
+.week-day--compact .week-day-compact-hint{font-size:11px;color:var(--brand-steel);font-weight:500}
+.week-day--compact:hover .week-day-compact-hint{color:var(--brand-primary)}
+.week-day--compact .week-day-compact-add{width:22px;height:22px;border-radius:5px;background:var(--md-surface);border:1px solid var(--md-outline-variant);display:flex;align-items:center;justify-content:center;color:var(--brand-steel);flex-shrink:0}
+.week-day--compact:hover .week-day-compact-add{color:var(--brand-primary);border-color:var(--brand-primary)}
+
+.week-day-header{display:flex;align-items:center;justify-content:space-between;padding:0;margin-bottom:2px}
+.week-day-label{font-family:var(--font-family-display);font-size:12px;font-weight:700;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--brand-ink);display:flex;align-items:center;gap:var(--spacing-xs);line-height:1}
+.week-day-label-dim{color:var(--brand-steel)}
+.week-day-count{font-family:var(--font-family-stat);font-size:10px;font-weight:600;color:var(--brand-steel);background:var(--brand-mist);padding:2px 7px;border-radius:var(--radius-stat);min-width:20px;text-align:center;font-variant-numeric:tabular-nums;line-height:1.2}
+.week-day-count--active{background:var(--brand-primary);color:#fff}
+
+/* Training card inside day column — now the star of the card */
+.training-card{background:var(--md-surface);border:1px solid var(--brand-divider);border-radius:var(--radius-brand);overflow:hidden;transition:all var(--duration-fast) var(--ease-brand);position:relative}
+.training-card:hover{border-color:var(--md-outline-variant);box-shadow:var(--shadow-brand-sm)}
+.training-card--expanded{border-color:var(--brand-primary);box-shadow:var(--shadow-brand-md)}
+.training-card--expanded-mobile{border-color:var(--brand-primary)}
+
+/* Readiness as left border accent, not a floating dot */
+.training-card::before{content:"";position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--md-outline-variant);border-top-left-radius:var(--radius-brand);border-bottom-left-radius:var(--radius-brand)}
+.training-card--ready::before{background:var(--md-success)}
+.training-card--partial::before{background:var(--brand-accent)}
+
+.training-row{display:flex;align-items:center;gap:var(--spacing-xs);padding:10px 6px 10px 11px;cursor:pointer}
+.training-row-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.training-row-title{font-family:var(--font-family-display);font-size:15px;font-weight:600;color:var(--brand-ink);line-height:1.2;letter-spacing:var(--tracking-tight);word-break:break-word}
+.training-row-meta{display:flex;align-items:center;gap:var(--spacing-xs);flex-wrap:wrap;font-family:var(--font-family-base);font-size:11px;font-weight:500;color:var(--brand-steel);line-height:1.3}
+.training-row-meta-value{font-family:var(--font-family-stat);font-weight:600;color:var(--brand-slate);font-variant-numeric:tabular-nums}
+.training-row-meta-sep{opacity:.5}
+.training-row-meta-warn{color:var(--brand-accent);font-weight:600}
+.training-row-actions{display:flex;gap:2px;align-items:center;flex-shrink:0}
+.training-card-menu-btn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:6px;color:var(--brand-steel);opacity:0;transition:all var(--duration-fast) var(--ease-brand)}
+.training-card:hover .training-card-menu-btn,.training-card--expanded .training-card-menu-btn{opacity:1}
+.training-card-menu-btn:hover{background:var(--md-surface-container-high);color:var(--brand-ink)}
+.training-card-chevron{width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:6px;color:var(--brand-steel);transition:all var(--duration-fast) var(--ease-brand)}
+.training-card-chevron:hover{background:var(--md-surface-container-high);color:var(--brand-ink)}
+.training-card-chevron--open{color:var(--brand-primary);transform:rotate(180deg)}
+.training-chevron{color:var(--brand-steel);transition:transform var(--duration-fast) var(--ease-brand)}
+.training-chevron--open{transform:rotate(180deg);color:var(--brand-primary)}
+
+/* Expanded training card details */
+.training-details{padding:10px 11px 11px;background:var(--brand-mist)}
+.training-details-section-title{font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.exercise-list{display:flex;flex-direction:column;gap:3px}
+.exercise-row{background:var(--md-surface);border-radius:5px;padding:6px 10px;display:flex;align-items:center;gap:var(--spacing-xs);border:1px solid transparent;transition:border-color var(--duration-fast) var(--ease-brand);cursor:grab;min-height:34px}
+.exercise-row:hover{border-color:var(--md-outline-variant)}
+.exercise-row-handle{color:var(--brand-steel);opacity:.5;flex-shrink:0}
+.exercise-row-body{flex:1;min-width:0;display:flex;flex-direction:column}
+.exercise-row-name{font-weight:600;color:var(--brand-ink);font-size:13px;line-height:1.25;letter-spacing:-0.005em}
+.exercise-row-meta{font-family:var(--font-family-stat);font-size:10px;color:var(--brand-steel);font-variant-numeric:tabular-nums;margin-top:1px;font-weight:500;line-height:1.2}
+.exercise-row-menu{color:var(--brand-steel);width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:4px;flex-shrink:0;opacity:.6;transition:opacity var(--duration-fast) var(--ease-brand)}
+.exercise-row:hover .exercise-row-menu{opacity:1}
+.exercise-row-menu:hover{background:var(--md-surface-container-high);color:var(--brand-ink)}
+
+/* Inline "add exercise" button and composer */
+.inline-add-btn{display:flex;align-items:center;justify-content:center;gap:var(--spacing-xs);width:100%;padding:7px var(--spacing-sm);background:transparent;border:1.5px dashed var(--md-outline-variant);border-radius:6px;color:var(--brand-primary);font-family:var(--font-family-base);font-size:11px;font-weight:600;letter-spacing:var(--tracking-wide);text-transform:uppercase;margin-top:6px;transition:all var(--duration-fast) var(--ease-brand)}
+.inline-add-btn:hover{border-color:var(--brand-primary);background:rgba(10,95,204,.04)}
+.inline-add-btn svg{width:12px;height:12px}
+
+.inline-composer{background:var(--md-surface);border:2px solid var(--brand-primary);border-radius:8px;padding:10px;margin-top:6px;box-shadow:var(--shadow-brand-md)}
+.inline-composer-title{font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-primary);margin-bottom:8px;display:flex;align-items:center;gap:var(--spacing-xs)}
+.segmented-toggle{display:flex;gap:2px;background:var(--md-surface-container-high);padding:2px;border-radius:6px;margin-bottom:8px}
+.segmented-toggle-btn{flex:1;font-size:10px;font-weight:700;letter-spacing:var(--tracking-wide);text-transform:uppercase;padding:6px 8px;border-radius:5px;color:var(--brand-steel);transition:all var(--duration-fast) var(--ease-brand)}
+.segmented-toggle-btn.active{background:var(--md-surface);color:var(--brand-ink);box-shadow:var(--shadow-brand-sm)}
+
+.composer-fields{display:flex;flex-direction:column;gap:8px}
+.composer-input{background:var(--md-surface);border:1px solid var(--md-outline-variant);border-radius:5px;padding:6px 8px;font-size:12px;width:100%;outline:none;transition:all var(--duration-fast) var(--ease-brand)}
+.composer-input:focus{border-color:var(--brand-primary);box-shadow:0 0 0 3px rgba(10,95,204,.1)}
+.composer-label{font-size:9px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);margin-bottom:3px;display:block}
+.composer-row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.composer-actions{display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid var(--brand-divider)}
+.composer-actions .btn{flex:1;min-height:32px;font-size:10px;padding:6px 10px}
+.composer-select{background:var(--md-surface);border:1px solid var(--md-outline-variant);border-radius:5px;padding:6px 8px;font-size:12px;width:100%;outline:none;color:var(--brand-ink);cursor:pointer;font-family:inherit}
+.composer-select:focus{border-color:var(--brand-primary);box-shadow:0 0 0 3px rgba(10,95,204,.1)}
+.composer-reps-pair{display:grid;grid-template-columns:1fr auto 1fr;gap:4px;align-items:center}
+.composer-reps-pair .composer-input{padding:6px 6px;text-align:center}
+.composer-reps-sep{font-size:11px;color:var(--brand-steel);font-weight:700}
+.composer-input--video{padding-left:28px}
+.composer-input-wrap{position:relative}
+.composer-input-wrap .composer-input-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#FF0000;pointer-events:none}
+.composer-input-wrap .composer-input-hint{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--md-success);display:inline-flex;align-items:center;gap:3px}
+.composer-input-wrap .composer-input-hint svg{width:10px;height:10px}
+.composer-video-preview{margin-top:6px;background:#000;border-radius:6px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:#fff;position:relative;overflow:hidden;max-width:280px}
+.composer-video-preview::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,0,0,.2),rgba(0,0,0,.6))}
+.composer-video-preview svg{width:40px;height:40px;color:#fff;position:relative;z-index:1;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
+.composer-video-preview-label{position:absolute;bottom:6px;left:8px;font-size:9px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:rgba(255,255,255,.85);z-index:1}
+.composer-more-toggle{display:inline-flex;align-items:center;gap:4px;background:none;color:var(--brand-primary);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;padding:6px 0;margin-top:4px;cursor:pointer}
+.composer-more-toggle svg{width:12px;height:12px;transition:transform var(--duration-fast) var(--ease-brand)}
+.composer-more-toggle.open svg{transform:rotate(180deg)}
+.composer-advanced{margin-top:6px;display:flex;flex-direction:column;gap:10px;animation:advancedIn var(--duration-base) var(--ease-brand)}
+@keyframes advancedIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.composer-checkbox-row{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--brand-ink);font-weight:500;cursor:pointer;user-select:none}
+.composer-checkbox-row input{width:14px;height:14px;accent-color:var(--brand-primary)}
+.composer-textarea{background:var(--md-surface);border:1px solid var(--md-outline-variant);border-radius:5px;padding:6px 8px;font-size:12px;width:100%;outline:none;min-height:54px;resize:vertical;font-family:inherit;color:var(--brand-ink)}
+.composer-textarea:focus{border-color:var(--brand-primary);box-shadow:0 0 0 3px rgba(10,95,204,.1)}
+.library-item-video-indicator{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;background:#FF0000;color:#fff;flex-shrink:0}
+.library-item-video-indicator svg{width:10px;height:10px}
+
+/* "Add training" buttons — inside an active day column */
+.add-training-btn{display:flex;align-items:center;justify-content:center;gap:var(--spacing-xs);padding:9px 10px;background:transparent;border:1.5px dashed var(--md-outline-variant);border-radius:6px;color:var(--brand-steel);font-size:11px;font-weight:600;letter-spacing:var(--tracking-wide);text-transform:uppercase;transition:all var(--duration-fast) var(--ease-brand);margin-top:auto;flex-shrink:0}
+.add-training-btn:hover{border-color:var(--brand-primary);color:var(--brand-primary);background:rgba(10,95,204,.03)}
+.add-training-btn svg{width:14px;height:14px}
+
+/* Bottom sticky save bar (mobile) */
+.bottom-save-bar{background:var(--md-surface);border-top:1px solid var(--brand-divider);padding:var(--spacing-sm) var(--spacing-md);display:flex;gap:var(--spacing-sm);align-items:center;box-shadow:0 -4px 12px -2px rgba(10,15,28,.05);flex-shrink:0}
+.bottom-save-bar .btn{flex:1}
+
+/* Training picker bottom sheet (mobile) / right panel (desktop) */
+.sheet-overlay{position:absolute;inset:0;background:rgba(10,15,28,.4);z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.sheet-overlay--desktop{align-items:stretch;justify-content:flex-end}
+.bottom-sheet{background:var(--md-surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;width:100%;max-height:85%;overflow-y:auto;display:flex;flex-direction:column}
+.bottom-sheet--desktop{border-radius:var(--radius-brand) 0 0 var(--radius-brand);max-height:none;height:100%;width:460px;max-width:100%;border-right:none;box-shadow:var(--shadow-brand-lg)}
+.bottom-sheet-handle{width:36px;height:4px;background:var(--md-outline-variant);border-radius:var(--radius-full);margin:var(--spacing-sm) auto var(--spacing-xs)}
+.bottom-sheet-header{padding:var(--spacing-md) var(--spacing-lg);display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-sm)}
+.bottom-sheet-title-wrap{flex:1;min-width:0}
+.bottom-sheet-eyebrow{font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);margin-bottom:2px}
+.bottom-sheet-title{font-family:var(--font-family-display);font-size:18px;font-weight:700;letter-spacing:var(--tracking-tight);color:var(--brand-ink)}
+.bottom-sheet-close{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-brand);color:var(--brand-steel)}
+.bottom-sheet-close:hover{background:var(--md-surface-container-high);color:var(--brand-ink)}
+.bottom-sheet-body{padding:0 var(--spacing-lg) var(--spacing-lg);flex:1;overflow-y:auto}
+.bottom-sheet-footer{padding:var(--spacing-md) var(--spacing-lg);border-top:1px solid var(--brand-divider);display:flex;gap:var(--spacing-sm)}
+.bottom-sheet-footer .btn{flex:1}
+
+/* Form inside sheet */
+.form-group{margin-bottom:var(--spacing-md)}
+.form-label{display:block;font-size:11px;font-weight:700;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--brand-ink);margin-bottom:var(--spacing-xs)}
+.form-input{width:100%;padding:10px 12px;background:var(--md-surface);border:1px solid var(--md-outline-variant);border-radius:var(--radius-brand);font-size:14px;outline:none;transition:all var(--duration-fast) var(--ease-brand)}
+.form-input:focus{border-color:var(--brand-primary);box-shadow:var(--shadow-focus)}
+.form-textarea{min-height:72px;resize:vertical}
+.form-hint{font-size:11px;color:var(--brand-steel);margin-top:var(--spacing-xs);display:block}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-sm)}
+
+/* Template picker list (inside sheet) */
+.template-list{display:flex;flex-direction:column;gap:var(--spacing-xs);margin-top:var(--spacing-xs)}
+.template-item{padding:var(--spacing-sm) var(--spacing-md);background:var(--md-surface);border:1px solid var(--md-outline-variant);border-radius:var(--radius-brand);cursor:pointer;transition:all var(--duration-fast) var(--ease-brand)}
+.template-item:hover{border-color:var(--brand-primary);background:var(--brand-mist)}
+.template-item-name{font-weight:600;color:var(--brand-ink);font-size:13px;margin-bottom:2px}
+.template-item-meta{font-size:11px;color:var(--brand-steel)}
+
+/* Empty state (entry list) */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:var(--spacing-xxl) var(--spacing-lg)}
+.empty-state-icon{width:80px;height:80px;border-radius:var(--radius-full);background:var(--brand-accent-container);color:var(--brand-accent);display:flex;align-items:center;justify-content:center;margin-bottom:var(--spacing-md)}
+.empty-state-title{font-family:var(--font-family-display);font-size:18px;font-weight:600;color:var(--brand-ink);margin-bottom:var(--spacing-xs)}
+.empty-state-description{font-size:13px;color:var(--brand-steel);margin-bottom:var(--spacing-md);max-width:360px}
+
+/* Info banner */
+.info-banner{background:#E3EEFC;border:1px solid #BFD7F4;border-radius:var(--radius-brand);padding:var(--spacing-sm) var(--spacing-md);display:flex;gap:var(--spacing-sm);align-items:flex-start;font-size:12px;color:#083E85;margin-bottom:var(--spacing-md)}
+.info-banner svg{width:16px;height:16px;flex-shrink:0;color:var(--brand-primary);margin-top:2px}
+
+/* Legend for readiness dots */
+.readiness-legend{display:flex;gap:var(--spacing-md);align-items:center;font-size:10px;color:var(--brand-steel);letter-spacing:var(--tracking-wide);text-transform:uppercase;font-weight:600}
+.readiness-legend-item{display:inline-flex;align-items:center;gap:4px}
+.readiness-legend-dot{width:8px;height:8px;border-radius:var(--radius-full)}
+
+/* Mobile builder — horizontal day scroller alternative */
+.day-tabs{display:flex;gap:2px;background:var(--md-surface);padding:var(--spacing-xs) var(--spacing-md);border-bottom:1px solid var(--brand-divider);overflow-x:auto;scrollbar-width:none}
+.day-tabs::-webkit-scrollbar{display:none}
+.day-tab{padding:6px 10px;font-family:var(--font-family-display);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--brand-steel);border-radius:var(--radius-brand);white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0;transition:all var(--duration-fast) var(--ease-brand)}
+.day-tab.active{background:var(--brand-ink);color:#fff}
+.day-tab-count{background:rgba(100,116,139,.2);color:inherit;font-size:9px;padding:1px 5px;border-radius:var(--radius-stat);font-family:var(--font-family-stat);font-variant-numeric:tabular-nums}
+.day-tab.active .day-tab-count{background:var(--brand-primary);color:#fff}
+
+/* Divider note */
+.ghost-day-section{background:var(--brand-mist);border-radius:var(--radius-brand);padding:var(--spacing-md);text-align:center;font-size:11px;color:var(--brand-steel);font-weight:500;letter-spacing:var(--tracking-wide);text-transform:uppercase;border:1px dashed var(--md-outline-variant)}
+
+/* Sticky footer on desktop builder */
+.builder-footer{background:var(--md-surface);border-top:1px solid var(--brand-divider);padding:var(--spacing-sm) var(--spacing-xl);display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-md);flex-shrink:0}
+.builder-footer-status{font-size:11px;color:var(--brand-steel);display:inline-flex;align-items:center;gap:var(--spacing-xs)}
+.builder-footer-status-dot{width:6px;height:6px;border-radius:var(--radius-full);background:var(--md-success)}
+
+/* ─── NEW PARADIGM — Training list as primary canvas ─────────────────
+   Week becomes an overview strip; trainings are a vertical full-width
+   list where each item expands inline with exercises + composer. */
+
+/* Training canvas — full-width vertical list */
+.training-canvas{padding:var(--spacing-lg) var(--spacing-xl);flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--spacing-md)}
+.training-canvas--mobile{padding:var(--spacing-md);gap:var(--spacing-sm)}
+
+.canvas-section-header{display:flex;align-items:baseline;justify-content:space-between;gap:var(--spacing-sm);flex-wrap:wrap;margin-bottom:2px}
+.canvas-section-title{font-family:var(--font-family-display);font-size:12px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-ink);display:inline-flex;align-items:center;gap:var(--spacing-xs)}
+.canvas-section-title-count{color:var(--brand-steel);font-family:var(--font-family-stat);font-weight:600;font-variant-numeric:tabular-nums}
+.canvas-section-hint{font-size:11px;color:var(--brand-steel);font-weight:500}
+
+/* Week overview strip — compact, read-ish, shows distribution at a glance */
+.week-overview{background:var(--md-surface);border-radius:var(--radius-brand);padding:var(--spacing-sm) var(--spacing-md);display:flex;align-items:stretch;gap:6px;box-shadow:var(--shadow-brand-sm);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.week-overview::-webkit-scrollbar{display:none}
+.week-overview--mobile{padding:var(--spacing-xs) var(--spacing-sm);gap:4px;border-radius:var(--radius-brand)}
+
+.week-overview-cell{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px;border-radius:6px;cursor:pointer;transition:all var(--duration-fast) var(--ease-brand);border:1px solid transparent;text-align:center}
+.week-overview-cell:hover{background:var(--brand-mist)}
+.week-overview-cell--mobile{padding:8px 2px;gap:3px;min-width:38px}
+
+.week-overview-cell--active{background:var(--brand-mist);border-color:var(--md-outline-variant)}
+.week-overview-cell--selected{background:rgba(10,95,204,.08);border-color:var(--brand-primary)}
+.week-overview-cell--empty{opacity:.65}
+.week-overview-cell--empty:hover{opacity:1}
+
+.week-overview-day{font-family:var(--font-family-display);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);line-height:1}
+.week-overview-cell--active .week-overview-day{color:var(--brand-ink)}
+.week-overview-cell--selected .week-overview-day{color:var(--brand-primary)}
+
+.week-overview-stat{font-family:var(--font-family-stat);font-size:15px;font-weight:700;color:var(--brand-ink);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-tight)}
+.week-overview-cell--empty .week-overview-stat{color:var(--brand-steel);font-weight:500}
+.week-overview-cell--mobile .week-overview-stat{font-size:13px}
+
+.week-overview-sub{font-size:9px;color:var(--brand-steel);font-weight:600;letter-spacing:.04em;text-transform:uppercase;line-height:1;font-family:var(--font-family-base);white-space:nowrap}
+.week-overview-cell--mobile .week-overview-sub{display:none}
+
+.week-overview-divider{width:1px;background:var(--brand-divider);margin:6px 4px;flex-shrink:0}
+
+.week-overview-unassigned{flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 12px;border-radius:6px;background:var(--brand-accent-container);cursor:pointer;transition:all var(--duration-fast) var(--ease-brand);border:1px solid transparent;min-width:92px;text-align:center}
+.week-overview-unassigned:hover{border-color:var(--brand-accent)}
+.week-overview-unassigned .week-overview-day{color:var(--brand-accent)}
+.week-overview-unassigned .week-overview-stat{color:var(--brand-accent);font-size:15px}
+.week-overview-unassigned .week-overview-sub{color:var(--brand-accent);opacity:.8}
+.week-overview-unassigned--mobile{min-width:60px;padding:8px 6px}
+.week-overview-unassigned--mobile .week-overview-stat{font-size:13px}
+.week-overview-unassigned--mobile .week-overview-sub{display:none}
+
+/* Training list — the primary canvas */
+.training-list{display:flex;flex-direction:column;gap:var(--spacing-sm)}
+.training-list--mobile{gap:var(--spacing-sm)}
+
+.training-group-header{display:flex;align-items:baseline;justify-content:space-between;gap:var(--spacing-sm);margin:var(--spacing-sm) 0 2px;padding:0 2px}
+.training-group-title{font-family:var(--font-family-display);font-size:11px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);display:inline-flex;align-items:center;gap:var(--spacing-xs)}
+.training-group-title--unassigned{color:var(--brand-accent)}
+
+/* Training item — the new, full-width card (replaces narrow-column training-card) */
+.training-item{background:var(--md-surface);border:1px solid var(--brand-divider);border-radius:10px;overflow:hidden;transition:all var(--duration-fast) var(--ease-brand);position:relative}
+.training-item:hover{border-color:var(--md-outline-variant);box-shadow:var(--shadow-brand-sm)}
+.training-item--expanded{border-color:var(--brand-primary);box-shadow:var(--shadow-brand-md)}
+.training-item::before{content:"";position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--md-outline-variant)}
+.training-item--ready::before{background:var(--md-success)}
+.training-item--partial::before{background:var(--brand-accent)}
+.training-item--empty::before{background:var(--md-outline-variant)}
+
+.training-item-head{display:flex;align-items:center;gap:var(--spacing-md);padding:var(--spacing-md) var(--spacing-md) var(--spacing-md) calc(var(--spacing-md) + 6px);cursor:pointer}
+.training-item-head--mobile{padding:var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) calc(var(--spacing-sm) + 6px);gap:var(--spacing-sm)}
+
+.training-item-letter{width:36px;height:36px;flex-shrink:0;border-radius:var(--radius-brand);background:var(--brand-mist);display:flex;align-items:center;justify-content:center;font-family:var(--font-family-display);font-size:16px;font-weight:700;color:var(--brand-ink);letter-spacing:var(--tracking-tight);line-height:1}
+.training-item--ready .training-item-letter{background:var(--md-success-container);color:var(--md-success)}
+.training-item--partial .training-item-letter{background:var(--brand-accent-container);color:var(--brand-accent)}
+
+.training-item-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.training-item-title-row{display:flex;align-items:baseline;gap:var(--spacing-xs);flex-wrap:wrap;min-width:0}
+.training-item-title{font-family:var(--font-family-display);font-size:20px;font-weight:700;letter-spacing:var(--tracking-tight);line-height:1.15;color:var(--brand-ink);word-break:break-word}
+.training-item-title--mobile{font-size:17px}
+.training-item-subtitle{font-family:var(--font-family-display);font-size:12px;font-weight:600;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);line-height:1}
+
+.training-item-meta{display:flex;align-items:center;gap:var(--spacing-xs);flex-wrap:wrap;font-size:12px;color:var(--brand-steel);line-height:1.3}
+.training-item-meta-stat{font-family:var(--font-family-stat);font-weight:600;color:var(--brand-slate);font-variant-numeric:tabular-nums}
+.training-item-meta-sep{opacity:.45}
+.training-item-meta-warn{color:var(--brand-accent);font-weight:600}
+
+/* Weekday chip inside the card head — the key control for "when does it run" */
+.weekday-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 9px;background:var(--brand-mist);border:1px solid transparent;border-radius:var(--radius-full);font-family:var(--font-family-display);font-size:10px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-ink);cursor:pointer;transition:all var(--duration-fast) var(--ease-brand);white-space:nowrap}
+.weekday-chip:hover{border-color:var(--md-outline-variant)}
+.weekday-chip svg{width:11px;height:11px;color:var(--brand-steel)}
+.weekday-chip--set{background:rgba(10,95,204,.08);color:var(--brand-primary)}
+.weekday-chip--unassigned{background:transparent;border:1px dashed var(--md-outline-variant);color:var(--brand-steel)}
+.weekday-chip--unassigned:hover{border-color:var(--brand-accent);color:var(--brand-accent)}
+
+.training-item-actions{display:flex;gap:var(--spacing-xs);align-items:center;flex-shrink:0}
+.training-item-drag{color:var(--brand-steel);opacity:.35;cursor:grab;width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.training-item:hover .training-item-drag{opacity:.7}
+
+.training-item-body{padding:var(--spacing-md) var(--spacing-md) var(--spacing-md) calc(var(--spacing-md) + 6px);background:var(--brand-mist);border-top:1px solid var(--brand-divider)}
+.training-item-body--mobile{padding:var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) calc(var(--spacing-sm) + 6px)}
+
+.exercise-list-wide{display:flex;flex-direction:column;gap:4px}
+.exercise-row-wide{background:var(--md-surface);border-radius:6px;padding:10px var(--spacing-md);display:flex;align-items:center;gap:var(--spacing-sm);border:1px solid transparent;transition:border-color var(--duration-fast) var(--ease-brand);cursor:grab;min-height:44px}
+.exercise-row-wide:hover{border-color:var(--md-outline-variant)}
+.exercise-row-wide--mobile{padding:var(--spacing-sm) 10px;min-height:40px;gap:var(--spacing-xs)}
+
+.exercise-row-index{font-family:var(--font-family-stat);font-size:11px;font-weight:600;color:var(--brand-steel);width:22px;text-align:center;flex-shrink:0;font-variant-numeric:tabular-nums}
+.exercise-row-wide-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.exercise-row-wide-name{font-weight:600;color:var(--brand-ink);font-size:14px;line-height:1.2}
+.exercise-row-wide-meta{font-family:var(--font-family-stat);font-size:11px;color:var(--brand-steel);font-variant-numeric:tabular-nums;font-weight:500;line-height:1.2}
+
+/* Inline composer in wide canvas — takes full width nicely */
+.inline-composer-wide{background:var(--md-surface);border:2px solid var(--brand-primary);border-radius:8px;padding:var(--spacing-md);margin-top:var(--spacing-sm);box-shadow:var(--shadow-brand-md)}
+.inline-composer-wide--mobile{padding:var(--spacing-sm)}
+.inline-composer-title{font-family:var(--font-family-display);font-size:11px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-primary);margin-bottom:var(--spacing-sm);display:flex;align-items:center;gap:var(--spacing-xs)}
+.composer-grid-wide{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:var(--spacing-sm)}
+.composer-grid-wide--mobile{grid-template-columns:1fr;gap:var(--spacing-xs)}
+.composer-grid-wide--mobile .composer-row-3{grid-template-columns:repeat(3,1fr)}
+
+/* The "+ Adicionar exercício" CTA — proeminente, em repouso do card expandido */
+.inline-add-btn-wide{display:flex;align-items:center;justify-content:center;gap:var(--spacing-xs);width:100%;padding:12px var(--spacing-md);background:rgba(10,95,204,.06);border:1.5px dashed var(--brand-primary);border-radius:8px;color:var(--brand-primary);font-family:var(--font-family-base);font-size:12px;font-weight:700;letter-spacing:var(--tracking-wide);text-transform:uppercase;margin-top:var(--spacing-sm);transition:all var(--duration-fast) var(--ease-brand)}
+.inline-add-btn-wide:hover{border-style:solid;background:rgba(10,95,204,.1);transform:translateY(-1px);box-shadow:var(--shadow-brand-sm)}
+.inline-add-btn-wide:active{transform:scale(.99)}
+.inline-add-btn-wide svg{width:14px;height:14px}
+.inline-add-btn-wide--mobile{padding:10px var(--spacing-sm);font-size:11px}
+
+/* Library picker embedded in the composer (when toggle = "Da biblioteca") */
+.library-panel{display:flex;flex-direction:column;gap:var(--spacing-sm)}
+.library-search{display:flex;align-items:center;gap:var(--spacing-xs);background:var(--md-surface);border:1px solid var(--md-outline-variant);border-radius:6px;padding:8px 10px}
+.library-search input{border:none;outline:none;background:none;flex:1;font-size:13px;min-width:0}
+.library-search input::placeholder{color:var(--brand-steel)}
+.library-search svg{color:var(--brand-steel);width:14px;height:14px;flex-shrink:0}
+.library-list{display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto}
+.library-list--mobile{max-height:180px}
+.library-item{display:flex;align-items:center;gap:var(--spacing-sm);padding:8px 10px;background:var(--md-surface);border:1px solid var(--md-outline-variant);border-radius:6px;cursor:pointer;transition:all var(--duration-fast) var(--ease-brand)}
+.library-item:hover{border-color:var(--brand-primary);background:var(--brand-mist)}
+.library-item--selected{border-color:var(--brand-primary);background:rgba(10,95,204,.06)}
+.library-item-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--md-outline-variant);display:flex;align-items:center;justify-content:center;color:transparent;flex-shrink:0;transition:all var(--duration-fast) var(--ease-brand)}
+.library-item--selected .library-item-check{background:var(--brand-primary);border-color:var(--brand-primary);color:#fff}
+.library-item-check svg{width:12px;height:12px}
+.library-item-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.library-item-name{font-weight:600;color:var(--brand-ink);font-size:13px;line-height:1.25}
+.library-item-meta{font-family:var(--font-family-stat);font-size:10px;color:var(--brand-steel);font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2;display:flex;gap:var(--spacing-xs);align-items:center;flex-wrap:wrap}
+.library-item-cat{font-family:var(--font-family-base);font-size:9px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brand-steel);background:var(--brand-mist);padding:2px 6px;border-radius:3px}
+.library-empty{padding:var(--spacing-md);text-align:center;font-size:12px;color:var(--brand-steel);background:var(--brand-mist);border-radius:6px;border:1px dashed var(--md-outline-variant)}
+.library-empty-link{color:var(--brand-primary);font-weight:600;text-decoration:underline;cursor:pointer}
+.library-selection-bar{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--brand-steel);font-weight:500;padding:0 2px}
+.library-selection-bar strong{color:var(--brand-primary);font-family:var(--font-family-stat);font-weight:700}
+
+/* Empty-state hero INSIDE an expanded training-item (Estado D) */
+.training-empty-hero{background:var(--md-surface);border:1.5px dashed var(--brand-accent);border-radius:8px;padding:var(--spacing-lg);display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--spacing-sm)}
+.training-empty-hero--mobile{padding:var(--spacing-md)}
+.training-empty-hero-icon{width:44px;height:44px;border-radius:var(--radius-full);background:var(--brand-accent-container);color:var(--brand-accent);display:flex;align-items:center;justify-content:center}
+.training-empty-hero-icon svg{width:22px;height:22px}
+.training-empty-hero-title{font-family:var(--font-family-display);font-size:16px;font-weight:700;letter-spacing:var(--tracking-tight);color:var(--brand-ink);line-height:1.2}
+.training-empty-hero-desc{font-size:12px;color:var(--brand-steel);line-height:1.45;max-width:360px}
+.training-empty-hero-actions{display:flex;gap:var(--spacing-xs);margin-top:var(--spacing-xs)}
+
+/* State tag — didactic label on top of each example card */
+.state-tag{position:absolute;top:-10px;left:var(--spacing-md);background:var(--brand-ink);color:#fff;font-family:var(--font-family-display);font-size:9px;font-weight:700;letter-spacing:var(--tracking-wider);text-transform:uppercase;padding:3px 8px;border-radius:var(--radius-stat);z-index:5;display:inline-flex;align-items:center;gap:4px;line-height:1}
+.state-tag-dot{width:6px;height:6px;border-radius:var(--radius-full);background:var(--brand-accent)}
+.state-tag--repouso{background:var(--brand-slate)}
+.state-tag--repouso .state-tag-dot{background:var(--md-success)}
+.state-tag--criar{background:var(--brand-primary)}
+.state-tag--criar .state-tag-dot{background:#fff}
+.state-tag--biblioteca{background:#6B2FAD}
+.state-tag--biblioteca .state-tag-dot{background:#fff}
+.state-tag--empty{background:var(--brand-accent)}
+.state-tag--empty .state-tag-dot{background:#fff}
+.state-tag--mobile{font-size:8px;padding:2px 6px;left:var(--spacing-sm)}
+
+.training-item--example{margin-top:18px}
+
+/* Add training CTA — primary action at the end of the list */
+.add-training-cta{display:flex;align-items:center;justify-content:center;gap:var(--spacing-sm);width:100%;padding:var(--spacing-md);background:var(--md-surface);border:1.5px dashed var(--md-outline-variant);border-radius:10px;color:var(--brand-primary);font-family:var(--font-family-base);font-size:13px;font-weight:600;letter-spacing:var(--tracking-wide);text-transform:uppercase;transition:all var(--duration-fast) var(--ease-brand);min-height:56px}
+.add-training-cta:hover{border-color:var(--brand-primary);border-style:solid;background:rgba(10,95,204,.04)}
+.add-training-cta svg{width:16px;height:16px}
+
+/* Empty state — first training */
+.first-training-hero{background:var(--md-surface);border:1.5px dashed var(--md-outline-variant);border-radius:12px;padding:var(--spacing-xl);display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--spacing-sm)}
+.first-training-hero--mobile{padding:var(--spacing-lg) var(--spacing-md)}
+.first-training-hero-icon{width:52px;height:52px;border-radius:var(--radius-full);background:var(--brand-accent-container);color:var(--brand-accent);display:flex;align-items:center;justify-content:center;margin-bottom:var(--spacing-xs)}
+.first-training-hero-title{font-family:var(--font-family-display);font-size:20px;font-weight:700;letter-spacing:var(--tracking-tight);color:var(--brand-ink);line-height:1.2}
+.first-training-hero-title--mobile{font-size:17px}
+.first-training-hero-description{font-size:13px;color:var(--brand-steel);line-height:1.5;max-width:420px}
+
+/* Readiness legend inline (for new paradigm, border-left accent) */
+.readiness-legend-inline{display:inline-flex;gap:var(--spacing-md);align-items:center;font-size:10px;color:var(--brand-steel);letter-spacing:var(--tracking-wide);text-transform:uppercase;font-weight:600;flex-wrap:wrap}
+.readiness-legend-inline-item{display:inline-flex;align-items:center;gap:5px}
+.readiness-legend-inline-bar{width:3px;height:12px;border-radius:1.5px;display:inline-block}
+
+/* Scrollbar hide */
+.scroll-hide{scrollbar-width:thin}
+.scroll-hide::-webkit-scrollbar{width:6px;height:6px}
+.scroll-hide::-webkit-scrollbar-thumb{background:var(--md-outline-variant);border-radius:var(--radius-full)}
+
+/* Annotation pins (explanatory) */
+.annotation{position:absolute;background:var(--brand-ink);color:var(--stadium-text);padding:var(--spacing-xs) var(--spacing-sm);border-radius:var(--radius-brand);font-size:10px;font-weight:600;letter-spacing:var(--tracking-wide);text-transform:uppercase;box-shadow:var(--shadow-brand-lg);z-index:50;max-width:200px;line-height:1.4}
+.annotation-arrow{position:absolute;width:0;height:0}
+
+/* Focus visibility for interactive demo */
+*:focus{outline:none}
+*:focus-visible{box-shadow:var(--shadow-focus)}
+
+</style>
+</head>
+<body>
+
+<div class="workbench">
+  <h1 class="workbench-title">Treinoway — Rotina Builder (Revamp)</h1>
+  <p class="workbench-subtitle">Fluxo único de construção: <strong>sem wizard, sem drill-down em modal</strong>. Canvas principal é a <strong>lista vertical de treinos</strong>; a semana vira uma faixa de overview no topo. Dia da semana é atributo <em>opcional</em>.</p>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       SCENE 1 — Entry point: lista de rotinas
+       ═════════════════════════════════════════════════════════════════ -->
+  <section class="scenario-section">
+    <div class="scenario-header">
+      <div class="scenario-eyebrow">Cena 1</div>
+      <h2 class="scenario-title">Ponto de entrada — lista de rotinas</h2>
+      <p class="scenario-description">Trainer chega em <code>/trainer/protocol-templates</code>. Vê as rotinas existentes em cards com <strong>readiness + stats</strong>, e clica em <em>Nova rotina</em> para iniciar o builder.</p>
+    </div>
+
+    <div class="frames-wrapper">
+      <!-- MOBILE -->
+      <div class="frame-wrap">
+        <div class="frame-label">Mobile · 375px</div>
+        <div class="frame frame--mobile">
+          <div class="app">
+            <div class="mobile-topbar">
+              <button class="mobile-topbar-icon"><i data-lucide="menu"></i></button>
+              <div class="mobile-topbar-title">Rotinas</div>
+            </div>
+            <div class="main">
+              <div class="page-header page-header--mobile">
+                <div class="page-header-title-row">
+                  <i data-lucide="book-open" class="page-header-title-icon" style="width:22px;height:22px"></i>
+                  <h1>Rotinas</h1>
+                </div>
+              </div>
+              <div class="page-body page-body--mobile">
+                <div class="toolbar">
+                  <div class="toolbar-search">
+                    <i data-lucide="search"></i>
+                    <input placeholder="Buscar rotina…" />
+                  </div>
+                </div>
+
+                <div class="grid-cards">
+                  <!-- Card 1 -->
+                  <div class="card card-link">
+                    <div class="card-header-row">
+                      <div>
+                        <h3 class="card-subtitle">Hipertrofia · 12sem · Iniciante M</h3>
+                      </div>
+                      <button class="row-menu-trigger"><i data-lucide="more-vertical" style="width:18px;height:18px"></i></button>
+                    </div>
+                    <div class="card-badges">
+                      <span class="badge badge-blue">Hipertrofia</span>
+                      <span class="badge badge-gray">Iniciante</span>
+                      <span class="badge badge-green"><span class="badge-dot"></span>Pronta</span>
+                    </div>
+                    <p class="card-description">Foco em membros superiores e progressão gradual de carga.</p>
+                    <div class="card-stats">
+                      <span class="stat-chip"><i data-lucide="calendar"></i>12 semanas</span>
+                      <span class="stat-chip"><i data-lucide="dumbbell"></i>4 treinos</span>
+                      <span class="stat-chip"><i data-lucide="list"></i>28 exercícios</span>
+                    </div>
+                  </div>
+
+                  <!-- Card 2 -->
+                  <div class="card card-link">
+                    <div class="card-header-row">
+                      <div>
+                        <h3 class="card-subtitle">Full-body Emagrecimento 8sem</h3>
+                      </div>
+                      <button class="row-menu-trigger"><i data-lucide="more-vertical" style="width:18px;height:18px"></i></button>
+                    </div>
+                    <div class="card-badges">
+                      <span class="badge badge-blue">Emagrecimento</span>
+                      <span class="badge badge-accent">Em revisão</span>
+                    </div>
+                    <p class="card-description">Rotina full-body alta frequência para alunos com pouca disponibilidade semanal.</p>
+                    <div class="card-stats">
+                      <span class="stat-chip"><i data-lucide="calendar"></i>8 semanas</span>
+                      <span class="stat-chip"><i data-lucide="dumbbell"></i>3 treinos</span>
+                      <span class="stat-chip"><i data-lucide="list"></i>18 exercícios</span>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+            <div class="bottom-save-bar">
+              <button class="btn btn-primary"><i data-lucide="plus"></i>Nova rotina</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DESKTOP -->
+      <div class="frame-wrap">
+        <div class="frame-label">Desktop · 1200px</div>
+        <div class="frame frame--desktop">
+          <div class="app app--desktop">
+            <aside class="sidebar">
+              <div class="sidebar-logo">
+                <div class="sidebar-logo-mark">T</div>
+                Treinoway
+              </div>
+              <nav class="sidebar-nav">
+                <a class="sidebar-item"><i data-lucide="layout-dashboard"></i>Início</a>
+                <a class="sidebar-item"><i data-lucide="users"></i>Alunos</a>
+                <a class="sidebar-item active"><i data-lucide="book-open"></i>Rotinas</a>
+                <a class="sidebar-item"><i data-lucide="dumbbell"></i>Treinos únicos</a>
+                <a class="sidebar-item"><i data-lucide="zap"></i>Exercícios</a>
+                <a class="sidebar-item"><i data-lucide="clipboard-list"></i>Anamneses</a>
+                <a class="sidebar-item"><i data-lucide="trophy"></i>Desafios</a>
+              </nav>
+            </aside>
+            <div class="main">
+              <div class="page-header">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-md);flex-wrap:wrap">
+                  <div class="page-header-title-row">
+                    <i data-lucide="book-open" class="page-header-title-icon" style="width:24px;height:24px"></i>
+                    <h1>Rotinas</h1>
+                  </div>
+                  <div style="display:flex;gap:var(--spacing-sm)">
+                    <button class="btn btn-secondary"><i data-lucide="copy"></i>Duplicar existente</button>
+                    <button class="btn btn-primary"><i data-lucide="plus"></i>Nova rotina</button>
+                  </div>
+                </div>
+              </div>
+              <div class="page-body">
+                <div class="toolbar">
+                  <div class="toolbar-search">
+                    <i data-lucide="search"></i>
+                    <input placeholder="Buscar rotina por nome ou tipo…" />
+                  </div>
+                  <div class="toolbar-filter-group">
+                    <button class="toolbar-filter-btn active">Todas <span style="opacity:.6;margin-left:4px">12</span></button>
+                    <button class="toolbar-filter-btn">Prontas <span style="opacity:.6;margin-left:4px">8</span></button>
+                    <button class="toolbar-filter-btn">Rascunho <span style="opacity:.6;margin-left:4px">4</span></button>
+                  </div>
+                </div>
+
+                <div class="grid-cards">
+                  <!-- Card 1 -->
+                  <div class="card card-link">
+                    <div class="card-header-row">
+                      <div>
+                        <h3 class="card-subtitle">Hipertrofia · 12sem · Iniciante M</h3>
+                      </div>
+                      <button class="row-menu-trigger"><i data-lucide="more-vertical" style="width:18px;height:18px"></i></button>
+                    </div>
+                    <div class="card-badges">
+                      <span class="badge badge-blue">Hipertrofia</span>
+                      <span class="badge badge-gray">Iniciante</span>
+                      <span class="badge badge-green"><span class="badge-dot"></span>Pronta</span>
+                    </div>
+                    <p class="card-description">Foco em membros superiores e progressão gradual de carga.</p>
+                    <div class="card-stats">
+                      <span class="stat-chip"><i data-lucide="calendar"></i>12 semanas</span>
+                      <span class="stat-chip"><i data-lucide="dumbbell"></i>4 treinos</span>
+                      <span class="stat-chip"><i data-lucide="list"></i>28 exercícios</span>
+                    </div>
+                  </div>
+                  <!-- Card 2 -->
+                  <div class="card card-link">
+                    <div class="card-header-row">
+                      <div>
+                        <h3 class="card-subtitle">Full-body Emagrecimento 8sem</h3>
+                      </div>
+                      <button class="row-menu-trigger"><i data-lucide="more-vertical" style="width:18px;height:18px"></i></button>
+                    </div>
+                    <div class="card-badges">
+                      <span class="badge badge-blue">Emagrecimento</span>
+                      <span class="badge badge-accent">Em revisão</span>
+                    </div>
+                    <p class="card-description">Rotina full-body alta frequência para alunos com pouca disponibilidade semanal.</p>
+                    <div class="card-stats">
+                      <span class="stat-chip"><i data-lucide="calendar"></i>8 semanas</span>
+                      <span class="stat-chip"><i data-lucide="dumbbell"></i>3 treinos</span>
+                      <span class="stat-chip"><i data-lucide="list"></i>18 exercícios</span>
+                    </div>
+                  </div>
+                  <!-- Card 3 -->
+                  <div class="card card-link">
+                    <div class="card-header-row">
+                      <div>
+                        <h3 class="card-subtitle">Força 5×5 Avançado</h3>
+                      </div>
+                      <button class="row-menu-trigger"><i data-lucide="more-vertical" style="width:18px;height:18px"></i></button>
+                    </div>
+                    <div class="card-badges">
+                      <span class="badge badge-blue">Força</span>
+                      <span class="badge badge-gray">Avançado</span>
+                      <span class="badge badge-green"><span class="badge-dot"></span>Pronta</span>
+                    </div>
+                    <p class="card-description">Barbell básico com progressão linear. Inclui deload na 4ª semana.</p>
+                    <div class="card-stats">
+                      <span class="stat-chip"><i data-lucide="calendar"></i>12 semanas</span>
+                      <span class="stat-chip"><i data-lucide="dumbbell"></i>3 treinos</span>
+                      <span class="stat-chip"><i data-lucide="list"></i>15 exercícios</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       SCENE 2 — Empty builder (new routine, first seconds)
+       ═════════════════════════════════════════════════════════════════ -->
+  <section class="scenario-section">
+    <div class="scenario-header">
+      <div class="scenario-eyebrow">Cena 2</div>
+      <h2 class="scenario-title">Builder — estado inicial (rotina vazia)</h2>
+      <p class="scenario-description">Novo paradigma: <strong>treinos são a unidade primária</strong>, não dias. Week overview vira uma <em>faixa compacta read-only-ish</em> no topo que comunica distribuição ("0 treinos em todos os dias"). O canvas principal é um hero "adicione o primeiro treino". Dia é um atributo <strong>opcional</strong> do treino — trainer pode criar toda a rotina sem atribuir dias se quiser.</p>
+    </div>
+
+    <div class="frames-wrapper">
+
+      <!-- MOBILE -->
+      <div class="frame-wrap">
+        <div class="frame-label">Mobile · 375px</div>
+        <div class="frame frame--mobile">
+          <div class="app">
+            <div class="builder">
+              <!-- Topbar -->
+              <div class="builder-topbar builder-topbar--mobile">
+                <button class="builder-topbar-back"><i data-lucide="arrow-left" style="width:20px;height:20px"></i></button>
+                <div class="builder-title-wrap">
+                  <div class="builder-eyebrow">Nova rotina · Rascunho</div>
+                  <div class="builder-title builder-title--empty">Nomear rotina… <i data-lucide="edit-3" class="builder-title-edit"></i></div>
+                </div>
+                <button class="btn btn-ghost btn-icon-only"><i data-lucide="more-vertical" style="width:18px;height:18px"></i></button>
+              </div>
+
+              <!-- Identity strip -->
+              <div class="identity-strip identity-strip--mobile">
+                <div class="identity-chip identity-chip--empty">
+                  <i data-lucide="plus"></i>Tipo
+                </div>
+                <div class="identity-chip identity-chip--empty">
+                  <i data-lucide="plus"></i>Nível
+                </div>
+                <div class="identity-chip identity-chip--empty">
+                  <i data-lucide="plus"></i>Duração
+                </div>
+                <div class="identity-chip identity-chip--empty">
+                  <i data-lucide="plus"></i>Gênero
+                </div>
+              </div>
+
+              <!-- Stats row -->
+              <div class="stats-row stats-row--mobile">
+                <div class="stat-card">
+                  <span class="stat-card-label">Treinos</span>
+                  <span class="stat-card-value">0</span>
+                  <span class="stat-card-sub">na rotina</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-card-label">Exercícios</span>
+                  <span class="stat-card-value">0</span>
+                  <span class="stat-card-sub">Total</span>
+                </div>
+              </div>
+
+              <!-- Training canvas -->
+              <div class="training-canvas training-canvas--mobile scroll-hide" style="overflow-y:auto">
+                <!-- Week overview — compact horizontal strip (numbers are 0 here) -->
+                <div class="canvas-section-header">
+                  <span class="canvas-section-title">Distribuição semanal <span class="canvas-section-title-count">0 / 7</span></span>
+                </div>
+                <div class="week-overview week-overview--mobile">
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Dom</span><span class="week-overview-stat">–</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Seg</span><span class="week-overview-stat">–</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Ter</span><span class="week-overview-stat">–</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Qua</span><span class="week-overview-stat">–</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Qui</span><span class="week-overview-stat">–</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Sex</span><span class="week-overview-stat">–</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Sáb</span><span class="week-overview-stat">–</span></div>
+                </div>
+
+                <!-- First-training hero -->
+                <div class="canvas-section-header" style="margin-top:var(--spacing-sm)">
+                  <span class="canvas-section-title">Treinos da rotina <span class="canvas-section-title-count">0</span></span>
+                </div>
+                <div class="first-training-hero first-training-hero--mobile">
+                  <div class="first-training-hero-icon"><i data-lucide="dumbbell" style="width:26px;height:26px"></i></div>
+                  <div class="first-training-hero-title first-training-hero-title--mobile">Comece pelo treino</div>
+                  <div class="first-training-hero-description">Crie Treino A, B, C… O dia da semana é opcional — você atribui depois.</div>
+                  <button class="btn btn-primary" style="margin-top:var(--spacing-xs)"><i data-lucide="plus"></i>Adicionar treino</button>
+                </div>
+              </div>
+
+              <div class="bottom-save-bar">
+                <button class="btn btn-secondary" style="flex:0 0 auto">Cancelar</button>
+                <button class="btn btn-primary btn-disabled"><i data-lucide="save"></i>Salvar rotina</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DESKTOP -->
+      <div class="frame-wrap">
+        <div class="frame-label">Desktop · 1200px</div>
+        <div class="frame frame--desktop">
+          <div class="app app--desktop">
+            <aside class="sidebar">
+              <div class="sidebar-logo">
+                <div class="sidebar-logo-mark">T</div>
+                Treinoway
+              </div>
+              <nav class="sidebar-nav">
+                <a class="sidebar-item"><i data-lucide="layout-dashboard"></i>Início</a>
+                <a class="sidebar-item"><i data-lucide="users"></i>Alunos</a>
+                <a class="sidebar-item active"><i data-lucide="book-open"></i>Rotinas</a>
+                <a class="sidebar-item"><i data-lucide="dumbbell"></i>Treinos únicos</a>
+                <a class="sidebar-item"><i data-lucide="zap"></i>Exercícios</a>
+                <a class="sidebar-item"><i data-lucide="clipboard-list"></i>Anamneses</a>
+                <a class="sidebar-item"><i data-lucide="trophy"></i>Desafios</a>
+              </nav>
+            </aside>
+            <div class="builder" style="flex:1">
+              <!-- Topbar -->
+              <div class="builder-topbar">
+                <button class="builder-topbar-back"><i data-lucide="arrow-left" style="width:20px;height:20px"></i></button>
+                <div class="builder-title-wrap">
+                  <div class="builder-eyebrow">Nova rotina · Rascunho</div>
+                  <div class="builder-title builder-title--empty">Nomear rotina… <i data-lucide="edit-3" class="builder-title-edit"></i></div>
+                </div>
+                <div class="builder-topbar-actions">
+                  <span class="builder-save-status"><i data-lucide="cloud"></i>Pronto para salvar</span>
+                  <button class="btn btn-secondary"><i data-lucide="x"></i>Cancelar</button>
+                  <button class="btn btn-primary btn-disabled"><i data-lucide="save"></i>Salvar rotina</button>
+                </div>
+              </div>
+
+              <!-- Identity strip -->
+              <div class="identity-strip">
+                <span class="identity-chip-label" style="margin-right:var(--spacing-xs)">Identidade:</span>
+                <div class="identity-chip identity-chip--empty">
+                  <i data-lucide="plus"></i>Tipo
+                </div>
+                <div class="identity-chip identity-chip--empty">
+                  <i data-lucide="plus"></i>Nível
+                </div>
+                <div class="identity-chip identity-chip--empty">
+                  <i data-lucide="plus"></i>Duração
+                </div>
+                <div class="identity-chip identity-chip--empty">
+                  <i data-lucide="plus"></i>Gênero
+                </div>
+                <div class="identity-chip identity-chip--empty">
+                  <i data-lucide="plus"></i>Descrição
+                </div>
+              </div>
+
+              <!-- Stats row -->
+              <div class="stats-row">
+                <div class="stat-card">
+                  <span class="stat-card-label">Treinos</span>
+                  <span class="stat-card-value">0</span>
+                  <span class="stat-card-sub">Semanal</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-card-label">Exercícios</span>
+                  <span class="stat-card-value">0</span>
+                  <span class="stat-card-sub">Total</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-card-label">Dias cobertos</span>
+                  <span class="stat-card-value">0<span class="stat-card-value-unit">/7</span></span>
+                  <span class="stat-card-sub">na semana</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-card-label">Duração est.</span>
+                  <span class="stat-card-value">0<span class="stat-card-value-unit">min</span></span>
+                  <span class="stat-card-sub">por treino médio</span>
+                </div>
+              </div>
+
+              <div class="training-canvas scroll-hide" style="overflow-y:auto">
+                <!-- Week overview strip — compact, one row -->
+                <div class="canvas-section-header">
+                  <span class="canvas-section-title">Distribuição semanal <span class="canvas-section-title-count">0 / 7 dias</span></span>
+                  <span class="canvas-section-hint">O dia é opcional. Você pode criar toda a rotina sem atribuir.</span>
+                </div>
+                <div class="week-overview">
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Dom</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Sem treino</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Seg</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Sem treino</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Ter</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Sem treino</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Qua</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Sem treino</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Qui</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Sem treino</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Sex</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Sem treino</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Sáb</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Sem treino</span></div>
+                </div>
+
+                <!-- Primary canvas: training list (empty state) -->
+                <div class="canvas-section-header" style="margin-top:var(--spacing-sm)">
+                  <span class="canvas-section-title">Treinos da rotina <span class="canvas-section-title-count">0</span></span>
+                  <span class="readiness-legend-inline">
+                    <span>Borda do card:</span>
+                    <span class="readiness-legend-inline-item"><span class="readiness-legend-inline-bar" style="background:var(--md-outline-variant)"></span>Vazio</span>
+                    <span class="readiness-legend-inline-item"><span class="readiness-legend-inline-bar" style="background:var(--brand-accent)"></span>Parcial</span>
+                    <span class="readiness-legend-inline-item"><span class="readiness-legend-inline-bar" style="background:var(--md-success)"></span>Pronto</span>
+                  </span>
+                </div>
+
+                <div class="first-training-hero">
+                  <div class="first-training-hero-icon"><i data-lucide="dumbbell" style="width:28px;height:28px"></i></div>
+                  <div class="first-training-hero-title">Comece pelo treino — não pelo dia</div>
+                  <div class="first-training-hero-description">Crie <strong>Treino A, B, C</strong>… adicione exercícios e, quando quiser, atribua dias da semana a cada um. A distribuição acima mostra a semana em tempo real.</div>
+                  <button class="btn btn-primary" style="margin-top:var(--spacing-xs)"><i data-lucide="plus"></i>Adicionar primeiro treino</button>
+                </div>
+              </div>
+
+              <div class="builder-footer">
+                <span class="builder-footer-status"><span class="builder-footer-status-dot"></span>Autosave ativo · rascunho vazio</span>
+                <span style="font-size:11px;color:var(--brand-steel)">Adicione ao menos 1 treino e um nome para salvar.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       SCENE 3 — Filled builder: hierarchy visible, one training expanded
+       ═════════════════════════════════════════════════════════════════ -->
+  <section class="scenario-section">
+    <div class="scenario-header">
+      <div class="scenario-eyebrow">Cena 3</div>
+      <h2 class="scenario-title">Builder — 4 estados didáticos do "Adicionar exercício"</h2>
+      <p class="scenario-description">Canvas é a <strong>lista vertical de treinos</strong>. Treino A está colapsado (ready). Treino B aparece <strong>expandido em três versões didáticas</strong> mostrando cada estado do composer de exercício: <strong>A·Repouso</strong> (composer fechado + CTA proeminente), <strong>B·Criar novo</strong> (composer aberto, form 4-col), <strong>C·Da biblioteca</strong> (toggle alternado → search + multi-select de <code>ExerciseTemplate</code>). Treino C expandido mostra <strong>D·Empty state</strong> — hero central quando o treino não tem exercícios. Na vida real só um desses estados existe por vez; aqui são empilhados para documentação. O mesmo padrão rege <em>Adicionar treino</em> (Cena 4) — paralelismo exato.</p>
+    </div>
+
+    <div class="frames-wrapper">
+
+      <!-- MOBILE -->
+      <div class="frame-wrap">
+        <div class="frame-label">Mobile · 375px — treino B expandido</div>
+        <div class="frame frame--mobile">
+          <div class="app">
+            <div class="builder">
+              <!-- Topbar -->
+              <div class="builder-topbar builder-topbar--mobile">
+                <button class="builder-topbar-back"><i data-lucide="arrow-left" style="width:20px;height:20px"></i></button>
+                <div class="builder-title-wrap">
+                  <div class="builder-eyebrow"><span style="color:var(--md-success)">●</span> Rascunho salvo · há 2s</div>
+                  <div class="builder-title">Hipertrofia 12 sem — M Iniciante</div>
+                </div>
+                <button class="btn btn-ghost btn-icon-only"><i data-lucide="more-vertical" style="width:18px;height:18px"></i></button>
+              </div>
+
+              <!-- Identity strip -->
+              <div class="identity-strip identity-strip--mobile">
+                <div class="identity-chip">
+                  <span class="identity-chip-label">Tipo</span>
+                  <span class="identity-chip-value">Hipertrofia</span>
+                </div>
+                <div class="identity-chip">
+                  <span class="identity-chip-label">Nível</span>
+                  <span class="identity-chip-value">Iniciante</span>
+                </div>
+                <div class="identity-chip">
+                  <span class="identity-chip-label">Dur.</span>
+                  <span class="identity-chip-value">12sem</span>
+                </div>
+                <div class="identity-chip identity-chip--empty"><i data-lucide="plus"></i>Gênero</div>
+              </div>
+
+              <!-- Stats row -->
+              <div class="stats-row stats-row--mobile">
+                <div class="stat-card stat-card--accent">
+                  <span class="stat-card-label">Treinos</span>
+                  <span class="stat-card-value">3</span>
+                  <span class="stat-card-sub">na rotina</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-card-label">Exercícios</span>
+                  <span class="stat-card-value">15</span>
+                  <span class="stat-card-sub">Total</span>
+                </div>
+              </div>
+
+              <!-- Training canvas: week overview strip + training list -->
+              <div class="training-canvas training-canvas--mobile scroll-hide" style="overflow-y:auto">
+
+                <!-- Week overview strip (mobile: 7 pills + unassigned pill) -->
+                <div class="canvas-section-header">
+                  <span class="canvas-section-title">Semana <span class="canvas-section-title-count">2/7</span></span>
+                </div>
+                <div class="week-overview week-overview--mobile">
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Dom</span><span class="week-overview-stat">–</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--active"><span class="week-overview-day">Seg</span><span class="week-overview-stat">1</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Ter</span><span class="week-overview-stat">–</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Qua</span><span class="week-overview-stat">–</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Qui</span><span class="week-overview-stat">–</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--active"><span class="week-overview-day">Sex</span><span class="week-overview-stat">1</span></div>
+                  <div class="week-overview-cell week-overview-cell--mobile week-overview-cell--empty"><span class="week-overview-day">Sáb</span><span class="week-overview-stat">–</span></div>
+                  <div class="week-overview-divider"></div>
+                  <div class="week-overview-unassigned week-overview-unassigned--mobile"><span class="week-overview-day">S/dia</span><span class="week-overview-stat">1</span></div>
+                </div>
+
+                <!-- Training list -->
+                <div class="canvas-section-header" style="margin-top:var(--spacing-sm)">
+                  <span class="canvas-section-title">Treinos <span class="canvas-section-title-count">3</span></span>
+                </div>
+
+                <div class="training-list training-list--mobile">
+
+                  <!-- Treino A — Segunda, ready (collapsed) -->
+                  <div class="training-item training-item--ready">
+                    <div class="training-item-head training-item-head--mobile">
+                      <span class="training-item-letter">A</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row">
+                          <span class="training-item-title training-item-title--mobile">Peito &amp; Tríceps</span>
+                        </div>
+                        <div class="training-item-meta">
+                          <span class="weekday-chip weekday-chip--set"><i data-lucide="calendar"></i>Seg</span>
+                          <span class="training-item-meta-stat">6 ex</span>
+                          <span class="training-item-meta-sep">·</span>
+                          <span class="training-item-meta-stat">~45min</span>
+                        </div>
+                      </div>
+                      <i data-lucide="chevron-down" style="width:18px;height:18px;color:var(--brand-steel)"></i>
+                    </div>
+                  </div>
+
+                  <!-- Treino B — EXPANDED · Estado A (repouso): composer fechado + CTA visível -->
+                  <div class="training-item training-item--partial training-item--expanded training-item--example">
+                    <span class="state-tag state-tag--repouso state-tag--mobile"><span class="state-tag-dot"></span>Estado A · Repouso</span>
+                    <div class="training-item-head training-item-head--mobile">
+                      <span class="training-item-letter">B</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row">
+                          <span class="training-item-title training-item-title--mobile">Costas &amp; Bíceps</span>
+                        </div>
+                        <div class="training-item-meta">
+                          <span class="weekday-chip weekday-chip--set"><i data-lucide="calendar"></i>Sex</span>
+                          <span class="training-item-meta-stat">4 ex</span>
+                          <span class="training-item-meta-sep">·</span>
+                          <span class="training-item-meta-warn">Incompleto</span>
+                        </div>
+                      </div>
+                      <i data-lucide="chevron-up" style="width:18px;height:18px;color:var(--brand-primary)"></i>
+                    </div>
+
+                    <div class="training-item-body training-item-body--mobile">
+                      <div class="training-details-section-title"><span>Exercícios · 4</span></div>
+                      <div class="exercise-list-wide">
+                        <div class="exercise-row-wide exercise-row-wide--mobile">
+                          <span class="exercise-row-index">1</span>
+                          <div class="exercise-row-wide-body">
+                            <span class="exercise-row-wide-name">Puxada frontal</span>
+                            <span class="exercise-row-wide-meta">4 × 10 · 90s</span>
+                          </div>
+                          <button class="exercise-row-menu"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        </div>
+                        <div class="exercise-row-wide exercise-row-wide--mobile">
+                          <span class="exercise-row-index">2</span>
+                          <div class="exercise-row-wide-body">
+                            <span class="exercise-row-wide-name">Remada curvada</span>
+                            <span class="exercise-row-wide-meta">4 × 8 · 90s</span>
+                          </div>
+                          <button class="exercise-row-menu"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        </div>
+                        <div class="exercise-row-wide exercise-row-wide--mobile">
+                          <span class="exercise-row-index">3</span>
+                          <div class="exercise-row-wide-body">
+                            <span class="exercise-row-wide-name">Rosca direta barra</span>
+                            <span class="exercise-row-wide-meta">3 × 12 · 60s</span>
+                          </div>
+                          <button class="exercise-row-menu"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        </div>
+                        <div class="exercise-row-wide exercise-row-wide--mobile">
+                          <span class="exercise-row-index">4</span>
+                          <div class="exercise-row-wide-body">
+                            <span class="exercise-row-wide-name">Rosca martelo</span>
+                            <span class="exercise-row-wide-meta">3 × 12 · 45s</span>
+                          </div>
+                          <button class="exercise-row-menu"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        </div>
+                      </div>
+
+                      <!-- CTA de repouso: composer fechado, botão PROEMINENTE para adicionar exercício -->
+                      <button class="inline-add-btn-wide inline-add-btn-wide--mobile"><i data-lucide="plus"></i>Adicionar exercício</button>
+                    </div>
+                  </div>
+
+                  <!-- Treino B — EXPANDED · Estado C (biblioteca): composer aberto, modo "Da biblioteca" -->
+                  <div class="training-item training-item--partial training-item--expanded training-item--example">
+                    <span class="state-tag state-tag--biblioteca state-tag--mobile"><span class="state-tag-dot"></span>Estado C · Biblioteca</span>
+                    <div class="training-item-head training-item-head--mobile">
+                      <span class="training-item-letter">B</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row">
+                          <span class="training-item-title training-item-title--mobile">Costas &amp; Bíceps</span>
+                        </div>
+                        <div class="training-item-meta">
+                          <span class="weekday-chip weekday-chip--set"><i data-lucide="calendar"></i>Sex</span>
+                          <span class="training-item-meta-stat">4 ex</span>
+                        </div>
+                      </div>
+                      <i data-lucide="chevron-up" style="width:18px;height:18px;color:var(--brand-primary)"></i>
+                    </div>
+
+                    <div class="training-item-body training-item-body--mobile">
+                      <div class="training-details-section-title"><span>Exercícios · 4</span></div>
+
+                      <!-- Composer aberto em modo "Da biblioteca" -->
+                      <div class="inline-composer-wide inline-composer-wide--mobile">
+                        <div class="inline-composer-title"><i data-lucide="library" style="width:12px;height:12px"></i>Adicionar exercício</div>
+                        <div class="segmented-toggle">
+                          <button class="segmented-toggle-btn">Criar novo</button>
+                          <button class="segmented-toggle-btn active">Da biblioteca</button>
+                        </div>
+                        <div class="library-panel">
+                          <div class="library-search">
+                            <i data-lucide="search"></i>
+                            <input placeholder="Buscar exercício…" value="remada" />
+                          </div>
+                          <div class="library-list library-list--mobile">
+                            <div class="library-item library-item--selected">
+                              <div class="library-item-check"><i data-lucide="check"></i></div>
+                              <div class="library-item-body">
+                                <span class="library-item-name">Remada unilateral halter</span>
+                                <span class="library-item-meta"><span class="library-item-cat">Costas</span>3×10 · 60s</span>
+                              </div>
+                            </div>
+                            <div class="library-item">
+                              <div class="library-item-check"><i data-lucide="check"></i></div>
+                              <div class="library-item-body">
+                                <span class="library-item-name">Remada cavalinho</span>
+                                <span class="library-item-meta"><span class="library-item-cat">Costas</span>4×8 · 90s</span>
+                              </div>
+                            </div>
+                            <div class="library-item">
+                              <div class="library-item-check"><i data-lucide="check"></i></div>
+                              <div class="library-item-body">
+                                <span class="library-item-name">Remada baixa polia</span>
+                                <span class="library-item-meta"><span class="library-item-cat">Costas</span>3×12 · 60s</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="library-selection-bar">
+                            <span><strong>1</strong> selecionado</span>
+                            <span>12 na biblioteca</span>
+                          </div>
+                        </div>
+                        <div class="composer-actions">
+                          <button class="btn btn-secondary btn-sm">Cancelar</button>
+                          <button class="btn btn-primary btn-sm"><i data-lucide="plus"></i>Adicionar 1</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Group: unassigned -->
+                  <div class="training-group-header">
+                    <span class="training-group-title training-group-title--unassigned"><i data-lucide="calendar-off" style="width:12px;height:12px"></i>Sem dia atribuído · 1</span>
+                  </div>
+
+                  <!-- Treino C — EXPANDED · Estado D (empty): hero CTA central -->
+                  <div class="training-item training-item--empty training-item--expanded training-item--example">
+                    <span class="state-tag state-tag--empty state-tag--mobile"><span class="state-tag-dot"></span>Estado D · Vazio</span>
+                    <div class="training-item-head training-item-head--mobile">
+                      <span class="training-item-letter">C</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row">
+                          <span class="training-item-title training-item-title--mobile">Pernas completo</span>
+                        </div>
+                        <div class="training-item-meta">
+                          <span class="weekday-chip weekday-chip--unassigned"><i data-lucide="plus"></i>Atribuir dia</span>
+                          <span class="training-item-meta-stat">0 ex</span>
+                          <span class="training-item-meta-sep">·</span>
+                          <span class="training-item-meta-warn">Sem exercícios</span>
+                        </div>
+                      </div>
+                      <i data-lucide="chevron-up" style="width:18px;height:18px;color:var(--brand-primary)"></i>
+                    </div>
+
+                    <div class="training-item-body training-item-body--mobile">
+                      <div class="training-empty-hero training-empty-hero--mobile">
+                        <div class="training-empty-hero-icon"><i data-lucide="dumbbell"></i></div>
+                        <div class="training-empty-hero-title">Treino sem exercícios</div>
+                        <div class="training-empty-hero-desc">Crie o primeiro exercício do Treino C — do zero ou puxando da sua biblioteca.</div>
+                        <div class="training-empty-hero-actions">
+                          <button class="btn btn-primary btn-sm"><i data-lucide="plus"></i>Adicionar primeiro exercício</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Primary CTA: paralelo visual com "Adicionar exercício" -->
+                  <button class="add-training-cta"><i data-lucide="plus"></i>Adicionar treino à rotina</button>
+
+                </div>
+
+              </div>
+
+              <div class="bottom-save-bar">
+                <button class="btn btn-secondary btn-icon-only"><i data-lucide="x"></i></button>
+                <button class="btn btn-primary"><i data-lucide="save"></i>Salvar rotina</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DESKTOP -->
+      <div class="frame-wrap">
+        <div class="frame-label">Desktop · 1200px — lista de treinos como canvas</div>
+        <div class="frame frame--desktop">
+          <div class="app app--desktop">
+            <aside class="sidebar">
+              <div class="sidebar-logo">
+                <div class="sidebar-logo-mark">T</div>
+                Treinoway
+              </div>
+              <nav class="sidebar-nav">
+                <a class="sidebar-item"><i data-lucide="layout-dashboard"></i>Início</a>
+                <a class="sidebar-item"><i data-lucide="users"></i>Alunos</a>
+                <a class="sidebar-item active"><i data-lucide="book-open"></i>Rotinas</a>
+                <a class="sidebar-item"><i data-lucide="dumbbell"></i>Treinos únicos</a>
+                <a class="sidebar-item"><i data-lucide="zap"></i>Exercícios</a>
+                <a class="sidebar-item"><i data-lucide="clipboard-list"></i>Anamneses</a>
+                <a class="sidebar-item"><i data-lucide="trophy"></i>Desafios</a>
+              </nav>
+            </aside>
+            <div class="builder" style="flex:1">
+              <!-- Topbar -->
+              <div class="builder-topbar">
+                <button class="builder-topbar-back"><i data-lucide="arrow-left" style="width:20px;height:20px"></i></button>
+                <div class="builder-title-wrap">
+                  <div class="builder-eyebrow"><span style="color:var(--md-success)">●</span> Rascunho salvo · há 2s</div>
+                  <div class="builder-title">Hipertrofia 12 sem — Masculino Iniciante <i data-lucide="edit-3" class="builder-title-edit"></i></div>
+                </div>
+                <div class="builder-topbar-actions">
+                  <button class="btn btn-ghost"><i data-lucide="eye"></i>Pré-visualizar</button>
+                  <button class="btn btn-secondary"><i data-lucide="x"></i>Cancelar</button>
+                  <button class="btn btn-primary"><i data-lucide="save"></i>Salvar rotina</button>
+                </div>
+              </div>
+
+              <!-- Identity strip -->
+              <div class="identity-strip">
+                <span class="identity-chip-label" style="margin-right:var(--spacing-xs)">Identidade:</span>
+                <div class="identity-chip">
+                  <span class="identity-chip-label">Tipo</span>
+                  <span class="identity-chip-value">Hipertrofia</span>
+                  <i data-lucide="chevron-down"></i>
+                </div>
+                <div class="identity-chip">
+                  <span class="identity-chip-label">Nível</span>
+                  <span class="identity-chip-value">Iniciante</span>
+                  <i data-lucide="chevron-down"></i>
+                </div>
+                <div class="identity-chip">
+                  <span class="identity-chip-label">Duração</span>
+                  <span class="identity-chip-value">12 semanas</span>
+                  <i data-lucide="chevron-down"></i>
+                </div>
+                <div class="identity-chip">
+                  <span class="identity-chip-label">Gênero</span>
+                  <span class="identity-chip-value">Masculino</span>
+                  <i data-lucide="chevron-down"></i>
+                </div>
+                <div class="identity-chip identity-chip--empty">
+                  <i data-lucide="plus"></i>Descrição
+                </div>
+              </div>
+
+              <!-- Stats row -->
+              <div class="stats-row">
+                <div class="stat-card stat-card--accent">
+                  <span class="stat-card-label">Treinos</span>
+                  <span class="stat-card-value">3</span>
+                  <span class="stat-card-sub">na rotina</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-card-label">Exercícios</span>
+                  <span class="stat-card-value">15</span>
+                  <span class="stat-card-sub">Total</span>
+                </div>
+                <div class="stat-card stat-card--warn">
+                  <span class="stat-card-label">Dias atribuídos</span>
+                  <span class="stat-card-value">2<span class="stat-card-value-unit">/3</span></span>
+                  <span class="stat-card-sub">1 treino sem dia</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-card-label">Duração est.</span>
+                  <span class="stat-card-value">47<span class="stat-card-value-unit">min</span></span>
+                  <span class="stat-card-sub">por treino médio</span>
+                </div>
+              </div>
+
+              <div class="training-canvas scroll-hide" style="overflow-y:auto">
+                <!-- Week overview strip — read-ish distribution -->
+                <div class="canvas-section-header">
+                  <span class="canvas-section-title">Distribuição semanal <span class="canvas-section-title-count">2/7 dias com treino</span></span>
+                  <span class="canvas-section-hint">Clique num dia para filtrar a lista abaixo.</span>
+                </div>
+                <div class="week-overview">
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Dom</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Livre</span></div>
+                  <div class="week-overview-cell week-overview-cell--active"><span class="week-overview-day">Seg</span><span class="week-overview-stat">1</span><span class="week-overview-sub">6 ex · 45min</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Ter</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Livre</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Qua</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Livre</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Qui</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Livre</span></div>
+                  <div class="week-overview-cell week-overview-cell--active"><span class="week-overview-day">Sex</span><span class="week-overview-stat">1</span><span class="week-overview-sub">4 ex · incompleto</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Sáb</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Livre</span></div>
+                  <div class="week-overview-divider"></div>
+                  <div class="week-overview-unassigned"><span class="week-overview-day">Sem dia</span><span class="week-overview-stat">1</span><span class="week-overview-sub">5 ex</span></div>
+                </div>
+
+                <!-- Training list — the primary canvas -->
+                <div class="canvas-section-header" style="margin-top:var(--spacing-md)">
+                  <span class="canvas-section-title">Treinos da rotina <span class="canvas-section-title-count">3</span></span>
+                  <span class="readiness-legend-inline">
+                    <span style="text-transform:none;font-weight:500">Borda do card:</span>
+                    <span class="readiness-legend-inline-item"><span class="readiness-legend-inline-bar" style="background:var(--md-outline-variant)"></span>Vazio</span>
+                    <span class="readiness-legend-inline-item"><span class="readiness-legend-inline-bar" style="background:var(--brand-accent)"></span>Parcial</span>
+                    <span class="readiness-legend-inline-item"><span class="readiness-legend-inline-bar" style="background:var(--md-success)"></span>Pronto</span>
+                  </span>
+                </div>
+
+                <div class="training-list">
+
+                  <!-- Treino A — Segunda, ready (collapsed) -->
+                  <div class="training-item training-item--ready">
+                    <div class="training-item-head">
+                      <i data-lucide="grip-vertical" class="training-item-drag"></i>
+                      <span class="training-item-letter">A</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row">
+                          <span class="training-item-title">Peito &amp; Tríceps</span>
+                          <span class="training-item-subtitle">Hipertrofia · Superior</span>
+                        </div>
+                        <div class="training-item-meta">
+                          <span class="weekday-chip weekday-chip--set"><i data-lucide="calendar"></i>Segunda<i data-lucide="chevron-down"></i></span>
+                          <span class="training-item-meta-stat">6 exercícios</span>
+                          <span class="training-item-meta-sep">·</span>
+                          <span class="training-item-meta-stat">~45 min</span>
+                          <span class="training-item-meta-sep">·</span>
+                          <span>Pronto para uso</span>
+                        </div>
+                      </div>
+                      <div class="training-item-actions">
+                        <button class="training-card-menu-btn" style="opacity:1" aria-label="Opções do treino"><i data-lucide="more-vertical" style="width:16px;height:16px"></i></button>
+                        <button class="training-card-chevron" aria-label="Expandir"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Treino B — EXPANDED · Estado A (repouso): composer fechado + CTA em destaque -->
+                  <div class="training-item training-item--partial training-item--expanded training-item--example">
+                    <span class="state-tag state-tag--repouso"><span class="state-tag-dot"></span>Estado A · Repouso — CTA visível, composer fechado</span>
+                    <div class="training-item-head">
+                      <i data-lucide="grip-vertical" class="training-item-drag"></i>
+                      <span class="training-item-letter">B</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row">
+                          <span class="training-item-title">Costas &amp; Bíceps</span>
+                          <span class="training-item-subtitle">Hipertrofia · Superior</span>
+                        </div>
+                        <div class="training-item-meta">
+                          <span class="weekday-chip weekday-chip--set"><i data-lucide="calendar"></i>Sexta<i data-lucide="chevron-down"></i></span>
+                          <span class="training-item-meta-stat">4 exercícios</span>
+                          <span class="training-item-meta-sep">·</span>
+                          <span class="training-item-meta-warn">Precisa mais 2+</span>
+                        </div>
+                      </div>
+                      <div class="training-item-actions">
+                        <button class="training-card-menu-btn" style="opacity:1" aria-label="Opções do treino"><i data-lucide="more-vertical" style="width:16px;height:16px"></i></button>
+                        <button class="training-card-chevron training-card-chevron--open" aria-label="Recolher"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+                      </div>
+                    </div>
+
+                    <div class="training-item-body">
+                      <div class="training-details-section-title">
+                        <span>Exercícios · 4</span>
+                        <span style="color:var(--brand-steel);font-weight:500;text-transform:none;letter-spacing:0;font-size:11px">Arraste pelo índice para reordenar</span>
+                      </div>
+                      <div class="exercise-list-wide">
+                        <div class="exercise-row-wide">
+                          <span class="exercise-row-index">1</span>
+                          <div class="exercise-row-wide-body">
+                            <span class="exercise-row-wide-name">Puxada frontal — pegada aberta</span>
+                            <span class="exercise-row-wide-meta">4 × 10 reps · 90s descanso · 50 kg</span>
+                          </div>
+                          <button class="exercise-row-menu"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        </div>
+                        <div class="exercise-row-wide">
+                          <span class="exercise-row-index">2</span>
+                          <div class="exercise-row-wide-body">
+                            <span class="exercise-row-wide-name">Remada curvada com barra</span>
+                            <span class="exercise-row-wide-meta">4 × 8 reps · 90s descanso · 40 kg</span>
+                          </div>
+                          <button class="exercise-row-menu"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        </div>
+                        <div class="exercise-row-wide">
+                          <span class="exercise-row-index">3</span>
+                          <div class="exercise-row-wide-body">
+                            <span class="exercise-row-wide-name">Rosca direta barra reta</span>
+                            <span class="exercise-row-wide-meta">3 × 12 reps · 60s descanso</span>
+                          </div>
+                          <button class="exercise-row-menu"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        </div>
+                        <div class="exercise-row-wide">
+                          <span class="exercise-row-index">4</span>
+                          <div class="exercise-row-wide-body">
+                            <span class="exercise-row-wide-name">Rosca martelo com halter</span>
+                            <span class="exercise-row-wide-meta">3 × 12 reps · 45s descanso</span>
+                          </div>
+                          <button class="exercise-row-menu"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        </div>
+                      </div>
+
+                      <!-- CTA de repouso: composer fechado, botão PROEMINENTE -->
+                      <button class="inline-add-btn-wide"><i data-lucide="plus"></i>Adicionar exercício</button>
+                    </div>
+                  </div>
+
+                  <!-- Treino B — EXPANDED · Estado B (criar novo): composer aberto, modo "Criar novo" -->
+                  <div class="training-item training-item--partial training-item--expanded training-item--example">
+                    <span class="state-tag state-tag--criar"><span class="state-tag-dot"></span>Estado B · Clicou "Adicionar" → Criar novo (form 4 cols)</span>
+                    <div class="training-item-head">
+                      <i data-lucide="grip-vertical" class="training-item-drag"></i>
+                      <span class="training-item-letter">B</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row">
+                          <span class="training-item-title">Costas &amp; Bíceps</span>
+                          <span class="training-item-subtitle">Hipertrofia · Superior</span>
+                        </div>
+                        <div class="training-item-meta">
+                          <span class="weekday-chip weekday-chip--set"><i data-lucide="calendar"></i>Sexta<i data-lucide="chevron-down"></i></span>
+                          <span class="training-item-meta-stat">4 exercícios</span>
+                          <span class="training-item-meta-sep">·</span>
+                          <span class="training-item-meta-warn">Precisa mais 2+</span>
+                        </div>
+                      </div>
+                      <div class="training-item-actions">
+                        <button class="training-card-menu-btn" style="opacity:1" aria-label="Opções do treino"><i data-lucide="more-vertical" style="width:16px;height:16px"></i></button>
+                        <button class="training-card-chevron training-card-chevron--open" aria-label="Recolher"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+                      </div>
+                    </div>
+
+                    <div class="training-item-body">
+                      <div class="training-details-section-title"><span>Exercícios · 4</span></div>
+
+                      <!-- Composer aberto em modo "Criar novo" — layout essencial + "Mostrar mais" fechado -->
+                      <div class="inline-composer-wide">
+                        <div class="inline-composer-title"><i data-lucide="plus" style="width:12px;height:12px"></i>Adicionar exercício</div>
+                        <div class="segmented-toggle">
+                          <button class="segmented-toggle-btn active">Criar novo</button>
+                          <button class="segmented-toggle-btn">Da biblioteca</button>
+                        </div>
+                        <!-- Linha 1: Nome + Tipo (obrigatório na API) -->
+                        <div style="display:grid;grid-template-columns:3fr 1.5fr;gap:var(--spacing-sm);margin-bottom:8px">
+                          <div>
+                            <label class="composer-label">Nome <span style="color:var(--md-error)">*</span></label>
+                            <input class="composer-input" placeholder="Ex: Remada unilateral" value="Remada unilateral com halter" />
+                          </div>
+                          <div>
+                            <label class="composer-label">Tipo <span style="color:var(--md-error)">*</span></label>
+                            <select class="composer-select">
+                              <option>Força</option>
+                              <option>Cardio</option>
+                              <option>Mobilidade</option>
+                              <option>Alongamento</option>
+                            </select>
+                          </div>
+                        </div>
+                        <!-- Linha 2: Séries + Reps min/max + Descanso -->
+                        <div style="display:grid;grid-template-columns:1fr 1.8fr 1fr;gap:var(--spacing-sm)">
+                          <div>
+                            <label class="composer-label">Séries</label>
+                            <input class="composer-input" placeholder="3" value="3" />
+                          </div>
+                          <div>
+                            <label class="composer-label">Reps (min — máx)</label>
+                            <div class="composer-reps-pair">
+                              <input class="composer-input" placeholder="8" value="8" aria-label="Repetições mínimas" />
+                              <span class="composer-reps-sep">—</span>
+                              <input class="composer-input" placeholder="12" value="12" aria-label="Repetições máximas" />
+                            </div>
+                          </div>
+                          <div>
+                            <label class="composer-label">Descanso (s)</label>
+                            <input class="composer-input" placeholder="60" value="60" />
+                          </div>
+                        </div>
+                        <!-- Toggle "Mostrar mais" — fechado por default -->
+                        <button type="button" class="composer-more-toggle">
+                          <i data-lucide="chevron-down"></i>Mostrar mais campos
+                        </button>
+                        <div class="composer-actions">
+                          <button class="btn btn-secondary btn-sm">Cancelar</button>
+                          <button class="btn btn-primary btn-sm"><i data-lucide="check"></i>Salvar &amp; próximo</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Treino B — EXPANDED · Estado C (biblioteca): toggle → busca + lista de templates -->
+                  <div class="training-item training-item--partial training-item--expanded training-item--example">
+                    <span class="state-tag state-tag--biblioteca"><span class="state-tag-dot"></span>Estado C · Toggle "Da biblioteca" → busca + multi-select de ExerciseTemplate</span>
+                    <div class="training-item-head">
+                      <i data-lucide="grip-vertical" class="training-item-drag"></i>
+                      <span class="training-item-letter">B</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row">
+                          <span class="training-item-title">Costas &amp; Bíceps</span>
+                          <span class="training-item-subtitle">Hipertrofia · Superior</span>
+                        </div>
+                        <div class="training-item-meta">
+                          <span class="weekday-chip weekday-chip--set"><i data-lucide="calendar"></i>Sexta<i data-lucide="chevron-down"></i></span>
+                          <span class="training-item-meta-stat">4 exercícios</span>
+                          <span class="training-item-meta-sep">·</span>
+                          <span class="training-item-meta-warn">Precisa mais 2+</span>
+                        </div>
+                      </div>
+                      <div class="training-item-actions">
+                        <button class="training-card-menu-btn" style="opacity:1" aria-label="Opções do treino"><i data-lucide="more-vertical" style="width:16px;height:16px"></i></button>
+                        <button class="training-card-chevron training-card-chevron--open" aria-label="Recolher"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+                      </div>
+                    </div>
+
+                    <div class="training-item-body">
+                      <div class="training-details-section-title"><span>Exercícios · 4</span></div>
+
+                      <!-- Composer aberto em modo "Da biblioteca" -->
+                      <div class="inline-composer-wide">
+                        <div class="inline-composer-title"><i data-lucide="library" style="width:12px;height:12px"></i>Adicionar exercício</div>
+                        <div class="segmented-toggle">
+                          <button class="segmented-toggle-btn">Criar novo</button>
+                          <button class="segmented-toggle-btn active">Da biblioteca</button>
+                        </div>
+                        <div class="library-panel">
+                          <div class="library-search">
+                            <i data-lucide="search"></i>
+                            <input placeholder="Buscar exercício na biblioteca…" value="remada" />
+                          </div>
+                          <div class="library-list">
+                            <div class="library-item library-item--selected">
+                              <div class="library-item-check"><i data-lucide="check"></i></div>
+                              <div class="library-item-body">
+                                <span class="library-item-name">Remada unilateral halter <span class="library-item-video-indicator" title="Vídeo disponível"><i data-lucide="play"></i></span></span>
+                                <span class="library-item-meta"><span class="library-item-cat">Costas</span>Força · 3 × 10 reps · 60s descanso</span>
+                              </div>
+                            </div>
+                            <div class="library-item library-item--selected">
+                              <div class="library-item-check"><i data-lucide="check"></i></div>
+                              <div class="library-item-body">
+                                <span class="library-item-name">Remada cavalinho pegada neutra <span class="library-item-video-indicator" title="Vídeo disponível"><i data-lucide="play"></i></span></span>
+                                <span class="library-item-meta"><span class="library-item-cat">Costas</span>Força · 4 × 8 reps · 90s descanso</span>
+                              </div>
+                            </div>
+                            <div class="library-item">
+                              <div class="library-item-check"><i data-lucide="check"></i></div>
+                              <div class="library-item-body">
+                                <span class="library-item-name">Remada baixa polia</span>
+                                <span class="library-item-meta"><span class="library-item-cat">Costas</span>Força · 3 × 12 reps · 60s descanso</span>
+                              </div>
+                            </div>
+                            <div class="library-item">
+                              <div class="library-item-check"><i data-lucide="check"></i></div>
+                              <div class="library-item-body">
+                                <span class="library-item-name">Remada T com pegada V <span class="library-item-video-indicator" title="Vídeo disponível"><i data-lucide="play"></i></span></span>
+                                <span class="library-item-meta"><span class="library-item-cat">Costas</span>Força · 4 × 10 reps · 90s descanso</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="library-selection-bar">
+                            <span><strong>2</strong> selecionados · 12 na biblioteca</span>
+                            <span>Clique para selecionar · valores copiados do template</span>
+                          </div>
+                        </div>
+                        <div class="composer-actions">
+                          <button class="btn btn-secondary btn-sm">Cancelar</button>
+                          <button class="btn btn-primary btn-sm"><i data-lucide="plus"></i>Adicionar 2 exercícios</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Group header: unassigned -->
+                  <div class="training-group-header">
+                    <span class="training-group-title training-group-title--unassigned"><i data-lucide="calendar-off" style="width:12px;height:12px"></i>Sem dia atribuído · 1 treino</span>
+                    <span style="font-size:11px;color:var(--brand-steel)">O dia é opcional — trainer pode atribuir depois.</span>
+                  </div>
+
+                  <!-- Treino C — EXPANDED · Estado D (empty): hero central -->
+                  <div class="training-item training-item--empty training-item--expanded training-item--example">
+                    <span class="state-tag state-tag--empty"><span class="state-tag-dot"></span>Estado D · Treino vazio — hero central guia o primeiro exercício</span>
+                    <div class="training-item-head">
+                      <i data-lucide="grip-vertical" class="training-item-drag"></i>
+                      <span class="training-item-letter">C</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row">
+                          <span class="training-item-title">Pernas completo</span>
+                          <span class="training-item-subtitle">Força · Inferior</span>
+                        </div>
+                        <div class="training-item-meta">
+                          <span class="weekday-chip weekday-chip--unassigned"><i data-lucide="plus"></i>Atribuir dia</span>
+                          <span class="training-item-meta-stat">0 exercícios</span>
+                          <span class="training-item-meta-sep">·</span>
+                          <span class="training-item-meta-warn">Sem exercícios ainda</span>
+                        </div>
+                      </div>
+                      <div class="training-item-actions">
+                        <button class="training-card-menu-btn" style="opacity:1" aria-label="Opções do treino"><i data-lucide="more-vertical" style="width:16px;height:16px"></i></button>
+                        <button class="training-card-chevron training-card-chevron--open" aria-label="Recolher"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+                      </div>
+                    </div>
+
+                    <div class="training-item-body">
+                      <div class="training-empty-hero">
+                        <div class="training-empty-hero-icon"><i data-lucide="dumbbell"></i></div>
+                        <div class="training-empty-hero-title">Treino C ainda sem exercícios</div>
+                        <div class="training-empty-hero-desc">Adicione o primeiro exercício — crie do zero ou puxe um template pronto da sua biblioteca. Mesmo toggle, mesmo fluxo do Estado B/C acima.</div>
+                        <div class="training-empty-hero-actions">
+                          <button class="btn btn-primary btn-sm"><i data-lucide="plus"></i>Criar novo exercício</button>
+                          <button class="btn btn-secondary btn-sm"><i data-lucide="library"></i>Escolher da biblioteca</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Primary CTA: paralelo visual com "Adicionar exercício" -->
+                  <button class="add-training-cta"><i data-lucide="plus"></i>Adicionar treino à rotina</button>
+                </div>
+              </div>
+
+              <div class="builder-footer">
+                <span class="builder-footer-status"><span class="builder-footer-status-dot"></span>Autosave · salvo há 2s · 3 treinos · 15 exercícios · 1 sem dia</span>
+                <span style="font-size:11px;color:var(--brand-steel);display:flex;align-items:center;gap:var(--spacing-xs)"><i data-lucide="keyboard" style="width:14px;height:14px"></i> Atalhos: <kbd style="font-family:var(--font-family-stat);background:var(--brand-mist);padding:1px 6px;border-radius:3px;font-size:10px;border:1px solid var(--brand-divider)">⌘S</kbd> salvar · <kbd style="font-family:var(--font-family-stat);background:var(--brand-mist);padding:1px 6px;border-radius:3px;font-size:10px;border:1px solid var(--brand-divider)">⌘K</kbd> novo treino</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       SCENE 3.5 — Composer expandido ("Mostrar mais campos")
+       ═════════════════════════════════════════════════════════════════ -->
+  <section class="scenario-section">
+    <div class="scenario-header">
+      <div class="scenario-eyebrow">Cena 3.5 · progressive disclosure</div>
+      <h2 class="scenario-title">Composer expandido — campos opcionais do exercício</h2>
+      <p class="scenario-description">O composer inline mantém apenas os campos essenciais visíveis por default: <strong>Nome, Tipo, Séries, Reps, Descanso</strong>. Ao clicar <em>"Mostrar mais campos"</em>, expande uma segunda zona com <strong>URL do vídeo</strong> (com preview), <strong>Duração</strong> (condicional ao tipo), <strong>Com carga → Carga sugerida</strong>, e <strong>Observações</strong>. Todos os campos abaixo existem no schema <code>ExerciseTemplate</code> — nada inventado. Campos que ficaram de fora (<code>isPublic</code>, <code>muscleGroup</code>, <code>equipment</code>) estão documentados na nota ao final.</p>
+    </div>
+
+    <div class="scenario-frames">
+      <!-- DESKTOP: composer expandido completo -->
+      <div class="frame-wrap">
+        <div class="frame-label">Desktop · Composer "Criar novo" expandido — todos os campos do schema</div>
+        <div class="frame frame--desktop">
+          <div class="app app--desktop">
+            <aside class="sidebar">
+              <div class="sidebar-logo">
+                <div class="sidebar-logo-mark">T</div>
+                Treinoway
+              </div>
+              <nav class="sidebar-nav">
+                <a class="sidebar-item active"><i data-lucide="book-open"></i>Rotinas</a>
+              </nav>
+            </aside>
+            <div class="builder" style="flex:1">
+              <div class="builder-topbar">
+                <button class="builder-topbar-back"><i data-lucide="arrow-left"></i></button>
+                <div class="builder-title-wrap">
+                  <div class="builder-eyebrow">Treino B · Costas &amp; Bíceps</div>
+                  <div class="builder-title">Adicionar exercício — form expandido</div>
+                </div>
+              </div>
+
+              <div style="flex:1;overflow-y:auto;padding:var(--spacing-lg) var(--spacing-xl);background:var(--brand-mist)">
+                <div class="training-item training-item--partial training-item--expanded training-item--example" style="max-width:900px;margin:0 auto">
+                  <span class="state-tag state-tag--criar"><span class="state-tag-dot"></span>Composer "Criar novo" · "Mostrar mais" ABERTO — todos os campos opcionais</span>
+                  <div class="training-item-head">
+                    <span class="training-item-letter">B</span>
+                    <div class="training-item-main">
+                      <div class="training-item-title-row">
+                        <span class="training-item-title">Costas &amp; Bíceps</span>
+                        <span class="training-item-subtitle">Força · Superior</span>
+                      </div>
+                      <div class="training-item-meta">
+                        <span class="weekday-chip weekday-chip--set"><i data-lucide="calendar"></i>Sexta</span>
+                        <span class="training-item-meta-stat">4 exercícios</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="training-item-body">
+                    <div class="training-details-section-title"><span>Exercícios · 4</span></div>
+
+                    <div class="inline-composer-wide">
+                      <div class="inline-composer-title"><i data-lucide="plus" style="width:12px;height:12px"></i>Adicionar exercício</div>
+                      <div class="segmented-toggle">
+                        <button class="segmented-toggle-btn active">Criar novo</button>
+                        <button class="segmented-toggle-btn">Da biblioteca</button>
+                      </div>
+
+                      <!-- Linha 1: Nome + Tipo -->
+                      <div style="display:grid;grid-template-columns:3fr 1.5fr;gap:var(--spacing-sm);margin-bottom:8px">
+                        <div>
+                          <label class="composer-label">Nome <span style="color:var(--md-error)">*</span></label>
+                          <input class="composer-input" value="Remada unilateral com halter" />
+                        </div>
+                        <div>
+                          <label class="composer-label">Tipo <span style="color:var(--md-error)">*</span></label>
+                          <select class="composer-select">
+                            <option selected>Força</option>
+                            <option>Cardio</option>
+                            <option>Mobilidade</option>
+                            <option>Alongamento</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <!-- Linha 2: Séries + Reps min/max + Descanso -->
+                      <div style="display:grid;grid-template-columns:1fr 1.8fr 1fr;gap:var(--spacing-sm)">
+                        <div>
+                          <label class="composer-label">Séries</label>
+                          <input class="composer-input" value="3" />
+                        </div>
+                        <div>
+                          <label class="composer-label">Reps (min — máx)</label>
+                          <div class="composer-reps-pair">
+                            <input class="composer-input" value="8" aria-label="Repetições mínimas" />
+                            <span class="composer-reps-sep">—</span>
+                            <input class="composer-input" value="12" aria-label="Repetições máximas" />
+                          </div>
+                        </div>
+                        <div>
+                          <label class="composer-label">Descanso (s)</label>
+                          <input class="composer-input" value="60" />
+                        </div>
+                      </div>
+
+                      <!-- Toggle aberto -->
+                      <button type="button" class="composer-more-toggle open">
+                        <i data-lucide="chevron-down"></i>Ocultar campos avançados
+                      </button>
+
+                      <!-- Zona avançada -->
+                      <div class="composer-advanced">
+                        <!-- URL vídeo + preview -->
+                        <div>
+                          <label class="composer-label">URL do vídeo <span style="color:var(--brand-steel);font-weight:500;letter-spacing:0;text-transform:none;font-size:10px">(YouTube)</span></label>
+                          <div class="composer-input-wrap">
+                            <i data-lucide="youtube" class="composer-input-icon"></i>
+                            <input class="composer-input composer-input--video" value="https://youtube.com/watch?v=dQw4w9WgXcQ" />
+                            <span class="composer-input-hint"><i data-lucide="check-circle"></i>Preview OK</span>
+                          </div>
+                          <div class="composer-video-preview">
+                            <i data-lucide="play"></i>
+                            <span class="composer-video-preview-label">Preview · youtube.com/watch?v=dQw4w9WgXcQ</span>
+                          </div>
+                        </div>
+
+                        <!-- Duração (condicional — aqui desativada porque tipo=Força. Ficaria visível se tipo=Cardio/Mobilidade/Alongamento) -->
+                        <div style="opacity:.5;pointer-events:none">
+                          <label class="composer-label">Duração (s) <span style="color:var(--brand-steel);font-weight:500;letter-spacing:0;text-transform:none;font-size:10px">— só para cardio, mobilidade ou alongamento</span></label>
+                          <input class="composer-input" placeholder="Não se aplica a exercícios de força" disabled />
+                        </div>
+
+                        <!-- Checkbox Com carga + input Carga sugerida (condicional) -->
+                        <div style="display:grid;grid-template-columns:auto 1fr;gap:var(--spacing-md);align-items:center">
+                          <label class="composer-checkbox-row">
+                            <input type="checkbox" checked />
+                            Exercício com carga
+                          </label>
+                          <div>
+                            <label class="composer-label">Carga sugerida (kg)</label>
+                            <input class="composer-input" value="12" />
+                          </div>
+                        </div>
+
+                        <!-- Observações -->
+                        <div>
+                          <label class="composer-label">Observações</label>
+                          <textarea class="composer-textarea" placeholder="Dica de execução, postura, foco muscular…">Cotovelo colado ao tronco, contração máxima no topo.</textarea>
+                        </div>
+                      </div>
+
+                      <div class="composer-actions">
+                        <button class="btn btn-secondary btn-sm">Cancelar</button>
+                        <button class="btn btn-primary btn-sm"><i data-lucide="check"></i>Salvar &amp; próximo</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Nota de auditoria -->
+                <div class="info-banner" style="max-width:900px;margin:var(--spacing-lg) auto 0">
+                  <i data-lucide="info"></i>
+                  <div>
+                    <strong>Auditoria de campos contra <code>ExerciseTemplate</code>:</strong> todos os campos acima existem no schema (<code>name</code>, <code>type</code>, <code>videoUrl</code>, <code>sets</code>, <code>repetitions.min/max</code>, <code>restInterval</code>, <code>duration</code>, <code>hasLoad</code>, <code>suggestedLoad</code>, <code>notes</code>). <code>isPublic</code> fica de fora — é ação meta, exposta depois via menu do item. <em>Recomendação de backend (não aplicada no mockup):</em> adicionar <code>muscleGroup</code> e <code>equipment</code> — hoje inexistentes no schema.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       SCENE 4 — Training picker sheet (adding a training to a day)
+       ═════════════════════════════════════════════════════════════════ -->
+  <section class="scenario-section">
+    <div class="scenario-header">
+      <div class="scenario-eyebrow">Cena 4</div>
+      <h2 class="scenario-title">Adicionar treino — único sheet do fluxo</h2>
+      <p class="scenario-description">Quando trainer clica em <em>Adicionar treino</em> na lista, abre o <strong>único modal/sheet do fluxo inteiro</strong>. O eyebrow traz o contexto da rotina. Dia é um campo <strong>opcional</strong> no sheet — pode deixar em branco e atribuir depois via chip no card. Toggle entre criar novo ou importar da biblioteca.</p>
+    </div>
+
+    <div class="frames-wrapper">
+
+      <!-- MOBILE: bottom sheet -->
+      <div class="frame-wrap">
+        <div class="frame-label">Mobile · 375px — bottom sheet</div>
+        <div class="frame frame--mobile">
+          <div class="app" style="position:relative">
+            <div class="builder">
+              <!-- Minimal background -->
+              <div class="builder-topbar builder-topbar--mobile">
+                <button class="builder-topbar-back"><i data-lucide="arrow-left" style="width:20px;height:20px"></i></button>
+                <div class="builder-title-wrap">
+                  <div class="builder-eyebrow">Hipertrofia 12sem</div>
+                  <div class="builder-title" style="font-size:16px">Hipertrofia 12 sem — M Ini</div>
+                </div>
+              </div>
+              <div class="identity-strip identity-strip--mobile" style="opacity:.6">
+                <div class="identity-chip"><span class="identity-chip-value">Hipertrofia</span></div>
+                <div class="identity-chip"><span class="identity-chip-value">Iniciante</span></div>
+                <div class="identity-chip"><span class="identity-chip-value">12sem</span></div>
+              </div>
+              <div class="stats-row stats-row--mobile" style="opacity:.6">
+                <div class="stat-card">
+                  <span class="stat-card-label">Treinos</span>
+                  <span class="stat-card-value">2</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-card-label">Exercícios</span>
+                  <span class="stat-card-value">12</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sheet overlay -->
+            <div class="sheet-overlay">
+              <div class="bottom-sheet">
+                <div class="bottom-sheet-handle"></div>
+                <div class="bottom-sheet-header">
+                  <div class="bottom-sheet-title-wrap">
+                    <div class="bottom-sheet-eyebrow">Hipertrofia 12sem · Treino C</div>
+                    <div class="bottom-sheet-title">Adicionar treino</div>
+                  </div>
+                  <button class="bottom-sheet-close"><i data-lucide="x" style="width:20px;height:20px"></i></button>
+                </div>
+                <div class="bottom-sheet-body">
+                  <div class="segmented-toggle" style="margin-bottom:var(--spacing-md)">
+                    <button class="segmented-toggle-btn active">Criar novo</button>
+                    <button class="segmented-toggle-btn">Da biblioteca</button>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Nome do treino <span style="color:var(--md-error)">*</span></label>
+                    <input class="form-input" placeholder="Ex: Costas &amp; Bíceps" />
+                    <span class="form-hint">Será salvo na sua biblioteca de treinos únicos.</span>
+                  </div>
+                  <div class="form-grid-2">
+                    <div class="form-group">
+                      <label class="form-label">Categoria <span style="color:var(--md-error)">*</span></label>
+                      <select class="form-input">
+                        <option>Força</option>
+                        <option>Cardio</option>
+                        <option>Funcional</option>
+                        <option>Mobilidade</option>
+                        <option>Flexibilidade</option>
+                        <option>Descanso</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Segmento</label>
+                      <select class="form-input">
+                        <option>— Selecionar —</option>
+                        <option>Superior</option>
+                        <option>Inferior</option>
+                        <option>Core</option>
+                        <option>Corpo inteiro</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Dia da semana <span style="color:var(--brand-steel);font-weight:500;text-transform:none;letter-spacing:0;font-size:11px">(opcional)</span></label>
+                    <select class="form-input">
+                      <option>Sem dia atribuído</option>
+                      <option>Segunda</option>
+                      <option>Terça</option>
+                      <option>Quarta</option>
+                      <option>Quinta</option>
+                      <option>Sexta</option>
+                      <option>Sábado</option>
+                      <option>Domingo</option>
+                    </select>
+                    <span class="form-hint">Você pode atribuir depois, direto pelo chip no card do treino.</span>
+                  </div>
+                  <!-- Mostrar mais: descrição (tags e isPublic ficam para edição posterior) -->
+                  <button type="button" class="composer-more-toggle" style="margin-bottom:var(--spacing-sm)">
+                    <i data-lucide="chevron-down"></i>Mostrar mais campos
+                  </button>
+                  <div class="form-group">
+                    <label class="form-label">Descrição <span style="color:var(--brand-steel);font-weight:500;text-transform:none;letter-spacing:0;font-size:11px">(opcional)</span></label>
+                    <textarea class="form-input form-textarea" placeholder="Objetivo, observações gerais, público-alvo…"></textarea>
+                    <span class="form-hint">Aparece no card do treino e ajuda a identificar depois.</span>
+                  </div>
+                  <div class="info-banner">
+                    <i data-lucide="info"></i>
+                    <span>Os exercícios serão adicionados <strong>direto no card do treino</strong>, inline. Você não sai desta rotina.</span>
+                  </div>
+                </div>
+                <div class="bottom-sheet-footer">
+                  <button class="btn btn-secondary">Cancelar</button>
+                  <button class="btn btn-primary"><i data-lucide="plus"></i>Adicionar e abrir</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DESKTOP: side panel -->
+      <div class="frame-wrap">
+        <div class="frame-label">Desktop · 1200px — side panel (direita)</div>
+        <div class="frame frame--desktop">
+          <div class="app app--desktop" style="position:relative">
+            <aside class="sidebar">
+              <div class="sidebar-logo">
+                <div class="sidebar-logo-mark">T</div>
+                Treinoway
+              </div>
+              <nav class="sidebar-nav">
+                <a class="sidebar-item active"><i data-lucide="book-open"></i>Rotinas</a>
+              </nav>
+            </aside>
+            <div class="builder" style="flex:1;opacity:.5">
+              <div class="builder-topbar">
+                <button class="builder-topbar-back"><i data-lucide="arrow-left"></i></button>
+                <div class="builder-title-wrap">
+                  <div class="builder-eyebrow">Rascunho salvo</div>
+                  <div class="builder-title">Hipertrofia 12sem — M Iniciante</div>
+                </div>
+              </div>
+              <div class="training-canvas">
+                <div class="week-overview">
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Dom</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Livre</span></div>
+                  <div class="week-overview-cell week-overview-cell--active"><span class="week-overview-day">Seg</span><span class="week-overview-stat">1</span><span class="week-overview-sub">6 ex</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Ter</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Livre</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Qua</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Livre</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Qui</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Livre</span></div>
+                  <div class="week-overview-cell week-overview-cell--active"><span class="week-overview-day">Sex</span><span class="week-overview-stat">1</span><span class="week-overview-sub">4 ex</span></div>
+                  <div class="week-overview-cell week-overview-cell--empty"><span class="week-overview-day">Sáb</span><span class="week-overview-stat">–</span><span class="week-overview-sub">Livre</span></div>
+                </div>
+
+                <div class="training-list">
+                  <div class="training-item training-item--ready">
+                    <div class="training-item-head">
+                      <span class="training-item-letter">A</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row"><span class="training-item-title">Peito &amp; Tríceps</span></div>
+                        <div class="training-item-meta"><span class="weekday-chip weekday-chip--set"><i data-lucide="calendar"></i>Seg</span><span class="training-item-meta-stat">6 ex</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="training-item training-item--partial">
+                    <div class="training-item-head">
+                      <span class="training-item-letter">B</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row"><span class="training-item-title">Costas &amp; Bíceps</span></div>
+                        <div class="training-item-meta"><span class="weekday-chip weekday-chip--set"><i data-lucide="calendar"></i>Sex</span><span class="training-item-meta-stat">4 ex</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="training-item" style="border-style:dashed">
+                    <div class="training-item-head">
+                      <span class="training-item-letter" style="color:var(--brand-steel)">C</span>
+                      <div class="training-item-main">
+                        <div class="training-item-title-row"><span class="training-item-title" style="color:var(--brand-steel)">Adicionando…</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Side panel sheet -->
+            <div class="sheet-overlay sheet-overlay--desktop">
+              <div class="bottom-sheet bottom-sheet--desktop">
+                <div class="bottom-sheet-header">
+                  <div class="bottom-sheet-title-wrap">
+                    <div class="bottom-sheet-eyebrow">Hipertrofia 12sem · Treino C (3º da rotina)</div>
+                    <div class="bottom-sheet-title">Adicionar treino</div>
+                  </div>
+                  <button class="bottom-sheet-close"><i data-lucide="x" style="width:20px;height:20px"></i></button>
+                </div>
+                <div class="bottom-sheet-body">
+                  <div class="segmented-toggle" style="margin-bottom:var(--spacing-md)">
+                    <button class="segmented-toggle-btn">Criar novo</button>
+                    <button class="segmented-toggle-btn active">Da biblioteca</button>
+                  </div>
+
+                  <div class="toolbar-search" style="margin-bottom:var(--spacing-md)">
+                    <i data-lucide="search"></i>
+                    <input placeholder="Buscar treino na biblioteca…" />
+                  </div>
+
+                  <div class="template-list">
+                    <div class="template-item">
+                      <div class="template-item-name">Peito + Ombro</div>
+                      <div class="template-item-meta">Hipertrofia · Superior · 5 exercícios</div>
+                    </div>
+                    <div class="template-item" style="border-color:var(--brand-primary);background:var(--brand-mist)">
+                      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                        <div>
+                          <div class="template-item-name">Costas &amp; Bíceps</div>
+                          <div class="template-item-meta">Hipertrofia · Superior · 6 exercícios</div>
+                        </div>
+                        <i data-lucide="check" style="color:var(--brand-primary);width:16px;height:16px"></i>
+                      </div>
+                    </div>
+                    <div class="template-item">
+                      <div class="template-item-name">Pernas posterior</div>
+                      <div class="template-item-meta">Hipertrofia · Inferior · 6 exercícios</div>
+                    </div>
+                    <div class="template-item">
+                      <div class="template-item-name">Core &amp; cardio</div>
+                      <div class="template-item-meta">Cardio · Full-body · 4 exercícios</div>
+                    </div>
+                  </div>
+
+                  <div class="info-banner" style="margin-top:var(--spacing-md)">
+                    <i data-lucide="info"></i>
+                    <span>Importando: os exercícios do template serão <strong>copiados</strong>. Alterações aqui não afetam o template original.</span>
+                  </div>
+                </div>
+                <div class="bottom-sheet-footer">
+                  <button class="btn btn-secondary">Cancelar</button>
+                  <button class="btn btn-primary"><i data-lucide="plus"></i>Adicionar treino</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       SCENE 5 — Readiness legend / summary card
+       ═════════════════════════════════════════════════════════════════ -->
+  <section class="scenario-section">
+    <div class="scenario-header">
+      <div class="scenario-eyebrow">Cena 5</div>
+      <h2 class="scenario-title">Sinalização de progresso — resolvendo a localização</h2>
+      <p class="scenario-description">Solução direta para o problema "o trainer se perde dentro da hierarquia". O <strong>readiness dot</strong> em cada card permite escanear a rotina inteira em um segundo; o <strong>stats row</strong> agrega; o <strong>eyebrow</strong> no topbar sempre mostra onde estamos. Zero drills, zero breadcrumb decorativo.</p>
+    </div>
+
+    <div class="frames-wrapper" style="flex-direction:row;flex-wrap:wrap">
+
+      <div class="frame-wrap" style="flex:1;min-width:320px;max-width:480px">
+        <div class="frame-label">Readiness · 3 estados (borda lateral)</div>
+        <div style="background:#fff;border-radius:12px;padding:var(--spacing-lg);box-shadow:var(--shadow-brand-lg);display:flex;flex-direction:column;gap:var(--spacing-md)">
+          <div class="training-card">
+            <div class="training-row">
+              <div class="training-row-body">
+                <div class="training-row-title">Treino sem exercícios</div>
+                <div class="training-row-meta"><span class="training-row-meta-value">0 ex</span><span class="training-row-meta-sep">·</span><span>Vazio</span></div>
+              </div>
+              <div class="training-row-actions">
+                <button class="training-card-chevron" aria-label="Expandir" style="opacity:1"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="training-card training-card--partial">
+            <div class="training-row">
+              <div class="training-row-body">
+                <div class="training-row-title">Treino incompleto</div>
+                <div class="training-row-meta"><span class="training-row-meta-value">2 ex</span><span class="training-row-meta-sep">·</span><span class="training-row-meta-warn">Precisa mais 1+</span></div>
+              </div>
+              <div class="training-row-actions">
+                <button class="training-card-chevron" aria-label="Expandir" style="opacity:1"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="training-card training-card--ready">
+            <div class="training-row">
+              <div class="training-row-body">
+                <div class="training-row-title">Treino pronto</div>
+                <div class="training-row-meta"><span class="training-row-meta-value">6 ex</span><span class="training-row-meta-sep">·</span><span class="training-row-meta-value">~45min</span></div>
+              </div>
+              <div class="training-row-actions">
+                <button class="training-card-chevron" aria-label="Expandir" style="opacity:1"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-wrap" style="flex:1;min-width:320px;max-width:560px">
+        <div class="frame-label">Stats row · glance at progress</div>
+        <div style="background:#fff;border-radius:12px;padding:var(--spacing-lg);box-shadow:var(--shadow-brand-lg)">
+          <div class="stats-row" style="padding:0;grid-template-columns:repeat(4,1fr)">
+            <div class="stat-card stat-card--accent">
+              <span class="stat-card-label">Treinos</span>
+              <span class="stat-card-value">3</span>
+              <span class="stat-card-sub">Semanal</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-card-label">Exercícios</span>
+              <span class="stat-card-value">18</span>
+              <span class="stat-card-sub">Total</span>
+            </div>
+            <div class="stat-card stat-card--warn">
+              <span class="stat-card-label">Dias</span>
+              <span class="stat-card-value">3<span class="stat-card-value-unit">/7</span></span>
+              <span class="stat-card-sub">cobertos</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-card-label">Duração</span>
+              <span class="stat-card-value">45<span class="stat-card-value-unit">min</span></span>
+              <span class="stat-card-sub">méd/treino</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Design decisions summary
+       ═════════════════════════════════════════════════════════════════ -->
+  <section class="scenario-section">
+    <div class="scenario-header">
+      <div class="scenario-eyebrow">Princípios aplicados</div>
+      <h2 class="scenario-title">Por que essa estrutura resolve o "me perdi"</h2>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;padding:var(--spacing-xl);box-shadow:var(--shadow-brand-lg);display:grid;grid-template-columns:1fr;gap:var(--spacing-lg)">
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--spacing-lg)">
+
+        <div>
+          <div class="scenario-eyebrow">1. Treinos são a unidade primária</div>
+          <p style="font-size:13px;color:var(--brand-slate);line-height:1.5">Canvas principal é uma <strong>lista vertical de treinos</strong> (A, B, C…) em full-width. Nenhum card preso a coluna estreita de 200px. Título em Space Grotesk 20px respira. Trainer pensa no treino primeiro, dia depois.</p>
+        </div>
+
+        <div>
+          <div class="scenario-eyebrow">2. Week overview = scorecard</div>
+          <p style="font-size:13px;color:var(--brand-slate);line-height:1.5">A faixa semanal no topo é <em>leitura</em>, não edição. Mostra "Seg 1 · Sex 1 · Sem dia 1" em um olhar. Clique num dia filtra a lista abaixo. Nenhuma decisão de largura de coluna — 7 pills + 1 pill "sem dia" em linha única.</p>
+        </div>
+
+        <div>
+          <div class="scenario-eyebrow">3. Dia é atributo opcional</div>
+          <p style="font-size:13px;color:var(--brand-slate);line-height:1.5">Rotinas tipo "Treino A, B, C" sem dia fixo são válidas por design. Weekday vira <strong>chip clicável dentro do card</strong>. Treinos sem dia caem numa seção "Sem dia atribuído". O trainer escolhe quando atribuir — ou se atribuir.</p>
+        </div>
+
+        <div>
+          <div class="scenario-eyebrow">4. Inline &gt; navigation</div>
+          <p style="font-size:13px;color:var(--brand-slate);line-height:1.5">Adicionar exercício abre o composer dentro do card em largura total do canvas (4 colunas no desktop). Trainer adiciona 6 exercícios sem sair da página. Autofoco no próximo campo; Enter salva &amp; próximo.</p>
+        </div>
+
+        <div>
+          <div class="scenario-eyebrow">5. Progresso multi-sinal</div>
+          <p style="font-size:13px;color:var(--brand-slate);line-height:1.5">Borda lateral do card (vazio/parcial/pronto) + week overview agregando números por dia + stat row global. Três níveis de feedback, zero necessidade de contar exercícios mentalmente.</p>
+        </div>
+
+        <div>
+          <div class="scenario-eyebrow">6. Um único sheet</div>
+          <p style="font-size:13px;color:var(--brand-slate);line-height:1.5">O único push do fluxo é "Adicionar treino". Dia vai como campo opcional no sheet. Exercícios nunca abrem sheet — tudo inline. Eliminamos os <em>drills dentro de drills</em>.</p>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+<script>
+  if (window.lucide) {
+    window.lucide.createIcons();
+  } else {
+    document.addEventListener('DOMContentLoaded', () => window.lucide && window.lucide.createIcons());
+  }
+</script>
+</body>
+</html>
