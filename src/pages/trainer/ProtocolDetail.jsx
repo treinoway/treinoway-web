@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, GripVertical } from 'lucide-react';
+import { ArrowLeft, GripVertical, Calendar } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -469,13 +469,19 @@ const ProtocolDetail = () => {
           <div>
             <span className="info-label info-inline">Data de Início:</span>
             <span className="info-value">
-              {formatDateForDisplay(protocol.startDate)}
+              <span className="date-display">
+                <Calendar size={14} strokeWidth={2} aria-hidden="true" />
+                {formatDateForDisplay(protocol.startDate)}
+              </span>
             </span>
           </div>
           <div>
             <span className="info-label info-inline">Data de Término:</span>
             <span className="info-value">
-              {formatDateForDisplay(protocol.expirationDate || protocol.endDate)}
+              <span className="date-display">
+                <Calendar size={14} strokeWidth={2} aria-hidden="true" />
+                {formatDateForDisplay(protocol.expirationDate || protocol.endDate)}
+              </span>
             </span>
           </div>
           <div>

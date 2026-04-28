@@ -9,7 +9,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import DateInput from '../../components/DateInput';
+import BrandCalendar, { todayIso } from '../../components/BrandCalendar';
 import CreateExerciseModal from '../../components/CreateExerciseModal';
 import Select from '../../components/Select';
 import { WEEK_DAY_OPTIONS, getWeekDayLabel } from '../../constants/weekDays';
@@ -772,23 +772,29 @@ const CreateProtocol = () => {
 
           <div className="grid-2col">
             <div>
-              <label className="form-label" htmlFor="protocol-start-date">Data de Início <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
-              <DateInput
+              <label className="form-label" htmlFor="protocol-start-date">Data de Início <span aria-hidden="true">*</span></label>
+              <BrandCalendar
+                mode="single"
                 id="protocol-start-date"
+                label="Data de Início"
                 value={formData.startDate}
-                onChange={(e) => setFormData((prev) => ({ ...prev, startDate: e.target.value }))}
-                className="form-input"
+                onChange={(iso) => setFormData((prev) => ({ ...prev, startDate: iso ?? '' }))}
+                minDate={todayIso()}
+                disabled={loading}
                 required
               />
             </div>
 
             <div>
-              <label className="form-label" htmlFor="protocol-end-date">Data de Término <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
-              <DateInput
+              <label className="form-label" htmlFor="protocol-end-date">Data de Término <span aria-hidden="true">*</span></label>
+              <BrandCalendar
+                mode="single"
                 id="protocol-end-date"
+                label="Data de Término"
                 value={formData.endDate}
-                onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
-                className="form-input"
+                onChange={(iso) => setFormData((prev) => ({ ...prev, endDate: iso ?? '' }))}
+                minDate={formData.startDate || todayIso()}
+                disabled={loading}
                 required
               />
             </div>

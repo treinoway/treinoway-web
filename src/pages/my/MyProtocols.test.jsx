@@ -124,8 +124,8 @@ describe('MyProtocols', () => {
     renderWithRouter(<MyProtocols />);
 
     await waitFor(() => {
-      expect(screen.getByText('31/03/2024')).toBeInTheDocument();
-      expect(screen.getByText('31/08/2023')).toBeInTheDocument();
+      expect(screen.getByText(/31\/03\/2024/)).toBeInTheDocument();
+      expect(screen.getByText(/31\/08\/2023/)).toBeInTheDocument();
       expect(screen.queryByText(/Invalid Date/i)).not.toBeInTheDocument();
     });
   });

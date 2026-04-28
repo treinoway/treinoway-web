@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Calendar } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError, extractErrorInfo } from '../../i18n';
@@ -231,9 +231,12 @@ const MyChallengeDetail = () => {
           <h1 className="card-title" style={{ marginBottom: 0 }}>{challenge.name}</h1>
           <span className={`badge ${badgeClass}`}>{CHALLENGE_STATUS_LABEL[challenge.status]}</span>
         </div>
-        <p className="text-sm text-muted">
-          {formatDateForDisplay(challenge.startDate)} — {formatDateForDisplay(challenge.endDate)}
-        </p>
+        <div className="date-display text-sm text-muted">
+          <Calendar size={14} strokeWidth={2} aria-hidden="true" />
+          {formatDateForDisplay(challenge.startDate)}
+          <span className="date-display__divider">—</span>
+          {formatDateForDisplay(challenge.endDate)}
+        </div>
         {ranking && (
           <div className="my-position-summary">
             <p>

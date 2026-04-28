@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Award } from 'lucide-react';
+import { Trophy, Award, Calendar } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -166,9 +166,12 @@ const MyChallenges = () => {
                   </h3>
                   <span className={`badge ${badgeClass}`}>{CHALLENGE_STATUS_LABEL[c.status]}</span>
                 </div>
-                <p className="text-sm text-muted">
-                  {formatDateForDisplay(c.startDate)} — {formatDateForDisplay(c.endDate)}
-                </p>
+                <div className="date-display text-sm text-muted">
+                  <Calendar size={14} strokeWidth={2} aria-hidden="true" />
+                  {formatDateForDisplay(c.startDate)}
+                  <span className="date-display__divider">—</span>
+                  {formatDateForDisplay(c.endDate)}
+                </div>
                 {c.myPosition != null && (
                   <p className="text-sm text-light">
                     #{c.myPosition} · {c.myPoints ?? 0} pts

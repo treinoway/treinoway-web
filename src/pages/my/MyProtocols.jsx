@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ClipboardList } from 'lucide-react';
+import { ArrowRight, ClipboardList, Calendar } from 'lucide-react';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
@@ -80,12 +80,10 @@ const MyProtocols = () => {
                   <span className="font-medium">Treinador:</span>{' '}
                   {getTrainerLabel(protocol.trainer)}
                 </div>
-                <div>
-                  <span className="font-medium">Inicio:</span>{' '}
+                <div className="date-display">
+                  <Calendar size={14} strokeWidth={2} aria-hidden="true" />
                   {formatDateForDisplay(protocol.startDate)}
-                </div>
-                <div>
-                  <span className="font-medium">Termino:</span>{' '}
+                  <span className="date-display__divider">→</span>
                   {formatDateForDisplay(protocol.expirationDate || protocol.endDate)}
                 </div>
               </div>

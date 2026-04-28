@@ -304,7 +304,8 @@ describe('Challenges', () => {
     await user.click(scheduledTab);
 
     await screen.findByText('Desafio Futuro');
-    expect(screen.getByText(/01\/01 — 31\/01\/2030 · 31 dias/)).toBeInTheDocument();
+    expect(screen.getByText(/01\/01/)).toBeInTheDocument();
+    expect(screen.getByText(/31\/01\/2030 · 31 dias/)).toBeInTheDocument();
   });
 
   it('renders completed challenge with badge-blue and "Ver ranking →"', async () => {

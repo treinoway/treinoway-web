@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trophy } from 'lucide-react';
+import { Plus, Trophy, Calendar } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -129,9 +129,12 @@ const Challenges = () => {
           <span className="badge badge-green">{CHALLENGE_STATUS_LABEL[c.status]}</span>
         </div>
 
-        <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
-          {formatShortDate(c.startDate)} — {formatFullDate(c.endDate)} · {progress.totalDays} dias
-        </p>
+        <div className="date-display text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+          <Calendar size={14} strokeWidth={2} aria-hidden="true" />
+          {formatShortDate(c.startDate)}
+          <span className="date-display__divider">—</span>
+          {formatFullDate(c.endDate)} · {progress.totalDays} dias
+        </div>
 
         <div className="championship-progress">
           <div className="championship-progress-labels">
@@ -164,7 +167,7 @@ const Challenges = () => {
         ) : (
           <div className="championship-card-footer">
             <span className="text-sm text-muted">{c.participantCount} participantes</span>
-            <span className="text-sm" style={{ color: 'var(--color-primary)' }}>Ver ranking →</span>
+            <span className="text-sm text-primary">Ver ranking →</span>
           </div>
         )}
       </button>
@@ -186,9 +189,12 @@ const Challenges = () => {
           <h3 className="card-title">{c.name}</h3>
           <span className="badge badge-gray">{CHALLENGE_STATUS_LABEL[c.status]}</span>
         </div>
-        <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
-          {formatShortDate(c.startDate)} — {formatFullDate(c.endDate)} · {progress.totalDays} dias
-        </p>
+        <div className="date-display text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+          <Calendar size={14} strokeWidth={2} aria-hidden="true" />
+          {formatShortDate(c.startDate)}
+          <span className="date-display__divider">—</span>
+          {formatFullDate(c.endDate)} · {progress.totalDays} dias
+        </div>
         <div className="championship-card-footer">
           <span className="text-sm text-muted">{c.participantCount} participantes</span>
           {temporalInfo && <span className="text-sm text-muted">{temporalInfo}</span>}
@@ -211,12 +217,15 @@ const Challenges = () => {
           <h3 className="card-title">{c.name}</h3>
           <span className="badge badge-blue">{CHALLENGE_STATUS_LABEL[c.status]}</span>
         </div>
-        <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
-          {formatShortDate(c.startDate)} — {formatFullDate(c.endDate)} · {progress.totalDays} dias
-        </p>
+        <div className="date-display text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+          <Calendar size={14} strokeWidth={2} aria-hidden="true" />
+          {formatShortDate(c.startDate)}
+          <span className="date-display__divider">—</span>
+          {formatFullDate(c.endDate)} · {progress.totalDays} dias
+        </div>
         <div className="championship-card-footer">
           <span className="text-sm text-muted">{c.participantCount} participantes</span>
-          <span className="text-sm" style={{ color: 'var(--color-primary)' }}>Ver ranking →</span>
+          <span className="text-sm text-primary">Ver ranking →</span>
         </div>
       </button>
     );
@@ -236,13 +245,17 @@ const Challenges = () => {
           <h3 className="card-title" style={{ textDecoration: 'line-through' }}>{c.name}</h3>
           <span className="badge badge-red">{CHALLENGE_STATUS_LABEL[c.status]}</span>
         </div>
-        <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
-          {formatShortDate(c.startDate)} — {formatFullDate(c.endDate)}
-        </p>
+        <div className="date-display text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+          <Calendar size={14} strokeWidth={2} aria-hidden="true" />
+          {formatShortDate(c.startDate)}
+          <span className="date-display__divider">—</span>
+          {formatFullDate(c.endDate)}
+        </div>
         {c.cancelledAt && (
-          <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+          <div className="date-display text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+            <Calendar size={14} strokeWidth={2} aria-hidden="true" />
             Cancelado em {formatFullDate(c.cancelledAt.split('T')[0])}
-          </p>
+          </div>
         )}
         <div className="championship-card-footer">
           <span className="text-sm text-muted">{progress.totalDays} dias</span>

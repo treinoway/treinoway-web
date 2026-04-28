@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft, X, Calendar } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -121,11 +121,12 @@ const ProtocolsTab = ({ studentId }) => {
                 />
               </div>
             </div>
-            <p className="text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+            <div className="date-display text-sm text-muted" style={{ marginTop: 'var(--spacing-xs)' }}>
+              <Calendar size={14} strokeWidth={2} aria-hidden="true" />
               {formatDateForDisplay(protocol.startDate)}
-              {' – '}
+              <span className="date-display__divider">–</span>
               {formatDateForDisplay(protocol.expirationDate)}
-            </p>
+            </div>
           </div>
         );
       })}

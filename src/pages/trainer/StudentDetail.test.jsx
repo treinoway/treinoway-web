@@ -148,7 +148,8 @@ describe('StudentDetail', () => {
   it('shows dates formatted as DD/MM/YYYY', async () => {
     renderStudentDetail();
     await waitFor(() => {
-      expect(screen.getByText('01/01/2025 – 31/03/2025')).toBeInTheDocument();
+      expect(screen.getByText(/01\/01\/2025/)).toBeInTheDocument();
+      expect(screen.getByText(/31\/03\/2025/)).toBeInTheDocument();
     });
   });
 

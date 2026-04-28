@@ -1880,6 +1880,13 @@ html:has(.auth-page) {
   margin-top: auto;
 }
 
+.btn-group--equal > .btn-primary,
+.btn-group--equal > .btn-secondary,
+.btn-group--equal > .btn-danger,
+.btn-flex-1 {
+  flex: 1;
+}
+
 .btn-link {
   background: none;
   border: none;
@@ -2469,6 +2476,10 @@ html:has(.auth-page) {
 
 .text-xs {
   font-size: var(--font-caption-size);
+}
+
+.text-primary {
+  color: var(--brand-primary);
 }
 
 .font-medium {
@@ -10630,6 +10641,17 @@ html:has(.auth-page) {
   opacity: 0.4;
 }
 
+/* Generic date display with calendar icon */
+.date-display {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--brand-steel);
+}
+.date-display__divider {
+  opacity: 0.4;
+}
+
 /* Week grid */
 .week-grid {
   display: grid;
@@ -15941,5 +15963,203 @@ nav.onboarding-steps {
 .template-item-check {
   color: var(--brand-primary);
   flex-shrink: 0;
+}
+
+/* ============================================
+   Tag chip input (admin video form / future reuse)
+   ============================================ */
+.tag-chip-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: 44px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-brand);
+  transition: border-color var(--duration-fast) var(--ease-brand),
+              box-shadow var(--duration-fast) var(--ease-brand);
+}
+
+.tag-chip-input:focus-within {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--brand-primary);
+}
+
+.tag-chip-input__field {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-family-base);
+  font-size: var(--font-body-size);
+  color: var(--brand-ink);
+  padding: var(--spacing-xs) 0;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 4px 4px 4px 10px;
+  background: var(--md-surface-container-high);
+  color: var(--brand-ink);
+  border-radius: var(--radius-full);
+  font-size: var(--font-body-small-size);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.tag-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--brand-steel);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-brand),
+              color var(--duration-fast) var(--ease-brand);
+}
+
+.tag-chip__remove:hover {
+  background: var(--md-surface-container);
+  color: var(--brand-ink);
+}
+
+.tag-chip__remove:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ============================================
+   Admin video list — thumbnail + filters
+   ============================================ */
+.video-thumb {
+  width: 64px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: var(--radius-stat);
+  background: var(--md-surface-container-high);
+  display: block;
+}
+
+.video-thumb-placeholder {
+  width: 64px;
+  height: 36px;
+  border-radius: var(--radius-stat);
+  background: var(--md-surface-container-high);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-steel);
+}
+
+.video-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.video-filter-bar {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .video-filter-bar {
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    align-items: end;
+  }
+}
+
+.video-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.video-pagination__status {
+  font-size: var(--font-body-small-size);
+  color: var(--brand-steel);
+}
+
+/* ============================================
+   Video library picker (trainer-side modal)
+   ============================================ */
+.video-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.video-picker-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding: var(--spacing-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-stat);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.video-picker-row:hover,
+.video-picker-row:focus-visible {
+  background: var(--color-surface-container);
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.video-picker-row__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xs);
+  flex: 1;
+  min-width: 0;
+}
+
+.video-picker-row__title {
+  font-weight: 500;
+  color: var(--color-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.video-picker-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  font-size: var(--font-body-small-size);
+  color: var(--brand-steel);
+}
+
+.video-picker-empty {
+  text-align: center;
+  padding: var(--spacing-lg) var(--spacing-md);
+  color: var(--brand-steel);
+  font-size: var(--font-body-small-size);
+}
+
+.video-picker-trigger {
+  margin-top: var(--spacing-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
 }
 

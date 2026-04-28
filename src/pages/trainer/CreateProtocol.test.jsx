@@ -166,16 +166,16 @@ describe('CreateProtocol', () => {
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
     await user.type(screen.getByLabelText(/^nome da rotina/i), 'Rotina Nova');
-    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
-    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
+    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2027' } });
+    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2027' } });
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/trainer/protocols', expect.objectContaining({
         assigneeId: 'student-1',
         name: 'Rotina Nova',
-        startDate: '2024-01-01',
-        expirationDate: '2024-03-31',
+        startDate: '2027-01-01',
+        expirationDate: '2027-03-31',
       }));
       expect(api.post.mock.calls[0][1]).not.toHaveProperty('availableWeekDays');
       expect(mockShowToast).toHaveBeenCalledWith('Rotina criada com sucesso!', 'success');
@@ -252,8 +252,8 @@ describe('CreateProtocol', () => {
 
     await waitFor(() => screen.getByText('Aluno Exemplo'));
     await selectOption(user,screen.getByLabelText('Importar rotina'), '1');
-    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
-    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
+    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2027' } });
+    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2027' } });
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -298,8 +298,8 @@ describe('CreateProtocol', () => {
       expect(screen.getByText('Treino B')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
-    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
+    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2027' } });
+    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2027' } });
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -375,8 +375,8 @@ describe('CreateProtocol', () => {
     expect(screen.getByText('Treino Manual')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/^nome da rotina/i), 'Rotina Direta');
-    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
-    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
+    fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2027' } });
+    fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2027' } });
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
@@ -709,8 +709,8 @@ describe('CreateProtocol', () => {
       await user.click(screen.getByRole('button', { name: /^adicionar$/i }));
 
       await user.type(screen.getByLabelText(/^nome da rotina/i), 'Minha Rotina');
-      fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
-      fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
+      fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2027' } });
+      fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2027' } });
       await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
       await waitFor(() => {
@@ -751,8 +751,8 @@ describe('CreateProtocol', () => {
       });
 
       await user.type(screen.getByLabelText(/^nome da rotina/i), 'Rotina Template');
-      fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2024' } });
-      fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2024' } });
+      fireEvent.change(screen.getByLabelText(/^data de início/i), { target: { value: '01/01/2027' } });
+      fireEvent.change(screen.getByLabelText(/^data de término/i), { target: { value: '31/03/2027' } });
       await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
       await waitFor(() => {

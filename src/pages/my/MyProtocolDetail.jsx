@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, X, Dumbbell } from 'lucide-react';
+import { ArrowLeft, Play, X, Dumbbell, Calendar } from 'lucide-react';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
@@ -129,13 +129,19 @@ const MyProtocolDetail = () => {
           <div>
             <span className="info-label info-inline">Data de Início:</span>
             <span className="info-value">
-              {formatDateForDisplay(protocol.startDate)}
+              <span className="date-display">
+                <Calendar size={14} strokeWidth={2} aria-hidden="true" />
+                {formatDateForDisplay(protocol.startDate)}
+              </span>
             </span>
           </div>
           <div>
             <span className="info-label info-inline">Data de Término:</span>
             <span className="info-value">
-              {formatDateForDisplay(protocol.expirationDate || protocol.endDate)}
+              <span className="date-display">
+                <Calendar size={14} strokeWidth={2} aria-hidden="true" />
+                {formatDateForDisplay(protocol.expirationDate || protocol.endDate)}
+              </span>
             </span>
           </div>
           <div>
