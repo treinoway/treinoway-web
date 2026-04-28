@@ -249,6 +249,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Bootstrap-admin grant: server returns refreshed user + rotated tokens.
+  // Errors propagate so the caller can surface `error.userMessage`.
+  const grantAdmin = async () => {
+    const response = await api.post('/me/grant-admin');
+    const updatedUser = response.data?.user ?? null;
+    const newAccessToken = response.data?.token?.accessToken ?? null;
+    const newRefreshToken = response.data?.refreshToken ?? null;
+
+    if (updatedUser) {
+      updateUser(updatedUser);
+    }
+    if (newAccessToken || newRefreshToken) {
+      updateTokens(newAccessToken, newRefreshToken);
+    }
+
+    return response.data;
+  };
+
   // Keep React state in sync when axios interceptor refreshes the token
   useEffect(() => {
     const handleTokensRefreshed = (e) => {
@@ -258,6 +276,9 @@ export const AuthProvider = ({ children }) => {
     window.addEventListener('treinoway:tokensRefreshed', handleTokensRefreshed);
     return () => window.removeEventListener('treinoway:tokensRefreshed', handleTokensRefreshed);
   }, []);
+
+  const isAdmin = Array.isArray(user?.roles)
+    && user.roles.some((r) => typeof r === 'string' && r.toLowerCase() === 'admin');
 
   const value = {
     user,
@@ -269,7 +290,9 @@ export const AuthProvider = ({ children }) => {
     updateUser,
     updateTokens,
     refreshUser,
+    grantAdmin,
     hasRole,
+    isAdmin,
     isAuthenticated: !!accessToken,
   };
 

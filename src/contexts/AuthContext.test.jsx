@@ -45,6 +45,14 @@ const REGULAR_USER = {
   lastName: 'User',
 };
 
+const ADMIN_USER = {
+  id: 'user-3',
+  email: 'admin@example.com',
+  roles: ['admin'],
+  firstName: 'Admin',
+  lastName: 'User',
+};
+
 const AUTH_RESPONSE = {
   data: {
     token: { accessToken: 'access-token-123' },
@@ -54,13 +62,15 @@ const AUTH_RESPONSE = {
 
 // Consumer component that exposes all context values for assertions
 const TestConsumer = () => {
-  const { user, isAuthenticated, hasRole, login, signup, loginWithGoogle, logout } = useAuth();
+  const { user, isAuthenticated, hasRole, isAdmin, login, signup, loginWithGoogle, logout } = useAuth();
 
   return (
     <div>
       <span aria-label="isAuthenticated">{isAuthenticated ? 'true' : 'false'}</span>
       <span aria-label="hasTrainerRole">{hasRole('TRAINER') ? 'true' : 'false'}</span>
+      <span aria-label="isAdmin">{isAdmin ? 'true' : 'false'}</span>
       <span aria-label="email">{user?.email ?? ''}</span>
+      <span aria-label="roles">{(user?.roles || []).join(',')}</span>
       <button onClick={() => login('trainer@example.com', 'pass123')} aria-label="Login">
         Login
       </button>
@@ -455,6 +465,144 @@ describe('AuthContext', () => {
       renderProvider();
 
       expect(screen.getByLabelText('hasTrainerRole').textContent).toBe('false');
+    });
+  });
+
+  describe('isAdmin', () => {
+    it('is true when the user has the admin role', () => {
+      localStorage.setItem('accessToken', 'token');
+      localStorage.setItem('user', JSON.stringify(ADMIN_USER));
+
+      renderProvider();
+
+      expect(screen.getByLabelText('isAdmin').textContent).toBe('true');
+    });
+
+    it('is false when the user does not have the admin role', () => {
+      localStorage.setItem('accessToken', 'token');
+      localStorage.setItem('user', JSON.stringify(TRAINER_USER));
+
+      renderProvider();
+
+      expect(screen.getByLabelText('isAdmin').textContent).toBe('false');
+    });
+
+    it('is false when there is no user', () => {
+      renderProvider();
+
+      expect(screen.getByLabelText('isAdmin').textContent).toBe('false');
+    });
+  });
+
+  describe('grantAdmin', () => {
+    const PROMOTED_USER = {
+      id: 'user-1',
+      email: 'trainer@example.com',
+      roles: ['TRAINER', 'admin'],
+      firstName: 'Trainer',
+      lastName: 'User',
+    };
+
+    const GRANT_RESPONSE = {
+      data: {
+        user: PROMOTED_USER,
+        token: { accessToken: 'rotated-access-token' },
+        refreshToken: 'rotated-refresh-token',
+      },
+    };
+
+    const renderWithGrant = (onResult) => {
+      const Consumer = () => {
+        const { grantAdmin, user, isAdmin } = useAuth();
+        return (
+          <div>
+            <span aria-label="isAdmin">{isAdmin ? 'true' : 'false'}</span>
+            <span aria-label="email">{user?.email ?? ''}</span>
+            <button
+              onClick={async () => {
+                try {
+                  const data = await grantAdmin();
+                  onResult({ success: true, data });
+                } catch (error) {
+                  onResult({ success: false, error });
+                }
+              }}
+              aria-label="Grant Admin"
+            >
+              Grant Admin
+            </button>
+          </div>
+        );
+      };
+
+      return renderWithRouter(
+        <AuthProvider>
+          <Consumer />
+        </AuthProvider>
+      );
+    };
+
+    it('updates user state and rotates tokens on success', async () => {
+      localStorage.setItem('accessToken', 'old-access-token');
+      localStorage.setItem('refreshToken', 'old-refresh-token');
+      localStorage.setItem('user', JSON.stringify(TRAINER_USER));
+
+      api.post.mockResolvedValue(GRANT_RESPONSE);
+
+      let result;
+      renderWithGrant((r) => { result = r; });
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Grant Admin' }).click();
+      });
+
+      await waitFor(() => {
+        expect(result?.success).toBe(true);
+      });
+
+      expect(api.post).toHaveBeenCalledWith('/me/grant-admin');
+
+      // User state and localStorage updated
+      expect(screen.getByLabelText('isAdmin').textContent).toBe('true');
+      expect(JSON.parse(localStorage.getItem('user'))).toMatchObject({
+        roles: ['TRAINER', 'admin'],
+      });
+
+      // Tokens rotated
+      expect(localStorage.getItem('accessToken')).toBe('rotated-access-token');
+      expect(localStorage.getItem('refreshToken')).toBe('rotated-refresh-token');
+    });
+
+    it('rethrows the error and leaves state untouched on failure', async () => {
+      localStorage.setItem('accessToken', 'old-access-token');
+      localStorage.setItem('refreshToken', 'old-refresh-token');
+      localStorage.setItem('user', JSON.stringify(TRAINER_USER));
+
+      const apiError = new Error('Forbidden');
+      apiError.userMessage = 'Você não tem permissão.';
+      apiError.response = { status: 403 };
+      api.post.mockRejectedValue(apiError);
+
+      let result;
+      renderWithGrant((r) => { result = r; });
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Grant Admin' }).click();
+      });
+
+      await waitFor(() => {
+        expect(result?.success).toBe(false);
+      });
+
+      expect(result.error).toBe(apiError);
+
+      // State and storage unchanged
+      expect(screen.getByLabelText('isAdmin').textContent).toBe('false');
+      expect(localStorage.getItem('accessToken')).toBe('old-access-token');
+      expect(localStorage.getItem('refreshToken')).toBe('old-refresh-token');
+      expect(JSON.parse(localStorage.getItem('user'))).toMatchObject({
+        roles: ['TRAINER'],
+      });
     });
   });
 });

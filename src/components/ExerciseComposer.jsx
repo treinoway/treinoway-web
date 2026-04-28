@@ -3,12 +3,14 @@ import PropTypes from 'prop-types';
 import {
   Check,
   ChevronDown,
+  Film,
   Library,
   Play,
   Plus,
   Search,
   Youtube,
 } from 'lucide-react';
+import VideoLibraryPicker from './VideoLibraryPicker';
 import { EXERCISE_TYPE_OPTIONS } from '../constants/exerciseTypes';
 import { formatExerciseMeta } from '../utils/exerciseMeta';
 import { getYoutubeVideoId } from '../utils/youtube';
@@ -176,6 +178,7 @@ const ExerciseComposer = ({
   const [librarySearch, setLibrarySearch] = useState('');
   const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
   const [errors, setErrors] = useState({});
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const showDuration = form.type !== 'strength';
   const youtubeId = getYoutubeVideoId(form.videoUrl);
@@ -363,6 +366,14 @@ const ExerciseComposer = ({
                 </span>
               )}
             </div>
+            <button
+              type="button"
+              className="btn-link video-picker-trigger"
+              onClick={() => setPickerOpen(true)}
+            >
+              <Film size={14} strokeWidth={2} aria-hidden="true" />
+              Escolher da biblioteca
+            </button>
             {youtubeId && (
               <div className="composer-video-preview" aria-label="Preview do vídeo">
                 <Play
@@ -540,6 +551,12 @@ const ExerciseComposer = ({
           </div>
         </>
       )}
+
+      <VideoLibraryPicker
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(video) => handleFieldChange('videoUrl', video.url)}
+      />
     </div>
   );
 };

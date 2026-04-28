@@ -46,6 +46,12 @@ import DietTemplates from './pages/nutritionist/DietTemplates';
 import DietProtocols from './pages/nutritionist/DietProtocols';
 import DietProtocolEditor from './pages/nutritionist/DietProtocolEditor';
 import NutritionistRoute from './components/NutritionistRoute';
+import RequireRole from './components/RequireRole';
+
+// Admin pages
+import VideosList from './pages/admin/VideosList';
+import VideoCreate from './pages/admin/VideoCreate';
+import VideoEdit from './pages/admin/VideoEdit';
 
 // Student pages (diet)
 import MyDietProtocol from './pages/my/MyDietProtocol';
@@ -493,6 +499,38 @@ function App() {
                   <WorkoutSession />
                 </Layout>
               </ProtectedRoute>
+            }
+          />
+
+          {/* Admin routes */}
+          <Route
+            path="/admin/videos"
+            element={
+              <RequireRole roles={['admin']}>
+                <Layout>
+                  <VideosList />
+                </Layout>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/videos/new"
+            element={
+              <RequireRole roles={['admin']}>
+                <Layout>
+                  <VideoCreate />
+                </Layout>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/videos/:videoId"
+            element={
+              <RequireRole roles={['admin']}>
+                <Layout>
+                  <VideoEdit />
+                </Layout>
+              </RequireRole>
             }
           />
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { Film } from 'lucide-react';
 import Select from '../components/Select';
+import VideoLibraryPicker from './VideoLibraryPicker';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
@@ -51,6 +53,7 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const isEditing = !!exercise?.id;
   const isDraftMode = !isEditing && !trainingId;
   const showRepetitions = formData.type !== 'cardio';
@@ -144,6 +147,14 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
             className="form-input"
             placeholder="https://..."
           />
+          <button
+            type="button"
+            className="btn-link video-picker-trigger"
+            onClick={() => setPickerOpen(true)}
+          >
+            <Film size={14} strokeWidth={2} aria-hidden="true" />
+            Escolher da biblioteca
+          </button>
           {getYoutubeVideoId(formData.videoUrl) && (
             <div className="youtube-preview" style={{ marginTop: 'var(--spacing-sm)' }}>
               <iframe
@@ -285,6 +296,12 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
           </button>
         </div>
       </form>
+
+      <VideoLibraryPicker
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(video) => setFormData((prev) => ({ ...prev, videoUrl: video.url }))}
+      />
     </>
   );
 };

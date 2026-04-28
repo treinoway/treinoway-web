@@ -3059,6 +3059,41 @@ html:has(.auth-page) {
 }
 
 /* ============================================
+   Profile Admin Entry-Point Card
+   ============================================ */
+.profile-admin-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.profile-admin-card__info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.profile-admin-card__icon {
+  color: var(--brand-primary);
+  flex-shrink: 0;
+}
+
+.profile-admin-card__title {
+  font-size: var(--font-h3-size);
+  font-weight: var(--font-h3-weight);
+  color: var(--brand-ink);
+  margin: 0;
+}
+
+.profile-admin-card__action {
+  flex-shrink: 0;
+}
+
+/* ============================================
    Account Card (mobile-only logout)
    ============================================ */
 .card--account {

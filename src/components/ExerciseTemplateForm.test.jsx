@@ -16,6 +16,7 @@ vi.mock('../api/axios', () => ({
     patch: vi.fn(),
     delete: vi.fn(),
   },
+  onNetworkError: vi.fn(() => vi.fn()),
 }));
 
 vi.mock('../constants/exerciseTypes', () => ({
@@ -193,6 +194,40 @@ describe('ExerciseTemplateForm', () => {
       el.src.includes('youtube.com/embed/abc123XYZ')
     );
     expect(youtubeIframe).toBeTruthy();
+  });
+
+  describe('video library picker integration', () => {
+    const sampleVideo = {
+      id: 'video-1',
+      title: 'Agachamento livre',
+      url: 'https://video.example.com/squat',
+      thumbnailUrl: null,
+      duration: 90,
+      category: 'strength',
+      categoryLabel: 'Força',
+      bodySegment: 'lower',
+      bodySegmentLabel: 'Inferior',
+      tags: ['forca'],
+      createdById: 'admin-1',
+      createdAt: '2025-04-01T12:00:00.000Z',
+    };
+
+    it('opens the picker, selects a video and populates videoUrl', async () => {
+      const user = userEvent.setup();
+      api.get.mockResolvedValue({
+        data: { items: [sampleVideo], total: 1, page: 1, pageSize: 10 },
+      });
+      renderForm();
+
+      await user.click(screen.getByRole('button', { name: /escolher da biblioteca/i }));
+
+      await waitFor(() => screen.getByText('Agachamento livre'));
+
+      await user.click(screen.getByRole('button', { name: /selecionar vídeo agachamento livre/i }));
+
+      expect(screen.getByLabelText(/url do vídeo/i)).toHaveValue('https://video.example.com/squat');
+      expect(screen.queryByRole('dialog', { name: /selecionar vídeo da biblioteca/i })).not.toBeInTheDocument();
+    });
   });
 
   describe('edit mode', () => {
