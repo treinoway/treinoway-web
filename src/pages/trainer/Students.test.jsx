@@ -94,7 +94,7 @@ describe('Students', () => {
     renderWithRouter(<Students />);
     await waitFor(() => expect(screen.getByText('Meus Alunos')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /importar alunos/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /vincular aluno/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^vincular aluno$/i })).toBeInTheDocument();
   });
 
   // ── Empty state ───────────────────────────────────────────────────────
@@ -202,44 +202,15 @@ describe('Students', () => {
     expect(screen.getByText('Bruno Costa')).toBeInTheDocument();
   });
 
-  // ── Row menu ──────────────────────────────────────────────────────────
-
-  it('opens row menu with Ver perfil and Criar rotina on trigger click', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<Students />);
-
-    await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
-
-    await user.click(screen.getByRole('button', { name: /ações de aluno/i }));
-
-    expect(screen.getByRole('menuitem', { name: /ver perfil/i })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /criar rotina/i })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /desvincular/i })).toBeInTheDocument();
-  });
-
-  it('closes row menu when clicking outside', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<Students />);
-
-    await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
-
-    await user.click(screen.getByRole('button', { name: /ações de aluno/i }));
-    expect(screen.getByRole('menuitem', { name: /ver perfil/i })).toBeInTheDocument();
-
-    await user.click(document.body);
-    expect(screen.queryByRole('menuitem', { name: /ver perfil/i })).not.toBeInTheDocument();
-  });
-
   // ── Unlink flow ───────────────────────────────────────────────────────
 
-  it('shows confirm dialog when clicking Desvincular in row menu', async () => {
+  it('clicking trash button opens the confirm dialog directly', async () => {
     const user = userEvent.setup();
     renderWithRouter(<Students />);
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /ações de aluno/i }));
-    await user.click(screen.getByRole('menuitem', { name: /desvincular/i }));
+    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
 
     expect(screen.getByText(/desvincular aluno exemplo\? esta ação não pode ser desfeita/i)).toBeInTheDocument();
   });
@@ -251,8 +222,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /ações de aluno/i }));
-    await user.click(screen.getByRole('menuitem', { name: /desvincular/i }));
+    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
     await user.click(screen.getByRole('button', { name: /^desvincular$/i }));
 
     await waitFor(() => {
@@ -267,8 +237,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /ações de aluno/i }));
-    await user.click(screen.getByRole('menuitem', { name: /desvincular/i }));
+    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
     expect(api.delete).not.toHaveBeenCalled();
@@ -284,8 +253,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /ações de aluno/i }));
-    await user.click(screen.getByRole('menuitem', { name: /desvincular/i }));
+    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
     await user.click(screen.getByRole('button', { name: /^desvincular$/i }));
 
     await waitFor(() => {
@@ -301,7 +269,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /vincular aluno/i }));
+    await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
     expect(screen.getByRole('dialog', { name: /vincular aluno/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/e-mail do aluno/i)).toBeInTheDocument();
   });
@@ -312,7 +280,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /vincular aluno/i }));
+    await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
     expect(screen.queryByRole('dialog', { name: /vincular aluno/i })).not.toBeInTheDocument();
@@ -324,7 +292,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /vincular aluno/i }));
+    await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
     await user.click(screen.getByRole('button', { name: /fechar modal/i }));
 
     expect(screen.queryByRole('dialog', { name: /vincular aluno/i })).not.toBeInTheDocument();
@@ -336,7 +304,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /vincular aluno/i }));
+    await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
     expect(screen.getByRole('button', { name: /^vincular$/i })).toBeDisabled();
   });
 
@@ -348,7 +316,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /vincular aluno/i }));
+    await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
     await user.type(screen.getByLabelText(/e-mail do aluno/i), 'novo@example.com');
     await user.click(screen.getByRole('button', { name: /^vincular$/i }));
 
@@ -367,7 +335,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /vincular aluno/i }));
+    await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
     await user.type(screen.getByLabelText(/e-mail do aluno/i), 'dup@example.com');
     await user.click(screen.getByRole('button', { name: /^vincular$/i }));
 

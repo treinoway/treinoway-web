@@ -1083,6 +1083,47 @@ describe('RoutineBuilder — week overview reflects training count', () => {
     const dashes = screen.getAllByText('–');
     expect(dashes.length).toBe(7);
   });
+
+  it('shows "1 treino" sub-label on active day and "Sem treino" on empty days', () => {
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+    renderNew();
+
+    // monday cell (Seg) has one training → sub-label must be "1 treino"
+    const segCell = screen.getByText('Seg').closest('[class*="week-overview-cell"]');
+    expect(segCell).toHaveTextContent('1 treino');
+    expect(segCell).not.toHaveTextContent('Sem treino');
+
+    // remaining 6 days have no training → sub-label must be "Sem treino"
+    const semTreinos = screen.getAllByText('Sem treino');
+    expect(semTreinos).toHaveLength(6);
+  });
+
+  it('shows "Sem treino" on all days in empty state', () => {
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
+    renderNew();
+
+    const semTreinos = screen.getAllByText('Sem treino');
+    expect(semTreinos).toHaveLength(7);
+  });
+
+  it('shows plural "X treinos" sub-label when a day has more than one training', () => {
+    const twoMondayTrainings = {
+      ...POPULATED_HOOK_STATE,
+      data: {
+        ...POPULATED_HOOK_STATE.data,
+        trainings: [
+          TRAINING_WITH_EXERCISES,
+          { ...TRAINING_WITH_EXERCISES, id: 'training-3', name: 'Pernas', weekDay: 'monday' },
+        ],
+      },
+    };
+    useRoutineBuilder.mockReturnValue(twoMondayTrainings);
+    renderNew();
+
+    const segCell = screen.getByText('Seg').closest('[class*="week-overview-cell"]');
+    expect(segCell).toHaveTextContent('2 treinos');
+    expect(segCell).not.toHaveTextContent('Sem treino');
+  });
 });
 
 // ─── Tests — stats row reflects totals ───────────────────────────────────────

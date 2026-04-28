@@ -1121,7 +1121,9 @@ const WeekOverview = ({ trainings }) => {
           >
             <span className="week-overview-day">{day.label}</span>
             <span className="week-overview-stat">{isEmpty ? '–' : count}</span>
-            <span className="week-overview-sub">Sem treino</span>
+            <span className="week-overview-sub">
+              {isEmpty ? 'Sem treino' : count === 1 ? '1 treino' : `${count} treinos`}
+            </span>
           </div>
         );
       })}

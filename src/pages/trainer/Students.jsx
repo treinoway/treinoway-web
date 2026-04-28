@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
   Users,
@@ -10,9 +10,7 @@ import {
   Info,
   X,
   ChevronRight,
-  MoreVertical,
-  ClipboardList,
-  UserCircle,
+  Trash2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
@@ -100,102 +98,6 @@ StatusBadge.propTypes = {
 
 StatusBadge.defaultProps = {
   status: 'ativo',
-};
-
-/* ─── StudentRowMenu ────────────────────────────────────────────────────── */
-
-const StudentRowMenu = ({ student, onUnlink, navigate }) => {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    };
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [open]);
-
-  const handleView = () => {
-    setOpen(false);
-    navigate(`/trainer/students/${student.id}`, { state: { student } });
-  };
-
-  const handleCreateRoutine = () => {
-    setOpen(false);
-    navigate(`/trainer/protocols/new?studentId=${student.id}`);
-  };
-
-  const handleUnlink = () => {
-    setOpen(false);
-    onUnlink(student);
-  };
-
-  return (
-    <div className="row-menu" ref={menuRef} onClick={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        className="row-menu-trigger"
-        aria-label={`Ações de ${student.firstName || student.email}`}
-        aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <MoreVertical size={18} strokeWidth={2} />
-      </button>
-      {open && (
-        <div className="row-menu-dropdown" role="menu">
-          <button
-            type="button"
-            className="row-menu-item"
-            role="menuitem"
-            onClick={handleView}
-          >
-            <UserCircle size={15} strokeWidth={2} />
-            Ver perfil
-          </button>
-          <button
-            type="button"
-            className="row-menu-item"
-            role="menuitem"
-            onClick={handleCreateRoutine}
-          >
-            <ClipboardList size={15} strokeWidth={2} />
-            Criar rotina
-          </button>
-          <div className="row-menu-divider" />
-          <button
-            type="button"
-            className="row-menu-item row-menu-item--danger"
-            role="menuitem"
-            onClick={handleUnlink}
-          >
-            Desvincular
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-StudentRowMenu.propTypes = {
-  student: PropTypes.shape({
-    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    firstName: PropTypes.string,
-    lastName: PropTypes.string,
-    email: PropTypes.string,
-  }).isRequired,
-  onUnlink: PropTypes.func.isRequired,
-  navigate: PropTypes.func.isRequired,
 };
 
 /* ─── StatsHeader ───────────────────────────────────────────────────────── */
@@ -351,9 +253,14 @@ const StudentsStatsFirst = ({ students, onUnlink, navigate }) => (
             </div>
           </div>
 
-          <div onClick={(e) => e.stopPropagation()}>
-            <StudentRowMenu student={student} onUnlink={onUnlink} navigate={navigate} />
-          </div>
+          <button
+            type="button"
+            className="btn-ghost-danger"
+            aria-label={`Desvincular ${fullName}`}
+            onClick={(e) => { e.stopPropagation(); onUnlink(student); }}
+          >
+            <Trash2 size={16} strokeWidth={2} />
+          </button>
         </div>
       );
     })}
