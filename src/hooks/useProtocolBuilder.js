@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
+import { useToast } from '../contexts/ToastContext';
 
 // ─── Shape helpers ────────────────────────────────────────────────────────────
 
@@ -54,6 +55,7 @@ const makeTempId = () => `tmp_${crypto.randomUUID()}`;
  */
 const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
   const isEditMode = !!protocolId;
+  const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -321,21 +323,47 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
 
   const updateTrainingWeekDay = useCallback(
     (trainingId, weekDay) => {
+      const newWeekDay = weekDay || null;
+
       if (isEditMode) {
+        // Capture previous value for revert on failure
+        let previousWeekDay;
+        setData((prev) => {
+          const training = prev.trainings.find((t) => t.id === trainingId);
+          previousWeekDay = training ? training.weekDay : undefined;
+          return {
+            ...prev,
+            trainings: prev.trainings.map((t) =>
+              t.id === trainingId ? { ...t, weekDay: newWeekDay } : t
+            ),
+          };
+        });
+
         setSaving(true);
         api
-          .patch(`/trainer/trainings/${trainingId}`, { weekDay: weekDay || null })
-          .catch((err) => setError(err.userMessage || err.message || 'Erro ao salvar.'))
+          .patch(`/trainer/trainings/${trainingId}`, { weekDay: newWeekDay })
+          .catch((err) => {
+            // Revert optimistic update
+            setData((prev) => ({
+              ...prev,
+              trainings: prev.trainings.map((t) =>
+                t.id === trainingId ? { ...t, weekDay: previousWeekDay } : t
+              ),
+            }));
+            showToast(err.userMessage || err.message || 'Erro ao salvar dia da semana.');
+          })
           .finally(() => setSaving(false));
+        return;
       }
+
       setData((prev) => ({
         ...prev,
         trainings: prev.trainings.map((t) =>
-          t.id === trainingId ? { ...t, weekDay: weekDay || null } : t
+          t.id === trainingId ? { ...t, weekDay: newWeekDay } : t
         ),
       }));
     },
-    [isEditMode]
+    [isEditMode, showToast]
   );
 
   // ── deleteTraining ─────────────────────────────────────────────────────────
@@ -343,18 +371,41 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
   const deleteTraining = useCallback(
     (trainingId) => {
       if (isEditMode) {
+        // Capture removed training for revert on failure
+        let removedTraining;
+        let removedIndex;
+        setData((prev) => {
+          removedIndex = prev.trainings.findIndex((t) => t.id === trainingId);
+          removedTraining = prev.trainings[removedIndex];
+          return {
+            ...prev,
+            trainings: prev.trainings.filter((t) => t.id !== trainingId),
+          };
+        });
+
         setSaving(true);
         api
           .delete(`/trainer/trainings/${trainingId}`)
-          .catch((err) => setError(err.userMessage || err.message || 'Erro ao excluir.'))
+          .catch((err) => {
+            // Revert optimistic removal
+            setData((prev) => {
+              if (removedTraining === undefined) return prev;
+              const trainings = [...prev.trainings];
+              trainings.splice(removedIndex, 0, removedTraining);
+              return { ...prev, trainings };
+            });
+            showToast(err.userMessage || err.message || 'Erro ao excluir treino.');
+          })
           .finally(() => setSaving(false));
+        return;
       }
+
       setData((prev) => ({
         ...prev,
         trainings: prev.trainings.filter((t) => t.id !== trainingId),
       }));
     },
-    [isEditMode]
+    [isEditMode, showToast]
   );
 
   // ── addExercise ────────────────────────────────────────────────────────────

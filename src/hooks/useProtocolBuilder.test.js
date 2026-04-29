@@ -10,8 +10,15 @@ vi.mock('../api/axios', () => ({
   },
 }));
 
+vi.mock('../contexts/ToastContext', () => ({
+  useToast: vi.fn(),
+}));
+
 import api from '../api/axios';
+import { useToast } from '../contexts/ToastContext';
 import useProtocolBuilder from './useProtocolBuilder';
+
+const mockShowToast = vi.fn();
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -62,6 +69,7 @@ const makeGetHandler = (studentId) => (url) => {
 describe('useProtocolBuilder — mount (no studentId)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation(makeGetHandler(null));
   });
 
@@ -83,6 +91,7 @@ describe('useProtocolBuilder — mount (no studentId)', () => {
 describe('useProtocolBuilder — mount with studentId', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation(makeGetHandler('student-1'));
   });
 
@@ -107,6 +116,7 @@ describe('useProtocolBuilder — mount with studentId', () => {
 describe('useProtocolBuilder — createTraining (local only)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation(makeGetHandler(null));
   });
 
@@ -142,6 +152,7 @@ describe('useProtocolBuilder — createTraining (local only)', () => {
 describe('useProtocolBuilder — importTrainingsFromLibrary (local only)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation(makeGetHandler(null));
   });
 
@@ -178,6 +189,7 @@ describe('useProtocolBuilder — importTrainingsFromLibrary (local only)', () =>
 describe('useProtocolBuilder — addExercise / addExerciseFromTemplate (local only)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation(makeGetHandler(null));
   });
 
@@ -228,6 +240,7 @@ describe('useProtocolBuilder — addExercise / addExerciseFromTemplate (local on
 describe('useProtocolBuilder — saveRoutine (multi-step POST)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation(makeGetHandler('student-1'));
   });
 
@@ -348,6 +361,7 @@ describe('useProtocolBuilder — saveRoutine (multi-step POST)', () => {
 describe('useProtocolBuilder — loadFromTemplate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation(makeGetHandler(null));
   });
 
@@ -406,6 +420,7 @@ describe('useProtocolBuilder — loadFromTemplate', () => {
 describe('useProtocolBuilder — updateTrainingWeekDay / deleteTraining / updateExercise / deleteExercise', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation(makeGetHandler(null));
   });
 
@@ -489,6 +504,7 @@ describe('useProtocolBuilder — updateTrainingWeekDay / deleteTraining / update
 describe('useProtocolBuilder — API surface parity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation(makeGetHandler(null));
   });
 
@@ -524,5 +540,153 @@ describe('useProtocolBuilder — API surface parity', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     // Should not throw
     expect(() => result.current.restoreSessionTracking({ createdTrainingIds: ['a'], junctionsAddedToImported: [] })).not.toThrow();
+  });
+});
+
+// ─── Edit-mode failure hardening ──────────────────────────────────────────────
+
+const PROTOCOL_ID = 'proto-edit-1';
+const EDIT_TRAINING = { id: 'train-edit-1', name: 'Treino Editável', category: 'strength', weekDay: 'monday' };
+
+const makeEditModeGetHandler = () => (url) => {
+  if (url === `/trainer/protocols/${PROTOCOL_ID}`)
+    return Promise.resolve({
+      data: {
+        id: PROTOCOL_ID,
+        name: 'Protocolo Editável',
+        type: 'strength',
+        trainingLevel: '',
+        genderOrdination: '',
+        description: '',
+        startDate: '2026-05-01',
+        expirationDate: '',
+        assigneeId: null,
+        trainings: [EDIT_TRAINING],
+      },
+    });
+  if (url === `/trainer/trainings/${EDIT_TRAINING.id}/exercises`)
+    return Promise.resolve({ data: [] });
+  if (url === '/trainer/training-templates') return Promise.resolve({ data: [] });
+  if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
+  if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+  return Promise.resolve({ data: [] });
+};
+
+describe('useProtocolBuilder — edit mode: updateTrainingWeekDay failure', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+    api.get.mockImplementation(makeEditModeGetHandler());
+  });
+
+  it('reverts weekDay and shows a toast when PATCH fails', async () => {
+    const apiError = Object.assign(new Error('Server error'), {
+      userMessage: 'Não foi possível salvar o dia da semana.',
+    });
+    api.patch.mockRejectedValue(apiError);
+
+    const { result } = renderHook(() =>
+      useProtocolBuilder(null, { protocolId: PROTOCOL_ID })
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // Initial weekDay is 'monday' (from fixture)
+    expect(result.current.data.trainings[0].weekDay).toBe('monday');
+
+    act(() => {
+      result.current.updateTrainingWeekDay(EDIT_TRAINING.id, 'friday');
+    });
+
+    // Optimistic update applied immediately
+    expect(result.current.data.trainings[0].weekDay).toBe('friday');
+
+    // Wait for the PATCH rejection to be processed
+    await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
+
+    // weekDay reverted to original value
+    expect(result.current.data.trainings[0].weekDay).toBe('monday');
+    expect(mockShowToast).toHaveBeenCalledWith('Não foi possível salvar o dia da semana.');
+  });
+
+  it('updates weekDay locally in create mode without calling PATCH', async () => {
+    // Use create mode (no protocolId) — existing behaviour must be unchanged
+    api.get.mockImplementation(makeGetHandler(null));
+
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let tid;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'T', category: 'strength' });
+      tid = t.id;
+    });
+
+    act(() => {
+      result.current.updateTrainingWeekDay(tid, 'wednesday');
+    });
+
+    expect(result.current.data.trainings[0].weekDay).toBe('wednesday');
+    expect(api.patch).not.toHaveBeenCalled();
+    expect(mockShowToast).not.toHaveBeenCalled();
+  });
+});
+
+describe('useProtocolBuilder — edit mode: deleteTraining failure', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+    api.get.mockImplementation(makeEditModeGetHandler());
+  });
+
+  it('reverts deletion and shows a toast when DELETE fails', async () => {
+    const apiError = Object.assign(new Error('Server error'), {
+      userMessage: 'Não foi possível excluir o treino.',
+    });
+    api.delete.mockRejectedValue(apiError);
+
+    const { result } = renderHook(() =>
+      useProtocolBuilder(null, { protocolId: PROTOCOL_ID })
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.data.trainings).toHaveLength(1);
+
+    act(() => {
+      result.current.deleteTraining(EDIT_TRAINING.id);
+    });
+
+    // Optimistic removal applied immediately
+    expect(result.current.data.trainings).toHaveLength(0);
+
+    // Wait for the DELETE rejection to be processed
+    await waitFor(() => expect(api.delete).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
+
+    // Training restored at its original position
+    expect(result.current.data.trainings).toHaveLength(1);
+    expect(result.current.data.trainings[0].id).toBe(EDIT_TRAINING.id);
+    expect(mockShowToast).toHaveBeenCalledWith('Não foi possível excluir o treino.');
+  });
+
+  it('removes training locally in create mode without calling DELETE', async () => {
+    api.get.mockImplementation(makeGetHandler(null));
+
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let tid;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'T', category: 'strength' });
+      tid = t.id;
+    });
+
+    act(() => {
+      result.current.deleteTraining(tid);
+    });
+
+    expect(result.current.data.trainings).toHaveLength(0);
+    expect(api.delete).not.toHaveBeenCalled();
+    expect(mockShowToast).not.toHaveBeenCalled();
   });
 });

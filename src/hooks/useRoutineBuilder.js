@@ -194,7 +194,7 @@ const useRoutineBuilder = (routineId) => {
           trainings: trainings.map((t, idx) => ({
             trainingTemplateId: t.id,
             order: idx,
-            ...(t.weekDay && { weekDay: t.weekDay }),
+            weekDay: t.weekDay || null,
           })),
         };
         if (routineId) {

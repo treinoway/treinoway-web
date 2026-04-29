@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Film } from 'lucide-react';
 import Select from '../components/Select';
-import VideoLibraryPicker from './VideoLibraryPicker';
+import VideoField from './VideoField';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
 import { EXERCISE_TYPE_OPTIONS } from '../constants/exerciseTypes';
-import { getYoutubeVideoId } from '../utils/youtube';
 
 const EMPTY_FORM = {
   name: '',
@@ -53,7 +51,6 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const isEditing = !!exercise?.id;
   const isDraftMode = !isEditing && !trainingId;
   const showRepetitions = formData.type !== 'cardio';
@@ -137,35 +134,10 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
           </Select>
         </div>
 
-        <div>
-          <label className="form-label" htmlFor="exercise-form-videoUrl">URL do vídeo</label>
-          <input
-            id="exercise-form-videoUrl"
-            type="url"
-            value={formData.videoUrl}
-            onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-            className="form-input"
-            placeholder="https://..."
-          />
-          <button
-            type="button"
-            className="btn-link video-picker-trigger"
-            onClick={() => setPickerOpen(true)}
-          >
-            <Film size={14} strokeWidth={2} aria-hidden="true" />
-            Escolher da biblioteca
-          </button>
-          {getYoutubeVideoId(formData.videoUrl) && (
-            <div className="youtube-preview" style={{ marginTop: 'var(--spacing-sm)' }}>
-              <iframe
-                src={`https://www.youtube.com/embed/${getYoutubeVideoId(formData.videoUrl)}`}
-                title="Preview do vídeo do exercício"
-                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          )}
-        </div>
+        <VideoField
+          value={formData.videoUrl}
+          onChange={(url) => setFormData((prev) => ({ ...prev, videoUrl: url }))}
+        />
 
         {showRepetitions ? (
           <div className="grid-responsive-2col">
@@ -297,11 +269,6 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
         </div>
       </form>
 
-      <VideoLibraryPicker
-        isOpen={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onSelect={(video) => setFormData((prev) => ({ ...prev, videoUrl: video.url }))}
-      />
     </>
   );
 };

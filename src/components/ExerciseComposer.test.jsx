@@ -120,11 +120,12 @@ describe('ExerciseComposer — create mode', () => {
     const user = userEvent.setup();
     renderComposer();
 
-    expect(screen.queryByLabelText(/URL do vídeo/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /escolher da biblioteca/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Mostrar mais campos/i }));
 
-    expect(screen.getByLabelText(/URL do vídeo/i)).toBeInTheDocument();
+    // VideoField CTA is now the entry point for the video field
+    expect(screen.getByRole('button', { name: /escolher da biblioteca/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Observações/i)).toBeInTheDocument();
   });
 
@@ -137,6 +138,32 @@ describe('ExerciseComposer — create mode', () => {
     expect(
       screen.getByRole('button', { name: /Ocultar campos avançados/i })
     ).toBeInTheDocument();
+  });
+
+  it('renders a YouTube iframe when a valid URL is entered in the video field', async () => {
+    const user = userEvent.setup();
+    renderComposer();
+
+    await user.click(screen.getByRole('button', { name: /Mostrar mais campos/i }));
+
+    // VideoField: reveal the URL input via the toggle link
+    await user.click(screen.getByRole('button', { name: /cole uma url do youtube/i }));
+    await user.type(
+      screen.getByRole('textbox', { name: /url do youtube/i }),
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+    );
+
+    // Iframe appears — src assertion skipped (jsdom scrubs cross-origin src after re-renders)
+    expect(await screen.findByTitle('Vídeo de demonstração do exercício')).toBeInTheDocument();
+  });
+
+  it('does not render a YouTube iframe when the video field is empty', async () => {
+    const user = userEvent.setup();
+    renderComposer();
+
+    await user.click(screen.getByRole('button', { name: /Mostrar mais campos/i }));
+
+    expect(screen.queryByTitle('Vídeo de demonstração do exercício')).not.toBeInTheDocument();
   });
 
   it('disables submit button and shows "Salvando…" when saving=true', () => {

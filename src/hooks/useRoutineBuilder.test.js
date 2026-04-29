@@ -277,6 +277,40 @@ describe('saveRoutine', () => {
       })
     );
   });
+
+  it('sends weekDay: null (not absent) when training has no day assigned', async () => {
+    const { result } = renderHook(() => useRoutineBuilder('r1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const meta = { name: 'R', type: '', trainingLevel: '', genderOrdination: '', defaultDurationWeeks: '12', description: '' };
+    const trainings = [{ id: 't1', weekDay: null }];
+
+    await act(async () => {
+      await result.current.saveRoutine(meta, trainings);
+    });
+
+    const call = api.patch.mock.calls.find(([url]) => url === '/trainer/protocol-templates/r1');
+    expect(call).toBeDefined();
+    const payload = call[1];
+    expect(payload.trainings[0]).toHaveProperty('weekDay', null);
+  });
+
+  it('sends weekDay: null when training weekDay is undefined', async () => {
+    const { result } = renderHook(() => useRoutineBuilder('r1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const meta = { name: 'R', type: '', trainingLevel: '', genderOrdination: '', defaultDurationWeeks: '12', description: '' };
+    const trainings = [{ id: 't1' }];
+
+    await act(async () => {
+      await result.current.saveRoutine(meta, trainings);
+    });
+
+    const call = api.patch.mock.calls.find(([url]) => url === '/trainer/protocol-templates/r1');
+    expect(call).toBeDefined();
+    const payload = call[1];
+    expect(payload.trainings[0]).toHaveProperty('weekDay', null);
+  });
 });
 
 // ─── createTraining ───────────────────────────────────────────────────────────

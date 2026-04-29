@@ -14751,7 +14751,7 @@ nav.onboarding-steps {
 .composer-video-preview {
   margin-top: 6px;
   background: #000;
-  border-radius: 6px;
+  border-radius: var(--radius-brand);
   aspect-ratio: 16/9;
   display: flex;
   align-items: center;
@@ -14762,10 +14762,10 @@ nav.onboarding-steps {
   max-width: 280px;
 }
 
-.composer-video-preview-icon {
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+.composer-video-preview iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 
 .composer-duration-field--disabled {
@@ -16321,5 +16321,107 @@ nav.onboarding-steps {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
+}
+
+/* ============================================
+   VideoField — shared video input component
+   ============================================ */
+.video-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Empty state: CTA + optional URL toggle */
+.video-field-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+/* Primary CTA — full-width on mobile, auto on desktop */
+.video-field-cta {
+  width: 100%;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+@media (min-width: 768px) {
+  .video-field-cta {
+    width: auto;
+    min-height: 40px;
+  }
+}
+
+/* "ou cole uma URL do YouTube" link button */
+.video-field-url-toggle {
+  font-size: 13px;
+  color: var(--brand-steel);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.video-field-url-toggle:hover {
+  color: var(--brand-primary);
+}
+
+@media (min-width: 768px) {
+  .video-field-url-toggle {
+    min-height: 36px;
+  }
+}
+
+/* URL input wrapper */
+.video-field-input-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* 16:9 iframe preview */
+.video-field-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-brand);
+  overflow: hidden;
+  background: var(--brand-mist);
+}
+
+@media (min-width: 768px) {
+  .video-field-preview {
+    max-width: 480px;
+  }
+}
+
+.video-field-preview iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Actions below preview (Trocar / Remover) */
+.video-field-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+/* Non-blocking hint for non-YouTube URLs */
+.video-field-hint {
+  font-size: 12px;
+  color: var(--md-warning);
+  margin: 0;
+  line-height: var(--line-height-normal);
 }
 

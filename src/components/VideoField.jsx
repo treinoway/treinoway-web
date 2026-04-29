@@ -1,0 +1,127 @@
+import { useState } from 'react';
+import PropTypes from 'prop-types';
+import { Film, X } from 'lucide-react';
+import VideoLibraryPicker from './VideoLibraryPicker';
+import { getYoutubeVideoId } from '../utils/youtube';
+
+/**
+ * VideoField — shared video input for ExerciseForm and ExerciseComposer.
+ *
+ * States:
+ *   - Empty: CTA "Escolher da biblioteca" + link to reveal URL input
+ *   - Valid YouTube URL: 16:9 iframe preview + Trocar / Remover actions
+ *   - Non-YouTube URL typed: URL input visible + hint (non-blocking)
+ */
+const VideoField = ({ value, onChange, label = 'Vídeo de demonstração' }) => {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [urlInputVisible, setUrlInputVisible] = useState(false);
+
+  const trimmedValue = value?.trim() ?? '';
+  const youtubeId = getYoutubeVideoId(trimmedValue);
+  const hasValidVideo = Boolean(youtubeId);
+  const hasInvalidUrl = trimmedValue.length > 0 && !hasValidVideo;
+
+  const handleRemove = () => {
+    onChange('');
+    setUrlInputVisible(false);
+  };
+
+  const handlePickerSelect = (video) => {
+    onChange(video.url);
+    setPickerOpen(false);
+    setUrlInputVisible(false);
+  };
+
+  return (
+    <section className="video-field">
+      <span className="form-label">{label}</span>
+
+      {hasValidVideo && (
+        <>
+          <div className="video-field-preview">
+            <iframe
+              loading="lazy"
+              src={`https://www.youtube.com/embed/${youtubeId}`}
+              title="Vídeo de demonstração do exercício"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          <div className="video-field-actions">
+            <button
+              type="button"
+              className="btn-secondary btn-sm"
+              onClick={() => setPickerOpen(true)}
+            >
+              <Film size={16} strokeWidth={2} aria-hidden="true" />
+              Trocar
+            </button>
+            <button
+              type="button"
+              className="btn-secondary btn-sm"
+              onClick={handleRemove}
+            >
+              <X size={16} strokeWidth={2} aria-hidden="true" />
+              Remover
+            </button>
+          </div>
+        </>
+      )}
+
+      {!hasValidVideo && (
+        <div className="video-field-empty">
+          <button
+            type="button"
+            className="btn-primary video-field-cta"
+            onClick={() => setPickerOpen(true)}
+          >
+            <Film size={18} strokeWidth={2} aria-hidden="true" />
+            Escolher da biblioteca
+          </button>
+
+          {!urlInputVisible && (
+            <button
+              type="button"
+              className="btn-link video-field-url-toggle"
+              onClick={() => setUrlInputVisible(true)}
+            >
+              ou cole uma URL do YouTube
+            </button>
+          )}
+
+          {urlInputVisible && (
+            <div className="video-field-input-wrap">
+              <input
+                type="url"
+                className="form-input"
+                placeholder="https://youtube.com/watch?v=..."
+                value={value ?? ''}
+                onChange={(e) => onChange(e.target.value)}
+                aria-label="URL do YouTube"
+              />
+              {hasInvalidUrl && (
+                <p className="video-field-hint" role="status">
+                  Use um link do YouTube para pré-visualizar o vídeo.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <VideoLibraryPicker
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={handlePickerSelect}
+      />
+    </section>
+  );
+};
+
+VideoField.propTypes = {
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  label: PropTypes.string,
+};
+
+export default VideoField;

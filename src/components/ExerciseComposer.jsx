@@ -3,17 +3,13 @@ import PropTypes from 'prop-types';
 import {
   Check,
   ChevronDown,
-  Film,
   Library,
-  Play,
   Plus,
   Search,
-  Youtube,
 } from 'lucide-react';
-import VideoLibraryPicker from './VideoLibraryPicker';
+import VideoField from './VideoField';
 import { EXERCISE_TYPE_OPTIONS } from '../constants/exerciseTypes';
 import { formatExerciseMeta } from '../utils/exerciseMeta';
-import { getYoutubeVideoId } from '../utils/youtube';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -178,10 +174,8 @@ const ExerciseComposer = ({
   const [librarySearch, setLibrarySearch] = useState('');
   const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
   const [errors, setErrors] = useState({});
-  const [pickerOpen, setPickerOpen] = useState(false);
 
   const showDuration = form.type !== 'strength';
-  const youtubeId = getYoutubeVideoId(form.videoUrl);
 
   const handleFieldChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -338,53 +332,11 @@ const ExerciseComposer = ({
       {/* Advanced fields */}
       {showAdvanced && (
         <div className="composer-advanced">
-          {/* Video URL */}
-          <div>
-            <label className="composer-label" htmlFor="composer-video">
-              URL do vídeo{' '}
-              <span className="composer-label-hint">(YouTube)</span>
-            </label>
-            <div className="composer-video-wrap">
-              <Youtube
-                size={14}
-                strokeWidth={2}
-                className="composer-video-icon"
-                aria-hidden="true"
-              />
-              <input
-                id="composer-video"
-                className="composer-input composer-input--video"
-                type="url"
-                value={form.videoUrl}
-                onChange={(e) => handleFieldChange('videoUrl', e.target.value)}
-                placeholder="https://youtube.com/watch?v=…"
-              />
-              {youtubeId && (
-                <span className="composer-video-ok" aria-label="URL válida">
-                  <Check size={10} strokeWidth={2} aria-hidden="true" />
-                  Preview OK
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              className="btn-link video-picker-trigger"
-              onClick={() => setPickerOpen(true)}
-            >
-              <Film size={14} strokeWidth={2} aria-hidden="true" />
-              Escolher da biblioteca
-            </button>
-            {youtubeId && (
-              <div className="composer-video-preview" aria-label="Preview do vídeo">
-                <Play
-                  size={40}
-                  strokeWidth={2}
-                  className="composer-video-preview-icon"
-                  aria-hidden="true"
-                />
-              </div>
-            )}
-          </div>
+          {/* Video */}
+          <VideoField
+            value={form.videoUrl}
+            onChange={(url) => handleFieldChange('videoUrl', url)}
+          />
 
           {/* Duration — conditional on type */}
           <div className={showDuration ? '' : 'composer-duration-field--disabled'}>
@@ -552,11 +504,6 @@ const ExerciseComposer = ({
         </>
       )}
 
-      <VideoLibraryPicker
-        isOpen={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onSelect={(video) => handleFieldChange('videoUrl', video.url)}
-      />
     </div>
   );
 };
