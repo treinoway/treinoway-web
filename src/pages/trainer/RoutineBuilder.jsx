@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import {
   ArrowLeft,
@@ -8,13 +8,17 @@ import {
   Cloud,
   Dumbbell,
   Edit3,
+  FileDown,
   MoreVertical,
+  Pencil,
   Plus,
   Save,
+  User,
   X,
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import useRoutineBuilder from '../../hooks/useRoutineBuilder';
+import useProtocolBuilder from '../../hooks/useProtocolBuilder';
 import useRoutineDraft from '../../hooks/useRoutineDraft';
 import formatRelativeTime from '../../utils/relativeTime';
 import ExerciseComposer from '../../components/ExerciseComposer';
@@ -206,6 +210,159 @@ IdentityChipPopover.defaultProps = {
   clearable: false,
 };
 
+// ─── IdentityChipDate ─────────────────────────────────────────────────────────
+
+/**
+ * Chip that opens a popover with a date input.
+ * Required: dashed border with asterisk indicator when empty.
+ */
+const IdentityChipDate = ({ label, value, onChange, required, emptyLabel }) => {
+  const [open, setOpen] = useState(false);
+  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef(null);
+  const popoverRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const readPos = useCallback(() => {
+    if (!triggerRef.current) return null;
+    const rect = triggerRef.current.getBoundingClientRect();
+    return { top: rect.bottom + 4, left: rect.left };
+  }, []);
+
+  const recalcPosition = useCallback(() => {
+    const pos = readPos();
+    if (pos) setPopoverPos(pos);
+  }, [readPos]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerOutside = (e) => {
+      const clickedTrigger = triggerRef.current && triggerRef.current.contains(e.target);
+      const clickedPopover = popoverRef.current && popoverRef.current.contains(e.target);
+      if (!clickedTrigger && !clickedPopover) setOpen(false);
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', recalcPosition);
+    window.addEventListener('scroll', recalcPosition, true);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', recalcPosition);
+      window.removeEventListener('scroll', recalcPosition, true);
+    };
+  }, [open, recalcPosition]);
+
+  useEffect(() => {
+    if (open && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [open]);
+
+  const handleToggle = useCallback(() => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const pos = readPos();
+    if (pos) setPopoverPos(pos);
+    setOpen(true);
+  }, [open, readPos]);
+
+  const handleChange = (e) => {
+    onChange(e.target.value || null);
+  };
+
+  const isFilled = !!value;
+
+  const displayValue = isFilled
+    ? new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+    : null;
+
+  const popover = open
+    ? createPortal(
+        <div
+          ref={popoverRef}
+          className="identity-chip-date-popover"
+          role="dialog"
+          aria-label={`Definir ${emptyLabel}`}
+          style={{
+            position: 'fixed',
+            top: popoverPos.top,
+            left: popoverPos.left,
+            zIndex: 1200,
+          }}
+        >
+          <span className="identity-chip-date-popover-label">{emptyLabel}</span>
+          <input
+            ref={inputRef}
+            type="date"
+            className="identity-chip-date-input"
+            value={value || ''}
+            onChange={handleChange}
+            aria-label={emptyLabel}
+          />
+          {isFilled && (
+            <button
+              type="button"
+              className="identity-chip-popover-item identity-chip-popover-item--clear"
+              onClick={() => { onChange(null); setOpen(false); }}
+            >
+              — Limpar —
+            </button>
+          )}
+        </div>,
+        document.body
+      )
+    : null;
+
+  return (
+    <div className="weekday-chip-wrap">
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`identity-chip${isFilled ? '' : ' identity-chip--empty'}${required && !isFilled ? ' identity-chip--required' : ''}`}
+        onClick={handleToggle}
+        aria-label={`Definir ${emptyLabel}`}
+        aria-expanded={open}
+        aria-required={required}
+      >
+        {isFilled ? (
+          <>
+            <span className="identity-chip-label">{label}:</span>
+            <span className="identity-chip-value">{displayValue}</span>
+          </>
+        ) : (
+          <>
+            <Plus size={12} strokeWidth={2} aria-hidden="true" />
+            {emptyLabel}{required ? ' *' : ''}
+          </>
+        )}
+      </button>
+
+      {popover}
+    </div>
+  );
+};
+
+IdentityChipDate.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  required: PropTypes.bool,
+  emptyLabel: PropTypes.string.isRequired,
+};
+
+IdentityChipDate.defaultProps = {
+  value: null,
+  required: false,
+};
+
 // ─── DescriptionChipEditor ────────────────────────────────────────────────────
 
 /**
@@ -315,7 +472,7 @@ DescriptionChipEditor.defaultProps = {
 
 // ─── WeekdayChip ──────────────────────────────────────────────────────────────
 
-const WeekdayChip = ({ value, onChange }) => {
+const WeekdayChip = ({ value, onChange, readOnly }) => {
   const [open, setOpen] = useState(false);
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef(null);
@@ -423,6 +580,17 @@ const WeekdayChip = ({ value, onChange }) => {
       )
     : null;
 
+  if (readOnly) {
+    return (
+      <span
+        className={`weekday-chip${value ? ' weekday-chip--set' : ' weekday-chip--unassigned'} weekday-chip--readonly`}
+        aria-label={`Dia da semana: ${label}`}
+      >
+        {label}
+      </span>
+    );
+  }
+
   return (
     <>
       <button
@@ -442,11 +610,14 @@ const WeekdayChip = ({ value, onChange }) => {
 
 WeekdayChip.propTypes = {
   value: PropTypes.string,
-  onChange: PropTypes.func.isRequired,
+  onChange: PropTypes.func,
+  readOnly: PropTypes.bool,
 };
 
 WeekdayChip.defaultProps = {
   value: null,
+  onChange: null,
+  readOnly: false,
 };
 
 // ─── InlineMenu ───────────────────────────────────────────────────────────────
@@ -459,14 +630,14 @@ WeekdayChip.defaultProps = {
  */
 const InlineMenu = ({ ariaLabel, items, onOpen }) => {
   const [open, setOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
 
   const readPos = useCallback(() => {
     if (!triggerRef.current) return null;
     const rect = triggerRef.current.getBoundingClientRect();
-    return { top: rect.bottom + 4, left: rect.left };
+    return { top: rect.bottom + 4, right: window.innerWidth - rect.right };
   }, []);
 
   const recalcPosition = useCallback(() => {
@@ -523,7 +694,7 @@ const InlineMenu = ({ ariaLabel, items, onOpen }) => {
           style={{
             position: 'fixed',
             top: menuPos.top,
-            left: menuPos.left,
+            right: menuPos.right,
             zIndex: 1200,
           }}
         >
@@ -583,13 +754,13 @@ InlineMenu.defaultProps = {
 
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
-const ExerciseRow = ({ ex, index, onEdit, onDelete }) => {
+const ExerciseRow = ({ ex, index, onEdit, onDelete, readOnly }) => {
   const name = ex.name || ex.exerciseTemplate?.name || '—';
   const meta = formatExerciseMeta(ex.exerciseTemplate || ex);
 
   const menuItems = [
-    { label: 'Editar exercício', onClick: () => onEdit(ex) },
-    { label: 'Excluir exercício', danger: true, onClick: () => onDelete(ex) },
+    { label: 'Editar', onClick: () => onEdit(ex) },
+    { label: 'Excluir', danger: true, onClick: () => onDelete(ex) },
   ];
 
   return (
@@ -599,9 +770,11 @@ const ExerciseRow = ({ ex, index, onEdit, onDelete }) => {
         <span className="exercise-row-wide-name">{name}</span>
         {meta && <span className="exercise-row-wide-meta">{meta}</span>}
       </div>
-      <div className="exercise-row-menu-wrap">
-        <InlineMenu ariaLabel={`Opções de ${name}`} items={menuItems} />
-      </div>
+      {!readOnly && (
+        <div className="exercise-row-menu-wrap">
+          <InlineMenu ariaLabel={`Opções de ${name}`} items={menuItems} />
+        </div>
+      )}
     </div>
   );
 };
@@ -609,8 +782,15 @@ const ExerciseRow = ({ ex, index, onEdit, onDelete }) => {
 ExerciseRow.propTypes = {
   ex: PropTypes.object.isRequired,
   index: PropTypes.number.isRequired,
-  onEdit: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+  readOnly: PropTypes.bool,
+};
+
+ExerciseRow.defaultProps = {
+  onEdit: null,
+  onDelete: null,
+  readOnly: false,
 };
 
 // ─── TrainingItem ─────────────────────────────────────────────────────────────
@@ -621,6 +801,7 @@ const TrainingItem = ({
   exerciseTemplates,
   saving,
   expanded,
+  readOnly,
   onToggleExpand,
   onEditTraining,
   onChangeWeekDay,
@@ -678,9 +859,9 @@ const TrainingItem = ({
     });
   };
 
-  const trainingMenuItems = [
-    { label: 'Editar treino', onClick: () => onEditTraining(training) },
-    { label: 'Excluir treino', danger: true, onClick: handleRequestDeleteTraining },
+  const trainingMenuItems = readOnly ? [] : [
+    { label: 'Editar', onClick: () => onEditTraining(training) },
+    { label: 'Excluir', danger: true, onClick: handleRequestDeleteTraining },
   ];
 
   const composerEditing =
@@ -720,6 +901,7 @@ const TrainingItem = ({
               <WeekdayChip
                 value={training.weekDay}
                 onChange={onChangeWeekDay}
+                readOnly={readOnly}
               />
               <span className="training-item-meta-sep" aria-hidden="true">·</span>
               <span className="training-item-meta-stat">
@@ -729,13 +911,15 @@ const TrainingItem = ({
           </div>
 
           <div className="training-item-actions" onClick={(e) => e.stopPropagation()}>
-            <div className="training-item-menu-wrap">
-              <InlineMenu
-                ariaLabel={`Opções do treino ${training.name}`}
-                items={trainingMenuItems}
-                onOpen={() => { if (!expanded) onToggleExpand(); }}
-              />
-            </div>
+            {!readOnly && (
+              <div className="training-item-menu-wrap">
+                <InlineMenu
+                  ariaLabel={`Opções do treino ${training.name}`}
+                  items={trainingMenuItems}
+                  onOpen={() => { if (!expanded) onToggleExpand(); }}
+                />
+              </div>
+            )}
             <button
               type="button"
               className={`training-item-chevron${expanded ? ' training-item-chevron--open' : ''}`}
@@ -760,8 +944,9 @@ const TrainingItem = ({
                     key={ex.id}
                     ex={ex}
                     index={i}
-                    onEdit={(exercise) => setComposerState({ editing: exercise })}
-                    onDelete={handleRequestDeleteExercise}
+                    onEdit={readOnly ? null : (exercise) => setComposerState({ editing: exercise })}
+                    onDelete={readOnly ? null : handleRequestDeleteExercise}
+                    readOnly={readOnly}
                   />
                 ))}
               </div>
@@ -772,25 +957,33 @@ const TrainingItem = ({
                     <Dumbbell size={20} strokeWidth={2} />
                   </div>
                   <p className="training-empty-hero-title">Nenhum exercício</p>
-                  <p className="training-empty-hero-desc">
-                    Adicione exercícios a este treino para começar.
-                  </p>
-                  <div className="training-empty-hero-actions">
-                    <button
-                      type="button"
-                      className="btn-primary btn-sm"
-                      onClick={() => setComposerState('create')}
-                    >
-                      <Plus size={14} strokeWidth={2} aria-hidden="true" />
-                      Adicionar exercício
-                    </button>
-                  </div>
+                  {readOnly ? (
+                    <p className="training-empty-hero-desc">
+                      Este treino ainda não tem exercícios.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="training-empty-hero-desc">
+                        Adicione exercícios a este treino para começar.
+                      </p>
+                      <div className="training-empty-hero-actions">
+                        <button
+                          type="button"
+                          className="btn-primary btn-sm"
+                          onClick={() => setComposerState('create')}
+                        >
+                          <Plus size={14} strokeWidth={2} aria-hidden="true" />
+                          Adicionar exercício
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )
             )}
 
-            {/* Composer */}
-            {(composerState === 'create' || composerEditing) ? (
+            {/* Composer — hidden in read-only mode */}
+            {!readOnly && (composerState === 'create' || composerEditing) ? (
               <ExerciseComposer
                 snapshot={composerEditing || null}
                 exerciseTemplates={exerciseTemplates}
@@ -800,7 +993,7 @@ const TrainingItem = ({
                 onSubmitFromLibrary={handleImport}
                 onCancel={() => setComposerState(null)}
               />
-            ) : exercises.length > 0 && (
+            ) : !readOnly && exercises.length > 0 && (
               <button
                 type="button"
                 className="inline-add-btn-wide"
@@ -853,28 +1046,46 @@ TrainingItem.propTypes = {
   exerciseTemplates: PropTypes.arrayOf(PropTypes.object).isRequired,
   saving: PropTypes.bool.isRequired,
   expanded: PropTypes.bool.isRequired,
+  readOnly: PropTypes.bool,
   onToggleExpand: PropTypes.func.isRequired,
-  onEditTraining: PropTypes.func.isRequired,
-  onChangeWeekDay: PropTypes.func.isRequired,
-  onDeleteTraining: PropTypes.func.isRequired,
-  onAddExercise: PropTypes.func.isRequired,
-  onEditExercise: PropTypes.func.isRequired,
-  onImportFromLibrary: PropTypes.func.isRequired,
-  onDeleteExercise: PropTypes.func.isRequired,
+  onEditTraining: PropTypes.func,
+  onChangeWeekDay: PropTypes.func,
+  onDeleteTraining: PropTypes.func,
+  onAddExercise: PropTypes.func,
+  onEditExercise: PropTypes.func,
+  onImportFromLibrary: PropTypes.func,
+  onDeleteExercise: PropTypes.func,
 };
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+TrainingItem.defaultProps = {
+  readOnly: false,
+  onEditTraining: null,
+  onChangeWeekDay: null,
+  onDeleteTraining: null,
+  onAddExercise: null,
+  onEditExercise: null,
+  onImportFromLibrary: null,
+  onDeleteExercise: null,
+};
+
+// ─── BuilderTopbar ────────────────────────────────────────────────────────────
 
 const BuilderTopbar = ({
   name,
   isEditing,
   saveStatusLabel,
+  studentName,
+  mode,
+  readOnly,
+  editProtocolId,
   onTitleClick,
   onBlur,
   onChange,
   onBack,
   onCancel,
   onSave,
+  onEdit,
+  onImportTemplate,
   saving,
   canSave,
 }) => {
@@ -888,72 +1099,130 @@ const BuilderTopbar = ({
   }, [isEditing]);
 
   const isEmpty = !name || !name.trim();
+  const isProtocol = mode === 'protocol';
+
+  const eyebrow = (() => {
+    if (!isProtocol) return 'Nova rotina · Rascunho';
+    if (readOnly) return studentName ? `Rotina de ${studentName}` : 'Visualizando rotina';
+    if (editProtocolId) return studentName ? `Editando rotina de ${studentName}` : 'Editando rotina';
+    return studentName ? `Rotina de ${studentName}` : 'Nova rotina';
+  })();
 
   return (
     <div className="builder-topbar">
       <button
         className="builder-topbar-back"
         onClick={onBack}
-        aria-label="Voltar para rotinas"
+        aria-label={isProtocol ? 'Voltar para o aluno' : 'Voltar para rotinas'}
       >
         <ArrowLeft size={20} strokeWidth={2} />
       </button>
 
       <div className="builder-title-wrap">
-        <div className="builder-eyebrow">Nova rotina · Rascunho</div>
-        <div className="builder-title-input-wrap" onClick={onTitleClick}>
-          {isEditing ? (
-            <input
-              ref={inputRef}
-              className="builder-title-input"
-              value={name}
-              onChange={(e) => onChange(e.target.value)}
-              onBlur={onBlur}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') e.currentTarget.blur();
-              }}
-              placeholder="Nomear rotina…"
-              aria-label="Nome da rotina"
-            />
-          ) : (
-            <span
-              className={`builder-title-display${isEmpty ? ' builder-title-display--empty' : ''}`}
-            >
-              {isEmpty ? 'Nomear rotina…' : name}
-            </span>
+        <div className="builder-eyebrow">
+          {isProtocol && studentName && (
+            <User size={11} strokeWidth={2} aria-hidden="true" className="builder-eyebrow-icon" />
           )}
-          {!isEditing && (
-            <Edit3
-              size={14}
-              strokeWidth={2}
-              className="builder-title-edit-icon"
-              aria-hidden="true"
-            />
-          )}
+          {eyebrow}
         </div>
+
+        {readOnly ? (
+          <div className="builder-title-input-wrap builder-title-input-wrap--readonly">
+            <span className={`builder-title-display${isEmpty ? ' builder-title-display--empty' : ''}`}>
+              {isEmpty ? '—' : name}
+            </span>
+          </div>
+        ) : (
+          <div className="builder-title-input-wrap" onClick={onTitleClick}>
+            {isEditing ? (
+              <input
+                ref={inputRef}
+                className="builder-title-input"
+                value={name}
+                onChange={(e) => onChange(e.target.value)}
+                onBlur={onBlur}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.blur();
+                }}
+                placeholder="Nomear rotina…"
+                aria-label="Nome da rotina"
+              />
+            ) : (
+              <span
+                className={`builder-title-display${isEmpty ? ' builder-title-display--empty' : ''}`}
+              >
+                {isEmpty ? 'Nomear rotina…' : name}
+              </span>
+            )}
+            {!isEditing && (
+              <Edit3
+                size={14}
+                strokeWidth={2}
+                className="builder-title-edit-icon"
+                aria-hidden="true"
+              />
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Desktop: save status + action buttons (hidden on mobile via CSS) */}
+      {/* Desktop: status + action buttons (hidden on mobile via CSS) */}
       <div className="builder-topbar-actions builder-topbar-actions--responsive">
-        <span className="builder-save-status">
-          <Cloud size={12} strokeWidth={2} aria-hidden="true" />
-          {saveStatusLabel}
-        </span>
-        <button className="btn-secondary" onClick={onCancel}>
-          <X size={16} strokeWidth={2} aria-hidden="true" />
-          Cancelar
-        </button>
-        <button
-          className="btn-primary"
-          onClick={onSave}
-          disabled={!canSave || saving}
-          aria-disabled={!canSave}
-        >
-          <Save size={16} strokeWidth={2} aria-hidden="true" />
-          {saving ? 'Salvando…' : 'Salvar rotina'}
-        </button>
+        {readOnly ? (
+          <>
+            <span className="builder-save-status">
+              <User size={12} strokeWidth={2} aria-hidden="true" />
+              Visualizando rotina
+            </span>
+            <button className="btn-primary" onClick={onEdit} aria-label="Editar rotina">
+              <Pencil size={16} strokeWidth={2} aria-hidden="true" />
+              Editar
+            </button>
+            <button className="btn-secondary" onClick={onBack}>
+              <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
+              Voltar
+            </button>
+          </>
+        ) : (
+          <>
+            {isProtocol ? (
+              <span className="builder-save-status">
+                <User size={12} strokeWidth={2} aria-hidden="true" />
+                {saveStatusLabel}
+              </span>
+            ) : (
+              <span className="builder-save-status">
+                <Cloud size={12} strokeWidth={2} aria-hidden="true" />
+                {saveStatusLabel}
+              </span>
+            )}
+            {isProtocol && onImportTemplate && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={onImportTemplate}
+                aria-label="Importar de template"
+              >
+                <FileDown size={16} strokeWidth={2} aria-hidden="true" />
+                Importar de template
+              </button>
+            )}
+            <button className="btn-secondary" onClick={onCancel}>
+              <X size={16} strokeWidth={2} aria-hidden="true" />
+              Cancelar
+            </button>
+            <button
+              className="btn-primary"
+              onClick={onSave}
+              disabled={!canSave || saving}
+              aria-disabled={!canSave}
+            >
+              <Save size={16} strokeWidth={2} aria-hidden="true" />
+              {saving ? 'Salvando…' : editProtocolId ? 'Concluir' : 'Salvar rotina'}
+            </button>
+          </>
+        )}
       </div>
-
     </div>
   );
 };
@@ -962,19 +1231,38 @@ BuilderTopbar.propTypes = {
   name: PropTypes.string.isRequired,
   isEditing: PropTypes.bool.isRequired,
   saveStatusLabel: PropTypes.string.isRequired,
-  onTitleClick: PropTypes.func.isRequired,
-  onBlur: PropTypes.func.isRequired,
-  onChange: PropTypes.func.isRequired,
+  studentName: PropTypes.string,
+  mode: PropTypes.oneOf(['template', 'protocol']).isRequired,
+  readOnly: PropTypes.bool,
+  editProtocolId: PropTypes.string,
+  onTitleClick: PropTypes.func,
+  onBlur: PropTypes.func,
+  onChange: PropTypes.func,
   onBack: PropTypes.func.isRequired,
-  onCancel: PropTypes.func.isRequired,
-  onSave: PropTypes.func.isRequired,
+  onCancel: PropTypes.func,
+  onSave: PropTypes.func,
+  onEdit: PropTypes.func,
+  onImportTemplate: PropTypes.func,
   saving: PropTypes.bool.isRequired,
   canSave: PropTypes.bool.isRequired,
 };
 
+BuilderTopbar.defaultProps = {
+  studentName: null,
+  readOnly: false,
+  editProtocolId: null,
+  onTitleClick: null,
+  onBlur: null,
+  onChange: null,
+  onCancel: null,
+  onSave: null,
+  onEdit: null,
+  onImportTemplate: null,
+};
+
 // ─── IdentityStrip ────────────────────────────────────────────────────────────
 
-const IdentityStrip = ({ routineData, onUpdateMeta }) => {
+const IdentityStrip = ({ routineData, mode, readOnly, onUpdateMeta }) => {
   const type = routineData?.type || null;
   const trainingLevel = routineData?.trainingLevel || null;
   const defaultDurationWeeks = routineData?.defaultDurationWeeks
@@ -982,6 +1270,71 @@ const IdentityStrip = ({ routineData, onUpdateMeta }) => {
     : null;
   const genderOrdination = routineData?.genderOrdination || null;
   const description = routineData?.description || null;
+  const startDate = routineData?.startDate || null;
+  const expirationDate = routineData?.expirationDate || null;
+
+  const isProtocol = mode === 'protocol';
+
+  // In read-only mode render a static display chip instead of interactive ones
+  const renderReadOnlyChip = (label, displayValue) => {
+    if (!displayValue) return null;
+    return (
+      <div className="weekday-chip-wrap">
+        <span className="identity-chip identity-chip--readonly">
+          <span className="identity-chip-label">{label}:</span>
+          <span className="identity-chip-value">{displayValue}</span>
+        </span>
+      </div>
+    );
+  };
+
+  const formatDate = (v) =>
+    v
+      ? new Date(`${v}T12:00:00`).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        })
+      : null;
+
+  if (readOnly) {
+    const hasAny =
+      type || trainingLevel || defaultDurationWeeks || genderOrdination ||
+      description || startDate || expirationDate;
+
+    if (!hasAny) return null;
+
+    return (
+      <div className="builder-identity-strip">
+        <span className="identity-strip-label">Identidade:</span>
+
+        {renderReadOnlyChip('Tipo', getProtocolTypeLabel(type))}
+        {renderReadOnlyChip('Nível', getLevelLabel(trainingLevel))}
+
+        {!isProtocol && defaultDurationWeeks && renderReadOnlyChip('Dur.', `${defaultDurationWeeks} sem.`)}
+
+        {isProtocol && (
+          <>
+            {renderReadOnlyChip('Início', formatDate(startDate))}
+            {renderReadOnlyChip('Expira', formatDate(expirationDate))}
+          </>
+        )}
+
+        {renderReadOnlyChip('Gênero', getGenderLabel(genderOrdination))}
+
+        {description && (
+          <div className="weekday-chip-wrap">
+            <span className="identity-chip identity-chip--readonly">
+              <span className="identity-chip-label">Desc.:</span>
+              <span className="identity-chip-value">
+                {description.length > 20 ? `${description.slice(0, 20)}…` : description}
+              </span>
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -1008,17 +1361,37 @@ const IdentityStrip = ({ routineData, onUpdateMeta }) => {
           emptyLabel="Nível"
         />
 
-        <IdentityChipPopover
-          label="Dur."
-          value={defaultDurationWeeks}
-          displayValue={defaultDurationWeeks ? `${defaultDurationWeeks} sem.` : null}
-          options={DURATION_OPTIONS}
-          onChange={(v) =>
-            onUpdateMeta({ defaultDurationWeeks: v ? parseInt(v, 10) : null })
-          }
-          clearable
-          emptyLabel="Duração"
-        />
+        {!isProtocol && (
+          <IdentityChipPopover
+            label="Dur."
+            value={defaultDurationWeeks}
+            displayValue={defaultDurationWeeks ? `${defaultDurationWeeks} sem.` : null}
+            options={DURATION_OPTIONS}
+            onChange={(v) =>
+              onUpdateMeta({ defaultDurationWeeks: v ? parseInt(v, 10) : null })
+            }
+            clearable
+            emptyLabel="Duração"
+          />
+        )}
+
+        {isProtocol && (
+          <>
+            <IdentityChipDate
+              label="Início"
+              value={startDate}
+              onChange={(v) => onUpdateMeta({ startDate: v })}
+              required
+              emptyLabel="Data início"
+            />
+            <IdentityChipDate
+              label="Expira"
+              value={expirationDate}
+              onChange={(v) => onUpdateMeta({ expirationDate: v })}
+              emptyLabel="Data fim"
+            />
+          </>
+        )}
 
         <IdentityChipPopover
           label="Gênero"
@@ -1046,13 +1419,21 @@ IdentityStrip.propTypes = {
     defaultDurationWeeks: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     genderOrdination: PropTypes.string,
     description: PropTypes.string,
+    startDate: PropTypes.string,
+    expirationDate: PropTypes.string,
   }),
-  onUpdateMeta: PropTypes.func.isRequired,
+  mode: PropTypes.oneOf(['template', 'protocol']).isRequired,
+  readOnly: PropTypes.bool,
+  onUpdateMeta: PropTypes.func,
 };
 
 IdentityStrip.defaultProps = {
   routineData: null,
+  readOnly: false,
+  onUpdateMeta: null,
 };
+
+// ─── Shared sub-components ────────────────────────────────────────────────────
 
 const trainingShape = PropTypes.shape({
   id: PropTypes.string,
@@ -1189,20 +1570,98 @@ const ReadinessLegend = () => (
   </span>
 );
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── ImportTemplateSheet ──────────────────────────────────────────────────────
 
-const RoutineBuilder = () => {
-  const { id } = useParams();
+/**
+ * Bottom sheet for selecting a protocol-template to import in protocol mode.
+ */
+const ImportTemplateSheet = ({ open, protocolTemplates, loading, onSelect, onClose }) => {
+  if (!open) return null;
+
+  return createPortal(
+    <div className="overlay" onClick={onClose}>
+      <div
+        className="bottom-sheet"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Importar de template"
+      >
+        <div className="bottom-sheet-header">
+          <h2 className="bottom-sheet-title">Importar de template</h2>
+          <button
+            type="button"
+            className="bottom-sheet-close"
+            onClick={onClose}
+            aria-label="Fechar"
+          >
+            <X size={18} strokeWidth={2} />
+          </button>
+        </div>
+        <div className="bottom-sheet-body">
+          {loading && (
+            <p className="builder-template-sheet-empty">Carregando templates…</p>
+          )}
+          {!loading && protocolTemplates.length === 0 && (
+            <p className="builder-template-sheet-empty">Nenhum template disponível.</p>
+          )}
+          {!loading && protocolTemplates.length > 0 && (
+            <div className="builder-template-sheet-list" role="list">
+              {protocolTemplates.map((tmpl) => (
+                <button
+                  key={tmpl.id}
+                  type="button"
+                  className="builder-template-sheet-item"
+                  role="listitem"
+                  onClick={() => onSelect(tmpl.id)}
+                >
+                  <span className="builder-template-sheet-item-name">{tmpl.name}</span>
+                  {tmpl.type && (
+                    <span className="builder-template-sheet-item-meta">
+                      {getProtocolTypeLabel(tmpl.type)}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+ImportTemplateSheet.propTypes = {
+  open: PropTypes.bool.isRequired,
+  protocolTemplates: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    type: PropTypes.string,
+  })).isRequired,
+  loading: PropTypes.bool.isRequired,
+  onSelect: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+};
+
+// ─── RoutineBuilderCore ───────────────────────────────────────────────────────
+//
+// This is the shared view layer. Both TemplateBuilderMount and
+// ProtocolBuilderMount render this after calling their respective hook.
+
+const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId }) => {
+  const { id: routineId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-
-  const routine = useRoutineBuilder(id || null);
 
   const [titleName, setTitleName] = useState('');
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [addTrainingSheetOpen, setAddTrainingSheetOpen] = useState(false);
   const [editingTraining, setEditingTraining] = useState(null);
+  const [importTemplateSheetOpen, setImportTemplateSheetOpen] = useState(false);
+
+  const isProtocol = mode === 'protocol';
 
   // Sync title from API when edit-mode data first arrives.
   const loadedName = routine.data?.name;
@@ -1219,11 +1678,16 @@ const RoutineBuilder = () => {
     () => routine.data?.trainings || [],
     [routine.data?.trainings]
   );
+
   const hasName = !!(titleName && titleName.trim());
   const hasTrainings = trainings.length > 0;
-  const canSave = hasName && hasTrainings;
+  const hasStartDate = !isProtocol || !!(routine.data?.startDate);
+  // Edit mode: all data is already persisted; "Concluir" is always enabled once loaded.
+  const canSave = editProtocolId
+    ? true
+    : hasName && hasTrainings && hasStartDate;
 
-  // ── Draft meta (all identity fields except trainings) ────────────────────
+  // ── Draft meta (template mode only) ─────────────────────────────────────
 
   const draftMeta = useMemo(
     () => ({
@@ -1242,7 +1706,7 @@ const RoutineBuilder = () => {
     ]
   );
 
-  // ── Autosave draft (create mode only) ───────────────────────────────────
+  // ── Autosave draft (template create mode only) ───────────────────────────
 
   const handleRestore = useCallback(
     ({ name: draftName, meta, trainingIds, trainingOverrides, createdTrainingIds: draftCreated, junctionsAddedToImported: draftJunctions }) => {
@@ -1258,7 +1722,7 @@ const RoutineBuilder = () => {
   );
 
   const draft = useRoutineDraft({
-    enabled: !id && !routine.loading,
+    enabled: !isProtocol && !routineId && !routine.loading,
     name: titleName,
     meta: draftMeta,
     trainings,
@@ -1268,23 +1732,50 @@ const RoutineBuilder = () => {
     onRestore: handleRestore,
   });
 
-  const saveStatusLabel = id
-    ? 'Editando rotina'
-    : draft.lastSaved
-      ? `Rascunho salvo ${formatRelativeTime(draft.lastSaved)}`
-      : 'Pronto para salvar';
+  const saveStatusLabel = (() => {
+    if (editProtocolId) return 'Editando rotina do aluno';
+    if (isProtocol) return 'Rotina do aluno · Pronto para salvar';
+    if (routineId) return 'Editando rotina';
+    if (draft.lastSaved) return `Rascunho salvo ${formatRelativeTime(draft.lastSaved)}`;
+    return 'Pronto para salvar';
+  })();
+
+  // ── Student name (protocol mode) ─────────────────────────────────────────
+
+  const studentName = useMemo(() => {
+    const s = routine.student;
+    if (!s) return null;
+    const full = [s.firstName, s.lastName].filter(Boolean).join(' ');
+    return full || s.email || null;
+  }, [routine.student]);
+
+  // ── Back destination ─────────────────────────────────────────────────────
+
+  const backDestination = (() => {
+    if (editProtocolId) return `/trainer/protocols/${editProtocolId}`;
+    if (readOnly && editProtocolId === null) {
+      // view mode: back goes to student or protocols list
+      return studentId ? `/trainer/students/${studentId}` : '/trainer/routines';
+    }
+    if (isProtocol && studentId) return `/trainer/students/${studentId}`;
+    return '/trainer/routines';
+  })();
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleBack = useCallback(
-    () => navigate('/trainer/routines'),
-    [navigate]
+    () => navigate(backDestination),
+    [navigate, backDestination]
   );
 
   const handleCancel = useCallback(
-    () => navigate('/trainer/routines'),
-    [navigate]
+    () => navigate(backDestination),
+    [navigate, backDestination]
   );
+
+  const handleEdit = useCallback(() => {
+    if (routineId) navigate(`/trainer/protocols/${routineId}/edit`);
+  }, [navigate, routineId]);
 
   const handleTitleClick = useCallback(() => {
     setIsTitleEditing(true);
@@ -1315,14 +1806,43 @@ const RoutineBuilder = () => {
   const handleSave = useCallback(async () => {
     if (!canSave) return;
     try {
-      await routine.saveRoutine({ name: titleName }, trainings);
-      draft.clearDraft();
-      showToast('Rotina salva.', 'success');
-      navigate('/trainer/routines');
+      if (editProtocolId) {
+        // Edit mode: all mutations already persisted eagerly.
+        // saveRoutine is a no-op; just navigate to view.
+        await routine.saveRoutine({}, trainings);
+        showToast('Rotina atualizada.', 'success');
+        navigate(`/trainer/protocols/${editProtocolId}`);
+        return;
+      }
+
+      const meta = {
+        name: titleName,
+        ...(routine.data?.type && { type: routine.data.type }),
+        ...(routine.data?.trainingLevel && { trainingLevel: routine.data.trainingLevel }),
+        ...(routine.data?.genderOrdination && { genderOrdination: routine.data.genderOrdination }),
+        ...(routine.data?.description && { description: routine.data.description }),
+        ...(isProtocol && {
+          assigneeId: routine.data?.assigneeId || studentId,
+          startDate: routine.data?.startDate,
+          expirationDate: routine.data?.expirationDate,
+        }),
+        ...(!isProtocol && {
+          defaultDurationWeeks: routine.data?.defaultDurationWeeks,
+        }),
+      };
+      const saved = await routine.saveRoutine(meta, trainings);
+      if (!isProtocol) {
+        draft.clearDraft();
+        showToast('Rotina salva.', 'success');
+        navigate('/trainer/routines');
+      } else {
+        showToast('Rotina salva.', 'success');
+        navigate(`/trainer/protocols/${saved.id}`);
+      }
     } catch {
       // error already set inside the hook
     }
-  }, [canSave, routine, titleName, trainings, draft, showToast, navigate]);
+  }, [canSave, routine, titleName, trainings, draft, showToast, navigate, isProtocol, studentId, editProtocolId]);
 
   const handleToggleExpand = useCallback((trainingId) => {
     setExpandedId((prev) => (prev === trainingId ? null : trainingId));
@@ -1340,7 +1860,12 @@ const RoutineBuilder = () => {
     [routine]
   );
 
-  // ── Loading state (edit mode) ────────────────────────────────────────────
+  const handleImportTemplate = useCallback((templateId) => {
+    setImportTemplateSheetOpen(false);
+    routine.loadFromTemplate(templateId);
+  }, [routine]);
+
+  // ── Loading state ────────────────────────────────────────────────────────
 
   if (routine.loading) {
     return (
@@ -1360,19 +1885,27 @@ const RoutineBuilder = () => {
         name={titleName}
         isEditing={isTitleEditing}
         saveStatusLabel={saveStatusLabel}
-        onTitleClick={handleTitleClick}
-        onBlur={handleTitleBlur}
-        onChange={setTitleName}
+        studentName={studentName}
+        mode={mode}
+        readOnly={readOnly}
+        editProtocolId={editProtocolId}
+        onTitleClick={readOnly ? null : handleTitleClick}
+        onBlur={readOnly ? null : handleTitleBlur}
+        onChange={readOnly ? null : setTitleName}
         onBack={handleBack}
-        onCancel={handleCancel}
-        onSave={handleSave}
+        onCancel={readOnly ? null : handleCancel}
+        onSave={readOnly ? null : handleSave}
+        onEdit={readOnly ? handleEdit : null}
+        onImportTemplate={isProtocol && !readOnly ? () => setImportTemplateSheetOpen(true) : null}
         saving={routine.saving}
         canSave={canSave}
       />
 
       <IdentityStrip
         routineData={routine.data}
-        onUpdateMeta={routine.updateMeta}
+        mode={mode}
+        readOnly={readOnly}
+        onUpdateMeta={readOnly ? null : routine.updateMeta}
       />
 
       <BuilderStatsRow trainings={trainings} />
@@ -1402,8 +1935,22 @@ const RoutineBuilder = () => {
           <ReadinessLegend />
         </div>
 
-        {trainings.length === 0 && (
+        {trainings.length === 0 && !readOnly && (
           <FirstTrainingHero onAddTraining={() => setAddTrainingSheetOpen(true)} />
+        )}
+
+        {trainings.length === 0 && readOnly && (
+          <div className="first-training-hero">
+            <div className="first-training-hero-icon">
+              <Dumbbell size={26} strokeWidth={2} aria-hidden="true" />
+            </div>
+            <div className="first-training-hero-title first-training-hero-title--mobile">
+              Sem treinos
+            </div>
+            <div className="first-training-hero-description">
+              Esta rotina ainda não tem treinos cadastrados.
+            </div>
+          </div>
         )}
 
         {trainings.length > 0 && (() => {
@@ -1419,16 +1966,17 @@ const RoutineBuilder = () => {
               exerciseTemplates={routine.exerciseTemplates}
               saving={routine.saving}
               expanded={expandedId === t.id}
+              readOnly={readOnly}
               onToggleExpand={() => handleToggleExpand(t.id)}
-              onEditTraining={handleOpenEditTraining}
-              onChangeWeekDay={(weekDay) => routine.updateTrainingWeekDay(t.id, weekDay)}
-              onDeleteTraining={() => routine.deleteTraining(t.id)}
-              onAddExercise={(payload) => routine.addExercise(t.id, payload)}
-              onEditExercise={(exId, payload) => routine.updateExercise(t.id, exId, payload)}
-              onImportFromLibrary={(ids) =>
+              onEditTraining={readOnly ? null : handleOpenEditTraining}
+              onChangeWeekDay={readOnly ? null : (weekDay) => routine.updateTrainingWeekDay(t.id, weekDay)}
+              onDeleteTraining={readOnly ? null : () => routine.deleteTraining(t.id)}
+              onAddExercise={readOnly ? null : (payload) => routine.addExercise(t.id, payload)}
+              onEditExercise={readOnly ? null : (exId, payload) => routine.updateExercise(t.id, exId, payload)}
+              onImportFromLibrary={readOnly ? null : (ids) =>
                 Promise.all(ids.map((tmplId) => routine.addExerciseFromTemplate(t.id, tmplId)))
               }
-              onDeleteExercise={(exId) => routine.deleteExercise(t.id, exId)}
+              onDeleteExercise={readOnly ? null : (exId) => routine.deleteExercise(t.id, exId)}
             />
           );
 
@@ -1454,7 +2002,7 @@ const RoutineBuilder = () => {
           );
         })()}
 
-        {trainings.length > 0 && (
+        {trainings.length > 0 && !readOnly && (
           <button
             type="button"
             className="add-training-cta"
@@ -1466,48 +2014,188 @@ const RoutineBuilder = () => {
         )}
       </div>
 
-      <AddTrainingSheet
-        open={addTrainingSheetOpen}
-        onClose={() => {
-          setAddTrainingSheetOpen(false);
-          setEditingTraining(null);
-        }}
-        onCreate={handleCreateTraining}
-        onUpdate={handleUpdateTraining}
-        onImport={handleImportTrainings}
-        trainingTemplates={routine.trainingTemplates}
-        existingTrainingIds={new Set(trainings.map((t) => t.id))}
-        saving={routine.saving}
-        editingTraining={editingTraining}
-        eyebrow={
-          editingTraining
-            ? `${titleName || 'Rotina'} · Editar treino`
-            : titleName
-            ? `${titleName} · Novo treino`
-            : 'Nova rotina · Novo treino'
-        }
-      />
+      {!readOnly && (
+        <AddTrainingSheet
+          open={addTrainingSheetOpen}
+          onClose={() => {
+            setAddTrainingSheetOpen(false);
+            setEditingTraining(null);
+          }}
+          onCreate={handleCreateTraining}
+          onUpdate={handleUpdateTraining}
+          onImport={handleImportTrainings}
+          trainingTemplates={routine.trainingTemplates}
+          existingTrainingIds={new Set(trainings.map((t) => t.id))}
+          saving={routine.saving}
+          editingTraining={editingTraining}
+          eyebrow={
+            editingTraining
+              ? `${titleName || 'Rotina'} · Editar treino`
+              : titleName
+              ? `${titleName} · Novo treino`
+              : 'Nova rotina · Novo treino'
+          }
+        />
+      )}
 
-      {/* Mobile: bottom save bar (hidden on desktop via CSS) */}
-      <div className="builder-bottom-bar">
-        <button
-          className="btn-secondary builder-bottom-bar-cancel"
-          onClick={handleCancel}
-        >
-          Cancelar
-        </button>
-        <button
-          className="btn-primary builder-bottom-bar-save"
-          onClick={handleSave}
-          disabled={!canSave || routine.saving}
-          aria-disabled={!canSave}
-        >
-          <Save size={16} strokeWidth={2} aria-hidden="true" />
-          {routine.saving ? 'Salvando…' : 'Salvar rotina'}
-        </button>
-      </div>
+      {isProtocol && !readOnly && (
+        <ImportTemplateSheet
+          open={importTemplateSheetOpen}
+          protocolTemplates={routine.protocolTemplates || []}
+          loading={routine.loading}
+          onSelect={handleImportTemplate}
+          onClose={() => setImportTemplateSheetOpen(false)}
+        />
+      )}
+
+      {/* Mobile: bottom bar — edit/view aware */}
+      {readOnly ? (
+        <div className="builder-bottom-bar">
+          <button
+            className="btn-secondary builder-bottom-bar-cancel"
+            onClick={handleBack}
+          >
+            <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
+            Voltar
+          </button>
+          <button
+            className="btn-primary builder-bottom-bar-save"
+            onClick={handleEdit}
+          >
+            <Pencil size={16} strokeWidth={2} aria-hidden="true" />
+            Editar
+          </button>
+        </div>
+      ) : (
+        <div className="builder-bottom-bar">
+          <button
+            className="btn-secondary builder-bottom-bar-cancel"
+            onClick={handleCancel}
+          >
+            Cancelar
+          </button>
+          <button
+            className="btn-primary builder-bottom-bar-save"
+            onClick={handleSave}
+            disabled={!canSave || routine.saving}
+            aria-disabled={!canSave}
+          >
+            <Save size={16} strokeWidth={2} aria-hidden="true" />
+            {routine.saving ? 'Salvando…' : editProtocolId ? 'Concluir' : 'Salvar rotina'}
+          </button>
+        </div>
+      )}
     </div>
   );
+};
+
+RoutineBuilderCore.propTypes = {
+  routine: PropTypes.object.isRequired,
+  mode: PropTypes.oneOf(['template', 'protocol']).isRequired,
+  studentId: PropTypes.string,
+  readOnly: PropTypes.bool,
+  editProtocolId: PropTypes.string,
+};
+
+RoutineBuilderCore.defaultProps = {
+  studentId: null,
+  readOnly: false,
+  editProtocolId: null,
+};
+
+// ─── Mode-specific mounts ─────────────────────────────────────────────────────
+//
+// Thin components that call their respective hook and pass the result down.
+// Keeps Rules of Hooks satisfied — hook calls are always at the top level of
+// the mounting component, never inside a conditional.
+
+const TemplateBuilderMount = ({ routineId }) => {
+  const routine = useRoutineBuilder(routineId || null);
+  return <RoutineBuilderCore routine={routine} mode="template" />;
+};
+
+TemplateBuilderMount.propTypes = {
+  routineId: PropTypes.string,
+};
+
+TemplateBuilderMount.defaultProps = {
+  routineId: null,
+};
+
+const ProtocolBuilderMount = ({ studentId }) => {
+  const routine = useProtocolBuilder(studentId);
+  return <RoutineBuilderCore routine={routine} mode="protocol" studentId={studentId} />;
+};
+
+ProtocolBuilderMount.propTypes = {
+  studentId: PropTypes.string.isRequired,
+};
+
+const ProtocolEditMount = ({ protocolId }) => {
+  const routine = useProtocolBuilder(null, { protocolId });
+  return (
+    <RoutineBuilderCore
+      routine={routine}
+      mode="protocol"
+      studentId={routine.student?.id || null}
+      editProtocolId={protocolId}
+    />
+  );
+};
+
+ProtocolEditMount.propTypes = {
+  protocolId: PropTypes.string.isRequired,
+};
+
+const ProtocolViewMount = ({ protocolId }) => {
+  const routine = useProtocolBuilder(null, { protocolId });
+  return (
+    <RoutineBuilderCore
+      routine={routine}
+      mode="protocol"
+      studentId={routine.student?.id || null}
+      readOnly
+    />
+  );
+};
+
+ProtocolViewMount.propTypes = {
+  protocolId: PropTypes.string.isRequired,
+};
+
+// ─── RoutineBuilder (entry point) ─────────────────────────────────────────────
+//
+// Detects the current route and delegates to the correct mount component.
+// Route shapes handled:
+//   /trainer/protocols/new?studentId=X  → ProtocolBuilderMount (create)
+//   /trainer/protocols/:id/edit         → ProtocolEditMount    (eager mutations)
+//   /trainer/protocols/:id              → ProtocolViewMount    (read-only)
+//   /trainer/routines/new               → TemplateBuilderMount (create)
+//   /trainer/routines/:id/edit          → TemplateBuilderMount (edit)
+
+const RoutineBuilder = () => {
+  const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const { pathname } = useLocation();
+  const studentId = searchParams.get('studentId');
+
+  // Protocol create: /trainer/protocols/new?studentId=…
+  if (studentId) {
+    return <ProtocolBuilderMount studentId={studentId} />;
+  }
+
+  // Protocol edit: /trainer/protocols/:id/edit
+  if (pathname.includes('/trainer/protocols/') && pathname.endsWith('/edit') && id) {
+    return <ProtocolEditMount protocolId={id} />;
+  }
+
+  // Protocol view: /trainer/protocols/:id (no /edit suffix, no studentId)
+  if (pathname.includes('/trainer/protocols/') && !pathname.endsWith('/edit') && id) {
+    return <ProtocolViewMount protocolId={id} />;
+  }
+
+  // Template create / edit
+  return <TemplateBuilderMount routineId={id || null} />;
 };
 
 export default RoutineBuilder;

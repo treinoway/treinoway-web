@@ -13722,6 +13722,16 @@ nav.onboarding-steps {
   color: var(--brand-steel);
 }
 
+.identity-chip--readonly {
+  cursor: default;
+  pointer-events: none;
+}
+
+.identity-chip--readonly:hover {
+  background: var(--brand-mist);
+  border-color: transparent;
+}
+
 .identity-chip-label {
   font-size: 10px;
   font-weight: 700;
@@ -14305,6 +14315,11 @@ nav.onboarding-steps {
 .weekday-chip--unassigned:hover {
   border-color: var(--brand-accent);
   color: var(--brand-accent);
+}
+
+.weekday-chip--readonly {
+  cursor: default;
+  pointer-events: none;
 }
 
 /* Action buttons inside training item head */
@@ -15543,6 +15558,116 @@ nav.onboarding-steps {
   border-radius: 0;
   margin-bottom: 2px;
   min-height: 32px;
+}
+
+/* ── IdentityChipDate popover ── */
+.identity-chip--required.identity-chip--empty {
+  border-color: var(--brand-accent);
+  color: var(--brand-accent);
+}
+
+.identity-chip-date-popover {
+  background: var(--md-surface);
+  border: 1px solid var(--brand-divider);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.identity-chip-date-popover-label {
+  font-family: var(--font-family-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+}
+
+.identity-chip-date-input {
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--brand-ink);
+  background: var(--brand-mist);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-brand);
+  padding: 6px 10px;
+  min-height: 36px;
+  width: 100%;
+  transition: border-color var(--duration-fast) var(--ease-brand);
+}
+
+.identity-chip-date-input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+/* ── ImportTemplateSheet list ── */
+.builder-template-sheet-empty {
+  font-size: 14px;
+  color: var(--brand-steel);
+  text-align: center;
+  padding: var(--spacing-lg) 0;
+}
+
+.builder-template-sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.builder-template-sheet-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-brand);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--duration-fast) var(--ease-brand),
+    border-color var(--duration-fast) var(--ease-brand);
+  min-height: 48px;
+  justify-content: center;
+}
+
+.builder-template-sheet-item:hover {
+  background: var(--brand-mist);
+  border-color: var(--brand-divider);
+}
+
+.builder-template-sheet-item:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+.builder-template-sheet-item-name {
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-ink);
+}
+
+.builder-template-sheet-item-meta {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+}
+
+/* ── Builder topbar eyebrow icon ── */
+.builder-eyebrow-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
+  flex-shrink: 0;
 }
 
 /* ── Description inline expander (below identity strip) ── */

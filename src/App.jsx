@@ -19,11 +19,8 @@ import Trainers from './pages/Trainers';
 // Trainer pages
 import TrainingTemplates from './pages/trainer/TrainingTemplates';
 import ExerciseTemplates from './pages/trainer/ExerciseTemplates';
-import ProtocolDetail from './pages/trainer/ProtocolDetail';
-import ProtocolView from './pages/trainer/ProtocolView';
 import ProtocolTemplateView from './pages/trainer/ProtocolTemplateView';
 import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
-import CreateProtocol from './pages/trainer/CreateProtocol';
 import Students from './pages/trainer/Students';
 import StudentDetail from './pages/trainer/StudentDetail';
 import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
@@ -190,8 +187,8 @@ function App() {
             path="/trainer/protocols/new"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <CreateProtocol />
+                <Layout noPadding>
+                  <RoutineBuilder />
                 </Layout>
               </ProtectedRoute>
             }
@@ -200,8 +197,8 @@ function App() {
             path="/trainer/protocols/:id"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <ProtocolView />
+                <Layout noPadding>
+                  <RoutineBuilder />
                 </Layout>
               </ProtectedRoute>
             }
@@ -210,8 +207,8 @@ function App() {
             path="/trainer/protocols/:id/edit"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <ProtocolDetail />
+                <Layout noPadding>
+                  <RoutineBuilder />
                 </Layout>
               </ProtectedRoute>
             }

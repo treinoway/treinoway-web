@@ -1,0 +1,528 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, act, waitFor } from '@testing-library/react';
+
+vi.mock('../api/axios', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
+
+import api from '../api/axios';
+import useProtocolBuilder from './useProtocolBuilder';
+
+// ─── Fixtures ─────────────────────────────────────────────────────────────────
+
+const STUDENT = { id: 'student-1', firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' };
+
+const TRAINING_TEMPLATE = {
+  id: 'tt-1',
+  name: 'Treino Peito',
+  category: 'strength',
+  bodySegment: 'upper',
+  trainingTemplateExerciseTemplates: [
+    {
+      id: 'junc-1',
+      order: 0,
+      exerciseTemplate: { id: 'et-1', name: 'Supino', type: 'strength', sets: 4 },
+    },
+  ],
+};
+
+const EXERCISE_TEMPLATE = { id: 'et-2', name: 'Agachamento', type: 'strength', sets: 3 };
+
+const PROTOCOL_TEMPLATE = {
+  id: 'pt-1',
+  name: 'Template Força',
+  type: 'strength',
+  scheduleTemplates: [
+    {
+      id: 'sched-1',
+      weekDay: 'monday',
+      trainingTemplate: TRAINING_TEMPLATE,
+    },
+  ],
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const makeGetHandler = (studentId) => (url) => {
+  if (url === '/trainer/training-templates') return Promise.resolve({ data: [TRAINING_TEMPLATE] });
+  if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [EXERCISE_TEMPLATE] });
+  if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [PROTOCOL_TEMPLATE] });
+  if (url === '/trainer/students' && studentId) return Promise.resolve({ data: [STUDENT] });
+  if (url === `/trainer/protocol-templates/${PROTOCOL_TEMPLATE.id}`) return Promise.resolve({ data: PROTOCOL_TEMPLATE });
+  return Promise.resolve({ data: [] });
+};
+
+// ─── Tests ────────────────────────────────────────────────────────────────────
+
+describe('useProtocolBuilder — mount (no studentId)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockImplementation(makeGetHandler(null));
+  });
+
+  it('starts in loading state', () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    expect(result.current.loading).toBe(true);
+  });
+
+  it('loads trainingTemplates, exerciseTemplates and protocolTemplates', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.trainingTemplates).toHaveLength(1);
+    expect(result.current.exerciseTemplates).toHaveLength(1);
+    expect(result.current.protocolTemplates).toHaveLength(1);
+    expect(result.current.student).toBeNull();
+  });
+});
+
+describe('useProtocolBuilder — mount with studentId', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockImplementation(makeGetHandler('student-1'));
+  });
+
+  it('loads student and sets assigneeId', async () => {
+    const { result } = renderHook(() => useProtocolBuilder('student-1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.student).toMatchObject({ id: 'student-1', firstName: 'Ana' });
+    expect(result.current.data.assigneeId).toBe('student-1');
+  });
+
+  it('student is null when id not found in list', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [] });
+      return makeGetHandler('student-1')(url);
+    });
+    const { result } = renderHook(() => useProtocolBuilder('student-unknown'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.student).toBeNull();
+  });
+});
+
+describe('useProtocolBuilder — createTraining (local only)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockImplementation(makeGetHandler(null));
+  });
+
+  it('adds training to local state without calling POST', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.createTraining({ name: 'Treino A', category: 'strength' });
+    });
+
+    expect(result.current.data.trainings).toHaveLength(1);
+    expect(result.current.data.trainings[0].name).toBe('Treino A');
+    expect(result.current.data.trainings[0].id).toMatch(/^tmp_/);
+    // No POST should have been made
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('returned training has id and empty exercises array', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let created;
+    await act(async () => {
+      created = await result.current.createTraining({ name: 'Treino B', category: 'cardio' });
+    });
+
+    expect(created.id).toMatch(/^tmp_/);
+    expect(result.current.data.trainings[0].exercises).toEqual([]);
+  });
+});
+
+describe('useProtocolBuilder — importTrainingsFromLibrary (local only)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockImplementation(makeGetHandler(null));
+  });
+
+  it('clones training-template into local state without calling POST', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.importTrainingsFromLibrary(['tt-1']);
+    });
+
+    expect(result.current.data.trainings).toHaveLength(1);
+    const t = result.current.data.trainings[0];
+    expect(t.name).toBe('Treino Peito');
+    expect(t._trainingTemplateId).toBe('tt-1');
+    // exercises extracted from junction
+    expect(t.exercises).toHaveLength(1);
+    expect(t.exercises[0].name).toBe('Supino');
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('ignores ids not found in trainingTemplates', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.importTrainingsFromLibrary(['non-existent-id']);
+    });
+
+    expect(result.current.data.trainings).toHaveLength(0);
+  });
+});
+
+describe('useProtocolBuilder — addExercise / addExerciseFromTemplate (local only)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockImplementation(makeGetHandler(null));
+  });
+
+  it('addExercise appends to training exercises without POST', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let trainingId;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'Treino A', category: 'strength' });
+      trainingId = t.id;
+    });
+
+    await act(async () => {
+      await result.current.addExercise(trainingId, {
+        name: 'Leg Press', type: 'strength', sets: 3,
+      });
+    });
+
+    const training = result.current.data.trainings.find((t) => t.id === trainingId);
+    expect(training.exercises).toHaveLength(1);
+    expect(training.exercises[0].name).toBe('Leg Press');
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('addExerciseFromTemplate appends exercise from library without POST', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let trainingId;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'Treino A', category: 'strength' });
+      trainingId = t.id;
+    });
+
+    await act(async () => {
+      await result.current.addExerciseFromTemplate(trainingId, 'et-2');
+    });
+
+    const training = result.current.data.trainings.find((t) => t.id === trainingId);
+    expect(training.exercises).toHaveLength(1);
+    expect(training.exercises[0].name).toBe('Agachamento');
+    expect(training.exercises[0]._templateId).toBe('et-2');
+    expect(api.post).not.toHaveBeenCalled();
+  });
+});
+
+describe('useProtocolBuilder — saveRoutine (multi-step POST)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockImplementation(makeGetHandler('student-1'));
+  });
+
+  it('posts protocol, then trainings, then exercises in order', async () => {
+    api.post.mockImplementation((url) => {
+      if (url === '/trainer/protocols') return Promise.resolve({ data: { id: 'proto-1' } });
+      if (url === '/trainer/protocols/proto-1/trainings') return Promise.resolve({ data: { id: 'real-training-1' } });
+      if (url === '/trainer/trainings/real-training-1/exercises') return Promise.resolve({ data: { id: 'real-ex-1' } });
+      return Promise.resolve({ data: {} });
+    });
+
+    const { result } = renderHook(() => useProtocolBuilder('student-1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // Build local state
+    let trainingId;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'Treino A', category: 'strength' });
+      trainingId = t.id;
+      await result.current.addExercise(trainingId, { name: 'Supino', type: 'strength', sets: 3 });
+    });
+
+    const meta = {
+      name: 'Rotina Força',
+      assigneeId: 'student-1',
+      startDate: '2026-05-01',
+    };
+
+    let saved;
+    await act(async () => {
+      saved = await result.current.saveRoutine(meta, result.current.data.trainings);
+    });
+
+    // Step 1: create protocol
+    expect(api.post).toHaveBeenNthCalledWith(1, '/trainer/protocols', expect.objectContaining({
+      assigneeId: 'student-1',
+      name: 'Rotina Força',
+      startDate: '2026-05-01',
+    }));
+
+    // Step 2: create training
+    expect(api.post).toHaveBeenNthCalledWith(2, '/trainer/protocols/proto-1/trainings', expect.objectContaining({
+      name: 'Treino A',
+      category: 'strength',
+    }));
+
+    // Step 3: create exercise (custom, not from template)
+    expect(api.post).toHaveBeenNthCalledWith(3, '/trainer/trainings/real-training-1/exercises', expect.objectContaining({
+      name: 'Supino',
+      type: 'strength',
+    }));
+
+    expect(saved.id).toBe('proto-1');
+  });
+
+  it('posts from-template for exercises with _isFromTemplate flag', async () => {
+    api.post.mockImplementation((url) => {
+      if (url === '/trainer/protocols') return Promise.resolve({ data: { id: 'proto-2' } });
+      if (url === '/trainer/protocols/proto-2/trainings') return Promise.resolve({ data: { id: 'real-t-2' } });
+      if (url === '/trainer/exercises/from-template') return Promise.resolve({ data: { id: 'real-ex-2' } });
+      return Promise.resolve({ data: {} });
+    });
+
+    const { result } = renderHook(() => useProtocolBuilder('student-1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let trainingId;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'Treino B', category: 'strength' });
+      trainingId = t.id;
+      await result.current.addExerciseFromTemplate(trainingId, 'et-2');
+    });
+
+    await act(async () => {
+      await result.current.saveRoutine(
+        { name: 'Rotina X', assigneeId: 'student-1', startDate: '2026-05-01' },
+        result.current.data.trainings
+      );
+    });
+
+    // exercise from template uses the correct endpoint
+    expect(api.post).toHaveBeenCalledWith('/trainer/exercises/from-template', {
+      trainingId: 'real-t-2',
+      templateId: 'et-2',
+    });
+  });
+
+  it('deletes protocol and re-throws on failure after creation', async () => {
+    api.post.mockImplementation((url) => {
+      if (url === '/trainer/protocols') return Promise.resolve({ data: { id: 'proto-err' } });
+      if (url === '/trainer/protocols/proto-err/trainings') return Promise.reject(new Error('Training save failed'));
+      return Promise.resolve({ data: {} });
+    });
+    api.delete.mockResolvedValue({ data: {} });
+
+    const { result } = renderHook(() => useProtocolBuilder('student-1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.createTraining({ name: 'Treino C', category: 'strength' });
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.saveRoutine(
+          { name: 'Rotina Err', assigneeId: 'student-1', startDate: '2026-05-01' },
+          result.current.data.trainings
+        )
+      ).rejects.toThrow();
+    });
+
+    // best-effort DELETE
+    expect(api.delete).toHaveBeenCalledWith('/trainer/protocols/proto-err');
+    expect(result.current.error).toBeTruthy();
+  });
+});
+
+describe('useProtocolBuilder — loadFromTemplate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockImplementation(makeGetHandler(null));
+  });
+
+  it('hydrates trainings from protocol-template', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.loadFromTemplate(PROTOCOL_TEMPLATE.id);
+    });
+
+    expect(result.current.data.trainings).toHaveLength(1);
+    const t = result.current.data.trainings[0];
+    expect(t.name).toBe('Treino Peito');
+    expect(t.weekDay).toBe('monday');
+    expect(t.exercises).toHaveLength(1);
+    expect(t.exercises[0].name).toBe('Supino');
+  });
+
+  it('preserves existing name if already set when importing', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // Set a name first
+    await act(async () => {
+      await result.current.updateMeta({ name: 'Minha Rotina' });
+    });
+
+    await act(async () => {
+      await result.current.loadFromTemplate(PROTOCOL_TEMPLATE.id);
+    });
+
+    // name is already set, so it should be preserved (not overwritten by template name)
+    expect(result.current.data.name).toBe('Minha Rotina');
+  });
+
+  it('sets error and re-throws when API fails', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === `/trainer/protocol-templates/${PROTOCOL_TEMPLATE.id}`) {
+        return Promise.reject(Object.assign(new Error('Not found'), { userMessage: 'Template não encontrado.' }));
+      }
+      return makeGetHandler(null)(url);
+    });
+
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.loadFromTemplate(PROTOCOL_TEMPLATE.id)).rejects.toThrow();
+    });
+
+    expect(result.current.error).toBe('Template não encontrado.');
+  });
+});
+
+describe('useProtocolBuilder — updateTrainingWeekDay / deleteTraining / updateExercise / deleteExercise', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockImplementation(makeGetHandler(null));
+  });
+
+  it('updateTrainingWeekDay updates weekDay locally', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let tid;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'T', category: 'strength' });
+      tid = t.id;
+    });
+
+    act(() => {
+      result.current.updateTrainingWeekDay(tid, 'tuesday');
+    });
+
+    expect(result.current.data.trainings[0].weekDay).toBe('tuesday');
+    expect(api.patch).not.toHaveBeenCalled();
+  });
+
+  it('deleteTraining removes training from state', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let tid;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'T', category: 'strength' });
+      tid = t.id;
+    });
+
+    act(() => {
+      result.current.deleteTraining(tid);
+    });
+
+    expect(result.current.data.trainings).toHaveLength(0);
+    expect(api.delete).not.toHaveBeenCalled();
+  });
+
+  it('deleteExercise removes exercise from training', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let tid, eid;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'T', category: 'strength' });
+      tid = t.id;
+      const ex = await result.current.addExercise(tid, { name: 'Supino', type: 'strength' });
+      eid = ex.id;
+    });
+
+    await act(async () => {
+      await result.current.deleteExercise(tid, eid);
+    });
+
+    expect(result.current.data.trainings[0].exercises).toHaveLength(0);
+    expect(api.delete).not.toHaveBeenCalled();
+  });
+
+  it('updateExercise updates fields locally', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let tid, eid;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'T', category: 'strength' });
+      tid = t.id;
+      const ex = await result.current.addExercise(tid, { name: 'Supino', type: 'strength', sets: 3 });
+      eid = ex.id;
+    });
+
+    await act(async () => {
+      await result.current.updateExercise(tid, eid, { sets: 5 });
+    });
+
+    expect(result.current.data.trainings[0].exercises[0].sets).toBe(5);
+    expect(api.patch).not.toHaveBeenCalled();
+  });
+});
+
+describe('useProtocolBuilder — API surface parity', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockImplementation(makeGetHandler(null));
+  });
+
+  it('returns all expected fields matching useRoutineBuilder surface', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const keys = Object.keys(result.current);
+    const required = [
+      'loading', 'saving', 'error', 'data',
+      'trainingTemplates', 'exerciseTemplates',
+      'createdTrainingIds', 'junctionsAddedToImported',
+      'updateMeta', 'saveRoutine', 'createTraining',
+      'importTrainingsFromLibrary', 'updateTraining',
+      'updateTrainingWeekDay', 'deleteTraining',
+      'addExercise', 'addExerciseFromTemplate',
+      'updateExercise', 'deleteExercise',
+      'saveExerciseAsTemplate', 'restoreSessionTracking',
+    ];
+    for (const key of required) {
+      expect(keys).toContain(key);
+    }
+  });
+
+  it('createdTrainingIds is always empty (deferred mode)', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.createdTrainingIds).toEqual([]);
+  });
+
+  it('restoreSessionTracking is a no-op', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    // Should not throw
+    expect(() => result.current.restoreSessionTracking({ createdTrainingIds: ['a'], junctionsAddedToImported: [] })).not.toThrow();
+  });
+});

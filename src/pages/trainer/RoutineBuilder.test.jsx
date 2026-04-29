@@ -29,10 +29,14 @@ vi.mock('../../hooks/useRoutineDraft', () => ({
   default: vi.fn(),
 }));
 
+// Mock useProtocolBuilder for protocol-mode tests
+vi.mock('../../hooks/useProtocolBuilder');
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 import useRoutineBuilder from '../../hooks/useRoutineBuilder';
 import useRoutineDraft from '../../hooks/useRoutineDraft';
+import useProtocolBuilder from '../../hooks/useProtocolBuilder';
 import RoutineBuilder from './RoutineBuilder';
 
 const EXERCISE_1 = {
@@ -934,11 +938,11 @@ describe('RoutineBuilder — exercise row (3-dot menu)', () => {
     });
     await user.click(menuTrigger);
 
-    expect(screen.getByRole('menuitem', { name: /Editar exercício/i })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /Excluir exercício/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Editar' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Excluir' })).toBeInTheDocument();
   });
 
-  it('clicking "Excluir exercício" shows confirm dialog', async () => {
+  it('clicking "Excluir" shows confirm dialog (exercise)', async () => {
     const user = userEvent.setup();
     renderNew();
     await expandTraining(user);
@@ -947,7 +951,7 @@ describe('RoutineBuilder — exercise row (3-dot menu)', () => {
       name: /Opções de Supino reto/i,
     });
     await user.click(menuTrigger);
-    await user.click(screen.getByRole('menuitem', { name: /Excluir exercício/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
 
     expect(await screen.findByText(/Excluir "Supino reto"/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Confirmar/i })).toBeInTheDocument();
@@ -969,7 +973,7 @@ describe('RoutineBuilder — exercise row (3-dot menu)', () => {
     await user.click(
       screen.getByRole('button', { name: /Opções de Supino reto/i })
     );
-    await user.click(screen.getByRole('menuitem', { name: /Excluir exercício/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
     await user.click(await screen.findByRole('button', { name: /Confirmar/i }));
 
     await waitFor(() => {
@@ -991,7 +995,7 @@ describe('RoutineBuilder — exercise row (3-dot menu)', () => {
     await user.click(
       screen.getByRole('button', { name: /Opções de Supino reto/i })
     );
-    await user.click(screen.getByRole('menuitem', { name: /Excluir exercício/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
 
     // Wait for the confirm dialog message to appear, then find its Cancelar sibling
     await screen.findByText(/Excluir "Supino reto"/i);
@@ -1005,7 +1009,7 @@ describe('RoutineBuilder — exercise row (3-dot menu)', () => {
     expect(screen.queryByText(/Excluir "Supino reto"/i)).not.toBeInTheDocument();
   });
 
-  it('clicking "Editar exercício" opens the composer with snapshot', async () => {
+  it('clicking "Editar" opens the composer with snapshot (exercise)', async () => {
     const user = userEvent.setup();
     renderNew();
     await expandTraining(user);
@@ -1013,7 +1017,7 @@ describe('RoutineBuilder — exercise row (3-dot menu)', () => {
     await user.click(
       screen.getByRole('button', { name: /Opções de Supino reto/i })
     );
-    await user.click(screen.getByRole('menuitem', { name: /Editar exercício/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
 
     // Composer opens in edit mode — shows "Salvar alterações"
     expect(
@@ -1044,7 +1048,7 @@ describe('RoutineBuilder — no EditExerciseSheet', () => {
     await user.click(
       screen.getByRole('button', { name: /Opções de Supino reto/i })
     );
-    await user.click(screen.getByRole('menuitem', { name: /Editar exercício/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
 
     // No bottom-sheet / overlay sheet present
     expect(
@@ -1052,6 +1056,44 @@ describe('RoutineBuilder — no EditExerciseSheet', () => {
     ).not.toBeInTheDocument();
     // The inline composer title (not a heading) IS present
     expect(screen.getByText('Editar exercício')).toBeInTheDocument();
+  });
+});
+
+// ─── Tests — exercise row menu positioning ───────────────────────────────────
+
+describe('RoutineBuilder — exercise row menu right-alignment', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  });
+
+  it('dropdown portal is positioned with `right` (not `left`) so it grows leftward', async () => {
+    const user = userEvent.setup();
+
+    // Simulate trigger near the right edge; jsdom window.innerWidth defaults to 1024
+    const triggerRight = 1000;
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      bottom: 132,
+      left: 968,
+      right: triggerRight,
+      width: 32,
+      height: 32,
+    });
+
+    renderNew();
+    const chevron = screen.getByRole('button', { name: /Expandir treino/i });
+    await user.click(chevron);
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    await user.click(screen.getByRole('button', { name: /Opções de Supino reto/i }));
+
+    const dropdown = screen.getByRole('menu');
+    // right = window.innerWidth (1024) - rect.right (1000) = 24px
+    const expectedRight = `${window.innerWidth - triggerRight}px`;
+    expect(dropdown.style.right).toBe(expectedRight);
+    // `left` must NOT be set — presence of a left value would push menu off-screen
+    expect(dropdown.style.left).toBe('');
   });
 });
 
@@ -1240,10 +1282,10 @@ describe('RoutineBuilder — training item menu', () => {
     await user.click(menuTrigger);
 
     expect(
-      screen.getByRole('menuitem', { name: /Editar treino/i })
+      screen.getByRole('menuitem', { name: 'Editar' })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitem', { name: /Excluir treino/i })
+      screen.getByRole('menuitem', { name: 'Excluir' })
     ).toBeInTheDocument();
     // Rename was removed
     expect(
@@ -1270,14 +1312,14 @@ describe('RoutineBuilder — training item menu', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('clicking "Excluir treino" shows confirm dialog', async () => {
+  it('clicking "Excluir" shows confirm dialog (training)', async () => {
     const user = userEvent.setup();
     renderNew();
 
     await user.click(
       screen.getByRole('button', { name: /Opções do treino Peito & Tríceps/i })
     );
-    await user.click(screen.getByRole('menuitem', { name: /Excluir treino/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
 
     expect(
       await screen.findByText(/Excluir treino "Peito & Tríceps"/i)
@@ -1297,7 +1339,7 @@ describe('RoutineBuilder — training item menu', () => {
     await user.click(
       screen.getByRole('button', { name: /Opções do treino Peito & Tríceps/i })
     );
-    await user.click(screen.getByRole('menuitem', { name: /Excluir treino/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
     await user.click(await screen.findByRole('button', { name: /Confirmar/i }));
 
     expect(deleteTraining).toHaveBeenCalledWith('training-1');
@@ -1312,8 +1354,8 @@ describe('RoutineBuilder — training item menu', () => {
     );
 
     // Items live in portal under document.body — still queryable globally
-    expect(screen.getByRole('menuitem', { name: /Editar treino/i })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /Excluir treino/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Editar' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Excluir' })).toBeInTheDocument();
   });
 
   it('Escape key closes the menu', async () => {
@@ -1323,13 +1365,13 @@ describe('RoutineBuilder — training item menu', () => {
     await user.click(
       screen.getByRole('button', { name: /Opções do treino Peito & Tríceps/i })
     );
-    expect(screen.getByRole('menuitem', { name: /Editar treino/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Editar' })).toBeInTheDocument();
 
     await user.keyboard('{Escape}');
 
     await waitFor(() => {
       expect(
-        screen.queryByRole('menuitem', { name: /Editar treino/i })
+        screen.queryByRole('menuitem', { name: 'Editar' })
       ).not.toBeInTheDocument();
     });
   });
@@ -1341,13 +1383,13 @@ describe('RoutineBuilder — training item menu', () => {
     await user.click(
       screen.getByRole('button', { name: /Opções do treino Peito & Tríceps/i })
     );
-    expect(screen.getByRole('menuitem', { name: /Editar treino/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Editar' })).toBeInTheDocument();
 
     await user.click(document.body);
 
     await waitFor(() => {
       expect(
-        screen.queryByRole('menuitem', { name: /Editar treino/i })
+        screen.queryByRole('menuitem', { name: 'Editar' })
       ).not.toBeInTheDocument();
     });
   });
@@ -1599,14 +1641,14 @@ describe('RoutineBuilder — edit training sheet from menu', () => {
     useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
   });
 
-  it('clicking "Editar treino" opens the sheet in edit mode', async () => {
+  it('clicking "Editar" opens the sheet in edit mode (training)', async () => {
     const user = userEvent.setup();
     renderNew();
 
     await user.click(
       screen.getByRole('button', { name: /Opções do treino Peito & Tríceps/i })
     );
-    await user.click(screen.getByRole('menuitem', { name: /Editar treino/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
 
     expect(
       await screen.findByRole('heading', { name: /Editar treino/i })
@@ -1622,7 +1664,7 @@ describe('RoutineBuilder — edit training sheet from menu', () => {
     await user.click(
       screen.getByRole('button', { name: /Opções do treino Peito & Tríceps/i })
     );
-    await user.click(screen.getByRole('menuitem', { name: /Editar treino/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
 
     await screen.findByRole('heading', { name: /Editar treino/i });
     expect(screen.getByLabelText(/Nome do treino/i)).toHaveValue('Peito & Tríceps');
@@ -1641,7 +1683,7 @@ describe('RoutineBuilder — edit training sheet from menu', () => {
     await user.click(
       screen.getByRole('button', { name: /Opções do treino Peito & Tríceps/i })
     );
-    await user.click(screen.getByRole('menuitem', { name: /Editar treino/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
 
     await screen.findByRole('heading', { name: /Editar treino/i });
     await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
@@ -1666,7 +1708,7 @@ describe('RoutineBuilder — edit training sheet from menu', () => {
     await user.click(
       screen.getByRole('button', { name: /Opções do treino Peito & Tríceps/i })
     );
-    await user.click(screen.getByRole('menuitem', { name: /Editar treino/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
     await screen.findByRole('heading', { name: /Editar treino/i });
 
     // Close via the sheet's own X button (not the topbar Cancelar which navigates)
@@ -1797,5 +1839,425 @@ describe('RoutineBuilder — unassigned training grouping', () => {
     const assignedIdx = items.findIndex((el) => el.textContent === 'Peito & Tríceps');
     const unassignedIdx = items.findIndex((el) => el.textContent === 'Costas & Bíceps');
     expect(assignedIdx).toBeLessThan(unassignedIdx);
+  });
+});
+
+// ─── Protocol-mode fixtures ───────────────────────────────────────────────────
+
+const PROTOCOL_HOOK_EMPTY = {
+  loading: false,
+  saving: false,
+  error: null,
+  data: {
+    id: null,
+    name: '',
+    type: '',
+    trainingLevel: '',
+    genderOrdination: '',
+    description: '',
+    startDate: '',
+    expirationDate: '',
+    assigneeId: 'student-1',
+    trainings: [],
+  },
+  trainingTemplates: [],
+  exerciseTemplates: [],
+  protocolTemplates: [],
+  student: { id: 'student-1', firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' },
+  createdTrainingIds: [],
+  junctionsAddedToImported: [],
+  updateMeta: vi.fn(),
+  saveRoutine: vi.fn(),
+  createTraining: vi.fn(),
+  importTrainingsFromLibrary: vi.fn(),
+  updateTraining: vi.fn(),
+  updateTrainingWeekDay: vi.fn(),
+  deleteTraining: vi.fn(),
+  addExercise: vi.fn(),
+  addExerciseFromTemplate: vi.fn(),
+  updateExercise: vi.fn(),
+  deleteExercise: vi.fn(),
+  saveExerciseAsTemplate: vi.fn(),
+  restoreSessionTracking: vi.fn(),
+  loadFromTemplate: vi.fn(),
+};
+
+const PROTOCOL_HOOK_WITH_TRAININGS = {
+  ...PROTOCOL_HOOK_EMPTY,
+  data: {
+    ...PROTOCOL_HOOK_EMPTY.data,
+    name: 'Rotina Ana',
+    startDate: '2026-05-01',
+    trainings: [TRAINING_WITH_EXERCISES],
+  },
+};
+
+const renderProtocol = (studentId = 'student-1') =>
+  renderWithRoute(<RoutineBuilder />, {
+    route: `/trainer/protocols/new?studentId=${studentId}`,
+    path: '/trainer/protocols/new',
+  });
+
+// ─── Tests — protocol mode renders correct UI ─────────────────────────────────
+
+describe('RoutineBuilder — modo protocol (studentId na URL)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY });
+  });
+
+  it('calls useProtocolBuilder with the studentId from URL', () => {
+    renderProtocol('student-abc');
+    expect(useProtocolBuilder).toHaveBeenCalledWith('student-abc');
+  });
+
+  it('does NOT call useRoutineBuilder in protocol mode', () => {
+    renderProtocol();
+    expect(useRoutineBuilder).not.toHaveBeenCalled();
+  });
+
+  it('shows student name in the topbar eyebrow', () => {
+    renderProtocol();
+    expect(screen.getByText(/Rotina de Ana Lima/i)).toBeInTheDocument();
+  });
+
+  it('shows "Rotina do aluno · Pronto para salvar" as save status label', () => {
+    renderProtocol();
+    expect(screen.getByText(/Rotina do aluno · Pronto para salvar/i)).toBeInTheDocument();
+  });
+
+  it('does NOT show "Rascunho" in the eyebrow', () => {
+    renderProtocol();
+    expect(screen.queryByText(/Rascunho/i)).not.toBeInTheDocument();
+  });
+
+  it('shows date chips (Início and Expira) in the identity strip', () => {
+    renderProtocol();
+    expect(screen.getByRole('button', { name: /Definir Data início/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Definir Data fim/i })).toBeInTheDocument();
+  });
+
+  it('clicking Início chip opens popover with date input', async () => {
+    const user = userEvent.setup();
+    renderProtocol();
+
+    await user.click(screen.getByRole('button', { name: /Definir Data início/i }));
+
+    expect(screen.getByRole('dialog', { name: /Definir Data início/i })).toBeInTheDocument();
+    // The <input type="date"> has aria-label="Data início"
+    expect(screen.getByRole('button', { name: /Definir Data início/i })).toBeInTheDocument();
+  });
+
+  it('changing the date input calls updateMeta but keeps popover open', async () => {
+    const updateMeta = vi.fn();
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY, updateMeta });
+
+    const user = userEvent.setup();
+    renderProtocol();
+
+    await user.click(screen.getByRole('button', { name: /Definir Data início/i }));
+    expect(screen.getByRole('dialog', { name: /Definir Data início/i })).toBeInTheDocument();
+
+    // The input inside the dialog has aria-label="Data início"
+    const dialog = screen.getByRole('dialog', { name: /Definir Data início/i });
+    const dateInput = dialog.querySelector('input[type="date"]');
+    fireEvent.change(dateInput, { target: { value: '2026-04-28' } });
+
+    expect(updateMeta).toHaveBeenCalledWith({ startDate: '2026-04-28' });
+    // Popover must still be open after the change
+    expect(screen.getByRole('dialog', { name: /Definir Data início/i })).toBeInTheDocument();
+  });
+
+  it('popover closes when clicking outside after setting a date', async () => {
+    const updateMeta = vi.fn();
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY, updateMeta });
+
+    const user = userEvent.setup();
+    renderProtocol();
+
+    await user.click(screen.getByRole('button', { name: /Definir Data início/i }));
+    expect(screen.getByRole('dialog', { name: /Definir Data início/i })).toBeInTheDocument();
+
+    const dialog = screen.getByRole('dialog', { name: /Definir Data início/i });
+    const dateInput = dialog.querySelector('input[type="date"]');
+    fireEvent.change(dateInput, { target: { value: '2026-04-28' } });
+
+    // Popover still open after date entry
+    expect(screen.getByRole('dialog', { name: /Definir Data início/i })).toBeInTheDocument();
+
+    // Click outside to close
+    fireEvent.pointerDown(document.body);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /Definir Data início/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('pressing Escape closes the date popover', async () => {
+    const user = userEvent.setup();
+    renderProtocol();
+
+    await user.click(screen.getByRole('button', { name: /Definir Data início/i }));
+    expect(screen.getByRole('dialog', { name: /Definir Data início/i })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /Definir Data início/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('does NOT show the Duração chip in protocol mode', () => {
+    renderProtocol();
+    expect(screen.queryByRole('button', { name: /Definir Duração/i })).not.toBeInTheDocument();
+  });
+
+  it('shows "Importar de template" button in the topbar', () => {
+    renderProtocol();
+    expect(
+      screen.getByRole('button', { name: /Importar de template/i })
+    ).toBeInTheDocument();
+  });
+});
+
+// ─── Tests — protocol mode canSave ───────────────────────────────────────────
+
+describe('RoutineBuilder — canSave em modo protocol', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+  });
+
+  it('Salvar is disabled when name is set but startDate is missing', () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      data: {
+        ...PROTOCOL_HOOK_EMPTY.data,
+        name: 'Rotina Teste',
+        startDate: '',
+        trainings: [TRAINING_WITH_EXERCISES],
+      },
+    });
+    renderProtocol();
+    const saveBtns = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    saveBtns.forEach((btn) => expect(btn).toBeDisabled());
+  });
+
+  it('Salvar is disabled when startDate is set but trainings is empty', () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      data: {
+        ...PROTOCOL_HOOK_EMPTY.data,
+        name: 'Rotina Teste',
+        startDate: '2026-05-01',
+        trainings: [],
+      },
+    });
+    renderProtocol();
+    const saveBtns = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    saveBtns.forEach((btn) => expect(btn).toBeDisabled());
+  });
+
+  it('Salvar is enabled when name + startDate + trainings are all present', () => {
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_WITH_TRAININGS });
+    renderProtocol();
+    const saveBtns = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    // At least one save button should be enabled
+    expect(saveBtns.some((btn) => !btn.disabled)).toBe(true);
+  });
+});
+
+// ─── Tests — protocol mode save navigation ────────────────────────────────────
+
+describe('RoutineBuilder — save em modo protocol navega para /trainer/protocols/:id', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+  });
+
+  it('calls saveRoutine with correct meta including assigneeId and startDate', async () => {
+    const saveRoutine = vi.fn().mockResolvedValue({ id: 'proto-new-1' });
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_WITH_TRAININGS,
+      saveRoutine,
+    });
+
+    const user = userEvent.setup();
+    renderProtocol('student-1');
+
+    const saveBtns = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    const enabledBtn = saveBtns.find((btn) => !btn.disabled);
+    await user.click(enabledBtn);
+
+    await waitFor(() => {
+      expect(saveRoutine).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Rotina Ana',
+          assigneeId: 'student-1',
+          startDate: '2026-05-01',
+        }),
+        expect.any(Array)
+      );
+    });
+  });
+
+  it('does NOT call clearDraft after save in protocol mode', async () => {
+    const clearDraft = vi.fn();
+    const saveRoutine = vi.fn().mockResolvedValue({ id: 'proto-new-2' });
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft });
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_WITH_TRAININGS,
+      saveRoutine,
+    });
+
+    const user = userEvent.setup();
+    renderProtocol();
+
+    const saveBtns = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    const enabledBtn = saveBtns.find((btn) => !btn.disabled);
+    await user.click(enabledBtn);
+
+    await waitFor(() => expect(saveRoutine).toHaveBeenCalled());
+    expect(clearDraft).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Tests — protocol mode back/cancel destination ───────────────────────────
+
+describe('RoutineBuilder — back/cancel em modo protocol', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY });
+  });
+
+  it('back button aria-label mentions "aluno" not "rotinas"', () => {
+    renderProtocol();
+    expect(
+      screen.getByRole('button', { name: /Voltar para o aluno/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Voltar para rotinas/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
+// ─── Tests — protocol mode importar de template sheet ────────────────────────
+
+describe('RoutineBuilder — "Importar de template" sheet em modo protocol', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+  });
+
+  it('clicking "Importar de template" opens the sheet', async () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      protocolTemplates: [{ id: 'pt-1', name: 'Template Força', type: 'strength' }],
+    });
+    const user = userEvent.setup();
+    renderProtocol();
+
+    await user.click(screen.getByRole('button', { name: /Importar de template/i }));
+
+    expect(
+      screen.getByRole('dialog', { name: /Importar de template/i })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Template Força')).toBeInTheDocument();
+  });
+
+  it('selecting a template calls loadFromTemplate with its id', async () => {
+    const loadFromTemplate = vi.fn().mockResolvedValue(undefined);
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      protocolTemplates: [{ id: 'pt-1', name: 'Template Força', type: 'strength' }],
+      loadFromTemplate,
+    });
+
+    const user = userEvent.setup();
+    renderProtocol();
+
+    await user.click(screen.getByRole('button', { name: /Importar de template/i }));
+    await user.click(screen.getByText('Template Força'));
+
+    expect(loadFromTemplate).toHaveBeenCalledWith('pt-1');
+  });
+
+  it('sheet shows empty message when no protocol templates exist', async () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      protocolTemplates: [],
+    });
+    const user = userEvent.setup();
+    renderProtocol();
+
+    await user.click(screen.getByRole('button', { name: /Importar de template/i }));
+
+    expect(screen.getByText(/Nenhum template disponível/i)).toBeInTheDocument();
+  });
+
+  it('closing the sheet hides it', async () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      protocolTemplates: [{ id: 'pt-1', name: 'Template Força', type: 'strength' }],
+    });
+    const user = userEvent.setup();
+    renderProtocol();
+
+    await user.click(screen.getByRole('button', { name: /Importar de template/i }));
+    expect(screen.getByRole('dialog', { name: /Importar de template/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Fechar/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', { name: /Importar de template/i })
+      ).not.toBeInTheDocument();
+    });
+  });
+});
+
+// ─── Tests — template mode still works after changes ─────────────────────────
+
+describe('RoutineBuilder — modo template não regrediu', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
+  });
+
+  it('renders eyebrow "Nova rotina · Rascunho" in template mode', () => {
+    renderNew();
+    expect(screen.getByText(/Nova rotina · Rascunho/i)).toBeInTheDocument();
+  });
+
+  it('shows Duração chip in template mode', () => {
+    renderNew();
+    expect(
+      screen.getByRole('button', { name: /Definir Duração/i })
+    ).toBeInTheDocument();
+  });
+
+  it('does NOT show "Importar de template" button in template mode', () => {
+    renderNew();
+    expect(
+      screen.queryByRole('button', { name: /Importar de template/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('does NOT show date chips in template mode', () => {
+    renderNew();
+    expect(
+      screen.queryByRole('button', { name: /Definir Data início/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Definir Data fim/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('passes routineId to useRoutineBuilder in edit mode', () => {
+    renderEdit('routine-xyz');
+    expect(useRoutineBuilder).toHaveBeenCalledWith('routine-xyz');
   });
 });
