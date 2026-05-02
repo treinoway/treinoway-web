@@ -1,6 +1,5 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { selectOption } from '../../test-utils/selectOption';
 import { renderWithRouter } from '../../test/test-utils';
 import ExerciseTemplates from './ExerciseTemplates';
 import { useToast } from '../../contexts/ToastContext';
@@ -120,7 +119,9 @@ describe('ExerciseTemplates', () => {
 
     await user.click(screen.getByRole('button', { name: /novo exercício/i }));
 
-    expect(screen.getByText('Criar novo exercício')).toBeInTheDocument();
+    // New form shows name input and the "Sem nome ainda" placeholder h1
+    expect(screen.getByLabelText(/nome/i)).toBeInTheDocument();
+    expect(screen.getByText('Sem nome ainda')).toBeInTheDocument();
   });
 
   it('calls POST to create a new template on form submission', async () => {
@@ -135,9 +136,12 @@ describe('ExerciseTemplates', () => {
     await waitFor(() => screen.getByText('Agachamento'));
     await user.click(screen.getByRole('button', { name: /novo exercício/i }));
 
-    const nameInput = screen.getByLabelText(/nome/i);
-    await user.type(nameInput, 'Flexão');
-    await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
+    await user.type(screen.getByLabelText(/nome/i), 'Flexão');
+    // Type is now a segmented radio toggle — click the radio button
+    await user.click(screen.getByRole('radio', { name: /força/i }));
+    // Prescription mode is reps by default — fill required reps values.
+    await user.type(screen.getByLabelText(/repetições mínimas/i), '8');
+    await user.type(screen.getByLabelText(/repetições máximas/i), '12');
     await user.click(screen.getByRole('button', { name: /criar exercício/i }));
 
     await waitFor(() => {
@@ -159,8 +163,10 @@ describe('ExerciseTemplates', () => {
     await user.click(menuTrigger);
     await user.click(screen.getByText('Editar'));
 
-    expect(screen.getByText('Editar exercício')).toBeInTheDocument();
+    // Page header now shows the template name as h1
     expect(screen.getByDisplayValue('Agachamento')).toBeInTheDocument();
+    // Type radio should be pre-selected
+    expect(screen.getByRole('radio', { name: /força/i })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('calls PATCH on save when editing an existing template', async () => {
@@ -298,24 +304,27 @@ describe('ExerciseTemplates', () => {
     expect(screen.queryByRole('button', { name: /visualização em lista/i })).not.toBeInTheDocument();
   });
 
-  it('shows YouTube embed preview in create form when a valid YouTube URL is entered', async () => {
+  it('shows play button (not expand) in create form when a valid YouTube URL is entered', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ExerciseTemplates />);
 
     await waitFor(() => screen.getByText('Agachamento'));
     await user.click(screen.getByRole('button', { name: /novo exercício/i }));
 
-    const videoInput = screen.getByLabelText(/url do vídeo/i);
-    await user.type(videoInput, 'https://www.youtube.com/watch?v=formPreviewId');
-
-    const iframes = document.querySelectorAll('iframe');
-    const formPreviewIframe = Array.from(iframes).find((el) =>
-      el.src.includes('youtube.com/embed/formPreviewId')
+    await user.type(
+      screen.getByLabelText(/url do vídeo/i),
+      'https://www.youtube.com/watch?v=formPreviewId'
     );
-    expect(formPreviewIframe).toBeTruthy();
+
+    expect(
+      screen.getByRole('button', { name: /reproduzir prévia/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /expandir vídeo em tela cheia/i })
+    ).not.toBeInTheDocument();
   });
 
-  it('shows YouTube embed preview in edit form when template has videoUrl', async () => {
+  it('clicking play in edit form swaps thumbnail for inline iframe', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ExerciseTemplates />);
 
@@ -326,10 +335,13 @@ describe('ExerciseTemplates', () => {
     await user.click(menuTrigger);
     await user.click(screen.getByText('Editar'));
 
+    await user.click(screen.getByRole('button', { name: /reproduzir prévia/i }));
+
     const iframes = document.querySelectorAll('iframe');
-    const formPreviewIframe = Array.from(iframes).find((el) =>
+    const inlineIframe = Array.from(iframes).find((el) =>
       el.src.includes('youtube.com/embed/abc123XYZ')
     );
-    expect(formPreviewIframe).toBeTruthy();
+    expect(inlineIframe).toBeTruthy();
+    expect(screen.queryByRole('img', { name: /miniatura do vídeo/i })).not.toBeInTheDocument();
   });
 });

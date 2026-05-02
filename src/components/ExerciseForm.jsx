@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import Select from '../components/Select';
 import VideoField from './VideoField';
+import PrescriptionField from './PrescriptionField';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
@@ -11,6 +12,7 @@ const EMPTY_FORM = {
   name: '',
   type: '',
   videoUrl: '',
+  prescriptionMode: 'reps',
   sets: '',
   repetitionsMin: '',
   repetitionsMax: '',
@@ -26,10 +28,16 @@ const buildPayload = (data) => {
     name: data.name,
     type: data.type,
     hasLoad: data.hasLoad,
+    prescriptionMode: data.prescriptionMode,
   };
   if (data.videoUrl?.trim()) payload.videoUrl = data.videoUrl.trim();
   if (data.sets !== '' && data.sets != null) payload.sets = parseInt(data.sets, 10);
-  if (
+
+  if (data.prescriptionMode === 'duration') {
+    if (data.duration !== '' && data.duration != null) {
+      payload.duration = parseInt(data.duration, 10);
+    }
+  } else if (
     data.repetitionsMin !== '' && data.repetitionsMin != null &&
     data.repetitionsMax !== '' && data.repetitionsMax != null
   ) {
@@ -38,8 +46,10 @@ const buildPayload = (data) => {
       max: parseInt(data.repetitionsMax, 10),
     };
   }
-  if (data.duration !== '' && data.duration != null) payload.duration = parseInt(data.duration, 10);
-  if (data.restInterval !== '' && data.restInterval != null) payload.restInterval = parseInt(data.restInterval, 10);
+
+  if (data.restInterval !== '' && data.restInterval != null) {
+    payload.restInterval = parseInt(data.restInterval, 10);
+  }
   if (data.hasLoad && data.suggestedLoad !== '' && data.suggestedLoad != null) {
     payload.suggestedLoad = parseFloat(data.suggestedLoad, 10);
   }
@@ -47,37 +57,59 @@ const buildPayload = (data) => {
   return payload;
 };
 
+const buildInitialForm = (exercise) => {
+  if (!exercise) return EMPTY_FORM;
+  return {
+    name: exercise.name || '',
+    type: exercise.type || '',
+    videoUrl: exercise.videoUrl || '',
+    prescriptionMode: exercise.prescriptionMode ?? 'reps',
+    sets: exercise.sets ?? '',
+    repetitionsMin: exercise.repetitions?.min ?? '',
+    repetitionsMax: exercise.repetitions?.max ?? '',
+    duration: exercise.duration ?? '',
+    restInterval: exercise.restInterval ?? '',
+    hasLoad: exercise.hasLoad || false,
+    suggestedLoad: exercise.suggestedLoad ?? '',
+    notes: exercise.notes || '',
+  };
+};
+
 const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent }) => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [durationError, setDurationError] = useState('');
+  const [repsError, setRepsError] = useState('');
+  const [formData, setFormData] = useState(() => buildInitialForm(exercise));
   const isEditing = !!exercise?.id;
   const isDraftMode = !isEditing && !trainingId;
-  const showRepetitions = formData.type !== 'cardio';
-  const showDuration = formData.type !== 'strength';
 
   useEffect(() => {
-    if (exercise) {
-      setFormData({
-        name: exercise.name || '',
-        type: exercise.type || '',
-        videoUrl: exercise.videoUrl || '',
-        sets: exercise.sets ?? '',
-        repetitionsMin: exercise.repetitions?.min ?? '',
-        repetitionsMax: exercise.repetitions?.max ?? '',
-        duration: exercise.duration ?? '',
-        restInterval: exercise.restInterval ?? '',
-        hasLoad: exercise.hasLoad || false,
-        suggestedLoad: exercise.suggestedLoad ?? '',
-        notes: exercise.notes || '',
-      });
-    } else {
-      setFormData(EMPTY_FORM);
-    }
+    setFormData(buildInitialForm(exercise));
+    setDurationError('');
+    setRepsError('');
   }, [exercise]);
+
+  const handlePrescriptionChange = useCallback((patch) => {
+    setFormData((prev) => ({ ...prev, ...patch }));
+  }, []);
+
+  const clearDurationError = useCallback(() => setDurationError(''), []);
+  const clearRepsError = useCallback(() => setRepsError(''), []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.prescriptionMode === 'duration') {
+      if (!formData.duration || Number(formData.duration) < 1) {
+        setDurationError('Defina o valor antes de salvar.');
+        return;
+      }
+    } else if (!formData.repetitionsMin || !formData.repetitionsMax) {
+      setRepsError('Defina o valor antes de salvar.');
+      return;
+    }
+
     const payload = buildPayload(formData);
 
     if (isDraftMode) {
@@ -105,9 +137,11 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
   return (
     <>
       {headerContent}
-      <form onSubmit={handleSubmit} className="form">
+      <form onSubmit={handleSubmit} className="form" noValidate>
         <div>
-          <label className="form-label" htmlFor="exercise-form-name">Nome <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
+          <label className="form-label" htmlFor="exercise-form-name">
+            Nome <span aria-hidden="true" className="form-label-required">*</span>
+          </label>
           <input
             id="exercise-form-name"
             type="text"
@@ -120,7 +154,9 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
         </div>
 
         <div>
-          <label className="form-label" htmlFor="exercise-form-type">Tipo <span aria-hidden="true" style={{ color: 'var(--color-error)' }}>*</span></label>
+          <label className="form-label" htmlFor="exercise-form-type">
+            Tipo <span aria-hidden="true" className="form-label-required">*</span>
+          </label>
           <Select
             id="exercise-form-type"
             value={formData.type}
@@ -139,76 +175,20 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
           onChange={(url) => setFormData((prev) => ({ ...prev, videoUrl: url }))}
         />
 
-        {showRepetitions ? (
-          <div className="grid-responsive-2col">
-            <div>
-              <label className="form-label" htmlFor="exercise-form-sets">Séries</label>
-              <input
-                id="exercise-form-sets"
-                type="number"
-                min="1"
-                value={formData.sets}
-                onChange={(e) => setFormData({ ...formData, sets: e.target.value })}
-                className="form-input"
-              />
-            </div>
-            <div>
-              <label className="form-label">Repetições</label>
-              <div className="grid-2col" style={{ gap: 'var(--spacing-xs)' }}>
-                <input
-                  id="exercise-form-repetitions-min"
-                  type="number"
-                  min="1"
-                  value={formData.repetitionsMin}
-                  onChange={(e) => setFormData({ ...formData, repetitionsMin: e.target.value })}
-                  className="form-input"
-                  aria-label="Repetições mínimas"
-                  placeholder="Mín"
-                />
-                <input
-                  id="exercise-form-repetitions-max"
-                  type="number"
-                  min="1"
-                  value={formData.repetitionsMax}
-                  onChange={(e) => setFormData({ ...formData, repetitionsMax: e.target.value })}
-                  className="form-input"
-                  aria-label="Repetições máximas"
-                  placeholder="Máx"
-                />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <label className="form-label" htmlFor="exercise-form-sets">Séries</label>
-            <input
-              id="exercise-form-sets"
-              type="number"
-              min="1"
-              value={formData.sets}
-              onChange={(e) => setFormData({ ...formData, sets: e.target.value })}
-              className="form-input"
-            />
-          </div>
-        )}
-
-        {showDuration && (
-          <div>
-            <label className="form-label" htmlFor="exercise-form-duration">Duração em segundos</label>
-            <input
-              id="exercise-form-duration"
-              type="number"
-              min="1"
-              value={formData.duration}
-              onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-              className="form-input"
-              placeholder="Ex: 60"
-            />
-          </div>
-        )}
+        <PrescriptionField
+          idPrefix="exercise-form"
+          formData={formData}
+          onChange={handlePrescriptionChange}
+          durationError={durationError}
+          onClearDurationError={clearDurationError}
+          repsError={repsError}
+          onClearRepsError={clearRepsError}
+        />
 
         <div>
-          <label className="form-label" htmlFor="exercise-form-restInterval">Intervalo de descanso (segundos)</label>
+          <label className="form-label" htmlFor="exercise-form-restInterval">
+            Intervalo de descanso (segundos)
+          </label>
           <input
             id="exercise-form-restInterval"
             type="number"
@@ -234,7 +214,9 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
 
         {formData.hasLoad && (
           <div>
-            <label className="form-label" htmlFor="exercise-form-suggestedLoad">Carga sugerida (Kg)</label>
+            <label className="form-label" htmlFor="exercise-form-suggestedLoad">
+              Carga sugerida (Kg)
+            </label>
             <input
               id="exercise-form-suggestedLoad"
               type="number"
@@ -268,7 +250,6 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
           </button>
         </div>
       </form>
-
     </>
   );
 };

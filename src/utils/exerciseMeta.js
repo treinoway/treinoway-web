@@ -34,21 +34,33 @@ export function formatRestInterval(seconds) {
 }
 
 /**
- * Builds a short meta string for an exercise template (type, sets/reps or duration, load, rest).
- * Used in lists and cards to show type + goal at a glance.
- * @param {Object} template - Exercise template with type, sets, repetitions, duration, hasLoad, suggestedLoad, restInterval
- * @returns {string|null} e.g. "Força · 4x10–12 · 60 kg · Descanso: 1min 30s" or "Cardio · 600s", or null if nothing to show
+ * Builds a short meta string for an exercise or template (type, sets/reps or duration, load, rest).
+ * Uses `prescriptionMode` when available; falls back to field-presence heuristic for legacy data.
+ * @param {Object} template - Exercise or template with prescriptionMode, type, sets, repetitions, duration, hasLoad, suggestedLoad, restInterval
+ * @returns {string|null} e.g. "Força · 4x10–12 · 60 kg · Descanso: 1min 30s" or "45 seg", or null if nothing to show
  */
 export function formatExerciseMeta(template) {
   if (!template) return null;
   const parts = [];
   if (template.type) parts.push(getExerciseTypeLabel(template.type));
-  const repsLabel = formatRepetitions(template.repetitions);
-  if (template.sets != null && repsLabel != null) {
-    parts.push(`${template.sets}x${repsLabel}`);
-  } else if (template.duration != null) {
-    parts.push(`${template.duration}s`);
+
+  const resolvedMode = template.prescriptionMode
+    ?? (template.duration != null && template.repetitions == null ? 'duration' : 'reps');
+
+  if (resolvedMode === 'duration') {
+    if (template.duration != null) {
+      const durationLabel = template.sets != null
+        ? `${template.sets}x${template.duration} seg`
+        : `${template.duration} seg`;
+      parts.push(durationLabel);
+    }
+  } else {
+    const repsLabel = formatRepetitions(template.repetitions);
+    if (template.sets != null && repsLabel != null) {
+      parts.push(`${template.sets}x${repsLabel}`);
+    }
   }
+
   if (template.hasLoad && template.suggestedLoad != null) {
     parts.push(`${template.suggestedLoad} kg`);
   }

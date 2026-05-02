@@ -80,13 +80,23 @@ describe('formatExerciseMeta', () => {
     expect(formatExerciseMeta(exercise)).toBe('Cardio · 3x8\u201312');
   });
 
-  it('returns duration when no sets/reps', () => {
-    const exercise = { type: 'cardio', duration: 600 };
-    expect(formatExerciseMeta(exercise)).toBe('Cardio · 600s');
+  it('returns duration when prescriptionMode is "duration"', () => {
+    const exercise = { type: 'cardio', prescriptionMode: 'duration', duration: 600 };
+    expect(formatExerciseMeta(exercise)).toBe('Cardio · 600 seg');
   });
 
-  it('prefers sets/reps over duration when both present', () => {
-    const exercise = { type: 'strength', sets: 3, repetitions: { min: 10, max: 10 }, duration: 60 };
+  it('returns duration with sets when prescriptionMode is "duration" and sets present', () => {
+    const exercise = { type: 'strength', prescriptionMode: 'duration', sets: 3, duration: 45 };
+    expect(formatExerciseMeta(exercise)).toBe('Força · 3x45 seg');
+  });
+
+  it('falls back to duration heuristic when prescriptionMode is absent and duration is set without reps', () => {
+    const exercise = { type: 'cardio', duration: 600 };
+    expect(formatExerciseMeta(exercise)).toBe('Cardio · 600 seg');
+  });
+
+  it('uses reps when prescriptionMode is "reps" even if duration is also present', () => {
+    const exercise = { type: 'strength', prescriptionMode: 'reps', sets: 3, repetitions: { min: 10, max: 10 }, duration: 60 };
     expect(formatExerciseMeta(exercise)).toBe('Força · 3x10');
   });
 

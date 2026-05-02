@@ -2462,6 +2462,15 @@ html:has(.auth-page) {
   color: var(--color-on-surface-variant);
 }
 
+/* Canonical brand variants — use in new code */
+.text-steel {
+  color: var(--brand-steel);
+}
+
+.text-strong {
+  font-weight: 600;
+}
+
 .text-light {
   color: var(--color-on-surface-variant);
 }
@@ -9315,6 +9324,306 @@ html:has(.auth-page) {
   font-weight: 500;
   color: var(--brand-steel);
   padding-right: var(--spacing-xs);
+}
+
+/* ============================================
+   Prescription Field — duration vs reps form section
+   ============================================ */
+.prescription-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.prescription-field__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.prescription-field__label {
+  margin-bottom: 0;
+}
+
+.prescription-field__mode-helper {
+  font-family: var(--font-family-base);
+  font-size: var(--font-caption-size);
+  font-weight: 600;
+  color: var(--brand-steel);
+  letter-spacing: var(--tracking-wide);
+}
+
+.prescription-field__row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .prescription-field__row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.prescription-field__reps-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xs);
+}
+
+.prescription-field__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.prescription-field__chip {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--brand-mist);
+  border: 1px solid var(--brand-divider);
+  border-radius: var(--radius-brand);
+  font-family: var(--font-family-base);
+  font-size: var(--font-caption-size);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand-slate);
+  cursor: pointer;
+  min-height: 36px;
+  transition:
+    background var(--duration-fast) var(--ease-brand),
+    color var(--duration-fast) var(--ease-brand),
+    border-color var(--duration-fast) var(--ease-brand),
+    transform var(--duration-fast) var(--ease-brand);
+}
+
+.prescription-field__chip:hover:not(:disabled) {
+  background: var(--md-surface-container-high);
+}
+
+.prescription-field__chip:active {
+  transform: scale(0.96);
+}
+
+.prescription-field__chip:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.prescription-field__chip--active {
+  background: var(--brand-primary);
+  color: #FFFFFF;
+  border-color: var(--brand-primary);
+}
+
+.prescription-field__change-link {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-body-small-size);
+  font-weight: 600;
+  color: var(--brand-primary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prescription-field__change-link:hover {
+  color: var(--brand-primary-dark);
+}
+
+.prescription-field__change-link:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-stat);
+}
+
+.prescription-field__preview {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-body-small-size);
+  color: var(--brand-steel);
+}
+
+.prescription-field__preview-value {
+  font-family: var(--font-family-stat);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--brand-ink);
+  margin-left: var(--spacing-xs);
+  transition: opacity var(--duration-fast) var(--ease-brand);
+}
+
+.prescription-field__long-hint {
+  display: block;
+  margin-top: var(--spacing-xs);
+  color: var(--md-warning);
+  font-size: var(--font-caption-size);
+}
+
+/* ============================================
+   Prescription Row — mockup-aligned grid layout
+   ============================================ */
+.prescription-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .prescription-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.prescription-reps-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xs);
+}
+
+.prescription-reps-row .form-input {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================
+   Prescription Mode Sheet (radio cards)
+   ============================================ */
+.prescription-mode-sheet__description {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-body-small-size);
+  color: var(--brand-steel);
+}
+
+.prescription-mode-sheet__options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.prescription-mode-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-brand);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-brand),
+    background var(--duration-fast) var(--ease-brand);
+}
+
+.prescription-mode-card:hover {
+  background: var(--md-surface-container-high);
+}
+
+.prescription-mode-card--selected {
+  border-color: var(--brand-primary);
+  background: var(--brand-accent-container);
+}
+
+.prescription-mode-card__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.prescription-mode-card__radio {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border: 2px solid var(--md-outline-variant);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--duration-fast) var(--ease-brand);
+}
+
+.prescription-mode-card--selected .prescription-mode-card__radio {
+  border-color: var(--brand-primary);
+}
+
+.prescription-mode-card--selected .prescription-mode-card__radio::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--brand-primary);
+}
+
+.prescription-mode-card__input:focus-visible + .prescription-mode-card__radio {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.prescription-mode-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xs);
+}
+
+.prescription-mode-card__title {
+  font-family: var(--font-family-display);
+  font-size: var(--font-body-large-size, 18px);
+  font-weight: 600;
+  color: var(--brand-ink);
+}
+
+.prescription-mode-card__description {
+  font-family: var(--font-family-base);
+  font-size: var(--font-body-small-size);
+  color: var(--brand-steel);
+  line-height: var(--line-height-normal);
+}
+
+.prescription-mode-sheet__callout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--md-warning-container);
+  color: var(--md-warning);
+  border-left: 3px solid var(--md-warning);
+  border-radius: var(--radius-brand);
+  margin-top: var(--spacing-md);
+  font-size: var(--font-body-small-size);
+}
+
+.prescription-mode-sheet__footer {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--brand-divider);
+}
+
+.prescription-mode-sheet__footer .btn-group {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.prescription-mode-sheet__footer .btn-group > button {
+  flex: 1;
+}
+
+/* Marker for required-field asterisks (replaces inline color style). */
+.form-label-required {
+  color: var(--md-error);
+}
+
+/* YouTube preview spacing in ExerciseTemplateForm. */
+.etf-youtube-preview {
+  margin-top: var(--spacing-sm);
 }
 
 /* ============================================
@@ -16423,5 +16732,646 @@ nav.onboarding-steps {
   color: var(--md-warning);
   margin: 0;
   line-height: var(--line-height-normal);
+}
+
+/* ============================================
+   Table cell helpers (migration from inline styles)
+   ============================================ */
+/* Search input wrapper above list — replaces inline marginBottom */
+.toolbar-search-wrapper {
+  margin-bottom: var(--spacing-md);
+}
+
+.table-col-actions {
+  width: 48px;
+}
+
+.table-cell-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--brand-steel);
+  margin-top: var(--spacing-2xs, 2px);
+}
+
+.table-cell-badge {
+  display: inline-block;
+  margin-top: var(--spacing-xs);
+}
+
+.table-cell-badge-inline {
+  margin-left: var(--spacing-xs);
+}
+
+/* Inline (same-line) meta text in desktop-only table cells */
+.table-cell-meta-inline {
+  font-size: 12px;
+  color: var(--brand-steel);
+}
+
+/* ============================================
+   ExerciseTemplateForm v2 — new components
+   ============================================ */
+
+/* --- Form section header row (title + eyebrow) --- */
+.form-section-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.form-section-display-title {
+  font-family: var(--font-family-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--brand-ink);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--line-height-tight);
+  margin: 0;
+}
+
+.form-section-meta-eyebrow {
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--brand-steel);
+  flex-shrink: 0;
+}
+
+/* --- Form label row with counter --- */
+.form-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.form-label-row .form-label {
+  margin-bottom: 0;
+}
+
+.form-counter {
+  font-size: 11px;
+  color: var(--brand-steel);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* --- Type segmented toggle (4 cols) --- */
+.segmented-toggle--type {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-2xs, 2px);
+  background: var(--md-surface-container-high);
+  padding: var(--spacing-2xs, 2px);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-sm);
+}
+
+@media (max-width: 374px) {
+  .segmented-toggle--type {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.segmented-toggle--type .segmented-toggle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  min-height: 56px;
+  padding: var(--spacing-sm) var(--spacing-xs);
+  border-radius: calc(var(--radius-brand) - 2px);
+  background: transparent;
+  border: none;
+  color: var(--brand-steel);
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  position: relative;
+  transition: background var(--duration-fast) var(--ease-brand),
+              color var(--duration-fast) var(--ease-brand),
+              box-shadow var(--duration-fast) var(--ease-brand);
+}
+
+.segmented-toggle--type .segmented-toggle-btn:hover {
+  background: var(--md-surface-container);
+  color: var(--brand-slate);
+}
+
+.segmented-toggle--type .segmented-toggle-btn--active {
+  background: var(--brand-primary);
+  color: #FFFFFF;
+  box-shadow: var(--shadow-brand-sm);
+}
+
+.segmented-toggle--type .segmented-toggle-btn--active:hover {
+  background: var(--brand-primary);
+  color: #FFFFFF;
+}
+
+.segmented-toggle--type .segmented-toggle-btn--active::after {
+  content: '';
+  position: absolute;
+  bottom: var(--spacing-xs);
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--spacing-lg);
+  height: var(--spacing-2xs);
+  background: var(--brand-accent);
+  border-radius: var(--radius-stat);
+}
+
+.segmented-toggle--type .segmented-toggle-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.segmented-toggle--type .segmented-toggle-btn:active {
+  transform: scale(0.98);
+}
+
+.segmented-toggle--type .toggle-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+/* --- Video hero — 16:9 stage with thumbnail, play, expand --- */
+.video-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Stage: 16:9 aspect ratio, max 360px tall */
+.video-hero-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  max-height: 360px;
+  border-radius: var(--radius-brand);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 107, 26, .30), transparent 58%),
+    linear-gradient(135deg, var(--brand-slate), var(--brand-ink) 80%);
+  box-shadow: var(--shadow-brand-sm);
+}
+
+/* Empty state: dashed border + icon + hint */
+.video-hero-stage--empty {
+  background: var(--brand-mist);
+  border: 1.5px dashed var(--brand-divider);
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+/* Circle wrapper for the Film icon in empty state */
+.video-hero-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: var(--md-surface);
+  color: var(--brand-steel);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--brand-divider);
+  flex-shrink: 0;
+}
+
+/* Hint text inside empty stage */
+.video-hero-empty-hint {
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  color: var(--brand-steel);
+  max-width: 320px;
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+/* Thumbnail image — covers the full stage */
+.video-hero-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Centred 64×64 play button */
+.video-hero-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, .94);
+  color: var(--brand-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 24px -8px rgba(10, 15, 28, .45);
+  transition: background var(--duration-fast) var(--ease-brand),
+              transform var(--duration-fast) var(--ease-brand);
+}
+
+.video-hero-play:hover {
+  background: var(--md-surface);
+  transform: scale(1.06);
+}
+
+.video-hero-play:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Inline iframe — fills the stage when playing */
+.video-hero-iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: var(--radius-brand);
+}
+
+/* Meta section: URL input + actions */
+.video-hero-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* URL row: icon-prefixed input */
+.video-hero-url-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--spacing-sm);
+}
+
+.video-hero-url-row .form-input-with-icon {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Input with leading lucide icon */
+.form-input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.form-input-with-icon > svg {
+  position: absolute;
+  left: var(--spacing-sm);
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+  color: var(--brand-steel);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.form-input-with-icon .form-input {
+  padding-left: calc(var(--spacing-sm) + 16px + var(--spacing-xs));
+  width: 100%;
+}
+
+/* Actions row: library btn + remove btn */
+.video-hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.video-hero-actions .btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: transparent;
+}
+
+.video-hero-actions .btn-link:hover {
+  background: var(--brand-mist);
+}
+
+.video-hero-actions .btn-link svg {
+  flex-shrink: 0;
+}
+
+/* Muted link — for secondary/ghost link actions */
+.btn-link--muted {
+  color: var(--brand-steel);
+}
+
+.btn-link--muted:hover {
+  color: var(--brand-ink);
+  background: var(--brand-mist);
+}
+
+/* --- Rest interval quick-chips (prescription-chips reuse rest-quick-chips pattern) --- */
+.prescription-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
+}
+
+.prescription-chip {
+  padding: var(--spacing-xs) 14px;
+  background: var(--brand-mist);
+  border: 1px solid var(--brand-divider);
+  border-radius: var(--radius-brand);
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-slate);
+  font-variant-numeric: tabular-nums;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-brand),
+              border-color var(--duration-fast) var(--ease-brand),
+              color var(--duration-fast) var(--ease-brand);
+}
+
+.prescription-chip:hover {
+  background: var(--md-surface-container-high);
+  border-color: var(--md-outline-variant);
+}
+
+.prescription-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.prescription-chip:active {
+  transform: scale(0.97);
+}
+
+.prescription-chip--active {
+  background: var(--brand-primary);
+  color: #fff;
+  border-color: var(--brand-primary);
+}
+
+/* --- Toggle row (label/sub + switch) --- */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xs) 0;
+}
+
+.toggle-row-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toggle-row-title {
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-ink);
+  line-height: var(--line-height-tight);
+}
+
+.toggle-row-sub {
+  font-size: 12px;
+  color: var(--brand-steel);
+  line-height: var(--line-height-normal);
+}
+
+/* --- iOS-style switch --- */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--md-outline-variant);
+  border-radius: var(--radius-full);
+  transition: background var(--duration-base) var(--ease-brand);
+}
+
+.switch-slider::before {
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--duration-base) var(--ease-brand);
+  box-shadow: 0 1px 3px rgba(10, 15, 28, .2);
+}
+
+.switch input:checked + .switch-slider {
+  background: var(--brand-primary);
+}
+
+.switch input:checked + .switch-slider::before {
+  transform: translateX(20px);
+}
+
+.switch input:focus-visible + .switch-slider {
+  box-shadow: var(--shadow-focus);
+}
+
+/* Accent variant — orange for visibility / out-of-default states */
+.switch--accent input:checked + .switch-slider {
+  background: var(--brand-accent);
+}
+
+/* --- Visibility card --- */
+.visibility-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--brand-mist);
+  border-radius: var(--radius-brand);
+  border: 1px solid var(--brand-divider);
+}
+
+.visibility-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-stat);
+  background: var(--md-surface);
+  color: var(--brand-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-brand-sm);
+}
+
+.visibility-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.visibility-card-title {
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-ink);
+  line-height: var(--line-height-tight);
+}
+
+.visibility-card-sub {
+  font-size: 12px;
+  color: var(--brand-steel);
+  line-height: var(--line-height-normal);
+}
+
+/* --- ETF form screen: white bleed covering the full .main-content viewport --- */
+.etf-form-screen {
+  background: var(--md-surface);
+  margin: calc(-1 * var(--spacing-md));
+  margin-bottom: calc(-1 * (var(--spacing-md) + 72px));
+  padding: var(--spacing-md);
+  min-height: calc(100% + 2 * var(--spacing-md));
+}
+
+@media (min-width: 768px) {
+  .etf-form-screen {
+    margin: calc(-1 * var(--spacing-xl));
+    margin-bottom: calc(-1 * var(--spacing-xl));
+    padding: var(--spacing-xl);
+    min-height: calc(100% + 2 * var(--spacing-xl));
+  }
+}
+
+/* --- ETF form layout: max-width on desktop --- */
+.etf-form-wrapper {
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .etf-form-wrapper {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+}
+
+/* --- ETF page-header with dynamic name h1 --- */
+.etf-page-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.etf-page-header-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--brand-steel);
+  margin-bottom: var(--spacing-xs);
+}
+
+.etf-page-header h1 {
+  font-family: var(--font-family-display);
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 700;
+  color: var(--brand-ink);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--line-height-tight);
+  margin: 0;
+}
+
+.etf-page-header h1.is-empty {
+  color: var(--brand-steel);
+  font-weight: 500;
+}
+
+.etf-page-header-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--brand-steel);
+  margin-top: var(--spacing-2xs);
+  line-height: var(--line-height-normal);
+}
+
+/* --- ETF form-section card chrome (desktop only) --- */
+@media (min-width: 768px) {
+  .etf-form-screen .form-section {
+    background: var(--md-surface);
+    border: 1px solid var(--brand-divider);
+    border-radius: var(--radius-brand);
+    padding: var(--spacing-lg);
+  }
+}
+
+/* --- ETF sticky form footer (desktop) --- */
+.etf-form-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.etf-form-footer .btn-primary,
+.etf-form-footer .btn-secondary {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .etf-form-footer {
+    position: sticky;
+    bottom: 0;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) 0;
+    background: linear-gradient(to top, var(--md-surface) 70%, transparent);
+    margin-top: var(--spacing-sm);
+  }
+
+  .etf-form-footer .btn-primary,
+  .etf-form-footer .btn-secondary {
+    width: auto;
+  }
 }
 

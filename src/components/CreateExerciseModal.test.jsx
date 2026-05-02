@@ -101,6 +101,6 @@ describe('CreateExerciseModal', () => {
   it('renders the form with correct fields', () => {
     renderModal();
     expect(screen.getByLabelText(/nome/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/tipo/i)).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /tipo/i })).toBeInTheDocument();
   });
 });

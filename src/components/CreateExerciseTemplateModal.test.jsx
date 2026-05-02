@@ -85,7 +85,7 @@ describe('CreateExerciseTemplateModal', () => {
   it('renders the form with correct fields', () => {
     renderModal();
     expect(screen.getByLabelText(/nome/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/tipo/i)).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: /tipo do exercício/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/tornar este modelo público/i)).toBeInTheDocument();
   });
 });

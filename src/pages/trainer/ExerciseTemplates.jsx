@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { LayoutGrid, List, Dumbbell, Info, Activity } from 'lucide-react';
+import { LayoutGrid, List, Dumbbell, Info, Layers } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -18,6 +18,7 @@ const ExerciseTemplates = () => {
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [viewMode, setViewMode] = usePersistedViewMode(VIEW_MODE_KEYS.exerciseTemplates);
   const [searchQuery, setSearchQuery] = useState('');
+  const [formName, setFormName] = useState('');
 
   const fetchTemplates = useCallback(async () => {
     setTemplatesLoading(true);
@@ -37,6 +38,7 @@ const ExerciseTemplates = () => {
 
   const handleEdit = (template) => {
     setEditingId(template.id);
+    setFormName(template.name || '');
     setShowForm(true);
   };
 
@@ -59,6 +61,7 @@ const ExerciseTemplates = () => {
   const resetForm = () => {
     setEditingId(null);
     setShowForm(false);
+    setFormName('');
   };
 
   const formatExerciseMeta = (template) => {
@@ -95,13 +98,12 @@ const ExerciseTemplates = () => {
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-title-row">
-          <Activity size={24} className="page-header-title-icon" />
-          <h1>Exercícios</h1>
-        </div>
-        <div className="page-header-actions">
-          {!showForm && (
+      {!showForm && (
+        <div className="page-header">
+          <div className="page-header-title-row">
+            <h1>Exercícios</h1>
+          </div>
+          <div className="page-header-actions">
             <div className="view-toggle-group">
               <button
                 type="button"
@@ -110,7 +112,7 @@ const ExerciseTemplates = () => {
                 aria-pressed={viewMode === 'card'}
                 aria-label="Visualização em cards"
               >
-                <LayoutGrid size={16} />
+                <LayoutGrid size={16} strokeWidth={2} />
               </button>
               <button
                 type="button"
@@ -119,20 +121,20 @@ const ExerciseTemplates = () => {
                 aria-pressed={viewMode === 'list'}
                 aria-label="Visualização em lista"
               >
-                <List size={16} />
+                <List size={16} strokeWidth={2} />
               </button>
             </div>
-          )}
-          {!showForm && templates.length > 0 && (
-            <button onClick={() => setShowForm(true)} className="btn-primary">
-              + Novo exercício
-            </button>
-          )}
+            {templates.length > 0 && (
+              <button onClick={() => setShowForm(true)} className="btn-primary">
+                + Novo exercício
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {!showForm && !templatesLoading && templates.length > 0 && (
-        <div style={{ marginBottom: 'var(--spacing-md)' }}>
+        <div className="toolbar-search-wrapper">
           <input
             type="text"
             value={searchQuery}
@@ -145,15 +147,27 @@ const ExerciseTemplates = () => {
       )}
 
       {showForm && (
-        <div className="card card--mb">
-          <h2 className="card-title mb-md">
-            {editingId ? 'Editar exercício' : 'Criar novo exercício'}
-          </h2>
-          <ExerciseTemplateForm
-            exerciseTemplate={editingId ? templates.find((t) => t.id === editingId) : null}
-            onSuccess={() => { fetchTemplates(); resetForm(); }}
-            onCancel={resetForm}
-          />
+        <div className="etf-form-screen">
+          <div className="etf-form-wrapper">
+            <div className="etf-page-header">
+              <span className="etf-page-header-eyebrow">
+                <Layers size={12} strokeWidth={2} aria-hidden="true" />
+                Modelo · Biblioteca
+              </span>
+              <h1 className={formName.trim() ? undefined : 'is-empty'}>
+                {formName.trim() || 'Sem nome ainda'}
+              </h1>
+              <span className="etf-page-header-sub">
+                Disponível em qualquer treino que você prescrever.
+              </span>
+            </div>
+            <ExerciseTemplateForm
+              exerciseTemplate={editingId ? templates.find((t) => t.id === editingId) : null}
+              onSuccess={() => { fetchTemplates(); resetForm(); }}
+              onCancel={resetForm}
+              onNameChange={setFormName}
+            />
+          </div>
         </div>
       )}
 
@@ -215,7 +229,7 @@ const ExerciseTemplates = () => {
                 <th>Nome</th>
                 <th className="table-col-desktop-only">Meta</th>
                 <th className="table-col-desktop-only">Vídeo</th>
-                <th style={{ width: '48px' }} />
+                <th className="table-col-actions" />
               </tr>
             </thead>
             <tbody>
@@ -225,22 +239,22 @@ const ExerciseTemplates = () => {
                 return (
                   <tr key={template.id}>
                     <td>
-                      <span style={{ fontWeight: 600 }}>{template.name}</span>
+                      <span className="text-strong">{template.name}</span>
                       {meta && (
-                        <span className="table-col-mobile-only" style={{ display: 'block', fontSize: 'var(--font-caption-size)', color: 'var(--color-on-surface-variant)', marginTop: '2px' }}>
+                        <span className="table-col-mobile-only table-cell-meta">
                           {meta}
                         </span>
                       )}
                       {template.isPublic && (
-                        <span className="table-col-mobile-only badge badge-green" style={{ marginTop: '4px' }}>Público</span>
+                        <span className="table-col-mobile-only badge badge-green table-cell-badge">
+                          Público
+                        </span>
                       )}
                     </td>
                     <td className="table-col-desktop-only">
-                      <span style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-body-small-size)' }}>
-                        {meta || '—'}
-                      </span>
+                      <span className="table-cell-meta-inline">{meta || '—'}</span>
                       {template.isPublic && (
-                        <span className="badge badge-green" style={{ marginLeft: 'var(--spacing-xs)' }}>Público</span>
+                        <span className="badge badge-green table-cell-badge-inline">Público</span>
                       )}
                     </td>
                     <td className="table-col-desktop-only">
@@ -250,12 +264,11 @@ const ExerciseTemplates = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="badge badge-blue"
-                          style={{ textDecoration: 'none' }}
                         >
                           YouTube
                         </a>
                       ) : (
-                        <span style={{ color: 'var(--color-on-surface-variant)' }}>—</span>
+                        <span className="text-steel">—</span>
                       )}
                     </td>
                     <td>
@@ -303,10 +316,10 @@ const ExerciseTemplates = () => {
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
             <div className="btn-group">
-              <button onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>
+              <button onClick={confirmDialog.onConfirm} className="btn-danger">
                 Confirmar
               </button>
-              <button onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>
+              <button onClick={() => setConfirmDialog(null)} className="btn-secondary">
                 Cancelar
               </button>
             </div>

@@ -44,6 +44,12 @@ const renderForm = (props = {}) =>
     />
   );
 
+const fillRepsValues = async (user, { sets = '3', min = '8', max = '12' } = {}) => {
+  await user.type(screen.getByLabelText(/séries/i), sets);
+  await user.type(screen.getByLabelText(/repetições mínimas/i), min);
+  await user.type(screen.getByLabelText(/repetições máximas/i), max);
+};
+
 describe('ExerciseForm', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
@@ -57,8 +63,7 @@ describe('ExerciseForm', () => {
   it('renders the form fields', () => {
     renderForm();
     expect(screen.getByLabelText(/nome/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/tipo/i)).toBeInTheDocument();
-    // VideoField renders the library CTA instead of a bare URL input
+    expect(screen.getByRole('combobox', { name: /tipo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /escolher da biblioteca/i })).toBeInTheDocument();
   });
 
@@ -81,7 +86,8 @@ describe('ExerciseForm', () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
-    await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
+    await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+    await fillRepsValues(user);
     await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
     await waitFor(() => {
@@ -98,7 +104,8 @@ describe('ExerciseForm', () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
-    await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
+    await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+    await fillRepsValues(user);
     await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
     await waitFor(() => {
@@ -112,7 +119,8 @@ describe('ExerciseForm', () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
-    await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
+    await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+    await fillRepsValues(user);
     await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
     await waitFor(() => {
@@ -126,7 +134,8 @@ describe('ExerciseForm', () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
-    await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
+    await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+    await fillRepsValues(user);
     await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
     await waitFor(() => {
@@ -138,28 +147,25 @@ describe('ExerciseForm', () => {
     const user = userEvent.setup();
     renderForm();
 
-    // Reveal the URL input inside VideoField
     await user.click(screen.getByRole('button', { name: /cole uma url do youtube/i }));
     await user.type(
       screen.getByRole('textbox', { name: /url do youtube/i }),
       'https://www.youtube.com/watch?v=abc123XYZ'
     );
 
-    // Iframe appears — src assertion skipped (jsdom scrubs cross-origin src after re-renders)
     expect(await screen.findByTitle('Vídeo de demonstração do exercício')).toBeInTheDocument();
   });
 
-  it('includes optional fields in payload when filled', async () => {
+  it('includes optional fields in payload when filled (reps mode)', async () => {
     const user = userEvent.setup();
     api.post.mockResolvedValueOnce({ data: {} });
     renderForm();
 
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
-    await selectOption(user,screen.getByLabelText(/tipo/i), 'mobility');
+    await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'mobility');
     await user.type(screen.getByLabelText(/séries/i), '4');
     await user.type(screen.getByLabelText(/repetições mínimas/i), '8');
     await user.type(screen.getByLabelText(/repetições máximas/i), '10');
-    await user.type(screen.getByLabelText(/duração/i), '60');
     await user.type(screen.getByLabelText(/intervalo de descanso/i), '90');
     await user.click(screen.getByLabelText(/exercício com carga/i));
     await user.type(screen.getByLabelText(/carga sugerida/i), '80');
@@ -173,7 +179,6 @@ describe('ExerciseForm', () => {
           type: 'mobility',
           sets: 4,
           repetitions: { min: 8, max: 10 },
-          duration: 60,
           restInterval: 90,
           hasLoad: true,
           suggestedLoad: 80,
@@ -182,35 +187,108 @@ describe('ExerciseForm', () => {
     });
   });
 
-  describe('conditional field visibility by type', () => {
-    it('hides Duração when type is strength', async () => {
-      const user = userEvent.setup();
+  describe('prescription mode', () => {
+    const switchToDuration = (user) => user.click(screen.getByRole('tab', { name: /tempo/i }));
+    const switchToReps = (user) => user.click(screen.getByRole('tab', { name: /repetições/i }));
+
+    it('shows reps fields by default', () => {
       renderForm();
-      await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
-      expect(screen.queryByLabelText(/duração em segundos/i)).not.toBeInTheDocument();
       expect(screen.getByLabelText(/repetições mínimas/i)).toBeInTheDocument();
+      expect(screen.queryByLabelText(/^duração$/i)).not.toBeInTheDocument();
     });
 
-    it('hides Repetições when type is cardio', async () => {
+    it('switches to duration via the segmented toggle and shows duration field', async () => {
       const user = userEvent.setup();
       renderForm();
-      await selectOption(user,screen.getByLabelText(/tipo/i), 'cardio');
+      await switchToDuration(user);
+      expect(screen.getByLabelText(/^duração$/i)).toBeInTheDocument();
       expect(screen.queryByLabelText(/repetições mínimas/i)).not.toBeInTheDocument();
-      expect(screen.getByLabelText(/duração em segundos/i)).toBeInTheDocument();
     });
 
-    it('shows both Repetições and Duração when type is mobility', async () => {
+    it('clears the previous value when switching modes', async () => {
       const user = userEvent.setup();
       renderForm();
-      await selectOption(user,screen.getByLabelText(/tipo/i), 'mobility');
-      expect(screen.getByLabelText(/repetições mínimas/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/duração em segundos/i)).toBeInTheDocument();
+      await user.type(screen.getByLabelText(/repetições mínimas/i), '8');
+      await switchToDuration(user);
+      await switchToReps(user);
+      expect(screen.getByLabelText(/repetições mínimas/i)).toHaveValue(null);
     });
 
-    it('shows both Repetições and Duração when no type selected', () => {
+    it('does not open a dialog when switching modes', async () => {
+      const user = userEvent.setup();
       renderForm();
-      expect(screen.getByLabelText(/repetições mínimas/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/duração em segundos/i)).toBeInTheDocument();
+      await switchToDuration(user);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('shows inline error when submitting duration mode with no duration', async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await switchToDuration(user);
+      await user.type(screen.getByLabelText(/nome/i), 'Prancha');
+      await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+      await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
+      expect(screen.getByRole('alert')).toHaveTextContent(/defina o valor/i);
+      expect(api.post).not.toHaveBeenCalled();
+    });
+
+    it('shows inline error when submitting reps mode without repetitions', async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
+      await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+      await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
+      expect(screen.getByRole('alert')).toHaveTextContent(/defina o valor/i);
+      expect(api.post).not.toHaveBeenCalled();
+    });
+
+    it('includes prescriptionMode in payload when submitting in reps mode', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValueOnce({ data: {} });
+      renderForm();
+      await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
+      await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+      await fillRepsValues(user);
+      await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith(
+          '/trainer/trainings/training-1/exercises',
+          expect.objectContaining({ prescriptionMode: 'reps' })
+        );
+      });
+    });
+
+    it('sends duration and prescriptionMode "duration" in payload when duration mode active', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValueOnce({ data: {} });
+      renderForm();
+      await switchToDuration(user);
+      await user.type(screen.getByLabelText(/nome/i), 'Prancha');
+      await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+      await user.type(screen.getByLabelText(/^duração$/i), '45');
+      await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith(
+          '/trainer/trainings/training-1/exercises',
+          expect.objectContaining({ prescriptionMode: 'duration', duration: 45 })
+        );
+      });
+    });
+
+    it('clicking a duration chip fills the duration input', async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await switchToDuration(user);
+      await user.click(screen.getByRole('button', { name: '45s' }));
+      expect(screen.getByLabelText(/^duração$/i)).toHaveValue(45);
+    });
+
+    it('shows the long duration hint when value is 600 or more', async () => {
+      const user = userEvent.setup();
+      renderForm();
+      await switchToDuration(user);
+      await user.type(screen.getByLabelText(/^duração$/i), '600');
+      expect(screen.getByText(/mais de 10 minutos/i)).toBeInTheDocument();
     });
   });
 
@@ -229,7 +307,8 @@ describe('ExerciseForm', () => {
       renderDraftForm();
 
       await user.type(screen.getByLabelText(/nome/i), 'Remada Curvada');
-      await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
+      await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+      await fillRepsValues(user);
       await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
       await waitFor(() => {
@@ -243,8 +322,8 @@ describe('ExerciseForm', () => {
       renderDraftForm();
 
       await user.type(screen.getByLabelText(/nome/i), 'Remada Curvada');
-      await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
-      await user.type(screen.getByLabelText(/séries/i), '3');
+      await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+      await fillRepsValues(user, { sets: '3', min: '8', max: '12' });
       await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
       await waitFor(() => {
@@ -263,7 +342,8 @@ describe('ExerciseForm', () => {
       renderDraftForm();
 
       await user.type(screen.getByLabelText(/nome/i), 'Remada Curvada');
-      await selectOption(user,screen.getByLabelText(/tipo/i), 'strength');
+      await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+      await fillRepsValues(user);
       await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 
       await waitFor(() => {
@@ -279,9 +359,10 @@ describe('ExerciseForm', () => {
       name: 'Supino Reto',
       type: 'strength',
       videoUrl: '',
+      prescriptionMode: 'reps',
       sets: 4,
       repetitions: { min: 8, max: 10 },
-      duration: '',
+      duration: null,
       restInterval: 90,
       hasLoad: true,
       suggestedLoad: 60,
@@ -291,7 +372,7 @@ describe('ExerciseForm', () => {
     it('pre-populates form fields from exercise', () => {
       renderForm({ exercise, trainingId: undefined });
       expect(screen.getByLabelText(/nome/i)).toHaveValue('Supino Reto');
-      expect(screen.getByLabelText(/tipo/i)).toHaveValue('strength');
+      expect(screen.getByRole('combobox', { name: /tipo/i })).toHaveValue('strength');
       expect(screen.getByLabelText(/séries/i)).toHaveValue(4);
       expect(screen.getByLabelText(/repetições mínimas/i)).toHaveValue(8);
       expect(screen.getByLabelText(/repetições máximas/i)).toHaveValue(10);
@@ -334,6 +415,18 @@ describe('ExerciseForm', () => {
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith('Exercício atualizado com sucesso!', 'success');
       });
+    });
+
+    it('reads stored prescriptionMode and renders duration field for duration-mode exercise', () => {
+      const durationExercise = {
+        ...exercise,
+        prescriptionMode: 'duration',
+        repetitions: null,
+        duration: 45,
+      };
+      renderForm({ exercise: durationExercise, trainingId: undefined });
+      expect(screen.getByLabelText(/^duração$/i)).toHaveValue(45);
+      expect(screen.queryByLabelText(/repetições mínimas/i)).not.toBeInTheDocument();
     });
   });
 });
