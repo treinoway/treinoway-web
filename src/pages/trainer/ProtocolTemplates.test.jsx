@@ -238,10 +238,7 @@ describe('ProtocolTemplates', () => {
       expect(screen.getByText('Modelo Força')).toBeInTheDocument();
     });
 
-    // Get all "Nova rotina" buttons and click the first visible one (header btn)
-    const novaBtns = screen.getAllByRole('button', { name: /nova rotina/i });
-    // The first one is in the page-header (not the mobile bar which has tabIndex=-1)
-    await user.click(novaBtns[0]);
+    await user.click(screen.getByRole('button', { name: /nova rotina/i }));
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines/new');
   });
 

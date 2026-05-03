@@ -121,8 +121,12 @@ api.interceptors.response.use(
     error.userMessage = getErrorMessage(error);
     error.errorInfo = extractErrorInfo(error);
 
-    // For network errors (no response), emit event for toast
-    if (!error.response) {
+    // For network errors (no response), emit event for toast.
+    // Skip cancelled requests (AbortController / axios cancel) — those are intentional.
+    const isCancelled = error.code === 'ERR_CANCELED'
+      || error.name === 'CanceledError'
+      || error.name === 'AbortError';
+    if (!error.response && !isCancelled) {
       emitNetworkError(error.userMessage);
     }
 

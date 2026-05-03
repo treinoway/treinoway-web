@@ -90,7 +90,7 @@ describe('Students', () => {
     expect(screen.getByText('Carregando...')).toBeInTheDocument();
   });
 
-  it('renders page title and action buttons after loading', async () => {
+  it('renders page title and both header action buttons when students exist', async () => {
     renderWithRouter(<Students />);
     await waitFor(() => expect(screen.getByText('Meus Alunos')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /importar alunos/i })).toBeInTheDocument();
@@ -110,6 +110,10 @@ describe('Students', () => {
     expect(screen.getByRole('button', { name: /vincular primeiro aluno/i })).toBeInTheDocument();
     // SVG illustration is rendered as a presentational img (no accessible role)
     expect(document.querySelector('.students-empty-state img')).not.toBeNull();
+    // Header "Vincular aluno" button is hidden when no students exist — CTA is in the empty state only
+    expect(screen.queryByRole('button', { name: /^vincular aluno$/i })).not.toBeInTheDocument();
+    // "Importar alunos" remains visible in the header regardless of student count
+    expect(screen.getByRole('button', { name: /importar alunos/i })).toBeInTheDocument();
   });
 
   it('opens link modal from empty state CTA', async () => {

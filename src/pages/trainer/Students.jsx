@@ -904,23 +904,27 @@ const Students = () => {
             <h1>Meus Alunos</h1>
           </div>
         </div>
-        <div className="page-header-actions">
+        <div className="page-header-actions page-header-actions--equal-mobile">
           <button
             type="button"
             className="btn-secondary"
+            aria-label="Importar alunos"
             onClick={() => setShowImportModal(true)}
           >
             <Upload size={16} strokeWidth={2} />
-            Importar alunos
+            Importar<span className="btn-label-suffix"> alunos</span>
           </button>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => setShowLinkModal(true)}
-          >
-            <Plus size={16} strokeWidth={2} />
-            Vincular aluno
-          </button>
+          {students.length > 0 && (
+            <button
+              type="button"
+              className="btn-primary"
+              aria-label="Vincular aluno"
+              onClick={() => setShowLinkModal(true)}
+            >
+              <Plus size={16} strokeWidth={2} />
+              Vincular<span className="btn-label-suffix"> aluno</span>
+            </button>
+          )}
         </div>
       </div>
 

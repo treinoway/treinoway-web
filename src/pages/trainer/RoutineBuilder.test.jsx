@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor, fireEvent } from '../../test/test-utils';
+import { screen, waitFor, fireEvent, within } from '../../test/test-utils';
 import { renderWithRoute } from '../../test/test-utils';
 import userEvent from '@testing-library/user-event';
 
@@ -49,12 +49,27 @@ const EXERCISE_1 = {
   hasLoad: true,
 };
 
+const EXERCISE_2 = {
+  id: 'ex-2',
+  name: 'Rosca direta',
+  type: 'strength',
+  sets: 3,
+  repetitions: { min: 10, max: 12 },
+  restInterval: 45,
+  hasLoad: true,
+};
+
 const TRAINING_WITH_EXERCISES = {
   id: 'training-1',
   name: 'Peito & Tríceps',
   category: 'strength',
   weekDay: 'monday',
   exercises: [EXERCISE_1],
+};
+
+const TRAINING_WITH_TWO_EXERCISES = {
+  ...TRAINING_WITH_EXERCISES,
+  exercises: [EXERCISE_1, EXERCISE_2],
 };
 
 const TRAINING_EMPTY = {
@@ -916,7 +931,7 @@ describe('RoutineBuilder — add training sheet from empty hero', () => {
 
 // ─── Tests — exercise row actions ────────────────────────────────────────────
 
-describe('RoutineBuilder — exercise row (3-dot menu)', () => {
+describe('RoutineBuilder — exercise row actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
@@ -928,34 +943,24 @@ describe('RoutineBuilder — exercise row (3-dot menu)', () => {
     await screen.findByRole('list', { name: /Exercícios/i });
   };
 
-  it('exercise row menu opens with edit and delete options', async () => {
+  it('exercise row renders an edit button (whole row) and a trash delete button', async () => {
     const user = userEvent.setup();
     renderNew();
     await expandTraining(user);
 
-    const menuTrigger = screen.getByRole('button', {
-      name: /Opções de Supino reto/i,
-    });
-    await user.click(menuTrigger);
-
-    expect(screen.getByRole('menuitem', { name: 'Editar' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Excluir' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Editar Supino reto/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Excluir Supino reto/i })).toBeInTheDocument();
   });
 
-  it('clicking "Excluir" shows confirm dialog (exercise)', async () => {
+  it('clicking the trash button shows the confirm dialog', async () => {
     const user = userEvent.setup();
     renderNew();
     await expandTraining(user);
 
-    const menuTrigger = screen.getByRole('button', {
-      name: /Opções de Supino reto/i,
-    });
-    await user.click(menuTrigger);
-    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: /Excluir Supino reto/i }));
 
     expect(await screen.findByText(/Excluir "Supino reto"/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Confirmar/i })).toBeInTheDocument();
-    // Multiple "Cancelar" exist; confirm dialog one is present among them
     expect(screen.getAllByRole('button', { name: /Cancelar/i }).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -970,10 +975,7 @@ describe('RoutineBuilder — exercise row (3-dot menu)', () => {
     renderNew();
     await expandTraining(user);
 
-    await user.click(
-      screen.getByRole('button', { name: /Opções de Supino reto/i })
-    );
-    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: /Excluir Supino reto/i }));
     await user.click(await screen.findByRole('button', { name: /Confirmar/i }));
 
     await waitFor(() => {
@@ -992,39 +994,138 @@ describe('RoutineBuilder — exercise row (3-dot menu)', () => {
     renderNew();
     await expandTraining(user);
 
-    await user.click(
-      screen.getByRole('button', { name: /Opções de Supino reto/i })
-    );
-    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: /Excluir Supino reto/i }));
 
-    // Wait for the confirm dialog message to appear, then find its Cancelar sibling
     await screen.findByText(/Excluir "Supino reto"/i);
-    // The confirm dialog Cancelar is the last among all Cancelar buttons
-    // (topbar Cancelar is first in DOM order)
     const cancelBtns = screen.getAllByRole('button', { name: /Cancelar/i });
     await user.click(cancelBtns[cancelBtns.length - 1]);
 
     expect(deleteExercise).not.toHaveBeenCalled();
-    // Confirm dialog dismissed
     expect(screen.queryByText(/Excluir "Supino reto"/i)).not.toBeInTheDocument();
   });
 
-  it('clicking "Editar" opens the composer with snapshot (exercise)', async () => {
+  it('clicking the exercise row (edit button) opens the composer with snapshot', async () => {
     const user = userEvent.setup();
     renderNew();
     await expandTraining(user);
 
-    await user.click(
-      screen.getByRole('button', { name: /Opções de Supino reto/i })
-    );
-    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
 
-    // Composer opens in edit mode — shows "Salvar alterações"
     expect(
       await screen.findByRole('button', { name: /Salvar alterações/i })
     ).toBeInTheDocument();
-    // The name input is pre-populated from the snapshot
     expect(screen.getByLabelText(/Nome/i)).toHaveValue('Supino reto');
+  });
+
+  it('clicking the trash button does NOT trigger the edit handler (stopPropagation)', async () => {
+    const updateExercise = vi.fn();
+    useRoutineBuilder.mockReturnValue({
+      ...POPULATED_HOOK_STATE,
+      updateExercise,
+    });
+
+    const user = userEvent.setup();
+    renderNew();
+    await expandTraining(user);
+
+    await user.click(screen.getByRole('button', { name: /Excluir Supino reto/i }));
+
+    // The composer must NOT have opened — "Salvar alterações" should be absent
+    expect(screen.queryByRole('button', { name: /Salvar alterações/i })).not.toBeInTheDocument();
+  });
+
+  it('when readOnly the exercise row has no button role and no trash button', async () => {
+    // readOnly is driven by the route, not by hook state.
+    // /trainer/protocols/:id (no /edit) renders ProtocolViewMount with readOnly prop.
+    useProtocolBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+
+    const user = userEvent.setup();
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1',
+      path: '/trainer/protocols/:id',
+    });
+
+    const chevron = screen.getByRole('button', { name: /Expandir treino/i });
+    await user.click(chevron);
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    expect(screen.queryByRole('button', { name: /Editar Supino reto/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Excluir Supino reto/i })).not.toBeInTheDocument();
+  });
+});
+
+// ─── Tests — inline edit composer position ───────────────────────────────────
+
+describe('RoutineBuilder — inline edit composer replaces the row in place', () => {
+  const expandTraining = async (user) => {
+    const chevron = screen.getByRole('button', { name: /Expandir treino/i });
+    await user.click(chevron);
+    await screen.findByRole('list', { name: /Exercícios/i });
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({
+      ...POPULATED_HOOK_STATE,
+      data: {
+        ...POPULATED_HOOK_STATE.data,
+        trainings: [TRAINING_WITH_TWO_EXERCISES],
+      },
+    });
+  });
+
+  it('clicking edit on a row replaces that row with the composer and hides it', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expandTraining(user);
+
+    await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
+
+    expect(
+      await screen.findByRole('button', { name: /Salvar alterações/i })
+    ).toBeInTheDocument();
+    // The edited row itself is gone
+    expect(screen.queryByRole('button', { name: /Editar Supino reto/i })).not.toBeInTheDocument();
+  });
+
+  it('the other exercise rows remain visible while one is being edited', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expandTraining(user);
+
+    await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
+
+    await screen.findByRole('button', { name: /Salvar alterações/i });
+    // The untouched row is still present
+    expect(screen.getByRole('button', { name: /Editar Rosca direta/i })).toBeInTheDocument();
+  });
+
+  it('cancel in edit mode restores the row and removes the composer', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expandTraining(user);
+
+    await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
+    await screen.findByRole('button', { name: /Salvar alterações/i });
+
+    // Scope to the exercise list so we click the composer's cancel, not the page bottom bar's
+    const exerciseList = screen.getByRole('list', { name: /Exercícios/i });
+    await user.click(within(exerciseList).getByRole('button', { name: /Cancelar/i }));
+
+    expect(screen.queryByRole('button', { name: /Salvar alterações/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Editar Supino reto/i })).toBeInTheDocument();
+  });
+
+  it('in edit mode the trailing "Adicionar exercício" button is hidden (inline composer takes focus)', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expandTraining(user);
+
+    await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
+    await screen.findByRole('button', { name: /Salvar alterações/i });
+
+    // The trailing add button is suppressed while editing inline — avoids dual-action confusion
+    expect(screen.queryByRole('button', { name: /Adicionar exercício/i })).not.toBeInTheDocument();
   });
 });
 
@@ -1040,15 +1141,12 @@ describe('RoutineBuilder — no EditExerciseSheet', () => {
     const user = userEvent.setup();
     renderNew();
 
-    // Expand and open edit
+    // Expand and click the exercise row to edit
     const chevron = screen.getByRole('button', { name: /Expandir treino/i });
     await user.click(chevron);
     await screen.findByRole('list', { name: /Exercícios/i });
 
-    await user.click(
-      screen.getByRole('button', { name: /Opções de Supino reto/i })
-    );
-    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
 
     // No bottom-sheet / overlay sheet present
     expect(
@@ -1082,11 +1180,9 @@ describe('RoutineBuilder — exercise row menu right-alignment', () => {
     });
 
     renderNew();
-    const chevron = screen.getByRole('button', { name: /Expandir treino/i });
-    await user.click(chevron);
-    await screen.findByRole('list', { name: /Exercícios/i });
 
-    await user.click(screen.getByRole('button', { name: /Opções de Supino reto/i }));
+    // The training-level InlineMenu (3-dot) is still present on each TrainingItem header
+    await user.click(screen.getByRole('button', { name: /Opções do treino/i }));
 
     const dropdown = screen.getByRole('menu');
     // right = window.innerWidth (1024) - rect.right (1000) = 24px
@@ -2259,5 +2355,62 @@ describe('RoutineBuilder — modo template não regrediu', () => {
   it('passes routineId to useRoutineBuilder in edit mode', () => {
     renderEdit('routine-xyz');
     expect(useRoutineBuilder).toHaveBeenCalledWith('routine-xyz');
+  });
+});
+
+// ─── Tests — mobile "Importar" button in topbar ───────────────────────────────
+
+const renderProtocolEdit = (id = 'protocol-123') =>
+  renderWithRoute(<RoutineBuilder />, {
+    route: `/trainer/protocols/${id}/edit`,
+    path: '/trainer/protocols/:id/edit',
+  });
+
+describe('RoutineBuilder — mobile topbar "Importar" button (protocol create and edit mode)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+  });
+
+  it('renders the mobile "Importar" button in the topbar in protocol CREATE mode', () => {
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY });
+    renderProtocol();
+    expect(
+      screen.getByRole('button', { name: /^Importar$/i })
+    ).toBeInTheDocument();
+  });
+
+  it('renders the mobile "Importar" button in the topbar in protocol EDIT mode', () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      data: { ...PROTOCOL_HOOK_EMPTY.data, id: 'protocol-123', name: 'Rotina Força' },
+    });
+    renderProtocolEdit();
+    expect(
+      screen.getByRole('button', { name: /^Importar$/i })
+    ).toBeInTheDocument();
+  });
+
+  it('clicking the mobile "Importar" button opens the import template sheet', async () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      protocolTemplates: [{ id: 'pt-1', name: 'Template Força', type: 'strength' }],
+    });
+    const user = userEvent.setup();
+    renderProtocol();
+
+    await user.click(screen.getByRole('button', { name: /^Importar$/i }));
+
+    expect(
+      screen.getByRole('dialog', { name: /Importar de template/i })
+    ).toBeInTheDocument();
+  });
+
+  it('does NOT render the mobile "Importar" button in template mode', () => {
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
+    renderNew();
+    expect(
+      screen.queryByRole('button', { name: /^Importar$/i })
+    ).not.toBeInTheDocument();
   });
 });

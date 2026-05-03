@@ -370,18 +370,6 @@ const ProtocolTemplates = () => {
         </div>
       )}
 
-      {/* ── Mobile sticky bottom CTA ── */}
-      <div className="routines-bottom-cta" aria-hidden="true">
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => navigate('/trainer/routines/new')}
-          tabIndex={-1}
-        >
-          <Plus size={16} strokeWidth={2} aria-hidden="true" />
-          Nova rotina
-        </button>
-      </div>
     </div>
   );
 };

@@ -13,6 +13,7 @@ import {
   Pencil,
   Plus,
   Save,
+  Trash2,
   User,
   X,
 } from 'lucide-react';
@@ -758,22 +759,47 @@ const ExerciseRow = ({ ex, index, onEdit, onDelete, readOnly }) => {
   const name = ex.name || ex.exerciseTemplate?.name || '—';
   const meta = formatExerciseMeta(ex.exerciseTemplate || ex);
 
-  const menuItems = [
-    { label: 'Editar', onClick: () => onEdit(ex) },
-    { label: 'Excluir', danger: true, onClick: () => onDelete(ex) },
-  ];
+  const isInteractive = !readOnly && onEdit;
+
+  const handleRowKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onEdit(ex);
+    }
+  };
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    onDelete(ex);
+  };
+
+  const interactiveProps = isInteractive
+    ? {
+        role: 'button',
+        tabIndex: 0,
+        onClick: () => onEdit(ex),
+        onKeyDown: handleRowKeyDown,
+        'aria-label': `Editar ${name}`,
+        className: 'exercise-row-wide exercise-row-wide--interactive',
+      }
+    : { role: 'listitem', className: 'exercise-row-wide' };
 
   return (
-    <div className="exercise-row-wide" role="listitem">
+    <div {...interactiveProps}>
       <span className="exercise-row-index">{index + 1}</span>
       <div className="exercise-row-wide-body">
         <span className="exercise-row-wide-name">{name}</span>
         {meta && <span className="exercise-row-wide-meta">{meta}</span>}
       </div>
-      {!readOnly && (
-        <div className="exercise-row-menu-wrap">
-          <InlineMenu ariaLabel={`Opções de ${name}`} items={menuItems} />
-        </div>
+      {!readOnly && onDelete && (
+        <button
+          type="button"
+          className="exercise-row-delete-btn"
+          aria-label={`Excluir ${name}`}
+          onClick={handleDelete}
+        >
+          <Trash2 size={18} strokeWidth={2} />
+        </button>
       )}
     </div>
   );
@@ -939,16 +965,32 @@ const TrainingItem = ({
           <div className="training-item-body">
             {exercises.length > 0 ? (
               <div className="exercise-list-wide" role="list" aria-label="Exercícios">
-                {exercises.map((ex, i) => (
-                  <ExerciseRow
-                    key={ex.id}
-                    ex={ex}
-                    index={i}
-                    onEdit={readOnly ? null : (exercise) => setComposerState({ editing: exercise })}
-                    onDelete={readOnly ? null : handleRequestDeleteExercise}
-                    readOnly={readOnly}
-                  />
-                ))}
+                {exercises.map((ex, i) => {
+                  if (composerEditing?.id === ex.id) {
+                    return (
+                      <ExerciseComposer
+                        key={ex.id}
+                        snapshot={composerEditing}
+                        exerciseTemplates={exerciseTemplates}
+                        saving={saving}
+                        onSubmitCreate={handleAddExercise}
+                        onSubmitEdit={handleEditExercise}
+                        onSubmitFromLibrary={handleImport}
+                        onCancel={() => setComposerState(null)}
+                      />
+                    );
+                  }
+                  return (
+                    <ExerciseRow
+                      key={ex.id}
+                      ex={ex}
+                      index={i}
+                      onEdit={readOnly ? null : (exercise) => setComposerState({ editing: exercise })}
+                      onDelete={readOnly ? null : handleRequestDeleteExercise}
+                      readOnly={readOnly}
+                    />
+                  );
+                })}
               </div>
             ) : (
               composerState === null && (
@@ -982,10 +1024,10 @@ const TrainingItem = ({
               )
             )}
 
-            {/* Composer — hidden in read-only mode */}
-            {!readOnly && (composerState === 'create' || composerEditing) ? (
+            {/* Trailing composer — create mode only; edit mode renders inline above */}
+            {!readOnly && composerState === 'create' ? (
               <ExerciseComposer
-                snapshot={composerEditing || null}
+                snapshot={null}
                 exerciseTemplates={exerciseTemplates}
                 saving={saving}
                 onSubmitCreate={handleAddExercise}
@@ -993,7 +1035,7 @@ const TrainingItem = ({
                 onSubmitFromLibrary={handleImport}
                 onCancel={() => setComposerState(null)}
               />
-            ) : !readOnly && exercises.length > 0 && (
+            ) : !readOnly && !composerEditing && exercises.length > 0 && (
               <button
                 type="button"
                 className="inline-add-btn-wide"
@@ -1165,6 +1207,19 @@ const BuilderTopbar = ({
           </div>
         )}
       </div>
+
+      {/* Mobile-only: import shortcut (protocol create and edit mode) */}
+      {isProtocol && onImportTemplate && !readOnly && (
+        <button
+          type="button"
+          className="builder-topbar-import-mobile"
+          onClick={onImportTemplate}
+          aria-label="Importar"
+        >
+          <FileDown size={16} strokeWidth={2} aria-hidden="true" />
+          Importar
+        </button>
+      )}
 
       {/* Desktop: status + action buttons (hidden on mobile via CSS) */}
       <div className="builder-topbar-actions builder-topbar-actions--responsive">
