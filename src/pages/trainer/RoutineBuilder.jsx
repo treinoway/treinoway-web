@@ -1229,7 +1229,7 @@ const BuilderTopbar = ({
               <User size={12} strokeWidth={2} aria-hidden="true" />
               Visualizando rotina
             </span>
-            <button className="btn-primary" onClick={onEdit} aria-label="Editar rotina">
+            <button className="btn-primary" onClick={onEdit}>
               <Pencil size={16} strokeWidth={2} aria-hidden="true" />
               Editar
             </button>
@@ -2103,42 +2103,30 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         />
       )}
 
-      {/* Mobile: bottom bar — edit/view aware */}
-      {readOnly ? (
-        <div className="builder-bottom-bar">
-          <button
-            className="btn-secondary builder-bottom-bar-cancel"
-            onClick={handleBack}
-          >
-            <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
-            Voltar
-          </button>
-          <button
-            className="btn-primary builder-bottom-bar-save"
-            onClick={handleEdit}
-          >
-            <Pencil size={16} strokeWidth={2} aria-hidden="true" />
-            Editar
-          </button>
-        </div>
-      ) : (
-        <div className="builder-bottom-bar">
-          <button
-            className="btn-secondary builder-bottom-bar-cancel"
-            onClick={handleCancel}
-          >
-            Cancelar
-          </button>
-          <button
-            className="btn-primary builder-bottom-bar-save"
-            onClick={handleSave}
-            disabled={!canSave || routine.saving}
-            aria-disabled={!canSave}
-          >
-            <Save size={16} strokeWidth={2} aria-hidden="true" />
-            {routine.saving ? 'Salvando…' : editProtocolId ? 'Concluir' : 'Salvar rotina'}
-          </button>
-        </div>
+      {/* Read-only: FAB-extended pill — replaces the white bottom bar */}
+      {readOnly && (
+        <button
+          className="builder-edit-fab"
+          onClick={handleEdit}
+          aria-label="Editar rotina"
+        >
+          <Pencil size={18} strokeWidth={2} aria-hidden="true" />
+          EDITAR
+        </button>
+      )}
+
+      {/* Edit/create: FAB pill for save action */}
+      {!readOnly && (
+        <button
+          className="builder-edit-fab"
+          onClick={handleSave}
+          disabled={!canSave || routine.saving}
+          aria-disabled={!canSave}
+          aria-label={routine.saving ? 'Salvando' : editProtocolId ? 'Concluir edição' : 'Salvar rotina'}
+        >
+          <Save size={18} strokeWidth={2} aria-hidden="true" />
+          {routine.saving ? 'SALVANDO…' : editProtocolId ? 'CONCLUIR' : 'SALVAR'}
+        </button>
       )}
     </div>
   );

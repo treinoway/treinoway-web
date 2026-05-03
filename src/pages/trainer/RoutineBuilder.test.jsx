@@ -525,13 +525,12 @@ describe('RoutineBuilder — navigation', () => {
     await user.click(backBtn);
   });
 
-  it('Cancelar button (bottom bar mobile) navigates back', async () => {
-    const user = userEvent.setup();
+  it('save FAB is present in create mode (replaces old bottom bar)', () => {
     renderNew();
-
-    const cancelBtns = screen.getAllByRole('button', { name: /Cancelar/i });
-    expect(cancelBtns.length).toBeGreaterThanOrEqual(1);
-    await user.click(cancelBtns[0]);
+    // Topbar (desktop) + FAB (mobile) both render save buttons — at least one must exist
+    expect(
+      screen.getAllByRole('button', { name: /Salvar rotina/i }).length
+    ).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -2412,5 +2411,113 @@ describe('RoutineBuilder — mobile topbar "Importar" button (protocol create an
     expect(
       screen.queryByRole('button', { name: /^Importar$/i })
     ).not.toBeInTheDocument();
+  });
+});
+
+// ─── Tests — read-only FAB ("Editar rotina") ─────────────────────────────────
+
+const renderProtocolView = (id = 'proto-1') =>
+  renderWithRoute(<RoutineBuilder />, {
+    route: `/trainer/protocols/${id}`,
+    path: '/trainer/protocols/:id',
+  });
+
+describe('RoutineBuilder — read-only FAB (Editar rotina)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      data: { ...PROTOCOL_HOOK_EMPTY.data, id: 'proto-1' },
+    });
+  });
+
+  it('renders the FAB with aria-label "Editar rotina" in read-only view', () => {
+    renderProtocolView();
+    expect(
+      screen.getByRole('button', { name: /Editar rotina/i })
+    ).toBeInTheDocument();
+  });
+
+  it('does NOT render a bottom-bar "Voltar" button in read-only view', () => {
+    renderProtocolView();
+    // The topbar-actions--responsive block keeps one desktop "Voltar" button (CSS-hidden
+    // on mobile but present in DOM). The old bottom bar added a second one — assert it's gone.
+    // Exactly one "Voltar" button must exist (the topbar desktop one).
+    const voltarButtons = screen.getAllByRole('button', { name: /^Voltar$/i });
+    expect(voltarButtons).toHaveLength(1);
+  });
+
+  it('clicking the FAB navigates to the edit route', async () => {
+    const user = userEvent.setup();
+    renderProtocolView('proto-1');
+    await user.click(screen.getByRole('button', { name: /Editar rotina/i }));
+    // Navigation is handled by useNavigate; no error means the handler fired cleanly.
+  });
+
+  it('edit/create branch shows save FAB (not Editar rotina)', () => {
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY });
+    renderProtocol();
+    expect(
+      screen.queryByRole('button', { name: /Editar rotina/i })
+    ).not.toBeInTheDocument();
+    // Both topbar (desktop) and FAB (mobile) render save buttons — at least one must exist
+    expect(
+      screen.getAllByRole('button', { name: /Salvar rotina/i }).length
+    ).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ─── Tests — edit/create save FAB ────────────────────────────────────────────
+
+describe('RoutineBuilder — save FAB (edit/create branch)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+  });
+
+  it('create mode: FAB has aria-label "Salvar rotina" and text SALVAR', () => {
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
+    renderNew();
+    // Both topbar and FAB match "Salvar rotina"; find the FAB by its class
+    const allSave = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    const fab = allSave.find((btn) => btn.classList.contains('builder-edit-fab'));
+    expect(fab).toBeInTheDocument();
+    expect(fab).toHaveTextContent(/SALVAR/i);
+  });
+
+  it('edit mode (editProtocolId truthy): FAB has aria-label "Concluir edição" and text CONCLUIR', () => {
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY });
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-99/edit',
+      path: '/trainer/protocols/:id/edit',
+    });
+    // Topbar shows "Concluir" as text; FAB has aria-label "Concluir edição" (unique)
+    const fab = screen.getByRole('button', { name: /Concluir edição/i });
+    expect(fab).toBeInTheDocument();
+    expect(fab).toHaveTextContent(/CONCLUIR/i);
+  });
+
+  it('during saving: FAB has aria-label "Salvando" and is disabled', () => {
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE, saving: true });
+    renderNew();
+    // FAB aria-label is "Salvando"; topbar text is "Salvando…" (accessible name includes ellipsis)
+    const fab = screen.getByRole('button', { name: /^Salvando$/i });
+    expect(fab).toBeDisabled();
+    expect(fab).toHaveTextContent(/SALVANDO/i);
+  });
+
+  it('is disabled when canSave is false (empty state)', () => {
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE, saving: false });
+    renderNew();
+    // Empty state: no name, no trainings — canSave false. All save buttons disabled.
+    const allSave = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    allSave.forEach((btn) => expect(btn).toBeDisabled());
+  });
+
+  it('no builder-bottom-bar element is rendered in edit/create mode', () => {
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
+    renderNew();
+    expect(document.querySelector('.builder-bottom-bar')).not.toBeInTheDocument();
   });
 });

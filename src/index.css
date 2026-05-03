@@ -15709,6 +15709,64 @@ nav.onboarding-steps {
   flex: 1;
 }
 
+/* ── Read-only FAB: "Editar rotina" extended pill ── */
+.builder-edit-fab {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + var(--spacing-md));
+  right: var(--spacing-md);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  height: 56px;
+  min-height: 44px;
+  padding: 0 var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--brand-primary);
+  color: #fff;
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  box-shadow: var(--shadow-brand-lg);
+  cursor: pointer;
+  z-index: var(--z-dropdown);
+  transition:
+    background-color var(--duration-fast) var(--ease-brand),
+    box-shadow var(--duration-fast) var(--ease-brand);
+}
+
+.builder-edit-fab:hover {
+  background: var(--brand-primary-dark);
+  box-shadow: var(--shadow-brand-md);
+}
+
+.builder-edit-fab:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.builder-edit-fab:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.builder-edit-fab:disabled,
+.builder-edit-fab[aria-disabled="true"] {
+  opacity: var(--opacity-disabled);
+  box-shadow: none;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Desktop: no bottom-nav, use spacing from viewport edge */
+@media (min-width: 768px) {
+  .builder-edit-fab {
+    bottom: var(--spacing-lg);
+    right: var(--spacing-lg);
+  }
+}
+
 /* Desktop: hide mobile bottom bar */
 @media (min-width: 768px) {
   .builder-bottom-bar {
