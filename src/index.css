@@ -13870,8 +13870,15 @@ nav.onboarding-steps {
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  box-shadow: var(--shadow-brand-sm);
   flex-shrink: 0;
+  transition: box-shadow var(--duration-fast) var(--ease-brand);
+}
+
+/* Scroll-active boundary: hard hairline + directional shadow. Idle state keeps
+   only the border-bottom — no resting shadow (avoids visual noise when the
+   canvas is at top). */
+.builder-topbar--scrolled {
+  box-shadow: 0 1px 0 var(--brand-divider), 0 4px 12px -8px rgba(0, 0, 0, 0.15);
 }
 
 @media (min-width: 768px) {
@@ -14247,12 +14254,24 @@ nav.onboarding-steps {
   flex-direction: column;
   gap: var(--spacing-md);
   scrollbar-width: thin;
+  scroll-padding-top: var(--spacing-md);
+  /* Fade content as it enters the sticky topbar zone — prevents hard clip */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 12px);
+  mask-image: linear-gradient(to bottom, transparent 0, black 12px);
 }
 
 @media (min-width: 768px) {
   .training-canvas {
     padding: var(--spacing-lg) var(--spacing-xl);
   }
+}
+
+/* 1px sentinel placed as the first child of .training-canvas.
+   Observed by IntersectionObserver to detect scroll-past-zero. */
+.training-canvas-sentinel {
+  height: 1px;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .training-canvas::-webkit-scrollbar {

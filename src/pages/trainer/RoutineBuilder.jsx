@@ -1120,6 +1120,7 @@ const BuilderTopbar = ({
   mode,
   readOnly,
   editProtocolId,
+  scrolled,
   onTitleClick,
   onBlur,
   onChange,
@@ -1151,7 +1152,7 @@ const BuilderTopbar = ({
   })();
 
   return (
-    <div className="builder-topbar">
+    <div className={`builder-topbar${scrolled ? ' builder-topbar--scrolled' : ''}`}>
       <button
         className="builder-topbar-back"
         onClick={onBack}
@@ -1290,6 +1291,7 @@ BuilderTopbar.propTypes = {
   mode: PropTypes.oneOf(['template', 'protocol']).isRequired,
   readOnly: PropTypes.bool,
   editProtocolId: PropTypes.string,
+  scrolled: PropTypes.bool,
   onTitleClick: PropTypes.func,
   onBlur: PropTypes.func,
   onChange: PropTypes.func,
@@ -1306,6 +1308,7 @@ BuilderTopbar.defaultProps = {
   studentName: null,
   readOnly: false,
   editProtocolId: null,
+  scrolled: false,
   onTitleClick: null,
   onBlur: null,
   onChange: null,
@@ -1715,6 +1718,8 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
   const [addTrainingSheetOpen, setAddTrainingSheetOpen] = useState(false);
   const [editingTraining, setEditingTraining] = useState(null);
   const [importTemplateSheetOpen, setImportTemplateSheetOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const sentinelRef = useRef(null);
 
   const isProtocol = mode === 'protocol';
 
@@ -1726,6 +1731,23 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedName]);
+
+  // Scroll-boundary detection: toggle --scrolled modifier on the topbar when
+  // the 1px sentinel at the top of .training-canvas leaves the viewport.
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsScrolled(!entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
 
   // ── Derived state ────────────────────────────────────────────────────────
 
@@ -1944,6 +1966,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         mode={mode}
         readOnly={readOnly}
         editProtocolId={editProtocolId}
+        scrolled={isScrolled}
         onTitleClick={readOnly ? null : handleTitleClick}
         onBlur={readOnly ? null : handleTitleBlur}
         onChange={readOnly ? null : setTitleName}
@@ -1966,6 +1989,9 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
       <BuilderStatsRow trainings={trainings} />
 
       <div className="training-canvas">
+        {/* Scroll-boundary sentinel — observed by IntersectionObserver */}
+        <div ref={sentinelRef} className="training-canvas-sentinel" aria-hidden="true" />
+
         {/* Week overview section */}
         <div className="canvas-section-header">
           <span className="canvas-section-title">

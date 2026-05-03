@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, waitFor, fireEvent, within } from '../../test/test-utils';
 import { renderWithRoute } from '../../test/test-utils';
 import userEvent from '@testing-library/user-event';
@@ -31,6 +31,21 @@ vi.mock('../../hooks/useRoutineDraft', () => ({
 
 // Mock useProtocolBuilder for protocol-mode tests
 vi.mock('../../hooks/useProtocolBuilder');
+
+// ─── Global IntersectionObserver stub ─────────────────────────────────────────
+// jsdom does not implement IntersectionObserver. Provide a no-op constructor
+// so that RoutineBuilderCore's useEffect does not crash on mount in every test.
+// The scroll-boundary suite overrides this with a controllable mock per-test.
+class NoopIntersectionObserver {
+  observe() {}
+  disconnect() {}
+}
+beforeEach(() => {
+  vi.stubGlobal('IntersectionObserver', NoopIntersectionObserver);
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -2519,5 +2534,63 @@ describe('RoutineBuilder — save FAB (edit/create branch)', () => {
     useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
     renderNew();
     expect(document.querySelector('.builder-bottom-bar')).not.toBeInTheDocument();
+  });
+});
+
+// ─── Tests — scroll-boundary topbar modifier ──────────────────────────────────
+
+describe('RoutineBuilder — scroll-boundary topbar', () => {
+  let observerCallback = null;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
+
+    // Override the global no-op with a controllable class so tests can fire
+    // the IntersectionObserver callback manually.
+    observerCallback = null;
+    class ControllableObserver {
+      constructor(cb) {
+        observerCallback = cb;
+      }
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('IntersectionObserver', ControllableObserver);
+  });
+
+  // afterEach is handled by the top-level afterEach (vi.unstubAllGlobals).
+
+  it('topbar does not have --scrolled class on initial render', () => {
+    renderNew();
+
+    const topbar = document.querySelector('.builder-topbar');
+    expect(topbar).not.toHaveClass('builder-topbar--scrolled');
+  });
+
+  it('topbar gains --scrolled class when sentinel leaves the viewport', async () => {
+    renderNew();
+
+    // Sentinel is not intersecting → user has scrolled past zero
+    observerCallback([{ isIntersecting: false }]);
+
+    await waitFor(() => {
+      expect(document.querySelector('.builder-topbar')).toHaveClass('builder-topbar--scrolled');
+    });
+  });
+
+  it('topbar loses --scrolled class when sentinel returns to viewport', async () => {
+    renderNew();
+
+    // Scroll away then back to top
+    observerCallback([{ isIntersecting: false }]);
+    await waitFor(() => {
+      expect(document.querySelector('.builder-topbar')).toHaveClass('builder-topbar--scrolled');
+    });
+
+    observerCallback([{ isIntersecting: true }]);
+    await waitFor(() => {
+      expect(document.querySelector('.builder-topbar')).not.toHaveClass('builder-topbar--scrolled');
+    });
   });
 });
