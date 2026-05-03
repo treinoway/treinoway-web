@@ -885,6 +885,18 @@ html:has(.auth-page) {
 .main-content--fullscreen {
   position: relative;
   overflow: hidden;
+  /* On mobile, reserve space above the fixed bottom-nav (72px) so fullscreen
+     children (e.g. .builder-bottom-bar) are never hidden behind it.
+     The child .builder-shell fills height:100% of the content-box, which
+     excludes this padding — leaving the bar visible above the nav.
+     Desktop: .bottom-nav is display:none so no padding needed there. */
+  padding-bottom: 72px;
+}
+
+@media (min-width: 768px) {
+  .main-content--fullscreen {
+    padding-bottom: 0;
+  }
 }
 
 .main-content-inner {
