@@ -24,6 +24,10 @@ vi.mock('../../api/axios', () => ({
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
+vi.mock('./StudentActivityTab', () => ({
+  default: () => null,
+}));
+
 const mockStudent = {
   id: 'student-1',
   firstName: 'Aluno',

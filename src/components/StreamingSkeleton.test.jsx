@@ -8,13 +8,13 @@ vi.mock('../i18n', () => ({
       skeleton: {
         thinking: 'Pensando…',
         aria: 'iArnold está processando sua pergunta',
-        phrases: ['Alongando', 'Fazendo flexões', 'Aquecendo os músculos'],
+        phrases: ['Alongando…', 'Fazendo flexões…', 'Aquecendo os músculos…'],
       },
     },
   }),
 }));
 
-const POOL = ['Alongando', 'Fazendo flexões', 'Aquecendo os músculos'];
+const POOL = ['Alongando…', 'Fazendo flexões…', 'Aquecendo os músculos…'];
 
 describe('StreamingSkeleton', () => {
   beforeEach(() => {
