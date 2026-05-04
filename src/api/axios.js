@@ -1,8 +1,13 @@
 import axios from 'axios';
 import { getErrorMessage } from '../utils/errorMessages';
 import { extractErrorInfo } from '../i18n';
+import { getDeviceTimezone } from '../utils/timezone';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
+// Feature flag — flip to false to stop sending the timezone header without redeploy if needed.
+// TODO(student-timezone): replace trainer-device tz with student.timezone when capture path lands.
+const SEND_TIMEZONE_HEADER = true;
 
 // Event emitter for network errors (bridges Axios → React toast)
 const errorListeners = new Set();
@@ -28,6 +33,40 @@ api.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Request interceptor to attach the device timezone (resolved per-request, never cached).
+// Guarded on the same auth source the Authorization interceptor uses, so it never leaks
+// on logged-out requests. baseURL guard prevents leaking to any future third-party Axios
+// instance that might share this module by accident.
+api.interceptors.request.use(
+  (config) => {
+    if (!SEND_TIMEZONE_HEADER) return config;
+
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) return config;
+
+    const requestBaseURL = config.baseURL || api.defaults.baseURL;
+    if (requestBaseURL !== BASE_URL) return config;
+
+    const timezone = getDeviceTimezone();
+    if (timezone === null) {
+      // Defensive: scrub any stale header carried over from a prior attempt (401-retry path).
+      delete config.headers['app-timezone'];
+      return config;
+    }
+
+    config.headers['app-timezone'] = timezone;
+
+    if (import.meta.env.DEV) {
+      console.debug(`[tz] ${timezone} (Intl.DateTimeFormat)`);
+    }
+
     return config;
   },
   (error) => {

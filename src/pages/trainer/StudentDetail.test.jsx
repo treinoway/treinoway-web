@@ -115,10 +115,11 @@ describe('StudentDetail', () => {
     });
   });
 
-  it('renders tab buttons for "Rotinas" and "Anamneses"', async () => {
+  it('renders tab buttons for "Rotinas", "Atividade" and "Anamneses"', async () => {
     renderStudentDetail();
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Rotinas' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Atividade' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
     });
   });

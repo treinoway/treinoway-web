@@ -1,0 +1,2152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Treinoway — Mockup · Criar novo exercício (template)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<style>
+  :root {
+    --spacing-2xs: 2px;
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-xxl: 48px;
+
+    --radius-stat: 4px;
+    --radius-brand: 8px;
+    --radius-lg: 20px;
+    --radius-full: 9999px;
+
+    --brand-primary: #0A5FCC;
+    --brand-primary-dark: #083E85;
+    --brand-accent: #FF6B1A;
+    --brand-accent-dark: #D9520F;
+    --brand-accent-container: #FFF1EA;
+    --brand-ink: #0A0F1C;
+    --brand-slate: #1E293B;
+    --brand-steel: #64748B;
+    --brand-mist: #F1F5F9;
+    --brand-divider: #E2E8F0;
+
+    --md-surface: #FFFFFF;
+    --md-surface-container: #F0F1F4;
+    --md-surface-container-high: #E6E7EB;
+    --md-outline: #8E8E93;
+    --md-outline-variant: #C7C7CC;
+
+    --md-error: #D32F2F;
+    --md-error-container: #FDDEDE;
+    --md-success: #2E7D32;
+    --md-warning: #F59E0B;
+    --md-warning-container: #FFFBEB;
+
+    --shadow-brand-sm: 0 1px 3px rgba(10,15,28,.08), 0 0 0 1px rgba(10,15,28,.04);
+    --shadow-brand-md: 0 4px 12px -2px rgba(10,15,28,.10), 0 0 0 1px rgba(10,15,28,.05);
+    --shadow-brand-lg: 0 16px 40px -8px rgba(10,15,28,.18), 0 0 0 1px rgba(10,15,28,.06);
+    --shadow-focus: 0 0 0 2px var(--brand-primary);
+
+    --duration-fast: 150ms;
+    --duration-base: 200ms;
+    --duration-slow: 300ms;
+    --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+
+    --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-family-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    --font-family-stat: 'Space Grotesk', ui-monospace, monospace;
+    --tracking-tight: -0.02em;
+    --tracking-wide: 0.08em;
+    --tracking-wider: 0.12em;
+    --line-height-tight: 1.2;
+    --line-height-normal: 1.5;
+
+    --z-overlay: 1000;
+    --z-modal: 1100;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-family-base);
+    font-size: 16px;
+    color: var(--brand-ink);
+    background: #EEF1F5;
+    -webkit-font-smoothing: antialiased;
+    line-height: var(--line-height-normal);
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-family-display);
+    font-weight: 600;
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--tracking-tight);
+  }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+  input, textarea, select { font: inherit; color: inherit; }
+  a { color: inherit; text-decoration: none; }
+
+  .mockup-page {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-md) var(--spacing-xxl);
+  }
+  .mockup-header { margin-bottom: var(--spacing-xl); }
+  .mockup-section-eyebrow {
+    font-family: var(--font-family-base);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wider);
+    color: var(--brand-steel);
+    margin-bottom: var(--spacing-sm);
+  }
+  .mockup-section-title {
+    font-family: var(--font-family-display);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--brand-ink);
+    letter-spacing: var(--tracking-tight);
+    margin-bottom: var(--spacing-lg);
+  }
+  .mockup-section-divider {
+    height: 1px;
+    background: var(--brand-divider);
+    margin: var(--spacing-xxl) 0;
+  }
+  .mockup-eyebrow {
+    font-family: var(--font-family-base);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wider);
+    color: var(--brand-steel);
+    margin-bottom: var(--spacing-xs);
+  }
+  .mockup-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-ink);
+  }
+  .mockup-subtitle {
+    margin-top: var(--spacing-sm);
+    color: var(--brand-steel);
+    max-width: 720px;
+  }
+  .mockup-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xl);
+  }
+  @media (min-width: 1024px) {
+    .mockup-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .mockup-grid--3 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xl);
+  }
+  @media (min-width: 1024px) {
+    .mockup-grid--3 { grid-template-columns: repeat(3, 1fr); }
+  }
+  .mockup-frame {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  .mockup-caption {
+    font-family: var(--font-family-base);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wider);
+    color: var(--brand-steel);
+  }
+  .mockup-caption strong {
+    display: block;
+    font-family: var(--font-family-display);
+    font-size: 16px;
+    letter-spacing: var(--tracking-tight);
+    text-transform: none;
+    color: var(--brand-ink);
+    margin-top: var(--spacing-2xs);
+  }
+
+  .phone {
+    width: 100%;
+    max-width: 390px;
+    margin: 0 auto;
+    background: var(--md-surface);
+    border-radius: 28px;
+    box-shadow: var(--shadow-brand-lg);
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--brand-divider);
+    isolation: isolate;
+  }
+  .phone-statusbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--brand-ink);
+    background: var(--md-surface);
+  }
+  .phone-statusbar-icons { display: inline-flex; gap: 6px; align-items: center; }
+  .phone-statusbar-icons svg { width: 14px; height: 14px; }
+
+  .desktop {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    background: var(--md-surface);
+    border-radius: 12px;
+    box-shadow: var(--shadow-brand-lg);
+    overflow: hidden;
+    border: 1px solid var(--brand-divider);
+  }
+  .desktop-chrome {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 10px var(--spacing-md);
+    background: var(--md-surface-container);
+    border-bottom: 1px solid var(--brand-divider);
+  }
+  .desktop-chrome-dots { display: inline-flex; gap: 6px; }
+  .desktop-chrome-dot {
+    width: 12px; height: 12px;
+    border-radius: var(--radius-full);
+    background: var(--md-outline-variant);
+  }
+  .desktop-chrome-dot--red { background: #FF6058; }
+  .desktop-chrome-dot--yellow { background: #FFBC2E; }
+  .desktop-chrome-dot--green { background: #28C840; }
+  .desktop-chrome-url {
+    flex: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 6px 12px;
+    background: var(--md-surface);
+    border-radius: var(--radius-brand);
+    font-size: 12px;
+    color: var(--brand-steel);
+    text-align: center;
+    font-family: var(--font-family-base);
+    border: 1px solid var(--brand-divider);
+  }
+  .desktop-viewport {
+    display: grid;
+    grid-template-columns: 232px 1fr;
+    min-height: 760px;
+    max-height: 1100px;
+    background: var(--md-surface);
+  }
+
+  .desktop-sidebar {
+    background: var(--brand-ink);
+    color: #FFFFFF;
+    padding: var(--spacing-lg) var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+  .desktop-brand {
+    font-family: var(--font-family-display);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: var(--tracking-tight);
+    color: #FFFFFF;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+  .desktop-brand-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-stat);
+    background: var(--brand-accent);
+    color: var(--brand-ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-family-display);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .desktop-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xs);
+  }
+  .desktop-nav-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 10px 12px;
+    border-radius: var(--radius-brand);
+    color: rgba(241, 245, 249, .7);
+    font-size: 13px;
+    font-weight: 500;
+    transition: background var(--duration-fast) var(--ease-brand),
+                color var(--duration-fast) var(--ease-brand);
+  }
+  .desktop-nav-item:hover { background: rgba(255,255,255,.06); color: #FFFFFF; }
+  .desktop-nav-item--active {
+    background: var(--brand-primary);
+    color: #FFFFFF;
+  }
+  .desktop-nav-item svg { width: 16px; height: 16px; stroke-width: 2; }
+  .desktop-nav-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wider);
+    color: rgba(241, 245, 249, .45);
+    padding: 0 12px;
+    margin-top: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .desktop-main {
+    overflow-y: auto;
+    padding: var(--spacing-xl) var(--spacing-xxl);
+    background: var(--md-surface);
+  }
+  .desktop-breadcrumb {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 12px;
+    color: var(--brand-steel);
+    margin-bottom: var(--spacing-md);
+  }
+  .desktop-breadcrumb svg { width: 12px; height: 12px; }
+  .desktop-breadcrumb a { color: var(--brand-steel); }
+  .desktop-breadcrumb a:hover { color: var(--brand-primary); }
+  .desktop-breadcrumb-current { color: var(--brand-ink); font-weight: 600; }
+
+  .desktop-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+  }
+  .desktop-page-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  .desktop-page-header h1 {
+    font-size: 28px;
+    color: var(--brand-ink);
+  }
+  .desktop-page-header h1.is-empty {
+    color: var(--brand-steel);
+    font-weight: 500;
+  }
+  .desktop-page-header-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 13px;
+    color: var(--brand-steel);
+  }
+  .desktop-page-header-meta-divider {
+    width: 4px; height: 4px;
+    border-radius: var(--radius-full);
+    background: var(--md-outline-variant);
+  }
+
+  .desktop-layout {
+    display: block;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .desktop-form { display: flex; flex-direction: column; gap: var(--spacing-xl); }
+  .desktop-card {
+    background: var(--md-surface);
+    border: 1px solid var(--brand-divider);
+    border-radius: var(--radius-brand);
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  .desktop-card-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+  }
+  .desktop-card-title {
+    font-family: var(--font-family-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--brand-ink);
+    letter-spacing: var(--tracking-tight);
+  }
+  .desktop-card-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wider);
+    color: var(--brand-steel);
+  }
+  .desktop-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+  }
+  .desktop-row--3 { grid-template-columns: repeat(3, 1fr); }
+
+  /* Descanso (desktop) — chips à esquerda + input à direita em linha */
+  .desktop-rest-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+  }
+  .desktop-rest-row .prescription-chips {
+    flex: 1 1 auto;
+    margin-bottom: 0;
+  }
+  .desktop-rest-input {
+    flex: 0 0 140px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Inline info banner reused inside form sections (e.g. Visibilidade) */
+  .info-banner {
+    background: #E3EEFC;
+    border: 1px solid #BFD7F4;
+    border-radius: var(--radius-brand);
+    padding: var(--spacing-sm) var(--spacing-md);
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+    font-size: 12px;
+    color: #083E85;
+    margin-bottom: var(--spacing-md);
+  }
+  .info-banner svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--brand-primary);
+    margin-top: 2px;
+  }
+
+  .desktop-form-footer {
+    position: sticky;
+    bottom: 0;
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md) 0;
+    background: linear-gradient(to top, var(--md-surface) 70%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+  }
+  .desktop-form-footer .btn-group { flex: 0 0 auto; }
+  .desktop-form-footer .btn-group > .btn-primary { flex: 0 0 auto; min-width: 160px; }
+
+  .desktop-video-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+    align-items: start;
+  }
+  @media (min-width: 768px) {
+    .desktop-video-row { grid-template-columns: 1fr auto; }
+  }
+
+  /* App bar — same as exercise-edit-prescription */
+  .app-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--md-surface);
+    border-bottom: 1px solid var(--brand-divider);
+  }
+  .app-bar-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-brand);
+    color: var(--brand-ink);
+    transition: background var(--duration-fast) var(--ease-brand);
+  }
+  .app-bar-back:hover { background: var(--md-surface-container-high); }
+  .app-bar-title {
+    flex: 1;
+    font-family: var(--font-family-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--brand-ink);
+  }
+  .app-bar-meta {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wider);
+    color: var(--brand-steel);
+  }
+
+  .page-body {
+    padding: var(--spacing-md);
+    background: var(--md-surface);
+    max-height: 820px;
+    overflow-y: auto;
+    position: relative;
+  }
+  .page-body--bottom-padded { padding-bottom: var(--spacing-xxl); }
+
+  /* Page header — name as h1, mirrors exercise-edit-prescription */
+  .page-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xs);
+    margin-bottom: var(--spacing-lg);
+  }
+  .page-header-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wider);
+    color: var(--brand-steel);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+  .page-header h1 {
+    font-size: 24px;
+    color: var(--brand-ink);
+  }
+  .page-header h1.is-empty {
+    color: var(--brand-steel);
+    font-weight: 500;
+  }
+  .page-header-sub {
+    font-size: 12px;
+    color: var(--brand-steel);
+    margin-top: var(--spacing-2xs);
+  }
+
+  /* Form primitives */
+  .form { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+  .form-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  .form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--brand-ink);
+    margin-bottom: var(--spacing-xs);
+  }
+  .form-label-required { color: var(--md-error); }
+  .form-label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+  .form-label-row .form-label { margin-bottom: 0; }
+  .form-counter {
+    font-size: 11px;
+    color: var(--brand-steel);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .form-input, .form-textarea, .form-select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--radius-brand);
+    background: var(--md-surface);
+    color: var(--brand-ink);
+    font-size: 14px;
+    outline: none;
+    transition: border-color var(--duration-fast) var(--ease-brand),
+                box-shadow var(--duration-fast) var(--ease-brand);
+  }
+  .form-input:focus, .form-textarea:focus, .form-select:focus {
+    border-color: var(--brand-primary);
+    box-shadow: var(--shadow-focus);
+  }
+  .form-input::placeholder, .form-textarea::placeholder { color: var(--brand-steel); }
+  .form-textarea { resize: vertical; min-height: 84px; }
+  .form-input-with-suffix { position: relative; }
+  .form-input-with-suffix .form-input { padding-right: 40px; }
+  .form-input-suffix {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--brand-steel);
+    font-size: 13px;
+    font-weight: 500;
+    pointer-events: none;
+  }
+
+  /* Buttons */
+  .btn-primary, .btn-secondary, .btn-danger, .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: var(--radius-brand);
+    font-family: var(--font-family-base);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    transition: background var(--duration-fast) var(--ease-brand),
+                color var(--duration-fast) var(--ease-brand),
+                box-shadow var(--duration-fast) var(--ease-brand),
+                transform var(--duration-fast) var(--ease-brand);
+  }
+  .btn-primary { background: var(--brand-primary); color: #FFF; }
+  .btn-primary:hover { background: var(--brand-primary-dark); box-shadow: var(--shadow-brand-sm); }
+  .btn-secondary {
+    background: var(--md-surface);
+    color: var(--brand-ink);
+    box-shadow: inset 0 0 0 1px var(--md-outline-variant);
+  }
+  .btn-secondary:hover { background: var(--md-surface-container-high); }
+  .btn-ghost { background: transparent; color: var(--brand-primary); }
+  .btn-ghost:hover { background: var(--brand-mist); }
+  .btn-group { display: flex; gap: var(--spacing-sm); }
+  .btn-group > .btn-primary,
+  .btn-group > .btn-secondary { flex: 1; }
+
+  .btn-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    background: none;
+    border: 0;
+    padding: var(--spacing-sm) var(--spacing-xs);
+    color: var(--brand-primary);
+    font-family: var(--font-family-base);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    transition: color var(--duration-fast) var(--ease-brand);
+    min-height: 44px;
+  }
+  .btn-link:hover { color: var(--brand-primary-dark); }
+  .btn-link svg { width: 14px; height: 14px; stroke-width: 2; }
+
+  /* Section title */
+  .form-section-title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+  }
+  .form-section-title {
+    font-family: var(--font-family-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--brand-ink);
+    letter-spacing: var(--tracking-tight);
+  }
+  .form-section-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wider);
+    color: var(--brand-steel);
+  }
+
+  /* PRESCRIPTION block (reused verbatim from exercise-edit-prescription mockup) */
+  .prescription { display: flex; flex-direction: column; gap: var(--spacing-md); }
+
+  .segmented-toggle--mode-switch {
+    display: flex;
+    width: 100%;
+    background: var(--md-surface-container-high);
+    padding: var(--spacing-2xs);
+    border-radius: var(--radius-brand);
+    gap: var(--spacing-2xs);
+    box-shadow: var(--shadow-brand-sm);
+    position: relative;
+  }
+  .segmented-toggle-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-xs);
+    background: transparent;
+    border-radius: calc(var(--radius-brand) - var(--spacing-2xs));
+    color: var(--brand-steel);
+    font-family: var(--font-family-display);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    min-height: var(--spacing-xxl);
+    position: relative;
+    transition: background var(--duration-fast) var(--ease-brand),
+                color var(--duration-fast) var(--ease-brand),
+                box-shadow var(--duration-fast) var(--ease-brand);
+  }
+  .segmented-toggle-btn .toggle-icon { width: 18px; height: 18px; stroke-width: 2; }
+  .segmented-toggle-btn:hover {
+    background: var(--md-surface-container);
+    color: var(--brand-slate);
+  }
+  .segmented-toggle-btn--active {
+    background: var(--brand-primary);
+    color: #FFFFFF;
+    box-shadow: var(--shadow-brand-sm);
+  }
+  .segmented-toggle-btn--active::after {
+    content: '';
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 2px;
+    background: var(--brand-accent);
+    border-radius: var(--radius-stat);
+  }
+
+  /* Type segmented (5 options, may wrap to 2 lines) */
+  .segmented-toggle--type {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--spacing-2xs);
+    background: var(--md-surface-container-high);
+    padding: var(--spacing-2xs);
+    border-radius: var(--radius-brand);
+    box-shadow: var(--shadow-brand-sm);
+  }
+  @media (max-width: 419px) {
+    .segmented-toggle--type { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .prescription-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  @media (min-width: 768px) {
+    .prescription-row { grid-template-columns: 1fr 1fr; }
+  }
+  .prescription-reps-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-xs);
+  }
+  .prescription-reps-row .form-input { font-variant-numeric: tabular-nums; }
+
+  .prescription-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+  }
+  .prescription-chip {
+    padding: 8px 14px;
+    background: var(--brand-mist);
+    border: 1px solid var(--brand-divider);
+    border-radius: var(--radius-brand);
+    font-family: var(--font-family-base);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--brand-slate);
+    font-variant-numeric: tabular-nums;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    transition: background var(--duration-fast) var(--ease-brand),
+                border-color var(--duration-fast) var(--ease-brand),
+                color var(--duration-fast) var(--ease-brand);
+  }
+  .prescription-chip:hover { background: var(--md-surface-container-high); }
+  .prescription-chip--active {
+    background: var(--brand-primary);
+    color: #FFF;
+    border-color: var(--brand-primary);
+  }
+
+  .prescription-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--brand-ink);
+    color: #FFFFFF;
+    border-radius: var(--radius-brand);
+    box-shadow: var(--shadow-brand-sm);
+  }
+  .prescription-preview-label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xs);
+  }
+  .prescription-preview-eyebrow {
+    font-family: var(--font-family-base);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    color: rgba(241, 245, 249, .7);
+  }
+  .prescription-preview-context {
+    font-size: 12px;
+    color: rgba(241, 245, 249, .9);
+  }
+  .stat-display-value {
+    font-family: var(--font-family-stat);
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+    font-variant-numeric: tabular-nums;
+    color: #FFFFFF;
+    line-height: 1;
+  }
+  .stat-display-unit {
+    font-size: 14px;
+    color: rgba(241, 245, 249, .7);
+    margin-left: 4px;
+    font-weight: 500;
+  }
+
+  /* Vídeo — thumb compact (no embed inline) */
+  .video-row {
+    display: flex;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+  .video-row .form-input-with-suffix { flex: 1; min-width: 0; }
+  .video-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-brand);
+    background:
+      radial-gradient(circle at 50% 40%, rgba(255,107,26,.32), transparent 55%),
+      linear-gradient(135deg, #1E293B, #0A0F1C 80%);
+    color: rgba(255,255,255,.92);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-brand-sm);
+  }
+  .video-thumb-play {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-full);
+    background: rgba(255,255,255,.92);
+    color: var(--brand-ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .video-thumb-play svg { width: 14px; height: 14px; }
+  .video-expand-btn {
+    width: 44px;
+    height: 64px;
+    border-radius: var(--radius-brand);
+    background: var(--brand-mist);
+    color: var(--brand-slate);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background var(--duration-fast) var(--ease-brand),
+                color var(--duration-fast) var(--ease-brand);
+  }
+  .video-expand-btn:hover { background: var(--md-surface-container-high); color: var(--brand-ink); }
+  .video-expand-btn svg { width: 18px; height: 18px; stroke-width: 2; }
+  .video-helper {
+    margin-top: var(--spacing-xs);
+    font-size: 12px;
+    color: var(--brand-steel);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Video as hero (desktop ≥768) — large preview on top, compact URL row below */
+  .video-hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  .video-hero-stage {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    max-height: 360px;
+    border-radius: var(--radius-brand);
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 38%, rgba(255,107,26,.30), transparent 58%),
+      linear-gradient(135deg, #1E293B, #0A0F1C 80%);
+    box-shadow: var(--shadow-brand-sm);
+  }
+  .video-hero-stage--empty {
+    background: var(--brand-mist);
+    border: 1.5px dashed var(--brand-divider);
+    color: var(--brand-steel);
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    text-align: center;
+  }
+  .video-hero-stage--empty .video-hero-empty-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    background: var(--md-surface);
+    color: var(--brand-steel);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--brand-divider);
+  }
+  .video-hero-stage--empty .video-hero-empty-icon svg { width: 22px; height: 22px; stroke-width: 2; }
+  .video-hero-empty-hint {
+    font-size: 13px;
+    color: var(--brand-steel);
+    max-width: 320px;
+    line-height: 1.4;
+  }
+  .video-hero-play {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-full);
+    background: rgba(255,255,255,.94);
+    color: var(--brand-ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px -8px rgba(10,15,28,.45);
+  }
+  .video-hero-play svg { width: 26px; height: 26px; stroke-width: 2; }
+  .video-hero-expand {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-brand);
+    background: rgba(10,15,28,.55);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+    transition: background var(--duration-fast) var(--ease-brand);
+  }
+  .video-hero-expand:hover { background: rgba(10,15,28,.75); }
+  .video-hero-expand svg { width: 16px; height: 16px; stroke-width: 2; }
+  .video-hero-source {
+    position: absolute;
+    bottom: var(--spacing-sm);
+    left: var(--spacing-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 4px var(--spacing-sm);
+    border-radius: var(--radius-full);
+    background: rgba(10,15,28,.55);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    backdrop-filter: blur(6px);
+  }
+  .video-hero-source svg { width: 12px; height: 12px; stroke-width: 2.2; }
+
+  .video-hero-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  .video-hero-url-row {
+    display: flex;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+  .video-hero-url-row .form-input-with-icon { flex: 1; min-width: 0; }
+  .form-input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .form-input-with-icon > svg {
+    position: absolute;
+    left: var(--spacing-sm);
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+    color: var(--brand-steel);
+    pointer-events: none;
+  }
+  .form-input-with-icon .form-input { padding-left: calc(var(--spacing-sm) + 16px + var(--spacing-xs)); }
+  .video-hero-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+  }
+  .video-hero-actions .btn-link { padding: 0; }
+  .btn-link--muted { color: var(--brand-steel); }
+  .btn-link--muted:hover { color: var(--brand-ink); }
+
+  /* Sticky form footer (mobile) — Cancelar = link, Criar = primary */
+  .form-footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--md-surface);
+    margin: var(--spacing-md) calc(var(--spacing-md) * -1) calc(var(--spacing-md) * -1);
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--brand-divider);
+    box-shadow: 0 -8px 24px -12px rgba(10,15,28,.10);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+  .form-footer .btn-link { flex: 0; padding: var(--spacing-sm) var(--spacing-md); }
+  .form-footer .btn-primary { flex: 1; }
+
+  /* Carga toggle row */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) 0;
+  }
+  .toggle-row-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .toggle-row-title {
+    font-family: var(--font-family-base);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand-ink);
+  }
+  .toggle-row-sub {
+    font-size: 12px;
+    color: var(--brand-steel);
+    line-height: var(--line-height-normal);
+  }
+
+  /* Switch (custom toggle) */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .switch-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: var(--md-outline-variant);
+    border-radius: var(--radius-full);
+    transition: background var(--duration-base) var(--ease-brand);
+  }
+  .switch-slider::before {
+    content: '';
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    top: 3px;
+    background: #FFFFFF;
+    border-radius: 50%;
+    transition: transform var(--duration-base) var(--ease-brand);
+    box-shadow: 0 1px 3px rgba(10,15,28,.2);
+  }
+  .switch input:checked + .switch-slider { background: var(--brand-primary); }
+  .switch input:checked + .switch-slider::before { transform: translateX(20px); }
+
+  /* Accent variant (used for visibility / out-of-default state) */
+  .switch--accent input:checked + .switch-slider { background: var(--brand-accent); }
+
+  /* Visibility card */
+  .visibility-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--brand-mist);
+    border-radius: var(--radius-brand);
+    border: 1px solid var(--brand-divider);
+  }
+  .visibility-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-stat);
+    background: var(--md-surface);
+    color: var(--brand-accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-brand-sm);
+  }
+  .visibility-card-icon svg { width: 20px; height: 20px; stroke-width: 2; }
+  .visibility-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .visibility-card-title {
+    font-family: var(--font-family-base);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand-ink);
+  }
+  .visibility-card-sub {
+    font-size: 12px;
+    color: var(--brand-steel);
+    line-height: var(--line-height-normal);
+  }
+
+  /* Confirm dialog (overlay + modal) */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,15,28,.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-lg);
+    backdrop-filter: blur(2px);
+    z-index: var(--z-overlay);
+  }
+  .confirm-dialog {
+    width: 100%;
+    max-width: 320px;
+    background: var(--md-surface);
+    border-radius: var(--radius-brand);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-brand-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  .confirm-dialog-head {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+  .confirm-dialog-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-stat);
+    background: var(--brand-accent-container);
+    color: var(--brand-accent-dark);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .confirm-dialog-icon svg { width: 18px; height: 18px; stroke-width: 2; }
+  .confirm-dialog-title {
+    font-family: var(--font-family-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--brand-ink);
+    letter-spacing: var(--tracking-tight);
+  }
+  .confirm-dialog-message {
+    font-size: 13px;
+    color: var(--brand-slate);
+    line-height: var(--line-height-normal);
+  }
+
+  /* Helpers */
+  .mb-0 { margin-bottom: 0; }
+  .stack-sm { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+  .is-collapsed { opacity: .35; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div class="mockup-page">
+
+  <!-- ====================================================== -->
+  <!-- HEADER                                                 -->
+  <!-- ====================================================== -->
+  <header class="mockup-header">
+    <div class="mockup-eyebrow">Treinoway · Mockup estático</div>
+    <h1 class="mockup-title">Criar novo exercício (template) — v2</h1>
+    <p class="mockup-subtitle">
+      Revisão aplicando feedback do design-critic: hero removido (h1 = nome em tempo real),
+      tipo virou segmented-toggle com ícones, visibilidade pública usa accent + dialog de
+      confirmação, vídeo colapsado em thumb 64x64 com expand sob demanda, descanso ganha
+      chips de atalho, carga colapsa quando OFF, footer com hierarquia clara (cancelar = link).
+      Coerência total com o mockup de edit (mesmo app-bar + page-header).
+    </p>
+  </header>
+
+  <!-- ====================================================== -->
+  <!-- MOBILE — fluxo completo (2 frames)                      -->
+  <!-- ====================================================== -->
+  <div class="mockup-section-eyebrow">Viewport</div>
+  <h2 class="mockup-section-title">Mobile · 375 px · fluxo completo</h2>
+
+  <div class="mockup-grid">
+
+    <!-- ======================================================
+         FRAME 1 — Topo (identidade + tipo + vídeo + prescrição)
+         ====================================================== -->
+    <section class="mockup-frame">
+      <div class="mockup-caption">
+        Estado preenchido — topo do form
+        <strong>Frame 1 · 375px</strong>
+      </div>
+
+      <div class="phone">
+        <div class="phone-statusbar">
+          <span>9:41</span>
+          <span class="phone-statusbar-icons">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h2v3H2zM6 14h2v6H6zM10 11h2v9h-2zM14 7h2v13h-2zM18 3h2v17h-2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 9l10 12L22 9 12 2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="6" width="18" height="12" rx="2"/><rect x="20" y="10" width="2" height="4"/></svg>
+          </span>
+        </div>
+
+        <div class="app-bar">
+          <button class="app-bar-back" aria-label="Voltar"><i data-lucide="arrow-left"></i></button>
+          <span class="app-bar-title">Novo exercício</span>
+          <span class="app-bar-meta">Biblioteca</span>
+        </div>
+
+        <div class="page-body">
+          <div class="page-header">
+            <span class="page-header-eyebrow"><i data-lucide="layers" style="width:12px;height:12px;"></i> Modelo · Biblioteca</span>
+            <h1>Agachamento livre</h1>
+            <span class="page-header-sub">Disponível em qualquer treino que você prescrever.</span>
+          </div>
+
+          <form class="form" onsubmit="event.preventDefault();">
+
+            <!-- ==== Identificação ==== -->
+            <div class="form-section">
+              <div class="form-section-title-row">
+                <h2 class="form-section-title">Identificação</h2>
+                <span class="form-section-eyebrow">O essencial</span>
+              </div>
+
+              <div>
+                <label class="form-label" for="m-name">
+                  Nome <span class="form-label-required" aria-hidden="true">*</span>
+                </label>
+                <input id="m-name" class="form-input" value="Agachamento livre" />
+              </div>
+
+              <div>
+                <label class="form-label">
+                  Tipo <span class="form-label-required" aria-hidden="true">*</span>
+                </label>
+                <div class="segmented-toggle--type" role="radiogroup" aria-label="Tipo do exercício">
+                  <button class="segmented-toggle-btn segmented-toggle-btn--active" role="radio" aria-checked="true">
+                    <i data-lucide="dumbbell" class="toggle-icon"></i>
+                    Força
+                  </button>
+                  <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                    <i data-lucide="heart-pulse" class="toggle-icon"></i>
+                    Cardio
+                  </button>
+                  <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                    <i data-lucide="stretch-horizontal" class="toggle-icon"></i>
+                    Mobilidade
+                  </button>
+                  <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                    <i data-lucide="activity" class="toggle-icon"></i>
+                    Alongamento
+                  </button>
+                  <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                    <i data-lucide="circle-dot" class="toggle-icon"></i>
+                    Core
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ==== Vídeo (thumb compact + expand) ==== -->
+            <div class="form-section">
+              <div class="form-section-title-row">
+                <h2 class="form-section-title">Demonstração</h2>
+                <span class="form-section-eyebrow">Opcional</span>
+              </div>
+
+              <div>
+                <label class="form-label" for="m-video">URL do vídeo</label>
+                <div class="video-row">
+                  <input id="m-video" class="form-input" value="https://youtu.be/dQw4w9WgXcQ" />
+                  <div class="video-thumb" aria-label="Pré-visualização do vídeo">
+                    <span class="video-thumb-play"><i data-lucide="play"></i></span>
+                  </div>
+                  <button type="button" class="video-expand-btn" aria-label="Expandir vídeo">
+                    <i data-lucide="maximize"></i>
+                  </button>
+                </div>
+                <button type="button" class="btn-link">
+                  <i data-lucide="film"></i> Escolher da biblioteca
+                </button>
+              </div>
+            </div>
+
+            <!-- ==== Prescrição padrão ==== -->
+            <div class="form-section prescription">
+              <div class="form-section-title-row">
+                <h2 class="form-section-title">Prescrição padrão</h2>
+              </div>
+
+              <div class="segmented-toggle--mode-switch" role="tablist" aria-label="Tipo de prescrição">
+                <button class="segmented-toggle-btn segmented-toggle-btn--active" role="tab" aria-selected="true">
+                  <i data-lucide="repeat" class="toggle-icon"></i>
+                  Repetições
+                </button>
+                <button class="segmented-toggle-btn" role="tab" aria-selected="false">
+                  <i data-lucide="timer" class="toggle-icon"></i>
+                  Tempo
+                </button>
+              </div>
+
+              <div class="prescription-row">
+                <div>
+                  <label class="form-label" for="m-sets">Séries</label>
+                  <input id="m-sets" class="form-input" type="number" value="4" />
+                </div>
+                <div>
+                  <span class="form-label">Repetições</span>
+                  <div class="prescription-reps-row">
+                    <input class="form-input" type="number" placeholder="Min" value="8" aria-label="Repetições mínimas" />
+                    <input class="form-input" type="number" placeholder="Max" value="10" aria-label="Repetições máximas" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="prescription-preview" aria-live="polite">
+                <div class="prescription-preview-label">
+                  <span class="prescription-preview-context">Card do exercício</span>
+                </div>
+                <div>
+                  <span class="stat-display-value">4<span class="stat-display-unit">x</span>8&ndash;10<span class="stat-display-unit">reps</span></span>
+                </div>
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         FRAME 2 — Base (descanso + carga + notas + visibilidade + footer)
+         ====================================================== -->
+    <section class="mockup-frame">
+      <div class="mockup-caption">
+        Estado preenchido — base do form (descanso, carga, notas, visibilidade)
+        <strong>Frame 2 · 375px</strong>
+      </div>
+
+      <div class="phone">
+        <div class="phone-statusbar">
+          <span>9:41</span>
+          <span class="phone-statusbar-icons">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h2v3H2zM6 14h2v6H6zM10 11h2v9h-2zM14 7h2v13h-2zM18 3h2v17h-2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 9l10 12L22 9 12 2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="6" width="18" height="12" rx="2"/><rect x="20" y="10" width="2" height="4"/></svg>
+          </span>
+        </div>
+
+        <div class="app-bar">
+          <button class="app-bar-back" aria-label="Voltar"><i data-lucide="arrow-left"></i></button>
+          <span class="app-bar-title">Novo exercício</span>
+          <span class="app-bar-meta">Biblioteca</span>
+        </div>
+
+        <div class="page-body">
+          <form class="form" onsubmit="event.preventDefault();">
+
+            <!-- ==== Descanso (com chips) ==== -->
+            <div class="form-section">
+              <div class="form-section-title-row">
+                <h2 class="form-section-title">Descanso</h2>
+                <span class="form-section-eyebrow">Entre séries</span>
+              </div>
+
+              <div>
+                <div class="prescription-chips" role="group" aria-label="Atalhos de descanso">
+                  <button class="prescription-chip" type="button">60s</button>
+                  <button class="prescription-chip prescription-chip--active" type="button">90s</button>
+                  <button class="prescription-chip" type="button">120s</button>
+                  <button class="prescription-chip" type="button">180s</button>
+                </div>
+                <div class="form-input-with-suffix">
+                  <input id="m-rest" class="form-input" type="number" value="90" aria-label="Intervalo de descanso em segundos" />
+                  <span class="form-input-suffix">s</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ==== Carga (toggle ON, campo expandido) ==== -->
+            <div class="form-section">
+              <div class="form-section-title-row">
+                <h2 class="form-section-title">Carga sugerida</h2>
+                <span class="form-section-eyebrow">Padrão do modelo</span>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-row-content">
+                  <span class="toggle-row-title" id="m-hasload-title">Exercício com carga</span>
+                  <span class="toggle-row-sub" id="m-hasload-sub">Habilita o campo de carga sugerida em kg.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked role="switch" aria-labelledby="m-hasload-title" aria-describedby="m-hasload-sub" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+
+              <div>
+                <label class="form-label" for="m-load">Carga em kg</label>
+                <div class="form-input-with-suffix">
+                  <input id="m-load" class="form-input" type="number" step="0.5" value="60" />
+                  <span class="form-input-suffix">kg</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ==== Notas (com contador) ==== -->
+            <div class="form-section">
+              <div class="form-section-title-row">
+                <h2 class="form-section-title">Observações</h2>
+              </div>
+
+              <div>
+                <div class="form-label-row">
+                  <label class="form-label" for="m-notes">Orientações</label>
+                  <span class="form-counter" aria-live="polite">128/240</span>
+                </div>
+                <textarea id="m-notes" class="form-textarea" rows="3" maxlength="240" placeholder="Orientações ou anotações sobre este exercício">Manter o tronco ereto. Joelhos alinhados com a ponta dos pés. Descer até paralelo ao chão.</textarea>
+              </div>
+            </div>
+
+            <!-- ==== Visibilidade (switch accent OFF) ==== -->
+            <div class="form-section">
+              <div class="form-section-title-row">
+                <h2 class="form-section-title">Visibilidade</h2>
+                <span class="form-section-eyebrow">Quem pode usar</span>
+              </div>
+
+              <div class="visibility-card">
+                <div class="visibility-card-icon" aria-hidden="true">
+                  <i data-lucide="globe"></i>
+                </div>
+                <div class="visibility-card-content">
+                  <span class="visibility-card-title" id="m-vis-title">Tornar público</span>
+                  <span class="visibility-card-sub" id="m-vis-sub">Outros treinadores podem usar este exercício na biblioteca compartilhada.</span>
+                </div>
+                <label class="switch switch--accent">
+                  <input type="checkbox" role="switch" aria-labelledby="m-vis-title" aria-describedby="m-vis-sub" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Sticky footer — Cancelar=link, Criar=primary -->
+            <div class="form-footer">
+              <button type="button" class="btn-link">Cancelar</button>
+              <button type="submit" class="btn-primary">Criar exercício</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="mockup-section-divider"></div>
+
+  <!-- ====================================================== -->
+  <!-- MOBILE — estados curtos (vazio, carga OFF, dialog)     -->
+  <!-- ====================================================== -->
+  <div class="mockup-section-eyebrow">Viewport</div>
+  <h2 class="mockup-section-title">Mobile · 375 px · estados especificos</h2>
+
+  <div class="mockup-grid--3">
+
+    <!-- ======================================================
+         FRAME 3 — Estado vazio (h1 placeholder discreto)
+         ====================================================== -->
+    <section class="mockup-frame">
+      <div class="mockup-caption">
+        Estado vazio — h1 com placeholder discreto enquanto nome não foi digitado
+        <strong>Frame 3 · vazio</strong>
+      </div>
+
+      <div class="phone">
+        <div class="phone-statusbar">
+          <span>9:41</span>
+          <span class="phone-statusbar-icons">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h2v3H2zM6 14h2v6H6zM10 11h2v9h-2zM14 7h2v13h-2zM18 3h2v17h-2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 9l10 12L22 9 12 2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="6" width="18" height="12" rx="2"/><rect x="20" y="10" width="2" height="4"/></svg>
+          </span>
+        </div>
+
+        <div class="app-bar">
+          <button class="app-bar-back" aria-label="Voltar"><i data-lucide="arrow-left"></i></button>
+          <span class="app-bar-title">Novo exercício</span>
+          <span class="app-bar-meta">Biblioteca</span>
+        </div>
+
+        <div class="page-body" style="max-height: 520px;">
+          <div class="page-header">
+            <span class="page-header-eyebrow"><i data-lucide="layers" style="width:12px;height:12px;"></i> Modelo · Biblioteca</span>
+            <h1 class="is-empty">Sem nome ainda</h1>
+            <span class="page-header-sub">Disponível em qualquer treino que você prescrever.</span>
+          </div>
+
+          <form class="form" onsubmit="event.preventDefault();">
+            <div class="form-section">
+              <div class="form-section-title-row">
+                <h2 class="form-section-title">Identificação</h2>
+                <span class="form-section-eyebrow">O essencial</span>
+              </div>
+
+              <div>
+                <label class="form-label" for="e-name">
+                  Nome <span class="form-label-required" aria-hidden="true">*</span>
+                </label>
+                <input id="e-name" class="form-input" placeholder="Ex.: Agachamento livre" />
+              </div>
+
+              <div>
+                <label class="form-label">
+                  Tipo <span class="form-label-required" aria-hidden="true">*</span>
+                </label>
+                <div class="segmented-toggle--type" role="radiogroup" aria-label="Tipo do exercício">
+                  <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                    <i data-lucide="dumbbell" class="toggle-icon"></i>
+                    Força
+                  </button>
+                  <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                    <i data-lucide="heart-pulse" class="toggle-icon"></i>
+                    Cardio
+                  </button>
+                  <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                    <i data-lucide="stretch-horizontal" class="toggle-icon"></i>
+                    Mobilidade
+                  </button>
+                  <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                    <i data-lucide="activity" class="toggle-icon"></i>
+                    Alongamento
+                  </button>
+                  <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                    <i data-lucide="circle-dot" class="toggle-icon"></i>
+                    Core
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         FRAME 4 — Carga OFF (campo colapsado)
+         ====================================================== -->
+    <section class="mockup-frame">
+      <div class="mockup-caption">
+        Carga OFF — toggle desativado colapsa o campo de kg
+        <strong>Frame 4 · carga OFF</strong>
+      </div>
+
+      <div class="phone">
+        <div class="phone-statusbar">
+          <span>9:41</span>
+          <span class="phone-statusbar-icons">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h2v3H2zM6 14h2v6H6zM10 11h2v9h-2zM14 7h2v13h-2zM18 3h2v17h-2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 9l10 12L22 9 12 2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="6" width="18" height="12" rx="2"/><rect x="20" y="10" width="2" height="4"/></svg>
+          </span>
+        </div>
+
+        <div class="app-bar">
+          <button class="app-bar-back" aria-label="Voltar"><i data-lucide="arrow-left"></i></button>
+          <span class="app-bar-title">Novo exercício</span>
+          <span class="app-bar-meta">Biblioteca</span>
+        </div>
+
+        <div class="page-body" style="max-height: 520px;">
+          <form class="form" onsubmit="event.preventDefault();">
+            <div class="form-section">
+              <div class="form-section-title-row">
+                <h2 class="form-section-title">Carga sugerida</h2>
+                <span class="form-section-eyebrow">Padrão do modelo</span>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-row-content">
+                  <span class="toggle-row-title" id="off-hasload-title">Exercício com carga</span>
+                  <span class="toggle-row-sub" id="off-hasload-sub">Habilita o campo de carga sugerida em kg.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" role="switch" aria-labelledby="off-hasload-title" aria-describedby="off-hasload-sub" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title-row">
+                <h2 class="form-section-title">Observações</h2>
+              </div>
+
+              <div>
+                <div class="form-label-row">
+                  <label class="form-label" for="off-notes">Orientações</label>
+                  <span class="form-counter">0/240</span>
+                </div>
+                <textarea id="off-notes" class="form-textarea" rows="3" maxlength="240" placeholder="Orientações ou anotações sobre este exercício"></textarea>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         FRAME 5 — Dialog confirm visibilidade pública
+         ====================================================== -->
+    <section class="mockup-frame">
+      <div class="mockup-caption">
+        Dialog confirm — primeira ativação de "Tornar público"
+        <strong>Frame 5 · dialog</strong>
+      </div>
+
+      <div class="phone">
+        <div class="phone-statusbar">
+          <span>9:41</span>
+          <span class="phone-statusbar-icons">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h2v3H2zM6 14h2v6H6zM10 11h2v9h-2zM14 7h2v13h-2zM18 3h2v17h-2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 9l10 12L22 9 12 2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="6" width="18" height="12" rx="2"/><rect x="20" y="10" width="2" height="4"/></svg>
+          </span>
+        </div>
+
+        <div class="app-bar">
+          <button class="app-bar-back" aria-label="Voltar"><i data-lucide="arrow-left"></i></button>
+          <span class="app-bar-title">Novo exercício</span>
+          <span class="app-bar-meta">Biblioteca</span>
+        </div>
+
+        <div class="page-body" style="max-height: 520px;">
+          <form class="form" onsubmit="event.preventDefault();">
+            <div class="form-section">
+              <div class="form-section-title-row">
+                <h2 class="form-section-title">Visibilidade</h2>
+                <span class="form-section-eyebrow">Quem pode usar</span>
+              </div>
+
+              <div class="visibility-card">
+                <div class="visibility-card-icon" aria-hidden="true">
+                  <i data-lucide="globe"></i>
+                </div>
+                <div class="visibility-card-content">
+                  <span class="visibility-card-title">Tornar público</span>
+                  <span class="visibility-card-sub">Outros treinadores podem usar este exercício na biblioteca compartilhada.</span>
+                </div>
+                <label class="switch switch--accent">
+                  <input type="checkbox" checked role="switch" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+          </form>
+
+          <!-- Overlay + dialog -->
+          <div class="overlay" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+            <div class="confirm-dialog">
+              <div class="confirm-dialog-head">
+                <div class="confirm-dialog-icon" aria-hidden="true">
+                  <i data-lucide="globe"></i>
+                </div>
+                <span class="confirm-dialog-title" id="dlg-title">Tornar público?</span>
+              </div>
+              <p class="confirm-dialog-message">
+                Outros treinadores podem usar este exercício na biblioteca compartilhada.
+                Você pode reverter a qualquer momento.
+              </p>
+              <div class="btn-group">
+                <button type="button" class="btn-secondary">Cancelar</button>
+                <button type="button" class="btn-primary">Tornar público</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="mockup-section-divider"></div>
+
+  <!-- ====================================================== -->
+  <!-- DESKTOP                                                 -->
+  <!-- ====================================================== -->
+  <div class="mockup-section-eyebrow">Viewport</div>
+  <h2 class="mockup-section-title">Desktop · 1280 x 800 px</h2>
+
+  <section class="mockup-frame">
+    <div class="mockup-caption">
+      Estado preenchido — layout 2 colunas (form + preview lateral simplificado)
+      <strong>Trainer no desktop · sem hero, preview enxuto</strong>
+    </div>
+
+    <div class="desktop">
+      <div class="desktop-chrome">
+        <div class="desktop-chrome-dots">
+          <span class="desktop-chrome-dot desktop-chrome-dot--red"></span>
+          <span class="desktop-chrome-dot desktop-chrome-dot--yellow"></span>
+          <span class="desktop-chrome-dot desktop-chrome-dot--green"></span>
+        </div>
+        <div class="desktop-chrome-url">app.treinoway.com.br/trainer/exercise-templates/new</div>
+      </div>
+
+      <div class="desktop-viewport">
+        <aside class="desktop-sidebar">
+          <div class="desktop-brand">
+            <span class="desktop-brand-mark">T</span>
+            Treinoway
+          </div>
+
+          <nav class="desktop-nav">
+            <div class="desktop-nav-eyebrow">Trabalho</div>
+            <a class="desktop-nav-item"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+            <a class="desktop-nav-item"><i data-lucide="users"></i> Alunos</a>
+            <a class="desktop-nav-item"><i data-lucide="dumbbell"></i> Treinos</a>
+            <a class="desktop-nav-item desktop-nav-item--active"><i data-lucide="layers"></i> Templates</a>
+
+            <div class="desktop-nav-eyebrow">Conta</div>
+            <a class="desktop-nav-item"><i data-lucide="palette"></i> Sua marca</a>
+            <a class="desktop-nav-item"><i data-lucide="settings"></i> Configurações</a>
+          </nav>
+        </aside>
+
+        <main class="desktop-main">
+          <nav class="desktop-breadcrumb" aria-label="Breadcrumb">
+            <a>Templates</a>
+            <i data-lucide="chevron-right"></i>
+            <a>Exercícios</a>
+            <i data-lucide="chevron-right"></i>
+            <span class="desktop-breadcrumb-current">Novo exercício</span>
+          </nav>
+
+          <header class="desktop-page-header">
+            <div class="desktop-page-header-left">
+              <span class="page-header-eyebrow"><i data-lucide="layers" style="width:12px;height:12px;"></i> Modelo · Biblioteca</span>
+              <h1>Agachamento livre</h1>
+              <div class="desktop-page-header-meta">
+                <span>Disponível em qualquer treino que você prescrever</span>
+              </div>
+            </div>
+          </header>
+
+          <div class="desktop-layout">
+            <form class="desktop-form" onsubmit="event.preventDefault();">
+
+              <!-- Card 1: Identificação -->
+              <div class="desktop-card">
+                <div class="desktop-card-header">
+                  <h3 class="desktop-card-title">Identificação</h3>
+                  <span class="desktop-card-eyebrow">O essencial</span>
+                </div>
+
+                <div>
+                  <label class="form-label" for="d-name">Nome <span class="form-label-required" aria-hidden="true">*</span></label>
+                  <input id="d-name" class="form-input" value="Agachamento livre" />
+                </div>
+
+                <div>
+                  <label class="form-label">Tipo <span class="form-label-required" aria-hidden="true">*</span></label>
+                  <div class="segmented-toggle--type" role="radiogroup" aria-label="Tipo do exercício">
+                    <button class="segmented-toggle-btn segmented-toggle-btn--active" role="radio" aria-checked="true">
+                      <i data-lucide="dumbbell" class="toggle-icon"></i>
+                      Força
+                    </button>
+                    <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                      <i data-lucide="heart-pulse" class="toggle-icon"></i>
+                      Cardio
+                    </button>
+                    <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                      <i data-lucide="stretch-horizontal" class="toggle-icon"></i>
+                      Mobilidade
+                    </button>
+                    <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                      <i data-lucide="activity" class="toggle-icon"></i>
+                      Alongamento
+                    </button>
+                    <button class="segmented-toggle-btn" role="radio" aria-checked="false">
+                      <i data-lucide="circle-dot" class="toggle-icon"></i>
+                      Core
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 2: Demonstração (video hero) -->
+              <div class="desktop-card">
+                <div class="desktop-card-header">
+                  <h3 class="desktop-card-title">Demonstração</h3>
+                  <span class="desktop-card-eyebrow">Opcional · YouTube</span>
+                </div>
+
+                <div class="video-hero">
+                  <!-- Filled state: video preview is the hero -->
+                  <div class="video-hero-stage" role="img" aria-label="Pré-visualização do vídeo de demonstração">
+                    <span class="video-hero-source" aria-hidden="true">
+                      <i data-lucide="youtube"></i> YouTube
+                    </span>
+                    <button type="button" class="video-hero-play" aria-label="Reproduzir prévia">
+                      <i data-lucide="play"></i>
+                    </button>
+                    <button type="button" class="video-hero-expand" aria-label="Expandir vídeo">
+                      <i data-lucide="maximize"></i>
+                    </button>
+                  </div>
+
+                  <div class="video-hero-meta">
+                    <div>
+                      <label class="form-label" for="d-video">URL do vídeo</label>
+                      <div class="video-hero-url-row">
+                        <div class="form-input-with-icon">
+                          <i data-lucide="link"></i>
+                          <input id="d-video" class="form-input" value="https://youtu.be/dQw4w9WgXcQ" placeholder="Cole o link do YouTube" />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="video-hero-actions">
+                      <button type="button" class="btn-link">
+                        <i data-lucide="film"></i> Escolher da biblioteca
+                      </button>
+                      <button type="button" class="btn-link btn-link--muted">
+                        <i data-lucide="x"></i> Remover vídeo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 2 — alt: Demonstração (empty state, for reference) -->
+              <div class="desktop-card" aria-label="Estado vazio (referência)">
+                <div class="desktop-card-header">
+                  <h3 class="desktop-card-title">Demonstração</h3>
+                  <span class="desktop-card-eyebrow">Estado vazio · referência</span>
+                </div>
+
+                <div class="video-hero">
+                  <div class="video-hero-stage video-hero-stage--empty">
+                    <span class="video-hero-empty-icon" aria-hidden="true">
+                      <i data-lucide="film"></i>
+                    </span>
+                    <p class="video-hero-empty-hint">Cole o link do YouTube abaixo ou escolha um vídeo da sua biblioteca para ilustrar a execução.</p>
+                  </div>
+
+                  <div class="video-hero-meta">
+                    <div>
+                      <label class="form-label" for="d-video-empty">URL do vídeo</label>
+                      <div class="video-hero-url-row">
+                        <div class="form-input-with-icon">
+                          <i data-lucide="link"></i>
+                          <input id="d-video-empty" class="form-input" placeholder="https://youtube.com/..." />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="video-hero-actions">
+                      <button type="button" class="btn-link">
+                        <i data-lucide="film"></i> Escolher da biblioteca
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 3: Prescrição padrão -->
+              <div class="desktop-card prescription">
+                <div class="desktop-card-header">
+                  <h3 class="desktop-card-title">Prescrição padrão</h3>
+                  <span class="desktop-card-eyebrow">Como prescrever</span>
+                </div>
+
+                <div class="segmented-toggle--mode-switch" role="tablist" aria-label="Tipo de prescrição">
+                  <button class="segmented-toggle-btn segmented-toggle-btn--active" role="tab" aria-selected="true">
+                    <i data-lucide="repeat" class="toggle-icon"></i>
+                    Repetições
+                  </button>
+                  <button class="segmented-toggle-btn" role="tab" aria-selected="false">
+                    <i data-lucide="timer" class="toggle-icon"></i>
+                    Tempo
+                  </button>
+                </div>
+
+                <div class="desktop-row">
+                  <div>
+                    <label class="form-label" for="d-sets">Séries</label>
+                    <input id="d-sets" class="form-input" type="number" value="4" />
+                  </div>
+                  <div>
+                    <span class="form-label">Repetições</span>
+                    <div class="prescription-reps-row">
+                      <input class="form-input" type="number" placeholder="Min" value="8" aria-label="Repetições mínimas" />
+                      <input class="form-input" type="number" placeholder="Max" value="10" aria-label="Repetições máximas" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 4: Descanso -->
+              <div class="desktop-card">
+                <div class="desktop-card-header">
+                  <h3 class="desktop-card-title">Descanso</h3>
+                  <span class="desktop-card-eyebrow">Entre séries</span>
+                </div>
+
+                <div class="desktop-rest-row">
+                  <div class="prescription-chips" role="group" aria-label="Atalhos de descanso">
+                    <button class="prescription-chip" type="button">60s</button>
+                    <button class="prescription-chip prescription-chip--active" type="button">90s</button>
+                    <button class="prescription-chip" type="button">120s</button>
+                    <button class="prescription-chip" type="button">180s</button>
+                  </div>
+                  <div class="form-input-with-suffix desktop-rest-input">
+                    <label class="sr-only" for="d-rest">Intervalo de descanso em segundos</label>
+                    <input id="d-rest" class="form-input" type="number" value="90" aria-label="Intervalo de descanso em segundos" />
+                    <span class="form-input-suffix">s</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 5: Carga -->
+              <div class="desktop-card">
+                <div class="desktop-card-header">
+                  <h3 class="desktop-card-title">Carga sugerida</h3>
+                  <span class="desktop-card-eyebrow">Padrão do modelo</span>
+                </div>
+
+                <div class="toggle-row" style="padding: 0;">
+                  <div class="toggle-row-content">
+                    <span class="toggle-row-title" id="d-hasload-title">Exercício com carga</span>
+                    <span class="toggle-row-sub" id="d-hasload-sub">Habilita o campo de carga sugerida em kg.</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" checked role="switch" aria-labelledby="d-hasload-title" aria-describedby="d-hasload-sub" />
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+
+                <div class="desktop-row">
+                  <div>
+                    <label class="form-label" for="d-load">Carga em kg</label>
+                    <div class="form-input-with-suffix">
+                      <input id="d-load" class="form-input" type="number" step="0.5" value="60" />
+                      <span class="form-input-suffix">kg</span>
+                    </div>
+                  </div>
+                  <div></div>
+                </div>
+              </div>
+
+              <!-- Card 6: Notas -->
+              <div class="desktop-card">
+                <div class="desktop-card-header">
+                  <h3 class="desktop-card-title">Observações</h3>
+                </div>
+                <div>
+                  <div class="form-label-row">
+                    <label class="form-label" for="d-notes">Orientações</label>
+                    <span class="form-counter">128/240</span>
+                  </div>
+                  <textarea id="d-notes" class="form-textarea" rows="3" maxlength="240" placeholder="Orientações ou anotações sobre este exercício">Manter o tronco ereto. Joelhos alinhados com a ponta dos pés. Descer até paralelo ao chão.</textarea>
+                </div>
+              </div>
+
+              <!-- Card 7: Visibilidade -->
+              <div class="desktop-card">
+                <div class="desktop-card-header">
+                  <h3 class="desktop-card-title">Visibilidade</h3>
+                  <span class="desktop-card-eyebrow">Quem pode usar</span>
+                </div>
+                <div class="info-banner">
+                  <i data-lucide="info"></i>
+                  <span>Modelos privados aparecem só para você. Tornar público permite que outros treinadores reutilizem este exercício.</span>
+                </div>
+                <div class="visibility-card">
+                  <div class="visibility-card-icon" aria-hidden="true">
+                    <i data-lucide="globe"></i>
+                  </div>
+                  <div class="visibility-card-content">
+                    <span class="visibility-card-title" id="d-vis-title">Tornar público</span>
+                    <span class="visibility-card-sub" id="d-vis-sub">Outros treinadores podem usar este exercício na biblioteca compartilhada.</span>
+                  </div>
+                  <label class="switch switch--accent">
+                    <input type="checkbox" role="switch" aria-labelledby="d-vis-title" aria-describedby="d-vis-sub" />
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Sticky footer -->
+              <div class="desktop-form-footer">
+                <button type="button" class="btn-link">Cancelar</button>
+                <div class="btn-group">
+                  <button type="submit" class="btn-primary">Criar exercício</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== -->
+  <!-- NOTAS DE DESIGN                                         -->
+  <!-- ====================================================== -->
+  <section style="margin-top: var(--spacing-xxl); max-width: 880px;">
+    <div class="mockup-eyebrow">Notas de design — v2</div>
+    <h2 style="font-size: 22px; margin-bottom: var(--spacing-md);">Mudanças aplicadas</h2>
+
+    <div style="display:flex; flex-direction:column; gap: var(--spacing-md); color: var(--brand-slate);">
+      <p>
+        <strong style="color: var(--brand-ink);">1. Hero removido — h1 vira o nome.</strong>
+        O bloco hero escuro foi cortado. A tela agora usa o mesmo chrome do mockup de edit
+        (<code>app-bar</code> + <code>page-header</code>): eyebrow "Modelo · Biblioteca",
+        h1 com o nome em tempo real ("Agachamento livre"), e sublabel de uma linha. No estado
+        vazio o h1 vira "Sem nome ainda" em <code>--brand-steel</code>. Coerência create/edit
+        é total.
+      </p>
+      <p>
+        <strong style="color: var(--brand-ink);">2. Tipo virou segmented-toggle com ícones.</strong>
+        Substituído o <code>select</code> por grid de 5 botões (Força, Cardio, Mobilidade,
+        Alongamento, Core) com ícones lucide e label embaixo. Em viewports estreitos abaixo
+        de 420px, faz wrap em 3+2 — mantém touch target de 44px.
+      </p>
+      <p>
+        <strong style="color: var(--brand-ink);">3. Visibilidade pública usa accent + dialog.</strong>
+        O switch de "Tornar público" agora ativa em laranja (<code>--brand-accent</code>),
+        sinalizando que é estado fora do padrão. Na primeira ativação abre um confirm dialog
+        explicando o impacto externo, com CTAs "Tornar público" / "Cancelar".
+      </p>
+      <p>
+        <strong style="color: var(--brand-ink);">4. Vídeo vira hero do card (revisado).</strong>
+        A thumb 64x64 ao lado do input invertia a hierarquia: input dominava 90% da largura
+        e a prévia ficava ilegível. Agora o vídeo ocupa a largura útil do card num stage
+        16:9 (max-height 360px), com play centralizado, badge "YouTube" no canto e
+        <code>maximize</code> overlay. URL e ações descem para metadata compacta abaixo —
+        input com ícone <code>link</code>, "Escolher da biblioteca" e "Remover vídeo" como
+        <code>btn-link</code>. Estado vazio usa stage tracejado em <code>--brand-mist</code>
+        com hint contextual. Mobile mantém o pattern (já era coluna única).
+      </p>
+      <p>
+        <strong style="color: var(--brand-ink);">5. Descanso ganha chips de atalho.</strong>
+        Pattern espelhado do modo Tempo (60/90/120/180s). Acelera input recorrente, mas
+        mantém o number input para casos exóticos. Touch target 44px.
+      </p>
+      <p>
+        <strong style="color: var(--brand-ink);">6. Footer com hierarquia clara.</strong>
+        Cancelar virou <code>btn-link</code> (texto puro, flex 0). Criar mantém
+        <code>btn-primary</code> com flex 1 para cobrir maior parte do footer mobile.
+        Reduz peso visual da ação destrutiva sem escondê-la.
+      </p>
+      <p>
+        <strong style="color: var(--brand-ink);">7. Rail lateral removido — desktop em coluna única.</strong>
+        O preview "Aluno verá" e o tip de Visibilidade saíram. Form ocupa coluna única
+        centralizada (<code>max-width: 760px</code>, <code>margin: 0 auto</code>) — evita
+        inputs esticados em telas largas. O tip de Visibilidade virou
+        <code>info-banner</code> inline acima do toggle, ficando contextual no momento
+        da decisão.
+      </p>
+      <p>
+        <strong style="color: var(--brand-ink);">8. Notas com contador e textarea com maxlength.</strong>
+        Header da label virou row com contador <code>0/240</code> alinhado a direita.
+        Tipo virou <code>textarea[maxlength=240]</code> — limite duro previne campo absurdo
+        que o aluno teria que rolar no app.
+      </p>
+      <p>
+        <strong style="color: var(--brand-ink);">9. Removida copy "Rascunho — clique em criar".</strong>
+        Sugeria persistência automática que não existe. O botão primary já resolve a ambiguidade.
+      </p>
+      <p>
+        <strong style="color: var(--brand-ink);">10. Switch ARIA explícito.</strong>
+        Inputs de toggle agora carregam <code>role="switch"</code> + <code>aria-labelledby</code>
+        + <code>aria-describedby</code> apontando para título e sublabel.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  if (window.lucide) { lucide.createIcons(); }
+</script>
+
+</body>
+</html>

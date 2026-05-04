@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -27,6 +27,9 @@ import { useAiChat } from '../../contexts/AiChatContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import { groupConversationsByDate } from '../../utils/conversationGroups';
+import useStickToBottom from '../../hooks/useStickToBottom';
+import ScrollToLatestPill from '../../components/ScrollToLatestPill';
+import StreamingSkeleton from '../../components/StreamingSkeleton';
 
 const MAX_INPUT_LENGTH = 1000;
 const CHAR_COUNT_THRESHOLD = 900;
@@ -126,7 +129,8 @@ const getUserInitials = (user) => {
 };
 
 // ---------------------------------------------------------------------------
-// Markdown rendering
+// Markdown rendering — memoised so re-renders during stream don't reparse
+// finished messages
 // ---------------------------------------------------------------------------
 
 const markdownComponents = {
@@ -150,9 +154,16 @@ const markdownComponents = {
   td: ({ children }) => <td className="ai-chat__md-td">{children}</td>,
 };
 
-const MarkdownMessage = ({ content }) => (
-  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{content}</ReactMarkdown>
+const MarkdownMessage = memo(
+  ({ content }) => (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+      {content}
+    </ReactMarkdown>
+  ),
+  (prev, next) => prev.content === next.content,
 );
+
+MarkdownMessage.displayName = 'MarkdownMessage';
 
 MarkdownMessage.propTypes = {
   content: PropTypes.string.isRequired,
@@ -344,7 +355,6 @@ const AiAssistant = () => {
     messages,
     conversationId,
     loading,
-    streamingText,
     statusMessage,
     hasNewResponse,
     errorRetry,
@@ -365,24 +375,65 @@ const AiAssistant = () => {
   const [loadingConversationId, setLoadingConversationId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
 
-  const messagesEndRef = useRef(null);
+  // Track whether a response arrived while user was scrolled away
+  const [hasNewResponseSinceLastView, setHasNewResponseSinceLastView] = useState(false);
+
   const inputRef = useRef(null);
+  // Track previous loading state to detect the done transition
+  const prevLoadingRef = useRef(false);
+
+  const { isNearBottom, shouldFollow, scrollToBottom, bottomRef } = useStickToBottom({ threshold: 80 });
 
   const userInitials = getUserInitials(user);
 
+  // Clear badge when screen mounts into view with existing new response
   useEffect(() => {
     if (hasNewResponse) clearNewResponse();
   }, [hasNewResponse, clearNewResponse]);
 
-  const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current && typeof messagesEndRef.current.scrollIntoView === 'function') {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  // When user sends a message: force-follow and smooth scroll to bottom
+  const handleSend = useCallback(async (e) => {
+    e.preventDefault();
+    const trimmedInput = input.trim();
+    if (!trimmedInput || loading) return;
+    setInput('');
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
     }
-  }, []);
+    setHasNewResponseSinceLastView(false);
+    scrollToBottom({ behavior: 'smooth' });
+    await sendMessage(trimmedInput);
+    inputRef.current?.focus();
+  }, [input, loading, sendMessage, scrollToBottom]);
 
+  // When streaming finishes (loading flips false): handle done event
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, loading, streamingText, statusMessage, scrollToBottom]);
+    const wasLoading = prevLoadingRef.current;
+    prevLoadingRef.current = loading;
+
+    if (wasLoading && !loading) {
+      // Stream just completed
+      if (shouldFollow) {
+        scrollToBottom({ behavior: 'smooth' });
+        setHasNewResponseSinceLastView(false);
+      } else {
+        // User scrolled away — show pill in 'new' variant
+        setHasNewResponseSinceLastView(true);
+      }
+    }
+  }, [loading, shouldFollow, scrollToBottom]);
+
+  // When user returns to bottom: clear the "new response" badge
+  useEffect(() => {
+    if (isNearBottom && hasNewResponseSinceLastView) {
+      setHasNewResponseSinceLastView(false);
+    }
+  }, [isNearBottom, hasNewResponseSinceLastView]);
+
+  const handlePillClick = useCallback(() => {
+    scrollToBottom({ behavior: 'smooth' });
+    setHasNewResponseSinceLastView(false);
+  }, [scrollToBottom]);
 
   const loadConversations = useCallback(async () => {
     setConversationsLoading(true);
@@ -440,18 +491,6 @@ const AiAssistant = () => {
     inputRef.current?.focus();
   };
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    const trimmedInput = input.trim();
-    if (!trimmedInput || loading) return;
-    setInput('');
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-    }
-    await sendMessage(trimmedInput);
-    inputRef.current?.focus();
-  };
-
   const handleRetry = async () => {
     await retryLastMessage();
     inputRef.current?.focus();
@@ -488,6 +527,9 @@ const AiAssistant = () => {
   const showCharCount = input.length > CHAR_COUNT_THRESHOLD;
   const isCharCountWarn = input.length >= MAX_INPUT_LENGTH;
   const groupedConversations = groupConversationsByDate(conversations);
+
+  // Pill visible only when a completed response arrived while user was scrolled away
+  const pillVisible = !isNearBottom && hasNewResponseSinceLastView;
 
   return (
     <div className="ai-chat">
@@ -575,83 +617,73 @@ const AiAssistant = () => {
         </>
       ) : (
         /* Messages view: page scroll handles overflow — no internal scroll container */
-        <div className="ai-chat__messages">
+        <div
+          className="ai-chat__messages"
+          aria-live="polite"
+          aria-label="Conversa com iArnold"
+        >
           {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`ai-chat__message ai-chat__message--${msg.role} ai-chat__message--animate`}
-              >
-                {msg.role === 'user' ? (
-                  <UserAvatar initials={userInitials} />
+            <div
+              key={index}
+              className={`ai-chat__message ai-chat__message--${msg.role} ai-chat__message--animate`}
+              aria-busy={msg.isStreaming ? 'true' : undefined}
+            >
+              {msg.role === 'user' ? (
+                <UserAvatar initials={userInitials} />
+              ) : (
+                <ArnoldAvatar />
+              )}
+              <div className="ai-chat__message-body">
+                <span className="ai-chat__message-label">
+                  {msg.role === 'user' ? 'Você' : 'iArnold'}
+                </span>
+                {msg.isStreaming ? (
+                  <StreamingSkeleton statusMessage={statusMessage} />
                 ) : (
-                  <ArnoldAvatar />
-                )}
-                <div className="ai-chat__message-body">
-                  <span className="ai-chat__message-label">
-                    {msg.role === 'user' ? 'Você' : 'iArnold'}
-                  </span>
-                  {msg.isStreaming ? (
-                    streamingText ? (
-                      <>
-                        <div className="ai-chat__message-content">
-                          {msg.role === 'assistant' ? (
-                            <MarkdownMessage content={streamingText} />
-                          ) : (
-                            streamingText
-                          )}
-                        </div>
-                        {statusMessage ? (
-                          <p className="ai-chat__status-text">{statusMessage}</p>
-                        ) : (
-                          <TypingIndicator />
-                        )}
-                      </>
-                    ) : statusMessage ? (
-                      <p className="ai-chat__status-text">{statusMessage}</p>
-                    ) : (
-                      <TypingIndicator />
-                    )
-                  ) : (
-                    <>
-                      <div className="ai-chat__message-content">
-                        {msg.role === 'assistant' ? (
-                          <MarkdownMessage content={msg.content} />
-                        ) : (
-                          msg.content
-                        )}
-                      </div>
-                      {msg.actionsExecuted?.length > 0 && (
-                        <ActionBadge actions={msg.actionsExecuted} />
+                  <>
+                    <div className="ai-chat__message-content">
+                      {msg.role === 'assistant' ? (
+                        <MarkdownMessage content={msg.content} />
+                      ) : (
+                        msg.content
                       )}
-                    </>
-                  )}
-                </div>
+                    </div>
+                    {msg.actionsExecuted?.length > 0 && (
+                      <ActionBadge actions={msg.actionsExecuted} />
+                    )}
+                  </>
+                )}
               </div>
-            ))}
+            </div>
+          ))}
 
-            {errorRetry && !loading && (
-              <div className="ai-chat__error-card">
-                <p className="ai-chat__error-text">
-                  {errorCode === 'AI_OVERLOADED'
-                    ? 'O assistente está sobrecarregado no momento. Tente novamente em instantes.'
-                    : 'Não foi possível processar sua mensagem.'}
-                </p>
-                <button
-                  onClick={handleRetry}
-                  className="ai-chat__error-retry"
-                  aria-label="Tentar novamente"
-                >
-                  Tentar novamente
-                </button>
-              </div>
-            )}
+          {errorRetry && !loading && (
+            <div className="ai-chat__error-card">
+              <p className="ai-chat__error-text">
+                {errorCode === 'AI_OVERLOADED'
+                  ? 'O assistente está sobrecarregado no momento. Tente novamente em instantes.'
+                  : 'Não foi possível processar sua mensagem.'}
+              </p>
+              <button
+                onClick={handleRetry}
+                className="ai-chat__error-retry"
+                aria-label="Tentar novamente"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
 
-            <div ref={messagesEndRef} />
-          </div>
+          <div ref={bottomRef} />
+        </div>
       )}
 
       {/* Composer — sticky bottom, always rendered as last flex child */}
       <div className="ai-chat__composer-wrap">
+        <ScrollToLatestPill
+          visible={pillVisible}
+          onClick={handlePillClick}
+        />
         <form onSubmit={handleSend}>
           <div className="ai-chat__composer">
             <textarea

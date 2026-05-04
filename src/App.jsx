@@ -23,6 +23,7 @@ import ProtocolTemplateView from './pages/trainer/ProtocolTemplateView';
 import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
 import Students from './pages/trainer/Students';
 import StudentDetail from './pages/trainer/StudentDetail';
+import ExerciseProgressionDetail from './pages/trainer/ExerciseProgressionDetail';
 import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
 import AnamnesisDetail from './pages/trainer/AnamnesisDetail';
 import AssignAnamnesis from './pages/trainer/AssignAnamnesis';
@@ -231,6 +232,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <StudentDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/students/:studentId/exercises/:exerciseId/progression"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ExerciseProgressionDetail />
                 </Layout>
               </ProtectedRoute>
             }

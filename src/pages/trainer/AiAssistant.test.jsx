@@ -1,5 +1,6 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { renderWithRouter } from '../../test/test-utils';
 import AiAssistant from './AiAssistant';
 import { groupConversationsByDate } from '../../utils/conversationGroups';
@@ -7,6 +8,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAiChat } from '../../contexts/AiChatContext';
 import api from '../../api/axios';
+import * as useStickToBottomModule from '../../hooks/useStickToBottom';
 
 vi.mock('../../contexts/ToastContext', () => ({
   useToast: vi.fn(),
@@ -28,6 +30,10 @@ vi.mock('../../api/axios', () => ({
     delete: vi.fn(),
   },
   onNetworkError: vi.fn(() => vi.fn()),
+}));
+
+vi.mock('../../hooks/useStickToBottom', () => ({
+  default: vi.fn(),
 }));
 
 // Fixed reference date: 2026-03-31 (Tuesday)
@@ -71,6 +77,8 @@ describe('AiAssistant', () => {
   let showToast;
   let mockContextValue;
 
+  let mockScrollToBottom;
+
   beforeEach(() => {
     showToast = vi.fn();
     vi.mocked(useToast).mockReturnValue({ showToast });
@@ -81,6 +89,15 @@ describe('AiAssistant', () => {
     vi.mocked(useAiChat).mockReturnValue(mockContextValue);
     api.get.mockReset();
     api.delete.mockReset();
+
+    mockScrollToBottom = vi.fn();
+    vi.mocked(useStickToBottomModule.default).mockReturnValue({
+      isNearBottom: true,
+      shouldFollow: true,
+      scrollToBottom: mockScrollToBottom,
+      onScroll: vi.fn(),
+      bottomRef: { current: null },
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -284,7 +301,7 @@ describe('AiAssistant', () => {
     expect(screen.getByText('iArnold', { selector: '.ai-chat__message-label' })).toBeInTheDocument();
   });
 
-  it('shows typing indicator when streaming with no text yet', () => {
+  it('shows skeleton when streaming (no raw text rendered)', () => {
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         loading: true,
@@ -297,51 +314,14 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    expect(screen.getByLabelText('Assistente digitando')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Assistente digitando')).not.toBeInTheDocument();
   });
 
-  it('shows streaming text when available', () => {
+  it('skeleton renders a phrase from the pool when no statusMessage', () => {
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         loading: true,
-        streamingText: 'Parcial...',
-        messages: [
-          { role: 'user', content: 'Olá' },
-          { role: 'assistant', content: 'Parcial...', isStreaming: true },
-        ],
-      })
-    );
-
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.getByText('Parcial...')).toBeInTheDocument();
-    expect(screen.getByLabelText('Assistente digitando')).toBeInTheDocument();
-  });
-
-  it('shows streaming text and status message together when both are set', () => {
-    vi.mocked(useAiChat).mockReturnValue(
-      createDefaultContextValue({
-        loading: true,
-        streamingText: 'Perfeito! Criando o protocolo agora.',
-        statusMessage: 'Executando ação...',
-        messages: [
-          { role: 'user', content: 'Crie um protocolo' },
-          { role: 'assistant', content: '', isStreaming: true },
-        ],
-      })
-    );
-
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.getByText('Perfeito! Criando o protocolo agora.')).toBeInTheDocument();
-    expect(screen.getByText('Executando ação...')).toBeInTheDocument();
-  });
-
-  it('shows streaming text and typing indicator when streaming with no status message', () => {
-    vi.mocked(useAiChat).mockReturnValue(
-      createDefaultContextValue({
-        loading: true,
-        streamingText: 'Processando...',
         statusMessage: '',
         messages: [
           { role: 'user', content: 'Olá' },
@@ -352,11 +332,32 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    expect(screen.getByText('Processando...')).toBeInTheDocument();
-    expect(screen.getByLabelText('Assistente digitando')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    // The skeleton rotates through athletic phrases — assert the status
+    // element is present rather than pinning to a specific phrase.
+    expect(document.querySelector('.streaming-skeleton__status-text')).toBeInTheDocument();
   });
 
-  it('shows status message when available during streaming', () => {
+  it('skeleton does not render streaming text tokens as visible content', () => {
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        loading: true,
+        streamingText: 'Perfeito! Criando o protocolo agora.',
+        statusMessage: 'Executando ação...',
+        messages: [
+          { role: 'user', content: 'Crie um protocolo' },
+          { role: 'assistant', content: 'Perfeito! Criando o protocolo agora.', isStreaming: true },
+        ],
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.queryByText('Perfeito! Criando o protocolo agora.')).not.toBeInTheDocument();
+  });
+
+  it('skeleton shows statusMessage from context when streaming', () => {
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         loading: true,
@@ -370,6 +371,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
+    expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.getByText('Analisando...')).toBeInTheDocument();
   });
 
@@ -937,23 +939,24 @@ describe('AiAssistant', () => {
     expect(screen.getByText('Devo fazer **agachamento**?')).toBeInTheDocument();
   });
 
-  it('renders streaming assistant message with markdown', () => {
+  it('renders skeleton during streaming — no markdown parsed, no raw tokens visible', () => {
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         loading: true,
         streamingText: 'Faça **3 séries** de agachamento.',
         messages: [
           { role: 'user', content: 'Treino de pernas?' },
-          { role: 'assistant', content: '', isStreaming: true },
+          { role: 'assistant', content: 'Faça **3 séries** de agachamento.', isStreaming: true },
         ],
       })
     );
 
     renderWithRouter(<AiAssistant />);
 
-    const strong = document.querySelector('strong');
-    expect(strong).toBeInTheDocument();
-    expect(strong.textContent).toBe('3 séries');
+    // Skeleton is shown — neither parsed markdown nor raw token text visible
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(document.querySelector('strong')).not.toBeInTheDocument();
+    expect(screen.queryByText('Faça **3 séries** de agachamento.')).not.toBeInTheDocument();
   });
 
   it('renders GFM table in assistant messages as an HTML table', () => {
@@ -973,6 +976,182 @@ describe('AiAssistant', () => {
     expect(document.querySelector('th')).toBeInTheDocument();
     expect(screen.getByText('Exercício')).toBeInTheDocument();
     expect(screen.getByText('Agachamento')).toBeInTheDocument();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Scroll pill — visibility and variant
+  // ---------------------------------------------------------------------------
+
+  it('pill is not visible when user is at bottom and not loading', () => {
+    vi.mocked(useStickToBottomModule.default).mockReturnValue({
+      isNearBottom: true,
+      shouldFollow: true,
+      scrollToBottom: mockScrollToBottom,
+      onScroll: vi.fn(),
+      bottomRef: { current: null },
+    });
+
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [
+          { role: 'user', content: 'Olá' },
+          { role: 'assistant', content: 'Oi!', actionsExecuted: [] },
+        ],
+        loading: false,
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    const pill = document.querySelector('.scroll-pill');
+    expect(pill).toHaveClass('scroll-pill--hidden');
+  });
+
+  it('pill shows "new" variant after done fires while user is scrolled away', async () => {
+    // User is scrolled away and shouldFollow is false
+    vi.mocked(useStickToBottomModule.default).mockReturnValue({
+      isNearBottom: false,
+      shouldFollow: false,
+      scrollToBottom: mockScrollToBottom,
+      onScroll: vi.fn(),
+      bottomRef: { current: null },
+    });
+
+    // Start: loading = true (streaming in progress)
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [
+          { role: 'user', content: 'Olá' },
+          { role: 'assistant', content: '', isStreaming: true },
+        ],
+        loading: true,
+      })
+    );
+
+    const { rerender } = renderWithRouter(<AiAssistant />);
+
+    // Pill is hidden while streaming — no completed response yet
+    expect(document.querySelector('.scroll-pill')).toHaveClass('scroll-pill--hidden');
+
+    // Simulate done: loading flips to false, message is complete
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [
+          { role: 'user', content: 'Olá' },
+          { role: 'assistant', content: 'Resposta completa.', actionsExecuted: [] },
+        ],
+        loading: false,
+      })
+    );
+
+    await act(async () => {
+      rerender(
+        <MemoryRouter initialEntries={['/']}>
+          <AiAssistant />
+        </MemoryRouter>
+      );
+    });
+
+    // Pill is now visible — "new" variant (accent dot, not pulse)
+    expect(document.querySelector('.scroll-pill')).not.toHaveClass('scroll-pill--hidden');
+    expect(document.querySelector('.scroll-pill__dot--accent')).toBeInTheDocument();
+    expect(document.querySelector('.scroll-pill__dot--pulse')).not.toBeInTheDocument();
+  });
+
+  it('pill click calls scrollToBottom', async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(useStickToBottomModule.default).mockReturnValue({
+      isNearBottom: false,
+      shouldFollow: false,
+      scrollToBottom: mockScrollToBottom,
+      onScroll: vi.fn(),
+      bottomRef: { current: null },
+    });
+
+    // Start loading, then transition to done to make pill visible
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [{ role: 'user', content: 'Olá' }],
+        loading: true,
+      })
+    );
+
+    const { rerender } = renderWithRouter(<AiAssistant />);
+
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [
+          { role: 'user', content: 'Olá' },
+          { role: 'assistant', content: 'Resposta.', actionsExecuted: [] },
+        ],
+        loading: false,
+      })
+    );
+
+    await act(async () => {
+      rerender(
+        <MemoryRouter initialEntries={['/']}>
+          <AiAssistant />
+        </MemoryRouter>
+      );
+    });
+
+    await user.click(
+      screen.getByRole('button', { name: 'Ir para a resposta mais recente' })
+    );
+
+    expect(mockScrollToBottom).toHaveBeenCalledWith({ behavior: 'smooth' });
+  });
+
+  it('scrollToBottom is called with smooth when sending a message', async () => {
+    const user = userEvent.setup();
+    const sendMessage = vi.fn().mockResolvedValue(undefined);
+
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({ sendMessage })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    const input = screen.getByRole('textbox', { name: /mensagem para o assistente/i });
+    await user.type(input, 'Olá iArnold');
+    await user.click(screen.getByRole('button', { name: /enviar mensagem/i }));
+
+    expect(mockScrollToBottom).toHaveBeenCalledWith({ behavior: 'smooth' });
+  });
+
+  it('messages container has aria-live=polite when messages are present', () => {
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [
+          { role: 'user', content: 'Olá' },
+          { role: 'assistant', content: 'Oi!', actionsExecuted: [] },
+        ],
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    const container = document.querySelector('.ai-chat__messages');
+    expect(container).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('streaming message bubble has aria-busy=true', () => {
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        messages: [
+          { role: 'user', content: 'Olá' },
+          { role: 'assistant', content: '', isStreaming: true },
+        ],
+        loading: true,
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    const streamingBubble = document.querySelector('[aria-busy="true"]');
+    expect(streamingBubble).toBeInTheDocument();
   });
 });
 

@@ -9,6 +9,7 @@ import Select from '../../components/Select';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
 import RowMenu from '../../components/RowMenu';
+import StudentActivityTab from './StudentActivityTab';
 
 const getAvatarInitial = (student) => {
   if (student?.firstName) return student.firstName.charAt(0).toUpperCase();
@@ -393,6 +394,7 @@ AnamnesisTab.propTypes = {
 
 const TABS = [
   { key: 'protocols', label: 'Rotinas' },
+  { key: 'activity', label: 'Atividade' },
   { key: 'anamneses', label: 'Anamneses' },
 ];
 
@@ -463,18 +465,23 @@ const StudentDetail = () => {
         ))}
       </div>
 
-      <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
-        <h2 className="card-title" style={{ marginBottom: 0 }}>
-          {TABS.find((t) => t.key === activeTab)?.label}
-        </h2>
-        {activeTab === 'protocols' && (
-          <Link to={`/trainer/protocols/new?studentId=${id}`} className="btn-primary">
-            + Criar Rotina
-          </Link>
-        )}
-      </div>
+      {activeTab !== 'activity' && (
+        <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
+          <h2 className="card-title" style={{ marginBottom: 0 }}>
+            {TABS.find((t) => t.key === activeTab)?.label}
+          </h2>
+          {activeTab === 'protocols' && (
+            <Link to={`/trainer/protocols/new?studentId=${id}`} className="btn-primary">
+              + Criar Rotina
+            </Link>
+          )}
+        </div>
+      )}
 
       {activeTab === 'protocols' && <ProtocolsTab studentId={id} />}
+      {activeTab === 'activity' && (
+        <StudentActivityTab studentId={id} studentName={getStudentName(student)} />
+      )}
       {activeTab === 'anamneses' && <AnamnesisTab studentId={id} />}
     </div>
   );

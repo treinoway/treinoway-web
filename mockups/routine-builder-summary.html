@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Treinoway — Routine Builder · v3 (3-column cockpit)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+:root{
+  --font-base:'Inter',-apple-system,system-ui,sans-serif;
+  --font-display:'Space Grotesk',system-ui,sans-serif;
+  --font-stat:'Space Grotesk',ui-monospace,monospace;
+
+  --sp-2xs:2px;--sp-xs:4px;--sp-sm:8px;--sp-md:16px;--sp-lg:24px;--sp-xl:32px;--sp-xxl:48px;
+  --r-brand:8px;--r-stat:4px;--r-full:9999px;
+  --tr-tight:-0.02em;--tr-wide:0.08em;--tr-wider:0.12em;
+
+  --primary:#0A5FCC;--primary-dark:#083E85;
+  --accent:#FF6B1A;--accent-c:#FFF1EA;
+  --ink:#0A0F1C;--slate:#1E293B;--steel:#64748B;
+  --mist:#F1F5F9;--divider:#E2E8F0;
+
+  --surface:#FFFFFF;--surface-c:#F0F1F4;--surface-c-hi:#E6E7EB;
+  --outline:#C7C7CC;
+  --success:#2E7D32;--success-c:#D4EDDA;
+  --error:#D32F2F;--warn:#B55A02;--warn-c:#FDDCBA;
+
+  --shadow-sm:0 1px 3px rgba(10,15,28,.08),0 0 0 1px rgba(10,15,28,.04);
+  --shadow-md:0 4px 12px -2px rgba(10,15,28,.1),0 0 0 1px rgba(10,15,28,.05);
+  --shadow-lg:0 16px 40px -8px rgba(10,15,28,.18),0 0 0 1px rgba(10,15,28,.06);
+  --focus:0 0 0 2px var(--primary);
+
+  --d-fast:150ms;--d-base:200ms;--ease:cubic-bezier(0.22,1,0.36,1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{font-family:var(--font-base);color:var(--ink);background:#E8ECF2;min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit}
+input,textarea{font-family:inherit;color:inherit}
+[data-lucide]{display:inline-block;vertical-align:middle}
+
+/* ─── Workbench shell ─────────────────────────────────────────────────── */
+.workbench{max-width:1680px;margin:0 auto;padding:var(--sp-xl) var(--sp-lg)}
+.workbench-title{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spacing:var(--tr-tight);margin-bottom:var(--sp-xs)}
+.workbench-subtitle{font-size:13px;color:var(--steel);margin-bottom:var(--sp-xl);max-width:780px}
+.workbench-subtitle strong{color:var(--ink);font-weight:600}
+
+.scenario{margin-bottom:var(--sp-xxl)}
+.scenario-head{margin-bottom:var(--sp-lg);padding-bottom:var(--sp-md);border-bottom:1px solid var(--divider)}
+.scenario-eyebrow{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--primary);margin-bottom:var(--sp-xs);display:inline-flex;align-items:center;gap:var(--sp-xs)}
+.scenario-eyebrow::before{content:"";width:6px;height:6px;border-radius:var(--r-full);background:var(--primary)}
+.scenario-title{font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:var(--tr-tight);margin-bottom:var(--sp-xs)}
+.scenario-desc{font-size:13px;color:var(--steel);max-width:760px}
+
+.frames{display:flex;flex-direction:column;gap:var(--sp-xl);align-items:flex-start}
+@media(min-width:1280px){.frames{flex-direction:row}}
+.frame-wrap{flex-shrink:0}
+.frame-label{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel);margin-bottom:var(--sp-sm);display:flex;align-items:center;gap:var(--sp-xs)}
+.frame-label::before{content:"";width:6px;height:6px;border-radius:var(--r-full);background:var(--accent)}
+.frame{background:#fff;border-radius:12px;overflow:hidden;box-shadow:var(--shadow-lg)}
+.frame--mobile{width:375px;height:812px;display:flex;flex-direction:column}
+.frame--desktop{width:1360px;max-width:100%;height:880px;display:flex;flex-direction:column}
+
+/* ─── Builder layout ──────────────────────────────────────────────────── */
+.builder{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--surface-c)}
+
+/* Topbar */
+.topbar{background:var(--surface);border-bottom:1px solid var(--divider);padding:var(--sp-md) var(--sp-xl);display:flex;align-items:center;gap:var(--sp-md);flex-shrink:0;box-shadow:var(--shadow-sm)}
+.topbar--mobile{padding:var(--sp-sm) var(--sp-md);gap:var(--sp-sm)}
+.icon-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:var(--r-brand);color:var(--steel);flex-shrink:0}
+.icon-btn:hover{background:var(--surface-c-hi);color:var(--ink)}
+.title-wrap{flex:1;min-width:0}
+.eyebrow{font-family:var(--font-base);font-size:10px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel);margin-bottom:4px;display:flex;align-items:center;gap:var(--sp-xs)}
+.eyebrow svg{width:11px;height:11px}
+.title{font-family:var(--font-display);font-size:20px;font-weight:700;letter-spacing:var(--tr-tight);line-height:1.15;display:flex;align-items:center;gap:var(--sp-xs)}
+.title--mobile{font-size:16px}
+.save-status{font-family:var(--font-base);font-size:10px;font-weight:600;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--success);display:inline-flex;align-items:center;gap:4px}
+.save-status svg{width:12px;height:12px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-xs);font-family:var(--font-base);font-size:12px;font-weight:600;letter-spacing:var(--tr-wide);text-transform:uppercase;padding:9px var(--sp-md);border-radius:var(--r-brand);min-height:36px;line-height:1;white-space:nowrap;transition:all var(--d-fast) var(--ease);border:1px solid transparent}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--outline)}
+.btn-secondary:hover{background:var(--surface-c-hi)}
+.btn-sm{padding:6px 10px;font-size:10px;min-height:30px}
+.btn svg{width:14px;height:14px;flex-shrink:0}
+
+/* Identity strip */
+.identity{background:var(--surface);border-bottom:1px solid var(--divider);padding:var(--sp-sm) var(--sp-xl);display:flex;align-items:center;gap:var(--sp-sm);flex-wrap:wrap;flex-shrink:0}
+.identity--mobile{padding:var(--sp-sm) var(--sp-md);gap:var(--sp-xs)}
+.chip{display:inline-flex;align-items:center;gap:var(--sp-xs);background:var(--mist);padding:4px 10px;border-radius:var(--r-full);font-size:11px;color:var(--slate);font-weight:500;height:26px}
+.chip svg{width:12px;height:12px;color:var(--steel)}
+.chip-empty{color:var(--steel);background:transparent;border:1px dashed var(--outline)}
+.chip-strong{background:var(--accent-c);color:var(--accent);font-weight:600}
+
+/* Stats row */
+.stats{display:flex;gap:var(--sp-sm);padding:var(--sp-md) var(--sp-xl);background:var(--surface-c);flex-shrink:0;border-bottom:1px solid var(--divider)}
+.stats--mobile{padding:var(--sp-sm) var(--sp-md);gap:var(--sp-xs)}
+.stat{flex:1;background:var(--surface);border-radius:var(--r-brand);padding:var(--sp-sm) var(--sp-md);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:2px}
+.stat-label{font-family:var(--font-base);font-size:9px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel)}
+.stat-value{font-family:var(--font-stat);font-size:22px;font-weight:600;line-height:1;letter-spacing:var(--tr-tight);font-variant-numeric:tabular-nums}
+.stat-value-unit{font-size:13px;color:var(--steel);font-weight:500}
+.stat-sub{font-size:10px;color:var(--steel)}
+
+/* ─── KEY: workspace = outline + canvas ───────────────────────────────── */
+.workspace{flex:1;min-height:0;display:flex;overflow:hidden}
+
+/* Outline rail (desktop only) */
+.outline{width:288px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--divider);display:flex;flex-direction:column;overflow:hidden}
+.outline-head{padding:var(--sp-md) var(--sp-md) var(--sp-sm);display:flex;align-items:center;justify-content:space-between;gap:var(--sp-sm)}
+.outline-head-title{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel);display:inline-flex;align-items:center;gap:var(--sp-xs)}
+.outline-head-title svg{width:13px;height:13px}
+.outline-collapse{width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:var(--steel);border-radius:6px}
+.outline-collapse:hover{background:var(--surface-c-hi);color:var(--ink)}
+.outline-search{padding:0 var(--sp-md) var(--sp-sm)}
+.outline-search-box{display:flex;align-items:center;gap:var(--sp-xs);background:var(--mist);border-radius:var(--r-brand);padding:6px 10px}
+.outline-search-box input{border:none;outline:none;background:none;flex:1;font-size:12px;min-width:0;color:var(--ink)}
+.outline-search-box input::placeholder{color:var(--steel)}
+.outline-search-box svg{color:var(--steel);width:13px;height:13px}
+
+.outline-body{flex:1;min-height:0;overflow-y:auto;padding:var(--sp-xs) var(--sp-sm) var(--sp-md)}
+.outline-section-label{font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel);padding:var(--sp-sm) var(--sp-sm) var(--sp-xs);display:flex;align-items:center;justify-content:space-between}
+.outline-section-count{color:var(--ink);font-variant-numeric:tabular-nums}
+
+.outline-day{display:flex;align-items:center;gap:var(--sp-xs);padding:0 var(--sp-sm);margin-bottom:2px}
+.outline-day-tag{font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel);width:32px;flex-shrink:0;text-align:center;background:var(--mist);border-radius:var(--r-stat);padding:3px 0;font-variant-numeric:tabular-nums}
+.outline-day--empty .outline-day-tag{background:transparent;color:#CBD5E1;border:1px dashed var(--outline)}
+
+.outline-item{flex:1;display:flex;align-items:center;gap:var(--sp-xs);padding:7px var(--sp-sm);border-radius:6px;cursor:pointer;min-width:0;transition:background var(--d-fast) var(--ease);position:relative;border-left:2px solid transparent;margin-left:-2px}
+.outline-item:hover{background:var(--mist)}
+.outline-item--active{background:#E8F0FB;border-left-color:var(--primary)}
+.outline-item--active .outline-item-name{color:var(--primary)}
+.outline-item-letter{font-family:var(--font-stat);font-size:11px;font-weight:700;color:var(--ink);width:18px;height:18px;display:flex;align-items:center;justify-content:center;background:var(--surface-c-hi);border-radius:var(--r-stat);flex-shrink:0;font-variant-numeric:tabular-nums}
+.outline-item--active .outline-item-letter{background:var(--primary);color:#fff}
+.outline-item-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.outline-item-name{font-size:12px;font-weight:600;color:var(--ink);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.outline-item-meta{font-family:var(--font-stat);font-size:10px;color:var(--steel);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}
+.outline-item-meta-dot{width:3px;height:3px;border-radius:var(--r-full);background:var(--steel)}
+.outline-item-pulse{width:4px;height:4px;border-radius:var(--r-full);background:var(--success);box-shadow:0 0 0 2px rgba(46,125,50,.18);flex-shrink:0;margin-right:2px}
+.outline-item--warn .outline-item-pulse{background:var(--warn);box-shadow:0 0 0 2px rgba(181,90,2,.18)}
+.outline-item--empty .outline-item-pulse{background:var(--outline);box-shadow:none}
+
+/* Treino row → header de grupo expansível */
+.outline-training{display:flex;flex-direction:column;margin-bottom:var(--sp-xs)}
+.outline-training-head{display:flex;align-items:center;gap:var(--sp-xs);padding:0 var(--sp-sm)}
+.outline-training-toggle{width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--steel);border-radius:4px;flex-shrink:0;transition:transform var(--d-fast) var(--ease)}
+.outline-training-toggle:hover{background:var(--surface-c-hi);color:var(--ink)}
+.outline-training-toggle svg{width:12px;height:12px}
+.outline-training--expanded .outline-training-toggle{transform:rotate(90deg)}
+
+/* Filhos: exercícios sob o treino */
+.outline-children{display:flex;flex-direction:column;margin:2px 0 var(--sp-xs) 30px;padding-left:var(--sp-sm);border-left:1px solid var(--divider)}
+.outline-exercise{display:flex;align-items:center;gap:var(--sp-xs);padding:5px var(--sp-xs) 5px var(--sp-sm);border-radius:4px;cursor:pointer;min-width:0;transition:background var(--d-fast) var(--ease);position:relative}
+.outline-exercise:hover{background:var(--mist)}
+.outline-exercise--active{background:#E8F0FB}
+.outline-exercise-name{font-size:11.5px;font-weight:500;color:var(--slate);line-height:1.3;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.outline-exercise--active .outline-exercise-name{color:var(--primary);font-weight:600}
+.outline-exercise-stat{font-family:var(--font-stat);font-size:10px;color:var(--steel);font-variant-numeric:tabular-nums;flex-shrink:0;letter-spacing:0}
+.outline-exercise-dup{width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;color:var(--warn);flex-shrink:0;cursor:help}
+.outline-exercise-dup svg{width:11px;height:11px}
+
+/* Peek footer (treino colapsado mostra "+N mais") */
+.outline-peek-more{display:flex;align-items:center;gap:var(--sp-xs);padding:4px var(--sp-xs) 4px var(--sp-sm);font-family:var(--font-display);font-size:9.5px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel);cursor:pointer;border-radius:4px}
+.outline-peek-more:hover{color:var(--primary);background:var(--mist)}
+.outline-peek-more svg{width:11px;height:11px}
+
+/* Filtros de busca (chips) */
+.outline-filters{display:flex;flex-wrap:wrap;gap:4px;padding:0 var(--sp-md) var(--sp-sm)}
+.filter-chip{display:inline-flex;align-items:center;gap:3px;background:var(--mist);color:var(--slate);font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;padding:3px 7px;border-radius:var(--r-full);border:1px solid transparent;cursor:pointer;transition:all var(--d-fast) var(--ease)}
+.filter-chip:hover{background:var(--surface-c-hi)}
+.filter-chip--active{background:var(--primary);color:#fff}
+.filter-chip svg{width:10px;height:10px}
+
+/* Banner de duplicata no topo do drawer / canvas */
+.dup-banner{display:flex;align-items:center;gap:var(--sp-xs);background:var(--warn-c);color:var(--warn);padding:6px var(--sp-sm);border-radius:4px;font-size:11px;font-weight:500;margin:0 var(--sp-md) var(--sp-sm)}
+.dup-banner svg{width:13px;height:13px;flex-shrink:0}
+.dup-banner strong{font-weight:700}
+.dup-banner-action{margin-left:auto;font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--warn);background:transparent;border:none;cursor:pointer;padding:2px 6px;border-radius:3px}
+.dup-banner-action:hover{background:rgba(181,90,2,.12)}
+
+.outline-add{margin:var(--sp-sm);display:flex;align-items:center;justify-content:center;gap:var(--sp-xs);padding:9px var(--sp-md);font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--primary);background:transparent;border:1px dashed var(--outline);border-radius:var(--r-brand);transition:all var(--d-fast) var(--ease)}
+.outline-add:hover{background:#E8F0FB;border-color:var(--primary);border-style:solid}
+.outline-add svg{width:13px;height:13px}
+
+/* Canvas (middle column) — between rails */
+.canvas{flex:1;min-width:0;overflow-y:auto;padding:var(--sp-lg) var(--sp-xl)}
+.canvas-inner{max-width:none;margin:0;display:flex;flex-direction:column;gap:var(--sp-md)}
+.canvas--mobile{padding:var(--sp-md)}
+.canvas--mobile .canvas-inner{max-width:none}
+
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-sm);margin-top:var(--sp-xs)}
+.section-title{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--ink);display:inline-flex;align-items:baseline;gap:var(--sp-xs)}
+.section-count{font-family:var(--font-stat);font-size:12px;color:var(--steel);font-weight:600;font-variant-numeric:tabular-nums}
+.section-hint{font-size:11px;color:var(--steel)}
+
+/* Week strip */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:var(--surface);border-radius:var(--r-brand);padding:var(--sp-sm);box-shadow:var(--shadow-sm)}
+.week-day{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 4px;border-radius:6px;min-height:64px;justify-content:center;text-align:center;transition:background var(--d-fast) var(--ease)}
+.week-day:hover{background:var(--mist)}
+.week-day-label{font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel)}
+.week-day-letter{font-family:var(--font-stat);font-size:14px;font-weight:700;color:var(--ink);width:26px;height:26px;background:var(--primary);color:#fff;border-radius:var(--r-stat);display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.week-day--empty .week-day-letter{background:transparent;color:#CBD5E1;border:1px dashed var(--outline);font-weight:600}
+.week-day-name{font-size:10px;color:var(--ink);font-weight:500;line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Training cards (main canvas) */
+.training{background:var(--surface);border:1px solid var(--divider);border-radius:10px;overflow:hidden;transition:all var(--d-fast) var(--ease)}
+.training--active{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.training-head{display:flex;align-items:center;gap:var(--sp-sm);padding:var(--sp-sm) var(--sp-md);cursor:pointer;min-height:56px}
+.training-letter{font-family:var(--font-stat);font-size:14px;font-weight:700;color:var(--ink);width:32px;height:32px;background:var(--surface-c-hi);border-radius:var(--r-stat);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-variant-numeric:tabular-nums}
+.training--active .training-letter{background:var(--primary);color:#fff}
+.training-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.training-title{font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--ink);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.training-meta{font-family:var(--font-stat);font-size:11px;color:var(--steel);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}
+.training-meta-dot{width:3px;height:3px;border-radius:var(--r-full);background:var(--steel)}
+.training-day-chip{display:inline-flex;align-items:center;gap:4px;background:var(--mist);padding:3px 8px;border-radius:var(--r-full);font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--slate)}
+.training-day-chip--unassigned{background:transparent;border:1px dashed var(--outline);color:var(--steel)}
+.training-actions{display:flex;align-items:center;gap:var(--sp-xs);flex-shrink:0}
+.training-chev{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--steel);transition:transform var(--d-fast) var(--ease)}
+.training--expanded .training-chev{transform:rotate(180deg)}
+
+.training-body{padding:0 var(--sp-md) var(--sp-md);display:flex;flex-direction:column;gap:var(--sp-xs)}
+
+/* Exercise rows — denser + pushed left */
+.exercise{display:flex;align-items:center;gap:var(--sp-sm);padding:8px var(--sp-md) 8px 10px;background:var(--mist);border-radius:6px}
+.exercise-idx{font-family:var(--font-stat);font-size:11px;font-weight:600;color:var(--steel);width:18px;text-align:center;flex-shrink:0;font-variant-numeric:tabular-nums}
+.exercise-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.exercise-name{font-size:13px;font-weight:600;color:var(--ink);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exercise-meta{font-family:var(--font-stat);font-size:11px;color:var(--steel);font-variant-numeric:tabular-nums}
+.exercise-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
+
+.add-exercise{display:flex;align-items:center;justify-content:center;gap:var(--sp-xs);padding:8px;border-radius:6px;color:var(--primary);font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;background:transparent;border:1px dashed var(--outline);transition:all var(--d-fast) var(--ease);margin-top:4px}
+.add-exercise:hover{background:#E8F0FB;border-color:var(--primary);border-style:solid}
+.add-exercise svg{width:13px;height:13px}
+
+.add-training{display:flex;align-items:center;justify-content:center;gap:var(--sp-xs);padding:14px var(--sp-md);background:transparent;border:1px dashed var(--outline);border-radius:10px;color:var(--primary);font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;transition:all var(--d-fast) var(--ease)}
+.add-training:hover{background:#E8F0FB;border-color:var(--primary);border-style:solid}
+.add-training svg{width:15px;height:15px}
+
+/* ─── Mobile outline drawer trigger ────────────────────────────────── */
+.outline-drawer-trigger{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-sm);background:var(--surface);border-bottom:1px solid var(--divider);padding:10px var(--sp-md);font-size:12px;flex-shrink:0;cursor:pointer}
+.outline-drawer-trigger:hover{background:var(--mist)}
+.outline-drawer-trigger-left{display:flex;align-items:center;gap:var(--sp-sm);min-width:0}
+.outline-drawer-trigger svg{width:14px;height:14px;color:var(--primary);flex-shrink:0}
+.outline-drawer-trigger-label{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--ink)}
+.outline-drawer-trigger-pos{font-family:var(--font-stat);font-size:11px;color:var(--steel);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.outline-drawer-trigger-pos strong{color:var(--ink);font-weight:600}
+.outline-drawer-trigger-chev{color:var(--steel);flex-shrink:0}
+
+/* Mobile drawer overlay (open state in 2nd mobile frame) */
+.drawer-overlay{position:absolute;inset:0;background:rgba(10,15,28,.45);display:flex;align-items:flex-end;z-index:50}
+.drawer{background:var(--surface);width:100%;max-height:80%;border-radius:14px 14px 0 0;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);animation:slideUp .28s var(--ease)}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.drawer-grip{width:36px;height:4px;background:var(--outline);border-radius:var(--r-full);margin:8px auto 0}
+.drawer-head{padding:var(--sp-sm) var(--sp-md);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--divider)}
+.drawer-title{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--ink);display:inline-flex;align-items:center;gap:var(--sp-xs)}
+.drawer-title svg{width:14px;height:14px}
+.drawer-close{width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--steel);border-radius:6px}
+.drawer-body{flex:1;overflow-y:auto;padding:var(--sp-xs) var(--sp-sm) var(--sp-md)}
+
+/* Annotations */
+.callout{position:absolute;background:var(--ink);color:#fff;font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;padding:6px 10px;border-radius:var(--r-stat);box-shadow:var(--shadow-md);white-space:nowrap;z-index:5}
+.callout::after{content:"";position:absolute;width:0;height:0;border:5px solid transparent}
+.callout--right{transform:translateX(0)}
+.callout--right::after{left:-10px;top:50%;transform:translateY(-50%);border-right-color:var(--ink)}
+.callout--down::after{top:-10px;left:24px;border-bottom-color:var(--ink)}
+
+.frame-wrap{position:relative}
+
+/* ─── v3 additions: dup signaling, drag handles, count badge, right rail volume ───── */
+
+/* Outline row + canvas exercise: warn tint when duplicated cross-day */
+.outline-exercise--dup{background:rgba(181,90,2,.06)}
+.outline-exercise--dup:hover{background:rgba(181,90,2,.12)}
+.outline-exercise--dup .outline-exercise-name{color:var(--warn)}
+.exercise--dup{background:rgba(181,90,2,.07);box-shadow:inset 2px 0 0 var(--warn)}
+.exercise--dup .exercise-name{color:var(--warn)}
+
+/* Count badge "×2" — sits next to the name, communicates frequency */
+.dup-count{display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-stat);font-size:9px;font-weight:700;letter-spacing:0;color:var(--warn);background:var(--warn-c);border-radius:var(--r-stat);padding:1px 5px;min-width:20px;height:14px;font-variant-numeric:tabular-nums;flex-shrink:0;line-height:1}
+.outline-exercise-name-wrap{flex:1;min-width:0;display:flex;align-items:center;gap:5px}
+.outline-exercise-name-wrap .outline-exercise-name{flex:0 1 auto}
+
+/* Drag handle — desktop hover only */
+.drag-handle{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;color:var(--outline);flex-shrink:0;cursor:grab;opacity:0;transition:opacity var(--d-fast) var(--ease)}
+.drag-handle:hover{color:var(--steel)}
+.drag-handle svg{width:13px;height:13px}
+.exercise:hover .drag-handle,.training-head:hover .drag-handle{opacity:1}
+.training-head .drag-handle{margin-right:-4px}
+
+/* "Sem dia" pinned chip in outline header */
+.outline-warn-pin{display:flex;align-items:center;gap:var(--sp-xs);background:var(--warn-c);color:var(--warn);font-family:var(--font-display);font-size:9.5px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;padding:5px var(--sp-sm);border-radius:var(--r-stat);margin:0 var(--sp-sm) var(--sp-sm);cursor:pointer}
+.outline-warn-pin svg{width:11px;height:11px;flex-shrink:0}
+.outline-warn-pin:hover{background:rgba(181,90,2,.18)}
+
+/* Section label hover tooltip trigger */
+.outline-section-label{cursor:help;position:relative}
+.outline-section-label-hint{display:inline-flex;width:11px;height:11px;align-items:center;justify-content:center;color:var(--steel);opacity:.5}
+.outline-section-label:hover .outline-section-label-hint{opacity:1;color:var(--ink)}
+
+/* Hover-only more-vertical on desktop */
+@media(min-width:1024px){
+  .training-head .icon-btn[data-more],.exercise .icon-btn[data-more]{opacity:0;transition:opacity var(--d-fast) var(--ease)}
+  .training-head:hover .icon-btn[data-more],.exercise:hover .icon-btn[data-more]{opacity:1}
+}
+
+/* ─── Right rail v1: Volume / Balance heatmap ───────────────────────── */
+.volume-rail{width:240px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--divider);display:flex;flex-direction:column;overflow:hidden}
+.volume-rail-head{padding:var(--sp-md) var(--sp-md) var(--sp-sm);display:flex;align-items:center;justify-content:space-between;gap:var(--sp-sm)}
+.volume-rail-title{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel);display:inline-flex;align-items:center;gap:var(--sp-xs)}
+.volume-rail-title svg{width:13px;height:13px}
+.volume-rail-body{flex:1;min-height:0;overflow-y:auto;padding:0 var(--sp-md) var(--sp-md);display:flex;flex-direction:column;gap:var(--sp-md)}
+
+/* Hero metric — Balance score (StatDisplay XL) */
+.balance-hero{display:flex;flex-direction:column;gap:2px;padding:var(--sp-sm) 0 var(--sp-md);border-bottom:1px solid var(--divider)}
+.balance-hero-label{font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel)}
+.balance-hero-value{font-family:var(--font-stat);font-size:44px;font-weight:600;line-height:1;letter-spacing:var(--tr-tight);color:var(--ink);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:4px}
+.balance-hero-value-unit{font-size:16px;color:var(--steel);font-weight:500}
+.balance-hero-bar{height:4px;background:var(--mist);border-radius:var(--r-full);margin-top:6px;overflow:hidden}
+.balance-hero-bar-fill{height:100%;background:linear-gradient(90deg,var(--success) 0%,var(--success) 78%,var(--warn) 78%,var(--warn) 100%);border-radius:var(--r-full)}
+.balance-hero-sub{font-size:10.5px;color:var(--steel);margin-top:6px;display:flex;align-items:center;gap:4px}
+.balance-hero-sub svg{width:11px;height:11px}
+
+/* Muscle group rows */
+.muscle-list{display:flex;flex-direction:column;gap:var(--sp-sm)}
+.muscle-row{display:flex;flex-direction:column;gap:4px}
+.muscle-row-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-xs)}
+.muscle-name{font-size:11px;font-weight:600;color:var(--ink);letter-spacing:0}
+.muscle-stat{font-family:var(--font-stat);font-size:11px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;display:inline-flex;align-items:baseline;gap:3px}
+.muscle-stat-unit{font-size:9px;color:var(--steel);font-weight:500;text-transform:uppercase;letter-spacing:var(--tr-wide)}
+.muscle-bar{height:6px;background:var(--mist);border-radius:var(--r-full);overflow:hidden;position:relative}
+.muscle-bar-fill{height:100%;border-radius:var(--r-full);transition:width var(--d-base) var(--ease)}
+.muscle-bar-fill--ok{background:var(--success)}
+.muscle-bar-fill--low{background:var(--warn)}
+.muscle-bar-fill--high{background:var(--warn)}
+.muscle-bar-target{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--ink);opacity:.35}
+.muscle-row-flag{font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--warn);margin-top:2px;display:inline-flex;align-items:center;gap:3px}
+.muscle-row-flag svg{width:10px;height:10px}
+.muscle-row-flag--low{color:var(--warn)}
+.muscle-row-flag--ok{color:var(--success)}
+
+/* Heatmap legend */
+.heatmap-legend{display:flex;align-items:center;gap:var(--sp-xs);padding-top:var(--sp-sm);border-top:1px solid var(--divider);font-family:var(--font-display);font-size:9px;font-weight:600;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--steel)}
+.heatmap-legend-dot{width:8px;height:8px;border-radius:var(--r-full)}
+.heatmap-legend-dot--ok{background:var(--success)}
+.heatmap-legend-dot--alert{background:var(--warn)}
+
+/* Add-exercise sheet — cross-day mini list */
+.add-sheet{background:#fff;border-radius:12px 12px 0 0;display:flex;flex-direction:column;max-height:90%;box-shadow:var(--shadow-lg)}
+.add-sheet-head{padding:var(--sp-sm) var(--sp-md);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--divider)}
+.add-sheet-title{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--ink)}
+.add-sheet-body{flex:1;overflow-y:auto;padding:var(--sp-md)}
+.add-sheet-section-label{font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel);margin-bottom:var(--sp-xs)}
+.dup-cross-list{display:flex;flex-direction:column;gap:4px;background:var(--warn-c);border-radius:6px;padding:var(--sp-sm);margin-top:var(--sp-sm)}
+.dup-cross-list-head{display:flex;align-items:center;gap:var(--sp-xs);font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--warn);margin-bottom:4px}
+.dup-cross-list-head svg{width:13px;height:13px}
+.dup-cross-row{display:flex;align-items:center;gap:var(--sp-sm);padding:6px var(--sp-sm);background:#fff;border-radius:4px;cursor:pointer;transition:background var(--d-fast) var(--ease)}
+.dup-cross-row:hover{background:var(--mist)}
+.dup-cross-row-tag{font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--steel);background:var(--mist);border-radius:var(--r-stat);padding:2px 6px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.dup-cross-row-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.dup-cross-row-name{font-size:11.5px;font-weight:600;color:var(--ink);line-height:1.2}
+.dup-cross-row-stat{font-family:var(--font-stat);font-size:10px;color:var(--steel);font-variant-numeric:tabular-nums}
+.dup-cross-row-jump{color:var(--steel);width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.dup-cross-list-actions{display:flex;gap:var(--sp-xs);margin-top:var(--sp-sm);flex-wrap:wrap}
+.dup-cross-list-actions .btn{flex:1;min-width:0}
+
+/* Mobile volume card — replaces right rail on small screens */
+.volume-card{background:var(--surface);border:1px solid var(--divider);border-radius:10px;padding:var(--sp-md);display:flex;flex-direction:column;gap:var(--sp-sm);margin-bottom:var(--sp-md)}
+.volume-card-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-sm)}
+.volume-card-title{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:var(--tr-wider);text-transform:uppercase;color:var(--ink);display:inline-flex;align-items:center;gap:var(--sp-xs)}
+.volume-card-title svg{width:13px;height:13px}
+.volume-card-score{font-family:var(--font-stat);font-size:20px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.volume-card-score-unit{font-size:11px;color:var(--steel);font-weight:500}
+
+/* Save status timestamp */
+.save-status-relative{font-size:10px;color:var(--steel);font-weight:500;letter-spacing:0;text-transform:none;margin-left:4px}
+
+/* hide outline on narrow desktop */
+@media(max-width:1023px){
+  .outline,.volume-rail{display:none}
+}
+
+</style>
+</head>
+<body>
+
+<div class="workbench">
+  <h1 class="workbench-title">Routine Builder — v3 · cockpit 3-coluna</h1>
+  <p class="workbench-subtitle">
+    Iteração v3 (post-review 6/10 → fixes ship). Três decisões críticas: <strong>(1)</strong> rail esquerdo mostra só o treino atual com seus exercícios — demais ficam <strong>header-only</strong> (sem peek-3, que era dead weight); <strong>(2)</strong> duplicata vira sinal forte (row inteiro tintado warn + badge <code>×N</code> de frequência), não só ícone 14px perdido; <strong>(3)</strong> o vazio de 480px à direita vira <strong>Volume rail</strong> com balance score XL e heatmap por grupo muscular. Drag handles em hover, save status com timestamp relativo, mini-list cross-day no AddExercise sheet.
+  </p>
+
+  <!-- ═════════════ DESKTOP ═════════════ -->
+  <section class="scenario">
+    <header class="scenario-head">
+      <span class="scenario-eyebrow">Cena 1 · Desktop · 1360px</span>
+      <h2 class="scenario-title">3-column cockpit · outline + canvas + volume</h2>
+      <p class="scenario-desc">
+        Rail esquerdo (288px) com árvore <strong>treino → exercícios — apenas o atual expandido</strong>; demais ficam header-only (sem peek-3). Canvas central (760px) com drag handles em hover. Rail direito (240px) com <strong>Balance score</strong> hero + heatmap por grupo muscular — mostra distribuição semanal e flag de excesso/falta de volume.
+      </p>
+    </header>
+
+    <div class="frames">
+      <div class="frame-wrap">
+        <span class="frame-label">Desktop · 1360×880 — outline (288) + canvas (760) + volume rail (240)</span>
+
+        <div class="frame frame--desktop">
+          <div class="builder">
+            <!-- Topbar -->
+            <div class="topbar">
+              <button class="icon-btn"><i data-lucide="arrow-left"></i></button>
+              <div class="title-wrap">
+                <div class="eyebrow"><i data-lucide="user"></i> João Silva · Protocolo · 3ª semana</div>
+                <div class="title">Hipertrofia · Bloco força <i data-lucide="pencil" style="width:13px;height:13px;color:var(--steel);opacity:.6"></i></div>
+              </div>
+              <span class="save-status"><i data-lucide="check"></i> Salvo<span class="save-status-relative">· há 12s</span></span>
+              <button class="btn btn-secondary btn-sm"><i data-lucide="download"></i> Importar template</button>
+              <button class="btn btn-primary btn-sm"><i data-lucide="check"></i> Salvar e fechar</button>
+            </div>
+
+            <!-- Identity -->
+            <div class="identity">
+              <span class="chip chip-strong"><i data-lucide="calendar"></i> 12 sem · 4× semana</span>
+              <span class="chip"><i data-lucide="target"></i> Hipertrofia</span>
+              <span class="chip"><i data-lucide="bar-chart-3"></i> Intermediário</span>
+              <span class="chip chip-empty"><i data-lucide="plus"></i> Adicionar nota</span>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats">
+              <div class="stat">
+                <span class="stat-label">Treinos</span>
+                <span class="stat-value">5</span>
+                <span class="stat-sub">na rotina</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">Exercícios</span>
+                <span class="stat-value">34</span>
+                <span class="stat-sub">total</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">Dias atribuídos</span>
+                <span class="stat-value">4<span class="stat-value-unit">/5</span></span>
+                <span class="stat-sub">1 sem dia</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">Volume médio</span>
+                <span class="stat-value">6,8<span class="stat-value-unit">/treino</span></span>
+                <span class="stat-sub">exercícios</span>
+              </div>
+            </div>
+
+            <!-- ═══════ Workspace: outline + canvas ═══════ -->
+            <div class="workspace">
+              <!-- Outline rail -->
+              <aside class="outline">
+                <div class="outline-head">
+                  <span class="outline-head-title"><i data-lucide="list-tree"></i> Estrutura</span>
+                  <button class="outline-collapse" title="Recolher"><i data-lucide="panel-left-close" style="width:14px;height:14px"></i></button>
+                </div>
+                <div class="outline-search">
+                  <div class="outline-search-box">
+                    <i data-lucide="search"></i>
+                    <input type="text" placeholder="Buscar exercício…">
+                  </div>
+                </div>
+                <div class="outline-filters">
+                  <button class="filter-chip filter-chip--active">Tudo</button>
+                  <button class="filter-chip">Peito</button>
+                  <button class="filter-chip">Costas</button>
+                  <button class="filter-chip">Perna</button>
+                  <button class="filter-chip">Ombro</button>
+                  <button class="filter-chip">Core</button>
+                </div>
+
+                <!-- Pinned warn: 1 treino sem dia -->
+                <button class="outline-warn-pin"><i data-lucide="alert-circle"></i> 1 treino sem dia · Cardio leve</button>
+
+                <div class="outline-body">
+                  <div class="outline-section-label" title="Verde = completo · laranja = incompleto · cinza = sem dia">
+                    <span>Treinos atribuídos</span>
+                    <span class="outline-section-count">4 / 7 dias <i data-lucide="info" class="outline-section-label-hint"></i></span>
+                  </div>
+
+                  <!-- A · ÚNICO expandido (treino atual em foco) -->
+                  <div class="outline-training outline-training--expanded">
+                    <div class="outline-training-head">
+                      <button class="outline-training-toggle"><i data-lucide="chevron-right"></i></button>
+                      <span class="outline-day-tag">Seg</span>
+                      <a class="outline-item outline-item--active" style="flex:1">
+                        <span class="outline-item-pulse"></span>
+                        <span class="outline-item-letter">A</span>
+                        <span class="outline-item-body">
+                          <span class="outline-item-name">Peito + Tríceps</span>
+                          <span class="outline-item-meta">8 ex<span class="outline-item-meta-dot"></span>~62 min</span>
+                        </span>
+                      </a>
+                    </div>
+                    <div class="outline-children">
+                      <a class="outline-exercise outline-exercise--active outline-exercise--dup">
+                        <span class="outline-exercise-name-wrap">
+                          <span class="outline-exercise-name">Supino reto barra</span>
+                          <span class="dup-count" title="Aparece em 2 treinos">×2</span>
+                        </span>
+                        <span class="outline-exercise-dup" title="Já existe em Treino B · Ter"><i data-lucide="copy"></i></span>
+                        <span class="outline-exercise-stat">4×8</span>
+                      </a>
+                      <a class="outline-exercise"><span class="outline-exercise-name-wrap"><span class="outline-exercise-name">Supino inclinado halter</span></span><span class="outline-exercise-stat">4×10</span></a>
+                      <a class="outline-exercise"><span class="outline-exercise-name-wrap"><span class="outline-exercise-name">Crucifixo máquina</span></span><span class="outline-exercise-stat">3×12</span></a>
+                      <a class="outline-exercise"><span class="outline-exercise-name-wrap"><span class="outline-exercise-name">Crossover polia alta</span></span><span class="outline-exercise-stat">3×15</span></a>
+                      <a class="outline-exercise"><span class="outline-exercise-name-wrap"><span class="outline-exercise-name">Tríceps testa</span></span><span class="outline-exercise-stat">4×10</span></a>
+                      <a class="outline-exercise"><span class="outline-exercise-name-wrap"><span class="outline-exercise-name">Tríceps polia corda</span></span><span class="outline-exercise-stat">3×12</span></a>
+                      <a class="outline-exercise"><span class="outline-exercise-name-wrap"><span class="outline-exercise-name">Mergulho banco</span></span><span class="outline-exercise-stat">3×12</span></a>
+                      <a class="outline-exercise"><span class="outline-exercise-name-wrap"><span class="outline-exercise-name">Tríceps francês</span></span><span class="outline-exercise-stat">3×10</span></a>
+                    </div>
+                  </div>
+
+                  <!-- B · header-only (sem peek-3) — badge x2 sinaliza duplicata -->
+                  <div class="outline-training">
+                    <div class="outline-training-head">
+                      <button class="outline-training-toggle"><i data-lucide="chevron-right"></i></button>
+                      <span class="outline-day-tag">Ter</span>
+                      <a class="outline-item" style="flex:1">
+                        <span class="outline-item-pulse outline-item-pulse"></span>
+                        <span class="outline-item-letter">B</span>
+                        <span class="outline-item-body">
+                          <span class="outline-item-name">Costas + Bíceps</span>
+                          <span class="outline-item-meta">7 ex<span class="outline-item-meta-dot"></span>~58 min<span class="outline-item-meta-dot"></span><span class="dup-count" title="1 exercício duplicado">×1 dup</span></span>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- C · header-only · warn (incompleto) -->
+                  <div class="outline-training">
+                    <div class="outline-training-head">
+                      <button class="outline-training-toggle"><i data-lucide="chevron-right"></i></button>
+                      <span class="outline-day-tag">Qui</span>
+                      <a class="outline-item outline-item--warn" style="flex:1">
+                        <span class="outline-item-pulse"></span>
+                        <span class="outline-item-letter">C</span>
+                        <span class="outline-item-body">
+                          <span class="outline-item-name">Pernas posterior</span>
+                          <span class="outline-item-meta" style="color:var(--warn)">3 ex<span class="outline-item-meta-dot" style="background:var(--warn)"></span>incompleto</span>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- D · header-only -->
+                  <div class="outline-training">
+                    <div class="outline-training-head">
+                      <button class="outline-training-toggle"><i data-lucide="chevron-right"></i></button>
+                      <span class="outline-day-tag">Sex</span>
+                      <a class="outline-item" style="flex:1">
+                        <span class="outline-item-pulse"></span>
+                        <span class="outline-item-letter">D</span>
+                        <span class="outline-item-body">
+                          <span class="outline-item-name">Ombro + Core</span>
+                          <span class="outline-item-meta">9 ex<span class="outline-item-meta-dot"></span>~55 min</span>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <div class="outline-section-label" style="margin-top:var(--sp-sm)">
+                    <span>Sem dia</span>
+                    <span class="outline-section-count">1</span>
+                  </div>
+
+                  <div class="outline-training">
+                    <div class="outline-training-head">
+                      <button class="outline-training-toggle"><i data-lucide="chevron-right"></i></button>
+                      <span class="outline-day-tag" style="background:transparent;color:#CBD5E1;border:1px dashed var(--outline)">—</span>
+                      <a class="outline-item outline-item--empty" style="flex:1">
+                        <span class="outline-item-pulse"></span>
+                        <span class="outline-item-letter">E</span>
+                        <span class="outline-item-body">
+                          <span class="outline-item-name">Cardio leve</span>
+                          <span class="outline-item-meta">7 ex<span class="outline-item-meta-dot"></span>sem dia</span>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+
+              <!-- Canvas -->
+              <main class="canvas">
+                <div class="canvas-inner">
+
+                  <!-- Week strip -->
+                  <div class="section-head">
+                    <span class="section-title">Distribuição semanal <span class="section-count">4 / 7</span></span>
+                    <span class="section-hint">O dia é opcional</span>
+                  </div>
+                  <div class="week">
+                    <div class="week-day"><span class="week-day-label">Seg</span><span class="week-day-letter">A</span><span class="week-day-name">Peito+Tri</span></div>
+                    <div class="week-day"><span class="week-day-label">Ter</span><span class="week-day-letter">B</span><span class="week-day-name">Costas+Bi</span></div>
+                    <div class="week-day week-day--empty"><span class="week-day-label">Qua</span><span class="week-day-letter">+</span><span class="week-day-name" style="color:var(--steel)">Folga</span></div>
+                    <div class="week-day"><span class="week-day-label">Qui</span><span class="week-day-letter">C</span><span class="week-day-name">Pernas</span></div>
+                    <div class="week-day"><span class="week-day-label">Sex</span><span class="week-day-letter">D</span><span class="week-day-name">Ombro</span></div>
+                    <div class="week-day week-day--empty"><span class="week-day-label">Sáb</span><span class="week-day-letter">+</span><span class="week-day-name" style="color:var(--steel)">Folga</span></div>
+                    <div class="week-day week-day--empty"><span class="week-day-label">Dom</span><span class="week-day-letter">+</span><span class="week-day-name" style="color:var(--steel)">Folga</span></div>
+                  </div>
+
+                  <!-- Trainings -->
+                  <div class="section-head" style="margin-top:var(--sp-sm)">
+                    <span class="section-title">Treinos da rotina <span class="section-count">5</span></span>
+                    <span class="section-hint">Clique para expandir</span>
+                  </div>
+
+                  <!-- A — expanded -->
+                  <article class="training training--active training--expanded">
+                    <header class="training-head">
+                      <span class="training-letter">A</span>
+                      <div class="training-main">
+                        <span class="training-title">Peito + Tríceps</span>
+                        <span class="training-meta">8 exercícios<span class="training-meta-dot"></span>~62 min</span>
+                      </div>
+                      <div class="training-actions">
+                        <span class="training-day-chip"><i data-lucide="calendar" style="width:10px;height:10px"></i> Seg</span>
+                        <button class="icon-btn" style="width:28px;height:28px"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        <button class="training-chev"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+                      </div>
+                    </header>
+                    <div class="training-body">
+                      <div class="exercise exercise--dup"><span class="drag-handle" title="Arrastar"><i data-lucide="grip-vertical"></i></span><span class="exercise-idx">1</span><div class="exercise-body"><span class="exercise-name">Supino reto com barra <span class="dup-count" style="margin-left:6px">×2</span></span><span class="exercise-meta">4×8 · 22kg · 90s · <span style="color:var(--warn);font-weight:600">repetido em B · Ter</span></span></div><div class="exercise-actions"><button class="icon-btn" data-more style="width:28px;height:28px"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button></div></div>
+                      <div class="exercise"><span class="drag-handle" title="Arrastar"><i data-lucide="grip-vertical"></i></span><span class="exercise-idx">2</span><div class="exercise-body"><span class="exercise-name">Supino inclinado halter</span><span class="exercise-meta">4×10 · 18kg · 75s</span></div><div class="exercise-actions"><button class="icon-btn" data-more style="width:28px;height:28px"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button></div></div>
+                      <div class="exercise"><span class="drag-handle" title="Arrastar"><i data-lucide="grip-vertical"></i></span><span class="exercise-idx">3</span><div class="exercise-body"><span class="exercise-name">Crucifixo na máquina</span><span class="exercise-meta">3×12 · 30kg · 60s</span></div><div class="exercise-actions"><button class="icon-btn" data-more style="width:28px;height:28px"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button></div></div>
+                      <div class="exercise"><span class="drag-handle" title="Arrastar"><i data-lucide="grip-vertical"></i></span><span class="exercise-idx">4</span><div class="exercise-body"><span class="exercise-name">Crossover polia alta</span><span class="exercise-meta">3×15 · 12kg · 45s</span></div><div class="exercise-actions"><button class="icon-btn" data-more style="width:28px;height:28px"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button></div></div>
+                      <div class="exercise"><span class="drag-handle" title="Arrastar"><i data-lucide="grip-vertical"></i></span><span class="exercise-idx">5</span><div class="exercise-body"><span class="exercise-name">Tríceps testa</span><span class="exercise-meta">4×10 · 14kg · 60s</span></div><div class="exercise-actions"><button class="icon-btn" data-more style="width:28px;height:28px"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button></div></div>
+                      <div class="exercise"><span class="drag-handle" title="Arrastar"><i data-lucide="grip-vertical"></i></span><span class="exercise-idx">6</span><div class="exercise-body"><span class="exercise-name">Tríceps polia corda</span><span class="exercise-meta">3×12 · 20kg · 45s</span></div><div class="exercise-actions"><button class="icon-btn" data-more style="width:28px;height:28px"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button></div></div>
+                      <button class="add-exercise"><i data-lucide="plus"></i> Adicionar exercício</button>
+                    </div>
+                  </article>
+
+                  <!-- B collapsed · com badge ×1 dup -->
+                  <article class="training">
+                    <header class="training-head">
+                      <span class="drag-handle" title="Arrastar"><i data-lucide="grip-vertical"></i></span>
+                      <span class="training-letter">B</span>
+                      <div class="training-main">
+                        <span class="training-title">Costas + Bíceps</span>
+                        <span class="training-meta">7 exercícios<span class="training-meta-dot"></span>~58 min<span class="training-meta-dot"></span><span class="dup-count" title="1 exercício duplicado">×1 dup</span></span>
+                      </div>
+                      <div class="training-actions">
+                        <span class="training-day-chip"><i data-lucide="calendar" style="width:10px;height:10px"></i> Ter</span>
+                        <button class="icon-btn" data-more style="width:28px;height:28px"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        <button class="training-chev"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+                      </div>
+                    </header>
+                  </article>
+
+                  <!-- C collapsed -->
+                  <article class="training">
+                    <header class="training-head">
+                      <span class="drag-handle" title="Arrastar"><i data-lucide="grip-vertical"></i></span>
+                      <span class="training-letter">C</span>
+                      <div class="training-main">
+                        <span class="training-title">Pernas posterior</span>
+                        <span class="training-meta" style="color:var(--warn)"><i data-lucide="alert-circle" style="width:11px;height:11px"></i> 3 exercícios · incompleto</span>
+                      </div>
+                      <div class="training-actions">
+                        <span class="training-day-chip"><i data-lucide="calendar" style="width:10px;height:10px"></i> Qui</span>
+                        <button class="icon-btn" data-more style="width:28px;height:28px"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        <button class="training-chev"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+                      </div>
+                    </header>
+                  </article>
+
+                  <!-- D collapsed -->
+                  <article class="training">
+                    <header class="training-head">
+                      <span class="drag-handle" title="Arrastar"><i data-lucide="grip-vertical"></i></span>
+                      <span class="training-letter">D</span>
+                      <div class="training-main">
+                        <span class="training-title">Ombro + Core</span>
+                        <span class="training-meta">9 exercícios<span class="training-meta-dot"></span>~55 min</span>
+                      </div>
+                      <div class="training-actions">
+                        <span class="training-day-chip"><i data-lucide="calendar" style="width:10px;height:10px"></i> Sex</span>
+                        <button class="icon-btn" data-more style="width:28px;height:28px"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        <button class="training-chev"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+                      </div>
+                    </header>
+                  </article>
+
+                  <!-- E unassigned -->
+                  <article class="training">
+                    <header class="training-head">
+                      <span class="drag-handle" title="Arrastar"><i data-lucide="grip-vertical"></i></span>
+                      <span class="training-letter" style="background:var(--mist);color:var(--steel)">E</span>
+                      <div class="training-main">
+                        <span class="training-title">Cardio leve</span>
+                        <span class="training-meta">7 exercícios<span class="training-meta-dot"></span>~30 min</span>
+                      </div>
+                      <div class="training-actions">
+                        <span class="training-day-chip training-day-chip--unassigned"><i data-lucide="calendar-x" style="width:10px;height:10px"></i> Sem dia</span>
+                        <button class="icon-btn" data-more style="width:28px;height:28px"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+                        <button class="training-chev"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+                      </div>
+                    </header>
+                  </article>
+
+                  <button class="add-training"><i data-lucide="plus"></i> Adicionar treino</button>
+                </div>
+              </main>
+
+              <!-- Volume rail (240px) -->
+              <aside class="volume-rail">
+                <div class="volume-rail-head">
+                  <span class="volume-rail-title"><i data-lucide="activity"></i> Volume semanal</span>
+                  <button class="icon-btn" style="width:26px;height:26px" title="Configurar metas"><i data-lucide="settings-2" style="width:13px;height:13px"></i></button>
+                </div>
+                <div class="volume-rail-body">
+
+                  <!-- Hero — Balance score (StatDisplay XL) -->
+                  <div class="balance-hero">
+                    <span class="balance-hero-label">Balance score</span>
+                    <span class="balance-hero-value">78<span class="balance-hero-value-unit">/100</span></span>
+                    <div class="balance-hero-bar"><div class="balance-hero-bar-fill" style="width:78%"></div></div>
+                    <span class="balance-hero-sub"><i data-lucide="trending-up" style="color:var(--success)"></i> Boa distribuição · Pernas com volume baixo</span>
+                  </div>
+
+                  <!-- Heatmap por grupo muscular -->
+                  <div class="muscle-list">
+                    <div class="muscle-row">
+                      <div class="muscle-row-head"><span class="muscle-name">Peito</span><span class="muscle-stat">12<span class="muscle-stat-unit">sets</span></span></div>
+                      <div class="muscle-bar"><div class="muscle-bar-fill muscle-bar-fill--ok" style="width:75%"></div><div class="muscle-bar-target" style="left:75%"></div></div>
+                    </div>
+                    <div class="muscle-row">
+                      <div class="muscle-row-head"><span class="muscle-name">Costas</span><span class="muscle-stat">14<span class="muscle-stat-unit">sets</span></span></div>
+                      <div class="muscle-bar"><div class="muscle-bar-fill muscle-bar-fill--ok" style="width:88%"></div><div class="muscle-bar-target" style="left:75%"></div></div>
+                    </div>
+                    <div class="muscle-row">
+                      <div class="muscle-row-head"><span class="muscle-name">Pernas</span><span class="muscle-stat" style="color:var(--warn)">6<span class="muscle-stat-unit">sets</span></span></div>
+                      <div class="muscle-bar"><div class="muscle-bar-fill muscle-bar-fill--low" style="width:38%"></div><div class="muscle-bar-target" style="left:80%"></div></div>
+                      <span class="muscle-row-flag muscle-row-flag--low"><i data-lucide="arrow-down"></i> Abaixo da meta (12+)</span>
+                    </div>
+                    <div class="muscle-row">
+                      <div class="muscle-row-head"><span class="muscle-name">Ombro</span><span class="muscle-stat">9<span class="muscle-stat-unit">sets</span></span></div>
+                      <div class="muscle-bar"><div class="muscle-bar-fill muscle-bar-fill--ok" style="width:90%"></div><div class="muscle-bar-target" style="left:60%"></div></div>
+                    </div>
+                    <div class="muscle-row">
+                      <div class="muscle-row-head"><span class="muscle-name">Tríceps</span><span class="muscle-stat" style="color:var(--warn)">13<span class="muscle-stat-unit">sets</span></span></div>
+                      <div class="muscle-bar"><div class="muscle-bar-fill muscle-bar-fill--high" style="width:108%;max-width:100%"></div><div class="muscle-bar-target" style="left:75%"></div></div>
+                      <span class="muscle-row-flag"><i data-lucide="arrow-up"></i> Acima da meta (8-10)</span>
+                    </div>
+                    <div class="muscle-row">
+                      <div class="muscle-row-head"><span class="muscle-name">Bíceps</span><span class="muscle-stat">8<span class="muscle-stat-unit">sets</span></span></div>
+                      <div class="muscle-bar"><div class="muscle-bar-fill muscle-bar-fill--ok" style="width:80%"></div><div class="muscle-bar-target" style="left:80%"></div></div>
+                    </div>
+                    <div class="muscle-row">
+                      <div class="muscle-row-head"><span class="muscle-name">Core</span><span class="muscle-stat">5<span class="muscle-stat-unit">sets</span></span></div>
+                      <div class="muscle-bar"><div class="muscle-bar-fill muscle-bar-fill--ok" style="width:62%"></div><div class="muscle-bar-target" style="left:60%"></div></div>
+                    </div>
+                  </div>
+
+                  <div class="heatmap-legend">
+                    <span class="heatmap-legend-dot heatmap-legend-dot--ok"></span> Em meta
+                    <span style="margin-left:6px"></span>
+                    <span class="heatmap-legend-dot heatmap-legend-dot--alert"></span> Alerta
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+
+        <!-- Annotations -->
+        <div class="callout callout--right" style="top:340px;left:330px">Apenas treino atual expandido · demais header-only</div>
+        <div class="callout callout--right" style="top:380px;left:330px">Row tintado warn + badge ×N · sinal forte</div>
+        <div class="callout callout--down" style="top:200px;left:1080px">Volume rail · Balance + heatmap por grupo</div>
+        <div class="callout callout--right" style="top:540px;left:1080px">Pernas baixo · Tríceps acima · cor warn destaca</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════ MOBILE ═════════════ -->
+  <section class="scenario">
+    <header class="scenario-head">
+      <span class="scenario-eyebrow">Cena 2 · Mobile (375px)</span>
+      <h2 class="scenario-title">Outline acessível via drawer · single-tap</h2>
+      <p class="scenario-desc">
+        No mobile o rail desaparece. Em seu lugar, uma <strong>barra de outline</strong> sticky logo abaixo dos stats, mostrando posição corrente (<em>Treino A · 6 de 8</em>) e abrindo um drawer com a árvore completa. Toque em qualquer treino → fecha drawer, scroll até o card.
+      </p>
+    </header>
+
+    <div class="frames">
+      <!-- Mobile 1 — drawer fechado -->
+      <div class="frame-wrap">
+        <span class="frame-label">Mobile · estado padrão (drawer fechado)</span>
+        <div class="frame frame--mobile">
+          <div class="builder">
+            <div class="topbar topbar--mobile">
+              <button class="icon-btn"><i data-lucide="arrow-left"></i></button>
+              <div class="title-wrap">
+                <div class="eyebrow"><i data-lucide="user"></i> João Silva</div>
+                <div class="title title--mobile">Hipertrofia · Bloco força</div>
+              </div>
+              <button class="icon-btn"><i data-lucide="more-vertical"></i></button>
+            </div>
+
+            <div class="identity identity--mobile">
+              <span class="chip chip-strong"><i data-lucide="calendar"></i> 12 sem · 4×</span>
+              <span class="chip"><i data-lucide="target"></i> Hipertrofia</span>
+            </div>
+
+            <div class="stats stats--mobile">
+              <div class="stat"><span class="stat-label">Treinos</span><span class="stat-value">5</span></div>
+              <div class="stat"><span class="stat-label">Exerc.</span><span class="stat-value">34</span></div>
+              <div class="stat"><span class="stat-label">Dias</span><span class="stat-value">4<span class="stat-value-unit">/5</span></span></div>
+            </div>
+
+            <!-- Outline trigger (sticky) -->
+            <button class="outline-drawer-trigger">
+              <span class="outline-drawer-trigger-left">
+                <i data-lucide="list-tree"></i>
+                <span class="outline-drawer-trigger-label">Estrutura</span>
+                <span class="outline-drawer-trigger-pos">· <strong>A · 6 de 8</strong> · Peito+Tri</span>
+              </span>
+              <i data-lucide="chevron-down" class="outline-drawer-trigger-chev" style="width:14px;height:14px"></i>
+            </button>
+
+            <main class="canvas canvas--mobile">
+              <div class="canvas-inner">
+                <!-- Volume card (mobile equivalent do right rail) -->
+                <div class="volume-card">
+                  <div class="volume-card-head">
+                    <span class="volume-card-title"><i data-lucide="activity"></i> Balance</span>
+                    <span class="volume-card-score">78<span class="volume-card-score-unit">/100</span></span>
+                  </div>
+                  <div class="balance-hero-bar"><div class="balance-hero-bar-fill" style="width:78%"></div></div>
+                  <span class="balance-hero-sub"><i data-lucide="alert-circle" style="color:var(--warn)"></i> Pernas com volume baixo · Tríceps acima</span>
+                </div>
+
+                <article class="training training--active training--expanded">
+                  <header class="training-head">
+                    <span class="training-letter">A</span>
+                    <div class="training-main">
+                      <span class="training-title">Peito + Tríceps</span>
+                      <span class="training-meta">8 ex<span class="training-meta-dot"></span>~62 min</span>
+                    </div>
+                    <span class="training-day-chip"><i data-lucide="calendar" style="width:10px;height:10px"></i> Seg</span>
+                  </header>
+                  <div class="training-body">
+                    <div class="exercise exercise--dup"><span class="exercise-idx">1</span><div class="exercise-body"><span class="exercise-name">Supino reto barra <span class="dup-count" style="margin-left:4px">×2</span></span><span class="exercise-meta">4×8 · 22kg</span></div></div>
+                    <div class="exercise"><span class="exercise-idx">2</span><div class="exercise-body"><span class="exercise-name">Supino inclinado halter</span><span class="exercise-meta">4×10 · 18kg</span></div></div>
+                    <div class="exercise"><span class="exercise-idx">3</span><div class="exercise-body"><span class="exercise-name">Crucifixo máquina</span><span class="exercise-meta">3×12 · 30kg</span></div></div>
+                    <div class="exercise"><span class="exercise-idx">4</span><div class="exercise-body"><span class="exercise-name">Crossover polia alta</span><span class="exercise-meta">3×15 · 12kg</span></div></div>
+                    <div class="exercise"><span class="exercise-idx">5</span><div class="exercise-body"><span class="exercise-name">Tríceps testa</span><span class="exercise-meta">4×10 · 14kg</span></div></div>
+                    <div class="exercise"><span class="exercise-idx">6</span><div class="exercise-body"><span class="exercise-name">Tríceps polia corda</span><span class="exercise-meta">3×12 · 20kg</span></div></div>
+                    <button class="add-exercise"><i data-lucide="plus"></i> Adicionar exercício</button>
+                  </div>
+                </article>
+
+                <article class="training">
+                  <header class="training-head">
+                    <span class="training-letter">B</span>
+                    <div class="training-main">
+                      <span class="training-title">Costas + Bíceps</span>
+                      <span class="training-meta">7 ex<span class="training-meta-dot"></span>~58 min</span>
+                    </div>
+                    <span class="training-day-chip">Ter</span>
+                  </header>
+                </article>
+
+                <article class="training">
+                  <header class="training-head">
+                    <span class="training-letter">C</span>
+                    <div class="training-main">
+                      <span class="training-title">Pernas posterior</span>
+                      <span class="training-meta" style="color:var(--warn)"><i data-lucide="alert-circle" style="width:11px;height:11px"></i> incompleto</span>
+                    </div>
+                    <span class="training-day-chip">Qui</span>
+                  </header>
+                </article>
+              </div>
+            </main>
+          </div>
+        </div>
+
+        <div class="callout callout--right" style="top:215px;left:392px">Sticky · sempre visível abaixo dos stats</div>
+        <div class="callout callout--right" style="top:260px;left:392px">Mostra posição corrente (treino · ex)</div>
+      </div>
+
+      <!-- Mobile 2 — drawer aberto -->
+      <div class="frame-wrap">
+        <span class="frame-label">Mobile · drawer aberto</span>
+        <div class="frame frame--mobile" style="position:relative">
+          <div class="builder" style="filter:saturate(.6) brightness(.92)">
+            <div class="topbar topbar--mobile">
+              <button class="icon-btn"><i data-lucide="arrow-left"></i></button>
+              <div class="title-wrap">
+                <div class="eyebrow">João Silva</div>
+                <div class="title title--mobile">Hipertrofia · Bloco força</div>
+              </div>
+              <button class="icon-btn"><i data-lucide="more-vertical"></i></button>
+            </div>
+            <div class="stats stats--mobile">
+              <div class="stat"><span class="stat-label">Treinos</span><span class="stat-value">5</span></div>
+              <div class="stat"><span class="stat-label">Exerc.</span><span class="stat-value">34</span></div>
+              <div class="stat"><span class="stat-label">Dias</span><span class="stat-value">4<span class="stat-value-unit">/5</span></span></div>
+            </div>
+          </div>
+
+          <div class="drawer-overlay">
+            <div class="drawer">
+              <div class="drawer-grip"></div>
+              <div class="drawer-head">
+                <span class="drawer-title"><i data-lucide="list-tree"></i> Estrutura · 5 treinos · 34 exerc.</span>
+                <button class="drawer-close"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+              </div>
+
+              <div class="outline-search" style="padding:var(--sp-sm) var(--sp-md)">
+                <div class="outline-search-box">
+                  <i data-lucide="search"></i>
+                  <input type="text" placeholder="Buscar exercício…">
+                </div>
+              </div>
+              <div class="outline-filters">
+                <button class="filter-chip filter-chip--active">Tudo</button>
+                <button class="filter-chip">Peito</button>
+                <button class="filter-chip">Costas</button>
+                <button class="filter-chip">Perna</button>
+                <button class="filter-chip">Ombro</button>
+              </div>
+
+              <div class="drawer-body">
+                <div class="outline-section-label">
+                  <span>Treinos atribuídos</span>
+                  <span class="outline-section-count">4 / 7</span>
+                </div>
+
+                <!-- A · expandido -->
+                <div class="outline-training outline-training--expanded">
+                  <div class="outline-training-head">
+                    <button class="outline-training-toggle"><i data-lucide="chevron-right"></i></button>
+                    <span class="outline-day-tag">Seg</span>
+                    <a class="outline-item outline-item--active" style="flex:1">
+                      <span class="outline-item-pulse"></span>
+                      <span class="outline-item-letter">A</span>
+                      <span class="outline-item-body">
+                        <span class="outline-item-name">Peito + Tríceps</span>
+                        <span class="outline-item-meta">8 ex<span class="outline-item-meta-dot"></span>~62 min</span>
+                      </span>
+                    </a>
+                  </div>
+                  <div class="outline-children">
+                    <a class="outline-exercise outline-exercise--active"><span class="outline-exercise-name">Supino reto barra</span><span class="outline-exercise-stat">4×8</span></a>
+                    <a class="outline-exercise"><span class="outline-exercise-name">Supino inclinado halter</span><span class="outline-exercise-stat">4×10</span></a>
+                    <a class="outline-exercise"><span class="outline-exercise-name">Crucifixo máquina</span><span class="outline-exercise-stat">3×12</span></a>
+                    <button class="outline-peek-more"><i data-lucide="chevron-down"></i> +5 exerc.</button>
+                  </div>
+                </div>
+
+                <!-- B · peek com duplicata -->
+                <div class="outline-training">
+                  <div class="outline-training-head">
+                    <button class="outline-training-toggle"><i data-lucide="chevron-right"></i></button>
+                    <span class="outline-day-tag">Ter</span>
+                    <a class="outline-item" style="flex:1">
+                      <span class="outline-item-pulse"></span>
+                      <span class="outline-item-letter">B</span>
+                      <span class="outline-item-body">
+                        <span class="outline-item-name">Costas + Bíceps</span>
+                        <span class="outline-item-meta">7 ex<span class="outline-item-meta-dot"></span>~58 min</span>
+                      </span>
+                    </a>
+                  </div>
+                  <div class="outline-children">
+                    <a class="outline-exercise"><span class="outline-exercise-name">Puxada frente</span><span class="outline-exercise-stat">4×10</span></a>
+                    <a class="outline-exercise"><span class="outline-exercise-name">Remada baixa</span><span class="outline-exercise-stat">4×10</span></a>
+                    <a class="outline-exercise"><span class="outline-exercise-name">Supino reto barra</span><span class="outline-exercise-dup"><i data-lucide="copy"></i></span><span class="outline-exercise-stat">3×8</span></a>
+                    <button class="outline-peek-more"><i data-lucide="chevron-down"></i> +4 exerc.</button>
+                  </div>
+                </div>
+
+                <!-- C · warn -->
+                <div class="outline-training">
+                  <div class="outline-training-head">
+                    <button class="outline-training-toggle"><i data-lucide="chevron-right"></i></button>
+                    <span class="outline-day-tag">Qui</span>
+                    <a class="outline-item outline-item--warn" style="flex:1">
+                      <span class="outline-item-pulse"></span>
+                      <span class="outline-item-letter">C</span>
+                      <span class="outline-item-body">
+                        <span class="outline-item-name">Pernas posterior</span>
+                        <span class="outline-item-meta">3 ex<span class="outline-item-meta-dot"></span>incompleto</span>
+                      </span>
+                    </a>
+                  </div>
+                </div>
+
+                <div class="outline-section-label" style="margin-top:var(--sp-sm)">
+                  <span>Sem dia</span>
+                  <span class="outline-section-count">1</span>
+                </div>
+                <div class="outline-training">
+                  <div class="outline-training-head">
+                    <button class="outline-training-toggle"><i data-lucide="chevron-right"></i></button>
+                    <span class="outline-day-tag" style="background:transparent;color:#CBD5E1;border:1px dashed var(--outline)">—</span>
+                    <a class="outline-item outline-item--empty" style="flex:1">
+                      <span class="outline-item-pulse"></span>
+                      <span class="outline-item-letter">E</span>
+                      <span class="outline-item-body">
+                        <span class="outline-item-name">Cardio leve</span>
+                        <span class="outline-item-meta">7 ex<span class="outline-item-meta-dot"></span>sem dia</span>
+                      </span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout--right" style="top:300px;left:392px">Tap fora ou no X = fecha</div>
+        <div class="callout callout--right" style="top:340px;left:392px">Tap em treino = fecha + scroll até o card</div>
+      </div>
+
+      <!-- Mobile 3 — AddExercise sheet com cross-day mini-list -->
+      <div class="frame-wrap">
+        <span class="frame-label">Mobile · AddExercise sheet · duplicata cross-day detectada</span>
+        <div class="frame frame--mobile" style="position:relative">
+          <div class="builder" style="filter:saturate(.6) brightness(.92)">
+            <div class="topbar topbar--mobile">
+              <button class="icon-btn"><i data-lucide="arrow-left"></i></button>
+              <div class="title-wrap">
+                <div class="eyebrow">João Silva</div>
+                <div class="title title--mobile">Hipertrofia · Bloco força</div>
+              </div>
+              <button class="icon-btn"><i data-lucide="more-vertical"></i></button>
+            </div>
+          </div>
+
+          <div class="drawer-overlay">
+            <div class="add-sheet">
+              <div class="drawer-grip"></div>
+              <div class="add-sheet-head">
+                <span class="add-sheet-title">Adicionar exercício · Treino A</span>
+                <button class="drawer-close"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+              </div>
+
+              <div class="add-sheet-body">
+                <span class="add-sheet-section-label">Selecionado</span>
+                <div style="display:flex;align-items:center;gap:var(--sp-sm);padding:var(--sp-sm);background:var(--mist);border-radius:6px;margin-bottom:var(--sp-md)">
+                  <span style="font-family:var(--font-stat);font-size:11px;font-weight:700;width:28px;height:28px;background:var(--surface-c-hi);border-radius:var(--r-stat);display:flex;align-items:center;justify-content:center">SR</span>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+                    <span style="font-size:13px;font-weight:600;color:var(--ink)">Supino reto com barra</span>
+                    <span style="font-size:11px;color:var(--steel)">Peito · Composto · Barra</span>
+                  </div>
+                </div>
+
+                <!-- Cross-day mini-list — sinaliza onde já existe -->
+                <div class="dup-cross-list">
+                  <span class="dup-cross-list-head"><i data-lucide="copy"></i> Já prescrito em 2 treinos</span>
+
+                  <div class="dup-cross-row">
+                    <span class="dup-cross-row-tag">A · Seg</span>
+                    <div class="dup-cross-row-info">
+                      <span class="dup-cross-row-name">Peito + Tríceps</span>
+                      <span class="dup-cross-row-stat">4×8 · 22kg · 90s</span>
+                    </div>
+                    <span class="dup-cross-row-jump"><i data-lucide="arrow-up-right" style="width:14px;height:14px"></i></span>
+                  </div>
+
+                  <div class="dup-cross-row">
+                    <span class="dup-cross-row-tag">B · Ter</span>
+                    <div class="dup-cross-row-info">
+                      <span class="dup-cross-row-name">Costas + Bíceps</span>
+                      <span class="dup-cross-row-stat">3×8 · 20kg · 75s</span>
+                    </div>
+                    <span class="dup-cross-row-jump"><i data-lucide="arrow-up-right" style="width:14px;height:14px"></i></span>
+                  </div>
+
+                  <div class="dup-cross-list-actions">
+                    <button class="btn btn-secondary btn-sm">Cancelar</button>
+                    <button class="btn btn-secondary btn-sm" style="border-color:var(--warn);color:var(--warn)"><i data-lucide="move"></i> Mover de B</button>
+                    <button class="btn btn-primary btn-sm">Adicionar mesmo assim</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout--right" style="top:340px;left:392px">Mini-list mostra cada ocorrência · tappable</div>
+        <div class="callout callout--right" style="top:380px;left:392px">3 CTAs · "Mover" é novo · não bloqueia</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════ SPECS ═════════════ -->
+  <section class="scenario">
+    <header class="scenario-head">
+      <span class="scenario-eyebrow">Especificações</span>
+      <h2 class="scenario-title">Decisões UX que precisam ser respeitadas</h2>
+    </header>
+
+    <div style="display:grid;grid-template-columns:1fr;gap:var(--sp-md);max-width:960px">
+      <div style="background:#fff;border-radius:var(--r-brand);padding:var(--sp-lg);box-shadow:var(--shadow-sm)">
+        <h3 style="font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--ink);margin-bottom:var(--sp-sm)">1. Layout · 3-column cockpit</h3>
+        <ul style="font-size:13px;color:var(--slate);line-height:1.7;padding-left:var(--sp-md)">
+          <li><strong>Workspace</strong> = flex row com 3 colunas: <code>.outline</code> (288px fixo) + <code>.canvas</code> (flex:1) + <code>.volume-rail</code> (240px fixo). IDE-style.</li>
+          <li><strong>Canvas-inner</strong> deixa de ter <code>max-width:760px</code> — ocupa toda a largura entre rails (~760px naturais em 1360px viewport).</li>
+          <li><strong>Volume rail</strong> some abaixo de 1024px junto com o outline. Em mobile, vira <code>.volume-card</code> no topo do canvas (Balance score + 1 linha de alerta).</li>
+          <li>Em 768–1023px o canvas ocupa toda largura. Volume vira card. Outline vira drawer.</li>
+        </ul>
+      </div>
+
+      <div style="background:#fff;border-radius:var(--r-brand);padding:var(--sp-lg);box-shadow:var(--shadow-sm)">
+        <h3 style="font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--ink);margin-bottom:var(--sp-sm)">2. Outline rail · header-only por padrão</h3>
+        <ul style="font-size:13px;color:var(--slate);line-height:1.7;padding-left:var(--sp-md)">
+          <li><strong>Default expand state mudou (v3):</strong> apenas o treino atual fica expandido (lock explícito por click; "in view" via IntersectionObserver é passivo e <em>não</em> troca o expanded). Demais treinos ficam <strong>header-only</strong> — sem peek-3, sem "+N exerc.". O peek-3 era dead weight 70% do tempo.</li>
+          <li><strong>Math:</strong> antes 5 treinos × peek-3 + atual = ~880px (estourava 812px viewport). Agora 1 expandido + 4 headers = ~340px. Resto vai pra "Sem dia" + breathing room.</li>
+          <li>User clica chevron pra expandir treino específico. Click no nome = scroll até o card + auto-expand.</li>
+          <li><strong>Header colapsado mostra:</strong> day-tag + letra + nome + count exercícios + <code>×N dup</code> badge se houver duplicata, e cor warn no meta se incompleto.</li>
+          <li><strong>"Sem dia" pin no topo:</strong> quando há treinos sem dia, exibe um chip warn <code>⚠ N treino(s) sem dia · &lt;nome&gt;</code> logo após os filtros — clicável, scroll até a section "Sem dia".</li>
+          <li>Filter chips · busca: <strong>filtram tanto rail quanto canvas</strong>. Placeholder atualiza pra "Buscar exercício…" (escopo claro).</li>
+          <li>Pulso colorido tem tooltip on hover na section label com legenda completa (verde = completo, laranja = incompleto, cinza = sem dia).</li>
+          <li>Densidade do exercício no rail: 1 linha de 24px — nome + mini-stat. Carga/descanso só no canvas.</li>
+        </ul>
+      </div>
+
+      <div style="background:#fff;border-radius:var(--r-brand);padding:var(--sp-lg);box-shadow:var(--shadow-sm)">
+        <h3 style="font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--ink);margin-bottom:var(--sp-sm)">3. Duplicata cross-day · sinal forte (não 14px perdido)</h3>
+        <ul style="font-size:13px;color:var(--slate);line-height:1.7;padding-left:var(--sp-md)">
+          <li><strong>Detecção:</strong> match por <code>exerciseTemplateId</code> (preferencial) ou nome normalizado (lowercase, sem acento). Roda client-side a cada mutation.</li>
+          <li><strong>Sinal triplo (não único):</strong>
+            <ol style="margin:var(--sp-xs) 0;padding-left:var(--sp-md)">
+              <li>Row tintado warn (<code>rgba(181,90,2,.06)</code> background no rail · <code>rgba(.07)</code> + inset-shadow 2px no canvas).</li>
+              <li>Badge <code>×N</code> em <code>--warn-c</code> ao lado do nome — comunica <em>frequência</em> ("aparece em N treinos").</li>
+              <li>Ícone <code>copy</code> 11px como reforço terciário, com tooltip "Já existe em Treino B · Ter".</li>
+            </ol>
+          </li>
+          <li><strong>Header colapsado:</strong> badge <code>×1 dup</code> aparece nos meta do training-head — sinaliza que existe duplicata <em>sem precisar expandir</em>.</li>
+          <li><strong>No canvas (exercise-row):</strong> além do tint warn, linha de meta inclui <code>· repetido em B · Ter</code> em cor warn weight 600.</li>
+          <li><strong>AddExercise sheet · cross-day mini-list:</strong> ao selecionar exercício que já existe, banner expande pra mini-list mostrando até 3 ocorrências (tag dia, nome do treino, séries×reps · carga · descanso) — cada row é tappable e faz jump-scroll. CTAs: <code>Cancelar</code> / <code>Mover de &lt;Treino X&gt;</code> (novo) / <code>Adicionar mesmo assim</code> (primário). "+N mais" se &gt;3.</li>
+          <li><strong>Não é erro</strong> — é informação. Cor warn (laranja), nunca error (vermelho). Trainer pode prescrever propositalmente (progressão, A/B testing de protocolos).</li>
+        </ul>
+      </div>
+
+      <div style="background:#fff;border-radius:var(--r-brand);padding:var(--sp-lg);box-shadow:var(--shadow-sm)">
+        <h3 style="font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--ink);margin-bottom:var(--sp-sm)">4. Volume rail v1 · Balance + heatmap</h3>
+        <ul style="font-size:13px;color:var(--slate);line-height:1.7;padding-left:var(--sp-md)">
+          <li><strong>Balance score</strong> XL no topo (44px Space Grotesk · StatDisplay) — score 0–100 baseado na cobertura de grupos vs metas. Bar gradient mostra fração ok/alerta. Sub-line dá causa principal.</li>
+          <li><strong>Muscle list:</strong> 7 grupos (Peito · Costas · Pernas · Ombro · Tríceps · Bíceps · Core). Cada row = nome + sets count + bar com <strong>target marker</strong> (linha vertical na meta) + flag warn se &lt;meta ou &gt;meta.</li>
+          <li><strong>Cores:</strong> verde (em meta), warn (abaixo OU acima — ambos são problema). Vermelho NUNCA aqui (não é error).</li>
+          <li><strong>Atualiza em tempo real</strong> a cada mutation (add/remove/edit exercise). Aggregação client-side por <code>muscleGroup</code> tag do template.</li>
+          <li><strong>Settings icon</strong> abre sheet pra configurar metas por grupo (12 sets Peito, 16 Pernas, etc) — defaults baseados em frequency × experience-level do aluno.</li>
+          <li><strong>Mobile:</strong> volume-card no topo do canvas mostra apenas Balance score + 1-line alert. Tap expande sheet completa com a heatmap.</li>
+        </ul>
+      </div>
+
+      <div style="background:#fff;border-radius:var(--r-brand);padding:var(--sp-lg);box-shadow:var(--shadow-sm)">
+        <h3 style="font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--ink);margin-bottom:var(--sp-sm)">5. Reorder · drag handles</h3>
+        <ul style="font-size:13px;color:var(--slate);line-height:1.7;padding-left:var(--sp-md)">
+          <li><strong>Desktop:</strong> <code>grip-vertical</code> (lucide) à esquerda da exercise-row e do training-head. Visível em <code>opacity:0</code> default, <code>opacity:1</code> on row hover. Cor <code>--outline</code> idle, <code>--steel</code> hover.</li>
+          <li><strong>Mobile:</strong> long-press (500ms) ativa drag mode em qualquer card. Sem handle visível — toda a row vira draggable após hold.</li>
+          <li>Reorder de <strong>treinos</strong> no canvas → reordena array da rotina (ordem A/B/C/D/E preserva letras se nome não foi customizado).</li>
+          <li>Reorder de <strong>exercícios</strong> dentro de um treino → reordena array de prescrições. Index column (1, 2, 3) recalcula automaticamente.</li>
+          <li><strong>Cross-training drag</strong> (mover exercício de A pra B) é <em>opcional v1.1</em> — começar só intra-training pra reduzir complexidade.</li>
+        </ul>
+      </div>
+
+      <div style="background:#fff;border-radius:var(--r-brand);padding:var(--sp-lg);box-shadow:var(--shadow-sm)">
+        <h3 style="font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--ink);margin-bottom:var(--sp-sm)">6. Polish · médios</h3>
+        <ul style="font-size:13px;color:var(--slate);line-height:1.7;padding-left:var(--sp-md)">
+          <li><strong>Save status:</strong> "Salvo · há 12s" timestamp relativo. Atualiza a cada 10s. Após 5min vira "Salvo · há alguns min".</li>
+          <li><strong>Top-right CTA:</strong> "Salvar e fechar" (não "Concluir" — não há concluir, só sair).</li>
+          <li><strong>More-vertical menus:</strong> hover-only no desktop (atribute <code>data-more</code> + opacity transition). Sempre visíveis no mobile (touch UX).</li>
+          <li><strong>IntersectionObserver:</strong> separado do "selected". IO marca <em>in view</em> (passivo) → atualiza só o sticky drawer trigger no mobile. Click expande/colapsa explicitamente — nunca via scroll.</li>
+          <li><strong>Mobile rail rows:</strong> min-height 36px (variant <code>--mobile</code>) — toques mais generosos no drawer.</li>
+        </ul>
+      </div>
+
+      <div style="background:#fff;border-radius:var(--r-brand);padding:var(--sp-lg);box-shadow:var(--shadow-sm)">
+        <h3 style="font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--ink);margin-bottom:var(--sp-sm)">7. Edge cases</h3>
+        <ul style="font-size:13px;color:var(--slate);line-height:1.7;padding-left:var(--sp-md)">
+          <li><strong>Rotina vazia:</strong> outline + volume rail mostram empty state ("Adicione treinos pra ver a estrutura"); CTA principal mora no canvas via <code>FirstTrainingHero</code>.</li>
+          <li><strong>Volume sem dados:</strong> antes do 1º exercício, balance hero mostra "—/100" muted; muscle list em estado <code>—</code>.</li>
+          <li><strong>Read-only:</strong> esconde drag handles, "+ Adicionar", more-vertical. Volume rail e duplicata signaling permanecem (são informação, não ação).</li>
+          <li><strong>Nome longo (35+ char):</strong> truncate ellipsis · tooltip native title.</li>
+          <li><strong>Sem grupo muscular taggeado no exercise:</strong> agrega em "Outros" no volume rail. Não conta pra balance score.</li>
+        </ul>
+      </div>
+
+      <div style="background:#fff;border-radius:var(--r-brand);padding:var(--sp-lg);box-shadow:var(--shadow-sm)">
+        <h3 style="font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:var(--tr-wide);text-transform:uppercase;color:var(--ink);margin-bottom:var(--sp-sm)">8. O que NÃO mudar</h3>
+        <ul style="font-size:13px;color:var(--slate);line-height:1.7;padding-left:var(--sp-md)">
+          <li>Topbar, IdentityStrip, BuilderStatsRow — layout preservado (apenas <strong>save-status</strong> ganha timestamp e <strong>CTA</strong> renomeado).</li>
+          <li>WeekOverview e TrainingItem expandido — comportamento e classes existentes mantidos.</li>
+          <li>Sheets existentes (AddTraining, ImportTemplate) — sem alteração visual; AddExercise ganha apenas a cross-day mini-list <strong>condicional</strong> (se não há duplicata, sheet é idêntico ao atual).</li>
+          <li>Tokens (<code>--warn</code>, <code>--success</code>, <code>--steel</code>) — reutilizados, zero novo hex.</li>
+          <li>Rotas e contratos de API — sem mudança. Tudo no client.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+</script>
+</body>
+</html>
