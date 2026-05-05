@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import {
+  AlignLeft,
   ArrowLeft,
   ChevronDown,
   Cloud,
@@ -17,6 +18,7 @@ import {
   User,
   X,
 } from 'lucide-react';
+import RoutineSummarySheet from '../../components/RoutineSummarySheet';
 import { useToast } from '../../contexts/ToastContext';
 import useRoutineBuilder from '../../hooks/useRoutineBuilder';
 import useProtocolBuilder from '../../hooks/useProtocolBuilder';
@@ -781,8 +783,9 @@ const ExerciseRow = ({ ex, index, onEdit, onDelete, readOnly }) => {
         onKeyDown: handleRowKeyDown,
         'aria-label': `Editar ${name}`,
         className: 'exercise-row-wide exercise-row-wide--interactive',
+        'data-exercise-id': ex.id,
       }
-    : { role: 'listitem', className: 'exercise-row-wide' };
+    : { role: 'listitem', className: 'exercise-row-wide', 'data-exercise-id': ex.id };
 
   return (
     <div {...interactiveProps}>
@@ -899,6 +902,7 @@ const TrainingItem = ({
     <>
       <div
         className={`training-item${readinessClass ? ` ${readinessClass}` : ''}${expanded ? ' training-item--expanded' : ''}`}
+        data-training-id={training.id}
       >
         {/* ── Head ── */}
         <div
@@ -1129,6 +1133,7 @@ const BuilderTopbar = ({
   onSave,
   onEdit,
   onImportTemplate,
+  onOpenSummary,
   saving,
   canSave,
 }) => {
@@ -1222,6 +1227,18 @@ const BuilderTopbar = ({
         </button>
       )}
 
+      {/* Mobile-only: Resumo icon-button (hidden ≥768px via CSS — desktop uses FAB) */}
+      {onOpenSummary && (
+        <button
+          type="button"
+          className="routine-summary-trigger"
+          onClick={onOpenSummary}
+          aria-label="Ver resumo"
+        >
+          <AlignLeft size={18} strokeWidth={2} aria-hidden="true" />
+        </button>
+      )}
+
       {/* Desktop: status + action buttons (hidden on mobile via CSS) */}
       <div className="builder-topbar-actions builder-topbar-actions--responsive">
         {readOnly ? (
@@ -1300,6 +1317,7 @@ BuilderTopbar.propTypes = {
   onSave: PropTypes.func,
   onEdit: PropTypes.func,
   onImportTemplate: PropTypes.func,
+  onOpenSummary: PropTypes.func,
   saving: PropTypes.bool.isRequired,
   canSave: PropTypes.bool.isRequired,
 };
@@ -1316,6 +1334,7 @@ BuilderTopbar.defaultProps = {
   onSave: null,
   onEdit: null,
   onImportTemplate: null,
+  onOpenSummary: null,
 };
 
 // ─── IdentityStrip ────────────────────────────────────────────────────────────
@@ -1718,6 +1737,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
   const [addTrainingSheetOpen, setAddTrainingSheetOpen] = useState(false);
   const [editingTraining, setEditingTraining] = useState(null);
   const [importTemplateSheetOpen, setImportTemplateSheetOpen] = useState(false);
+  const [summarySheetOpen, setSummarySheetOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const sentinelRef = useRef(null);
 
@@ -1942,6 +1962,57 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
     routine.loadFromTemplate(templateId);
   }, [routine]);
 
+  // ── Summary sheet ────────────────────────────────────────────────────────
+
+  const totalExerciseCount = useMemo(
+    () => trainings.reduce((sum, t) => sum + (t.exercises?.length || 0), 0),
+    [trainings]
+  );
+
+  // Flat ordered list of all trainings (assigned first, then unassigned) for
+  // the sheet — mirrors the render order used in the canvas below.
+  const orderedTrainings = useMemo(() => {
+    const assigned = trainings.filter((t) => t.weekDay);
+    const unassigned = trainings.filter((t) => !t.weekDay);
+    return [...assigned, ...unassigned];
+  }, [trainings]);
+
+  const handleScrollToTraining = useCallback((trainingId) => {
+    // Expand the training card if it is collapsed.
+    setExpandedId((prev) => (prev === trainingId ? prev : trainingId));
+
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-training-id="${trainingId}"]`);
+      if (el) {
+        el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        el.classList.add('training-item--pulse');
+        el.addEventListener(
+          'animationend',
+          () => el.classList.remove('training-item--pulse'),
+          { once: true }
+        );
+      }
+    });
+  }, []);
+
+  const handleScrollToExercise = useCallback((trainingId, exerciseId) => {
+    // Ensure the parent training is expanded so the exercise row is visible.
+    setExpandedId(trainingId);
+
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+      if (el) {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el.classList.add('exercise-row-pulse');
+        el.addEventListener(
+          'animationend',
+          () => el.classList.remove('exercise-row-pulse'),
+          { once: true }
+        );
+      }
+    });
+  }, []);
+
   // ── Loading state ────────────────────────────────────────────────────────
 
   if (routine.loading) {
@@ -1975,6 +2046,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         onSave={readOnly ? null : handleSave}
         onEdit={readOnly ? handleEdit : null}
         onImportTemplate={isProtocol && !readOnly ? () => setImportTemplateSheetOpen(true) : null}
+        onOpenSummary={() => setSummarySheetOpen(true)}
         saving={routine.saving}
         canSave={canSave}
       />
@@ -2129,7 +2201,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         />
       )}
 
-      {/* Read-only: FAB-extended pill — replaces the white bottom bar */}
+      {/* Read-only: FAB-extended pill — mobile only (desktop hidden via CSS) */}
       {readOnly && (
         <button
           className="builder-edit-fab"
@@ -2141,7 +2213,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         </button>
       )}
 
-      {/* Edit/create: FAB pill for save action */}
+      {/* Edit/create: save FAB — mobile only (desktop hidden via CSS) */}
       {!readOnly && (
         <button
           className="builder-edit-fab"
@@ -2154,6 +2226,29 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
           {routine.saving ? 'SALVANDO…' : editProtocolId ? 'CONCLUIR' : 'SALVAR'}
         </button>
       )}
+
+      {/* Resumo FAB — desktop only (≥768px via CSS); mobile uses topbar trigger */}
+      <button
+        className="routine-summary-fab"
+        onClick={() => setSummarySheetOpen(true)}
+        aria-label="Ver resumo de exercícios"
+      >
+        <span className="routine-summary-fab-icon" aria-hidden="true">
+          <AlignLeft size={16} strokeWidth={2} />
+        </span>
+        <span className="routine-summary-fab-label">Resumo</span>
+        <span className="routine-summary-fab-count">{totalExerciseCount} ex</span>
+      </button>
+
+      {/* Routine Summary Sheet */}
+      <RoutineSummarySheet
+        open={summarySheetOpen}
+        trainings={orderedTrainings}
+        saveStatusLabel={saveStatusLabel}
+        onClose={() => setSummarySheetOpen(false)}
+        onScrollToTraining={handleScrollToTraining}
+        onScrollToExercise={handleScrollToExercise}
+      />
     </div>
   );
 };

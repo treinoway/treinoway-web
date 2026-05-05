@@ -15965,6 +15965,8 @@ nav.onboarding-steps {
   .builder-edit-fab {
     bottom: var(--spacing-lg);
     right: var(--spacing-lg);
+    /* On desktop the Resumo FAB owns bottom-right; builder-edit-fab yields */
+    display: none;
   }
 }
 
@@ -20071,4 +20073,593 @@ nav.onboarding-steps {
 @media (min-width: 768px) and (max-width: 1023.98px) {
   .pulse-number { font-size: 104px; }
   .pulse-wave-bars { height: 88px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROUTINE SUMMARY SHEET
+   FAB pill (desktop bottom-right) + overlay + sheet (centered modal desktop,
+   bottom-sheet mobile) + peek-item (mirrors training-item left-stripe logic)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Resumo FAB pill — desktop only (≥768px) ── */
+.routine-summary-fab {
+  /* Hidden on mobile — mobile uses the topbar trigger icon-button */
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .routine-summary-fab {
+    display: inline-flex;
+    position: fixed;
+    bottom: var(--spacing-lg);
+    right: var(--spacing-lg);
+    z-index: var(--z-dropdown);
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 0 var(--spacing-md) 0 14px;
+    min-height: 44px;
+    height: 52px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: var(--brand-primary);
+    color: #fff;
+    box-shadow: var(--shadow-brand-md), 0 8px 24px rgba(10, 95, 204, 0.24);
+    cursor: pointer;
+    font-family: var(--font-family-base);
+    transition:
+      background-color var(--duration-fast) var(--ease-brand),
+      box-shadow var(--duration-fast) var(--ease-brand),
+      transform var(--duration-fast) var(--ease-brand);
+  }
+
+  .routine-summary-fab:hover {
+    background: var(--brand-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-brand-lg), 0 8px 24px rgba(10, 95, 204, 0.28);
+  }
+
+  .routine-summary-fab:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus), 0 8px 24px rgba(10, 95, 204, 0.24);
+  }
+
+  .routine-summary-fab:active {
+    transform: scale(0.98);
+  }
+}
+
+.routine-summary-fab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.routine-summary-fab-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.routine-summary-fab-count {
+  font-family: var(--font-family-stat);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding-left: var(--spacing-sm);
+  border-left: 1px solid rgba(255, 255, 255, 0.24);
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
+/* ── Resumo trigger — mobile topbar icon-button ── */
+.routine-summary-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-brand);
+  background: transparent;
+  color: var(--brand-steel);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-brand),
+    color var(--duration-fast) var(--ease-brand);
+}
+
+.routine-summary-trigger:hover {
+  background: var(--md-surface-container-high);
+  color: var(--brand-ink);
+}
+
+.routine-summary-trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+@media (min-width: 768px) {
+  /* Desktop owns the bottom-right FAB; trigger in topbar is not needed */
+  .routine-summary-trigger {
+    display: none;
+  }
+}
+
+/* ── Overlay ── */
+.routine-summary-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 28, 0.48);
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  animation: routine-summary-fade-in var(--duration-base) var(--ease-brand);
+}
+
+@keyframes routine-summary-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (min-width: 768px) {
+  .routine-summary-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .routine-summary-overlay {
+    animation: none;
+  }
+}
+
+/* ── Sheet container ── */
+.routine-summary-sheet {
+  background: var(--md-surface);
+  width: 100%;
+  height: 92%;
+  max-height: 92%;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-brand-lg);
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  animation: routine-summary-slide-up var(--duration-slow) var(--ease-brand);
+}
+
+@keyframes routine-summary-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (min-width: 768px) {
+  .routine-summary-sheet {
+    width: 100%;
+    max-width: 600px;
+    height: 88vh;
+    max-height: 88vh;
+    border-radius: var(--radius-brand);
+    animation: routine-summary-scale-in var(--duration-base) var(--ease-brand);
+  }
+
+  @keyframes routine-summary-scale-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .routine-summary-sheet {
+    animation: none;
+  }
+}
+
+/* ── Drag handle (mobile only) ── */
+.routine-summary-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--md-outline-variant);
+  margin: var(--spacing-sm) auto 0;
+  flex-shrink: 0;
+  cursor: grab;
+}
+
+@media (min-width: 768px) {
+  .routine-summary-sheet-handle {
+    display: none;
+  }
+}
+
+/* ── Sheet header ── */
+.routine-summary-sheet-header {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--brand-divider);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .routine-summary-sheet-header {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+}
+
+.routine-summary-sheet-header-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.routine-summary-sheet-eyebrow {
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  margin-bottom: 4px;
+  line-height: 1;
+}
+
+.routine-summary-sheet-title {
+  font-family: var(--font-family-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--brand-ink);
+  line-height: var(--line-height-tight);
+}
+
+@media (min-width: 768px) {
+  .routine-summary-sheet-title {
+    font-size: 20px;
+  }
+}
+
+.routine-summary-sheet-close {
+  width: 36px;
+  height: 36px;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-brand);
+  background: transparent;
+  color: var(--brand-steel);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-brand),
+    color var(--duration-fast) var(--ease-brand);
+}
+
+@media (min-width: 768px) {
+  .routine-summary-sheet-close {
+    min-height: 36px;
+    min-width: 36px;
+  }
+}
+
+.routine-summary-sheet-close:hover {
+  background: var(--md-surface-container-high);
+  color: var(--brand-ink);
+}
+
+.routine-summary-sheet-close:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ── Sheet body — scrollable peek-item list ── */
+.routine-summary-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-lg);
+  background: var(--md-surface-container);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  scroll-padding-bottom: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .routine-summary-sheet-body {
+    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-xl);
+  }
+}
+
+/* ── Sheet footer ── */
+.routine-summary-sheet-footer {
+  padding: 10px var(--spacing-md);
+  border-top: 1px solid var(--brand-divider);
+  background: var(--md-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .routine-summary-sheet-footer {
+    padding: 10px var(--spacing-lg);
+  }
+}
+
+.routine-summary-sheet-footer-status {
+  font-size: 11px;
+  color: var(--brand-steel);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.routine-summary-sheet-footer-hint {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  text-align: right;
+}
+
+/* ── Peek item — mirrors .training-item left-stripe readiness logic ── */
+.routine-summary-peek-item {
+  background: var(--md-surface);
+  border: 1px solid var(--brand-divider);
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: border-color var(--duration-fast) var(--ease-brand);
+}
+
+.routine-summary-peek-item:hover {
+  border-color: var(--md-outline-variant);
+}
+
+/* Left readiness stripe — same logic as .training-item::before */
+.routine-summary-peek-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--md-outline-variant);
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+.routine-summary-peek-item--ready::before {
+  background: var(--md-success);
+}
+
+.routine-summary-peek-item--partial::before {
+  background: var(--brand-accent);
+}
+
+/* ── Peek item header ── */
+.routine-summary-peek-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) calc(var(--spacing-md) + 6px);
+  border-bottom: 1px solid var(--brand-divider);
+}
+
+/* ── Letter chip — mirrors .training-item-letter at compact size ── */
+.routine-summary-peek-letter {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--brand-mist);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand-ink);
+  letter-spacing: var(--tracking-tight);
+}
+
+.routine-summary-peek-item--ready .routine-summary-peek-letter {
+  background: var(--md-success-container);
+  color: var(--md-success);
+}
+
+.routine-summary-peek-item--partial .routine-summary-peek-letter {
+  background: var(--brand-accent-container);
+  color: var(--brand-accent);
+}
+
+.routine-summary-peek-title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-family-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--brand-ink);
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.routine-summary-peek-count {
+  font-family: var(--font-family-stat);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand-steel);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Jump button (chevron-right) ── */
+.routine-summary-peek-jump {
+  width: 28px;
+  height: 28px;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--brand-steel);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-brand),
+    color var(--duration-fast) var(--ease-brand);
+}
+
+@media (min-width: 768px) {
+  .routine-summary-peek-jump {
+    min-height: 28px;
+    min-width: 28px;
+  }
+}
+
+.routine-summary-peek-jump:hover {
+  background: var(--brand-mist);
+  color: var(--brand-primary);
+}
+
+.routine-summary-peek-jump:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ── Exercises list inside peek item ── */
+.routine-summary-peek-exercises {
+  padding: var(--spacing-xs) 0;
+}
+
+.routine-summary-peek-exercise {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: var(--spacing-sm);
+  align-items: center;
+  padding: 6px var(--spacing-md) 6px calc(var(--spacing-md) + 6px);
+  min-height: 44px;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-brand);
+}
+
+@media (min-width: 768px) {
+  .routine-summary-peek-exercise {
+    grid-template-columns: 60px 1fr auto;
+    min-height: 32px;
+  }
+}
+
+.routine-summary-peek-exercise:hover {
+  background: var(--brand-mist);
+}
+
+.routine-summary-peek-exercise:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--brand-primary);
+}
+
+.routine-summary-peek-exercise-stat {
+  font-family: var(--font-family-stat);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-tight);
+  white-space: nowrap;
+}
+
+.routine-summary-peek-exercise-name {
+  font-size: 13px;
+  color: var(--brand-slate);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.routine-summary-peek-exercise-meta {
+  font-family: var(--font-family-stat);
+  font-size: 11px;
+  color: var(--brand-steel);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  /* Hidden on mobile to keep grid 2-col */
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .routine-summary-peek-exercise-meta {
+    display: block;
+  }
+}
+
+/* ── Empty state (training has no exercises) ── */
+.routine-summary-peek-empty {
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) calc(var(--spacing-md) + 6px);
+  font-size: 12px;
+  font-style: italic;
+  color: var(--brand-steel);
+  line-height: var(--line-height-normal);
+}
+
+/* Global empty state (sheet has no trainings at all) */
+.routine-summary-peek-empty--global {
+  padding: var(--spacing-lg);
+  text-align: center;
+  font-style: normal;
+  color: var(--brand-steel);
+  font-size: 13px;
+}
+
+/* ── Pulse-highlight: exercise row targeted from sheet ── */
+@keyframes routine-summary-exercise-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(10, 95, 204, 0.40); }
+  50%  { box-shadow: 0 0 0 3px rgba(10, 95, 204, 0.20); }
+  100% { box-shadow: 0 0 0 0 rgba(10, 95, 204, 0); }
+}
+
+.exercise-row-pulse {
+  animation: routine-summary-exercise-pulse var(--duration-slow) var(--ease-brand);
+}
+
+/* ── Pulse-highlight: training card targeted from sheet ── */
+@keyframes routine-summary-training-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(10, 95, 204, 0.35); }
+  50%  { box-shadow: 0 0 0 4px rgba(10, 95, 204, 0.18); }
+  100% { box-shadow: 0 0 0 0 rgba(10, 95, 204, 0); }
+}
+
+.training-item--pulse {
+  animation: routine-summary-training-pulse var(--duration-slow) var(--ease-brand);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exercise-row-pulse,
+  .training-item--pulse {
+    animation: none;
+  }
 }
