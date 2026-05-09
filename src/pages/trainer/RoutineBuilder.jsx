@@ -822,6 +822,26 @@ ExerciseRow.defaultProps = {
   readOnly: false,
 };
 
+// ─── smoothScrollTo ───────────────────────────────────────────────────────────
+
+/**
+ * Scroll an element into view, respecting prefers-reduced-motion.
+ * Skips the scroll when the element's top edge is already within the visible
+ * area (avoids jarring jumps when the user hasn't scrolled away).
+ *
+ * @param {Element} el - The DOM element to bring into view.
+ * @param {'start'|'center'|'nearest'} [block='start'] - ScrollIntoView block alignment.
+ */
+const smoothScrollTo = (el, block = 'start') => {
+  if (!el) return;
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+  const rect = el.getBoundingClientRect();
+  // Already fully in view — top edge is below viewport top and bottom edge is
+  // above viewport bottom. Skip to avoid a disorienting jump.
+  if (rect.top >= 0 && rect.bottom <= window.innerHeight) return;
+  el.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block });
+};
+
 // ─── TrainingItem ─────────────────────────────────────────────────────────────
 
 const TrainingItem = ({
@@ -853,8 +873,19 @@ const TrainingItem = ({
   }, [exercises.length]);
 
   const handleAddExercise = async (payload) => {
-    await onAddExercise(payload);
+    const created = await onAddExercise(payload);
     setComposerState(null);
+    if (created?.id) {
+      // Double rAF: first frame lets React commit the new exercise node,
+      // second frame fires after the browser has laid it out so
+      // getBoundingClientRect() is accurate inside smoothScrollTo.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const el = document.querySelector(`[data-exercise-id="${created.id}"]`);
+          smoothScrollTo(el, 'center');
+        });
+      });
+    }
   };
 
   const handleEditExercise = async (exId, payload) => {
@@ -1942,7 +1973,16 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
   }, [canSave, routine, titleName, trainings, draft, showToast, navigate, isProtocol, studentId, editProtocolId]);
 
   const handleToggleExpand = useCallback((trainingId) => {
-    setExpandedId((prev) => (prev === trainingId ? null : trainingId));
+    setExpandedId((prev) => {
+      const isExpanding = prev !== trainingId;
+      if (isExpanding) {
+        requestAnimationFrame(() => {
+          const el = document.querySelector(`[data-training-id="${trainingId}"]`);
+          smoothScrollTo(el, 'start');
+        });
+      }
+      return isExpanding ? trainingId : null;
+    });
   }, []);
 
   const handleOpenEditTraining = useCallback((training) => {

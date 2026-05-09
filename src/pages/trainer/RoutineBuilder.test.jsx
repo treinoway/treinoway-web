@@ -42,6 +42,10 @@ class NoopIntersectionObserver {
 }
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', NoopIntersectionObserver);
+  // scrollIntoView is not implemented in jsdom. Stub it globally so any test
+  // that triggers expand (which now schedules a rAF scroll) does not throw.
+  // Suites that need to assert on it override this stub per-test.
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -2697,5 +2701,234 @@ describe('RoutineBuilder — Routine Summary Sheet', () => {
     // CSS hides it at ≥768px — verify class is present so CSS can target it
     const fabs = document.querySelectorAll('.builder-edit-fab');
     expect(fabs.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ─── Tests — smooth scroll on expand ─────────────────────────────────────────
+
+describe('RoutineBuilder — smooth scroll on training expand', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+    // scrollIntoView already stubbed globally; re-assign a fresh fn so we can
+    // assert on it cleanly within this suite.
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+    // Element is below the viewport bottom — scroll must fire.
+    // jsdom's window.innerHeight defaults to 768; setting bottom > 768 ensures
+    // the "already visible" guard in smoothScrollTo does not short-circuit.
+    vi.spyOn(window.HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 700,
+      bottom: 900,
+      left: 0,
+      right: 320,
+      width: 320,
+      height: 200,
+    });
+    // jsdom does not define window.matchMedia — use stubGlobal to inject it
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
+      matches: false,
+      media: '(prefers-reduced-motion: reduce)',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('expanding a training calls scrollIntoView on the training card', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    const chevron = screen.getByRole('button', { name: /Expandir treino/i });
+    await user.click(chevron);
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    await waitFor(() => {
+      expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ block: 'start', behavior: 'smooth' })
+      );
+    });
+  });
+
+  it('collapsing a training does NOT call scrollIntoView', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    // Expand first
+    const expandBtn = screen.getByRole('button', { name: /Expandir treino/i });
+    await user.click(expandBtn);
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    // Reset the mock count after expand
+    window.HTMLElement.prototype.scrollIntoView.mockClear();
+
+    // Collapse
+    const collapseBtn = screen.getByRole('button', { name: /Recolher treino/i });
+    await user.click(collapseBtn);
+    await waitFor(() => {
+      expect(screen.queryByRole('list', { name: /Exercícios/i })).not.toBeInTheDocument();
+    });
+
+    expect(window.HTMLElement.prototype.scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it('uses behavior:"auto" when prefers-reduced-motion is active', async () => {
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
+      matches: true,
+      media: '(prefers-reduced-motion: reduce)',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+
+    const user = userEvent.setup();
+    renderNew();
+
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    await waitFor(() => {
+      expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ behavior: 'auto' })
+      );
+    });
+  });
+
+  it('does NOT scroll when the training card is already fully in viewport', async () => {
+    // Override: element fully visible (top ≥ 0, bottom ≤ innerHeight)
+    vi.spyOn(window.HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      bottom: 300,
+      left: 0,
+      right: 320,
+      width: 320,
+      height: 200,
+    });
+    // jsdom innerHeight defaults to 768
+    Object.defineProperty(window, 'innerHeight', { value: 768, configurable: true });
+
+    const user = userEvent.setup();
+    renderNew();
+
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    // scrollIntoView should NOT have been called since element is already visible
+    expect(window.HTMLElement.prototype.scrollIntoView).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Tests — smooth scroll on exercise creation ───────────────────────────────
+
+describe('RoutineBuilder — smooth scroll after exercise creation', () => {
+  const CREATED_EXERCISE = {
+    id: 'ex-new',
+    name: 'Leg press',
+    type: 'strength',
+    sets: 3,
+    repetitions: { min: 10, max: 15 },
+    restInterval: 60,
+    hasLoad: true,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+    vi.spyOn(window.HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 800,
+      bottom: 860,
+      left: 0,
+      right: 320,
+      width: 320,
+      height: 60,
+    });
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
+      matches: false,
+      media: '(prefers-reduced-motion: reduce)',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('scrolls to the new exercise row after creation', async () => {
+    const addExercise = vi.fn().mockResolvedValue(CREATED_EXERCISE);
+    useRoutineBuilder.mockReturnValue({
+      ...POPULATED_HOOK_STATE,
+      addExercise,
+    });
+
+    // The new exercise row won't exist in jsdom because the mocked hook does not
+    // append it to the list. Intercept document.querySelector so that when the
+    // scroll logic looks up `[data-exercise-id="ex-new"]` it gets a fake element
+    // with a spy on scrollIntoView — letting us assert the call without needing
+    // the real DOM node.
+    const fakeExerciseEl = { scrollIntoView: vi.fn(), getBoundingClientRect: () => ({ top: 900, bottom: 960 }) };
+    const origQuerySelector = document.querySelector.bind(document);
+    vi.spyOn(document, 'querySelector').mockImplementation((selector) => {
+      if (selector === `[data-exercise-id="${CREATED_EXERCISE.id}"]`) return fakeExerciseEl;
+      return origQuerySelector(selector);
+    });
+
+    const user = userEvent.setup();
+    renderNew();
+
+    // Expand the training
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    // Open the add-exercise composer
+    await user.click(screen.getByRole('button', { name: /Adicionar exercício/i }));
+
+    // Fill minimum required field and submit
+    const nameInput = await screen.findByLabelText(/Nome/i);
+    await user.type(nameInput, 'Leg press');
+
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    await waitFor(() => {
+      expect(addExercise).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(fakeExerciseEl.scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ block: 'center', behavior: 'smooth' })
+      );
+    });
+  });
+
+  it('does NOT call scrollIntoView when addExercise returns no id', async () => {
+    const addExercise = vi.fn().mockResolvedValue(null);
+    useRoutineBuilder.mockReturnValue({
+      ...POPULATED_HOOK_STATE,
+      addExercise,
+    });
+
+    const user = userEvent.setup();
+    renderNew();
+
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+    await user.click(screen.getByRole('button', { name: /Adicionar exercício/i }));
+
+    const nameInput = await screen.findByLabelText(/Nome/i);
+    await user.type(nameInput, 'Leg press');
+
+    window.HTMLElement.prototype.scrollIntoView.mockClear();
+
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    await waitFor(() => {
+      expect(addExercise).toHaveBeenCalled();
+    });
+
+    // No scroll when no id returned
+    expect(window.HTMLElement.prototype.scrollIntoView).not.toHaveBeenCalled();
   });
 });

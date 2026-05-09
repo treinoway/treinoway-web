@@ -746,6 +746,22 @@ describe('addExercise', () => {
     expect(result.current.saving).toBe(false);
   });
 
+  it('returns the created exercise so callers can scroll to it', async () => {
+    // Regression: mutate() was discarding the fn() return value (await fn() with
+    // no return), so addExercise always resolved to undefined. The scroll-after-
+    // add feature in TrainingItem.handleAddExercise depends on the returned id.
+    const { result } = renderHook(() => useRoutineBuilder('r1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let returnedExercise;
+    await act(async () => {
+      returnedExercise = await result.current.addExercise('t1', { name: 'Agachamento', type: 'strength', sets: 3 });
+    });
+
+    expect(returnedExercise).toBeDefined();
+    expect(returnedExercise.id).toBe('e2');
+  });
+
   it('sets error on failure', async () => {
     const { result } = renderHook(() => useRoutineBuilder('r1'));
     await waitFor(() => expect(result.current.loading).toBe(false));

@@ -45,6 +45,9 @@
   --spacing-xl: 32px;
   --spacing-xxl: 48px;
 
+  /* Component size tokens */
+  --icon-btn-size: 36px; /* square icon-button target used in builder topbar */
+
   /* Radius */
   --radius-xs: 4px;
   --radius-sm: 8px;
@@ -14041,6 +14044,24 @@ nav.onboarding-steps {
   flex: 1;
 }
 
+/* ── Builder shell scroll-offset token ──────────────────────────────────────
+   Topbar height = 2 × vertical-padding + icon-button height + 1px border.
+   Consumed by scroll-margin-top on .training-item and .exercise-row-wide so
+   scrollIntoView({block:'start'}) lands below the sticky topbar.
+   Mobile  topbar padding: spacing-sm (8px) × 2 = 16px  → total ≈ 53px
+   Desktop topbar padding: spacing-md (16px) × 2 = 32px → total ≈ 69px
+   An extra spacing-xs (4px) buffer prevents the card header clipping.
+*/
+.builder-shell {
+  --builder-topbar-height: calc(var(--spacing-sm) * 2 + var(--icon-btn-size) + var(--spacing-xs));
+}
+
+@media (min-width: 768px) {
+  .builder-shell {
+    --builder-topbar-height: calc(var(--spacing-md) * 2 + var(--icon-btn-size) + var(--spacing-xs));
+  }
+}
+
 /* ── Builder topbar (sticky) ── */
 .builder-topbar {
   background: var(--md-surface);
@@ -14071,8 +14092,8 @@ nav.onboarding-steps {
 }
 
 .builder-topbar-back {
-  width: 36px;
-  height: 36px;
+  width: var(--icon-btn-size);
+  height: var(--icon-btn-size);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14720,6 +14741,9 @@ nav.onboarding-steps {
   overflow: hidden;
   transition: all var(--duration-fast) var(--ease-brand);
   position: relative;
+  /* Clears the sticky builder topbar when scrollIntoView({block:'start'}) fires.
+     --builder-topbar-height is set on .builder-shell and updates at each breakpoint. */
+  scroll-margin-top: var(--builder-topbar-height, var(--spacing-xxl));
 }
 
 .training-item:hover {
@@ -15056,6 +15080,8 @@ nav.onboarding-steps {
   transition: border-color var(--duration-fast) var(--ease-brand);
   cursor: grab;
   min-height: 44px;
+  /* Clears the sticky builder topbar when a new exercise is scrolled into view */
+  scroll-margin-top: var(--builder-topbar-height, var(--spacing-xxl));
 }
 
 .exercise-row-wide:hover {

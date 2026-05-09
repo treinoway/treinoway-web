@@ -136,7 +136,7 @@ const useRoutineBuilder = (routineId) => {
     setSaving(true);
     setError(null);
     try {
-      await fn();
+      return await fn();
     } catch (err) {
       setError(err.userMessage || err.message || 'Erro ao salvar.');
       throw err;
