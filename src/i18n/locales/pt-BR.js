@@ -203,6 +203,23 @@ const ptBR = {
       "Este protocolo não está atribuído a você.",
     "diet.mealNotFound": "Refeição não encontrada.",
     "diet.foodItemNotFound": "Alimento não encontrado.",
+    "exercise.supersetMembershipInvalid":
+      "Os exercícios do bi-set precisam estar em sequência no treino.",
+    "exercise.supersetMinMembers":
+      "Um bi-set precisa de pelo menos 2 exercícios.",
+    "exercise.supersetMaxMembers":
+      "Um bi-set não pode ter mais de 6 exercícios.",
+    "exercise.substituteSameTraining":
+      "O substituto deve pertencer ao mesmo treino.",
+    "exercise.substituteCannotChain":
+      "Substitutos não podem ter substitutos.",
+    "exercise.substituteCannotBeInSuperset":
+      "O exercício substituto não pode fazer parte de um bi-set.",
+    "exercise.substitutedAlready":
+      "Este exercício já é substituto de outro.",
+    "exercise.substituteNotFound": "Substituto não encontrado.",
+    "exercise.logAlreadySubstituted":
+      "Este exercício já foi substituído nesta sessão.",
   },
 
   httpStatus: {
@@ -833,6 +850,54 @@ const ptBR = {
     onboardingIncompleteDesc:
       "Complete seu perfil de nutricionista para começar a atender.",
     activationFailed: "Não foi possível ativar. Tente novamente.",
+  },
+
+  exerciseGroup: {
+    select: "Selecionar",
+    cancelSelection: "Cancelar seleção",
+    groupAsBiset: "Agrupar em bi-set",
+    biset: "Bi-set",
+    dissolveBiset: "Desfazer bi-set",
+    bisetCreated: "Bi-set criado.",
+    bisetDissolved: "Bi-set desfeito.",
+    selectionCount: "{selected}/6 selecionados",
+    selectionInstruction:
+      "Selecione 2 a 6 exercícios para agrupar em bi-set.",
+    selectionInstructionLong:
+      "Selecione 2 a 6 exercícios. Não precisam estar em sequência.",
+    nonAdjacentConfirmTitle: "Reorganizar exercícios?",
+    nonAdjacentConfirmBody:
+      "Os exercícios serão reorganizados em sequência.",
+    confirmGroupAndReorder: "Agrupar e reordenar",
+    confirmDissolve:
+      "Desfazer bi-set? Os exercícios serão mantidos como individuais.",
+    alreadyInAnotherBiset: "Já em outro bi-set",
+    bisetCreateFailed:
+      "Não foi possível criar o bi-set. Tente novamente.",
+    bisetCreateInconsistent:
+      "Estado inconsistente — recarregue.",
+    bisetReload: "Recarregar",
+    noRest: "sem descanso",
+  },
+
+  substitute: {
+    add: "Adicionar substituto",
+    addedToast: "Substituto adicionado.",
+    removeToast: "Substituto removido.",
+    inlinePrefix: "Substituto: ",
+    extraCount: "+{count} substituto | +{count} substitutos",
+    altShort: "{count} alt.",
+    swap: "Trocar",
+    swapping: "Trocando…",
+    swapTitle: "Trocar {name} por:",
+    swapClose: "Fechar troca",
+    swapped: "substituído",
+    swappedTo: "Trocado por: {name}",
+    swappedAgo: "Trocado há {seconds}s",
+    swapUndo: "Desfazer",
+    swapFailed: "Não foi possível trocar. Tente novamente.",
+    composerTitle: "Adicionar substituto",
+    composerNamePlaceholder: "Nome do exercício",
   },
 };
 

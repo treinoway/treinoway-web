@@ -24,6 +24,18 @@ const en = {
     'diet.foodItemNotFound': 'Food item not found.',
     'dashboard.invalidDateRange': 'Invalid date range (dateFrom must be before dateTo).',
     'dashboard.windowTooLarge': 'Date window exceeds the 365-day maximum.',
+    'exercise.supersetMembershipInvalid':
+      'Bi-set exercises must be contiguous in the training.',
+    'exercise.supersetMinMembers': 'A bi-set needs at least 2 exercises.',
+    'exercise.supersetMaxMembers': 'A bi-set cannot have more than 6 exercises.',
+    'exercise.substituteSameTraining': 'Substitute must belong to the same training.',
+    'exercise.substituteCannotChain': 'Substitutes cannot have substitutes.',
+    'exercise.substituteCannotBeInSuperset':
+      'Substitute exercise cannot be part of a bi-set.',
+    'exercise.substitutedAlready': 'This exercise is already a substitute for another.',
+    'exercise.substituteNotFound': 'Substitute not found.',
+    'exercise.logAlreadySubstituted':
+      'This exercise has already been substituted in this session.',
   },
   dashboard: {
     tabLabel: 'Activity',
@@ -210,6 +222,49 @@ const en = {
       'anonymousRanking.helper': 'Hide other participants\' names in the ranking',
     },
   },
+  exerciseGroup: {
+    select: 'Select',
+    cancelSelection: 'Cancel selection',
+    groupAsBiset: 'Group as bi-set',
+    biset: 'Bi-set',
+    dissolveBiset: 'Undo bi-set',
+    bisetCreated: 'Bi-set created.',
+    bisetDissolved: 'Bi-set undone.',
+    selectionCount: '{selected}/6 selected',
+    selectionInstruction: 'Select 2 to 6 exercises to group as a bi-set.',
+    selectionInstructionLong:
+      'Select 2 to 6 exercises. They do not have to be in sequence.',
+    nonAdjacentConfirmTitle: 'Reorder exercises?',
+    nonAdjacentConfirmBody: 'Exercises will be reordered into sequence.',
+    confirmGroupAndReorder: 'Group and reorder',
+    confirmDissolve: 'Undo bi-set? Exercises will remain individual.',
+    alreadyInAnotherBiset: 'Already in another bi-set',
+    bisetCreateFailed: 'Could not create bi-set. Please try again.',
+    bisetCreateInconsistent: 'Inconsistent state — please reload.',
+    bisetReload: 'Reload',
+    noRest: 'no rest',
+  },
+
+  substitute: {
+    add: 'Add substitute',
+    addedToast: 'Substitute added.',
+    removeToast: 'Substitute removed.',
+    inlinePrefix: 'Substitute: ',
+    extraCount: '+{count} substitute | +{count} substitutes',
+    altShort: '{count} alt.',
+    swap: 'Swap',
+    swapping: 'Swapping…',
+    swapTitle: 'Swap {name} with:',
+    swapClose: 'Close swap',
+    swapped: 'substituted',
+    swappedTo: 'Swapped for: {name}',
+    swappedAgo: 'Swapped {seconds}s ago',
+    swapUndo: 'Undo',
+    swapFailed: 'Could not swap. Please try again.',
+    composerTitle: 'Add substitute',
+    composerNamePlaceholder: 'Exercise name',
+  },
+
   iArnold: {
     scrollPill: {
       new: 'See new response',

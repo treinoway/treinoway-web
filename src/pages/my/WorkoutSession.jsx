@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, SkipForward, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, CheckCircle, SkipForward, Plus, Trash2, ChevronDown, ChevronUp, Repeat } from 'lucide-react';
 import PropTypes from 'prop-types';
 import api from '../../api/axios';
 import { useToast } from '../../contexts/ToastContext';
@@ -11,6 +11,14 @@ import {
   EXERCISE_LOG_STATUS,
 } from '../../constants/workoutSession';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
+import SwapExerciseSheet from '../../components/SwapExerciseSheet';
+import SubstitutedLogLine from '../../components/SubstitutedLogLine';
+import { t } from '../../i18n';
+
+const interpolate = (template, values) =>
+  template.replace(/\{(\w+)\}/g, (_, key) =>
+    values[key] !== undefined ? String(values[key]) : `{${key}}`
+  );
 
 function formatSessionDate(isoString) {
   if (!isoString) return '—';
@@ -237,12 +245,19 @@ SetLogRow.propTypes = {
   onDeleted: PropTypes.func.isRequired,
 };
 
-function ExerciseLogCard({ sessionId, exerciseLog, isSessionActive, onUpdated }) {
+function ExerciseLogCard({ sessionId, exerciseLog, isSessionActive, onUpdated, onSwapRequest = () => {} }) {
   const { showToast } = useToast();
   const [showSetForm, setShowSetForm] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [setLogs, setSetLogs] = useState(exerciseLog.setLogs || []);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const substitutes = exerciseLog.exercise?.substitutes || [];
+  const canSwap =
+    isSessionActive
+    && substitutes.length > 0
+    && !exerciseLog.substitutedByExerciseId
+    && setLogs.length === 0;
 
   async function handleStatusChange(newStatus) {
     setUpdatingStatus(true);
@@ -285,7 +300,14 @@ function ExerciseLogCard({ sessionId, exerciseLog, isSessionActive, onUpdated })
             {collapsed ? <ChevronDown size={16} strokeWidth={1.6} /> : <ChevronUp size={16} strokeWidth={1.6} />}
           </button>
           <div>
-            <p className="exercise-log-card-name">{exerciseLog.exercise?.name ?? 'Exercício'}</p>
+            <p className="exercise-log-card-name">
+              {exerciseLog.exercise?.name ?? 'Exercício'}
+              {substitutes.length > 0 && (
+                <span className="alt-count-chip" aria-label={`${substitutes.length} alternativas`}>
+                  {interpolate(t('substitute.altShort') || '{count} alt.', { count: substitutes.length })}
+                </span>
+              )}
+            </p>
             {meta && <p className="text-sm text-muted">{meta}</p>}
             {exerciseLog.exercise?.videoUrl && (
               <a
@@ -304,6 +326,16 @@ function ExerciseLogCard({ sessionId, exerciseLog, isSessionActive, onUpdated })
         </div>
         {isSessionActive && (
           <div className="exercise-log-card-actions">
+            {canSwap && (
+              <button
+                className="btn btn-sm btn-secondary"
+                onClick={() => onSwapRequest(exerciseLog)}
+                aria-label={`Trocar ${exerciseLog.exercise?.name ?? 'exercício'}`}
+              >
+                <Repeat size={14} strokeWidth={2} />
+                {t('substitute.swap') || 'Trocar'}
+              </button>
+            )}
             {!isCompleted && (
               <button
                 className="btn btn-sm btn-primary"
@@ -391,15 +423,18 @@ ExerciseLogCard.propTypes = {
     status: PropTypes.string.isRequired,
     order: PropTypes.number,
     notes: PropTypes.string,
+    substitutedByExerciseId: PropTypes.string,
     exercise: PropTypes.shape({
       name: PropTypes.string,
       notes: PropTypes.string,
       videoUrl: PropTypes.string,
+      substitutes: PropTypes.array,
     }),
     setLogs: PropTypes.array,
   }).isRequired,
   isSessionActive: PropTypes.bool.isRequired,
   onUpdated: PropTypes.func.isRequired,
+  onSwapRequest: PropTypes.func,
 };
 
 const WorkoutSession = () => {
@@ -411,6 +446,18 @@ const WorkoutSession = () => {
   const [exerciseLogs, setExerciseLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [finishing, setFinishing] = useState(false);
+  const [swapTarget, setSwapTarget] = useState(null);
+  // Map of `principalLogId → { originalName, newName, swappedAt }` so we can
+  // render the SubstitutedLogLine + Undo affordance for the 15s window.
+  //
+  // KNOWN LIMITATION (v1, by design): the backend has no API to detect that a
+  // student has an active (in-progress) session, so when a trainer edits the
+  // exercise's substitutes mid-session we cannot show a banner prompting the
+  // student to refresh. Substitute edits ARE picked up on the next manual
+  // session refresh because the session payload includes nested
+  // `exerciseLogs[].exercise.substitutes[]` live from the database. Track the
+  // banner work in a future ticket once an "active session" endpoint exists.
+  const [recentSwaps, setRecentSwaps] = useState({});
 
   const fetchSession = useCallback(async () => {
     setLoading(true);
@@ -451,6 +498,76 @@ const WorkoutSession = () => {
     setExerciseLogs((prev) =>
       prev.map((log) => (log.id === updatedLog.id ? { ...log, ...updatedLog } : log)),
     );
+  }
+
+  // Student swap flow.
+  // Backend contract: POST /my/workout-sessions/:sessionId/exercise-logs/:logId/substitute
+  // returns 201 with the new ExerciseLog at order = principal.order + 1.
+  // We append it locally and stamp the principal log with substitutedByExerciseId
+  // so the row collapses into the SubstitutedLogLine state.
+  async function handleSwapConfirm(substitute) {
+    if (!swapTarget) return;
+    const principalLog = swapTarget;
+    try {
+      const response = await api.post(
+        `/my/workout-sessions/${sessionId}/exercise-logs/${principalLog.id}/substitute`,
+        { substituteExerciseId: substitute.id },
+      );
+      const newLog = response.data;
+      setExerciseLogs((prev) => [
+        ...prev.map((log) =>
+          log.id === principalLog.id
+            ? { ...log, substitutedByExerciseId: substitute.id }
+            : log,
+        ),
+        newLog,
+      ]);
+      setRecentSwaps((prev) => ({
+        ...prev,
+        [principalLog.id]: {
+          originalName: principalLog.exercise?.name ?? 'Exercício',
+          newName: substitute.name,
+          newLogId: newLog.id,
+          swappedAt: new Date().toISOString(),
+        },
+      }));
+      setSwapTarget(null);
+    } catch (err) {
+      showToast(err.userMessage || (t('substitute.swapFailed') || 'Erro ao trocar exercício.'), 'error');
+    }
+  }
+
+  // Undo swap — only available within the 15s window AND while no set has
+  // been logged on the new exercise. We DELETE the new exercise log and
+  // clear the principal's substitutedByExerciseId locally.
+  async function handleSwapUndo(principalLogId) {
+    const swap = recentSwaps[principalLogId];
+    if (!swap) return;
+    try {
+      await api.delete(
+        `/my/workout-sessions/${sessionId}/exercise-logs/${swap.newLogId}`,
+      );
+      setExerciseLogs((prev) =>
+        prev
+          .filter((log) => log.id !== swap.newLogId)
+          .map((log) =>
+            log.id === principalLogId ? { ...log, substitutedByExerciseId: null } : log,
+          ),
+      );
+      setRecentSwaps((prev) => {
+        const { [principalLogId]: _, ...rest } = prev;
+        return rest;
+      });
+    } catch (err) {
+      showToast(err.userMessage || 'Erro ao desfazer troca.', 'error');
+    }
+  }
+
+  function handleSwapAutoHide(principalLogId) {
+    setRecentSwaps((prev) => {
+      const { [principalLogId]: _, ...rest } = prev;
+      return rest;
+    });
   }
 
   if (loading) {
@@ -533,17 +650,44 @@ const WorkoutSession = () => {
           {exerciseLogs
             .slice()
             .sort((a, b) => a.order - b.order)
-            .map((exerciseLog) => (
-              <ExerciseLogCard
-                key={exerciseLog.id}
-                sessionId={sessionId}
-                exerciseLog={exerciseLog}
-                isSessionActive={isSessionActive}
-                onUpdated={handleExerciseLogUpdated}
-              />
-            ))}
+            .map((exerciseLog) => {
+              const swap = recentSwaps[exerciseLog.id];
+              const newLog = swap
+                ? exerciseLogs.find((l) => l.id === swap.newLogId)
+                : null;
+              const undoDisabled = !!(newLog?.setLogs && newLog.setLogs.length > 0);
+              return (
+                <div key={exerciseLog.id}>
+                  {swap && (
+                    <SubstitutedLogLine
+                      originalName={swap.originalName}
+                      newName={swap.newName}
+                      swappedAt={swap.swappedAt}
+                      undoDisabled={undoDisabled}
+                      onUndo={() => handleSwapUndo(exerciseLog.id)}
+                      onAutoHide={() => handleSwapAutoHide(exerciseLog.id)}
+                    />
+                  )}
+                  <ExerciseLogCard
+                    sessionId={sessionId}
+                    exerciseLog={exerciseLog}
+                    isSessionActive={isSessionActive}
+                    onUpdated={handleExerciseLogUpdated}
+                    onSwapRequest={(log) => setSwapTarget(log)}
+                  />
+                </div>
+              );
+            })}
         </div>
       )}
+
+      <SwapExerciseSheet
+        open={!!swapTarget}
+        principalName={swapTarget?.exercise?.name}
+        substitutes={swapTarget?.exercise?.substitutes || []}
+        onSwap={handleSwapConfirm}
+        onClose={() => setSwapTarget(null)}
+      />
     </div>
   );
 };

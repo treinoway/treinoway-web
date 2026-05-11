@@ -300,4 +300,81 @@ describe('WorkoutSession', () => {
       );
     });
   });
+
+  describe('swap flow', () => {
+    const sessionWithSubstitutes = {
+      ...mockSession,
+      exerciseLogs: [
+        {
+          id: 'log-1',
+          workoutSessionId: 'session-1',
+          exerciseId: 'ex-1',
+          status: 'pending',
+          order: 0,
+          notes: null,
+          substitutedByExerciseId: null,
+          exercise: {
+            id: 'ex-1',
+            name: 'Supino Reto',
+            type: 'strength',
+            sets: 4,
+            repetitions: { min: 8, max: 12 },
+            substitutes: [
+              { id: 'sub-1', name: 'Crucifixo', substituteOrder: 0 },
+              { id: 'sub-2', name: 'Peck deck', substituteOrder: 1 },
+            ],
+          },
+          setLogs: [],
+        },
+      ],
+    };
+
+    it('shows the alt count chip and Trocar button when substitutes exist', async () => {
+      api.get.mockResolvedValue({ data: sessionWithSubstitutes });
+      renderSession();
+      await waitFor(() => {
+        expect(screen.getByText('Supino Reto')).toBeInTheDocument();
+      });
+      expect(screen.getByLabelText('2 alternativas')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Trocar Supino Reto' })
+      ).toBeInTheDocument();
+    });
+
+    it('opens the swap sheet, calls the substitute endpoint, and stamps the principal log', async () => {
+      const user = userEvent.setup();
+      api.get.mockResolvedValue({ data: sessionWithSubstitutes });
+      api.post.mockResolvedValue({
+        data: {
+          id: 'log-2',
+          workoutSessionId: 'session-1',
+          exerciseId: 'sub-1',
+          status: 'pending',
+          order: 1,
+          substitutedForExerciseId: 'ex-1',
+          exercise: { id: 'sub-1', name: 'Crucifixo', substitutes: [] },
+          setLogs: [],
+        },
+      });
+      renderSession();
+      await waitFor(() => {
+        expect(screen.getByText('Supino Reto')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Trocar Supino Reto' }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Trocar por Crucifixo' }));
+
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith(
+          '/my/workout-sessions/session-1/exercise-logs/log-1/substitute',
+          { substituteExerciseId: 'sub-1' },
+        );
+      });
+    });
+  });
 });
