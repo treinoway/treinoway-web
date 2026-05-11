@@ -1279,15 +1279,21 @@ BisetGroupBlock.defaultProps = {
 // ─── TrainingItem ─────────────────────────────────────────────────────────────
 
 /**
- * Builds the per-exercise endpoint used by useBisetCreate. Different per mode:
- *   - protocol:  PATCH /trainer/exercises/:id
- *   - template:  PATCH /trainer/training-templates/:trainingId/exercises/:id
+ * Builds the endpointBuilder for useBisetCreate. Returns null for protocol
+ * mode (hook defaults to transactional /trainer/trainings/:id/supersets).
+ * Template mode is deferred until TrainingTemplates page is refactored.
  */
-const buildBisetEndpointBuilder = (mode, trainingId) => {
+const buildBisetEndpointBuilder = (mode) => {
   if (mode === 'template') {
-    return (id) => `/trainer/training-templates/${trainingId}/exercises/${id}`;
+    // Template support deferred — TrainingTemplates page persists junctions
+    // only on form submit, so there is no stable id to address. Returning a
+    // builder that throws makes it obvious if template-mode tries to group.
+    return () => ({
+      create: () => Promise.reject(new Error('Bi-set em templates ainda não suportado.')),
+      dissolve: () => Promise.reject(new Error('Bi-set em templates ainda não suportado.')),
+    });
   }
-  return (id) => `/trainer/exercises/${id}`;
+  return null;
 };
 
 /**
@@ -1361,8 +1367,8 @@ const TrainingItem = ({
   const letter = TRAINING_LETTERS[index] || String(index + 1);
 
   const endpointBuilder = useMemo(
-    () => buildBisetEndpointBuilder(mode, training.id),
-    [mode, training.id]
+    () => buildBisetEndpointBuilder(mode),
+    [mode]
   );
 
   const biset = useBisetCreate({ endpointBuilder });
