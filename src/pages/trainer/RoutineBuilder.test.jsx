@@ -3032,8 +3032,9 @@ describe('RoutineBuilder — bi-set selection mode', () => {
     await waitFor(() => {
       expect(createBiset).toHaveBeenCalledTimes(1);
     });
-    const arg = createBiset.mock.calls[0][0];
-    expect(arg.map((m) => m.id)).toEqual(['ex-1', 'ex-2']);
+    const [memberIds, context] = createBiset.mock.calls[0];
+    expect(memberIds).toEqual(['ex-1', 'ex-2']);
+    expect(context).toEqual({ trainingId: 'training-1' });
   });
 
   it('cancelling selection mode clears the action bar', async () => {
@@ -3141,8 +3142,9 @@ describe('RoutineBuilder — bi-set rendering and dissolve', () => {
     await waitFor(() => {
       expect(dissolveBiset).toHaveBeenCalledTimes(1);
     });
-    const arg = dissolveBiset.mock.calls[0][0];
-    expect(arg.map((m) => m.id).sort()).toEqual(['mem-a', 'mem-b']);
+    const [groupId, context] = dissolveBiset.mock.calls[0];
+    expect(groupId).toBe(BISET_GROUP_ID);
+    expect(context).toEqual({ trainingId: 'training-1' });
   });
 });
 

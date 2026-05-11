@@ -1462,11 +1462,8 @@ const TrainingItem = ({
 
   const handleConfirmBisetCreate = useCallback(
     async (memberIds) => {
-      const orderedMembers = memberIds
-        .map((id) => exercises.find((e) => e.id === id))
-        .filter(Boolean);
       try {
-        await biset.createBiset(orderedMembers);
+        await biset.createBiset(memberIds, { trainingId: training.id });
         showToast(t('exerciseGroup.bisetCreated') || 'Bi-set criado.', 'success');
         exitSelectionMode();
         if (onRefetchTraining) await onRefetchTraining();
@@ -1474,7 +1471,7 @@ const TrainingItem = ({
         showToast(err.message || 'Erro ao criar bi-set.', 'error');
       }
     },
-    [biset, exercises, exitSelectionMode, showToast, onRefetchTraining]
+    [biset, training.id, exitSelectionMode, showToast, onRefetchTraining]
   );
 
   const handleGroupSelected = useCallback(() => {
@@ -1491,10 +1488,9 @@ const TrainingItem = ({
       handleConfirmBisetCreate(ordered);
       return;
     }
-    // Non-adjacent selection — confirm reorder. NOTE: backend does not
-    // currently expose a generic "reorder exercises in training" endpoint,
-    // so the create call relies on the backend's contiguity invariant. If
-    // it rejects, the toast surfaces the error and selection is preserved.
+    // Non-adjacent selection — the transactional POST /supersets endpoint
+    // handles contiguity rearrangement server-side, so we can pass the
+    // selection in list order and let the backend place them contiguously.
     const ordered = positions.map((p) => exercises[p].id);
     setPendingNonAdjacentConfirm({
       memberIds: ordered,
@@ -1512,7 +1508,7 @@ const TrainingItem = ({
           setConfirmDialog(null);
           setBisetSheetGroupId(null);
           try {
-            await biset.dissolveBiset(members);
+            await biset.dissolveBiset(groupId, { trainingId: training.id });
             showToast(
               t('exerciseGroup.bisetDissolved') || 'Bi-set desfeito.',
               'success'
@@ -1524,7 +1520,7 @@ const TrainingItem = ({
         },
       });
     },
-    [biset, findGroupMembers, showToast, onRefetchTraining]
+    [biset, training.id, findGroupMembers, showToast, onRefetchTraining]
   );
 
   // ── Substitute actions (protocol mode only) ──────────────────────────────

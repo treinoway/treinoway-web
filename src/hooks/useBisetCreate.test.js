@@ -3,163 +3,161 @@ import api from '../api/axios';
 import useBisetCreate from './useBisetCreate';
 
 vi.mock('../api/axios', () => ({
-  default: { patch: vi.fn() },
+  default: { post: vi.fn(), delete: vi.fn() },
 }));
 
-const member = (id, extras = {}) => ({
-  id,
-  name: `Ex ${id}`,
-  supersetGroupId: null,
-  supersetOrder: null,
-  ...extras,
-});
+const TRAINING_ID = 'training-uuid-001';
 
 describe('useBisetCreate', () => {
   beforeEach(() => {
-    api.patch.mockReset();
+    api.post.mockReset();
+    api.delete.mockReset();
   });
 
-  it('rejects when fewer than 2 members are provided', async () => {
+  // ── createBiset ────────────────────────────────────────────────────────────
+
+  it('rejects when fewer than 2 member IDs are provided', async () => {
     const { result } = renderHook(() => useBisetCreate());
     await expect(
-      act(() => result.current.createBiset([member('a')]))
+      act(() => result.current.createBiset(['a'], { trainingId: TRAINING_ID })),
     ).rejects.toThrow();
-    expect(api.patch).not.toHaveBeenCalled();
+    expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('rejects when more than 6 members are provided', async () => {
+  it('rejects when more than 6 member IDs are provided', async () => {
     const { result } = renderHook(() => useBisetCreate());
-    const members = Array.from({ length: 7 }, (_, i) => member(`m${i}`));
+    const ids = Array.from({ length: 7 }, (_, i) => `m${i}`);
     await expect(
-      act(() => result.current.createBiset(members))
+      act(() => result.current.createBiset(ids, { trainingId: TRAINING_ID })),
     ).rejects.toThrow();
-    expect(api.patch).not.toHaveBeenCalled();
+    expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('PATCHes each member with the same groupId and consecutive order', async () => {
-    api.patch.mockResolvedValue({ data: {} });
+  it('rejects when trainingId is missing', async () => {
     const { result } = renderHook(() => useBisetCreate());
-    const members = [member('a'), member('b'), member('c')];
+    await expect(
+      act(() => result.current.createBiset(['a', 'b'], {})),
+    ).rejects.toThrow('trainingId is required');
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('POSTs to the transactional superset endpoint with exerciseIds', async () => {
+    const responseData = {
+      supersetGroupId: 'group-uuid',
+      trainingId: TRAINING_ID,
+      members: [
+        { id: 'a', name: 'Ex A', order: 0, supersetOrder: 0 },
+        { id: 'b', name: 'Ex B', order: 1, supersetOrder: 1 },
+      ],
+    };
+    api.post.mockResolvedValue({ data: responseData });
+    const { result } = renderHook(() => useBisetCreate());
 
     let resolved;
     await act(async () => {
-      resolved = await result.current.createBiset(members);
+      resolved = await result.current.createBiset(['a', 'b'], { trainingId: TRAINING_ID });
     });
 
-    expect(api.patch).toHaveBeenCalledTimes(3);
-    const groupIds = api.patch.mock.calls.map((call) => call[1].supersetGroupId);
-    const orders = api.patch.mock.calls.map((call) => call[1].supersetOrder);
-    // All members share the same groupId
-    expect(new Set(groupIds).size).toBe(1);
-    // Consecutive 0,1,2
-    expect(orders).toEqual([0, 1, 2]);
-    expect(resolved.groupId).toBe(groupIds[0]);
-    expect(resolved.members).toEqual(members);
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect(api.post).toHaveBeenCalledWith(
+      `/trainer/trainings/${TRAINING_ID}/supersets`,
+      { exerciseIds: ['a', 'b'] },
+    );
+    expect(resolved).toEqual(responseData);
   });
 
-  it('rolls back applied PATCHes when one mid-sequence rejects', async () => {
-    api.patch
-      .mockResolvedValueOnce({ data: {} }) // a OK
-      .mockResolvedValueOnce({ data: {} }) // b OK
-      .mockRejectedValueOnce(Object.assign(new Error('boom'), { userMessage: 'falha' })) // c FAIL
-      .mockResolvedValueOnce({ data: {} }) // rollback b
-      .mockResolvedValueOnce({ data: {} }); // rollback a
-
+  it('surfaces a user-friendly error when the POST fails', async () => {
+    api.post.mockRejectedValue(
+      Object.assign(new Error('api error'), { userMessage: 'Não foi possível criar.' }),
+    );
     const { result } = renderHook(() => useBisetCreate());
-    const members = [
-      member('a', { supersetGroupId: null, supersetOrder: null }),
-      member('b', { supersetGroupId: null, supersetOrder: null }),
-      member('c', { supersetGroupId: null, supersetOrder: null }),
-    ];
 
     let caught;
     await act(async () => {
       try {
-        await result.current.createBiset(members);
+        await result.current.createBiset(['a', 'b'], { trainingId: TRAINING_ID });
       } catch (e) {
         caught = e;
       }
     });
     expect(caught).toBeDefined();
-    // 3 forward + 2 rollback = 5 calls
-    expect(api.patch).toHaveBeenCalledTimes(5);
-    // Last two calls should clear the supersetGroupId on b then a
-    const rollbackCallB = api.patch.mock.calls[3];
-    const rollbackCallA = api.patch.mock.calls[4];
-    expect(rollbackCallB[0]).toBe('/trainer/exercises/b');
-    expect(rollbackCallB[1]).toEqual({ supersetGroupId: null, supersetOrder: null });
-    expect(rollbackCallA[0]).toBe('/trainer/exercises/a');
-    expect(rollbackCallA[1]).toEqual({ supersetGroupId: null, supersetOrder: null });
+    expect(caught.message).toBe('Não foi possível criar.');
+    expect(result.current.saving).toBe(false);
   });
 
-  it('flags an inconsistent error when rollback also fails', async () => {
-    api.patch
-      .mockResolvedValueOnce({ data: {} }) // a OK
-      .mockRejectedValueOnce(new Error('boom')) // b FAIL
-      .mockRejectedValueOnce(new Error('rollback boom')); // rollback a FAIL
+  // ── dissolveBiset ──────────────────────────────────────────────────────────
 
+  it('DELETEs the superset endpoint with groupId and trainingId', async () => {
+    const responseData = {
+      supersetGroupId: 'group-uuid',
+      trainingId: TRAINING_ID,
+      dissolvedCount: 2,
+    };
+    api.delete.mockResolvedValue({ data: responseData });
     const { result } = renderHook(() => useBisetCreate());
-    const members = [member('a'), member('b')];
+
+    let resolved;
+    await act(async () => {
+      resolved = await result.current.dissolveBiset('group-uuid', { trainingId: TRAINING_ID });
+    });
+
+    expect(api.delete).toHaveBeenCalledTimes(1);
+    expect(api.delete).toHaveBeenCalledWith(
+      `/trainer/trainings/${TRAINING_ID}/supersets/group-uuid`,
+    );
+    expect(resolved).toEqual(responseData);
+  });
+
+  it('rejects when trainingId is missing in dissolveBiset', async () => {
+    const { result } = renderHook(() => useBisetCreate());
+    await expect(
+      act(() => result.current.dissolveBiset('group-uuid', {})),
+    ).rejects.toThrow('trainingId is required');
+    expect(api.delete).not.toHaveBeenCalled();
+  });
+
+  it('returns early without calling DELETE when groupId is falsy', async () => {
+    const { result } = renderHook(() => useBisetCreate());
+    await act(() => result.current.dissolveBiset(null, { trainingId: TRAINING_ID }));
+    expect(api.delete).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a user-friendly error when DELETE fails', async () => {
+    api.delete.mockRejectedValue(new Error('api error'));
+    const { result } = renderHook(() => useBisetCreate());
+
     let caught;
     await act(async () => {
       try {
-        await result.current.createBiset(members);
+        await result.current.dissolveBiset('group-uuid', { trainingId: TRAINING_ID });
       } catch (e) {
         caught = e;
       }
     });
     expect(caught).toBeDefined();
-    expect(caught.inconsistent).toBe(true);
-    expect(caught.message).toMatch(/Estado inconsistente/);
+    expect(result.current.saving).toBe(false);
   });
 
-  describe('dissolveBiset', () => {
-    it('sets supersetGroupId to null on each member sequentially', async () => {
-      api.patch.mockResolvedValue({ data: {} });
-      const { result } = renderHook(() => useBisetCreate());
-      const members = [
-        member('a', { supersetGroupId: 'g1', supersetOrder: 0 }),
-        member('b', { supersetGroupId: 'g1', supersetOrder: 1 }),
-      ];
-      await act(() => result.current.dissolveBiset(members));
-      expect(api.patch).toHaveBeenCalledTimes(2);
-      expect(api.patch.mock.calls[0][1]).toEqual({
-        supersetGroupId: null,
-        supersetOrder: null,
-      });
-      expect(api.patch.mock.calls[1][1]).toEqual({
-        supersetGroupId: null,
-        supersetOrder: null,
-      });
-    });
+  // ── endpointBuilder override ───────────────────────────────────────────────
 
-    it('rolls back when one PATCH rejects', async () => {
-      api.patch
-        .mockResolvedValueOnce({ data: {} }) // a OK
-        .mockRejectedValueOnce(new Error('boom')) // b FAIL
-        .mockResolvedValueOnce({ data: {} }); // rollback a OK
+  it('delegates to endpointBuilder when provided', async () => {
+    const mockCreate = vi.fn().mockResolvedValue({ data: { supersetGroupId: 'g' } });
+    const mockDissolve = vi.fn().mockResolvedValue({ data: { dissolvedCount: 2 } });
+    const endpointBuilder = vi.fn().mockReturnValue({ create: mockCreate, dissolve: mockDissolve });
 
-      const { result } = renderHook(() => useBisetCreate());
-      const members = [
-        member('a', { supersetGroupId: 'g1', supersetOrder: 0 }),
-        member('b', { supersetGroupId: 'g1', supersetOrder: 1 }),
-      ];
-      let caught;
-      await act(async () => {
-        try {
-          await result.current.dissolveBiset(members);
-        } catch (e) {
-          caught = e;
-        }
-      });
-      expect(caught).toBeDefined();
-      expect(api.patch).toHaveBeenCalledTimes(3);
-      // Rollback restores a's previous group/order
-      expect(api.patch.mock.calls[2][0]).toBe('/trainer/exercises/a');
-      expect(api.patch.mock.calls[2][1]).toEqual({
-        supersetGroupId: 'g1',
-        supersetOrder: 0,
-      });
+    const { result } = renderHook(() => useBisetCreate({ endpointBuilder }));
+
+    await act(async () => {
+      await result.current.createBiset(['a', 'b'], { trainingId: TRAINING_ID });
     });
+    expect(endpointBuilder).toHaveBeenCalledWith(TRAINING_ID);
+    expect(mockCreate).toHaveBeenCalledWith(['a', 'b']);
+    expect(api.post).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.dissolveBiset('group-uuid', { trainingId: TRAINING_ID });
+    });
+    expect(mockDissolve).toHaveBeenCalledWith('group-uuid');
+    expect(api.delete).not.toHaveBeenCalled();
   });
 });
