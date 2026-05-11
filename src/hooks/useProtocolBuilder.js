@@ -682,6 +682,32 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
 
   const restoreSessionTracking = useCallback(() => {}, []);
 
+  // ── refetchTrainingExercises ──────────────────────────────────────────────
+
+  /**
+   * Re-fetch a single training's exercises and merge into local state. Used
+   * after structural mutations the hook itself does not perform (bi-set
+   * create/dissolve, substitute add/remove) so the UI converges with the
+   * server without a full page reload.
+   */
+  const refetchTrainingExercises = useCallback(
+    async (trainingId) => {
+      if (!isEditMode) return;
+      try {
+        const res = await api.get(`/trainer/trainings/${trainingId}/exercises`);
+        setData((prev) => ({
+          ...prev,
+          trainings: prev.trainings.map((t) =>
+            t.id === trainingId ? { ...t, exercises: res.data || [] } : t
+          ),
+        }));
+      } catch {
+        // Surface via the next saving call. Silent fallback keeps the UI usable.
+      }
+    },
+    [isEditMode]
+  );
+
   // ─────────────────────────────────────────────────────────────────────────
 
   return {
@@ -711,6 +737,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     saveExerciseAsTemplate,
     restoreSessionTracking,
     loadFromTemplate,
+    refetchTrainingExercises,
   };
 };
 

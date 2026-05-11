@@ -482,6 +482,28 @@ const useRoutineBuilder = (routineId) => {
     setJunctionsAddedToImported(junctions || []);
   }, [setCreatedTrainingIdsSync]);
 
+  // ── refetchTrainingExercises ──────────────────────────────────────────────
+
+  /**
+   * Re-fetch a single training-template's exercises and merge into local state.
+   * Used after structural mutations the hook does not perform itself
+   * (bi-set create/dissolve) so the UI converges with the server.
+   */
+  const refetchTrainingExercises = useCallback(async (trainingId) => {
+    try {
+      const res = await api.get(`/trainer/training-templates/${trainingId}`);
+      const refreshed = extractExercises(res.data);
+      setData((prev) => ({
+        ...prev,
+        trainings: prev.trainings.map((t) =>
+          t.id === trainingId ? { ...t, exercises: refreshed } : t
+        ),
+      }));
+    } catch {
+      // Silent — next user action will re-trigger. Keeps UI usable.
+    }
+  }, []);
+
   // ─────────────────────────────────────────────────────────────────────────
 
   return {
@@ -508,6 +530,7 @@ const useRoutineBuilder = (routineId) => {
     deleteExercise,
     saveExerciseAsTemplate,
     restoreSessionTracking,
+    refetchTrainingExercises,
   };
 };
 

@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import {
   AlignLeft,
   ArrowLeft,
+  CheckSquare,
   ChevronDown,
   Cloud,
   Dumbbell,
@@ -14,6 +15,7 @@ import {
   Pencil,
   Plus,
   Save,
+  Square,
   Trash2,
   User,
   X,
@@ -23,9 +25,16 @@ import { useToast } from '../../contexts/ToastContext';
 import useRoutineBuilder from '../../hooks/useRoutineBuilder';
 import useProtocolBuilder from '../../hooks/useProtocolBuilder';
 import useRoutineDraft from '../../hooks/useRoutineDraft';
+import useBisetCreate from '../../hooks/useBisetCreate';
 import formatRelativeTime from '../../utils/relativeTime';
 import ExerciseComposer from '../../components/ExerciseComposer';
 import AddTrainingSheet from '../../components/AddTrainingSheet';
+import BiSetBadge from '../../components/BiSetBadge';
+import BiSetActionSheet from '../../components/BiSetActionSheet';
+import SubstituteComposerSheet from '../../components/SubstituteComposerSheet';
+import SubstitutesInline from '../../components/SubstitutesInline';
+import SelectionActionBar, { SelectionInstructionStrip } from '../../components/SelectionActionBar';
+import { t } from '../../i18n';
 import { WEEK_DAY_OPTIONS_SHORT } from '../../constants/weekDays';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/protocolTypes';
@@ -701,21 +710,35 @@ const InlineMenu = ({ ariaLabel, items, onOpen }) => {
             zIndex: 1200,
           }}
         >
-          {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              role="menuitem"
-              className={`row-menu-item${item.danger ? ' row-menu-item--danger' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpen(false);
-                item.onClick();
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
+          {items.map((item, idx) => {
+            if (item.kind === 'caption') {
+              return (
+                <span
+                  key={`cap-${idx}-${item.label}`}
+                  className="row-menu-section-caption"
+                  role="presentation"
+                >
+                  {item.label}
+                </span>
+              );
+            }
+            return (
+              <button
+                key={`it-${idx}-${item.label}`}
+                type="button"
+                role="menuitem"
+                className={`row-menu-item${item.danger ? ' row-menu-item--danger' : ''}`}
+                disabled={item.disabled}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(false);
+                  item.onClick();
+                }}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>,
         document.body
       )
@@ -744,8 +767,10 @@ InlineMenu.propTypes = {
   items: PropTypes.arrayOf(
     PropTypes.shape({
       label: PropTypes.string.isRequired,
+      kind: PropTypes.oneOf(['caption']),
       danger: PropTypes.bool,
-      onClick: PropTypes.func.isRequired,
+      disabled: PropTypes.bool,
+      onClick: PropTypes.func,
     })
   ).isRequired,
   onOpen: PropTypes.func,
@@ -757,17 +782,43 @@ InlineMenu.defaultProps = {
 
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
-const ExerciseRow = ({ ex, index, onEdit, onDelete, readOnly }) => {
+const ExerciseRow = ({
+  ex,
+  index,
+  onEdit,
+  onDelete,
+  readOnly,
+  menuItems,
+  isBisetMember,
+  isLastBisetMember,
+  selectionMode,
+  selected,
+  selectionDisabled,
+  selectionDisabledReason,
+  onToggleSelect,
+}) => {
   const name = ex.name || ex.exerciseTemplate?.name || '—';
   const meta = formatExerciseMeta(ex.exerciseTemplate || ex);
 
-  const isInteractive = !readOnly && onEdit;
+  const isInteractive = !readOnly && !selectionMode && onEdit;
 
   const handleRowKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onEdit(ex);
+      if (selectionMode) {
+        if (!selectionDisabled) onToggleSelect?.(ex.id);
+      } else if (onEdit) {
+        onEdit(ex);
+      }
     }
+  };
+
+  const handleRowClick = () => {
+    if (selectionMode) {
+      if (!selectionDisabled) onToggleSelect?.(ex.id);
+      return;
+    }
+    if (onEdit) onEdit(ex);
   };
 
   const handleDelete = (e) => {
@@ -775,26 +826,31 @@ const ExerciseRow = ({ ex, index, onEdit, onDelete, readOnly }) => {
     onDelete(ex);
   };
 
-  const interactiveProps = isInteractive
-    ? {
-        role: 'button',
-        tabIndex: 0,
-        onClick: () => onEdit(ex),
-        onKeyDown: handleRowKeyDown,
-        'aria-label': `Editar ${name}`,
-        className: 'exercise-row-wide exercise-row-wide--interactive',
-        'data-exercise-id': ex.id,
-      }
-    : { role: 'listitem', className: 'exercise-row-wide', 'data-exercise-id': ex.id };
+  const baseClass = 'exercise-row-wide';
+  const classes = [baseClass];
+  if (isInteractive || selectionMode) classes.push('exercise-row-wide--interactive');
+  if (selectionMode && selectionDisabled) classes.push('exercise-selection-row--dimmed');
 
-  return (
-    <div {...interactiveProps}>
-      <span className="exercise-row-index">{index + 1}</span>
-      <div className="exercise-row-wide-body">
-        <span className="exercise-row-wide-name">{name}</span>
-        {meta && <span className="exercise-row-wide-meta">{meta}</span>}
-      </div>
-      {!readOnly && onDelete && (
+  const ariaLabel = selectionMode
+    ? `${selected ? 'Desmarcar' : 'Selecionar'} ${name}`
+    : `Editar ${name}`;
+
+  const isClickable = !readOnly && (isInteractive || selectionMode);
+
+  const restMutedLabel = isBisetMember && !isLastBisetMember;
+
+  const renderRowMenu = () => {
+    if (readOnly || selectionMode) return null;
+    if (menuItems && menuItems.length > 0) {
+      return (
+        <InlineMenu
+          ariaLabel={`Ações de ${name}`}
+          items={menuItems}
+        />
+      );
+    }
+    if (onDelete) {
+      return (
         <button
           type="button"
           className="exercise-row-delete-btn"
@@ -803,7 +859,62 @@ const ExerciseRow = ({ ex, index, onEdit, onDelete, readOnly }) => {
         >
           <Trash2 size={18} strokeWidth={2} />
         </button>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div
+      className={classes.join(' ')}
+      data-exercise-id={ex.id}
+      role={isClickable ? 'button' : 'listitem'}
+      tabIndex={isClickable ? 0 : undefined}
+      aria-label={isClickable ? ariaLabel : undefined}
+      aria-pressed={selectionMode ? selected : undefined}
+      onClick={isClickable ? handleRowClick : undefined}
+      onKeyDown={isClickable ? handleRowKeyDown : undefined}
+    >
+      {selectionMode && (
+        <button
+          type="button"
+          className={`exercise-selection-checkbox${selected ? ' exercise-selection-checkbox--checked' : ''}`}
+          disabled={selectionDisabled}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!selectionDisabled) onToggleSelect?.(ex.id);
+          }}
+          aria-label={`${selected ? 'Desmarcar' : 'Selecionar'} ${name}`}
+          aria-pressed={selected}
+        >
+          {selected ? (
+            <CheckSquare size={20} strokeWidth={2} aria-hidden="true" />
+          ) : (
+            <Square size={20} strokeWidth={2} aria-hidden="true" />
+          )}
+        </button>
       )}
+      <span className="exercise-row-index" aria-hidden="true">{index + 1}</span>
+      <div className="exercise-row-wide-body">
+        <span className="exercise-row-wide-name">{name}</span>
+        {meta && (
+          <span className="exercise-row-wide-meta">
+            {meta}
+            {restMutedLabel && (
+              <>
+                {' · '}
+                <span className="biset-member-rest-muted">
+                  {t('exerciseGroup.noRest') || 'sem descanso'}
+                </span>
+              </>
+            )}
+          </span>
+        )}
+        {selectionMode && selectionDisabled && selectionDisabledReason && (
+          <span className="exercise-selection-row-caption">{selectionDisabledReason}</span>
+        )}
+      </div>
+      {renderRowMenu()}
     </div>
   );
 };
@@ -814,12 +925,28 @@ ExerciseRow.propTypes = {
   onEdit: PropTypes.func,
   onDelete: PropTypes.func,
   readOnly: PropTypes.bool,
+  menuItems: PropTypes.array,
+  isBisetMember: PropTypes.bool,
+  isLastBisetMember: PropTypes.bool,
+  selectionMode: PropTypes.bool,
+  selected: PropTypes.bool,
+  selectionDisabled: PropTypes.bool,
+  selectionDisabledReason: PropTypes.string,
+  onToggleSelect: PropTypes.func,
 };
 
 ExerciseRow.defaultProps = {
   onEdit: null,
   onDelete: null,
   readOnly: false,
+  menuItems: null,
+  isBisetMember: false,
+  isLastBisetMember: false,
+  selectionMode: false,
+  selected: false,
+  selectionDisabled: false,
+  selectionDisabledReason: null,
+  onToggleSelect: null,
 };
 
 // ─── smoothScrollTo ───────────────────────────────────────────────────────────
@@ -842,7 +969,361 @@ const smoothScrollTo = (el, block = 'start') => {
   el.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block });
 };
 
+// ─── Row menu items builder (kebab) ───────────────────────────────────────────
+
+/**
+ * Builds the grouped row-menu entries for an exercise row. Sections are
+ * rendered as `caption` items (small-caps; no horizontal lines). The same
+ * builder serves bi-set members and standalone rows — entries are filtered
+ * based on flags.
+ */
+const buildExerciseRowMenu = ({
+  ex,
+  isBisetMember,
+  onEnterSelection,
+  onAddSubstitute,
+  onDissolveBiset,
+  onEdit,
+  onDelete,
+}) => {
+  const items = [{ kind: 'caption', label: 'Estrutura' }];
+  items.push({
+    label: t('exerciseGroup.select') || 'Selecionar',
+    onClick: () => onEnterSelection?.(),
+  });
+  if (isBisetMember && onDissolveBiset) {
+    items.push({
+      label: t('exerciseGroup.dissolveBiset') || 'Desfazer bi-set',
+      onClick: () => onDissolveBiset(),
+    });
+  }
+  if (onAddSubstitute) {
+    items.push({
+      label: t('substitute.add') || 'Adicionar substituto',
+      onClick: () => onAddSubstitute(ex),
+    });
+  }
+  items.push({ kind: 'caption', label: 'Editar' });
+  if (onEdit) items.push({ label: 'Editar', onClick: () => onEdit(ex) });
+  if (onDelete) items.push({ label: 'Remover', danger: true, onClick: () => onDelete(ex) });
+  return items;
+};
+
+// ─── ExerciseRowWithSubstitutes ───────────────────────────────────────────────
+
+/**
+ * Wraps a standalone (non-bi-set) ExerciseRow with the substitutes inline
+ * preview/expanded list. Substitutes are protocol-mode only — when
+ * `onAddSubstitute` is null this component simply renders the row.
+ */
+const ExerciseRowWithSubstitutes = ({
+  ex,
+  index,
+  readOnly,
+  mode,
+  selectionMode,
+  selected,
+  atSelectionLimit,
+  onToggleSelect,
+  onEdit,
+  onDelete,
+  onEnterSelection,
+  onAddSubstitute,
+  substitutesExpanded,
+  onToggleSubstitutes,
+}) => {
+  const substitutes = Array.isArray(ex.substitutes) ? ex.substitutes : [];
+  const supportsSubstitutes = mode === 'protocol';
+  const showInline = supportsSubstitutes && substitutes.length > 0 && !selectionMode;
+
+  const menuItems = readOnly || selectionMode
+    ? null
+    : buildExerciseRowMenu({
+        ex,
+        isBisetMember: false,
+        onEnterSelection,
+        onAddSubstitute,
+        onDissolveBiset: null,
+        onEdit,
+        onDelete,
+      });
+
+  const selectionDisabled =
+    selectionMode && !selected && (atSelectionLimit || !!ex.supersetGroupId);
+  const selectionDisabledReason = selectionMode && ex.supersetGroupId
+    ? t('exerciseGroup.alreadyInAnotherBiset') || 'Já em outro bi-set'
+    : null;
+
+  return (
+    <>
+      <ExerciseRow
+        ex={ex}
+        index={index}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        readOnly={readOnly}
+        menuItems={menuItems}
+        selectionMode={selectionMode}
+        selected={selected}
+        selectionDisabled={selectionDisabled}
+        selectionDisabledReason={selectionDisabledReason}
+        onToggleSelect={onToggleSelect}
+      />
+      {showInline && (
+        <>
+          <SubstitutesInline
+            substitutes={substitutes}
+            expanded={substitutesExpanded}
+            onToggle={() => onToggleSubstitutes(ex.id)}
+          />
+          {substitutesExpanded && (
+            <div className="substitutes-expanded-list" role="list" aria-label={`Substitutos de ${ex.name}`}>
+              {substitutes.map((sub) => (
+                <div key={sub.id} className="substitute-row" role="listitem">
+                  <div className="substitute-row-body">
+                    <span className="substitute-row-name">{sub.name || '—'}</span>
+                    {formatExerciseMeta(sub) && (
+                      <span className="substitute-row-meta">{formatExerciseMeta(sub)}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+};
+
+ExerciseRowWithSubstitutes.propTypes = {
+  ex: PropTypes.object.isRequired,
+  index: PropTypes.number.isRequired,
+  readOnly: PropTypes.bool,
+  mode: PropTypes.oneOf(['template', 'protocol']).isRequired,
+  selectionMode: PropTypes.bool,
+  selected: PropTypes.bool,
+  atSelectionLimit: PropTypes.bool,
+  onToggleSelect: PropTypes.func,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+  onEnterSelection: PropTypes.func,
+  onAddSubstitute: PropTypes.func,
+  substitutesExpanded: PropTypes.bool,
+  onToggleSubstitutes: PropTypes.func,
+};
+
+ExerciseRowWithSubstitutes.defaultProps = {
+  readOnly: false,
+  selectionMode: false,
+  selected: false,
+  atSelectionLimit: false,
+  onToggleSelect: null,
+  onEdit: null,
+  onDelete: null,
+  onEnterSelection: null,
+  onAddSubstitute: null,
+  substitutesExpanded: false,
+  onToggleSubstitutes: null,
+};
+
+// ─── BisetGroupBlock ──────────────────────────────────────────────────────────
+
+/**
+ * Renders a bi-set group container — accent left border + tint background,
+ * BiSetBadge on top, and one ExerciseRow per member. Non-last members show
+ * the "sem descanso" muted label in the rest slot per design.
+ */
+const BisetGroupBlock = ({
+  groupId,
+  members,
+  startIndex,
+  readOnly,
+  mode,
+  selectionMode,
+  selectedIds,
+  atSelectionLimit,
+  onToggleSelect,
+  onOpenBisetSheet,
+  onDissolveBiset,
+  onEdit,
+  onDelete,
+  onEnterSelection,
+  onAddSubstitute,
+  expandedSubstituteIds,
+  onToggleSubstitutes,
+}) => {
+  void groupId; // groupId implied by members[*].supersetGroupId
+  return (
+    <div className="biset-group-section" role="group" aria-label="Bi-set">
+      <div className="biset-group-section-head">
+        <BiSetBadge
+          onClick={readOnly ? undefined : onOpenBisetSheet}
+          ariaLabel={readOnly ? undefined : 'Abrir ações do bi-set'}
+        />
+      </div>
+      {members.map((member, mIdx) => {
+        const isLast = mIdx === members.length - 1;
+        const substitutes = Array.isArray(member.substitutes) ? member.substitutes : [];
+        const supportsSubstitutes = mode === 'protocol';
+        const expanded = expandedSubstituteIds?.has(member.id);
+        const menuItems = readOnly || selectionMode
+          ? null
+          : buildExerciseRowMenu({
+              ex: member,
+              isBisetMember: true,
+              onEnterSelection,
+              onAddSubstitute,
+              onDissolveBiset,
+              onEdit,
+              onDelete,
+            });
+
+        const selected = selectedIds?.includes(member.id) || false;
+        // Members already in a group are disabled in selection mode unless
+        // they belong to THIS group (which is impossible to "regroup" anyway).
+        const selectionDisabled =
+          selectionMode && !selected && (atSelectionLimit || true);
+
+        return (
+          <div key={member.id}>
+            <ExerciseRow
+              ex={member}
+              index={startIndex + mIdx}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              readOnly={readOnly}
+              menuItems={menuItems}
+              isBisetMember
+              isLastBisetMember={isLast}
+              selectionMode={selectionMode}
+              selected={selected}
+              selectionDisabled={selectionDisabled}
+              selectionDisabledReason={
+                selectionMode
+                  ? t('exerciseGroup.alreadyInAnotherBiset') || 'Já em outro bi-set'
+                  : null
+              }
+              onToggleSelect={onToggleSelect}
+            />
+            {supportsSubstitutes && substitutes.length > 0 && !selectionMode && (
+              <>
+                <SubstitutesInline
+                  substitutes={substitutes}
+                  expanded={expanded}
+                  onToggle={() => onToggleSubstitutes?.(member.id)}
+                />
+                {expanded && (
+                  <div
+                    className="substitutes-expanded-list"
+                    role="list"
+                    aria-label={`Substitutos de ${member.name}`}
+                  >
+                    {substitutes.map((sub) => (
+                      <div key={sub.id} className="substitute-row" role="listitem">
+                        <div className="substitute-row-body">
+                          <span className="substitute-row-name">{sub.name || '—'}</span>
+                          {formatExerciseMeta(sub) && (
+                            <span className="substitute-row-meta">{formatExerciseMeta(sub)}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+BisetGroupBlock.propTypes = {
+  groupId: PropTypes.string.isRequired,
+  members: PropTypes.arrayOf(PropTypes.object).isRequired,
+  startIndex: PropTypes.number.isRequired,
+  readOnly: PropTypes.bool,
+  mode: PropTypes.oneOf(['template', 'protocol']).isRequired,
+  selectionMode: PropTypes.bool,
+  selectedIds: PropTypes.arrayOf(PropTypes.string),
+  atSelectionLimit: PropTypes.bool,
+  onToggleSelect: PropTypes.func,
+  onOpenBisetSheet: PropTypes.func,
+  onDissolveBiset: PropTypes.func,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+  onEnterSelection: PropTypes.func,
+  onAddSubstitute: PropTypes.func,
+  expandedSubstituteIds: PropTypes.instanceOf(Set),
+  onToggleSubstitutes: PropTypes.func,
+};
+
+BisetGroupBlock.defaultProps = {
+  readOnly: false,
+  selectionMode: false,
+  selectedIds: [],
+  atSelectionLimit: false,
+  onToggleSelect: null,
+  onOpenBisetSheet: null,
+  onDissolveBiset: null,
+  onEdit: null,
+  onDelete: null,
+  onEnterSelection: null,
+  onAddSubstitute: null,
+  expandedSubstituteIds: null,
+  onToggleSubstitutes: null,
+};
+
 // ─── TrainingItem ─────────────────────────────────────────────────────────────
+
+/**
+ * Builds the per-exercise endpoint used by useBisetCreate. Different per mode:
+ *   - protocol:  PATCH /trainer/exercises/:id
+ *   - template:  PATCH /trainer/training-templates/:trainingId/exercises/:id
+ */
+const buildBisetEndpointBuilder = (mode, trainingId) => {
+  if (mode === 'template') {
+    return (id) => `/trainer/training-templates/${trainingId}/exercises/${id}`;
+  }
+  return (id) => `/trainer/exercises/${id}`;
+};
+
+/**
+ * Groups exercises into render entries: either standalone rows or a bi-set
+ * group container. Members of the same supersetGroupId are bundled, and the
+ * sort by `supersetOrder` keeps members in the trainer-defined sequence.
+ *
+ * Returns an array of: { kind: 'single', ex } | { kind: 'group', groupId, members: ex[] }
+ */
+const buildExerciseRenderEntries = (exercises) => {
+  const entries = [];
+  let i = 0;
+  while (i < exercises.length) {
+    const ex = exercises[i];
+    const groupId = ex.supersetGroupId;
+    if (!groupId) {
+      entries.push({ kind: 'single', ex });
+      i += 1;
+      continue;
+    }
+    // Walk forward gathering all consecutive members of this group. The
+    // backend's contiguity invariant guarantees they are adjacent here.
+    const members = [ex];
+    let j = i + 1;
+    while (j < exercises.length && exercises[j].supersetGroupId === groupId) {
+      members.push(exercises[j]);
+      j += 1;
+    }
+    members.sort((a, b) => (a.supersetOrder ?? 0) - (b.supersetOrder ?? 0));
+    entries.push({ kind: 'group', groupId, members });
+    i = j;
+  }
+  return entries;
+};
+
+const MAX_BISET_MEMBERS = 6;
 
 const TrainingItem = ({
   training,
@@ -851,6 +1332,7 @@ const TrainingItem = ({
   saving,
   expanded,
   readOnly,
+  mode,
   onToggleExpand,
   onEditTraining,
   onChangeWeekDay,
@@ -859,18 +1341,63 @@ const TrainingItem = ({
   onEditExercise,
   onImportFromLibrary,
   onDeleteExercise,
+  onRefetchTraining,
 }) => {
+  const { showToast } = useToast();
   const [composerState, setComposerState] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bisetSheetGroupId, setBisetSheetGroupId] = useState(null);
+  const [substituteComposerPrincipal, setSubstituteComposerPrincipal] = useState(null);
+  const [expandedSubstituteIds, setExpandedSubstituteIds] = useState(() => new Set());
+  const [pendingNonAdjacentConfirm, setPendingNonAdjacentConfirm] = useState(null);
 
-  const exercises = training.exercises || [];
+  const supportsSubstitutes = mode === 'protocol';
+  const exercises = useMemo(
+    () => training.exercises || [],
+    [training.exercises]
+  );
   const letter = TRAINING_LETTERS[index] || String(index + 1);
+
+  const endpointBuilder = useMemo(
+    () => buildBisetEndpointBuilder(mode, training.id),
+    [mode, training.id]
+  );
+
+  const biset = useBisetCreate({ endpointBuilder });
+
+  const renderEntries = useMemo(
+    () => buildExerciseRenderEntries(exercises),
+    [exercises]
+  );
 
   const readinessClass = useMemo(() => {
     if (exercises.length === 0) return '';
     if (exercises.length < 3) return 'training-item--partial';
     return 'training-item--ready';
   }, [exercises.length]);
+
+  const exitSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds([]);
+  }, []);
+
+  const enterSelectionMode = useCallback(() => {
+    setSelectionMode(true);
+    setSelectedIds([]);
+  }, []);
+
+  const handleToggleSelect = useCallback(
+    (id) => {
+      setSelectedIds((prev) => {
+        if (prev.includes(id)) return prev.filter((x) => x !== id);
+        if (prev.length >= MAX_BISET_MEMBERS) return prev;
+        return [...prev, id];
+      });
+    },
+    []
+  );
 
   const handleAddExercise = async (payload) => {
     const created = await onAddExercise(payload);
@@ -920,9 +1447,120 @@ const TrainingItem = ({
   };
 
   const trainingMenuItems = readOnly ? [] : [
+    { label: t('exerciseGroup.select') || 'Selecionar', onClick: enterSelectionMode },
+    { kind: 'caption', label: 'Editar' },
     { label: 'Editar', onClick: () => onEditTraining(training) },
     { label: 'Excluir', danger: true, onClick: handleRequestDeleteTraining },
   ];
+
+  // ── Bi-set actions ───────────────────────────────────────────────────────
+
+  const findGroupMembers = useCallback(
+    (groupId) => exercises.filter((e) => e.supersetGroupId === groupId),
+    [exercises]
+  );
+
+  const handleConfirmBisetCreate = useCallback(
+    async (memberIds) => {
+      const orderedMembers = memberIds
+        .map((id) => exercises.find((e) => e.id === id))
+        .filter(Boolean);
+      try {
+        await biset.createBiset(orderedMembers);
+        showToast(t('exerciseGroup.bisetCreated') || 'Bi-set criado.', 'success');
+        exitSelectionMode();
+        if (onRefetchTraining) await onRefetchTraining();
+      } catch (err) {
+        showToast(err.message || 'Erro ao criar bi-set.', 'error');
+      }
+    },
+    [biset, exercises, exitSelectionMode, showToast, onRefetchTraining]
+  );
+
+  const handleGroupSelected = useCallback(() => {
+    if (selectedIds.length < 2) return;
+    // Determine if the selection is contiguous in the current exercise list.
+    const positions = selectedIds
+      .map((id) => exercises.findIndex((e) => e.id === id))
+      .sort((a, b) => a - b);
+    const contiguous =
+      positions.every((p, idx) => idx === 0 || p === positions[idx - 1] + 1);
+    if (contiguous) {
+      // Preserve list order when calling create.
+      const ordered = positions.map((p) => exercises[p].id);
+      handleConfirmBisetCreate(ordered);
+      return;
+    }
+    // Non-adjacent selection — confirm reorder. NOTE: backend does not
+    // currently expose a generic "reorder exercises in training" endpoint,
+    // so the create call relies on the backend's contiguity invariant. If
+    // it rejects, the toast surfaces the error and selection is preserved.
+    const ordered = positions.map((p) => exercises[p].id);
+    setPendingNonAdjacentConfirm({
+      memberIds: ordered,
+    });
+  }, [selectedIds, exercises, handleConfirmBisetCreate]);
+
+  const handleDissolveBiset = useCallback(
+    (groupId) => {
+      const members = findGroupMembers(groupId);
+      if (members.length === 0) return;
+      setConfirmDialog({
+        message: t('exerciseGroup.confirmDissolve')
+          || 'Desfazer bi-set? Os exercícios serão mantidos como individuais.',
+        onConfirm: async () => {
+          setConfirmDialog(null);
+          setBisetSheetGroupId(null);
+          try {
+            await biset.dissolveBiset(members);
+            showToast(
+              t('exerciseGroup.bisetDissolved') || 'Bi-set desfeito.',
+              'success'
+            );
+            if (onRefetchTraining) await onRefetchTraining();
+          } catch (err) {
+            showToast(err.message || 'Erro ao desfazer bi-set.', 'error');
+          }
+        },
+      });
+    },
+    [biset, findGroupMembers, showToast, onRefetchTraining]
+  );
+
+  // ── Substitute actions (protocol mode only) ──────────────────────────────
+
+  const handleAddSubstitute = useCallback((principal) => {
+    setSubstituteComposerPrincipal(principal);
+  }, []);
+
+  const handleSubstituteCreated = useCallback(
+    async (created) => {
+      // Auto-expand the substitutes accordion ONLY on FIRST add.
+      const principal = substituteComposerPrincipal;
+      const wasFirstAdd =
+        principal && (principal.substitutes?.length || 0) === 0;
+      if (wasFirstAdd && principal) {
+        setExpandedSubstituteIds((prev) => {
+          const next = new Set(prev);
+          next.add(principal.id);
+          return next;
+        });
+      }
+      if (onRefetchTraining) await onRefetchTraining();
+      // created intentionally unused (refetch supplies authoritative state)
+      void created;
+    },
+    [substituteComposerPrincipal, onRefetchTraining]
+  );
+
+  const handleToggleSubstitutes = useCallback((principalId) => {
+    setExpandedSubstituteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(principalId)) next.delete(principalId);
+      else next.add(principalId);
+      return next;
+    });
+  }, []);
 
   const composerEditing =
     composerState && typeof composerState === 'object' && composerState.editing
@@ -998,34 +1636,93 @@ const TrainingItem = ({
         {/* ── Body ── */}
         {expanded && (
           <div className="training-item-body">
+            {selectionMode && (
+              <>
+                <SelectionActionBar
+                  selectedCount={selectedIds.length}
+                  maxCount={MAX_BISET_MEMBERS}
+                  onCancel={exitSelectionMode}
+                  onConfirm={handleGroupSelected}
+                  saving={biset.saving}
+                />
+                <SelectionInstructionStrip />
+              </>
+            )}
+
             {exercises.length > 0 ? (
               <div className="exercise-list-wide" role="list" aria-label="Exercícios">
-                {exercises.map((ex, i) => {
-                  if (composerEditing?.id === ex.id) {
+                {(() => {
+                  let runningIndex = 0;
+                  return renderEntries.map((entry) => {
+                    if (entry.kind === 'single') {
+                      const ex = entry.ex;
+                      const i = runningIndex;
+                      runningIndex += 1;
+                      if (composerEditing?.id === ex.id) {
+                        return (
+                          <ExerciseComposer
+                            key={ex.id}
+                            snapshot={composerEditing}
+                            exerciseTemplates={exerciseTemplates}
+                            saving={saving}
+                            onSubmitCreate={handleAddExercise}
+                            onSubmitEdit={handleEditExercise}
+                            onSubmitFromLibrary={handleImport}
+                            onCancel={() => setComposerState(null)}
+                          />
+                        );
+                      }
+                      return (
+                        <ExerciseRowWithSubstitutes
+                          key={ex.id}
+                          ex={ex}
+                          index={i}
+                          readOnly={readOnly}
+                          mode={mode}
+                          selectionMode={selectionMode}
+                          selected={selectedIds.includes(ex.id)}
+                          atSelectionLimit={selectedIds.length >= MAX_BISET_MEMBERS}
+                          onToggleSelect={handleToggleSelect}
+                          onEdit={(exercise) => setComposerState({ editing: exercise })}
+                          onDelete={handleRequestDeleteExercise}
+                          onEnterSelection={enterSelectionMode}
+                          onAddSubstitute={
+                            supportsSubstitutes ? handleAddSubstitute : null
+                          }
+                          substitutesExpanded={expandedSubstituteIds.has(ex.id)}
+                          onToggleSubstitutes={handleToggleSubstitutes}
+                        />
+                      );
+                    }
+                    // Bi-set group
+                    const groupStartIndex = runningIndex;
+                    runningIndex += entry.members.length;
                     return (
-                      <ExerciseComposer
-                        key={ex.id}
-                        snapshot={composerEditing}
-                        exerciseTemplates={exerciseTemplates}
-                        saving={saving}
-                        onSubmitCreate={handleAddExercise}
-                        onSubmitEdit={handleEditExercise}
-                        onSubmitFromLibrary={handleImport}
-                        onCancel={() => setComposerState(null)}
+                      <BisetGroupBlock
+                        key={entry.groupId}
+                        groupId={entry.groupId}
+                        members={entry.members}
+                        startIndex={groupStartIndex}
+                        readOnly={readOnly}
+                        mode={mode}
+                        selectionMode={selectionMode}
+                        selectedIds={selectedIds}
+                        atSelectionLimit={selectedIds.length >= MAX_BISET_MEMBERS}
+                        onToggleSelect={handleToggleSelect}
+                        onOpenBisetSheet={() => setBisetSheetGroupId(entry.groupId)}
+                        onDissolveBiset={() => handleDissolveBiset(entry.groupId)}
+                        onEdit={(exercise) => setComposerState({ editing: exercise })}
+                        onDelete={handleRequestDeleteExercise}
+                        onEnterSelection={enterSelectionMode}
+                        onAddSubstitute={
+                          supportsSubstitutes ? handleAddSubstitute : null
+                        }
+                        expandedSubstituteIds={expandedSubstituteIds}
+                        onToggleSubstitutes={handleToggleSubstitutes}
                       />
                     );
-                  }
-                  return (
-                    <ExerciseRow
-                      key={ex.id}
-                      ex={ex}
-                      index={i}
-                      onEdit={readOnly ? null : (exercise) => setComposerState({ editing: exercise })}
-                      onDelete={readOnly ? null : handleRequestDeleteExercise}
-                      readOnly={readOnly}
-                    />
-                  );
-                })}
+                  });
+                })()}
               </div>
             ) : (
               composerState === null && (
@@ -1108,6 +1805,55 @@ const TrainingItem = ({
           </div>
         </div>
       )}
+
+      {/* Bi-set action sheet (per-group dissolve / order edit) */}
+      <BiSetActionSheet
+        open={!!bisetSheetGroupId}
+        onDissolve={() => bisetSheetGroupId && handleDissolveBiset(bisetSheetGroupId)}
+        onClose={() => setBisetSheetGroupId(null)}
+      />
+
+      {/* Substitute composer (protocol mode) */}
+      {supportsSubstitutes && (
+        <SubstituteComposerSheet
+          open={!!substituteComposerPrincipal}
+          principal={substituteComposerPrincipal}
+          onClose={() => setSubstituteComposerPrincipal(null)}
+          onCreated={handleSubstituteCreated}
+        />
+      )}
+
+      {/* Non-adjacent confirmation */}
+      {pendingNonAdjacentConfirm && (
+        <div className="overlay" onClick={() => setPendingNonAdjacentConfirm(null)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-dialog-message">
+              {t('exerciseGroup.nonAdjacentConfirmBody')
+                || 'Os exercícios serão reorganizados em sequência.'}
+            </p>
+            <div className="confirm-dialog-actions">
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  const memberIds = pendingNonAdjacentConfirm.memberIds;
+                  setPendingNonAdjacentConfirm(null);
+                  handleConfirmBisetCreate(memberIds);
+                }}
+              >
+                {t('exerciseGroup.confirmGroupAndReorder') || 'Agrupar e reordenar'}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setPendingNonAdjacentConfirm(null)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
@@ -1124,6 +1870,7 @@ TrainingItem.propTypes = {
   saving: PropTypes.bool.isRequired,
   expanded: PropTypes.bool.isRequired,
   readOnly: PropTypes.bool,
+  mode: PropTypes.oneOf(['template', 'protocol']),
   onToggleExpand: PropTypes.func.isRequired,
   onEditTraining: PropTypes.func,
   onChangeWeekDay: PropTypes.func,
@@ -1132,10 +1879,12 @@ TrainingItem.propTypes = {
   onEditExercise: PropTypes.func,
   onImportFromLibrary: PropTypes.func,
   onDeleteExercise: PropTypes.func,
+  onRefetchTraining: PropTypes.func,
 };
 
 TrainingItem.defaultProps = {
   readOnly: false,
+  mode: 'template',
   onEditTraining: null,
   onChangeWeekDay: null,
   onDeleteTraining: null,
@@ -1143,6 +1892,7 @@ TrainingItem.defaultProps = {
   onEditExercise: null,
   onImportFromLibrary: null,
   onDeleteExercise: null,
+  onRefetchTraining: null,
 };
 
 // ─── BuilderTopbar ────────────────────────────────────────────────────────────
@@ -2160,6 +2910,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
               saving={routine.saving}
               expanded={expandedId === t.id}
               readOnly={readOnly}
+              mode={mode}
               onToggleExpand={() => handleToggleExpand(t.id)}
               onEditTraining={readOnly ? null : handleOpenEditTraining}
               onChangeWeekDay={readOnly ? null : (weekDay) => routine.updateTrainingWeekDay(t.id, weekDay)}
@@ -2170,6 +2921,11 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
                 Promise.all(ids.map((tmplId) => routine.addExerciseFromTemplate(t.id, tmplId)))
               }
               onDeleteExercise={readOnly ? null : (exId) => routine.deleteExercise(t.id, exId)}
+              onRefetchTraining={
+                readOnly || !routine.refetchTrainingExercises
+                  ? null
+                  : () => routine.refetchTrainingExercises(t.id)
+              }
             />
           );
 

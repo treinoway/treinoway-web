@@ -21100,3 +21100,169 @@ nav.onboarding-steps {
   text-transform: uppercase;
   margin-left: var(--spacing-xs);
 }
+
+/* ─── Bi-set action sheet (trainer) ────────────────────────────────────────── */
+
+.biset-action-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding-bottom: var(--spacing-md);
+}
+
+.biset-action-sheet-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 48px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-brand);
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--brand-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-brand);
+}
+
+.biset-action-sheet-item:hover {
+  background: var(--md-surface-container-high);
+}
+
+.biset-action-sheet-item:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.biset-action-sheet-item--danger {
+  color: var(--md-error);
+}
+
+.biset-action-sheet-item--cancel {
+  color: var(--brand-steel);
+  margin-top: var(--spacing-xs);
+  border-top: 1px solid var(--brand-divider);
+  padding-top: var(--spacing-md);
+  border-radius: 0;
+}
+
+/* ─── Selectable exercise row wrapper (bi-set selection mode) ──────────────── */
+
+/* Wraps the existing .exercise-row-wide with a leading checkbox and inline
+   "already grouped" caption. Sits inside the training-item-body when
+   selection mode is active. */
+.exercise-selectable-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--spacing-xs);
+}
+
+.exercise-selectable-row > .exercise-row-wide {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ─── Bi-set group section header (above grouped rows) ─────────────────────── */
+
+.biset-group-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+  background: var(--color-superset-tint);
+  border-left: 3px solid var(--color-superset);
+  border-radius: var(--radius-brand);
+}
+
+.biset-group-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+/* ─── Selectable selection-mode header inside training-item-body ───────────── */
+
+.training-item-selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--brand-mist);
+  border-radius: var(--radius-brand);
+  margin-bottom: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.training-item-selection-bar-text {
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-ink);
+}
+
+.training-item-selection-bar-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+/* ─── Substitute list (expanded under principal row) ───────────────────────── */
+
+.substitutes-expanded-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) 0 var(--spacing-xs) calc(var(--spacing-sm) + 24px);
+}
+
+.substitute-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--md-surface-container);
+  border-radius: var(--radius-brand);
+  min-height: 44px;
+}
+
+.substitute-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.substitute-row-name {
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-ink);
+}
+
+.substitute-row-meta {
+  font-family: var(--font-family-stat);
+  font-size: 11px;
+  color: var(--brand-steel);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Section caption inside row menu ──────────────────────────────────────── */
+
+.row-menu-section-caption {
+  display: block;
+  padding: var(--spacing-xs) var(--spacing-sm) 4px;
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+}

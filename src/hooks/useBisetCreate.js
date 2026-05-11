@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react';
 import api from '../api/axios';
 import { t } from '../i18n';
 
+const defaultEndpointBuilder = (id) => `/trainer/exercises/${id}`;
+
 /**
  * useBisetCreate — encapsulates the trainer-side "group selected exercises
  * into a bi-set" flow.
@@ -10,8 +12,9 @@ import { t } from '../i18n';
  * ----------------------------
  * The backend currently exposes NO transactional `POST /supersets`
  * endpoint. We must therefore call `PATCH /trainer/exercises/:id`
- * sequentially for each member, attaching a shared `supersetGroupId`
- * (UUID generated client-side) plus a consecutive `supersetOrder`.
+ * (or the configured per-context endpoint) sequentially for each member,
+ * attaching a shared `supersetGroupId` (UUID generated client-side) plus
+ * a consecutive `supersetOrder`.
  *
  * Failure handling (all-or-nothing semantics best we can):
  *   1. Walk the selection in order, PATCH each member.
@@ -29,9 +32,14 @@ import { t } from '../i18n';
  * `{ exerciseIds: [uuid] }` and atomically writes `supersetGroupId` +
  * `supersetOrder` server-side. That removes the rollback failure mode entirely.
  *
- * @returns {{ createBiset: (members: Exercise[]) => Promise<{ groupId, members }>, saving: boolean, error: Error|null }}
+ * @param {object} [options]
+ * @param {(id: string) => string} [options.endpointBuilder] — Builds the PATCH
+ *   URL per member id. Defaults to `/trainer/exercises/:id` (real exercises).
+ *   For TrainingTemplate junctions pass
+ *   `(id) => `/trainer/training-templates/${trainingId}/exercises/${id}``.
+ * @returns {{ createBiset, dissolveBiset, saving, error }}
  */
-const useBisetCreate = () => {
+const useBisetCreate = ({ endpointBuilder = defaultEndpointBuilder } = {}) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -66,7 +74,7 @@ const useBisetCreate = () => {
     try {
       for (let i = 0; i < selectedMembers.length; i += 1) {
         const member = selectedMembers[i];
-        await api.patch(`/trainer/exercises/${member.id}`, {
+        await api.patch(endpointBuilder(member.id), {
           supersetGroupId: groupId,
           supersetOrder: i,
         });
@@ -81,7 +89,7 @@ const useBisetCreate = () => {
         const id = applied[i];
         const snap = snapshots.find((s) => s.id === id);
         try {
-          await api.patch(`/trainer/exercises/${id}`, {
+          await api.patch(endpointBuilder(id), {
             supersetGroupId: snap?.previousGroupId ?? null,
             supersetOrder: snap?.previousOrder ?? null,
           });
@@ -109,7 +117,7 @@ const useBisetCreate = () => {
       setError(wrapped);
       throw wrapped;
     }
-  }, []);
+  }, [endpointBuilder]);
 
   /**
    * dissolveBiset — sequential PATCH that clears `supersetGroupId` on each
@@ -128,7 +136,7 @@ const useBisetCreate = () => {
     const applied = [];
     try {
       for (const m of members) {
-        await api.patch(`/trainer/exercises/${m.id}`, {
+        await api.patch(endpointBuilder(m.id), {
           supersetGroupId: null,
           supersetOrder: null,
         });
@@ -141,7 +149,7 @@ const useBisetCreate = () => {
         const id = applied[i];
         const snap = snapshots.find((s) => s.id === id);
         try {
-          await api.patch(`/trainer/exercises/${id}`, {
+          await api.patch(endpointBuilder(id), {
             supersetGroupId: snap?.previousGroupId ?? null,
             supersetOrder: snap?.previousOrder ?? null,
           });
@@ -166,7 +174,7 @@ const useBisetCreate = () => {
       setError(wrapped);
       throw wrapped;
     }
-  }, []);
+  }, [endpointBuilder]);
 
   return { createBiset, dissolveBiset, saving, error };
 };

@@ -32,6 +32,9 @@ vi.mock('../../hooks/useRoutineDraft', () => ({
 // Mock useProtocolBuilder for protocol-mode tests
 vi.mock('../../hooks/useProtocolBuilder');
 
+// Mock useBisetCreate so bi-set wiring tests can drive create/dissolve
+vi.mock('../../hooks/useBisetCreate');
+
 // ─── Global IntersectionObserver stub ─────────────────────────────────────────
 // jsdom does not implement IntersectionObserver. Provide a no-op constructor
 // so that RoutineBuilderCore's useEffect does not crash on mount in every test.
@@ -56,6 +59,7 @@ afterEach(() => {
 import useRoutineBuilder from '../../hooks/useRoutineBuilder';
 import useRoutineDraft from '../../hooks/useRoutineDraft';
 import useProtocolBuilder from '../../hooks/useProtocolBuilder';
+import useBisetCreate from '../../hooks/useBisetCreate';
 import RoutineBuilder from './RoutineBuilder';
 
 const EXERCISE_1 = {
@@ -145,6 +149,13 @@ const POPULATED_HOOK_STATE = {
 // Default draft mock applied before every test; individual tests override as needed.
 beforeEach(() => {
   useRoutineDraft.mockReturnValue({ ...DEFAULT_DRAFT_STATE });
+  // Default no-op bi-set hook — individual tests override.
+  useBisetCreate.mockReturnValue({
+    createBiset: vi.fn().mockResolvedValue({ groupId: 'g1', members: [] }),
+    dissolveBiset: vi.fn().mockResolvedValue(undefined),
+    saving: false,
+    error: null,
+  });
 });
 
 const renderNew = () =>
@@ -963,21 +974,29 @@ describe('RoutineBuilder — exercise row actions', () => {
     await screen.findByRole('list', { name: /Exercícios/i });
   };
 
-  it('exercise row renders an edit button (whole row) and a trash delete button', async () => {
+  // Open the row kebab menu and click the entry matching the given name.
+  const clickRowMenuItem = async (user, exName, itemName) => {
+    const trigger = screen.getByRole('button', { name: new RegExp(`Ações de ${exName}`, 'i') });
+    await user.click(trigger);
+    const item = await screen.findByRole('menuitem', { name: itemName });
+    await user.click(item);
+  };
+
+  it('exercise row renders an edit-row button and a kebab menu with Remover', async () => {
     const user = userEvent.setup();
     renderNew();
     await expandTraining(user);
 
     expect(screen.getByRole('button', { name: /Editar Supino reto/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Excluir Supino reto/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ações de Supino reto/i })).toBeInTheDocument();
   });
 
-  it('clicking the trash button shows the confirm dialog', async () => {
+  it('clicking the kebab Remover item shows the confirm dialog', async () => {
     const user = userEvent.setup();
     renderNew();
     await expandTraining(user);
 
-    await user.click(screen.getByRole('button', { name: /Excluir Supino reto/i }));
+    await clickRowMenuItem(user, 'Supino reto', /Remover/i);
 
     expect(await screen.findByText(/Excluir "Supino reto"/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Confirmar/i })).toBeInTheDocument();
@@ -995,7 +1014,7 @@ describe('RoutineBuilder — exercise row actions', () => {
     renderNew();
     await expandTraining(user);
 
-    await user.click(screen.getByRole('button', { name: /Excluir Supino reto/i }));
+    await clickRowMenuItem(user, 'Supino reto', /Remover/i);
     await user.click(await screen.findByRole('button', { name: /Confirmar/i }));
 
     await waitFor(() => {
@@ -1014,7 +1033,7 @@ describe('RoutineBuilder — exercise row actions', () => {
     renderNew();
     await expandTraining(user);
 
-    await user.click(screen.getByRole('button', { name: /Excluir Supino reto/i }));
+    await clickRowMenuItem(user, 'Supino reto', /Remover/i);
 
     await screen.findByText(/Excluir "Supino reto"/i);
     const cancelBtns = screen.getAllByRole('button', { name: /Cancelar/i });
@@ -1037,7 +1056,7 @@ describe('RoutineBuilder — exercise row actions', () => {
     expect(screen.getByLabelText(/Nome/i)).toHaveValue('Supino reto');
   });
 
-  it('clicking the trash button does NOT trigger the edit handler (stopPropagation)', async () => {
+  it('opening the kebab menu does NOT trigger the edit handler (stopPropagation)', async () => {
     const updateExercise = vi.fn();
     useRoutineBuilder.mockReturnValue({
       ...POPULATED_HOOK_STATE,
@@ -1048,7 +1067,8 @@ describe('RoutineBuilder — exercise row actions', () => {
     renderNew();
     await expandTraining(user);
 
-    await user.click(screen.getByRole('button', { name: /Excluir Supino reto/i }));
+    const trigger = screen.getByRole('button', { name: /Ações de Supino reto/i });
+    await user.click(trigger);
 
     // The composer must NOT have opened — "Salvar alterações" should be absent
     expect(screen.queryByRole('button', { name: /Salvar alterações/i })).not.toBeInTheDocument();
@@ -2930,5 +2950,282 @@ describe('RoutineBuilder — smooth scroll after exercise creation', () => {
 
     // No scroll when no id returned
     expect(window.HTMLElement.prototype.scrollIntoView).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Tests — bi-set selection mode (smoke) ────────────────────────────────────
+
+describe('RoutineBuilder — bi-set selection mode', () => {
+  const TWO_EX_TRAINING = {
+    id: 'training-1',
+    name: 'Peito & Tríceps',
+    weekDay: 'monday',
+    exercises: [EXERCISE_1, EXERCISE_2],
+  };
+
+  const HOOK_STATE_TWO_EX = {
+    ...EMPTY_HOOK_STATE,
+    data: {
+      ...EMPTY_HOOK_STATE.data,
+      name: 'Rotina',
+      trainings: [TWO_EX_TRAINING],
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({ ...HOOK_STATE_TWO_EX });
+    useBisetCreate.mockReturnValue({
+      createBiset: vi.fn().mockResolvedValue({ groupId: 'g1', members: [] }),
+      dissolveBiset: vi.fn().mockResolvedValue(undefined),
+      saving: false,
+      error: null,
+    });
+  });
+
+  const expand = async (user) => {
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+  };
+
+  it('Selecionar item in the training menu enters selection mode and shows the action bar', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expand(user);
+
+    await user.click(screen.getByRole('button', { name: /Opções do treino/i }));
+    await user.click(await screen.findByRole('menuitem', { name: /^Selecionar$/i }));
+
+    expect(screen.getByRole('toolbar', { name: /Seleção de exercícios/i })).toBeInTheDocument();
+    // CTA disabled at 0 selected
+    expect(screen.getByRole('button', { name: /Agrupar em bi-set/i })).toBeDisabled();
+  });
+
+  it('selecting two exercises and clicking Agrupar calls createBiset with the ordered members', async () => {
+    const createBiset = vi.fn().mockResolvedValue({ groupId: 'g1', members: [] });
+    useBisetCreate.mockReturnValue({
+      createBiset,
+      dissolveBiset: vi.fn(),
+      saving: false,
+      error: null,
+    });
+
+    const user = userEvent.setup();
+    renderNew();
+    await expand(user);
+
+    await user.click(screen.getByRole('button', { name: /Opções do treino/i }));
+    await user.click(await screen.findByRole('menuitem', { name: /^Selecionar$/i }));
+
+    // Select both rows. The selectable row exposes the same aria-label on
+    // both the row wrapper and the inner checkbox button — clicking the
+    // first match (the row) toggles selection.
+    const supinoTargets = screen.getAllByRole('button', { name: /Selecionar Supino reto/i });
+    await user.click(supinoTargets[0]);
+    const roscaTargets = screen.getAllByRole('button', { name: /Selecionar Rosca direta/i });
+    await user.click(roscaTargets[0]);
+
+    expect(screen.getByRole('button', { name: /Agrupar em bi-set/i })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: /Agrupar em bi-set/i }));
+
+    await waitFor(() => {
+      expect(createBiset).toHaveBeenCalledTimes(1);
+    });
+    const arg = createBiset.mock.calls[0][0];
+    expect(arg.map((m) => m.id)).toEqual(['ex-1', 'ex-2']);
+  });
+
+  it('cancelling selection mode clears the action bar', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expand(user);
+
+    await user.click(screen.getByRole('button', { name: /Opções do treino/i }));
+    await user.click(await screen.findByRole('menuitem', { name: /^Selecionar$/i }));
+
+    expect(screen.getByRole('toolbar', { name: /Seleção de exercícios/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Cancelar seleção/i }));
+
+    expect(
+      screen.queryByRole('toolbar', { name: /Seleção de exercícios/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
+// ─── Tests — bi-set rendering & dissolve (smoke) ──────────────────────────────
+
+describe('RoutineBuilder — bi-set rendering and dissolve', () => {
+  const BISET_GROUP_ID = '11111111-1111-1111-1111-111111111111';
+  const BISET_MEMBER_A = {
+    ...EXERCISE_1,
+    id: 'mem-a',
+    name: 'Supino A',
+    supersetGroupId: BISET_GROUP_ID,
+    supersetOrder: 0,
+  };
+  const BISET_MEMBER_B = {
+    ...EXERCISE_2,
+    id: 'mem-b',
+    name: 'Rosca B',
+    supersetGroupId: BISET_GROUP_ID,
+    supersetOrder: 1,
+  };
+
+  const TRAINING_WITH_BISET = {
+    id: 'training-1',
+    name: 'Treino A',
+    weekDay: 'monday',
+    exercises: [BISET_MEMBER_A, BISET_MEMBER_B],
+  };
+
+  const HOOK_STATE = {
+    ...EMPTY_HOOK_STATE,
+    data: {
+      ...EMPTY_HOOK_STATE.data,
+      name: 'Rotina',
+      trainings: [TRAINING_WITH_BISET],
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({ ...HOOK_STATE });
+  });
+
+  const expand = async (user) => {
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+  };
+
+  it('renders a Bi-set badge and groups members into a single block', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expand(user);
+
+    expect(screen.getByRole('button', { name: /ações do bi-set/i })).toBeInTheDocument();
+    // Both members visible
+    expect(screen.getByText('Supino A')).toBeInTheDocument();
+    expect(screen.getByText('Rosca B')).toBeInTheDocument();
+  });
+
+  it('tapping the Bi-set badge opens the action sheet with Desfazer entry', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expand(user);
+
+    await user.click(screen.getByRole('button', { name: /ações do bi-set/i }));
+    expect(
+      await screen.findByRole('button', { name: /Desfazer bi-set/i })
+    ).toBeInTheDocument();
+  });
+
+  it('confirming dissolve from the action sheet calls dissolveBiset with the members', async () => {
+    const dissolveBiset = vi.fn().mockResolvedValue(undefined);
+    useBisetCreate.mockReturnValue({
+      createBiset: vi.fn(),
+      dissolveBiset,
+      saving: false,
+      error: null,
+    });
+
+    const user = userEvent.setup();
+    renderNew();
+    await expand(user);
+
+    await user.click(screen.getByRole('button', { name: /ações do bi-set/i }));
+    await user.click(await screen.findByRole('button', { name: /Desfazer bi-set/i }));
+    await user.click(await screen.findByRole('button', { name: /Confirmar/i }));
+
+    await waitFor(() => {
+      expect(dissolveBiset).toHaveBeenCalledTimes(1);
+    });
+    const arg = dissolveBiset.mock.calls[0][0];
+    expect(arg.map((m) => m.id).sort()).toEqual(['mem-a', 'mem-b']);
+  });
+});
+
+// ─── Tests — substitute composer (protocol-mode smoke) ────────────────────────
+
+describe('RoutineBuilder — substitute composer (protocol mode)', () => {
+  const PROTOCOL_TRAINING = {
+    id: 'training-1',
+    name: 'Treino A',
+    weekDay: 'monday',
+    exercises: [EXERCISE_1],
+  };
+
+  const PROTOCOL_HOOK_STATE = {
+    ...EMPTY_HOOK_STATE,
+    data: {
+      ...EMPTY_HOOK_STATE.data,
+      name: 'Rotina',
+      trainings: [PROTOCOL_TRAINING],
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_STATE });
+  });
+
+  const renderProtocolEdit = () =>
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1/edit',
+      path: '/trainer/protocols/:id/edit',
+    });
+
+  it('row kebab exposes "Adicionar substituto" entry only in protocol mode', async () => {
+    const user = userEvent.setup();
+    renderProtocolEdit();
+
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    await user.click(screen.getByRole('button', { name: /Ações de Supino reto/i }));
+    expect(
+      await screen.findByRole('menuitem', { name: /Adicionar substituto/i })
+    ).toBeInTheDocument();
+  });
+
+  it('clicking "Adicionar substituto" opens the SubstituteComposerSheet', async () => {
+    const user = userEvent.setup();
+    renderProtocolEdit();
+
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    await user.click(screen.getByRole('button', { name: /Ações de Supino reto/i }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: /Adicionar substituto/i })
+    );
+
+    expect(
+      await screen.findByRole('dialog', { name: /Adicionar substituto/i })
+    ).toBeInTheDocument();
+  });
+
+  it('template mode does NOT expose "Adicionar substituto" in the row kebab', async () => {
+    useRoutineBuilder.mockReturnValue({
+      ...EMPTY_HOOK_STATE,
+      data: {
+        ...EMPTY_HOOK_STATE.data,
+        name: 'Rotina',
+        trainings: [PROTOCOL_TRAINING],
+      },
+    });
+    const user = userEvent.setup();
+    renderNew(); // template mode
+
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    await user.click(screen.getByRole('button', { name: /Ações de Supino reto/i }));
+
+    // The Adicionar substituto entry should NOT be present
+    expect(
+      screen.queryByRole('menuitem', { name: /Adicionar substituto/i })
+    ).not.toBeInTheDocument();
   });
 });
