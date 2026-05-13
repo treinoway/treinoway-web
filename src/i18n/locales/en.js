@@ -245,6 +245,18 @@ const en = {
     noRest: 'no rest',
   },
 
+  training: {
+    duration: {
+      notEstimated: 'Duration not estimated',
+      quick: 'Quick workout',
+      ariaNotEstimated: 'Estimated duration not available',
+      ariaQuick: 'Quick workout, under 5 minutes',
+      ariaEstimated: 'Estimated duration: {{value}}',
+      minutesShort: 'min',
+      hoursShort: 'h',
+    },
+  },
+
   substitute: {
     add: 'Add substitute',
     addedToast: 'Substitute added.',
@@ -263,6 +275,17 @@ const en = {
     swapFailed: 'Could not swap. Please try again.',
     composerTitle: 'Add substitute',
     composerNamePlaceholder: 'Exercise name',
+    tabCreate: 'Create substitute',
+    tabLibrary: 'From library',
+    importToast: '{count} substitute(s) added.',
+    importBtn: 'Import {count}',
+    importBtnDefault: 'Import',
+    importAdding: 'Adding…',
+    libraryEmpty: 'Library is empty.',
+    libraryNoResults: 'No exercises found.',
+    deleteConfirm: 'Delete "{name}"? This action cannot be undone.',
+    deletedToast: 'Substitute removed.',
+    deleteAria: 'Delete substitute {name}',
   },
 
   iArnold: {

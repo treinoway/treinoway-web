@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { X, Plus, Search, Check, Info, Save } from 'lucide-react';
+import { X, Plus, Search, Check, Info, Save, ChevronDown } from 'lucide-react';
 import { TRAINING_CATEGORY_OPTIONS, TRAINING_CATEGORY_LABEL } from '../constants/trainingCategories';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -29,6 +29,51 @@ const buildFormFromSnapshot = (training) => ({
   description: training.description || '',
 });
 
+// Extracts exercise junction rows from a training template payload,
+// supporting the preferred field (trainingTemplateExerciseTemplates)
+// and legacy fallbacks. Mirrors src/hooks/useRoutineBuilder.js#extractExercises.
+const extractTemplateExercises = (template) => {
+  if (!template) return [];
+  return (
+    template.trainingTemplateExerciseTemplates ||
+    template.exerciseTemplates ||
+    template.exercises ||
+    []
+  );
+};
+
+const sortByOrder = (exercises) =>
+  [...exercises].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+
+// Builds the "4 × 8–12" / "3 × 30s" / "3 séries" segment of the preview line.
+const buildPrescriptionLabel = (exercise) => {
+  const sets = exercise?.sets ?? 0;
+
+  if (exercise?.prescriptionMode === 'duration' && exercise?.duration > 0) {
+    return `${sets} × ${exercise.duration}s`;
+  }
+
+  const reps = exercise?.repetitions;
+  if (reps && typeof reps === 'object') {
+    const { min, max } = reps;
+    if (min != null && max != null) {
+      if (min === max) return `${sets} × ${min}`;
+      return `${sets} × ${min}–${max}`;
+    }
+  }
+
+  return `${sets} séries`;
+};
+
+const formatExercisePreviewLine = (exercise, index) => {
+  const order = index + 1;
+  const name = exercise?.name || 'Exercício';
+  const prescription = buildPrescriptionLabel(exercise);
+  const restPart =
+    exercise?.restInterval > 0 ? ` · ${exercise.restInterval}s descanso` : '';
+  return `${order}. ${name} · ${prescription}${restPart}`;
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const AddTrainingSheet = ({
@@ -50,6 +95,7 @@ const AddTrainingSheet = ({
   const [showMoreFields, setShowMoreFields] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [expandedIds, setExpandedIds] = useState(new Set());
   const firstFieldRef = useRef(null);
   const sheetRef = useRef(null);
 
@@ -60,6 +106,7 @@ const AddTrainingSheet = ({
     setShowMoreFields(false);
     setSearch('');
     setSelectedIds(new Set());
+    setExpandedIds(new Set());
   };
 
   const handleClose = () => {
@@ -124,6 +171,26 @@ const AddTrainingSheet = ({
       }
       return next;
     });
+  };
+
+  const handleToggleExpanded = (id) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Keyboard activation for the row (since it's a div with role=option).
+  const handleRowKeyDown = (e, id) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      handleToggleTemplate(id);
+    }
   };
 
   // ── Submit logic ─────────────────────────────────────────────────────────
@@ -406,9 +473,10 @@ const AddTrainingSheet = ({
                 >
                   {filteredTemplates.map((t) => {
                     const isSelected = selectedIds.has(t.id);
+                    const isExpanded = expandedIds.has(t.id);
                     const categoryLabel = TRAINING_CATEGORY_LABEL[t.category] || t.category || '';
-                    const exerciseCount =
-                      t.exerciseTemplates?.length ?? t.exercises?.length ?? 0;
+                    const exercises = extractTemplateExercises(t);
+                    const exerciseCount = exercises.length;
                     const metaParts = [
                       categoryLabel,
                       t.bodySegment
@@ -416,33 +484,71 @@ const AddTrainingSheet = ({
                         : null,
                       exerciseCount > 0 ? `${exerciseCount} exercícios` : null,
                     ].filter(Boolean);
+                    const sortedExercises = sortByOrder(exercises);
+                    const disclosureLabel = isExpanded
+                      ? 'Ocultar exercícios'
+                      : 'Ver exercícios';
 
                     return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        className={`template-item${isSelected ? ' template-item--selected' : ''}`}
-                        onClick={() => handleToggleTemplate(t.id)}
-                      >
-                        <div className="template-item-body">
-                          <span className="template-item-name">{t.name}</span>
-                          {metaParts.length > 0 && (
-                            <span className="template-item-meta">
-                              {metaParts.join(' · ')}
-                            </span>
+                      <div key={t.id} className="template-item-wrap">
+                        <div
+                          role="option"
+                          aria-selected={isSelected}
+                          tabIndex={0}
+                          className={`template-item${isSelected ? ' template-item--selected' : ''}`}
+                          onClick={() => handleToggleTemplate(t.id)}
+                          onKeyDown={(e) => handleRowKeyDown(e, t.id)}
+                        >
+                          <div className="template-item-body">
+                            <span className="template-item-name">{t.name}</span>
+                            {metaParts.length > 0 && (
+                              <span className="template-item-meta">
+                                {metaParts.join(' · ')}
+                              </span>
+                            )}
+                          </div>
+                          {isSelected && (
+                            <Check
+                              size={16}
+                              strokeWidth={2}
+                              className="template-item-check"
+                              aria-hidden="true"
+                            />
                           )}
+                          <button
+                            type="button"
+                            className={`template-item-disclosure${
+                              isExpanded ? ' template-item-disclosure--open' : ''
+                            }`}
+                            aria-expanded={isExpanded}
+                            aria-label={disclosureLabel}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleExpanded(t.id);
+                            }}
+                          >
+                            <ChevronDown size={16} strokeWidth={2} aria-hidden="true" />
+                          </button>
                         </div>
-                        {isSelected && (
-                          <Check
-                            size={16}
-                            strokeWidth={2}
-                            className="template-item-check"
-                            aria-hidden="true"
-                          />
+                        {isExpanded && (
+                          <div className="template-preview">
+                            {sortedExercises.length === 0 ? (
+                              <span className="template-preview-empty">
+                                Nenhum exercício neste treino
+                              </span>
+                            ) : (
+                              sortedExercises.map((ex, idx) => (
+                                <span
+                                  key={ex.id ?? `${t.id}-${idx}`}
+                                  className="template-preview-exercise"
+                                >
+                                  {formatExercisePreviewLine(ex, idx)}
+                                </span>
+                              ))
+                            )}
+                          </div>
                         )}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>

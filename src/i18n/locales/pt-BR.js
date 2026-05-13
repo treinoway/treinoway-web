@@ -880,6 +880,18 @@ const ptBR = {
     noRest: "sem descanso",
   },
 
+  training: {
+    duration: {
+      notEstimated: "Duração não estimada",
+      quick: "Treino rápido",
+      ariaNotEstimated: "Duração estimada não disponível",
+      ariaQuick: "Treino rápido, menos de 5 minutos",
+      ariaEstimated: "Duração estimada: {{value}}",
+      minutesShort: "min",
+      hoursShort: "h",
+    },
+  },
+
   substitute: {
     add: "Adicionar substituto",
     addedToast: "Substituto adicionado.",
@@ -898,6 +910,17 @@ const ptBR = {
     swapFailed: "Não foi possível trocar. Tente novamente.",
     composerTitle: "Adicionar substituto",
     composerNamePlaceholder: "Nome do exercício",
+    tabCreate: "Criar substituto",
+    tabLibrary: "Da biblioteca",
+    importToast: "{count} substituto(s) adicionado(s).",
+    importBtn: "Importar {count}",
+    importBtnDefault: "Importar",
+    importAdding: "Adicionando…",
+    libraryEmpty: "Biblioteca vazia.",
+    libraryNoResults: "Nenhum exercício encontrado.",
+    deleteConfirm: 'Excluir "{name}"? Esta ação não pode ser desfeita.',
+    deletedToast: "Substituto removido.",
+    deleteAria: "Excluir substituto {name}",
   },
 };
 

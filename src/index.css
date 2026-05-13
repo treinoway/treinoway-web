@@ -4555,7 +4555,7 @@ html:has(.auth-page) {
   position: fixed;
   inset: 0;
   background: rgba(10, 15, 28, 0.55);
-  z-index: 200;
+  z-index: var(--z-overlay);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -16880,6 +16880,69 @@ nav.onboarding-steps {
   flex-shrink: 0;
 }
 
+/* Wrapper that groups a template row with its inline preview */
+.template-item-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Disclosure caret on the right side of a template row */
+.template-item-disclosure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--brand-steel);
+  border-radius: var(--radius-brand);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-brand),
+    color var(--duration-fast) var(--ease-brand),
+    transform var(--duration-fast) var(--ease-brand);
+}
+
+.template-item-disclosure:hover {
+  background: var(--brand-mist);
+  color: var(--brand-primary);
+}
+
+.template-item-disclosure:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.template-item-disclosure--open {
+  transform: rotate(180deg);
+  color: var(--brand-primary);
+}
+
+/* Inline preview of a template's exercises */
+.template-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin: 4px 0 0 var(--spacing-md);
+  border-left: 2px solid var(--brand-divider);
+}
+
+.template-preview-empty,
+.template-preview-exercise {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--brand-steel);
+  line-height: 1.4;
+}
+
+.template-preview-empty {
+  font-style: italic;
+}
+
 /* ============================================
    Tag chip input (admin video form / future reuse)
    ============================================ */
@@ -21254,6 +21317,45 @@ nav.onboarding-steps {
   font-variant-numeric: tabular-nums;
 }
 
+.substitute-row-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-brand);
+  border: none;
+  background: transparent;
+  color: var(--brand-steel);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-brand),
+    color var(--duration-fast) var(--ease-brand),
+    transform var(--duration-fast) var(--ease-brand);
+}
+
+.substitute-row-delete-btn:hover {
+  background: var(--md-error-container);
+  color: var(--md-error);
+}
+
+.substitute-row-delete-btn:active {
+  transform: scale(0.98);
+}
+
+.substitute-row-delete-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+@media (min-width: 1024px) {
+  .substitute-row-delete-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
+
 /* ─── Section caption inside row menu ──────────────────────────────────────── */
 
 .row-menu-section-caption {
@@ -21265,4 +21367,117 @@ nav.onboarding-steps {
   letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
   color: var(--brand-steel);
+}
+
+/* ─── DurationLabel ────────────────────────────────────────────────────────── */
+
+.duration-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.duration-label__icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.duration-label--bare {
+  gap: 0;
+}
+
+.duration-label--column {
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.duration-label--not_estimated {
+  font-style: italic;
+}
+
+.session-header-duration {
+  margin-top: var(--spacing-xs);
+}
+
+.training-card__duration {
+  display: flex;
+  margin-top: var(--spacing-xs);
+}
+
+.training-item-meta-duration {
+  font-size: 12px;
+  color: var(--brand-steel);
+}
+
+/* ─── TrainingMetaRow ──────────────────────────────────────────────────────── */
+
+.training-meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  font-size: var(--font-body-small-size);
+  color: var(--color-on-surface-variant);
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.training-meta-row__sep {
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+
+.training-meta-row__count {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.training-meta-row__category {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.training-meta-row__duration {
+  flex-shrink: 0;
+}
+
+/* Overflow drop priority: Category → Count → Duration.
+   Category is the first to drop (it owns the only flexible min-width: 0),
+   followed by its separator. */
+@media (max-width: 380px) {
+  .training-meta-row--student-card .training-meta-row__category,
+  .training-meta-row--student-card .training-meta-row__sep--category {
+    display: none;
+  }
+}
+
+/* Trainer row variant: right-aligned duration column. */
+.training-meta-row--trainer-row {
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.training-meta-row--trainer-row .training-meta-row__primary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+}
+
+.training-meta-row--trainer-row .training-meta-row__category {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Student detail variant: a bit more breathing room between segments. */
+.training-meta-row--student-detail {
+  gap: var(--spacing-sm);
 }

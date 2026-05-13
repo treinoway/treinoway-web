@@ -4,6 +4,8 @@ import { ArrowLeft, Play, X, Dumbbell, Calendar } from 'lucide-react';
 import api from '../../api/axios';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
+import { formatDuration } from '../../utils/formatDuration';
+import TrainingMetaRow from '../../components/TrainingMetaRow';
 import { getWeekDayLabel } from '../../constants/weekDays';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
@@ -171,6 +173,10 @@ const MyProtocolDetail = () => {
           {trainings.map((training) => {
             const exercises = exercisesMap[training.id] || [];
             const isStarting = startingTrainingId === training.id;
+            const durationInfo = formatDuration(training.estimatedDurationSeconds);
+            const ctaSuffix = durationInfo.state === 'not_estimated'
+              ? ''
+              : ` · ${durationInfo.text}`;
             return (
               <div key={training.id} className="training-card">
                 <div className="training-card-header">
@@ -179,6 +185,12 @@ const MyProtocolDetail = () => {
                     {training.description && (
                       <p className="training-card-desc">{training.description}</p>
                     )}
+                    <TrainingMetaRow
+                      estimatedDurationSeconds={training.estimatedDurationSeconds}
+                      exerciseCount={exercises.length}
+                      categoryLabel={training.categoryLabel}
+                      variant="student-card"
+                    />
                     <div className="training-card-meta">
                       <span className="training-card-order">Ordem {training.order}</span>
                       {training.weekDay && (
@@ -192,10 +204,10 @@ const MyProtocolDetail = () => {
                     className="btn btn-sm btn-primary"
                     onClick={() => handleStartTraining(training.id)}
                     disabled={isStarting || startingTrainingId !== null}
-                    aria-label={`Iniciar treino ${training.name}`}
+                    aria-label={`Iniciar treino ${training.name}${ctaSuffix}`}
                   >
                     <Dumbbell size={14} strokeWidth={1.6} />
-                    {isStarting ? 'Iniciando...' : 'Iniciar'}
+                    {isStarting ? 'Iniciando...' : `Iniciar${ctaSuffix}`}
                   </button>
                 </div>
 

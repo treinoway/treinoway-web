@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, waitFor, fireEvent, within } from '../../test/test-utils';
 import { renderWithRoute } from '../../test/test-utils';
+import api from '../../api/axios';
 import userEvent from '@testing-library/user-event';
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -3228,6 +3229,151 @@ describe('RoutineBuilder — substitute composer (protocol mode)', () => {
     // The Adicionar substituto entry should NOT be present
     expect(
       screen.queryByRole('menuitem', { name: /Adicionar substituto/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
+// ─── Tests — substitute delete (protocol mode) ───────────────────────────────
+
+describe('RoutineBuilder — substitute delete (protocol mode)', () => {
+  const SUBSTITUTE = {
+    id: 'sub-1',
+    name: 'Crucifixo',
+    type: 'strength',
+    sets: 3,
+    repetitions: { min: 12, max: 15 },
+  };
+
+  const EXERCISE_WITH_SUBSTITUTE = {
+    ...EXERCISE_1,
+    substitutes: [SUBSTITUTE],
+  };
+
+  const PROTOCOL_TRAINING_WITH_SUB = {
+    id: 'training-1',
+    name: 'Treino A',
+    weekDay: 'monday',
+    exercises: [EXERCISE_WITH_SUBSTITUTE],
+  };
+
+  const refetchTrainingExercises = vi.fn().mockResolvedValue(undefined);
+
+  const PROTOCOL_HOOK_STATE_WITH_SUB = {
+    ...EMPTY_HOOK_STATE,
+    refetchTrainingExercises,
+    data: {
+      ...EMPTY_HOOK_STATE.data,
+      name: 'Rotina',
+      trainings: [PROTOCOL_TRAINING_WITH_SUB],
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_STATE_WITH_SUB });
+    api.delete.mockResolvedValue({});
+    refetchTrainingExercises.mockResolvedValue(undefined);
+  });
+
+  const renderProtocolEdit = () =>
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1/edit',
+      path: '/trainer/protocols/:id/edit',
+    });
+
+  const expandAndShowSubstitutes = async (user) => {
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+    // Click the SubstitutesInline toggle to expand the substitute list
+    await user.click(screen.getByRole('button', { name: /substitut/i }));
+    await screen.findByRole('list', { name: /Substitutos de/i });
+  };
+
+  it('renders delete button for each substitute in protocol mode', async () => {
+    const user = userEvent.setup();
+    renderProtocolEdit();
+
+    await expandAndShowSubstitutes(user);
+
+    expect(
+      screen.getByRole('button', { name: /Excluir substituto Crucifixo/i })
+    ).toBeInTheDocument();
+  });
+
+  it('clicking delete opens confirm dialog with substitute name', async () => {
+    const user = userEvent.setup();
+    renderProtocolEdit();
+
+    await expandAndShowSubstitutes(user);
+
+    await user.click(
+      screen.getByRole('button', { name: /Excluir substituto Crucifixo/i })
+    );
+
+    expect(screen.getByText(/Excluir "Crucifixo"/i)).toBeInTheDocument();
+  });
+
+  it('confirming delete calls DELETE /trainer/exercises/:id and triggers refetch', async () => {
+    const user = userEvent.setup();
+    renderProtocolEdit();
+
+    await expandAndShowSubstitutes(user);
+
+    await user.click(
+      screen.getByRole('button', { name: /Excluir substituto Crucifixo/i })
+    );
+
+    await user.click(screen.getByRole('button', { name: /Confirmar/i }));
+
+    await waitFor(() => {
+      expect(api.delete).toHaveBeenCalledWith('/trainer/exercises/sub-1');
+    });
+    await waitFor(() => {
+      expect(refetchTrainingExercises).toHaveBeenCalledWith('training-1');
+    });
+  });
+
+  it('cancelling the confirm dialog does not call api.delete', async () => {
+    const user = userEvent.setup();
+    renderProtocolEdit();
+
+    await expandAndShowSubstitutes(user);
+
+    await user.click(
+      screen.getByRole('button', { name: /Excluir substituto Crucifixo/i })
+    );
+
+    const dialog = await screen.findByText(/Excluir "Crucifixo"/i);
+    const dialogContainer = dialog.closest('.confirm-dialog');
+    await user.click(within(dialogContainer).getByRole('button', { name: /Cancelar/i }));
+
+    expect(api.delete).not.toHaveBeenCalled();
+    // Dialog dismissed
+    expect(screen.queryByText(/Excluir "Crucifixo"/i)).not.toBeInTheDocument();
+  });
+
+  it('delete button is NOT rendered in read-only mode', async () => {
+    // Simulate read-only by rendering the view route (no :id/edit path)
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_STATE_WITH_SUB,
+      data: {
+        ...PROTOCOL_HOOK_STATE_WITH_SUB.data,
+        id: 'proto-1',
+      },
+    });
+    const user = userEvent.setup();
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1',
+      path: '/trainer/protocols/:id',
+    });
+
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+    await user.click(screen.getByRole('button', { name: /substitut/i }));
+    await screen.findByRole('list', { name: /Substitutos de/i });
+
+    expect(
+      screen.queryByRole('button', { name: /Excluir substituto/i })
     ).not.toBeInTheDocument();
   });
 });

@@ -8,6 +8,7 @@ import api from '../../api/axios';
 import { getWeekDayLabel } from '../../constants/weekDays';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
+import DurationLabel from '../../components/DurationLabel';
 
 const TRAINING_LEVEL_LABELS = {
   beginner: 'Iniciante',
@@ -96,6 +97,11 @@ const TrainingCard = ({ training, exercises }) => {
         <div className="training-card__right">
           <span className="training-card__count">{exerciseCount}</span>
           <span className="training-card__count-label">ex</span>
+          <DurationLabel
+            seconds={training.estimatedDurationSeconds}
+            variant="column"
+            className="training-card__duration"
+          />
         </div>
         <ChevronDown
           size={16}
@@ -137,6 +143,7 @@ TrainingCard.propTypes = {
     name: PropTypes.string,
     order: PropTypes.number,
     weekDay: PropTypes.string,
+    estimatedDurationSeconds: PropTypes.number,
   }).isRequired,
   exercises: PropTypes.array.isRequired,
 };
@@ -349,6 +356,9 @@ const ProtocolTemplateView = () => {
                 name: trainingName,
                 order: item.order,
                 weekDay: item.weekDay,
+                estimatedDurationSeconds:
+                  item.estimatedDurationSeconds
+                  ?? item.trainingTemplate?.estimatedDurationSeconds,
               }}
               exercises={exercises}
             />

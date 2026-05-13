@@ -260,14 +260,15 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           for (const id of ids) {
             const tmpl = trainingTemplates.find((t) => t.id === id);
             if (!tmpl) continue;
-            const res = await api.post(`/trainer/protocols/${protocolId}/trainings`, {
-              name: tmpl.name || 'Treino',
-              category: tmpl.category || 'strength',
-              ...(tmpl.bodySegment && { bodySegment: tmpl.bodySegment }),
-              ...(tmpl.description && { description: tmpl.description }),
-              ...((overrides[id] || {})),
+            const res = await api.post('/trainer/trainings/from-template', {
+              protocolId,
+              templateId: id,
+              ...(overrides[id] || {}),
             });
-            const newTraining = { ...res.data, exercises: [] };
+            // Backend returns the new training with exercises already populated
+            // (single-transaction import). Preserve that payload as-is so the
+            // exercises survive into local state.
+            const newTraining = { ...res.data, exercises: res.data?.exercises || [] };
             setData((prev) => ({
               ...prev,
               trainings: [...prev.trainings, newTraining],

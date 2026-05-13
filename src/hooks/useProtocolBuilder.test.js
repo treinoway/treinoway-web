@@ -632,6 +632,143 @@ describe('useProtocolBuilder — edit mode: updateTrainingWeekDay failure', () =
   });
 });
 
+describe('useProtocolBuilder — edit mode: importTrainingsFromLibrary', () => {
+  const EDIT_TRAINING_TEMPLATE = {
+    id: 'tt-edit-1',
+    name: 'Treino Importado',
+    category: 'strength',
+    bodySegment: 'upper',
+    description: 'Descrição do template',
+    trainingTemplateExerciseTemplates: [
+      {
+        id: 'junc-edit-1',
+        order: 0,
+        exerciseTemplate: { id: 'et-edit-1', name: 'Supino', type: 'strength', sets: 4 },
+      },
+    ],
+  };
+
+  const makeEditModeImportGetHandler = () => (url) => {
+    if (url === `/trainer/protocols/${PROTOCOL_ID}`)
+      return Promise.resolve({
+        data: {
+          id: PROTOCOL_ID,
+          name: 'Protocolo Editável',
+          type: 'strength',
+          trainingLevel: '',
+          genderOrdination: '',
+          description: '',
+          startDate: '2026-05-01',
+          expirationDate: '',
+          assigneeId: null,
+          trainings: [],
+        },
+      });
+    if (url === '/trainer/training-templates')
+      return Promise.resolve({ data: [EDIT_TRAINING_TEMPLATE] });
+    if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
+    if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+    return Promise.resolve({ data: [] });
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+    api.get.mockImplementation(makeEditModeImportGetHandler());
+  });
+
+  it('uses /trainer/trainings/from-template and preserves exercises returned by the backend', async () => {
+    const importedTraining = {
+      id: 'real-imported-1',
+      name: 'Treino Importado',
+      category: 'strength',
+      bodySegment: 'upper',
+      description: 'Descrição do template',
+      weekDay: null,
+      exercises: [
+        {
+          id: 'real-ex-imp-1',
+          name: 'Supino',
+          type: 'strength',
+          sets: 4,
+          order: 0,
+        },
+      ],
+    };
+    api.post.mockImplementation((url) => {
+      if (url === '/trainer/trainings/from-template') {
+        return Promise.resolve({ data: importedTraining });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    const { result } = renderHook(() =>
+      useProtocolBuilder(null, { protocolId: PROTOCOL_ID })
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.importTrainingsFromLibrary(['tt-edit-1']);
+    });
+
+    // Hits the dedicated single-transaction endpoint, NOT the generic create
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect(api.post).toHaveBeenCalledWith('/trainer/trainings/from-template', {
+      protocolId: PROTOCOL_ID,
+      templateId: 'tt-edit-1',
+    });
+
+    // Exercises from the backend response survive into local state
+    expect(result.current.data.trainings).toHaveLength(1);
+    const t = result.current.data.trainings[0];
+    expect(t.id).toBe('real-imported-1');
+    expect(t.exercises).toHaveLength(1);
+    expect(t.exercises[0].name).toBe('Supino');
+  });
+
+  it('forwards trainer overrides to the from-template endpoint', async () => {
+    api.post.mockResolvedValue({
+      data: { id: 'real-imported-2', exercises: [] },
+    });
+
+    const { result } = renderHook(() =>
+      useProtocolBuilder(null, { protocolId: PROTOCOL_ID })
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.importTrainingsFromLibrary(
+        ['tt-edit-1'],
+        { 'tt-edit-1': { weekDay: 'friday', name: 'Custom Name' } }
+      );
+    });
+
+    expect(api.post).toHaveBeenCalledWith('/trainer/trainings/from-template', {
+      protocolId: PROTOCOL_ID,
+      templateId: 'tt-edit-1',
+      weekDay: 'friday',
+      name: 'Custom Name',
+    });
+  });
+
+  it('defaults exercises to an empty array when the backend omits them', async () => {
+    api.post.mockResolvedValue({
+      data: { id: 'real-imported-3', name: 'Treino Importado' },
+    });
+
+    const { result } = renderHook(() =>
+      useProtocolBuilder(null, { protocolId: PROTOCOL_ID })
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.importTrainingsFromLibrary(['tt-edit-1']);
+    });
+
+    expect(result.current.data.trainings[0].exercises).toEqual([]);
+  });
+});
+
 describe('useProtocolBuilder — edit mode: deleteTraining failure', () => {
   beforeEach(() => {
     vi.clearAllMocks();

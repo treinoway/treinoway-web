@@ -10,7 +10,26 @@ const TEMPLATE_A = {
   name: 'Peito & Tríceps',
   category: 'strength',
   bodySegment: 'upper',
-  exerciseTemplates: [{ id: 'ex-1' }, { id: 'ex-2' }],
+  exerciseTemplates: [
+    {
+      id: 'ex-1',
+      name: 'Supino reto',
+      order: 1,
+      sets: 4,
+      repetitions: { min: 8, max: 12 },
+      restInterval: 90,
+      prescriptionMode: 'reps',
+    },
+    {
+      id: 'ex-2',
+      name: 'Crucifixo',
+      order: 2,
+      sets: 3,
+      repetitions: { min: 10, max: 10 },
+      restInterval: 60,
+      prescriptionMode: 'reps',
+    },
+  ],
 };
 
 const TEMPLATE_B = {
@@ -632,5 +651,248 @@ describe('AddTrainingSheet — saving prop', () => {
     expect(screen.getByRole('button', { name: /Cancelar/i })).toBeDisabled();
     const primaryBtn = screen.getByText(/Adicionando…/i).closest('button');
     expect(primaryBtn).toBeDisabled();
+  });
+});
+
+// ─── 17. Da biblioteca — preview de exercícios ───────────────────────────────
+
+describe('AddTrainingSheet — preview de exercícios na biblioteca', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const openLibrary = async (user) => {
+    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+  };
+
+  it('preview is hidden by default for every template', async () => {
+    const user = userEvent.setup();
+    renderSheet();
+    await openLibrary(user);
+
+    expect(screen.queryByText(/Supino reto/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Nenhum exercício neste treino/i)).not.toBeInTheDocument();
+  });
+
+  it('disclosure caret toggles preview visibility', async () => {
+    const user = userEvent.setup();
+    renderSheet();
+    await openLibrary(user);
+
+    const row = screen.getByRole('option', { name: /Peito & Tríceps/i });
+    const caret = row.querySelector('button[aria-label="Ver exercícios"]');
+    expect(caret).not.toBeNull();
+
+    await user.click(caret);
+    expect(screen.getByText(/Supino reto/i)).toBeInTheDocument();
+
+    const closeCaret = row.querySelector('button[aria-label="Ocultar exercícios"]');
+    expect(closeCaret).not.toBeNull();
+    await user.click(closeCaret);
+    expect(screen.queryByText(/Supino reto/i)).not.toBeInTheDocument();
+  });
+
+  it('aria-expanded reflects state on the disclosure button', async () => {
+    const user = userEvent.setup();
+    renderSheet();
+    await openLibrary(user);
+
+    const row = screen.getByRole('option', { name: /Peito & Tríceps/i });
+    const caret = row.querySelector('button[aria-label="Ver exercícios"]');
+    expect(caret).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(caret);
+    const openCaret = row.querySelector('button[aria-label="Ocultar exercícios"]');
+    expect(openCaret).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('clicking the caret does NOT toggle row selection', async () => {
+    const user = userEvent.setup();
+    renderSheet();
+    await openLibrary(user);
+
+    const row = screen.getByRole('option', { name: /Peito & Tríceps/i });
+    expect(row).toHaveAttribute('aria-selected', 'false');
+
+    const caret = row.querySelector('button[aria-label="Ver exercícios"]');
+    await user.click(caret);
+
+    expect(
+      screen.getByRole('option', { name: /Peito & Tríceps/i })
+    ).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('renders rep-range line correctly (sets × min–max + rest)', async () => {
+    const user = userEvent.setup();
+    renderSheet();
+    await openLibrary(user);
+
+    const caret = screen
+      .getByRole('option', { name: /Peito & Tríceps/i })
+      .querySelector('button[aria-label="Ver exercícios"]');
+    await user.click(caret);
+
+    expect(
+      screen.getByText('1. Supino reto · 4 × 8–12 · 90s descanso')
+    ).toBeInTheDocument();
+  });
+
+  it('renders single-value reps without the en-dash', async () => {
+    const user = userEvent.setup();
+    renderSheet();
+    await openLibrary(user);
+
+    const caret = screen
+      .getByRole('option', { name: /Peito & Tríceps/i })
+      .querySelector('button[aria-label="Ver exercícios"]');
+    await user.click(caret);
+
+    expect(
+      screen.getByText('2. Crucifixo · 3 × 10 · 60s descanso')
+    ).toBeInTheDocument();
+  });
+
+  it('renders duration-mode exercises with seconds suffix', async () => {
+    const user = userEvent.setup();
+    const TEMPLATE_DURATION = {
+      id: 'tmpl-dur',
+      name: 'Core Estável',
+      category: 'mobility',
+      bodySegment: 'core',
+      trainingTemplateExerciseTemplates: [
+        {
+          id: 'ex-d1',
+          name: 'Prancha',
+          order: 1,
+          sets: 3,
+          repetitions: null,
+          restInterval: 0,
+          prescriptionMode: 'duration',
+          duration: 30,
+        },
+      ],
+    };
+    renderSheet({ trainingTemplates: [TEMPLATE_DURATION] });
+    await openLibrary(user);
+
+    const caret = screen
+      .getByRole('option', { name: /Core Estável/i })
+      .querySelector('button[aria-label="Ver exercícios"]');
+    await user.click(caret);
+
+    expect(screen.getByText('1. Prancha · 3 × 30s')).toBeInTheDocument();
+  });
+
+  it('renders fallback "X séries" line when repetitions is null and not duration mode', async () => {
+    const user = userEvent.setup();
+    const TEMPLATE_NULL_REPS = {
+      id: 'tmpl-null',
+      name: 'Treino Aberto',
+      category: 'functional',
+      trainingTemplateExerciseTemplates: [
+        {
+          id: 'ex-n1',
+          name: 'Movimento Livre',
+          order: 1,
+          sets: 3,
+          repetitions: null,
+          restInterval: 0,
+          prescriptionMode: 'reps',
+        },
+      ],
+    };
+    renderSheet({ trainingTemplates: [TEMPLATE_NULL_REPS] });
+    await openLibrary(user);
+
+    const caret = screen
+      .getByRole('option', { name: /Treino Aberto/i })
+      .querySelector('button[aria-label="Ver exercícios"]');
+    await user.click(caret);
+
+    expect(screen.getByText('1. Movimento Livre · 3 séries')).toBeInTheDocument();
+  });
+
+  it('shows empty placeholder when template has no exercises', async () => {
+    const user = userEvent.setup();
+    renderSheet();
+    await openLibrary(user);
+
+    const caret = screen
+      .getByRole('option', { name: /Cardio HIIT/i })
+      .querySelector('button[aria-label="Ver exercícios"]');
+    await user.click(caret);
+
+    expect(screen.getByText(/Nenhum exercício neste treino/i)).toBeInTheDocument();
+  });
+
+  it('reads exercises from the new trainingTemplateExerciseTemplates field', async () => {
+    const user = userEvent.setup();
+    const TEMPLATE_NEW_FIELD = {
+      id: 'tmpl-new',
+      name: 'Treino Novo Campo',
+      category: 'strength',
+      trainingTemplateExerciseTemplates: [
+        {
+          id: 'ex-new',
+          name: 'Agachamento',
+          order: 1,
+          sets: 5,
+          repetitions: { min: 5, max: 5 },
+          restInterval: 120,
+          prescriptionMode: 'reps',
+        },
+      ],
+    };
+    renderSheet({ trainingTemplates: [TEMPLATE_NEW_FIELD] });
+    await openLibrary(user);
+
+    // Meta line uses the new field for the exercise count
+    expect(screen.getByText(/1 exercícios/i)).toBeInTheDocument();
+
+    const caret = screen
+      .getByRole('option', { name: /Treino Novo Campo/i })
+      .querySelector('button[aria-label="Ver exercícios"]');
+    await user.click(caret);
+
+    expect(
+      screen.getByText('1. Agachamento · 5 × 5 · 120s descanso')
+    ).toBeInTheDocument();
+  });
+
+  it('sorts preview lines by order even if input is out of order', async () => {
+    const user = userEvent.setup();
+    const TEMPLATE_UNSORTED = {
+      id: 'tmpl-unsorted',
+      name: 'Treino Desordenado',
+      category: 'strength',
+      trainingTemplateExerciseTemplates: [
+        {
+          id: 'ex-b',
+          name: 'Segundo',
+          order: 2,
+          sets: 3,
+          repetitions: { min: 10, max: 10 },
+          restInterval: 0,
+          prescriptionMode: 'reps',
+        },
+        {
+          id: 'ex-a',
+          name: 'Primeiro',
+          order: 1,
+          sets: 4,
+          repetitions: { min: 8, max: 8 },
+          restInterval: 0,
+          prescriptionMode: 'reps',
+        },
+      ],
+    };
+    renderSheet({ trainingTemplates: [TEMPLATE_UNSORTED] });
+    await openLibrary(user);
+
+    const caret = screen
+      .getByRole('option', { name: /Treino Desordenado/i })
+      .querySelector('button[aria-label="Ver exercícios"]');
+    await user.click(caret);
+
+    expect(screen.getByText('1. Primeiro · 4 × 8')).toBeInTheDocument();
+    expect(screen.getByText('2. Segundo · 3 × 10')).toBeInTheDocument();
   });
 });

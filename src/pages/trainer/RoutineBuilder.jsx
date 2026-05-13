@@ -34,9 +34,11 @@ import BiSetActionSheet from '../../components/BiSetActionSheet';
 import SubstituteComposerSheet from '../../components/SubstituteComposerSheet';
 import SubstitutesInline from '../../components/SubstitutesInline';
 import SelectionActionBar, { SelectionInstructionStrip } from '../../components/SelectionActionBar';
+import api from '../../api/axios';
 import { t } from '../../i18n';
 import { WEEK_DAY_OPTIONS_SHORT } from '../../constants/weekDays';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
+import DurationLabel from '../../components/DurationLabel';
 import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { TRAINING_LEVEL_OPTIONS, getLevelLabel } from '../../constants/trainingLevels';
 import { GENDER_OPTIONS, getGenderLabel } from '../../constants/genderOrdination';
@@ -1031,6 +1033,7 @@ const ExerciseRowWithSubstitutes = ({
   onAddSubstitute,
   substitutesExpanded,
   onToggleSubstitutes,
+  onDeleteSubstitute,
 }) => {
   const substitutes = Array.isArray(ex.substitutes) ? ex.substitutes : [];
   const supportsSubstitutes = mode === 'protocol';
@@ -1086,6 +1089,16 @@ const ExerciseRowWithSubstitutes = ({
                       <span className="substitute-row-meta">{formatExerciseMeta(sub)}</span>
                     )}
                   </div>
+                  {!readOnly && onDeleteSubstitute && (
+                    <button
+                      type="button"
+                      className="substitute-row-delete-btn"
+                      aria-label={(t('substitute.deleteAria') || 'Excluir substituto {name}').replace('{name}', sub.name || '')}
+                      onClick={() => onDeleteSubstitute(sub, ex.id)}
+                    >
+                      <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -1111,6 +1124,7 @@ ExerciseRowWithSubstitutes.propTypes = {
   onAddSubstitute: PropTypes.func,
   substitutesExpanded: PropTypes.bool,
   onToggleSubstitutes: PropTypes.func,
+  onDeleteSubstitute: PropTypes.func,
 };
 
 ExerciseRowWithSubstitutes.defaultProps = {
@@ -1125,6 +1139,7 @@ ExerciseRowWithSubstitutes.defaultProps = {
   onAddSubstitute: null,
   substitutesExpanded: false,
   onToggleSubstitutes: null,
+  onDeleteSubstitute: null,
 };
 
 // ─── BisetGroupBlock ──────────────────────────────────────────────────────────
@@ -1152,6 +1167,7 @@ const BisetGroupBlock = ({
   onAddSubstitute,
   expandedSubstituteIds,
   onToggleSubstitutes,
+  onDeleteSubstitute,
 }) => {
   void groupId; // groupId implied by members[*].supersetGroupId
   return (
@@ -1227,6 +1243,16 @@ const BisetGroupBlock = ({
                             <span className="substitute-row-meta">{formatExerciseMeta(sub)}</span>
                           )}
                         </div>
+                        {!readOnly && onDeleteSubstitute && (
+                          <button
+                            type="button"
+                            className="substitute-row-delete-btn"
+                            aria-label={(t('substitute.deleteAria') || 'Excluir substituto {name}').replace('{name}', sub.name || '')}
+                            onClick={() => onDeleteSubstitute(sub, member.id)}
+                          >
+                            <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1257,6 +1283,7 @@ BisetGroupBlock.propTypes = {
   onEnterSelection: PropTypes.func,
   onAddSubstitute: PropTypes.func,
   expandedSubstituteIds: PropTypes.instanceOf(Set),
+  onDeleteSubstitute: PropTypes.func,
   onToggleSubstitutes: PropTypes.func,
 };
 
@@ -1274,6 +1301,7 @@ BisetGroupBlock.defaultProps = {
   onAddSubstitute: null,
   expandedSubstituteIds: null,
   onToggleSubstitutes: null,
+  onDeleteSubstitute: null,
 };
 
 // ─── TrainingItem ─────────────────────────────────────────────────────────────
@@ -1564,6 +1592,38 @@ const TrainingItem = ({
     });
   }, []);
 
+  const handleDeleteSubstitute = useCallback(
+    (substitute, principalId) => {
+      const name = substitute.name || 'substituto';
+      const message = (t('substitute.deleteConfirm') || 'Excluir "{name}"? Esta ação não pode ser desfeita.')
+        .replace('{name}', name);
+      setConfirmDialog({
+        message,
+        onConfirm: async () => {
+          setConfirmDialog(null);
+          try {
+            await api.delete(`/trainer/exercises/${substitute.id}`);
+            showToast(t('substitute.deletedToast') || 'Substituto removido.', 'success');
+            // Collapse accordion if this was the last substitute of this principal.
+            const principal = exercises.find((e) => e.id === principalId);
+            const remaining = (principal?.substitutes || []).filter((s) => s.id !== substitute.id);
+            if (remaining.length === 0) {
+              setExpandedSubstituteIds((prev) => {
+                const next = new Set(prev);
+                next.delete(principalId);
+                return next;
+              });
+            }
+            if (onRefetchTraining) await onRefetchTraining();
+          } catch (err) {
+            showToast(err.userMessage || t('substitute.deletedToast') || 'Erro ao remover substituto.', 'error');
+          }
+        },
+      });
+    },
+    [exercises, showToast, onRefetchTraining]
+  );
+
   const composerEditing =
     composerState && typeof composerState === 'object' && composerState.editing
       ? composerState.editing
@@ -1608,6 +1668,12 @@ const TrainingItem = ({
               <span className="training-item-meta-stat">
                 {exercises.length} ex
               </span>
+              <span className="training-item-meta-sep" aria-hidden="true">·</span>
+              <DurationLabel
+                seconds={training.estimatedDurationSeconds}
+                variant="inline"
+                className="training-item-meta-duration"
+              />
             </div>
           </div>
 
@@ -1693,6 +1759,9 @@ const TrainingItem = ({
                           }
                           substitutesExpanded={expandedSubstituteIds.has(ex.id)}
                           onToggleSubstitutes={handleToggleSubstitutes}
+                          onDeleteSubstitute={
+                            supportsSubstitutes ? handleDeleteSubstitute : null
+                          }
                         />
                       );
                     }
@@ -1721,6 +1790,9 @@ const TrainingItem = ({
                         }
                         expandedSubstituteIds={expandedSubstituteIds}
                         onToggleSubstitutes={handleToggleSubstitutes}
+                        onDeleteSubstitute={
+                          supportsSubstitutes ? handleDeleteSubstitute : null
+                        }
                       />
                     );
                   });
@@ -1822,6 +1894,7 @@ const TrainingItem = ({
           principal={substituteComposerPrincipal}
           onClose={() => setSubstituteComposerPrincipal(null)}
           onCreated={handleSubstituteCreated}
+          exerciseTemplates={exerciseTemplates}
         />
       )}
 
@@ -1866,6 +1939,7 @@ TrainingItem.propTypes = {
     name: PropTypes.string,
     weekDay: PropTypes.string,
     exercises: PropTypes.array,
+    estimatedDurationSeconds: PropTypes.number,
   }).isRequired,
   index: PropTypes.number.isRequired,
   exerciseTemplates: PropTypes.arrayOf(PropTypes.object).isRequired,

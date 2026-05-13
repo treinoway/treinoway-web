@@ -13,6 +13,7 @@ import {
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import SwapExerciseSheet from '../../components/SwapExerciseSheet';
 import SubstitutedLogLine from '../../components/SubstitutedLogLine';
+import DurationLabel from '../../components/DurationLabel';
 import { t } from '../../i18n';
 
 const interpolate = (template, values) =>
@@ -602,6 +603,13 @@ const WorkoutSession = () => {
           <div>
             <h1 className="page-title mb-0">{session.training?.name ?? 'Treino'}</h1>
             <p className="text-sm text-muted">{formatSessionDate(session.startedAt)}</p>
+            {session.training && (
+              <DurationLabel
+                seconds={session.training.estimatedDurationSeconds}
+                variant="inline"
+                className="session-header-duration"
+              />
+            )}
           </div>
           <span className={getWorkoutSessionStatusBadgeClass(session.status)}>
             {getWorkoutSessionStatusLabel(session.status)}
