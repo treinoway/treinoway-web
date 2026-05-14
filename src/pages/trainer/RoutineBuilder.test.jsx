@@ -1093,6 +1093,30 @@ describe('RoutineBuilder — exercise row actions', () => {
     expect(screen.queryByRole('button', { name: /Editar Supino reto/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Excluir Supino reto/i })).not.toBeInTheDocument();
   });
+
+  it('when readOnly the sortable wrapper carries the --disabled modifier class', async () => {
+    useProtocolBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+
+    const user = userEvent.setup();
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1',
+      path: '/trainer/protocols/:id',
+    });
+
+    const chevron = screen.getByRole('button', { name: /Expandir treino/i });
+    await user.click(chevron);
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    // In read-only mode the exercise row has role="listitem" (not "button").
+    // Walk up to its sortable wrapper and verify the --disabled modifier is present.
+    const listitem = screen.getAllByRole('listitem').find((el) =>
+      el.textContent.includes('Supino reto')
+    );
+    expect(listitem).toBeDefined();
+    const sortableWrapper = listitem.closest('.exercise-sortable-entry');
+    expect(sortableWrapper).not.toBeNull();
+    expect(sortableWrapper.classList.contains('exercise-sortable-entry--disabled')).toBe(true);
+  });
 });
 
 // ─── Tests — inline edit composer position ───────────────────────────────────

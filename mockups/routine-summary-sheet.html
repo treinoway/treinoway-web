@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Treinoway · Mockup · Resumo da Rotina (Sheet)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   TOKENS — mirror src/index.css :root canonical
+   ============================================================ */
+:root {
+  --brand-ink: #0A0F1C;
+  --brand-slate: #1E293B;
+  --brand-steel: #64748B;
+  --brand-mist: #F1F5F9;
+  --brand-divider: #E2E8F0;
+  --md-surface: #FFFFFF;
+  --md-surface-container: #F0F1F4;
+  --md-surface-container-high: #E6E7EB;
+  --md-outline-variant: #C7C7CC;
+
+  --brand-primary: #0A5FCC;
+  --brand-primary-dark: #083E85;
+  --brand-accent: #FF6B1A;
+  --brand-accent-container: #FFF1EA;
+
+  --md-error: #D32F2F;
+  --md-error-container: #FDDEDE;
+  --md-success: #2E7D32;
+  --md-success-container: #D4EDDA;
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+
+  --radius-stat: 4px;
+  --radius-brand: 8px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  --shadow-brand-sm: 0 1px 2px rgba(10, 15, 28, 0.04), 0 0 0 1px rgba(10, 15, 28, 0.04);
+  --shadow-brand-md: 0 4px 12px rgba(10, 15, 28, 0.08), 0 0 0 1px rgba(10, 15, 28, 0.04);
+  --shadow-brand-lg: 0 16px 48px rgba(10, 15, 28, 0.16), 0 0 0 1px rgba(10, 15, 28, 0.06);
+  --shadow-focus: 0 0 0 2px var(--brand-primary);
+
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --font-family-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-stat: 'Space Grotesk', ui-monospace, monospace;
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.08em;
+  --tracking-wider: 0.12em;
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+
+  --z-overlay: 1000;
+  --z-modal: 1100;
+  --z-sticky: 200;
+  --z-sidebar: 300;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  line-height: var(--line-height-normal);
+  color: var(--brand-ink);
+  background: var(--md-surface-container);
+  -webkit-font-smoothing: antialiased;
+}
+body { padding: var(--spacing-xl) var(--spacing-md) var(--spacing-xxl); }
+
+/* Page chrome */
+.page-h1 {
+  font-family: var(--font-family-display);
+  font-size: 24px; font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  text-align: center; margin-bottom: var(--spacing-xs);
+}
+.page-sub {
+  text-align: center; font-size: 13px;
+  color: var(--brand-steel); margin-bottom: var(--spacing-xxl);
+}
+.section-eyebrow {
+  font-family: var(--font-family-base);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-steel);
+  margin: var(--spacing-xl) auto var(--spacing-md);
+  display: flex; align-items: center; gap: var(--spacing-md);
+  max-width: 1280px;
+}
+.section-eyebrow::before, .section-eyebrow::after {
+  content: ""; flex: 1; height: 1px; background: var(--brand-divider);
+}
+.frames { display: flex; flex-direction: column; gap: var(--spacing-xl); align-items: center; }
+.frame {
+  position: relative;
+  background: var(--md-surface);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-md);
+  overflow: hidden;
+}
+.frame-desktop { width: 100%; max-width: 1280px; height: 800px; }
+.frame-mobile { width: 380px; height: 720px; }
+.frame-label {
+  position: absolute; top: -28px; left: 0;
+  font-family: var(--font-family-base);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-steel);
+}
+
+/* ============================================================
+   APP LAYOUT — sidebar + main content
+   ============================================================ */
+.app-layout { display: flex; height: 100%; }
+
+/* Sidebar (desktop) */
+.sidebar {
+  width: 232px;
+  background: var(--md-surface);
+  border-right: 1px solid var(--brand-divider);
+  flex-shrink: 0;
+  display: flex; flex-direction: column;
+  padding: var(--spacing-md) 0;
+  z-index: var(--z-sidebar);
+}
+.sidebar-brand {
+  padding: 0 var(--spacing-md) var(--spacing-md);
+  display: flex; align-items: center; gap: var(--spacing-sm);
+}
+.sidebar-logo {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: var(--brand-primary);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--md-surface);
+  font-family: var(--font-family-display);
+  font-weight: 700; font-size: 14px;
+}
+.sidebar-name {
+  font-family: var(--font-family-display);
+  font-size: 16px; font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+.sidebar-section-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-steel);
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-xs);
+}
+.sidebar-nav { display: flex; flex-direction: column; }
+.sidebar-link {
+  display: flex; align-items: center; gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--brand-slate); font-size: 13px;
+  font-weight: 500; border-left: 3px solid transparent;
+  transition: all var(--duration-fast) var(--ease-brand);
+  cursor: pointer; min-height: 40px;
+}
+.sidebar-link:hover { background: var(--brand-mist); color: var(--brand-ink); }
+.sidebar-link.is-active {
+  background: var(--brand-mist);
+  border-left-color: var(--brand-primary);
+  color: var(--brand-ink); font-weight: 600;
+}
+.sidebar-link-badge {
+  margin-left: auto;
+  font-family: var(--font-family-base);
+  font-size: 9px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  background: var(--brand-accent);
+  color: var(--md-surface);
+  padding: 2px 5px; border-radius: 3px;
+}
+.sidebar-foot {
+  margin-top: auto;
+  padding: var(--spacing-md);
+  display: flex; align-items: center; gap: var(--spacing-sm);
+  border-top: 1px solid var(--brand-divider);
+}
+.sidebar-avatar {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--brand-mist);
+  color: var(--brand-ink);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-family-display);
+  font-size: 12px; font-weight: 700;
+  flex-shrink: 0;
+}
+.sidebar-user-name { font-size: 13px; font-weight: 600; line-height: 1.2; }
+.sidebar-user-email { font-size: 11px; color: var(--brand-steel); }
+
+/* Builder shell */
+.builder-shell {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  background: var(--md-surface-container);
+  position: relative; overflow: hidden;
+}
+
+/* Builder topbar */
+.builder-topbar {
+  background: var(--md-surface);
+  border-bottom: 1px solid var(--brand-divider);
+  padding: var(--spacing-md) var(--spacing-xl);
+  display: flex; align-items: center; gap: var(--spacing-md);
+  flex-shrink: 0;
+  z-index: var(--z-sticky);
+}
+.builder-topbar-back {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-brand);
+  color: var(--brand-steel);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-brand);
+}
+.builder-topbar-back:hover {
+  background: var(--md-surface-container-high);
+  color: var(--brand-ink);
+}
+.builder-title-wrap { flex: 1; min-width: 0; }
+.builder-eyebrow {
+  font-family: var(--font-family-base);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-steel);
+  line-height: 1; margin-bottom: 4px;
+}
+.builder-eyebrow-saved { color: var(--md-success); }
+.builder-title {
+  font-family: var(--font-family-display);
+  font-size: 20px; font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
+  color: var(--brand-ink);
+}
+.builder-save-status {
+  font-size: 11px;
+  color: var(--brand-steel);
+  display: flex; align-items: center; gap: var(--spacing-xs);
+}
+.builder-save-dot {
+  width: 6px; height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--md-success);
+}
+.builder-topbar-actions { display: flex; gap: var(--spacing-xs); }
+
+/* Buttons */
+.btn-primary, .btn-secondary {
+  font-family: var(--font-family-base);
+  font-size: 13px; font-weight: 600;
+  letter-spacing: var(--tracking-wide); text-transform: uppercase;
+  border-radius: var(--radius-brand);
+  padding: 0 var(--spacing-md);
+  min-height: 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-brand);
+}
+.btn-primary {
+  background: var(--brand-primary); color: var(--md-surface); border: none;
+}
+.btn-primary:hover { background: var(--brand-primary-dark); }
+.btn-secondary {
+  background: var(--md-surface); color: var(--brand-ink);
+  border: 1px solid var(--md-outline-variant);
+}
+.btn-secondary:hover { background: var(--md-surface-container-high); }
+.btn-sm { font-size: 12px; min-height: 36px; padding: 0 14px; }
+
+/* Identity strip */
+.identity-strip {
+  background: var(--md-surface);
+  border-bottom: 1px solid var(--brand-divider);
+  padding: 10px var(--spacing-xl);
+  display: flex; align-items: center; gap: var(--spacing-md);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.identity-strip-label {
+  font-family: var(--font-family-base);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-steel);
+}
+.identity-chip {
+  display: inline-flex; align-items: center; gap: var(--spacing-xs);
+  padding: 4px var(--spacing-sm);
+  background: var(--brand-mist);
+  border-radius: var(--radius-stat);
+  font-size: 11px;
+  color: var(--brand-slate);
+}
+.identity-chip-key {
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  font-size: 10px;
+  color: var(--brand-steel);
+}
+.identity-chip-val {
+  font-weight: 600;
+  color: var(--brand-ink);
+}
+
+/* Builder stats row */
+.builder-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-xl) 0;
+  flex-shrink: 0;
+}
+.builder-stat-card {
+  background: var(--md-surface);
+  border-radius: var(--radius-brand);
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex; flex-direction: column; gap: 2px;
+  box-shadow: var(--shadow-brand-sm);
+}
+.builder-stat-card-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-steel);
+}
+.builder-stat-card-value {
+  font-family: var(--font-family-stat);
+  font-size: 22px; font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  color: var(--brand-ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.builder-stat-card-value-unit {
+  font-size: 11px; color: var(--brand-steel);
+  margin-left: 2px; font-weight: 500;
+}
+.builder-stat-card-sub { font-size: 10px; color: var(--brand-steel); }
+.builder-stat-card--accent .builder-stat-card-value { color: var(--brand-primary); }
+.builder-stat-card--warn .builder-stat-card-value { color: var(--brand-accent); }
+
+/* Training canvas */
+.training-canvas {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--spacing-md);
+}
+.canvas-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+.canvas-section-title {
+  font-family: var(--font-family-display);
+  font-size: 12px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-ink);
+  display: inline-flex; align-items: center; gap: var(--spacing-xs);
+}
+.canvas-section-title-count {
+  color: var(--brand-steel);
+  font-family: var(--font-family-stat);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.canvas-section-hint {
+  font-size: 11px; color: var(--brand-steel); font-weight: 500;
+}
+
+/* Inline button on section header — for "Resumo" / peek toggle */
+.section-header-action {
+  display: inline-flex; align-items: center; gap: var(--spacing-xs);
+  padding: 6px 10px;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-brand);
+  background: var(--md-surface);
+  color: var(--brand-primary);
+  font-family: var(--font-family-base);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-brand);
+  min-height: 32px;
+}
+.section-header-action:hover {
+  background: rgba(10, 95, 204, 0.06);
+  border-color: var(--brand-primary);
+}
+
+/* Week overview */
+.week-overview {
+  background: var(--md-surface);
+  border-radius: var(--radius-brand);
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex; align-items: stretch; gap: 6px;
+  box-shadow: var(--shadow-brand-sm);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.week-overview-cell {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-brand);
+}
+.week-overview-cell:hover { background: var(--brand-mist); }
+.week-overview-cell--active {
+  background: var(--brand-mist);
+  border-color: var(--md-outline-variant);
+}
+.week-overview-cell--empty { opacity: 0.65; }
+.week-overview-day {
+  font-family: var(--font-family-display);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-steel);
+  line-height: 1;
+}
+.week-overview-cell--active .week-overview-day { color: var(--brand-ink); }
+.week-overview-stat {
+  font-family: var(--font-family-stat);
+  font-size: 15px; font-weight: 700;
+  color: var(--brand-ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-tight);
+}
+.week-overview-cell--empty .week-overview-stat {
+  color: var(--brand-steel); font-weight: 500;
+}
+.week-overview-sub {
+  font-size: 9px; color: var(--brand-steel);
+  font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; line-height: 1;
+}
+
+/* Readiness legend */
+.readiness-legend-inline {
+  font-size: 11px; color: var(--brand-steel);
+  display: inline-flex; align-items: center; gap: var(--spacing-sm);
+}
+.readiness-legend-inline-item {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-weight: 600;
+}
+.readiness-legend-inline-bar {
+  width: 12px; height: 3px; border-radius: 2px;
+  background: var(--md-outline-variant);
+}
+.readiness-legend-inline-bar--partial { background: var(--brand-accent); }
+.readiness-legend-inline-bar--ready { background: var(--md-success); }
+
+/* Training list */
+.training-list { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.training-item {
+  background: var(--md-surface);
+  border: 1px solid var(--brand-divider);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  transition: all var(--duration-fast) var(--ease-brand);
+}
+.training-item:hover {
+  border-color: var(--md-outline-variant);
+  box-shadow: var(--shadow-brand-sm);
+}
+.training-item::before {
+  content: ""; position: absolute;
+  top: 0; left: 0; bottom: 0; width: 3px;
+  background: var(--md-outline-variant);
+  border-top-left-radius: 10px; border-bottom-left-radius: 10px;
+}
+.training-item--ready::before { background: var(--md-success); }
+.training-item--partial::before { background: var(--brand-accent); }
+
+.training-item-head {
+  display: flex; align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) calc(var(--spacing-md) + 6px);
+  cursor: pointer; min-height: 64px;
+}
+.training-item-letter {
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--radius-brand);
+  background: var(--brand-mist);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-family-display);
+  font-size: 16px; font-weight: 700;
+  color: var(--brand-ink);
+  letter-spacing: var(--tracking-tight);
+}
+.training-item--ready .training-item-letter {
+  background: var(--md-success-container); color: var(--md-success);
+}
+.training-item--partial .training-item-letter {
+  background: var(--brand-accent-container); color: var(--brand-accent);
+}
+.training-item-main {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.training-item-title {
+  font-family: var(--font-family-display);
+  font-size: 20px; font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
+  color: var(--brand-ink);
+}
+.training-item-meta {
+  display: flex; align-items: center; gap: var(--spacing-xs);
+  font-size: 12px; color: var(--brand-steel);
+  flex-wrap: wrap;
+}
+.training-item-meta-stat {
+  font-family: var(--font-family-stat);
+  font-weight: 600; color: var(--brand-slate);
+  font-variant-numeric: tabular-nums;
+}
+.training-item-meta-sep { opacity: 0.45; }
+
+.weekday-chip {
+  display: inline-flex; align-items: center;
+  padding: 4px 8px;
+  background: var(--brand-mist);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-family: var(--font-family-display);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-ink);
+  white-space: nowrap; min-height: 24px;
+}
+.weekday-chip--set {
+  background: rgba(10, 95, 204, 0.08); color: var(--brand-primary);
+}
+.weekday-chip--unassigned {
+  background: transparent;
+  border: 1px dashed var(--md-outline-variant);
+  color: var(--brand-steel);
+}
+.training-item-chevron {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--brand-steel);
+}
+
+/* Bottom bar (mobile create/edit save+cancel) */
+.builder-bottom-bar {
+  display: none;
+  background: var(--md-surface);
+  border-top: 1px solid var(--brand-divider);
+  padding: var(--spacing-sm) var(--spacing-md);
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   FAB · "Resumo" — minimal, matches existing tone
+   ============================================================ */
+.fab-summary {
+  position: absolute;
+  bottom: var(--spacing-lg);
+  right: var(--spacing-lg);
+  z-index: 100;
+  background: var(--brand-primary);
+  color: var(--md-surface);
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0 var(--spacing-md) 0 14px;
+  display: flex; align-items: center; gap: var(--spacing-sm);
+  min-height: 44px;
+  box-shadow: var(--shadow-brand-md), 0 8px 24px rgba(10, 95, 204, 0.24);
+  cursor: pointer;
+  font-family: var(--font-family-base);
+  transition: all var(--duration-fast) var(--ease-brand);
+}
+.fab-summary:hover {
+  background: var(--brand-primary-dark);
+  transform: translateY(-1px);
+}
+.fab-summary:focus-visible {
+  outline: none; box-shadow: var(--shadow-focus), 0 8px 24px rgba(10, 95, 204, 0.24);
+}
+.fab-summary-icon {
+  width: 16px; height: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.fab-summary-label {
+  font-size: 12px; font-weight: 700;
+  letter-spacing: var(--tracking-wide); text-transform: uppercase;
+}
+.fab-summary-count {
+  font-family: var(--font-family-stat);
+  font-size: 12px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding-left: var(--spacing-sm);
+  border-left: 1px solid rgba(255,255,255,0.24);
+  color: rgba(255,255,255,0.85);
+}
+
+/* ============================================================
+   OVERLAY + SHEET (light, matches existing card style)
+   ============================================================ */
+.overlay {
+  position: absolute; inset: 0;
+  background: rgba(10, 15, 28, 0.48);
+  z-index: var(--z-overlay);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--spacing-xl);
+  animation: fade-in var(--duration-base) var(--ease-brand);
+}
+@keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+
+.sheet {
+  background: var(--md-surface);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-lg);
+  width: 100%; max-width: 600px; max-height: 100%;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  z-index: var(--z-modal);
+}
+
+.sheet-header {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--brand-divider);
+  display: flex; align-items: center; gap: var(--spacing-md);
+}
+.sheet-header-main { flex: 1; min-width: 0; }
+.sheet-eyebrow {
+  font-family: var(--font-family-base);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-steel);
+  margin-bottom: 4px;
+}
+.sheet-title {
+  font-family: var(--font-family-display);
+  font-size: 20px; font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--brand-ink);
+  line-height: var(--line-height-tight);
+}
+.sheet-close {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-brand);
+  background: transparent;
+  color: var(--brand-steel);
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--duration-fast) var(--ease-brand);
+}
+.sheet-close:hover {
+  background: var(--md-surface-container-high);
+  color: var(--brand-ink);
+}
+
+/* Sheet body — list of training-items in compact peek mode */
+.sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg);
+  background: var(--md-surface-container);
+  display: flex; flex-direction: column; gap: var(--spacing-sm);
+}
+
+/* Reuse existing training-item visual for the peek */
+.peek-item {
+  background: var(--md-surface);
+  border: 1px solid var(--brand-divider);
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+.peek-item::before {
+  content: ""; position: absolute;
+  top: 0; left: 0; bottom: 0; width: 3px;
+  background: var(--md-outline-variant);
+  border-top-left-radius: 10px; border-bottom-left-radius: 10px;
+}
+.peek-item--ready::before { background: var(--md-success); }
+.peek-item--partial::before { background: var(--brand-accent); }
+
+.peek-head {
+  display: flex; align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) calc(var(--spacing-md) + 6px);
+  border-bottom: 1px solid var(--brand-divider);
+}
+.peek-letter {
+  width: 28px; height: 28px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--brand-mist);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-family-display);
+  font-size: 13px; font-weight: 700;
+  color: var(--brand-ink);
+  letter-spacing: var(--tracking-tight);
+}
+.peek-item--ready .peek-letter {
+  background: var(--md-success-container); color: var(--md-success);
+}
+.peek-item--partial .peek-letter {
+  background: var(--brand-accent-container); color: var(--brand-accent);
+}
+.peek-title {
+  flex: 1; min-width: 0;
+  font-family: var(--font-family-display);
+  font-size: 14px; font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--brand-ink);
+  line-height: 1.2;
+}
+.peek-count {
+  font-family: var(--font-family-stat);
+  font-size: 11px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand-steel);
+}
+.peek-jump {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: var(--brand-steel);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--duration-fast) var(--ease-brand);
+}
+.peek-jump:hover { background: var(--brand-mist); color: var(--brand-primary); }
+
+.peek-exercises {
+  padding: var(--spacing-xs) 0;
+}
+.peek-exercise {
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  gap: var(--spacing-md);
+  align-items: center;
+  padding: 6px var(--spacing-md) 6px calc(var(--spacing-md) + 6px);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-brand);
+}
+.peek-exercise:hover { background: var(--brand-mist); }
+.peek-exercise-stat {
+  font-family: var(--font-family-stat);
+  font-size: 12px; font-weight: 700;
+  color: var(--brand-ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-tight);
+}
+.peek-exercise-name {
+  font-size: 13px; color: var(--brand-slate); font-weight: 500;
+}
+.peek-exercise-meta {
+  font-family: var(--font-family-stat);
+  font-size: 11px; color: var(--brand-steel);
+  font-variant-numeric: tabular-nums;
+}
+.peek-empty {
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) calc(var(--spacing-md) + 6px);
+  font-size: 12px; font-style: italic;
+  color: var(--brand-steel);
+}
+
+.sheet-footer {
+  padding: 10px var(--spacing-lg);
+  border-top: 1px solid var(--brand-divider);
+  background: var(--md-surface);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.sheet-footer-status {
+  font-size: 11px; color: var(--brand-steel);
+  display: flex; align-items: center; gap: var(--spacing-xs);
+}
+.sheet-footer-hint {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-steel);
+}
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+.mobile .sidebar { display: none; }
+.mobile .builder-topbar { padding: var(--spacing-sm) var(--spacing-md); gap: var(--spacing-sm); }
+.mobile .builder-title { font-size: 16px; }
+.mobile .builder-eyebrow { font-size: 9px; }
+.mobile .builder-topbar-actions--responsive { display: none; }
+.mobile .identity-strip {
+  padding: var(--spacing-xs) var(--spacing-md);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
+}
+.mobile .builder-stats-row {
+  padding: var(--spacing-sm) var(--spacing-md) 0;
+  gap: var(--spacing-sm);
+}
+.mobile .builder-stat-card-value { font-size: 18px; }
+.mobile .training-canvas { padding: var(--spacing-md); }
+.mobile .training-item-head { padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) calc(var(--spacing-sm) + 6px); }
+.mobile .training-item-letter { width: 32px; height: 32px; font-size: 14px; }
+.mobile .training-item-title { font-size: 16px; }
+.mobile .week-overview-stat { font-size: 13px; }
+.mobile .week-overview-day { font-size: 9px; }
+.mobile .week-overview-sub { display: none; }
+.mobile .week-overview-cell { padding: 8px 2px; }
+
+.mobile .builder-bottom-bar { display: flex; }
+.mobile .builder-bottom-bar > * { flex: 1; }
+
+.mobile .fab-summary {
+  bottom: 76px; right: var(--spacing-md);
+}
+.mobile .overlay { padding: 0; align-items: flex-end; }
+.mobile .sheet {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  max-height: 92%; width: 100%;
+}
+.mobile .sheet-handle {
+  width: 36px; height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--md-outline-variant);
+  margin: var(--spacing-sm) auto 0;
+}
+.mobile .sheet-header { padding: var(--spacing-sm) var(--spacing-md); }
+.mobile .sheet-title { font-size: 18px; }
+.mobile .sheet-body { padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md); }
+.mobile .peek-exercise { grid-template-columns: 52px 1fr; }
+.mobile .peek-exercise-meta { display: none; }
+
+/* Anatomia */
+.anatomy {
+  max-width: 1280px; margin: 0 auto;
+  background: var(--md-surface);
+  border-radius: var(--radius-brand);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-brand-sm);
+}
+.anatomy-title {
+  font-family: var(--font-family-display);
+  font-size: 12px; font-weight: 700;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  color: var(--brand-ink);
+  margin-bottom: var(--spacing-md);
+}
+.anatomy-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md) var(--spacing-lg);
+}
+.anatomy-item {
+  display: grid; grid-template-columns: 28px 1fr;
+  gap: var(--spacing-sm); align-items: flex-start;
+}
+.anatomy-num {
+  width: 24px; height: 24px;
+  border-radius: var(--radius-stat);
+  background: var(--brand-primary); color: var(--md-surface);
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.anatomy-text { font-size: 13px; color: var(--brand-slate); line-height: var(--line-height-normal); }
+.anatomy-text strong { color: var(--brand-ink); font-weight: 600; }
+.anatomy-text code {
+  font-family: var(--font-family-stat);
+  background: var(--brand-mist);
+  color: var(--brand-ink);
+  padding: 1px 6px; border-radius: var(--radius-stat);
+  font-size: 12px;
+}
+@media (max-width: 768px) {
+  .anatomy-list { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<h1 class="page-h1">Resumo da Rotina · Sheet (refit alinhado ao layout atual)</h1>
+<p class="page-sub">Espelha topbar/identity-strip/stats/week-overview/training-list reais · adiciona FAB "Resumo" + sheet light no mesmo tom da página</p>
+
+<div class="frames">
+
+  <!-- ===== 01 · Desktop — modo edição, FAB visível ===== -->
+  <div class="frame frame-desktop">
+    <span class="frame-label">01 · Desktop · modo edição · FAB visível</span>
+    <div class="app-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <span class="sidebar-logo">tw</span>
+          <span class="sidebar-name">Treinoway</span>
+        </div>
+        <nav class="sidebar-nav">
+          <a class="sidebar-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Painel</a>
+          <a class="sidebar-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Meu Perfil</a>
+          <a class="sidebar-link is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Minhas Rotinas</a>
+          <a class="sidebar-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>Minha Dieta</a>
+          <a class="sidebar-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11H5a2 2 0 0 0-2 2v7h18v-7a2 2 0 0 0-2-2h-4"/></svg>Anamneses</a>
+        </nav>
+        <span class="sidebar-section-label">Treinador</span>
+        <nav class="sidebar-nav">
+          <a class="sidebar-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Meus Alunos</a>
+          <a class="sidebar-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            iArnold
+            <span class="sidebar-link-badge">AI</span>
+          </a>
+          <a class="sidebar-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/></svg>Sua Marca</a>
+          <a class="sidebar-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Biblioteca</a>
+        </nav>
+        <div class="sidebar-foot">
+          <div class="sidebar-avatar">AN</div>
+          <div>
+            <div class="sidebar-user-name">Adeildo Neto</div>
+            <div class="sidebar-user-email">n.santos1897@gmail.com</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Builder shell -->
+      <div class="builder-shell">
+        <div class="builder-topbar">
+          <button class="builder-topbar-back" aria-label="Voltar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="builder-title-wrap">
+            <div class="builder-eyebrow">
+              <span>Editando rotina</span>
+              <span class="builder-eyebrow-saved">· Salvo · há 12s</span>
+            </div>
+            <div class="builder-title">Hipertrofia Intermediário — 4x por semana</div>
+          </div>
+          <div class="builder-topbar-actions">
+            <button class="btn-secondary btn-sm">Cancelar</button>
+            <button class="btn-primary btn-sm">Salvar</button>
+          </div>
+        </div>
+
+        <div class="identity-strip">
+          <span class="identity-strip-label">Identidade</span>
+          <span class="identity-chip"><span class="identity-chip-key">Tipo</span><span class="identity-chip-val">Força</span></span>
+          <span class="identity-chip"><span class="identity-chip-key">Nível</span><span class="identity-chip-val">Intermediário</span></span>
+          <span class="identity-chip"><span class="identity-chip-key">Início</span><span class="identity-chip-val">28 abr. 2026</span></span>
+          <span class="identity-chip"><span class="identity-chip-key">Expira</span><span class="identity-chip-val">30 set. 2026</span></span>
+          <span class="identity-chip"><span class="identity-chip-key">Gênero</span><span class="identity-chip-val">Masculino</span></span>
+        </div>
+
+        <div class="builder-stats-row">
+          <div class="builder-stat-card builder-stat-card--accent">
+            <span class="builder-stat-card-label">Treinos</span>
+            <span class="builder-stat-card-value">4</span>
+            <span class="builder-stat-card-sub">na rotina</span>
+          </div>
+          <div class="builder-stat-card">
+            <span class="builder-stat-card-label">Exercícios</span>
+            <span class="builder-stat-card-value">20</span>
+            <span class="builder-stat-card-sub">Total</span>
+          </div>
+          <div class="builder-stat-card">
+            <span class="builder-stat-card-label">Dias atribuídos</span>
+            <span class="builder-stat-card-value">4<span class="builder-stat-card-value-unit">/6</span></span>
+            <span class="builder-stat-card-sub">todos com dia</span>
+          </div>
+        </div>
+
+        <div class="training-canvas">
+          <div class="canvas-section-header">
+            <span class="canvas-section-title">Distribuição semanal <span class="canvas-section-title-count">4 / 7</span></span>
+            <span class="canvas-section-hint">O dia é opcional. Você pode criar toda a rotina sem atribuir.</span>
+          </div>
+          <div class="week-overview">
+            <div class="week-overview-cell week-overview-cell--empty">
+              <span class="week-overview-day">Dom</span>
+              <span class="week-overview-stat">–</span>
+              <span class="week-overview-sub">Sem treino</span>
+            </div>
+            <div class="week-overview-cell week-overview-cell--active">
+              <span class="week-overview-day">Seg</span>
+              <span class="week-overview-stat">1</span>
+              <span class="week-overview-sub">1 treino</span>
+            </div>
+            <div class="week-overview-cell week-overview-cell--active">
+              <span class="week-overview-day">Ter</span>
+              <span class="week-overview-stat">1</span>
+              <span class="week-overview-sub">1 treino</span>
+            </div>
+            <div class="week-overview-cell week-overview-cell--empty">
+              <span class="week-overview-day">Qua</span>
+              <span class="week-overview-stat">–</span>
+              <span class="week-overview-sub">Sem treino</span>
+            </div>
+            <div class="week-overview-cell week-overview-cell--active">
+              <span class="week-overview-day">Qui</span>
+              <span class="week-overview-stat">1</span>
+              <span class="week-overview-sub">1 treino</span>
+            </div>
+            <div class="week-overview-cell week-overview-cell--active">
+              <span class="week-overview-day">Sex</span>
+              <span class="week-overview-stat">1</span>
+              <span class="week-overview-sub">1 treino</span>
+            </div>
+            <div class="week-overview-cell week-overview-cell--empty">
+              <span class="week-overview-day">Sáb</span>
+              <span class="week-overview-stat">–</span>
+              <span class="week-overview-sub">Sem treino</span>
+            </div>
+          </div>
+
+          <div class="canvas-section-header">
+            <span class="canvas-section-title">Treinos da rotina <span class="canvas-section-title-count">4</span></span>
+            <span class="readiness-legend-inline">
+              <span>Borda do card:</span>
+              <span class="readiness-legend-inline-item"><span class="readiness-legend-inline-bar"></span>Vazio</span>
+              <span class="readiness-legend-inline-item"><span class="readiness-legend-inline-bar readiness-legend-inline-bar--partial"></span>Parcial</span>
+              <span class="readiness-legend-inline-item"><span class="readiness-legend-inline-bar readiness-legend-inline-bar--ready"></span>Pronto</span>
+            </span>
+          </div>
+
+          <div class="training-list">
+            <div class="training-item training-item--ready">
+              <div class="training-item-head">
+                <div class="training-item-letter">A</div>
+                <div class="training-item-main">
+                  <div class="training-item-title">Treino A: Peito e Tríceps</div>
+                  <div class="training-item-meta">
+                    <span class="weekday-chip weekday-chip--set">Segunda</span>
+                    <span class="training-item-meta-sep">·</span>
+                    <span class="training-item-meta-stat">5 ex</span>
+                  </div>
+                </div>
+                <div class="training-item-chevron">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="training-item training-item--ready">
+              <div class="training-item-head">
+                <div class="training-item-letter">B</div>
+                <div class="training-item-main">
+                  <div class="training-item-title">Treino B: Costas e Bíceps</div>
+                  <div class="training-item-meta">
+                    <span class="weekday-chip weekday-chip--set">Terça</span>
+                    <span class="training-item-meta-sep">·</span>
+                    <span class="training-item-meta-stat">5 ex</span>
+                  </div>
+                </div>
+                <div class="training-item-chevron">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="training-item training-item--partial">
+              <div class="training-item-head">
+                <div class="training-item-letter">C</div>
+                <div class="training-item-main">
+                  <div class="training-item-title">Treino C: Quadríceps e Glúteos</div>
+                  <div class="training-item-meta">
+                    <span class="weekday-chip weekday-chip--set">Quinta</span>
+                    <span class="training-item-meta-sep">·</span>
+                    <span class="training-item-meta-stat">5 ex</span>
+                  </div>
+                </div>
+                <div class="training-item-chevron">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="training-item training-item--ready">
+              <div class="training-item-head">
+                <div class="training-item-letter">D</div>
+                <div class="training-item-main">
+                  <div class="training-item-title">Treino D: Posterior e Ombros</div>
+                  <div class="training-item-meta">
+                    <span class="weekday-chip weekday-chip--set">Sexta</span>
+                    <span class="training-item-meta-sep">·</span>
+                    <span class="training-item-meta-stat">5 ex</span>
+                  </div>
+                </div>
+                <div class="training-item-chevron">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="fab-summary" aria-label="Ver resumo de exercícios">
+          <span class="fab-summary-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </span>
+          <span class="fab-summary-label">Resumo</span>
+          <span class="fab-summary-count">20 ex</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 02 · Desktop — sheet aberto ===== -->
+  <div class="frame frame-desktop">
+    <span class="frame-label">02 · Desktop · sheet aberto · light · usa peek-item espelhando training-item</span>
+    <div class="app-layout">
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <span class="sidebar-logo">tw</span>
+          <span class="sidebar-name">Treinoway</span>
+        </div>
+        <nav class="sidebar-nav">
+          <a class="sidebar-link is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Minhas Rotinas</a>
+        </nav>
+      </aside>
+
+      <div class="builder-shell">
+        <div class="builder-topbar">
+          <button class="builder-topbar-back" aria-label="Voltar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="builder-title-wrap">
+            <div class="builder-eyebrow"><span>Editando rotina</span><span class="builder-eyebrow-saved">· Salvo · há 12s</span></div>
+            <div class="builder-title">Hipertrofia Intermediário — 4x por semana</div>
+          </div>
+          <div class="builder-topbar-actions">
+            <button class="btn-secondary btn-sm">Cancelar</button>
+            <button class="btn-primary btn-sm">Salvar</button>
+          </div>
+        </div>
+
+        <div class="identity-strip">
+          <span class="identity-strip-label">Identidade</span>
+          <span class="identity-chip"><span class="identity-chip-key">Tipo</span><span class="identity-chip-val">Força</span></span>
+          <span class="identity-chip"><span class="identity-chip-key">Nível</span><span class="identity-chip-val">Intermediário</span></span>
+        </div>
+
+        <div class="builder-stats-row">
+          <div class="builder-stat-card builder-stat-card--accent">
+            <span class="builder-stat-card-label">Treinos</span>
+            <span class="builder-stat-card-value">4</span>
+            <span class="builder-stat-card-sub">na rotina</span>
+          </div>
+          <div class="builder-stat-card">
+            <span class="builder-stat-card-label">Exercícios</span>
+            <span class="builder-stat-card-value">20</span>
+            <span class="builder-stat-card-sub">Total</span>
+          </div>
+          <div class="builder-stat-card">
+            <span class="builder-stat-card-label">Dias atribuídos</span>
+            <span class="builder-stat-card-value">4<span class="builder-stat-card-value-unit">/4</span></span>
+            <span class="builder-stat-card-sub">todos com dia</span>
+          </div>
+        </div>
+
+        <div class="training-canvas">
+          <div class="canvas-section-header">
+            <span class="canvas-section-title">Treinos da rotina <span class="canvas-section-title-count">4</span></span>
+          </div>
+          <div class="training-list">
+            <div class="training-item training-item--ready">
+              <div class="training-item-head">
+                <div class="training-item-letter">A</div>
+                <div class="training-item-main">
+                  <div class="training-item-title">Treino A: Peito e Tríceps</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="overlay">
+          <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title-1">
+            <div class="sheet-header">
+              <div class="sheet-header-main">
+                <div class="sheet-eyebrow">Resumo · 4 treinos · 20 exercícios</div>
+                <h2 class="sheet-title" id="sheet-title-1">Exercícios da rotina</h2>
+              </div>
+              <button class="sheet-close" aria-label="Fechar resumo">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div class="sheet-body">
+
+              <div class="peek-item peek-item--ready">
+                <div class="peek-head">
+                  <div class="peek-letter">A</div>
+                  <div class="peek-title">Treino A: Peito e Tríceps</div>
+                  <span class="weekday-chip weekday-chip--set">Seg</span>
+                  <span class="peek-count">5 ex</span>
+                  <button class="peek-jump" aria-label="Ir para Treino A">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                </div>
+                <div class="peek-exercises">
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">4×8</span>
+                    <span class="peek-exercise-name">Supino reto barra</span>
+                    <span class="peek-exercise-meta">80kg · 90s</span>
+                  </div>
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">3×12</span>
+                    <span class="peek-exercise-name">Crucifixo halteres</span>
+                    <span class="peek-exercise-meta">14kg · 60s</span>
+                  </div>
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">3×10</span>
+                    <span class="peek-exercise-name">Supino inclinado smith</span>
+                    <span class="peek-exercise-meta">60kg · 75s</span>
+                  </div>
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">4×10</span>
+                    <span class="peek-exercise-name">Tríceps testa</span>
+                    <span class="peek-exercise-meta">25kg · 60s</span>
+                  </div>
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">3×15</span>
+                    <span class="peek-exercise-name">Tríceps corda</span>
+                    <span class="peek-exercise-meta">22kg · 45s</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="peek-item peek-item--ready">
+                <div class="peek-head">
+                  <div class="peek-letter">B</div>
+                  <div class="peek-title">Treino B: Costas e Bíceps</div>
+                  <span class="weekday-chip weekday-chip--set">Ter</span>
+                  <span class="peek-count">5 ex</span>
+                  <button class="peek-jump" aria-label="Ir para Treino B">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                </div>
+                <div class="peek-exercises">
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">4×8</span>
+                    <span class="peek-exercise-name">Barra fixa</span>
+                    <span class="peek-exercise-meta">corpo · 90s</span>
+                  </div>
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">4×10</span>
+                    <span class="peek-exercise-name">Remada curvada barra</span>
+                    <span class="peek-exercise-meta">70kg · 75s</span>
+                  </div>
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">3×12</span>
+                    <span class="peek-exercise-name">Pulldown frente</span>
+                    <span class="peek-exercise-meta">55kg · 60s</span>
+                  </div>
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">4×10</span>
+                    <span class="peek-exercise-name">Rosca direta barra</span>
+                    <span class="peek-exercise-meta">25kg · 60s</span>
+                  </div>
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">3×12</span>
+                    <span class="peek-exercise-name">Rosca martelo</span>
+                    <span class="peek-exercise-meta">14kg · 45s</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="peek-item peek-item--partial">
+                <div class="peek-head">
+                  <div class="peek-letter">C</div>
+                  <div class="peek-title">Treino C: Quadríceps e Glúteos</div>
+                  <span class="weekday-chip weekday-chip--set">Qui</span>
+                  <span class="peek-count">5 ex</span>
+                  <button class="peek-jump" aria-label="Ir para Treino C">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                </div>
+                <div class="peek-exercises">
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">5×6</span>
+                    <span class="peek-exercise-name">Agachamento livre</span>
+                    <span class="peek-exercise-meta">100kg · 120s</span>
+                  </div>
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">4×10</span>
+                    <span class="peek-exercise-name">Leg press 45°</span>
+                    <span class="peek-exercise-meta">180kg · 90s</span>
+                  </div>
+                  <div class="peek-exercise">
+                    <span class="peek-exercise-stat">3×12</span>
+                    <span class="peek-exercise-name">Cadeira extensora</span>
+                    <span class="peek-exercise-meta">50kg · 60s</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="peek-item">
+                <div class="peek-head">
+                  <div class="peek-letter">E</div>
+                  <div class="peek-title">Treino E: Mobilidade</div>
+                  <span class="weekday-chip weekday-chip--unassigned">Sem dia</span>
+                  <span class="peek-count">0 ex</span>
+                  <button class="peek-jump" aria-label="Ir para Treino E">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                </div>
+                <div class="peek-empty">Nenhum exercício adicionado.</div>
+              </div>
+
+            </div>
+
+            <div class="sheet-footer">
+              <span class="sheet-footer-status"><span class="builder-save-dot"></span>Salvo · há 12s</span>
+              <span class="sheet-footer-hint">Toque num exercício para ir até ele</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Mobile ===== -->
+  <div class="section-eyebrow">Mobile · 380px</div>
+
+  <div style="display: flex; gap: var(--spacing-xl); flex-wrap: wrap; justify-content: center;">
+
+    <div class="frame frame-mobile mobile">
+      <span class="frame-label">03 · Mobile · FAB acima do bottom bar</span>
+      <div class="app-layout">
+        <div class="builder-shell">
+          <div class="builder-topbar">
+            <button class="builder-topbar-back" aria-label="Voltar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="builder-title-wrap">
+              <div class="builder-eyebrow">Editando rotina</div>
+              <div class="builder-title">Hipertrofia Inter…</div>
+            </div>
+          </div>
+          <div class="identity-strip">
+            <span class="identity-chip"><span class="identity-chip-key">Tipo</span><span class="identity-chip-val">Força</span></span>
+            <span class="identity-chip"><span class="identity-chip-key">Nível</span><span class="identity-chip-val">Inter.</span></span>
+            <span class="identity-chip"><span class="identity-chip-key">Início</span><span class="identity-chip-val">28 abr.</span></span>
+          </div>
+          <div class="builder-stats-row">
+            <div class="builder-stat-card builder-stat-card--accent">
+              <span class="builder-stat-card-label">Treinos</span>
+              <span class="builder-stat-card-value">4</span>
+              <span class="builder-stat-card-sub">na rotina</span>
+            </div>
+            <div class="builder-stat-card">
+              <span class="builder-stat-card-label">Exerc.</span>
+              <span class="builder-stat-card-value">20</span>
+              <span class="builder-stat-card-sub">Total</span>
+            </div>
+            <div class="builder-stat-card">
+              <span class="builder-stat-card-label">Dias</span>
+              <span class="builder-stat-card-value">4<span class="builder-stat-card-value-unit">/4</span></span>
+              <span class="builder-stat-card-sub">com dia</span>
+            </div>
+          </div>
+          <div class="training-canvas">
+            <div class="canvas-section-header">
+              <span class="canvas-section-title">Treinos <span class="canvas-section-title-count">4</span></span>
+            </div>
+            <div class="training-list">
+              <div class="training-item training-item--ready">
+                <div class="training-item-head">
+                  <div class="training-item-letter">A</div>
+                  <div class="training-item-main">
+                    <div class="training-item-title">Treino A</div>
+                    <div class="training-item-meta">
+                      <span class="weekday-chip weekday-chip--set">Seg</span>
+                      <span class="training-item-meta-sep">·</span>
+                      <span class="training-item-meta-stat">5 ex</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="training-item training-item--ready">
+                <div class="training-item-head">
+                  <div class="training-item-letter">B</div>
+                  <div class="training-item-main">
+                    <div class="training-item-title">Treino B</div>
+                    <div class="training-item-meta">
+                      <span class="weekday-chip weekday-chip--set">Ter</span>
+                      <span class="training-item-meta-sep">·</span>
+                      <span class="training-item-meta-stat">5 ex</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="builder-bottom-bar">
+            <button class="btn-secondary btn-sm">Cancelar</button>
+            <button class="btn-primary btn-sm">Salvar</button>
+          </div>
+          <button class="fab-summary" aria-label="Ver resumo">
+            <span class="fab-summary-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </span>
+            <span class="fab-summary-label">Resumo</span>
+            <span class="fab-summary-count">20</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="frame frame-mobile mobile">
+      <span class="frame-label">04 · Mobile · bottom-sheet</span>
+      <div class="app-layout">
+        <div class="builder-shell">
+          <div class="builder-topbar">
+            <button class="builder-topbar-back" aria-label="Voltar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="builder-title-wrap">
+              <div class="builder-eyebrow">Editando rotina</div>
+              <div class="builder-title">Hipertrofia Inter…</div>
+            </div>
+          </div>
+          <div class="overlay">
+            <div class="sheet" role="dialog" aria-modal="true">
+              <div class="sheet-handle" aria-hidden="true"></div>
+              <div class="sheet-header">
+                <div class="sheet-header-main">
+                  <div class="sheet-eyebrow">Resumo · 4 treinos · 20 ex</div>
+                  <h2 class="sheet-title">Exercícios da rotina</h2>
+                </div>
+                <button class="sheet-close" aria-label="Fechar">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <div class="sheet-body">
+                <div class="peek-item peek-item--ready">
+                  <div class="peek-head">
+                    <div class="peek-letter">A</div>
+                    <div class="peek-title">Treino A</div>
+                    <span class="weekday-chip weekday-chip--set">Seg</span>
+                  </div>
+                  <div class="peek-exercises">
+                    <div class="peek-exercise">
+                      <span class="peek-exercise-stat">4×8</span>
+                      <span class="peek-exercise-name">Supino reto</span>
+                    </div>
+                    <div class="peek-exercise">
+                      <span class="peek-exercise-stat">3×12</span>
+                      <span class="peek-exercise-name">Crucifixo</span>
+                    </div>
+                    <div class="peek-exercise">
+                      <span class="peek-exercise-stat">3×10</span>
+                      <span class="peek-exercise-name">Supino inclinado</span>
+                    </div>
+                    <div class="peek-exercise">
+                      <span class="peek-exercise-stat">4×10</span>
+                      <span class="peek-exercise-name">Tríceps testa</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="peek-item peek-item--ready">
+                  <div class="peek-head">
+                    <div class="peek-letter">B</div>
+                    <div class="peek-title">Treino B</div>
+                    <span class="weekday-chip weekday-chip--set">Ter</span>
+                  </div>
+                  <div class="peek-exercises">
+                    <div class="peek-exercise">
+                      <span class="peek-exercise-stat">4×8</span>
+                      <span class="peek-exercise-name">Barra fixa</span>
+                    </div>
+                    <div class="peek-exercise">
+                      <span class="peek-exercise-stat">4×10</span>
+                      <span class="peek-exercise-name">Remada curvada</span>
+                    </div>
+                    <div class="peek-exercise">
+                      <span class="peek-exercise-stat">3×12</span>
+                      <span class="peek-exercise-name">Pulldown</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="peek-item">
+                  <div class="peek-head">
+                    <div class="peek-letter">E</div>
+                    <div class="peek-title">Treino E</div>
+                    <span class="weekday-chip weekday-chip--unassigned">Sem dia</span>
+                  </div>
+                  <div class="peek-empty">Nenhum exercício adicionado.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== Anatomia ===== -->
+  <div class="section-eyebrow">Anatomia</div>
+
+  <div class="anatomy">
+    <div class="anatomy-title">Por que esse design (alinhado ao layout atual)</div>
+    <div class="anatomy-list">
+      <div class="anatomy-item">
+        <div class="anatomy-num">1</div>
+        <div class="anatomy-text">
+          <strong>FAB pílula bottom-right</strong>: <code>--brand-primary</code>, radius <code>--radius-full</code>, min-height 44px. Mostra ícone + label "Resumo" + count "20 ex" em <code>--font-family-stat</code>. Sem theme-stadium, sem accent ring — combina com paleta light da página.
+        </div>
+      </div>
+      <div class="anatomy-item">
+        <div class="anatomy-num">2</div>
+        <div class="anatomy-text">
+          <strong>Sem conflito com FAB EDITAR</strong>: aquele FAB azul só aparece em <code>readOnly</code>. No modo edição/criação não existe — bottom-right está livre. No mobile, FAB sobe para evitar bottom-bar de Cancelar/Salvar.
+        </div>
+      </div>
+      <div class="anatomy-item">
+        <div class="anatomy-num">3</div>
+        <div class="anatomy-text">
+          <strong>Sheet header light</strong>: sem theme-stadium. Eyebrow 10px UPPERCASE tracking-wider + título display 20px tracking-tight. Mesma família dos headers existentes (<code>builder-eyebrow</code> + <code>builder-title</code>).
+        </div>
+      </div>
+      <div class="anatomy-item">
+        <div class="anatomy-num">4</div>
+        <div class="anatomy-text">
+          <strong>Peek-item espelha training-item</strong>: mesma <code>border-radius: 10px</code>, mesmo left-stripe de readiness (vazio/parcial/pronto), mesma letter chip com cor por status, mesma <code>weekday-chip</code>. Continuidade visual total.
+        </div>
+      </div>
+      <div class="anatomy-item">
+        <div class="anatomy-num">5</div>
+        <div class="anatomy-text">
+          <strong>Linha de exercício</strong>: grid <code>60px 1fr auto</code>. Stat <code>4×8</code> 12px <code>--font-family-stat</code> tabular. Nome 13px <code>--brand-slate</code>. Meta <code>80kg · 90s</code> 11px stat <code>--brand-steel</code>.
+        </div>
+      </div>
+      <div class="anatomy-item">
+        <div class="anatomy-num">6</div>
+        <div class="anatomy-text">
+          <strong>Sheet body sobre <code>--md-surface-container</code></strong>: cards peek brancos sobre cinza claro — replica visual de <code>training-canvas</code>. Sem novidade estética.
+        </div>
+      </div>
+      <div class="anatomy-item">
+        <div class="anatomy-num">7</div>
+        <div class="anatomy-text">
+          <strong>Não duplica counters</strong>: stats de Treinos/Exercícios/Dias já visíveis em <code>BuilderStatsRow</code>. FAB e sheet usam só "20 ex" como referência rápida, sem repetir hero numbers.
+        </div>
+      </div>
+      <div class="anatomy-item">
+        <div class="anatomy-num">8</div>
+        <div class="anatomy-text">
+          <strong>Treinos sem exercícios</strong>: <code>peek-empty</code> com itálico <code>--brand-steel</code>. Sem ilustração — espelha <code>FirstTrainingHero</code>'s inline tone.
+        </div>
+      </div>
+      <div class="anatomy-item">
+        <div class="anatomy-num">9</div>
+        <div class="anatomy-text">
+          <strong>weekday-chip reutilizada</strong>: <code>.weekday-chip--set</code> azul translucent + <code>.weekday-chip--unassigned</code> dashed steel. Mesmo componente do training-item-meta.
+        </div>
+      </div>
+      <div class="anatomy-item">
+        <div class="anatomy-num">10</div>
+        <div class="anatomy-text">
+          <strong>Footer simples</strong>: status "Salvo · há 12s" à esquerda + hint UPPERCASE tracking-wider à direita. Replica builder-eyebrow tone.
+        </div>
+      </div>
+      <div class="anatomy-item">
+        <div class="anatomy-num">11</div>
+        <div class="anatomy-text">
+          <strong>Mobile sheet</strong>: bottom-sheet com <code>--radius-lg</code> top-only + drag handle. Mesma altura 92% que outros bottom-sheets do app. FAB sobe pra <code>bottom: 76px</code> evitando bottom-bar.
+        </div>
+      </div>
+      <div class="anatomy-item">
+        <div class="anatomy-num">12</div>
+        <div class="anatomy-text">
+          <strong>Acessibilidade</strong>: FAB com <code>aria-label</code>, sheet <code>role="dialog" aria-modal="true"</code>, peek-jump com <code>aria-label="Ir para Treino X"</code>. Focus ring <code>--shadow-focus</code> em todos interativos.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

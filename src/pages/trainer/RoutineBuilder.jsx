@@ -1,6 +1,20 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  DragOverlay,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import PropTypes from 'prop-types';
 import {
   AlignLeft,
@@ -26,6 +40,7 @@ import useRoutineBuilder from '../../hooks/useRoutineBuilder';
 import useProtocolBuilder from '../../hooks/useProtocolBuilder';
 import useRoutineDraft from '../../hooks/useRoutineDraft';
 import useBisetCreate from '../../hooks/useBisetCreate';
+import useExerciseReorder from '../../hooks/useExerciseReorder';
 import formatRelativeTime from '../../utils/relativeTime';
 import ExerciseComposer from '../../components/ExerciseComposer';
 import AddTrainingSheet from '../../components/AddTrainingSheet';
@@ -1324,40 +1339,65 @@ const buildBisetEndpointBuilder = (mode) => {
   return null;
 };
 
+const MAX_BISET_MEMBERS = 6;
+
+// ─── SortableExerciseEntry ────────────────────────────────────────────────────
+
 /**
- * Groups exercises into render entries: either standalone rows or a bi-set
- * group container. Members of the same supersetGroupId are bundled, and the
- * sort by `supersetOrder` keeps members in the trainer-defined sequence.
+ * Thin wrapper that gives a render-entry a dnd-kit sortable id and applies
+ * the --dragging modifier while the item is being dragged.
  *
- * Returns an array of: { kind: 'single', ex } | { kind: 'group', groupId, members: ex[] }
+ * disabled=true when selectionMode is active so dragging does not interfere
+ * with checkbox selection.
  */
-const buildExerciseRenderEntries = (exercises) => {
-  const entries = [];
-  let i = 0;
-  while (i < exercises.length) {
-    const ex = exercises[i];
-    const groupId = ex.supersetGroupId;
-    if (!groupId) {
-      entries.push({ kind: 'single', ex });
-      i += 1;
-      continue;
-    }
-    // Walk forward gathering all consecutive members of this group. The
-    // backend's contiguity invariant guarantees they are adjacent here.
-    const members = [ex];
-    let j = i + 1;
-    while (j < exercises.length && exercises[j].supersetGroupId === groupId) {
-      members.push(exercises[j]);
-      j += 1;
-    }
-    members.sort((a, b) => (a.supersetOrder ?? 0) - (b.supersetOrder ?? 0));
-    entries.push({ kind: 'group', groupId, members });
-    i = j;
-  }
-  return entries;
+const SortableExerciseEntry = ({ id, disabled, children }) => {
+  const {
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled });
+
+  // translate-only transform — vertical axis is restricted by modifier so we
+  // only ever get a Y offset.
+  const style = transform
+    ? {
+        transform: `translate3d(0, ${transform.y}px, 0)`,
+        transition,
+        zIndex: isDragging ? 'var(--z-dropdown)' : undefined,
+      }
+    : undefined;
+
+  const className = [
+    'exercise-sortable-entry',
+    isDragging ? 'exercise-sortable-entry--dragging' : '',
+    disabled ? 'exercise-sortable-entry--disabled' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={className}
+      {...(!disabled && listeners)}
+    >
+      {children}
+    </div>
+  );
 };
 
-const MAX_BISET_MEMBERS = 6;
+SortableExerciseEntry.propTypes = {
+  id: PropTypes.string.isRequired,
+  disabled: PropTypes.bool,
+  children: PropTypes.node.isRequired,
+};
+
+SortableExerciseEntry.defaultProps = {
+  disabled: false,
+};
 
 const TrainingItem = ({
   training,
@@ -1388,10 +1428,45 @@ const TrainingItem = ({
   const [pendingNonAdjacentConfirm, setPendingNonAdjacentConfirm] = useState(null);
 
   const supportsSubstitutes = mode === 'protocol';
-  const exercises = useMemo(
+
+  // Canonical exercises from the training prop (used only as the source of
+  // truth fed into useExerciseReorder; do NOT use directly for rendering).
+  const canonicalExercises = useMemo(
     () => training.exercises || [],
     [training.exercises]
   );
+
+  // Drag-reorder hook — owns the optimistic local copy of exercises.
+  const {
+    localExercises: exercises,
+    localEntries: renderEntries,
+    entryIds,
+    activeEntry,
+    handleDragStart,
+    handleDragEnd,
+    handleDragCancel,
+  } = useExerciseReorder({
+    trainingId: training.id,
+    exercises: canonicalExercises,
+    readOnly: readOnly || false,
+    onRefetchTraining,
+  });
+
+  // dnd-kit sensors:
+  //   Desktop (mouse) — pointer with a tiny 4px distance tolerance so a
+  //   normal click does NOT activate drag. The row's onClick fires if the
+  //   pointer moves less than 4px before release.
+  //   Mobile (touch) — pointer with a 250 ms delay + 6px tolerance. The
+  //   delay creates the "long-press" feel; moving >6px before the timer
+  //   fires cancels the drag so normal scroll is unaffected.
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 4,
+      },
+    })
+  );
+
   const letter = TRAINING_LETTERS[index] || String(index + 1);
 
   const endpointBuilder = useMemo(
@@ -1400,11 +1475,6 @@ const TrainingItem = ({
   );
 
   const biset = useBisetCreate({ endpointBuilder });
-
-  const renderEntries = useMemo(
-    () => buildExerciseRenderEntries(exercises),
-    [exercises]
-  );
 
   const readinessClass = useMemo(() => {
     if (exercises.length === 0) return '';
@@ -1718,86 +1788,134 @@ const TrainingItem = ({
             )}
 
             {exercises.length > 0 ? (
-              <div className="exercise-list-wide" role="list" aria-label="Exercícios">
-                {(() => {
-                  let runningIndex = 0;
-                  return renderEntries.map((entry) => {
-                    if (entry.kind === 'single') {
-                      const ex = entry.ex;
-                      const i = runningIndex;
-                      runningIndex += 1;
-                      if (composerEditing?.id === ex.id) {
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+              >
+                <SortableContext
+                  items={entryIds}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="exercise-list-wide" role="list" aria-label="Exercícios">
+                    {(() => {
+                      let runningIndex = 0;
+                      return renderEntries.map((entry) => {
+                        // Drag is disabled while selectionMode is active or readOnly.
+                        const dragDisabled = readOnly || selectionMode;
+
+                        if (entry.kind === 'single') {
+                          const ex = entry.ex;
+                          const i = runningIndex;
+                          runningIndex += 1;
+                          if (composerEditing?.id === ex.id) {
+                            return (
+                              <ExerciseComposer
+                                key={ex.id}
+                                snapshot={composerEditing}
+                                exerciseTemplates={exerciseTemplates}
+                                saving={saving}
+                                onSubmitCreate={handleAddExercise}
+                                onSubmitEdit={handleEditExercise}
+                                onSubmitFromLibrary={handleImport}
+                                onCancel={() => setComposerState(null)}
+                              />
+                            );
+                          }
+                          return (
+                            <SortableExerciseEntry
+                              key={ex.id}
+                              id={ex.id}
+                              disabled={dragDisabled}
+                            >
+                              <ExerciseRowWithSubstitutes
+                                ex={ex}
+                                index={i}
+                                readOnly={readOnly}
+                                mode={mode}
+                                selectionMode={selectionMode}
+                                selected={selectedIds.includes(ex.id)}
+                                atSelectionLimit={selectedIds.length >= MAX_BISET_MEMBERS}
+                                onToggleSelect={handleToggleSelect}
+                                onEdit={(exercise) => setComposerState({ editing: exercise })}
+                                onDelete={handleRequestDeleteExercise}
+                                onEnterSelection={enterSelectionMode}
+                                onAddSubstitute={
+                                  supportsSubstitutes ? handleAddSubstitute : null
+                                }
+                                substitutesExpanded={expandedSubstituteIds.has(ex.id)}
+                                onToggleSubstitutes={handleToggleSubstitutes}
+                                onDeleteSubstitute={
+                                  supportsSubstitutes ? handleDeleteSubstitute : null
+                                }
+                              />
+                            </SortableExerciseEntry>
+                          );
+                        }
+                        // Bi-set group — the entire block is the drag unit.
+                        const groupStartIndex = runningIndex;
+                        runningIndex += entry.members.length;
+                        // sortable id for a group = first member's id (stable per group).
+                        const groupSortableId = entry.members[0].id;
                         return (
-                          <ExerciseComposer
-                            key={ex.id}
-                            snapshot={composerEditing}
-                            exerciseTemplates={exerciseTemplates}
-                            saving={saving}
-                            onSubmitCreate={handleAddExercise}
-                            onSubmitEdit={handleEditExercise}
-                            onSubmitFromLibrary={handleImport}
-                            onCancel={() => setComposerState(null)}
-                          />
+                          <SortableExerciseEntry
+                            key={entry.groupId}
+                            id={groupSortableId}
+                            disabled={dragDisabled}
+                          >
+                            <BisetGroupBlock
+                              groupId={entry.groupId}
+                              members={entry.members}
+                              startIndex={groupStartIndex}
+                              readOnly={readOnly}
+                              mode={mode}
+                              selectionMode={selectionMode}
+                              selectedIds={selectedIds}
+                              atSelectionLimit={selectedIds.length >= MAX_BISET_MEMBERS}
+                              onToggleSelect={handleToggleSelect}
+                              onOpenBisetSheet={() => setBisetSheetGroupId(entry.groupId)}
+                              onDissolveBiset={() => handleDissolveBiset(entry.groupId)}
+                              onEdit={(exercise) => setComposerState({ editing: exercise })}
+                              onDelete={handleRequestDeleteExercise}
+                              onEnterSelection={enterSelectionMode}
+                              onAddSubstitute={
+                                supportsSubstitutes ? handleAddSubstitute : null
+                              }
+                              expandedSubstituteIds={expandedSubstituteIds}
+                              onToggleSubstitutes={handleToggleSubstitutes}
+                              onDeleteSubstitute={
+                                supportsSubstitutes ? handleDeleteSubstitute : null
+                              }
+                            />
+                          </SortableExerciseEntry>
                         );
-                      }
-                      return (
-                        <ExerciseRowWithSubstitutes
-                          key={ex.id}
-                          ex={ex}
-                          index={i}
-                          readOnly={readOnly}
-                          mode={mode}
-                          selectionMode={selectionMode}
-                          selected={selectedIds.includes(ex.id)}
-                          atSelectionLimit={selectedIds.length >= MAX_BISET_MEMBERS}
-                          onToggleSelect={handleToggleSelect}
-                          onEdit={(exercise) => setComposerState({ editing: exercise })}
-                          onDelete={handleRequestDeleteExercise}
-                          onEnterSelection={enterSelectionMode}
-                          onAddSubstitute={
-                            supportsSubstitutes ? handleAddSubstitute : null
-                          }
-                          substitutesExpanded={expandedSubstituteIds.has(ex.id)}
-                          onToggleSubstitutes={handleToggleSubstitutes}
-                          onDeleteSubstitute={
-                            supportsSubstitutes ? handleDeleteSubstitute : null
-                          }
-                        />
-                      );
-                    }
-                    // Bi-set group
-                    const groupStartIndex = runningIndex;
-                    runningIndex += entry.members.length;
-                    return (
-                      <BisetGroupBlock
-                        key={entry.groupId}
-                        groupId={entry.groupId}
-                        members={entry.members}
-                        startIndex={groupStartIndex}
-                        readOnly={readOnly}
-                        mode={mode}
-                        selectionMode={selectionMode}
-                        selectedIds={selectedIds}
-                        atSelectionLimit={selectedIds.length >= MAX_BISET_MEMBERS}
-                        onToggleSelect={handleToggleSelect}
-                        onOpenBisetSheet={() => setBisetSheetGroupId(entry.groupId)}
-                        onDissolveBiset={() => handleDissolveBiset(entry.groupId)}
-                        onEdit={(exercise) => setComposerState({ editing: exercise })}
-                        onDelete={handleRequestDeleteExercise}
-                        onEnterSelection={enterSelectionMode}
-                        onAddSubstitute={
-                          supportsSubstitutes ? handleAddSubstitute : null
-                        }
-                        expandedSubstituteIds={expandedSubstituteIds}
-                        onToggleSubstitutes={handleToggleSubstitutes}
-                        onDeleteSubstitute={
-                          supportsSubstitutes ? handleDeleteSubstitute : null
-                        }
-                      />
-                    );
-                  });
-                })()}
-              </div>
+                      });
+                    })()}
+                  </div>
+                </SortableContext>
+
+                {/* DragOverlay renders a ghost copy of the dragged item at the
+                    cursor position, lifted out of the list flow so it can
+                    cross stacking contexts freely. */}
+                <DragOverlay>
+                  {activeEntry ? (
+                    <div className="exercise-drag-overlay">
+                      {activeEntry.kind === 'single' ? (
+                        <span className="exercise-drag-overlay-name">
+                          {activeEntry.ex.name || activeEntry.ex.exerciseTemplate?.name || '—'}
+                        </span>
+                      ) : (
+                        <span className="exercise-drag-overlay-name">
+                          Bi-set · {activeEntry.members.length} exercícios
+                        </span>
+                      )}
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
             ) : (
               composerState === null && (
                 <div className="training-empty-hero">

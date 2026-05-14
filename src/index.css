@@ -15084,7 +15084,6 @@ nav.onboarding-steps {
   gap: var(--spacing-sm);
   border: 1px solid transparent;
   transition: border-color var(--duration-fast) var(--ease-brand);
-  cursor: grab;
   min-height: 44px;
   /* Clears the sticky builder topbar when a new exercise is scrolled into view */
   scroll-margin-top: var(--builder-topbar-height, var(--spacing-xxl));
@@ -15277,6 +15276,65 @@ nav.onboarding-steps {
   background: rgba(10, 95, 204, 0.1);
   transform: translateY(-1px);
   box-shadow: var(--shadow-brand-sm);
+}
+
+/* ── Exercise drag-and-drop ─────────────────────────────────────────────────── */
+
+/* Wrapper that dnd-kit attaches transform/transition to while sorting.
+   Position relative so the z-index stacks correctly inside the list. */
+.exercise-sortable-entry {
+  position: relative;
+  touch-action: none;
+}
+
+/* The entry being dragged: lift with shadow + reduce opacity so the
+   placeholder gap is clearly visible. cursor:grabbing prevents flicker. */
+.exercise-sortable-entry--dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
+/* Inner exercise-row-wide adopts grab cursor only when drag is active.
+   The --disabled modifier (read-only view) and --dragging state are both
+   excluded so the student's read-only routine never shows a grab cursor. */
+.exercise-sortable-entry:not(.exercise-sortable-entry--dragging):not(.exercise-sortable-entry--disabled) .exercise-row-wide {
+  cursor: grab;
+}
+
+.exercise-sortable-entry:not(.exercise-sortable-entry--dragging):not(.exercise-sortable-entry--disabled):active .exercise-row-wide {
+  cursor: grabbing;
+}
+
+/* Restore normal scroll behaviour on mobile when drag is disabled.
+   touch-action: none on a non-draggable item blocks scroll on iOS/Android. */
+.exercise-sortable-entry--disabled {
+  touch-action: auto;
+}
+
+/* Ghost overlay rendered by DragOverlay — floats at cursor while dragging.
+   Compact pill: shows the exercise name, lifted shadow. */
+.exercise-drag-overlay {
+  background: var(--md-surface);
+  border: 1px solid var(--brand-primary);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-height: 44px;
+  max-width: 480px;
+  pointer-events: none;
+}
+
+.exercise-drag-overlay-name {
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .inline-add-btn-wide:active {
