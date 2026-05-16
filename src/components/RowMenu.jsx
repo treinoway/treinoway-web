@@ -62,15 +62,17 @@ const RowMenu = ({
               {item.label}
             </button>
           ))}
-          <button
-            type="button"
-            className="row-menu-item row-menu-item--danger"
-            onClick={(e) => handleItemClick(e, onDelete)}
-            disabled={deleteDisabled}
-            title={deleteDisabled ? deleteDisabledTitle : undefined}
-          >
-            {deleteLabel}
-          </button>
+          {typeof onDelete === 'function' && (
+            <button
+              type="button"
+              className="row-menu-item row-menu-item--danger"
+              onClick={(e) => handleItemClick(e, onDelete)}
+              disabled={deleteDisabled}
+              title={deleteDisabled ? deleteDisabledTitle : undefined}
+            >
+              {deleteLabel}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -80,7 +82,7 @@ const RowMenu = ({
 RowMenu.propTypes = {
   ariaLabel: PropTypes.string.isRequired,
   onEdit: PropTypes.func,
-  onDelete: PropTypes.func.isRequired,
+  onDelete: PropTypes.func,
   deleteLabel: PropTypes.string,
   deleteDisabled: PropTypes.bool,
   deleteDisabledTitle: PropTypes.string,

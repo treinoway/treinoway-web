@@ -34,14 +34,14 @@ describe('SessionInstrumentRow', () => {
       expect(container.querySelector('.session-bar--success')).toBeInTheDocument();
     });
 
-    it('applies session-status--completed class for completed status', () => {
+    it('does NOT render a status icon element', () => {
       const { container } = renderWithRoute(<SessionInstrumentRow {...defaultProps} />);
-      expect(container.querySelector('.session-status--completed')).toBeInTheDocument();
+      expect(container.querySelector('.session-status--completed')).not.toBeInTheDocument();
+      expect(container.querySelector('.session-status')).not.toBeInTheDocument();
     });
 
-    it('renders date parts (day-of-week, day number, month)', () => {
+    it('renders date parts (day number and month)', () => {
       renderWithRoute(<SessionInstrumentRow {...defaultProps} />);
-      // 2026-04-28 is a Tuesday → SEG/TER/... depending on locale
       expect(screen.getByText('28')).toBeInTheDocument();
       expect(screen.getByText('ABR')).toBeInTheDocument();
     });
@@ -55,11 +55,11 @@ describe('SessionInstrumentRow', () => {
       expect(container.querySelector('.session-bar--partial')).toBeInTheDocument();
     });
 
-    it('applies session-status--partial class', () => {
+    it('does NOT render a status-partial icon element', () => {
       const { container } = renderWithRoute(
         <SessionInstrumentRow {...defaultProps} status="partial" />,
       );
-      expect(container.querySelector('.session-status--partial')).toBeInTheDocument();
+      expect(container.querySelector('.session-status--partial')).not.toBeInTheDocument();
     });
   });
 
@@ -71,23 +71,40 @@ describe('SessionInstrumentRow', () => {
       expect(container.querySelector('.session-bar--abandoned')).toBeInTheDocument();
     });
 
-    it('applies session-status--abandoned class', () => {
+    it('does NOT render a status-abandoned icon element', () => {
       const { container } = renderWithRoute(
         <SessionInstrumentRow {...defaultProps} status="abandoned" />,
       );
-      expect(container.querySelector('.session-status--abandoned')).toBeInTheDocument();
+      expect(container.querySelector('.session-status--abandoned')).not.toBeInTheDocument();
     });
   });
 
-  describe('RPE text', () => {
-    it('renders rpeText when provided', () => {
-      renderWithRoute(<SessionInstrumentRow {...defaultProps} rpeText="RPE 7,5" />);
-      expect(screen.getByText(/RPE 7,5/)).toBeInTheDocument();
+  describe('RPE chip', () => {
+    it('renders RPE chip with "RPE" label and value when rpeText is provided', () => {
+      renderWithRoute(<SessionInstrumentRow {...defaultProps} rpeText="7,5" />);
+      const chip = document.querySelector('.session-rpe-chip');
+      expect(chip).toBeInTheDocument();
+      expect(chip).toHaveTextContent('RPE');
+      expect(chip).toHaveTextContent('7,5');
     });
 
-    it('does not render rpe text when rpeText is null', () => {
+    it('renders the "RPE" prefix label as a separate element inside the chip', () => {
+      renderWithRoute(<SessionInstrumentRow {...defaultProps} rpeText="8" />);
+      expect(document.querySelector('.session-rpe-chip-label')).toBeInTheDocument();
+      expect(screen.getByText('RPE')).toBeInTheDocument();
+    });
+
+    it('does not render RPE chip when rpeText is null', () => {
       renderWithRoute(<SessionInstrumentRow {...defaultProps} rpeText={null} />);
-      expect(screen.queryByText(/RPE/)).not.toBeInTheDocument();
+      expect(document.querySelector('.session-rpe-chip')).not.toBeInTheDocument();
+      expect(screen.queryByText('RPE')).not.toBeInTheDocument();
+    });
+
+    it('does not render metaText inside session-meta when only rpeText is present', () => {
+      renderWithRoute(
+        <SessionInstrumentRow {...defaultProps} metaText={null} rpeText="6" />,
+      );
+      expect(document.querySelector('.session-meta')).not.toBeInTheDocument();
     });
   });
 
@@ -157,7 +174,6 @@ describe('SessionInstrumentRow', () => {
       const { container } = renderWithRoute(
         <SessionInstrumentRow {...defaultProps} date={null} />,
       );
-      // All three date slots should show '—'
       const dashes = container.querySelectorAll('.session-date span');
       const dashTexts = Array.from(dashes).filter((el) => el.textContent === '—');
       expect(dashTexts.length).toBeGreaterThan(0);

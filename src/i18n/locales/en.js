@@ -36,6 +36,13 @@ const en = {
     'exercise.substituteNotFound': 'Substitute not found.',
     'exercise.logAlreadySubstituted':
       'This exercise has already been substituted in this session.',
+    'subscription.planNotFound': 'Plan not found.',
+    'subscription.planArchived': 'This plan is archived.',
+    'subscription.bothDiscountsSet': 'Choose only one discount type.',
+    'subscription.discountExceedsPrice': 'Discount cannot exceed the price.',
+    'subscription.notFound': 'Subscription not found.',
+    'subscription.cannotEditCancelled': 'This subscription has already been cancelled.',
+    'subscription.paymentNotFound': 'Payment not found.',
   },
   dashboard: {
     tabLabel: 'Activity',

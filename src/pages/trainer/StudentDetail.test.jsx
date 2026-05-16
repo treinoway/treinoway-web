@@ -4,28 +4,80 @@ import { selectOption } from '../../test-utils/selectOption';
 import { renderWithRoute } from '../../test/test-utils';
 import StudentDetail from './StudentDetail';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useAiChat } from '../../contexts/AiChatContext';
 import api from '../../api/axios';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
+  return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock('../../contexts/ToastContext', () => ({
-  useToast: vi.fn(),
-}));
+vi.mock('../../contexts/ToastContext', () => ({ useToast: vi.fn() }));
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
+vi.mock('../../contexts/AiChatContext', () => ({ useAiChat: vi.fn() }));
 
 vi.mock('../../api/axios', () => ({
   default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('./StudentActivityTab', () => ({
-  default: () => null,
+vi.mock('../../hooks/useStudentDashboard', () => ({
+  default: () => ({
+    summary: { data: null, loading: false, error: null },
+    previousSummary: { data: null, loading: false, error: null },
+    recentSessions: { data: null, loading: false, error: null },
+    progression: { data: null, loading: false, error: null },
+    dailyActivity: { data: null, loading: false, error: null },
+    studentNotFound: false,
+    retryBlock: vi.fn(),
+  }),
+}));
+
+vi.mock('../../hooks/usePeriodPersistence', () => ({
+  default: () => [
+    { presetKey: 'last-30-days', from: '2026-04-15', to: '2026-05-15' },
+    vi.fn(),
+  ],
+}));
+
+vi.mock('../../components/StudentCockpitHero', () => ({
+  default: ({ student, onCreateProtocol, onLinkAnamnesis, onPeriodClick, periodLabel }) => (
+    <div data-testid="cockpit-hero">
+      {student?.firstName && <span>{student.firstName} {student.lastName}</span>}
+      {student?.email && <span>{student.email}</span>}
+      <button type="button" onClick={onCreateProtocol}>Nova rotina</button>
+      <button type="button" onClick={onLinkAnamnesis}>Vincular anamnese</button>
+      <button type="button" onClick={onPeriodClick}>
+        {periodLabel ?? 'Período'}
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock('../../components/RecentSessionsPanel', () => ({
+  default: () => <div data-testid="recent-sessions" />,
+}));
+
+vi.mock('../../components/ProgressionPanel', () => ({
+  default: () => <div data-testid="progression-panel" />,
+}));
+
+vi.mock('../../components/PeriodPickerSheet', () => ({
+  default: ({ open, onApply, onCancel }) =>
+    open ? (
+      <div data-testid="period-picker">
+        <button onClick={() => onApply({ presetKey: 'last-30-days', from: '2026-04-15', to: '2026-05-15' })}>
+          Aplicar
+        </button>
+        <button onClick={onCancel}>Fechar picker</button>
+      </div>
+    ) : null,
+}));
+
+vi.mock('../../components/IArnoldFAB', () => ({
+  default: () => <div data-testid="iarnold-fab" />,
 }));
 
 const mockStudent = {
@@ -38,14 +90,14 @@ const mockStudent = {
 const mockProtocols = [
   {
     id: 'proto-1',
-    name: 'Protocolo Full Body',
+    name: 'Rotina Ativa',
     status: 'active',
     startDate: '2025-01-01',
     expirationDate: '2025-03-31',
   },
   {
     id: 'proto-2',
-    name: 'Protocolo Cardio',
+    name: 'Rotina Arquivada',
     status: 'completed',
     startDate: '2024-07-01',
     expirationDate: '2024-09-30',
@@ -56,495 +108,227 @@ const mockLinkedAnamneses = [
   {
     id: 'link-1',
     createdAt: '2026-01-15',
-    anamnesis: {
-      id: 'anamnesis-1',
-      title: 'Anamnese de Saúde',
-      isGeneral: false,
-    },
+    anamnesis: { id: 'anam-1', title: 'Anamnese de Saúde', isGeneral: false },
   },
 ];
 
 const mockShowToast = vi.fn();
+const mockSendMessage = vi.fn();
 
-function renderStudentDetail({ withState = true } = {}) {
+function setupMocks(overrides = {}) {
+  vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+  vi.mocked(useAuth).mockReturnValue({ user: { id: 'trainer-1' } });
+  vi.mocked(useAiChat).mockReturnValue({ sendMessage: mockSendMessage });
+
   api.get.mockImplementation((url) => {
     if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-    if (url === '/trainer/protocols') return Promise.resolve({ data: mockProtocols });
-    if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: [] });
-    if (url === '/trainer/anamneses') return Promise.resolve({ data: [] });
+    if (url === '/trainer/protocols') return Promise.resolve({ data: overrides.protocols ?? mockProtocols });
+    if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: overrides.anamneses ?? [] });
+    if (url === '/trainer/anamneses') return Promise.resolve({ data: overrides.allAnamneses ?? [] });
     return Promise.resolve({ data: [] });
-  });
-
-  const route = withState
-    ? { pathname: '/trainer/students/student-1', state: { student: mockStudent } }
-    : '/trainer/students/student-1';
-
-  return renderWithRoute(<StudentDetail />, {
-    route,
-    path: '/trainer/students/:id',
   });
 }
 
-describe('StudentDetail', () => {
+function renderDetail({ withState = true } = {}) {
+  const route = withState
+    ? { pathname: '/trainer/students/student-1', state: { student: mockStudent } }
+    : '/trainer/students/student-1';
+  return renderWithRoute(<StudentDetail />, { route, path: '/trainer/students/:id' });
+}
+
+describe('StudentDetail (cockpit)', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
     mockNavigate.mockReset();
-    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+    mockSendMessage.mockReset();
     api.get.mockReset();
     api.post.mockReset();
     api.delete.mockReset();
+    setupMocks();
   });
 
-  it('shows loading state while fetching student info', async () => {
+  it('renders cockpit immediately without blocking on student fetch', () => {
     api.get.mockReturnValue(new Promise(() => {}));
     renderWithRoute(<StudentDetail />, {
       route: '/trainer/students/student-1',
       path: '/trainer/students/:id',
     });
-    expect(screen.getByText('Carregando...')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /voltar para alunos/i })).toBeInTheDocument();
+    expect(screen.queryByText('Carregando...')).not.toBeInTheDocument();
   });
 
-  it('renders student avatar initial and name from location state', async () => {
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
-    });
-    expect(screen.getByText('A')).toBeInTheDocument();
-  });
-
-  it('renders student email from location state', async () => {
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('aluno@example.com')).toBeInTheDocument();
-    });
-  });
-
-  it('renders tab buttons for "Rotinas", "Atividade" and "Anamneses"', async () => {
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Rotinas' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Atividade' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
-    });
-  });
-
-  it('shows protocols tab by default with protocol list', async () => {
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument();
-    });
-    expect(screen.getByText('Protocolo Cardio')).toBeInTheDocument();
-  });
-
-  it('shows "Ativo" badge for active protocols', async () => {
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Ativo')).toBeInTheDocument();
-    });
-  });
-
-  it('shows "Concluído" badge for completed protocols', async () => {
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Concluído')).toBeInTheDocument();
-    });
-  });
-
-  it('shows dates formatted as DD/MM/YYYY', async () => {
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText(/01\/01\/2025/)).toBeInTheDocument();
-      expect(screen.getByText(/31\/03\/2025/)).toBeInTheDocument();
-    });
-  });
-
-  it('navigates to protocol detail when protocol card is clicked', async () => {
-    const user = userEvent.setup();
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByText('Protocolo Full Body'));
-
-    expect(mockNavigate).toHaveBeenCalledWith('/trainer/protocols/proto-1');
-  });
-
-  it('renders 3-dot menu on each protocol card', async () => {
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument();
-    });
-
-    expect(screen.getByRole('button', { name: /ações da rotina protocolo full body/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /ações da rotina protocolo cardio/i })).toBeInTheDocument();
-  });
-
-  it('opens menu without navigating when the menu trigger is clicked', async () => {
-    const user = userEvent.setup();
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo full body/i }));
-
-    expect(mockNavigate).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Abrir' })).toBeInTheDocument();
-  });
-
-  it('navigates via "Abrir" menu option', async () => {
-    const user = userEvent.setup();
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo full body/i }));
-    await user.click(screen.getByRole('button', { name: 'Abrir' }));
-
-    expect(mockNavigate).toHaveBeenCalledWith('/trainer/protocols/proto-1');
-  });
-
-  it('disables "Excluir" in menu for active protocols', async () => {
-    const user = userEvent.setup();
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo full body/i }));
-
-    const deleteBtn = screen.getByRole('button', { name: 'Excluir' });
-    expect(deleteBtn).toBeDisabled();
-    expect(deleteBtn).toHaveAttribute('title', 'Arquive a rotina antes de excluir');
-  });
-
-  it('enables "Excluir" in menu for non-active protocols', async () => {
-    const user = userEvent.setup();
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Protocolo Cardio')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo cardio/i }));
-
-    expect(screen.getByRole('button', { name: 'Excluir' })).not.toBeDisabled();
-  });
-
-  it('deletes a protocol via the menu and shows success toast', async () => {
-    const user = userEvent.setup();
-    api.delete.mockResolvedValue({});
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Protocolo Cardio')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo cardio/i }));
-    await user.click(screen.getByRole('button', { name: 'Excluir' }));
-
-    expect(screen.getByText(/tem certeza que deseja excluir esta rotina/i)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /^confirmar$/i }));
-
-    await waitFor(() => {
-      expect(api.delete).toHaveBeenCalledWith('/trainer/protocols/proto-2');
-      expect(mockShowToast).toHaveBeenCalledWith('Rotina excluída', 'success');
-    });
-  });
-
-  it('shows error toast when delete fails', async () => {
-    const user = userEvent.setup();
-    api.delete.mockRejectedValue({ userMessage: 'Rotinas ativas não podem ser excluídas. Arquive a rotina antes.' });
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Protocolo Cardio')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo cardio/i }));
-    await user.click(screen.getByRole('button', { name: 'Excluir' }));
-    await user.click(screen.getByRole('button', { name: /^confirmar$/i }));
-
-    await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith(
-        'Rotinas ativas não podem ser excluídas. Arquive a rotina antes.',
-        'error',
-      );
-    });
-  });
-
-  it('closes confirm dialog on "Cancelar" without calling delete', async () => {
-    const user = userEvent.setup();
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByText('Protocolo Cardio')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /ações da rotina protocolo cardio/i }));
-    await user.click(screen.getByRole('button', { name: 'Excluir' }));
-    await user.click(screen.getByRole('button', { name: /^cancelar$/i }));
-
-    expect(screen.queryByText(/tem certeza que deseja excluir esta rotina/i)).not.toBeInTheDocument();
-    expect(api.delete).not.toHaveBeenCalled();
-  });
-
-  it('shows empty state when no protocols', async () => {
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => {
-      expect(screen.getByText('Nenhuma rotina encontrada')).toBeInTheDocument();
-    });
-  });
-
-  it('switches to anamneses tab when "Anamneses" button is clicked', async () => {
-    const user = userEvent.setup();
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/trainer/students/student-1/anamneses');
-    });
-  });
-
-  it('shows "Vincular Anamnese" button on anamneses tab', async () => {
-    const user = userEvent.setup();
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => {
-      expect(screen.getByText('+ Vincular Anamnese')).toBeInTheDocument();
-    });
-  });
-
-  it('shows empty state on anamneses tab when no anamneses linked', async () => {
-    const user = userEvent.setup();
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => {
-      expect(screen.getByText('Nenhuma anamnese vinculada')).toBeInTheDocument();
-    });
-  });
-
-  it('renders linked anamnesis cards with title', async () => {
-    const user = userEvent.setup();
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => {
-      expect(screen.getByText('Anamnese de Saúde')).toBeInTheDocument();
-    });
-  });
-
-  it('renders "Ver respostas" and "Abrir template" buttons for each linked anamnesis', async () => {
-    const user = userEvent.setup();
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Ver respostas' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Abrir template' })).toBeInTheDocument();
-    });
-  });
-
-  it('"Ver respostas" navigates to the response detail route', async () => {
-    const user = userEvent.setup();
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Ver respostas' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Ver respostas' }));
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      '/trainer/students/student-1/anamneses/anamnesis-1/response',
+  it('renders back button to /trainer/students', async () => {
+    renderDetail();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /voltar para alunos/i })).toBeInTheDocument(),
     );
   });
 
-  it('"Abrir template" navigates to the anamnesis detail route', async () => {
+  it('back button navigates to /trainer/students', async () => {
     const user = userEvent.setup();
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Abrir template' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Abrir template' }));
-
-    expect(mockNavigate).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1');
+    renderDetail();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /voltar para alunos/i })).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole('button', { name: /voltar para alunos/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students');
   });
 
-  it('"Desvincular" opens confirm dialog', async () => {
-    const user = userEvent.setup();
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Desvincular' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Desvincular' }));
-
-    expect(screen.getByText(/desvincular a anamnese "anamnese de saúde"/i)).toBeInTheDocument();
+  it('renders cockpit hero with student name and email', async () => {
+    renderDetail();
+    await waitFor(() => expect(screen.getByTestId('cockpit-hero')).toBeInTheDocument());
+    expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
+    expect(screen.getByText('aluno@example.com')).toBeInTheDocument();
   });
 
-  it('"Desvincular" confirmed calls api.delete and shows success toast', async () => {
+  it('"Nova rotina" button navigates to protocol new route with studentId', async () => {
     const user = userEvent.setup();
-    api.delete.mockResolvedValue({});
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: mockLinkedAnamneses });
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Desvincular' })).toBeInTheDocument());
-    // Open the confirm dialog
-    await user.click(screen.getByRole('button', { name: 'Desvincular' }));
-    // Now both the card button and the confirm dialog btn-danger are present;
-    // pick the last one (confirm dialog's destructive button)
-    const desvincularBtns = screen.getAllByRole('button', { name: /desvincular/i });
-    await user.click(desvincularBtns[desvincularBtns.length - 1]);
-
-    await waitFor(() => {
-      expect(api.delete).toHaveBeenCalledWith(
-        '/trainer/students/student-1/anamneses/anamnesis-1',
-      );
-      expect(mockShowToast).toHaveBeenCalledWith('Anamnese desvinculada com sucesso!', 'success');
-    });
+    renderDetail();
+    await waitFor(() => expect(screen.getByTestId('cockpit-hero')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Nova rotina' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/protocols/new?studentId=student-1');
   });
 
-  it('opens link form (picker modal) when "Vincular Anamnese" is clicked', async () => {
+  it('"Vincular anamnese" button opens link modal', async () => {
     const user = userEvent.setup();
-    renderStudentDetail();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => expect(screen.getByText('+ Vincular Anamnese')).toBeInTheDocument());
-    await user.click(screen.getByText('+ Vincular Anamnese'));
-    await waitFor(() => {
-      expect(screen.getByLabelText('Selecionar anamnese')).toBeInTheDocument();
-    });
+    renderDetail();
+    await waitFor(() => expect(screen.getByTestId('cockpit-hero')).toBeInTheDocument());
+    // Hero mock and section empty state both render this label — click the hero one (index 0)
+    const btns = screen.getAllByRole('button', { name: 'Vincular anamnese' });
+    await user.click(btns[0]);
+    await waitFor(() =>
+      expect(screen.getByLabelText('Selecionar anamnese')).toBeInTheDocument(),
+    );
   });
 
-  it('links anamnesis via picker modal and shows success toast', async () => {
+  it('period picker sheet opens on period button click', async () => {
     const user = userEvent.setup();
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students/student-1/anamneses') return Promise.resolve({ data: [] });
-      if (url === '/trainer/anamneses') return Promise.resolve({ data: [
-        { id: 'anamnesis-1', title: 'Anamnese de Saúde', isGeneral: false },
-      ]});
-      return Promise.resolve({ data: [] });
+    renderDetail();
+    await waitFor(() => expect(screen.getByTestId('cockpit-hero')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /últimos 30 dias/i }));
+    expect(screen.getByTestId('period-picker')).toBeInTheDocument();
+  });
+
+  it('period picker closes on cancel', async () => {
+    const user = userEvent.setup();
+    renderDetail();
+    await waitFor(() => expect(screen.getByTestId('cockpit-hero')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /últimos 30 dias/i }));
+    await user.click(screen.getByRole('button', { name: 'Fechar picker' }));
+    expect(screen.queryByTestId('period-picker')).not.toBeInTheDocument();
+  });
+
+  it('renders recent sessions panel', async () => {
+    renderDetail();
+    await waitFor(() => expect(screen.getByTestId('recent-sessions')).toBeInTheDocument());
+  });
+
+  it('renders progression panel', async () => {
+    renderDetail();
+    await waitFor(() => expect(screen.getByTestId('progression-panel')).toBeInTheDocument());
+  });
+
+  it('renders Rotinas section with all protocols', async () => {
+    renderDetail();
+    await waitFor(() => expect(screen.getByText('Rotinas')).toBeInTheDocument());
+    expect(screen.getByText('Rotina Arquivada')).toBeInTheDocument();
+  });
+
+  it('shows active protocol in Rotinas section', async () => {
+    renderDetail();
+    await waitFor(() => expect(screen.getByText('Rotinas')).toBeInTheDocument());
+    expect(screen.getByText('Rotina Ativa')).toBeInTheDocument();
+  });
+
+  it('active protocol appears before archived in Rotinas section', async () => {
+    renderDetail();
+    await waitFor(() => expect(screen.getByText('Rotina Ativa')).toBeInTheDocument());
+    const activeEl = screen.getByText('Rotina Ativa');
+    const archivedEl = screen.getByText('Rotina Arquivada');
+    // Node.DOCUMENT_POSITION_FOLLOWING (4) means archivedEl comes after activeEl
+    expect(activeEl.compareDocumentPosition(archivedEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('"Ver todas" in Rotinas section navigates to protocols sub-route', async () => {
+    const user = userEvent.setup();
+    renderDetail();
+    await waitFor(() => expect(screen.getByText('Rotinas')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /ver todas as rotinas/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/protocols');
+  });
+
+  it('shows empty state with CTA when student has no protocols', async () => {
+    setupMocks({ protocols: [] });
+    renderDetail();
+    await waitFor(() => expect(screen.getByText('Sem rotinas ainda')).toBeInTheDocument());
+    expect(screen.getAllByRole('button', { name: 'Nova rotina' }).length).toBeGreaterThan(0);
+  });
+
+  it('renders Anamneses section heading', async () => {
+    renderDetail();
+    await waitFor(() => expect(screen.getByText('Anamneses')).toBeInTheDocument());
+  });
+
+  it('"Ver todas (n)" navigates to anamneses sub-route', async () => {
+    const user = userEvent.setup();
+    setupMocks({ anamneses: mockLinkedAnamneses });
+    renderDetail();
+    await waitFor(() => expect(screen.getByText('Anamneses')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /ver todas as \d+ anamneses/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/anamneses');
+  });
+
+  it('shows empty state with CTA when no anamneses', async () => {
+    setupMocks({ anamneses: [] });
+    renderDetail();
+    await waitFor(() => expect(screen.getByText('Sem anamneses vinculadas')).toBeInTheDocument());
+    // Hero mock also renders "Vincular anamnese"; getAllByRole ensures the section CTA is present too
+    expect(screen.getAllByRole('button', { name: 'Vincular anamnese' }).length).toBeGreaterThan(0);
+  });
+
+  it('links anamnesis via modal and shows success toast', async () => {
+    const user = userEvent.setup();
+    setupMocks({
+      allAnamneses: [{ id: 'anam-1', title: 'Anamnese de Saúde', isGeneral: false }],
     });
     api.post.mockResolvedValue({ data: {} });
-
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Anamneses' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Anamneses' }));
-    await waitFor(() => expect(screen.getByText('+ Vincular Anamnese')).toBeInTheDocument());
-    await user.click(screen.getByText('+ Vincular Anamnese'));
-    await waitFor(() => expect(screen.getByLabelText('Selecionar anamnese')).toBeInTheDocument());
-    await selectOption(user, screen.getByLabelText('Selecionar anamnese'), 'anamnesis-1');
+    renderDetail();
+    await waitFor(() => expect(screen.getByTestId('cockpit-hero')).toBeInTheDocument());
+    await user.click(screen.getAllByRole('button', { name: 'Vincular anamnese' })[0]);
+    await waitFor(() =>
+      expect(screen.getByLabelText('Selecionar anamnese')).toBeInTheDocument(),
+    );
+    await selectOption(user, screen.getByLabelText('Selecionar anamnese'), 'anam-1');
     await user.click(screen.getByRole('button', { name: 'Vincular' }));
-
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
         '/trainer/students/student-1/anamneses',
-        { anamnesisId: 'anamnesis-1' },
+        { anamnesisId: 'anam-1' },
       );
       expect(mockShowToast).toHaveBeenCalledWith('Anamnese vinculada com sucesso!', 'success');
     });
   });
 
-  it('fallback: fetches /trainer/students when no location state', async () => {
-    renderStudentDetail({ withState: false });
-    await waitFor(() => {
-      expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument();
-    });
-    expect(api.get).toHaveBeenCalledWith('/trainer/students');
+  it('cancel button closes link modal without calling api.post', async () => {
+    const user = userEvent.setup();
+    renderDetail();
+    await waitFor(() => expect(screen.getByTestId('cockpit-hero')).toBeInTheDocument());
+    await user.click(screen.getAllByRole('button', { name: 'Vincular anamnese' })[0]);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByLabelText('Selecionar anamnese')).not.toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('shows toast on protocols fetch error', async () => {
-    const error = { userMessage: 'Erro ao carregar rotinas' };
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/students') return Promise.resolve({ data: [mockStudent] });
-      if (url === '/trainer/protocols') return Promise.reject(error);
-      return Promise.resolve({ data: [] });
-    });
-    renderWithRoute(<StudentDetail />, {
-      route: { pathname: '/trainer/students/student-1', state: { student: mockStudent } },
-      path: '/trainer/students/:id',
-    });
-    await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith('Erro ao carregar rotinas', 'error');
-    });
+  it('fetches /trainer/students when no location state', async () => {
+    renderDetail({ withState: false });
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/trainer/students'));
   });
 
-  it('renders back button link to /trainer/students', async () => {
-    renderStudentDetail();
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /voltar para alunos/i })).toBeInTheDocument();
-    });
+  it('renders iArnold FAB', async () => {
+    renderDetail();
+    await waitFor(() => expect(screen.getByTestId('iarnold-fab')).toBeInTheDocument());
   });
 });

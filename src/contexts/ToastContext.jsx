@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import { onNetworkError } from '../api/axios';
 
 const ToastContext = createContext(null);
@@ -12,11 +13,18 @@ export const useToast = () => {
   return context;
 };
 
+const TOAST_ICONS = {
+  success: <CheckCircle2 size={18} strokeWidth={2} aria-hidden="true" />,
+  error: <AlertCircle size={18} strokeWidth={2} aria-hidden="true" />,
+  info: <Info size={18} strokeWidth={2} aria-hidden="true" />,
+};
+
 const ToastContainer = ({ toasts, onDismiss, onActionClick }) => (
   <div className="toast-container" role="status" aria-live="polite">
     {toasts.map(toast => (
       <div key={toast.id} className={`toast toast-${toast.type}`}>
-        <span>{toast.message}</span>
+        <span className="toast-icon">{TOAST_ICONS[toast.type] ?? TOAST_ICONS.info}</span>
+        <span className="toast-message">{toast.message}</span>
         {toast.actionLabel && (
           <button
             type="button"
@@ -27,11 +35,12 @@ const ToastContainer = ({ toasts, onDismiss, onActionClick }) => (
           </button>
         )}
         <button
+          type="button"
           className="toast-close"
           onClick={() => onDismiss(toast.id)}
           aria-label="Fechar notificação"
         >
-          &times;
+          <X size={16} strokeWidth={2} />
         </button>
       </div>
     ))}

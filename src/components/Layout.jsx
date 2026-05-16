@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, Palette, Trophy, PanelLeft, Salad, Utensils } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, Palette, Trophy, PanelLeft, Salad, Utensils, DollarSign } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import useActiveMode from '../hooks/useActiveMode';
+import useFinanceiroBadge from '../hooks/useFinanceiroBadge';
 
 const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
 
@@ -20,6 +21,8 @@ const Layout = ({ children, noPadding = false }) => {
   const popoverRef = useRef(null);
   const [activeMode, setActiveMode] = useActiveMode();
   const isDualRole = hasRole('TRAINER') && hasRole('NUTRITIONIST');
+  const trainerActive = hasRole('TRAINER') && (!isDualRole || activeMode === 'trainer');
+  const { count: financeiroBadgeCount } = useFinanceiroBadge({ enabled: trainerActive });
 
   const handleLogout = () => {
     logout();
@@ -242,6 +245,23 @@ const Layout = ({ children, noPadding = false }) => {
                   <Trophy size={20} strokeWidth={1.6} />
                 </span>
                 <span className="sidebar-link-label">Campeonatos</span>
+              </Link>
+
+              {/* Financeiro */}
+              <Link
+                to="/trainer/financeiro"
+                className={`sidebar-link ${isActive('/trainer/financeiro') ? 'sidebar-link--active' : ''}`}
+                aria-label="Financeiro"
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <DollarSign size={20} strokeWidth={1.6} />
+                </span>
+                <span className="sidebar-link-label">Financeiro</span>
+                {financeiroBadgeCount > 0 && (
+                  <span className="sidebar-link-badge sidebar-link-badge--count" aria-label={`${financeiroBadgeCount} cobranças pendentes`}>
+                    {financeiroBadgeCount > 99 ? '99+' : financeiroBadgeCount}
+                  </span>
+                )}
               </Link>
 
               {/* Sua Marca */}

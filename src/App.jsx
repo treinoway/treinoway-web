@@ -23,6 +23,8 @@ import ProtocolTemplateView from './pages/trainer/ProtocolTemplateView';
 import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
 import Students from './pages/trainer/Students';
 import StudentDetail from './pages/trainer/StudentDetail';
+import StudentProtocols from './pages/trainer/StudentProtocols';
+import StudentAnamneses from './pages/trainer/StudentAnamneses';
 import ExerciseProgressionDetail from './pages/trainer/ExerciseProgressionDetail';
 import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
 import AnamnesisDetail from './pages/trainer/AnamnesisDetail';
@@ -36,6 +38,9 @@ import Challenges from './pages/trainer/Challenges';
 import CreateChallenge from './pages/trainer/CreateChallenge';
 import ChallengeDetail from './pages/trainer/ChallengeDetail';
 import CreateChampionship from './pages/trainer/CreateChampionship';
+import SessionDetail from './pages/trainer/SessionDetail';
+import Financeiro from './pages/trainer/Financeiro';
+import SubscriptionHistory from './pages/trainer/SubscriptionHistory';
 
 // Nutritionist pages
 import NutritionistOnboardingPage from './pages/nutritionist/NutritionistOnboardingPage';
@@ -238,6 +243,39 @@ function App() {
           />
 
           <Route
+            path="/trainer/students/:studentId/sessions/:sessionId"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SessionDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/students/:id/protocols"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <StudentProtocols />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/students/:id/anamneses"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <StudentAnamneses />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/trainer/students/:studentId/exercises/:exerciseId/progression"
             element={
               <ProtectedRoute>
@@ -309,6 +347,28 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <TrainerBranding />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/financeiro"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Financeiro />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/students/:studentId/subscription-history"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SubscriptionHistory />
                 </Layout>
               </ProtectedRoute>
             }

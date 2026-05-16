@@ -176,6 +176,32 @@ describe('RowMenu', () => {
     expect(parentClick).not.toHaveBeenCalled();
   });
 
+  it('does not render delete item when onDelete is not provided', async () => {
+    const user = userEvent.setup();
+    const onCopy = vi.fn();
+    const extraItems = [{ label: 'Ver histórico', onClick: onCopy }];
+
+    render(<RowMenu ariaLabel="Ações" extraItems={extraItems} />);
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+
+    expect(screen.getByText('Ver histórico')).toBeInTheDocument();
+    expect(screen.queryByText('Excluir')).not.toBeInTheDocument();
+  });
+
+  it('calls extraItem callback when clicked and no onDelete present', async () => {
+    const user = userEvent.setup();
+    const onCopy = vi.fn();
+    const extraItems = [{ label: 'Ver histórico', onClick: onCopy }];
+
+    render(<RowMenu ariaLabel="Ações" extraItems={extraItems} />);
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+    await user.click(screen.getByText('Ver histórico'));
+
+    expect(onCopy).toHaveBeenCalledOnce();
+  });
+
   it('does not trigger parent onClick when menu item is clicked', async () => {
     const user = userEvent.setup();
     const parentClick = vi.fn();

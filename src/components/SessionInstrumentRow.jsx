@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { CheckCircle2, AlertTriangle, XCircle, StickyNote } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 const STATUS_BAR_MODIFIER = {
   completed: 'session-bar--success',
@@ -8,33 +8,19 @@ const STATUS_BAR_MODIFIER = {
   abandoned: 'session-bar--abandoned',
 };
 
-const STATUS_ICON_MODIFIER = {
-  completed: 'session-status--completed',
-  partial: 'session-status--partial',
-  abandoned: 'session-status--abandoned',
-};
-
-const StatusIcon = ({ status }) => {
-  if (status === 'completed') return <CheckCircle2 size={16} strokeWidth={2} aria-hidden="true" />;
-  if (status === 'partial') return <AlertTriangle size={16} strokeWidth={2} aria-hidden="true" />;
-  if (status === 'abandoned') return <XCircle size={16} strokeWidth={2} aria-hidden="true" />;
-  return null;
-};
-
-StatusIcon.propTypes = { status: PropTypes.string };
-
 /**
  * Session instrument row — 5-column grid.
  *
- * Grid columns: 4px status bar | 56px date block | 1fr session name+meta | auto status chip | 26px note trigger
+ * Grid columns: 4px status bar | 56px date block | 1fr session name+meta | auto rpe chip | 26px note trigger
  *
- * @param {object}  props
- * @param {string}  props.status          - 'completed' | 'partial' | 'abandoned'
- * @param {string}  props.date            - ISO date string 'YYYY-MM-DD'
- * @param {string}  props.sessionName     - Training name
- * @param {string|null} props.metaText    - Secondary info line (e.g. "8 de 10 séries · 1 240 kg")
- * @param {string|null} props.noteText    - Trainer note; if present, note trigger button shows
- * @param {string|null} props.rpeText     - Formatted RPE string (e.g. "RPE 7,5"); null = omit
+ * @param {object}        props
+ * @param {string}        props.status       - 'completed' | 'partial' | 'abandoned'
+ * @param {string}        props.date         - ISO date string 'YYYY-MM-DD'
+ * @param {string}        props.sessionName  - Training name
+ * @param {string|null}   props.metaText     - Secondary info line (e.g. "8 de 10 séries")
+ * @param {string|null}   props.noteText     - Trainer note; if present, note trigger button shows
+ * @param {string|null}   props.rpeText      - Bare RPE value (e.g. "7,5"); the chip renders its own "RPE" prefix
+ * @param {Function|null} props.onClick      - Optional: navigate to session detail when the row is clicked
  */
 const SessionInstrumentRow = ({
   status,
@@ -43,6 +29,7 @@ const SessionInstrumentRow = ({
   metaText,
   noteText,
   rpeText,
+  onClick,
 }) => {
   const [noteOpen, setNoteOpen] = useState(false);
 
@@ -58,13 +45,35 @@ const SessionInstrumentRow = ({
     : '—';
 
   const barModifier = STATUS_BAR_MODIFIER[status] ?? '';
-  const statusModifier = STATUS_ICON_MODIFIER[status] ?? '';
   const hasNote = Boolean(noteText);
+  const isClickable = Boolean(onClick);
 
-  const handleNoteToggle = () => setNoteOpen((prev) => !prev);
+  const handleNoteToggle = (e) => {
+    e.stopPropagation();
+    setNoteOpen((prev) => !prev);
+  };
+
+  const handleRowClick = () => {
+    if (onClick) onClick();
+  };
+
+  const handleRowKeyDown = (e) => {
+    if (!onClick) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  };
 
   return (
-    <div className="session-row" aria-label={`Sessão ${sessionName ?? ''} em ${date ?? ''}: ${status}`}>
+    <div
+      className={`session-row${isClickable ? ' session-row--clickable' : ''}`}
+      aria-label={`Sessão ${sessionName ?? ''} em ${date ?? ''}: ${status}`}
+      onClick={isClickable ? handleRowClick : undefined}
+      onKeyDown={isClickable ? handleRowKeyDown : undefined}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+    >
       {/* Col 1: status bar */}
       <div className={`session-bar${barModifier ? ` ${barModifier}` : ''}`} aria-hidden="true" />
 
@@ -78,19 +87,18 @@ const SessionInstrumentRow = ({
       {/* Col 3: session name + meta */}
       <div className="session-main">
         <span className="session-name" title={sessionName ?? ''}>{sessionName ?? '—'}</span>
-        {(metaText || rpeText) && (
-          <span className="session-meta">
-            {metaText && <strong>{metaText}</strong>}
-            {metaText && rpeText && ' · '}
-            {rpeText}
-          </span>
-        )}
+        {metaText && <span className="session-meta">{metaText}</span>}
       </div>
 
-      {/* Col 4: status chip */}
-      <div className={`session-status${statusModifier ? ` ${statusModifier}` : ''}`}>
-        <StatusIcon status={status} />
-      </div>
+      {/* Col 4: RPE chip */}
+      {rpeText ? (
+        <span className="session-rpe-chip">
+          <span className="session-rpe-chip-label">RPE</span>
+          {rpeText}
+        </span>
+      ) : (
+        <span aria-hidden="true" />
+      )}
 
       {/* Col 5: note trigger or placeholder */}
       {hasNote ? (
@@ -101,7 +109,7 @@ const SessionInstrumentRow = ({
           aria-label={noteOpen ? 'Fechar anotação' : 'Ver anotação do treino'}
           aria-expanded={noteOpen}
         >
-          <StickyNote size={14} strokeWidth={2} aria-hidden="true" />
+          <MessageCircle size={14} strokeWidth={2} aria-hidden="true" />
         </button>
       ) : (
         <span className="session-trigger-placeholder" aria-hidden="true" />
@@ -127,6 +135,7 @@ SessionInstrumentRow.propTypes = {
   metaText: PropTypes.string,
   noteText: PropTypes.string,
   rpeText: PropTypes.string,
+  onClick: PropTypes.func,
 };
 
 export default SessionInstrumentRow;

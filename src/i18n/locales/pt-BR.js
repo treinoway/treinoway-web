@@ -220,6 +220,13 @@ const ptBR = {
     "exercise.substituteNotFound": "Substituto não encontrado.",
     "exercise.logAlreadySubstituted":
       "Este exercício já foi substituído nesta sessão.",
+    "subscription.planNotFound": "Plano não encontrado.",
+    "subscription.planArchived": "Este plano está arquivado.",
+    "subscription.bothDiscountsSet": "Escolha apenas um tipo de desconto.",
+    "subscription.discountExceedsPrice": "O desconto não pode ser maior que o preço.",
+    "subscription.notFound": "Assinatura não encontrada.",
+    "subscription.cannotEditCancelled": "Esta assinatura já foi cancelada.",
+    "subscription.paymentNotFound": "Pagamento não encontrado.",
   },
 
   httpStatus: {
@@ -889,6 +896,56 @@ const ptBR = {
       ariaEstimated: "Duração estimada: {{value}}",
       minutesShort: "min",
       hoursShort: "h",
+    },
+  },
+
+  subscription: {
+    pageTitle: 'Financeiro',
+    tabs: {
+      billing: 'Cobranças',
+      plans: 'Planos',
+    },
+    stat: {
+      overdue: 'Atrasado',
+      pending: 'Pendente no mês',
+      paid: 'Recebido no mês',
+      overdueTooltip: 'Cobranças vencidas em qualquer período, ignorando o filtro de mês.',
+    },
+    actions: {
+      assignPlan: 'Atribuir plano',
+      replacePlan: 'Trocar plano',
+      cancelSubscription: 'Cancelar assinatura',
+      viewHistory: 'Ver histórico',
+      newPlan: 'Novo plano',
+      markPaid: 'Marcar pago',
+      paying: 'Pagando…',
+      revertPayment: 'Reverter pagamento',
+      undo: 'Desfazer',
+      showArchived: 'Mostrar arquivados',
+      addCharge: 'Adicionar cobrança',
+    },
+    empty: {
+      noSubscription: 'Sem assinatura ativa',
+      noChargesYet: 'Nenhuma cobrança ainda. Atribua um plano a um aluno para começar.',
+      noPlans: 'Crie seu primeiro plano de assinatura',
+      noHistory: 'Sem cobranças registradas para este aluno',
+      searchNoResults: 'Nenhum aluno encontrado para "{query}"',
+    },
+    toast: {
+      paymentRegistered: 'Pagamento registrado.',
+      paymentReverted: 'Pagamento revertido.',
+      planCreated: 'Plano criado.',
+      planUpdated: 'Plano atualizado.',
+      planArchived: 'Plano arquivado.',
+      planUnarchived: 'Plano desarquivado.',
+      planAssigned: 'Plano atribuído.',
+      subscriptionCancelled: 'Assinatura cancelada.',
+    },
+    confirm: {
+      replaceTitle: 'Confirmar troca de plano',
+      replaceMessage: 'A assinatura atual será cancelada hoje. Histórico preservado.',
+      cancelMessage: 'Cancelar a assinatura deste aluno? Ciclos futuros não serão gerados. O histórico será preservado.',
+      deleteCycleMessage: 'Excluir esta cobrança? O histórico ficará sem este registro. Esta ação não pode ser desfeita.',
     },
   },
 

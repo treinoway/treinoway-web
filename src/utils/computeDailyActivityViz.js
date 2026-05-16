@@ -2,9 +2,14 @@
  * Maps the daily-activity API payload to the data structures consumed by
  * PulseWaveform and PulseHeatmap.
  *
- * API shape (per item):
+ * API shape (per item) — canonical:
  *   { date, status, volumeKg, sessionId, trainingId, trainingName,
  *     completedSets, totalSets }
+ *
+ * Backward-compatibility:
+ *   - `totalVolumeKg` is accepted as a fallback when `volumeKg` is absent
+ *     (older backend versions emitted this field name).
+ *   - `status: 'done'` is coerced to `'completed'` for legacy clients.
  *
  * Waveform output (up to 30 bars, most-recent right):
  *   bars: [{ date, status, volumeKg, pct, trainingName, completedSets, totalSets }]
@@ -19,6 +24,24 @@ const WAVEFORM_BAR_COUNT = 30;
 const DAYS_IN_WEEK = 7;
 // ISO day of week: 0=Sun…6=Sat. We render Mon–Sun so Sunday is index 6.
 const DOW_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+/**
+ * Resolves volume from a daily-activity entry, accepting both the canonical
+ * `volumeKg` field and the legacy `totalVolumeKg` alias.
+ *
+ * @param {object} day
+ * @returns {number|null}
+ */
+const resolveVolume = (day) => day.volumeKg ?? day.totalVolumeKg ?? null;
+
+/**
+ * Coerces legacy status values to the canonical set.
+ * 'done' → 'completed'; all others pass through unchanged.
+ *
+ * @param {string|undefined} status
+ * @returns {string}
+ */
+const resolveStatus = (status) => (status === 'done' ? 'completed' : (status ?? 'empty'));
 
 /**
  * Returns YYYY-MM-DD string for today in local time.
@@ -49,17 +72,24 @@ export const computeWaveformBars = (dailyActivity, now = new Date()) => {
   const today = todayString(now);
 
   const validVolumes = slice
-    .map((d) => d.volumeKg)
+    .map(resolveVolume)
     .filter((v) => v !== null && v !== undefined && Number.isFinite(v) && v > 0);
   const maxVolumeKg = validVolumes.length > 0 ? Math.max(...validVolumes) : 0;
 
   const bars = slice.map((day) => {
-    const vol = day.volumeKg ?? 0;
-    const pct = maxVolumeKg > 0 && vol > 0 ? Math.max(5, Math.round((vol / maxVolumeKg) * 100)) : 0;
+    const status = resolveStatus(day.status);
+    const vol = resolveVolume(day) ?? 0;
+    const hasActivity = status && status !== 'empty';
+    let pct = 0;
+    if (maxVolumeKg > 0 && vol > 0) {
+      pct = Math.max(5, Math.round((vol / maxVolumeKg) * 100));
+    } else if (hasActivity) {
+      pct = 25;
+    }
     return {
       date: day.date,
-      status: day.status ?? 'empty',
-      volumeKg: day.volumeKg ?? null,
+      status,
+      volumeKg: resolveVolume(day),
       pct,
       trainingName: day.trainingName ?? null,
       completedSets: day.completedSets ?? 0,
@@ -87,7 +117,7 @@ export const computeHeatmapWeeks = (dailyActivity, now = new Date()) => {
   const today = todayString(now);
 
   const validVolumes = dailyActivity
-    .map((d) => d.volumeKg)
+    .map(resolveVolume)
     .filter((v) => v !== null && v !== undefined && Number.isFinite(v) && v > 0);
   const maxVolumeKg = validVolumes.length > 0 ? Math.max(...validVolumes) : 0;
 
@@ -137,8 +167,8 @@ export const computeHeatmapWeeks = (dailyActivity, now = new Date()) => {
       const entry = byDate.get(dateStr);
       days.push({
         date: dateStr,
-        status: entry?.status ?? 'empty',
-        volumeKg: entry?.volumeKg ?? null,
+        status: resolveStatus(entry?.status),
+        volumeKg: entry ? resolveVolume(entry) : null,
         trainingName: entry?.trainingName ?? null,
         completedSets: entry?.completedSets ?? 0,
         totalSets: entry?.totalSets ?? 0,

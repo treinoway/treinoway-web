@@ -90,6 +90,56 @@ describe('computeWaveformBars', () => {
   });
 });
 
+describe('backward-compatibility — volumeKg / totalVolumeKg / status coercion', () => {
+  it('derives bars correctly when input uses canonical volumeKg', () => {
+    const days = [
+      makeDay('2026-04-28', { volumeKg: 500 }),
+      makeDay('2026-04-29', { volumeKg: 1000 }),
+    ];
+    const { bars, maxVolumeKg } = computeWaveformBars(days, NOW);
+    expect(maxVolumeKg).toBe(1000);
+    expect(bars[0].volumeKg).toBe(500);
+    expect(bars[1].volumeKg).toBe(1000);
+  });
+
+  it('derives bars correctly when input uses legacy totalVolumeKg', () => {
+    const days = [
+      { date: '2026-04-28', status: 'completed', totalVolumeKg: 500, trainingName: 'A', completedSets: 4, totalSets: 4 },
+      { date: '2026-04-29', status: 'completed', totalVolumeKg: 1000, trainingName: 'A', completedSets: 4, totalSets: 4 },
+    ];
+    const { bars, maxVolumeKg } = computeWaveformBars(days, NOW);
+    expect(maxVolumeKg).toBe(1000);
+    expect(bars[0].volumeKg).toBe(500);
+    expect(bars[1].volumeKg).toBe(1000);
+    expect(bars[0].pct).toBe(50);
+    expect(bars[1].pct).toBe(100);
+  });
+
+  it('coerces legacy status "done" to "completed" in waveform bars', () => {
+    const days = [makeDay('2026-04-28', { status: 'done' })];
+    const { bars } = computeWaveformBars(days, NOW);
+    expect(bars[0].status).toBe('completed');
+  });
+
+  it('coerces legacy status "done" to "completed" in heatmap cells', () => {
+    const days = [makeDay('2026-04-28', { status: 'done' })];
+    const { weeks } = computeHeatmapWeeks(days, NOW);
+    const cell = weeks.flatMap((w) => w.days).find((d) => d.date === '2026-04-28');
+    expect(cell?.status).toBe('completed');
+  });
+
+  it('derives heatmap maxVolumeKg from totalVolumeKg when volumeKg absent', () => {
+    const days = [
+      { date: '2026-04-28', status: 'completed', totalVolumeKg: 800, trainingName: 'A', completedSets: 4, totalSets: 4 },
+      { date: '2026-04-29', status: 'completed', totalVolumeKg: 1200, trainingName: 'A', completedSets: 4, totalSets: 4 },
+    ];
+    const { maxVolumeKg, weeks } = computeHeatmapWeeks(days, NOW);
+    expect(maxVolumeKg).toBe(1200);
+    const cell = weeks.flatMap((w) => w.days).find((d) => d.date === '2026-04-28');
+    expect(cell?.volumeKg).toBe(800);
+  });
+});
+
 describe('computeHeatmapWeeks', () => {
   it('returns empty weeks for null input', () => {
     const { weeks } = computeHeatmapWeeks(null, NOW);
