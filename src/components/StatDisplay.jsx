@@ -8,7 +8,18 @@ const resolveTrendDirection = (trend, trendDirection) => {
 
 import PropTypes from 'prop-types';
 
-const StatDisplay = ({ value, unit, label, trend, trendDirection, variant = 'default', className }) => {
+const StatDisplay = ({
+  value,
+  unit,
+  label,
+  trend,
+  trendDirection,
+  variant = 'default',
+  className,
+  infoSlot,
+  eyebrow,
+  subValue,
+}) => {
   const resolvedDirection = resolveTrendDirection(trend, trendDirection);
 
   const containerClass = [
@@ -19,14 +30,25 @@ const StatDisplay = ({ value, unit, label, trend, trendDirection, variant = 'def
     .filter(Boolean)
     .join(' ');
 
+  const labelNode = infoSlot ? (
+    <span className="stat-display-label-row">
+      <span className="stat-display-label">{label}</span>
+      {infoSlot}
+    </span>
+  ) : (
+    <span className="stat-display-label">{label}</span>
+  );
+
   return (
     <div className={containerClass}>
+      {eyebrow && <span className="stat-display-eyebrow">{eyebrow}</span>}
       <span className="stat-display-value">
         {value}
         {unit && <span className="stat-display-unit">{unit}</span>}
       </span>
+      {subValue && <span className="stat-display-subvalue">{subValue}</span>}
       <div className="stat-display-footer">
-        <span className="stat-display-label">{label}</span>
+        {labelNode}
         {trend && (
           <span className={`stat-display-trend stat-display-trend--${resolvedDirection}`}>
             {trend}
@@ -45,6 +67,9 @@ StatDisplay.propTypes = {
   trendDirection: PropTypes.oneOf(['up', 'down', 'neutral']),
   variant: PropTypes.string,
   className: PropTypes.string,
+  infoSlot: PropTypes.node,
+  eyebrow: PropTypes.node,
+  subValue: PropTypes.node,
 };
 
 export default StatDisplay;

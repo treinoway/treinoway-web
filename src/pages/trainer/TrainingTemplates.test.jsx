@@ -487,42 +487,27 @@ describe('TrainingTemplates', () => {
     expect(api.delete).not.toHaveBeenCalled();
   });
 
-  it('shows view toggle buttons when templates are loaded', async () => {
+  it('renders the unified list with no view toggle buttons', async () => {
     renderWithRouter(<TrainingTemplates />);
 
     await waitFor(() => screen.getByText('Treino A'));
 
-    expect(screen.getByRole('button', { name: /visualização em cards/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /visualização em lista/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /visualização em cards/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /visualização em lista/i })).not.toBeInTheDocument();
   });
 
-  it('switches to list view and shows table with template data', async () => {
-    const user = userEvent.setup();
+  it('displays all templates as list rows after loading', async () => {
     renderWithRouter(<TrainingTemplates />);
 
-    await waitFor(() => screen.getByText('Treino A'));
-
-    await user.click(screen.getByRole('button', { name: /visualização em lista/i }));
-
-    expect(screen.getByRole('table')).toBeInTheDocument();
-    expect(screen.getByText('Treino A')).toBeInTheDocument();
-    expect(screen.getByText('Treino B')).toBeInTheDocument();
-  });
-
-  it('switches back to card view from list view', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<TrainingTemplates />);
-
-    await waitFor(() => screen.getByText('Treino A'));
-
-    await user.click(screen.getByRole('button', { name: /visualização em lista/i }));
-    expect(screen.getByRole('table')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /visualização em cards/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Treino A')).toBeInTheDocument();
+      expect(screen.getByText('Treino B')).toBeInTheDocument();
+    });
+    // No table element — unified rich-list does not use <table>
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
-  it('hides view toggle buttons when form is open', async () => {
+  it('hides list and shows form when create button is clicked', async () => {
     const user = userEvent.setup();
     renderWithRouter(<TrainingTemplates />);
 

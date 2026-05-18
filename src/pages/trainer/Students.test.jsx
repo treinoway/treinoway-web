@@ -28,6 +28,10 @@ vi.mock('../../assets/illustrations/no-students.svg', () => ({
   default: '/mocked-no-students.svg',
 }));
 
+vi.mock('../../utils/relativeTime', () => ({
+  default: (iso) => (iso ? 'há 2d' : null),
+}));
+
 const mockStudents = [
   { id: 'student-1', firstName: 'Aluno', lastName: 'Exemplo', email: 'aluno@example.com', status: 'ativo' },
 ];
@@ -148,6 +152,148 @@ describe('Students', () => {
     await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
     expect(screen.getByText('Bruno Costa')).toBeInTheDocument();
     expect(screen.getByText('Carla Lima')).toBeInTheDocument();
+  });
+
+  // ── Inline stats: adherence + last workout ────────────────────────────
+
+  it('renders rounded adherence percent and relative last workout', async () => {
+    api.get.mockResolvedValue({
+      data: [{
+        id: 's1',
+        firstName: 'Ana',
+        lastName: 'Silva',
+        email: 'ana@example.com',
+        status: 'ativo',
+        adherence: 84.6,
+        adherenceCompleted: 11,
+        adherenceExpected: 13,
+        adherenceMonth: '2026-05-01',
+        lastWorkoutAt: '2026-05-16T10:00:00.000Z',
+      }],
+    });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
+    expect(screen.getByText('85%')).toBeInTheDocument();
+    expect(screen.getByText('há 2d')).toBeInTheDocument();
+    expect(screen.getByText('Aderência')).toBeInTheDocument();
+    expect(screen.getByText('Último treino')).toBeInTheDocument();
+  });
+
+  it('renders the X/Y treinos sub-line when adherence counts are present', async () => {
+    api.get.mockResolvedValue({
+      data: [{
+        id: 's1',
+        firstName: 'Ana',
+        lastName: 'Silva',
+        email: 'ana@example.com',
+        status: 'ativo',
+        adherence: 62,
+        adherenceCompleted: 5,
+        adherenceExpected: 8,
+        adherenceMonth: '2026-05-01',
+        lastWorkoutAt: null,
+      }],
+    });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
+    expect(screen.getByText('5/8 treinos')).toBeInTheDocument();
+  });
+
+  it('omits the X/Y treinos sub-line when counts are null', async () => {
+    api.get.mockResolvedValue({
+      data: [{
+        id: 's1',
+        firstName: 'Ana',
+        lastName: 'Silva',
+        email: 'ana@example.com',
+        status: 'ativo',
+        adherence: null,
+        adherenceCompleted: null,
+        adherenceExpected: null,
+        lastWorkoutAt: null,
+      }],
+    });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
+    expect(screen.queryByText(/\/.* treinos/)).not.toBeInTheDocument();
+  });
+
+  it('shows em-dash placeholders when adherence and lastWorkoutAt are null', async () => {
+    api.get.mockResolvedValue({
+      data: [{
+        id: 's1',
+        firstName: 'Ana',
+        lastName: 'Silva',
+        email: 'ana@example.com',
+        status: 'ativo',
+        adherence: null,
+        adherenceCompleted: null,
+        adherenceExpected: null,
+        lastWorkoutAt: null,
+      }],
+    });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
+    const dashes = screen.getAllByText('—');
+    expect(dashes.length).toBe(2);
+  });
+
+  it('shows danger alert when adherence below 60%', async () => {
+    api.get.mockResolvedValue({
+      data: [{
+        id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com',
+        status: 'ativo', adherence: 45, lastWorkoutAt: null,
+      }],
+    });
+    renderWithRouter(<Students />);
+    await waitFor(() => expect(screen.getByText('45%')).toBeInTheDocument());
+    expect(screen.getByTitle('Aderência crítica')).toBeInTheDocument();
+  });
+
+  it('shows warn alert when adherence between 60% and 79%', async () => {
+    api.get.mockResolvedValue({
+      data: [{
+        id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com',
+        status: 'ativo', adherence: 70, lastWorkoutAt: null,
+      }],
+    });
+    renderWithRouter(<Students />);
+    await waitFor(() => expect(screen.getByText('70%')).toBeInTheDocument());
+    expect(screen.getByTitle('Aderência abaixo do ideal')).toBeInTheDocument();
+  });
+
+  it('shows danger alert when last workout older than 14 days', async () => {
+    const old = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
+    api.get.mockResolvedValue({
+      data: [{
+        id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com',
+        status: 'ativo', adherence: 90, lastWorkoutAt: old,
+      }],
+    });
+    renderWithRouter(<Students />);
+    await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
+    expect(screen.getByTitle('Sem treino há mais de 14 dias')).toBeInTheDocument();
+  });
+
+  it('does not render PR stat', async () => {
+    api.get.mockResolvedValue({
+      data: [{
+        id: 's1',
+        firstName: 'Ana',
+        lastName: 'Silva',
+        email: 'ana@example.com',
+        status: 'ativo',
+        currentPrLoad: 120,
+      }],
+    });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
+    expect(screen.queryByText(/Sem PR|^PR$|kg/)).not.toBeInTheDocument();
   });
 
   it('clicking a student row navigates to student profile', async () => {

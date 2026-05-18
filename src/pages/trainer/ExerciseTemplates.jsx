@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { LayoutGrid, List, Dumbbell, Info, Layers } from 'lucide-react';
+import { Dumbbell, Info, Layers } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import { getExerciseTypeLabel } from '../../constants/exerciseTypes';
 import { getYoutubeVideoId } from '../../utils/youtube';
-import RowMenu from '../../components/RowMenu';
+import LibraryList, { LibraryListRow } from '../../components/LibraryList';
+import LibraryFilterBar from '../../components/LibraryFilterBar';
 import ExerciseTemplateForm from '../../components/ExerciseTemplateForm';
-import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
 
 const ExerciseTemplates = () => {
   const { showToast } = useToast();
@@ -16,7 +16,6 @@ const ExerciseTemplates = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
-  const [viewMode, setViewMode] = usePersistedViewMode(VIEW_MODE_KEYS.exerciseTemplates);
   const [searchQuery, setSearchQuery] = useState('');
   const [formName, setFormName] = useState('');
 
@@ -101,29 +100,10 @@ const ExerciseTemplates = () => {
       {!showForm && (
         <div className="page-header">
           <div className="page-header-title-row">
+            <Dumbbell size={24} strokeWidth={2} className="page-header-title-icon" />
             <h1>Exercícios</h1>
           </div>
           <div className="page-header-actions">
-            <div className="view-toggle-group">
-              <button
-                type="button"
-                className={`view-toggle-btn${viewMode === 'card' ? ' view-toggle-btn--active' : ''}`}
-                onClick={() => setViewMode('card')}
-                aria-pressed={viewMode === 'card'}
-                aria-label="Visualização em cards"
-              >
-                <LayoutGrid size={16} strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                className={`view-toggle-btn${viewMode === 'list' ? ' view-toggle-btn--active' : ''}`}
-                onClick={() => setViewMode('list')}
-                aria-pressed={viewMode === 'list'}
-                aria-label="Visualização em lista"
-              >
-                <List size={16} strokeWidth={2} />
-              </button>
-            </div>
             {templates.length > 0 && (
               <button onClick={() => setShowForm(true)} className="btn-primary">
                 + Novo exercício
@@ -134,16 +114,12 @@ const ExerciseTemplates = () => {
       )}
 
       {!showForm && !templatesLoading && templates.length > 0 && (
-        <div className="toolbar-search-wrapper">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="form-input"
-            placeholder="Buscar exercício por nome..."
-            aria-label="Buscar exercícios"
-          />
-        </div>
+        <LibraryFilterBar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Buscar exercício por nome…"
+          searchAriaLabel="Buscar exercícios"
+        />
       )}
 
       {showForm && (
@@ -177,119 +153,36 @@ const ExerciseTemplates = () => {
         </div>
       )}
 
-      {!showForm && !templatesLoading && filteredTemplates.length > 0 && viewMode === 'card' && (
-        <div className="grid-cards">
+      {!showForm && !templatesLoading && templates.length > 0 && (
+        <LibraryList emptyMessage={`Nenhum resultado para "${searchQuery}"`}>
           {filteredTemplates.map((template) => {
             const meta = formatExerciseMeta(template);
-            const youtubeId = getYoutubeVideoId(template.videoUrl);
+            const hasVideo = !!getYoutubeVideoId(template.videoUrl);
             const typeLabel = template.type ? getExerciseTypeLabel(template.type) : null;
-            const hasBadges = typeLabel || template.isPublic;
+
+            const badges = (
+              <>
+                {typeLabel && <span className="badge badge-blue">{typeLabel}</span>}
+                {template.isPublic && <span className="badge badge-green">Público</span>}
+                {hasVideo && <span className="badge badge-gray">Vídeo</span>}
+              </>
+            );
+
             return (
-              <div key={template.id} className="card">
-                <div className="card-header-row">
-                  <h3 className="card-subtitle">{template.name}</h3>
-                  <RowMenu
-                    ariaLabel={`Ações do modelo ${template.name}`}
-                    onEdit={() => handleEdit(template)}
-                    onDelete={() => handleDelete(template.id)}
-                  />
-                </div>
-                {hasBadges && (
-                  <div className="card-badges">
-                    {typeLabel && <span className="badge badge-blue">{typeLabel}</span>}
-                    {template.isPublic && <span className="badge badge-green">Público</span>}
-                  </div>
-                )}
-                {youtubeId && (
-                  <div className="youtube-preview">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${youtubeId}`}
-                      title={`Vídeo do exercício ${template.name}`}
-                      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                )}
-                {meta && (
-                  <div className="card-stats">
-                    <span className="stat-chip">{meta}</span>
-                  </div>
-                )}
-              </div>
+              <LibraryListRow
+                key={template.id}
+                title={template.name}
+                subtitle={meta}
+                badges={badges}
+                rowMenuProps={{
+                  ariaLabel: `Ações do modelo ${template.name}`,
+                  onEdit: () => handleEdit(template),
+                  onDelete: () => handleDelete(template.id),
+                }}
+              />
             );
           })}
-        </div>
-      )}
-
-      {!showForm && !templatesLoading && filteredTemplates.length > 0 && viewMode === 'list' && (
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th className="table-col-desktop-only">Meta</th>
-                <th className="table-col-desktop-only">Vídeo</th>
-                <th className="table-col-actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTemplates.map((template) => {
-                const meta = formatExerciseMeta(template);
-                const hasVideo = !!getYoutubeVideoId(template.videoUrl);
-                return (
-                  <tr key={template.id}>
-                    <td>
-                      <span className="text-strong">{template.name}</span>
-                      {meta && (
-                        <span className="table-col-mobile-only table-cell-meta">
-                          {meta}
-                        </span>
-                      )}
-                      {template.isPublic && (
-                        <span className="table-col-mobile-only badge badge-green table-cell-badge">
-                          Público
-                        </span>
-                      )}
-                    </td>
-                    <td className="table-col-desktop-only">
-                      <span className="table-cell-meta-inline">{meta || '—'}</span>
-                      {template.isPublic && (
-                        <span className="badge badge-green table-cell-badge-inline">Público</span>
-                      )}
-                    </td>
-                    <td className="table-col-desktop-only">
-                      {hasVideo ? (
-                        <a
-                          href={template.videoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="badge badge-blue"
-                        >
-                          YouTube
-                        </a>
-                      ) : (
-                        <span className="text-steel">—</span>
-                      )}
-                    </td>
-                    <td>
-                      <RowMenu
-                        ariaLabel={`Ações do modelo ${template.name}`}
-                        onEdit={() => handleEdit(template)}
-                        onDelete={() => handleDelete(template.id)}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {!showForm && !templatesLoading && templates.length > 0 && filteredTemplates.length === 0 && (
-        <div className="empty-state">
-          <p className="empty-state-title">Nenhum resultado para &quot;{searchQuery}&quot;</p>
-        </div>
+        </LibraryList>
       )}
 
       {!showForm && !templatesLoading && templates.length === 0 && (

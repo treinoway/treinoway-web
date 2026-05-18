@@ -9483,6 +9483,162 @@ html:has(.auth-page) {
   gap: var(--spacing-xs);
 }
 
+/* Label + adjacent info-popover slot */
+.stat-display-label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* Eyebrow above the value (context label e.g. "Maio · mês atual") */
+.stat-display-eyebrow {
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  line-height: var(--line-height-tight);
+}
+
+/* Sub-value beneath the big number (e.g. "5 de 8 treinos") */
+.stat-display-subvalue {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--brand-steel);
+  line-height: var(--line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.theme-stadium .stat-display-eyebrow,
+.theme-stadium .stat-display-subvalue {
+  color: var(--stadium-text-muted);
+}
+
+/* ============================================
+   InfoPopover — small anchored informational dialog
+   ============================================ */
+.info-popover-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.info-popover-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--brand-steel);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  transition: background-color var(--duration-fast) var(--ease-brand),
+    color var(--duration-fast) var(--ease-brand);
+}
+
+.info-popover-trigger:hover {
+  background: var(--md-surface-container-high);
+  color: var(--brand-ink);
+}
+
+.info-popover-trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.theme-stadium .info-popover-trigger {
+  color: var(--stadium-text-muted);
+}
+
+.theme-stadium .info-popover-trigger:hover {
+  background: var(--stadium-surface-elevated);
+  color: var(--stadium-text);
+}
+
+.info-popover {
+  position: absolute;
+  top: calc(100% + var(--spacing-xs));
+  left: 0;
+  width: 280px;
+  max-width: calc(100vw - var(--spacing-lg));
+  padding: var(--spacing-md);
+  background: var(--md-surface);
+  color: var(--brand-ink);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-md);
+  z-index: var(--z-dropdown);
+  text-align: left;
+  text-transform: none;
+  letter-spacing: var(--tracking-normal);
+}
+
+@media (min-width: 768px) {
+  .info-popover {
+    width: 320px;
+  }
+}
+
+.info-popover-title {
+  font-family: var(--font-family-display);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: var(--line-height-tight);
+  color: var(--brand-ink);
+  margin: 0 0 var(--spacing-sm);
+}
+
+.info-popover-body {
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--line-height-normal);
+  color: var(--brand-slate);
+}
+
+.info-popover-text {
+  margin: 0;
+}
+
+.info-popover-metric {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--brand-divider);
+}
+
+.info-popover-metric-label {
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--brand-steel);
+  margin: 0 0 var(--spacing-xs);
+}
+
+.info-popover-metric-value {
+  font-family: var(--font-family-stat);
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand-ink);
+  margin: 0 0 var(--spacing-xs);
+}
+
+.info-popover-metric-sub {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: var(--line-height-normal);
+  color: var(--brand-steel);
+  margin: 0;
+}
+
 /* Stadium Theme — dark mode wrapper for performance/stats screens */
 .theme-stadium {
   background: var(--stadium-bg);
@@ -10951,6 +11107,16 @@ html:has(.auth-page) {
   font-size: 11px;
   color: var(--brand-steel);
   font-weight: 500;
+}
+
+.student-stat-inline-sub {
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--brand-steel);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-height-tight);
+  margin-top: 2px;
 }
 
 .student-stat-inline-label {
@@ -24990,6 +25156,160 @@ nav.onboarding-steps {
 .fin-skeleton {
   display: grid;
   gap: var(--spacing-sm);
+}
+
+/* ============================================================
+   BIBLIOTECA — unified list components
+   LibraryList (rich-row variant) + LibraryFilterBar
+   ============================================================ */
+
+/* Modifier: inline loading screen (constrained height, e.g. inside a card) */
+.loading-screen--inline {
+  min-height: 120px;
+}
+
+/* Modifier: form section with top divider (replaces inline border/margin) */
+.form-section--divided {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--brand-divider);
+}
+
+/* Count badge inside a filter chip (LibraryFilterBar) */
+.library-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family-stat);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  font-weight: 700;
+  color: inherit;
+  margin-left: var(--spacing-xs);
+  min-width: 16px;
+}
+
+/* Title + inline badges on one line (LibraryListRow) */
+.library-row-header-line {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+/* Badge group beside the title */
+.library-row-badges {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Stats section — hidden on mobile, shown on desktop */
+.library-row-stats-desktop {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .library-row-stats-desktop {
+    display: flex;
+  }
+}
+
+/* ---------- LibraryListRow — student-stat-row visual pattern ---------- */
+.library-stat-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  background: var(--md-surface);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-sm);
+  padding: 14px 18px;
+  margin-bottom: var(--spacing-sm);
+  cursor: pointer;
+  transition: box-shadow var(--duration-fast) var(--ease-brand),
+    transform var(--duration-fast) var(--ease-brand);
+}
+
+.library-stat-row:last-child {
+  margin-bottom: 0;
+}
+
+.library-stat-row:hover {
+  box-shadow: var(--shadow-brand-md);
+  transform: translateX(2px);
+}
+
+.library-stat-row:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.library-stat-row-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+  min-width: 0;
+}
+
+.library-stat-row-name-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.library-stat-row-title-line {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.library-stat-row-name {
+  font-family: var(--font-family-display);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--brand-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.library-stat-row-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  color: var(--brand-steel);
+  margin-top: 2px;
+}
+
+/* Stats section: hidden on mobile, shown on desktop */
+.library-stat-row-stats {
+  display: none;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .library-stat-row-stats {
+    display: flex;
+  }
+}
+
+/* ---------- LibraryList empty notice (inline, no-results variant handled by students-no-results) ---------- */
+.library-empty-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  background: var(--md-surface);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-sm);
+  text-align: center;
 }
 
 /* Plans toggle toolbar */

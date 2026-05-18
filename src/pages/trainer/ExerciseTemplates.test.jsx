@@ -224,75 +224,43 @@ describe('ExerciseTemplates', () => {
     expect(api.delete).not.toHaveBeenCalled();
   });
 
-  it('shows view toggle buttons', async () => {
+  it('renders the unified list (no view toggle buttons)', async () => {
     renderWithRouter(<ExerciseTemplates />);
 
     await waitFor(() => screen.getByText('Agachamento'));
 
-    expect(screen.getByRole('button', { name: /visualização em cards/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /visualização em lista/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /visualização em cards/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /visualização em lista/i })).not.toBeInTheDocument();
   });
 
-  it('switches to list view when list toggle is clicked and shows table', async () => {
-    const user = userEvent.setup();
+  it('displays all templates as list rows', async () => {
     renderWithRouter(<ExerciseTemplates />);
 
-    await waitFor(() => screen.getByText('Agachamento'));
-
-    await user.click(screen.getByRole('button', { name: /visualização em lista/i }));
-
-    expect(screen.getByRole('table')).toBeInTheDocument();
-    expect(screen.getByText('Agachamento')).toBeInTheDocument();
-    expect(screen.getByText('Corrida')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Agachamento')).toBeInTheDocument();
+      expect(screen.getByText('Corrida')).toBeInTheDocument();
+      expect(screen.getByText('Rosca Direta')).toBeInTheDocument();
+    });
   });
 
-  it('switches back to card view when card toggle is clicked', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<ExerciseTemplates />);
-
-    await waitFor(() => screen.getByText('Agachamento'));
-
-    await user.click(screen.getByRole('button', { name: /visualização em lista/i }));
-    expect(screen.getByRole('table')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /visualização em cards/i }));
-    expect(screen.queryByRole('table')).not.toBeInTheDocument();
-  });
-
-  it('shows YouTube preview iframe in card view when template has a valid YouTube URL', async () => {
+  it('shows Vídeo badge for template with a valid YouTube URL', async () => {
     renderWithRouter(<ExerciseTemplates />);
 
     await waitFor(() => screen.getByText('Rosca Direta'));
 
-    const iframes = document.querySelectorAll('iframe');
-    const youtubeIframe = Array.from(iframes).find((el) =>
-      el.src.includes('youtube.com/embed/abc123XYZ')
-    );
-    expect(youtubeIframe).toBeTruthy();
+    expect(screen.getByText('Vídeo')).toBeInTheDocument();
   });
 
-  it('does not show YouTube iframe for templates without videoUrl', async () => {
+  it('does not show Vídeo badge for templates without a videoUrl', async () => {
     renderWithRouter(<ExerciseTemplates />);
 
     await waitFor(() => screen.getByText('Agachamento'));
 
-    const iframes = document.querySelectorAll('iframe');
-    expect(iframes.length).toBe(1);
+    // Only Rosca Direta has a video — expect exactly one badge
+    expect(screen.getAllByText('Vídeo').length).toBe(1);
   });
 
-  it('shows YouTube link column in list view for templates with valid YouTube URL', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<ExerciseTemplates />);
-
-    await waitFor(() => screen.getByText('Agachamento'));
-
-    await user.click(screen.getByRole('button', { name: /visualização em lista/i }));
-
-    const youtubeLinks = screen.getAllByText('YouTube');
-    expect(youtubeLinks.length).toBeGreaterThan(0);
-  });
-
-  it('hides view toggle buttons when form is open', async () => {
+  it('hides header actions when form is open', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ExerciseTemplates />);
 
@@ -330,7 +298,6 @@ describe('ExerciseTemplates', () => {
 
     await waitFor(() => screen.getByText('Rosca Direta'));
 
-    await user.click(screen.getByRole('button', { name: /visualização em cards/i }));
     const menuTrigger = screen.getByRole('button', { name: /ações do modelo rosca direta/i });
     await user.click(menuTrigger);
     await user.click(screen.getByText('Editar'));

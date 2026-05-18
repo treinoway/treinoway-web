@@ -93,7 +93,7 @@ describe('TrainerAnamneses', () => {
     api.get.mockResolvedValue({ data: [] });
     renderWithRouter(<TrainerAnamneses />);
     await waitFor(() => {
-      expect(screen.getByText('Nenhuma anamnese ainda')).toBeInTheDocument();
+      expect(screen.getByText('Sem anamneses ainda')).toBeInTheDocument();
     });
   });
 
@@ -102,7 +102,7 @@ describe('TrainerAnamneses', () => {
     api.get.mockResolvedValue({ data: [] });
     renderWithRouter(<TrainerAnamneses />);
     await waitFor(() => {
-      expect(screen.getByText('Nenhuma anamnese ainda')).toBeInTheDocument();
+      expect(screen.getByText('Sem anamneses ainda')).toBeInTheDocument();
     });
 
     await user.click(screen.getByRole('button', { name: /criar primeira anamnese/i }));
@@ -130,7 +130,7 @@ describe('TrainerAnamneses', () => {
       expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /^meus$/i }));
+    await user.click(screen.getByRole('tab', { name: /meus/i }));
 
     expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
     expect(screen.getByText('Anamnese Derivada')).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe('TrainerAnamneses', () => {
       expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /^gerais$/i }));
+    await user.click(screen.getByRole('tab', { name: /gerais/i }));
 
     expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
     expect(screen.queryByText('Anamnese Saúde Geral')).not.toBeInTheDocument();

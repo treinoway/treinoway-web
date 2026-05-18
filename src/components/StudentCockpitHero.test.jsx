@@ -16,14 +16,20 @@ const mockStudent = {
 };
 
 const mockSummary = {
-  completionRate: 0.85,
+  adherence: 62,
+  adherenceCompleted: 5,
+  adherenceExpected: 8,
+  adherenceMonth: '2026-05-01',
+  previousAdherence: 50,
+  previousAdherenceMonth: '2026-04-01',
+  completionRate: 0.95,
   daysSinceLast: 2,
   sessionsPerWeek: 3.5,
   maxStreak: 12,
   currentProtocol: { name: 'Hipertrofia', weekNumber: 3, totalWeeks: 8 },
 };
 
-const mockPreviousSummary = { completionRate: 0.80 };
+const mockPreviousSummary = { adherence: 57, completionRate: 0.90 };
 
 const defaultProps = {
   student: mockStudent,
@@ -156,8 +162,115 @@ describe('StudentCockpitHero', () => {
     expect(screen.getByText('Nenhuma rotina ativa')).toBeInTheDocument();
   });
 
-  it('shows delta trend when previous summary available', () => {
+  it('shows plain-language positive delta in points vs previous month name', () => {
     renderWithRouter(<StudentCockpitHero {...defaultProps} />);
-    expect(screen.getByText('+5%')).toBeInTheDocument();
+    // 62 - 50 = 12 points, previousAdherenceMonth 2026-04-01 → "abril"
+    expect(screen.getByText('↑ 12 pontos vs abril')).toBeInTheDocument();
+  });
+
+  it('shows plain-language negative delta in points vs previous month', () => {
+    renderWithRouter(
+      <StudentCockpitHero
+        {...defaultProps}
+        summary={{ ...mockSummary, adherence: 42, previousAdherence: 50 }}
+      />,
+    );
+    expect(screen.getByText('↓ 8 pontos vs abril')).toBeInTheDocument();
+  });
+
+  it('shows "Sem mudança" when delta is zero', () => {
+    renderWithRouter(
+      <StudentCockpitHero
+        {...defaultProps}
+        summary={{ ...mockSummary, adherence: 50, previousAdherence: 50 }}
+      />,
+    );
+    expect(screen.getByText('Sem mudança vs abril')).toBeInTheDocument();
+  });
+
+  it('omits delta trend when previousAdherence is null', () => {
+    renderWithRouter(
+      <StudentCockpitHero
+        {...defaultProps}
+        summary={{ ...mockSummary, previousAdherence: null }}
+      />,
+    );
+    expect(screen.queryByText(/pontos vs/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Sem mudança vs/)).not.toBeInTheDocument();
+  });
+
+  it('renders the X de Y treinos sub-line under the adherence value', () => {
+    renderWithRouter(<StudentCockpitHero {...defaultProps} />);
+    expect(screen.getByText('5 de 8 treinos')).toBeInTheDocument();
+  });
+
+  it('renders the current-month eyebrow above the adherence value', () => {
+    renderWithRouter(<StudentCockpitHero {...defaultProps} />);
+    expect(screen.getByText('Maio · mês atual')).toBeInTheDocument();
+  });
+
+  it('renders empty-state sub-line "Sem rotina ativa" when adherence is null', () => {
+    renderWithRouter(
+      <StudentCockpitHero
+        {...defaultProps}
+        summary={{ ...mockSummary, adherence: null, adherenceCompleted: null, adherenceExpected: null }}
+      />,
+    );
+    expect(screen.getByText('Sem rotina ativa')).toBeInTheDocument();
+    // No "X · mês atual" eyebrow when there is no rotina
+    expect(screen.queryByText(/mês atual/)).not.toBeInTheDocument();
+  });
+
+  it('renders Aderência value from summary.adherence (0–100), not completionRate', () => {
+    renderWithRouter(<StudentCockpitHero {...defaultProps} />);
+    // adherence is 62 → "62%". completionRate is 0.95 → would render "95%" if mislabeled.
+    expect(screen.getByText('62%')).toBeInTheDocument();
+    expect(screen.queryByText('95%')).not.toBeInTheDocument();
+  });
+
+  it('renders an info trigger button next to Aderência', () => {
+    renderWithRouter(<StudentCockpitHero {...defaultProps} />);
+    expect(
+      screen.getByRole('button', { name: /sobre aderência/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('opens the info popover with completion rate when info button is clicked', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<StudentCockpitHero {...defaultProps} />);
+    await user.click(screen.getByRole('button', { name: /sobre aderência/i }));
+
+    const dialog = screen.getByRole('dialog', { name: /aderência/i });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveTextContent(/taxa de conclus/i);
+    // completionRate 0.95 → 95% appears inside the popover
+    expect(dialog).toHaveTextContent('95%');
+    // Body copy clarifies the metric is locked to the current month
+    expect(dialog).toHaveTextContent(/mês corrente, independente do filtro/i);
+    expect(dialog).not.toHaveTextContent(/weekDay/i);
+  });
+
+  it('hides the completion-rate row in the popover when completionRate is null', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(
+      <StudentCockpitHero
+        {...defaultProps}
+        summary={{ ...mockSummary, completionRate: null }}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: /sobre aderência/i }));
+
+    const dialog = screen.getByRole('dialog', { name: /aderência/i });
+    expect(dialog).not.toHaveTextContent(/taxa de conclus/i);
+  });
+
+  it('closes the info popover when Escape is pressed', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<StudentCockpitHero {...defaultProps} />);
+    await user.click(screen.getByRole('button', { name: /sobre aderência/i }));
+    expect(screen.getByRole('dialog', { name: /aderência/i })).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: /aderência/i })).not.toBeInTheDocument();
   });
 });

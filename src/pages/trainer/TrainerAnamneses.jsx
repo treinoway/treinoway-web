@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Search } from 'lucide-react';
+import { ClipboardList, Plus } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import RowMenu from '../../components/RowMenu';
+import LibraryList, { LibraryListRow } from '../../components/LibraryList';
+import LibraryFilterBar from '../../components/LibraryFilterBar';
 
 const formatDate = (iso) => {
   if (!iso) return '-';
@@ -19,10 +20,10 @@ const formatDate = (iso) => {
   }
 };
 
-const getOrigin = (anamnesis) => {
-  if (anamnesis.isGeneral) return { label: 'GERAL', cls: 'badge badge-accent' };
-  if (anamnesis.parentId) return { label: 'DERIVADA', cls: 'badge badge-neutral' };
-  return { label: 'MINHA', cls: 'badge badge-primary' };
+const getOriginBadge = (anamnesis) => {
+  if (anamnesis.isGeneral) return <span className="badge badge-accent">GERAL</span>;
+  if (anamnesis.parentId) return <span className="badge badge-neutral">DERIVADA</span>;
+  return <span className="badge badge-primary">MINHA</span>;
 };
 
 const FILTER_ALL = 'all';
@@ -173,6 +174,14 @@ const TrainerAnamneses = () => {
 
   const hasItems = anamneses.length > 0;
 
+  const filterCounts = {
+    [FILTER_ALL]: anamneses.length,
+    [FILTER_MINE]: anamneses.filter((a) => !a.isGeneral).length,
+    [FILTER_GENERAL]: anamneses.filter((a) => a.isGeneral).length,
+  };
+
+  const isNoResults = hasItems && filteredAnamneses.length === 0;
+
   return (
     <div>
       <div className="page-header">
@@ -181,9 +190,12 @@ const TrainerAnamneses = () => {
           <h1>Anamneses</h1>
         </div>
         {!showForm && hasItems && (
-          <button onClick={() => setShowForm(true)} className="btn-primary">
-            + NOVA ANAMNESE
-          </button>
+          <div className="page-header-actions">
+            <button type="button" onClick={() => setShowForm(true)} className="btn-primary">
+              <Plus size={16} strokeWidth={2} aria-hidden="true" />
+              Nova anamnese
+            </button>
+          </div>
         )}
       </div>
 
@@ -193,7 +205,7 @@ const TrainerAnamneses = () => {
             {editingAnamnesis ? 'Editar anamnese' : 'Nova anamnese'}
           </h2>
           <form onSubmit={editingAnamnesis ? handleUpdate : handleCreate} className="form">
-            <div>
+            <div className="form-group">
               <label className="form-label" htmlFor="anamnesis-name">
                 Nome <span aria-hidden="true" className="form-required">*</span>
               </label>
@@ -209,7 +221,7 @@ const TrainerAnamneses = () => {
                 autoFocus
               />
             </div>
-            <div>
+            <div className="form-group">
               <label className="form-label" htmlFor="anamnesis-description">
                 Descrição
               </label>
@@ -241,104 +253,67 @@ const TrainerAnamneses = () => {
       {!showForm && !hasItems && (
         <div className="empty-state">
           <div className="empty-state-icon empty-state-icon--accent">
-            <ClipboardList size={32} strokeWidth={1.2} />
+            <ClipboardList size={32} strokeWidth={2} />
           </div>
-          <p className="empty-state-title">Nenhuma anamnese ainda</p>
-          <p>Crie seu primeiro template para aplicar aos alunos.</p>
-          <button className="btn-primary" onClick={() => setShowForm(true)}>
-            + Criar primeira anamnese
+          <p className="empty-state-title">Sem anamneses ainda</p>
+          <p className="text-muted text-sm">Crie o primeiro template para aplicar aos alunos.</p>
+          <button type="button" className="btn-primary" onClick={() => setShowForm(true)}>
+            <Plus size={16} strokeWidth={2} aria-hidden="true" />
+            Criar primeira anamnese
           </button>
         </div>
       )}
 
       {!showForm && hasItems && (
         <>
-          <div className="toolbar">
-            <div className="search-input-wrap">
-              <Search size={14} strokeWidth={2} />
-              <input
-                type="text"
-                placeholder="Buscar anamnese..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                aria-label="Buscar anamnese"
-              />
-            </div>
-            <div className="anamnese-filter-chips">
-              <button
-                className={`anamnese-filter-chip${activeFilter === FILTER_ALL ? ' anamnese-filter-chip--active' : ''}`}
-                onClick={() => setActiveFilter(FILTER_ALL)}
-              >
-                Todos
-              </button>
-              <button
-                className={`anamnese-filter-chip${activeFilter === FILTER_MINE ? ' anamnese-filter-chip--active' : ''}`}
-                onClick={() => setActiveFilter(FILTER_MINE)}
-              >
-                Meus
-              </button>
-              <button
-                className={`anamnese-filter-chip${activeFilter === FILTER_GENERAL ? ' anamnese-filter-chip--active' : ''}`}
-                onClick={() => setActiveFilter(FILTER_GENERAL)}
-              >
-                Gerais
-              </button>
-            </div>
-          </div>
+          <LibraryFilterBar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Buscar anamnese…"
+            searchAriaLabel="Buscar anamnese"
+            filters={[
+              { value: FILTER_ALL, label: 'Todos' },
+              { value: FILTER_MINE, label: 'Meus' },
+              { value: FILTER_GENERAL, label: 'Gerais' },
+            ]}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+            filterCounts={filterCounts}
+          />
 
-          <div className="rich-list">
-            <div className="rich-row-header">
-              <span className="eyebrow rich-col-main">Template</span>
-              <span className="eyebrow rich-col-origin">Origem</span>
-              <span className="eyebrow rich-col-version">Versão</span>
-              <span className="rich-col-menu" />
-            </div>
-
-            {filteredAnamneses.length === 0 && (
-              <div className="rich-row rich-row--empty">
-                <span className="eyebrow">Nenhuma anamnese encontrada</span>
-              </div>
-            )}
-
+          <LibraryList
+            emptyMessage={`Nenhuma anamnese encontrada para "${searchQuery}"`}
+            isNoResults={isNoResults}
+          >
             {filteredAnamneses.map((anamnesis) => {
-              const origin = getOrigin(anamnesis);
               const dateLabel = formatDate(anamnesis.updatedAt || anamnesis.createdAt);
+              const subtitle = `v${anamnesis.version} · atualizada ${dateLabel}`;
               const extraItems = buildRowMenuItems(anamnesis);
 
-              return (
-                <div
-                  key={anamnesis.id}
-                  className="rich-row"
-                  onClick={() => navigate(`/trainer/anamneses/${anamnesis.id}`)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      navigate(`/trainer/anamneses/${anamnesis.id}`);
-                    }
-                  }}
-                  aria-label={`Abrir ${anamnesis.title}`}
-                >
-                  <div className="rich-row-main">
-                    <div className="rich-row-title">{anamnesis.title}</div>
-                    <span className="eyebrow">
-                      V{anamnesis.version} · Atualizada {dateLabel}
-                    </span>
-                  </div>
-
-                  <span className={origin.cls}>{origin.label}</span>
+              const badges = (
+                <>
+                  {getOriginBadge(anamnesis)}
                   <span className="badge badge-neutral">v{anamnesis.version}</span>
+                </>
+              );
 
-                  <RowMenu
-                    ariaLabel={`Opções de ${anamnesis.title}`}
-                    extraItems={extraItems}
-                    onDelete={() => handleDelete(anamnesis)}
-                  />
-                </div>
+              return (
+                <LibraryListRow
+                  key={anamnesis.id}
+                  title={anamnesis.title}
+                  subtitle={subtitle}
+                  badges={badges}
+                  onClick={() => navigate(`/trainer/anamneses/${anamnesis.id}`)}
+                  ariaLabel={`Abrir ${anamnesis.title}`}
+                  rowMenuProps={{
+                    ariaLabel: `Opções de ${anamnesis.title}`,
+                    extraItems,
+                    onDelete: () => handleDelete(anamnesis),
+                  }}
+                />
               );
             })}
-          </div>
+          </LibraryList>
         </>
       )}
 
@@ -348,16 +323,16 @@ const TrainerAnamneses = () => {
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
             <div className="btn-group">
               <button
+                type="button"
                 onClick={confirmDialog.onConfirm}
                 className="btn-danger"
-                style={{ flex: 1 }}
               >
                 Confirmar
               </button>
               <button
+                type="button"
                 onClick={() => setConfirmDialog(null)}
                 className="btn-secondary"
-                style={{ flex: 1 }}
               >
                 Cancelar
               </button>

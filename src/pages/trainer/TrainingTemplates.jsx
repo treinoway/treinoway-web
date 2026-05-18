@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutGrid, List, Dumbbell, Info } from 'lucide-react';
+import { Dumbbell, Info } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -8,7 +8,8 @@ import CreateExerciseTemplateModal from '../../components/CreateExerciseTemplate
 import EditExerciseSheet from '../../components/EditExerciseSheet';
 import ExerciseRowCard from '../../components/ExerciseRowCard';
 import RowMenu from '../../components/RowMenu';
-import usePersistedViewMode, { VIEW_MODE_KEYS } from '../../hooks/usePersistedViewMode';
+import LibraryList, { LibraryListRow } from '../../components/LibraryList';
+import LibraryFilterBar from '../../components/LibraryFilterBar';
 import { formatSnapshotSummary } from '../../utils/exerciseMeta';
 import { TRAINING_CATEGORY_OPTIONS, TRAINING_CATEGORY_LABEL } from '../../constants/trainingCategories';
 
@@ -31,7 +32,6 @@ const TrainingTemplates = () => {
   const [exerciseTemplates, setExerciseTemplates] = useState([]);
   const [exercisePickerValue, setExercisePickerValue] = useState('');
   const [loadingEdit, setLoadingEdit] = useState(false);
-  const [viewMode, setViewMode] = usePersistedViewMode(VIEW_MODE_KEYS.trainingTemplates);
   const [searchQuery, setSearchQuery] = useState('');
   const [exerciseJunctions, setExerciseJunctions] = useState([]);
   const [editingJunctionId, setEditingJunctionId] = useState(null);
@@ -332,32 +332,10 @@ const TrainingTemplates = () => {
     <div>
       <div className="page-header">
         <div className="page-header-title-row">
-          <Dumbbell size={24} className="page-header-title-icon" />
+          <Dumbbell size={24} strokeWidth={2} className="page-header-title-icon" />
           <h1>Treinos únicos</h1>
         </div>
         <div className="page-header-actions">
-          {!showForm && (
-            <div className="view-toggle-group">
-              <button
-                type="button"
-                className={`view-toggle-btn${viewMode === 'card' ? ' view-toggle-btn--active' : ''}`}
-                onClick={() => setViewMode('card')}
-                aria-pressed={viewMode === 'card'}
-                aria-label="Visualização em cards"
-              >
-                <LayoutGrid size={16} />
-              </button>
-              <button
-                type="button"
-                className={`view-toggle-btn${viewMode === 'list' ? ' view-toggle-btn--active' : ''}`}
-                onClick={() => setViewMode('list')}
-                aria-pressed={viewMode === 'list'}
-                aria-label="Visualização em lista"
-              >
-                <List size={16} />
-              </button>
-            </div>
-          )}
           {!showForm && templates.length > 0 && (
             <button onClick={() => setShowForm(true)} className="btn-primary">
               + Novo treino único
@@ -367,16 +345,12 @@ const TrainingTemplates = () => {
       </div>
 
       {!showForm && !templatesLoading && templates.length > 0 && (
-        <div style={{ marginBottom: 'var(--spacing-md)' }}>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="form-input"
-            placeholder="Buscar treino por nome..."
-            aria-label="Buscar treinos"
-          />
-        </div>
+        <LibraryFilterBar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Buscar treino por nome…"
+          searchAriaLabel="Buscar treinos"
+        />
       )}
 
       {showForm && (
@@ -385,7 +359,7 @@ const TrainingTemplates = () => {
             {editingId ? 'Editar treino único' : 'Criar novo treino único'}
           </h2>
           {loadingEdit ? (
-            <div className="loading-screen" style={{ minHeight: 120 }}>
+            <div className="loading-screen loading-screen--inline">
               <span className="loading-text">Carregando...</span>
             </div>
           ) : (
@@ -452,7 +426,7 @@ const TrainingTemplates = () => {
               </label>
             </div>
 
-            <div className="form-section" style={{ marginTop: 'var(--spacing-md)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--color-outline-variant)' }}>
+            <div className="form-section form-section--divided">
               <div className="form-section-header">
                 <h3 className="form-section-title">Exercícios do treino</h3>
               </div>
@@ -543,88 +517,40 @@ const TrainingTemplates = () => {
         </div>
       )}
 
-      {!showForm && !templatesLoading && filteredTemplates.length > 0 && viewMode === 'card' && (
-        <div className="grid-cards">
+      {!showForm && !templatesLoading && templates.length > 0 && (
+        <LibraryList emptyMessage={`Nenhum resultado para "${searchQuery}"`}>
           {filteredTemplates.map((template) => {
             const categoryLabel = CATEGORY_LABEL[template.category];
             const bodySegmentLabel = BODY_SEGMENT_LABEL[template.bodySegment];
-            const hasBadges = categoryLabel || bodySegmentLabel || template.isPublic;
+
+            const badges = (
+              <>
+                {categoryLabel && <span className="badge badge-blue">{categoryLabel}</span>}
+                {bodySegmentLabel && <span className="badge badge-gray">{bodySegmentLabel}</span>}
+                {template.isPublic && <span className="badge badge-green">Público</span>}
+              </>
+            );
+
+            const subtitle = [
+              categoryLabel,
+              bodySegmentLabel,
+            ].filter(Boolean).join(' · ') || null;
+
             return (
-              <div key={template.id} className="card">
-                <div className="card-header-row">
-                  <h3 className="card-subtitle">{template.name}</h3>
-                  <RowMenu
-                    ariaLabel={`Ações do modelo ${template.name}`}
-                    onEdit={() => handleEdit(template)}
-                    onDelete={() => handleDelete(template.id)}
-                  />
-                </div>
-                {hasBadges && (
-                  <div className="card-badges">
-                    {categoryLabel && <span className="badge badge-blue">{categoryLabel}</span>}
-                    {bodySegmentLabel && <span className="badge badge-gray">{bodySegmentLabel}</span>}
-                    {template.isPublic && <span className="badge badge-green">Público</span>}
-                  </div>
-                )}
-                {template.description && (
-                  <p className="card-description text-clamp-2">{template.description}</p>
-                )}
-              </div>
+              <LibraryListRow
+                key={template.id}
+                title={template.name}
+                subtitle={subtitle}
+                badges={badges}
+                rowMenuProps={{
+                  ariaLabel: `Ações do modelo ${template.name}`,
+                  onEdit: () => handleEdit(template),
+                  onDelete: () => handleDelete(template.id),
+                }}
+              />
             );
           })}
-        </div>
-      )}
-
-      {!showForm && !templatesLoading && filteredTemplates.length > 0 && viewMode === 'list' && (
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th className="table-col-desktop-only">Categoria</th>
-                <th className="table-col-desktop-only">Segmento</th>
-                <th style={{ width: '48px' }} />
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTemplates.map((template) => (
-                <tr key={template.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 600 }}>{template.name}</span>
-                      {template.isPublic && <span className="badge badge-green">Público</span>}
-                    </div>
-                    <span className="table-col-mobile-only" style={{ display: 'block', fontSize: 'var(--font-caption-size)', color: 'var(--color-on-surface-variant)', marginTop: '2px' }}>
-                      {[
-                        template.category && (CATEGORY_LABEL[template.category] || template.category),
-                        template.bodySegment && (BODY_SEGMENT_LABEL[template.bodySegment] || template.bodySegment),
-                      ].filter(Boolean).join(' · ') || '—'}
-                    </span>
-                  </td>
-                  <td className="table-col-desktop-only" style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-body-small-size)' }}>
-                    {CATEGORY_LABEL[template.category] || template.category || '—'}
-                  </td>
-                  <td className="table-col-desktop-only" style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-body-small-size)' }}>
-                    {BODY_SEGMENT_LABEL[template.bodySegment] || template.bodySegment || '—'}
-                  </td>
-                  <td>
-                    <TemplateRowMenu
-                      ariaLabel={`Ações do modelo ${template.name}`}
-                      onEdit={() => handleEdit(template)}
-                      onDelete={() => handleDelete(template.id)}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {!showForm && !templatesLoading && templates.length > 0 && filteredTemplates.length === 0 && (
-        <div className="empty-state">
-          <p className="empty-state-title">Nenhum resultado para &quot;{searchQuery}&quot;</p>
-        </div>
+        </LibraryList>
       )}
 
       {!showForm && !templatesLoading && templates.length === 0 && (
@@ -686,14 +612,14 @@ const TrainingTemplates = () => {
       })()}
 
       {confirmDialog && (
-        <div className="overlay">
+        <div className="overlay" onClick={() => setConfirmDialog(null)}>
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
             <div className="btn-group">
-              <button onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>
+              <button onClick={confirmDialog.onConfirm} className="btn-danger">
                 Confirmar
               </button>
-              <button onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>
+              <button onClick={() => setConfirmDialog(null)} className="btn-secondary">
                 Cancelar
               </button>
             </div>

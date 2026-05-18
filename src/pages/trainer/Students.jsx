@@ -11,12 +11,15 @@ import {
   X,
   ChevronRight,
   Trash2,
+  TriangleAlert,
+  OctagonAlert,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import { markOnboardingStepOptimistic } from '../../hooks/useOnboardingStatus';
+import formatRelativeTime from '../../utils/relativeTime';
 import noStudentsSvg from '../../assets/illustrations/no-students.svg';
 
 /* ─── Avatar ────────────────────────────────────────────────────────────── */
@@ -202,6 +205,45 @@ Toolbar.propTypes = {
   }).isRequired,
 };
 
+/* ─── Inline stat alert level ───────────────────────────────────────────── */
+
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+const adherenceLevel = (adh) => {
+  if (adh == null) return 'none';
+  if (adh < 60) return 'danger';
+  if (adh < 80) return 'warn';
+  return 'ok';
+};
+
+const lastWorkoutLevel = (iso) => {
+  if (!iso) return 'none';
+  const days = (Date.now() - new Date(iso).getTime()) / DAY_MS;
+  if (days > 14) return 'danger';
+  if (days > 7) return 'warn';
+  return 'ok';
+};
+
+const LEVEL_COLOR = {
+  ok: undefined,
+  warn: 'var(--md-warning)',
+  danger: 'var(--color-error)',
+  none: 'var(--brand-steel)',
+};
+
+const LEVEL_TITLE = {
+  adherence: { warn: 'Aderência abaixo do ideal', danger: 'Aderência crítica' },
+  lastWorkout: { warn: 'Sem treino há mais de 7 dias', danger: 'Sem treino há mais de 14 dias' },
+};
+
+const LevelIcon = ({ level }) => {
+  if (level === 'warn') return <TriangleAlert size={13} strokeWidth={2.4} aria-hidden="true" />;
+  if (level === 'danger') return <OctagonAlert size={13} strokeWidth={2.4} aria-hidden="true" />;
+  return null;
+};
+
+LevelIcon.propTypes = { level: PropTypes.string.isRequired };
+
 /* ─── StudentsStatsFirst ────────────────────────────────────────────────── */
 
 const StudentsStatsFirst = ({ students, onUnlink, navigate }) => (
@@ -238,19 +280,48 @@ const StudentsStatsFirst = ({ students, onUnlink, navigate }) => (
             </div>
           </div>
 
-          <div className="student-stat-row-stats" aria-hidden="true">
-            <div className="student-stat-inline">
-              <span className="student-stat-inline-value" style={{ color: 'var(--brand-steel)' }}>—</span>
-              <span className="student-stat-inline-label">Aderência</span>
-            </div>
-            <div className="student-stat-inline">
-              <span className="student-stat-inline-value" style={{ color: 'var(--brand-steel)' }}>—</span>
-              <span className="student-stat-inline-label">Último acesso</span>
-            </div>
-            <div className="student-stat-inline">
-              <span className="student-stat-inline-value" style={{ color: 'var(--brand-steel)' }}>—</span>
-              <span className="student-stat-inline-label">Sem PR</span>
-            </div>
+          <div className="student-stat-row-stats">
+            {(() => {
+              const aLvl = adherenceLevel(student.adherence);
+              const lwLvl = lastWorkoutLevel(student.lastWorkoutAt);
+              const hasAdherenceCounts =
+                student.adherenceCompleted != null && student.adherenceExpected != null;
+              return (
+                <>
+                  <div
+                    className="student-stat-inline"
+                    title={LEVEL_TITLE.adherence[aLvl]}
+                  >
+                    <span
+                      className="student-stat-inline-value"
+                      style={LEVEL_COLOR[aLvl] ? { color: LEVEL_COLOR[aLvl], display: 'inline-flex', alignItems: 'center', gap: 4 } : undefined}
+                    >
+                      <LevelIcon level={aLvl} />
+                      {student.adherence == null ? '—' : `${Math.round(student.adherence)}%`}
+                    </span>
+                    {hasAdherenceCounts && (
+                      <span className="student-stat-inline-sub">
+                        {student.adherenceCompleted}/{student.adherenceExpected} treinos
+                      </span>
+                    )}
+                    <span className="student-stat-inline-label">Aderência</span>
+                  </div>
+                  <div
+                    className="student-stat-inline"
+                    title={LEVEL_TITLE.lastWorkout[lwLvl]}
+                  >
+                    <span
+                      className="student-stat-inline-value"
+                      style={LEVEL_COLOR[lwLvl] ? { color: LEVEL_COLOR[lwLvl], display: 'inline-flex', alignItems: 'center', gap: 4 } : undefined}
+                    >
+                      <LevelIcon level={lwLvl} />
+                      {formatRelativeTime(student.lastWorkoutAt) ?? '—'}
+                    </span>
+                    <span className="student-stat-inline-label">Último treino</span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           <button
