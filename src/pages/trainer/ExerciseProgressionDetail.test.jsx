@@ -205,4 +205,94 @@ describe('ExerciseProgressionDetail', () => {
     expect(call[1].params.dateFrom).toBe('2026-04-02T00:00:00.000Z');
     expect(call[1].params.dateTo).toBe('2026-05-02T00:00:00.000Z');
   });
+
+  it('toggle defaults to unchecked and API is called without includeAbandoned=true', async () => {
+    api.get.mockResolvedValue({ data: buildResponse() });
+    renderDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Agachamento livre')).toBeInTheDocument();
+    });
+
+    const toggle = screen.getByRole('checkbox', { name: /Incluir sessões abandonadas/ });
+    expect(toggle).not.toBeChecked();
+
+    const firstCallParams = api.get.mock.calls[0][1].params;
+    expect(firstCallParams.includeAbandoned).toBeUndefined();
+  });
+
+  it('toggling the checkbox triggers a refetch with includeAbandoned: true', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: buildResponse() });
+    renderDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Agachamento livre')).toBeInTheDocument();
+    });
+
+    const callsBefore = api.get.mock.calls.length;
+    const toggle = screen.getByRole('checkbox', { name: /Incluir sessões abandonadas/ });
+    await user.click(toggle);
+
+    await waitFor(() => {
+      expect(api.get.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+
+    const lastCall = api.get.mock.calls[api.get.mock.calls.length - 1];
+    expect(lastCall[1].params.includeAbandoned).toBe(true);
+  });
+
+  it('renders "Abandonada" badge on a session with status abandoned', async () => {
+    api.get.mockResolvedValue({
+      data: buildResponse({
+        sessions: [
+          {
+            sessionId: 's-ab',
+            date: '2026-04-10',
+            status: 'abandoned',
+            maxLoad: 60,
+            avgLoad: 60,
+            totalVolume: 300,
+            completedSets: 1,
+            totalReps: 8,
+            avgRpe: 6,
+            sets: [{ setNumber: 1, repetitions: 8, load: 60, rpe: 6, completed: true }],
+          },
+        ],
+      }),
+    });
+    renderDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Abandonada')).toBeInTheDocument();
+    });
+  });
+
+  it('does not render "Abandonada" badge on a session with status completed', async () => {
+    api.get.mockResolvedValue({
+      data: buildResponse({
+        sessions: [
+          {
+            sessionId: 's-ok',
+            date: '2026-04-15',
+            status: 'completed',
+            maxLoad: 70,
+            avgLoad: 68,
+            totalVolume: 1000,
+            completedSets: 4,
+            totalReps: 32,
+            avgRpe: 7,
+            sets: [{ setNumber: 1, repetitions: 8, load: 68, rpe: 7, completed: true }],
+          },
+        ],
+      }),
+    });
+    renderDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Agachamento livre')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Abandonada')).not.toBeInTheDocument();
+  });
 });

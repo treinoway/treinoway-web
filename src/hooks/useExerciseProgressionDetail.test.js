@@ -46,6 +46,50 @@ describe('useExerciseProgressionDetail', () => {
     expect(result.current.data.exercise.id).toBe('ex-1');
   });
 
+  it('does not include includeAbandoned param when false (default)', async () => {
+    api.get.mockResolvedValue({
+      data: { exercise: { id: 'ex-1', name: 'Agachamento', hasLoad: true }, window: period, sessions: [] },
+    });
+
+    const { result } = renderHook(() => useExerciseProgressionDetail('s-1', 'ex-1', period));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const params = api.get.mock.calls[0][1].params;
+    expect(params.includeAbandoned).toBeUndefined();
+  });
+
+  it('forwards includeAbandoned: true when set to true', async () => {
+    api.get.mockResolvedValue({
+      data: { exercise: { id: 'ex-1', name: 'Agachamento', hasLoad: true }, window: period, sessions: [] },
+    });
+
+    const { result } = renderHook(() => useExerciseProgressionDetail('s-1', 'ex-1', period, true));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const params = api.get.mock.calls[0][1].params;
+    expect(params.includeAbandoned).toBe(true);
+  });
+
+  it('re-fetches when includeAbandoned changes', async () => {
+    api.get.mockResolvedValue({
+      data: { exercise: { id: 'ex-1', name: 'Agachamento', hasLoad: true }, window: period, sessions: [] },
+    });
+
+    let includeAbandoned = false;
+    const { rerender } = renderHook(() => useExerciseProgressionDetail('s-1', 'ex-1', period, includeAbandoned));
+
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+
+    includeAbandoned = true;
+    rerender();
+
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+    const secondCallParams = api.get.mock.calls[1][1].params;
+    expect(secondCallParams.includeAbandoned).toBe(true);
+  });
+
   it('exposes the error when the request fails', async () => {
     api.get.mockRejectedValue({ response: { status: 500 } });
 

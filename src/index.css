@@ -19117,6 +19117,13 @@ nav.onboarding-steps {
   padding: var(--spacing-sm) 0;
 }
 
+/* Filter row — toggle for including abandoned sessions */
+.exercise-progression-filter {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--brand-mist);
+  border-radius: var(--radius-brand);
+}
+
 /* Visually hidden helper for screen-reader-only headings */
 .visually-hidden {
   position: absolute;

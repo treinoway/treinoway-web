@@ -10,8 +10,14 @@ const isCancelledError = (error) =>
  * Self-sufficient fetcher for the exercise drilldown route. Reads everything
  * from URL params (studentId, exerciseId) + the period descriptor passed in,
  * never relying on router state — so deep links and back-navigation both work.
+ *
+ * @param {string} studentId
+ * @param {string} exerciseId
+ * @param {{ from: string, to: string, presetKey: string }} period
+ * @param {boolean} [includeAbandoned=false] — when false, sessions with
+ *   status === 'abandoned' are filtered out by the backend.
  */
-const useExerciseProgressionDetail = (studentId, exerciseId, period) => {
+const useExerciseProgressionDetail = (studentId, exerciseId, period, includeAbandoned = false) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,7 +36,12 @@ const useExerciseProgressionDetail = (studentId, exerciseId, period) => {
       const response = await api.get(
         `/trainer/students/${studentId}/dashboard/exercise-progression/${exerciseId}`,
         {
-          params: { dateFrom: period.from, dateTo: period.to, sessionLimit: 10 },
+          params: {
+            dateFrom: period.from,
+            dateTo: period.to,
+            sessionLimit: 10,
+            ...(includeAbandoned && { includeAbandoned: true }),
+          },
           signal: controller.signal,
         },
       );
@@ -42,7 +53,7 @@ const useExerciseProgressionDetail = (studentId, exerciseId, period) => {
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, [studentId, exerciseId, period]);
+  }, [studentId, exerciseId, period, includeAbandoned]);
 
   useEffect(() => {
     fetchDetail();

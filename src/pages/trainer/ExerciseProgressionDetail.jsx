@@ -51,8 +51,9 @@ const ExerciseProgressionDetail = () => {
     : null;
   const [period, setPeriod] = usePeriodPersistence(user?.id, { initialOverride });
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [includeAbandoned, setIncludeAbandoned] = useState(false);
 
-  const { data, loading, error, refetch } = useExerciseProgressionDetail(studentId, exerciseId, period);
+  const { data, loading, error, refetch } = useExerciseProgressionDetail(studentId, exerciseId, period, includeAbandoned);
 
   const sessions = useMemo(() => data?.sessions ?? [], [data]);
   const exercise = data?.exercise ?? null;
@@ -182,6 +183,23 @@ const ExerciseProgressionDetail = () => {
         )}
       </section>
 
+      <div className="exercise-progression-filter">
+        <label className="toggle-row" htmlFor="include-abandoned-toggle">
+          <div className="toggle-row-content">
+            <span className="toggle-row-title">Incluir sessões abandonadas</span>
+          </div>
+          <div className="switch">
+            <input
+              id="include-abandoned-toggle"
+              type="checkbox"
+              checked={includeAbandoned}
+              onChange={(e) => setIncludeAbandoned(e.target.checked)}
+            />
+            <span className="switch-slider" />
+          </div>
+        </label>
+      </div>
+
       {sessions.length === 0 ? (
         <EmptyDataMessage
           title="Aluno ainda não treinou nesse período"
@@ -196,6 +214,7 @@ const ExerciseProgressionDetail = () => {
               expanded={expandedSessionIds.has(session.sessionId)}
               onToggle={() => handleToggleSession(session.sessionId)}
               hasLoad={exercise.hasLoad}
+              status={session.status}
             />
           ))}
         </ul>
@@ -211,10 +230,11 @@ const ExerciseProgressionDetail = () => {
   );
 };
 
-const ExerciseSessionCard = ({ session, expanded, onToggle, hasLoad }) => {
+const ExerciseSessionCard = ({ session, expanded, onToggle, hasLoad, status }) => {
   const sets = Array.isArray(session.sets) ? session.sets : [];
   const dateLabel = formatDayMonthShort(session.date) || '-';
   const repRange = `${session.completedSets ?? 0} séries · ${session.totalReps ?? 0} reps`;
+  const isAbandoned = status === 'abandoned';
 
   return (
     <li className="exercise-session-card">
@@ -226,6 +246,9 @@ const ExerciseSessionCard = ({ session, expanded, onToggle, hasLoad }) => {
       >
         <span className="exercise-session-card-date">{dateLabel}</span>
         <span className="exercise-session-card-summary">{repRange}</span>
+        {isAbandoned && (
+          <span className="badge badge-gray">Abandonada</span>
+        )}
         {expanded
           ? <ChevronUp size={16} strokeWidth={2} aria-hidden="true" />
           : <ChevronDown size={16} strokeWidth={2} aria-hidden="true" />}
@@ -272,6 +295,7 @@ ExerciseSessionCard.propTypes = {
   expanded: PropTypes.bool.isRequired,
   onToggle: PropTypes.func.isRequired,
   hasLoad: PropTypes.bool,
+  status: PropTypes.string,
 };
 
 SetRow.propTypes = {
