@@ -813,6 +813,24 @@ const ptBR = {
     notRecorded: "Sem séries registradas",
   },
 
+  trainerBriefing: {
+    label: "Briefing · Seus alunos agora",
+    updatedAt: "Atualizado {time}",
+    stats: {
+      activeStudents: "Alunos ativos",
+      activeStudentsSub: "+{count} esta semana",
+      stagnantProgress: "Progresso estagnado",
+      stagnantProgressSub: "Sem evolução 14+ dias",
+      inactiveStudents: "Inativos",
+      inactiveStudentsSub: "Sem treino há 7+ dias",
+      adherence: "Adesão geral",
+      adherenceDeltaPos: "+{value}pp vs mês ant.",
+      adherenceDeltaNeg: "{value}pp vs mês ant.",
+      adherenceDeltaNeutral: "0pp vs mês ant.",
+    },
+    error: "Não foi possível carregar o briefing",
+  },
+
   iArnold: {
     scrollPill: {
       new: "Ver nova resposta",
@@ -857,6 +875,12 @@ const ptBR = {
     onboardingIncompleteDesc:
       "Complete seu perfil de nutricionista para começar a atender.",
     activationFailed: "Não foi possível ativar. Tente novamente.",
+  },
+
+  exercise: {
+    prescriptionMode: {
+      label: "Modo de prescrição",
+    },
   },
 
   exerciseGroup: {

@@ -26,6 +26,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAiChat } from '../../contexts/AiChatContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import useTrainerBriefing from '../../hooks/useTrainerBriefing';
 import { groupConversationsByDate } from '../../utils/conversationGroups';
 import useStickToBottom from '../../hooks/useStickToBottom';
 import ScrollToLatestPill from '../../components/ScrollToLatestPill';
@@ -348,6 +349,30 @@ PromptRow.propTypes = {
 // Main component
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Briefing formatting helpers
+// ---------------------------------------------------------------------------
+
+const formatBriefingTime = (isoString) => {
+  if (!isoString) return '—';
+  const date = new Date(isoString);
+  if (isNaN(date)) return '—';
+  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+};
+
+const formatAdherence = (value) => `${Math.round(Number(value))}%`;
+
+const formatDeltaPp = (value) => {
+  const rounded = Math.round(Number(value));
+  if (rounded > 0) return `+${rounded}pp vs mês ant.`;
+  if (rounded < 0) return `${rounded}pp vs mês ant.`;
+  return '0pp vs mês ant.';
+};
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
 const AiAssistant = () => {
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -367,6 +392,8 @@ const AiAssistant = () => {
   } = useAiChat();
 
   const [input, setInput] = useState('');
+
+  const { data: briefing, loading: briefingLoading, error: briefingError } = useTrainerBriefing();
 
   // History panel state
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -561,36 +588,57 @@ const AiAssistant = () => {
                 <span className="ai-chat__live-dot" />
                 Briefing · Seus alunos agora
               </span>
-              {/* TODO(data-integration): replace with real timestamp */}
-              <span className="ai-chat__briefing-timestamp">Atualizado 22:00</span>
+              <span className="ai-chat__briefing-timestamp">
+                {briefingLoading
+                  ? 'Carregando...'
+                  : briefing
+                    ? `Atualizado ${formatBriefingTime(briefing.computedAt)}`
+                    : ''}
+              </span>
             </header>
-            <div className="ai-chat__briefing-grid">
-              {/* TODO(data-integration): replace all values below with real API data */}
-              <div className="ai-chat__briefing-stat">
-                <span className="ai-chat__briefing-stat-value">24</span>
-                <span className="ai-chat__briefing-stat-label">Alunos ativos</span>
-                <span className="ai-chat__briefing-stat-trend ai-chat__briefing-stat-trend--up">
-                  +2 esta semana
-                </span>
+
+            {briefingError ? (
+              <p className="ai-chat__briefing-error">{briefingError}</p>
+            ) : (
+              <div className="ai-chat__briefing-grid">
+                <div className={`ai-chat__briefing-stat${briefingLoading ? ' ai-chat__briefing-stat--skeleton' : ''}`}>
+                  <span className="ai-chat__briefing-stat-value">
+                    {briefingLoading ? null : (briefing?.activeStudents ?? '—')}
+                  </span>
+                  <span className="ai-chat__briefing-stat-label">Alunos ativos</span>
+                  <span className="ai-chat__briefing-stat-trend ai-chat__briefing-stat-trend--up">
+                    {briefingLoading ? null : `+${briefing?.returningThisWeek ?? 0} esta semana`}
+                  </span>
+                </div>
+                <div className={`ai-chat__briefing-stat${briefingLoading ? ' ai-chat__briefing-stat--skeleton' : ''}`}>
+                  <span className="ai-chat__briefing-stat-value ai-chat__briefing-stat-value--accent">
+                    {briefingLoading ? null : (briefing?.stagnantProgress ?? '—')}
+                  </span>
+                  <span className="ai-chat__briefing-stat-label">Progresso estagnado</span>
+                  <span className="ai-chat__briefing-stat-trend">
+                    {briefingLoading ? null : 'Sem evolução 14+ dias'}
+                  </span>
+                </div>
+                <div className={`ai-chat__briefing-stat${briefingLoading ? ' ai-chat__briefing-stat--skeleton' : ''}`}>
+                  <span className="ai-chat__briefing-stat-value ai-chat__briefing-stat-value--warning">
+                    {briefingLoading ? null : (briefing?.inactiveStudents ?? '—')}
+                  </span>
+                  <span className="ai-chat__briefing-stat-label">Inativos</span>
+                  <span className="ai-chat__briefing-stat-trend">
+                    {briefingLoading ? null : 'Sem treino há 7+ dias'}
+                  </span>
+                </div>
+                <div className={`ai-chat__briefing-stat${briefingLoading ? ' ai-chat__briefing-stat--skeleton' : ''}`}>
+                  <span className="ai-chat__briefing-stat-value">
+                    {briefingLoading ? null : (briefing ? formatAdherence(briefing.overallAdherence) : '—')}
+                  </span>
+                  <span className="ai-chat__briefing-stat-label">Adesão geral</span>
+                  <span className="ai-chat__briefing-stat-trend ai-chat__briefing-stat-trend--up">
+                    {briefingLoading ? null : (briefing ? formatDeltaPp(briefing.adherenceDeltaPp) : '')}
+                  </span>
+                </div>
               </div>
-              <div className="ai-chat__briefing-stat">
-                <span className="ai-chat__briefing-stat-value ai-chat__briefing-stat-value--accent">3</span>
-                <span className="ai-chat__briefing-stat-label">Progresso estagnado</span>
-                <span className="ai-chat__briefing-stat-trend">Sem evolução 14+ dias</span>
-              </div>
-              <div className="ai-chat__briefing-stat">
-                <span className="ai-chat__briefing-stat-value ai-chat__briefing-stat-value--warning">2</span>
-                <span className="ai-chat__briefing-stat-label">Inativos</span>
-                <span className="ai-chat__briefing-stat-trend">Sem treino há 7+ dias</span>
-              </div>
-              <div className="ai-chat__briefing-stat">
-                <span className="ai-chat__briefing-stat-value">87%</span>
-                <span className="ai-chat__briefing-stat-label">Adesão geral</span>
-                <span className="ai-chat__briefing-stat-trend ai-chat__briefing-stat-trend--up">
-                  +4pp vs mês ant.
-                </span>
-              </div>
-            </div>
+            )}
           </section>
 
           {/* Create cards */}
@@ -752,10 +800,11 @@ const AiAssistant = () => {
         </form>
         <div className="ai-chat__composer-meta">
           <div className="ai-chat__composer-meta-left">
-            {/* TODO(data-integration): replace 24 with real student count */}
             <span className="ai-chat__meta-chip">
-              <Circle size={8} strokeWidth={0} fill="currentColor" style={{ color: 'var(--md-success)' }} />
-              Contexto ativo: 24 alunos
+              <Circle size={8} strokeWidth={0} fill="currentColor" className="ai-chat__meta-chip-dot" />
+              {briefing
+                ? `Contexto ativo: ${briefing.activeStudents} alunos`
+                : 'Contexto ativo'}
             </span>
             <span>iArnold tem acesso aos dados dos seus alunos, treinos e dietas</span>
           </div>
@@ -790,9 +839,7 @@ const AiAssistant = () => {
               </div>
 
               {conversationsLoading ? (
-                <p style={{ textAlign: 'center', color: 'var(--brand-steel)' }}>
-                  Carregando...
-                </p>
+                <p className="ai-history__loading-text">Carregando...</p>
               ) : conversations.length === 0 ? (
                 <div className="ai-history__empty-state">
                   <MessageSquare size={32} strokeWidth={1.6} />
@@ -827,15 +874,11 @@ const AiAssistant = () => {
         <div className="overlay" onClick={() => setConfirmDialog(null)}>
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
-            <div className="btn-group">
-              <button onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>
+            <div className="btn-group btn-group--equal">
+              <button onClick={confirmDialog.onConfirm} className="btn-danger">
                 Excluir
               </button>
-              <button
-                onClick={() => setConfirmDialog(null)}
-                className="btn-secondary"
-                style={{ flex: 1 }}
-              >
+              <button onClick={() => setConfirmDialog(null)} className="btn-secondary">
                 Cancelar
               </button>
             </div>

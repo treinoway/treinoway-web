@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Repeat, Timer } from 'lucide-react';
+import { t } from '../i18n';
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 const LONG_DURATION_THRESHOLD_SECONDS = 600;
@@ -116,32 +117,35 @@ const PrescriptionField = ({
 
   return (
     <div className="prescription-field">
-      {/* Inline mode toggle */}
-      <div
-        className="segmented-toggle segmented-toggle--mode-switch"
-        role="tablist"
-        aria-label="Tipo de prescrição"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={!isDurationMode}
-          className={`segmented-toggle-btn${!isDurationMode ? ' segmented-toggle-btn--active' : ''}`}
-          onClick={() => handleModeSwitch('reps')}
+      {/* Mode toggle with label */}
+      <div className="form-group">
+        <span className="composer-label">{t('exercise.prescriptionMode.label')}</span>
+        <div
+          className="segmented-toggle segmented-toggle--inline segmented-toggle--compact"
+          role="tablist"
+          aria-label="Tipo de prescrição"
         >
-          <Repeat size={16} strokeWidth={2} className="toggle-icon" aria-hidden="true" />
-          Repetições
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={isDurationMode}
-          className={`segmented-toggle-btn${isDurationMode ? ' segmented-toggle-btn--active' : ''}`}
-          onClick={() => handleModeSwitch('duration')}
-        >
-          <Timer size={16} strokeWidth={2} className="toggle-icon" aria-hidden="true" />
-          Tempo
-        </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!isDurationMode}
+            className={`segmented-toggle-btn${!isDurationMode ? ' segmented-toggle-btn--active' : ''}`}
+            onClick={() => handleModeSwitch('reps')}
+          >
+            <Repeat size={14} strokeWidth={2} className="toggle-icon" aria-hidden="true" />
+            Repetições
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={isDurationMode}
+            className={`segmented-toggle-btn${isDurationMode ? ' segmented-toggle-btn--active' : ''}`}
+            onClick={() => handleModeSwitch('duration')}
+          >
+            <Timer size={14} strokeWidth={2} className="toggle-icon" aria-hidden="true" />
+            Tempo
+          </button>
+        </div>
       </div>
 
       {/* 2-col grid: Séries + Reps|Duração */}

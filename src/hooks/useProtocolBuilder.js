@@ -23,6 +23,7 @@ const extractExercisesFromTemplate = (raw) => {
       _templateId: j.exerciseTemplate?.id || j.exerciseTemplateId || null,
       name: j.exerciseTemplate?.name || j.name || '',
       type: j.exerciseTemplate?.type || j.type || '',
+      prescriptionMode: j.prescriptionMode ?? j.exerciseTemplate?.prescriptionMode ?? 'reps',
       sets: j.sets ?? j.exerciseTemplate?.sets ?? null,
       repetitions: j.repetitions ?? j.exerciseTemplate?.repetitions ?? null,
       duration: j.duration ?? j.exerciseTemplate?.duration ?? null,
@@ -450,12 +451,15 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
   // ── addExerciseFromTemplate ────────────────────────────────────────────────
 
   const addExerciseFromTemplate = useCallback(
-    (trainingId, templateId) =>
+    (trainingId, templateId, overrides = {}) =>
       mutate(async () => {
         if (isEditMode) {
           const res = await api.post('/trainer/exercises/from-template', {
             trainingId,
             templateId,
+            ...(overrides.prescriptionMode !== undefined && {
+              prescriptionMode: overrides.prescriptionMode,
+            }),
           });
           const newExercise = res.data;
           setData((prev) => ({
@@ -475,6 +479,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           _templateId: templateId,
           name: template?.name || '',
           type: template?.type || '',
+          prescriptionMode: overrides.prescriptionMode ?? template?.prescriptionMode ?? 'reps',
           sets: template?.sets ?? null,
           repetitions: template?.repetitions ?? null,
           duration: template?.duration ?? null,
@@ -653,6 +658,9 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
                 await api.post('/trainer/exercises/from-template', {
                   trainingId,
                   templateId: exercise._templateId,
+                  ...(exercise.prescriptionMode !== undefined && {
+                    prescriptionMode: exercise.prescriptionMode,
+                  }),
                 });
               } else {
                 const { id: _id, _isNew: _new, _isFromTemplate: _ift, _templateId: _tid, ...exercisePayload } = exercise;

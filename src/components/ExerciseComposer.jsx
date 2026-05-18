@@ -8,6 +8,7 @@ import {
   Search,
 } from 'lucide-react';
 import VideoField from './VideoField';
+import PrescriptionField from './PrescriptionField';
 import { EXERCISE_TYPE_OPTIONS } from '../constants/exerciseTypes';
 import { formatExerciseMeta } from '../utils/exerciseMeta';
 
@@ -16,6 +17,7 @@ import { formatExerciseMeta } from '../utils/exerciseMeta';
 const EMPTY_FORM = {
   name: '',
   type: 'strength',
+  prescriptionMode: 'reps',
   sets: '',
   repetitionsMin: '',
   repetitionsMax: '',
@@ -32,16 +34,20 @@ const buildPayload = (form) => {
     name: form.name.trim(),
     type: form.type,
     hasLoad: form.hasLoad,
+    prescriptionMode: form.prescriptionMode,
   };
   if (form.videoUrl?.trim()) payload.videoUrl = form.videoUrl.trim();
   if (form.sets !== '' && form.sets != null) payload.sets = parseInt(form.sets, 10);
-  if (form.repetitionsMin !== '' && form.repetitionsMax !== '') {
+  if (form.prescriptionMode === 'duration') {
+    if (form.duration !== '' && form.duration != null) {
+      payload.duration = parseInt(form.duration, 10);
+    }
+  } else if (form.repetitionsMin !== '' && form.repetitionsMax !== '') {
     payload.repetitions = {
       min: parseInt(form.repetitionsMin, 10),
       max: parseInt(form.repetitionsMax, 10),
     };
   }
-  if (form.duration !== '' && form.duration != null) payload.duration = parseInt(form.duration, 10);
   if (form.restInterval !== '' && form.restInterval != null) {
     payload.restInterval = parseInt(form.restInterval, 10);
   }
@@ -55,6 +61,7 @@ const buildPayload = (form) => {
 const snapshotToForm = (snapshot) => ({
   name: snapshot.name || snapshot.exerciseTemplate?.name || '',
   type: snapshot.type || snapshot.exerciseTemplate?.type || 'strength',
+  prescriptionMode: snapshot.prescriptionMode ?? snapshot.exerciseTemplate?.prescriptionMode ?? 'reps',
   sets: snapshot.sets ?? '',
   repetitionsMin: snapshot.repetitions?.min ?? snapshot.exerciseTemplate?.repetitions?.min ?? '',
   repetitionsMax: snapshot.repetitions?.max ?? snapshot.exerciseTemplate?.repetitions?.max ?? '',
@@ -174,12 +181,16 @@ const ExerciseComposer = ({
   const [librarySearch, setLibrarySearch] = useState('');
   const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
   const [errors, setErrors] = useState({});
-
-  const showDuration = form.type !== 'strength';
+  const [durationError, setDurationError] = useState('');
+  const [repsError, setRepsError] = useState('');
 
   const handleFieldChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const handlePrescriptionChange = (patch) => {
+    setForm((prev) => ({ ...prev, ...patch }));
   };
 
   const validate = () => {
@@ -189,10 +200,24 @@ const ExerciseComposer = ({
     return errs;
   };
 
+  const validatePrescription = () => {
+    if (form.prescriptionMode === 'duration') {
+      if (!form.duration || Number(form.duration) < 1) {
+        setDurationError('Defina o valor antes de salvar.');
+        return false;
+      }
+    } else if (!form.repetitionsMin || !form.repetitionsMax) {
+      setRepsError('Defina o valor antes de salvar.');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmitCreate = (e) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    if (!validatePrescription()) return;
     setErrors({});
     onSubmitCreate(buildPayload(form));
   };
@@ -201,6 +226,7 @@ const ExerciseComposer = ({
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    if (!validatePrescription()) return;
     setErrors({});
     onSubmitEdit(snapshot.id, buildPayload(form));
   };
@@ -261,56 +287,29 @@ const ExerciseComposer = ({
         </div>
       </div>
 
-      {/* Row 2: Sets + Reps + Rest */}
-      <div className="composer-sets-row">
-        <div>
-          <label className="composer-label" htmlFor="composer-sets">Séries</label>
-          <input
-            id="composer-sets"
-            className="composer-input"
-            type="number"
-            min="1"
-            value={form.sets}
-            onChange={(e) => handleFieldChange('sets', e.target.value)}
-            placeholder="3"
-          />
-        </div>
-        <div>
-          <label className="composer-label">Reps (min — máx)</label>
-          <div className="composer-reps-pair">
-            <input
-              className="composer-input"
-              type="number"
-              min="1"
-              value={form.repetitionsMin}
-              onChange={(e) => handleFieldChange('repetitionsMin', e.target.value)}
-              placeholder="8"
-              aria-label="Repetições mínimas"
-            />
-            <span className="composer-reps-sep" aria-hidden="true">—</span>
-            <input
-              className="composer-input"
-              type="number"
-              min="1"
-              value={form.repetitionsMax}
-              onChange={(e) => handleFieldChange('repetitionsMax', e.target.value)}
-              placeholder="12"
-              aria-label="Repetições máximas"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="composer-label" htmlFor="composer-rest">Descanso (s)</label>
-          <input
-            id="composer-rest"
-            className="composer-input"
-            type="number"
-            min="0"
-            value={form.restInterval}
-            onChange={(e) => handleFieldChange('restInterval', e.target.value)}
-            placeholder="60"
-          />
-        </div>
+      {/* Prescription: mode toggle + sets + reps/duration */}
+      <PrescriptionField
+        idPrefix="composer"
+        formData={form}
+        onChange={handlePrescriptionChange}
+        durationError={durationError}
+        onClearDurationError={() => setDurationError('')}
+        repsError={repsError}
+        onClearRepsError={() => setRepsError('')}
+      />
+
+      {/* Rest interval */}
+      <div className="composer-rest-row">
+        <label className="composer-label" htmlFor="composer-rest">Descanso (s)</label>
+        <input
+          id="composer-rest"
+          className="composer-input"
+          type="number"
+          min="0"
+          value={form.restInterval}
+          onChange={(e) => handleFieldChange('restInterval', e.target.value)}
+          placeholder="60"
+        />
       </div>
 
       {/* Progressive disclosure toggle */}
@@ -337,28 +336,6 @@ const ExerciseComposer = ({
             value={form.videoUrl}
             onChange={(url) => handleFieldChange('videoUrl', url)}
           />
-
-          {/* Duration — conditional on type */}
-          <div className={showDuration ? '' : 'composer-duration-field--disabled'}>
-            <label className="composer-label" htmlFor="composer-duration">
-              Duração (s){' '}
-              {!showDuration && (
-                <span className="composer-label-hint">
-                  — só para cardio, mobilidade ou alongamento
-                </span>
-              )}
-            </label>
-            <input
-              id="composer-duration"
-              className="composer-input"
-              type="number"
-              min="1"
-              value={form.duration}
-              onChange={(e) => handleFieldChange('duration', e.target.value)}
-              placeholder={showDuration ? '60' : 'Não se aplica a exercícios de força'}
-              disabled={!showDuration}
-            />
-          </div>
 
           {/* Has load + Suggested load */}
           <div className="composer-load-row">
@@ -440,7 +417,7 @@ const ExerciseComposer = ({
       {/* Segmented toggle — only in create mode */}
       {!isEditMode && (
         <div
-          className="segmented-toggle"
+          className="segmented-toggle segmented-toggle--compact"
           role="tablist"
           aria-label="Modo de adição"
         >

@@ -31,3 +31,6 @@ dist-ssr
 .playwright-mcp/
 playwright-report/
 test-results/
+
+# Mockups (design exploration, not shipped)
+mockups/

@@ -251,7 +251,7 @@ const MyChallengeDetail = () => {
         )}
       </div>
 
-      <div className="segmented-toggle" style={{ marginBottom: 'var(--spacing-md)' }}>
+      <div className="segmented-toggle">
         <button
           type="button"
           className={`segmented-toggle-btn${tab === TABS.RANKING ? ' segmented-toggle-btn--active' : ''}`}

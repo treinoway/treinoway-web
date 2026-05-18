@@ -399,7 +399,7 @@ const ChallengeDetail = () => {
         </div>
       )}
 
-      <div className="segmented-toggle" style={{ marginBottom: 'var(--spacing-md)' }}>
+      <div className="segmented-toggle">
         {TABS.map((t) => (
           <button
             key={t.key}

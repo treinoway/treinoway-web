@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAiChat } from '../../contexts/AiChatContext';
 import api from '../../api/axios';
 import * as useStickToBottomModule from '../../hooks/useStickToBottom';
+import * as useTrainerBriefingModule from '../../hooks/useTrainerBriefing';
 
 vi.mock('../../contexts/ToastContext', () => ({
   useToast: vi.fn(),
@@ -35,6 +36,20 @@ vi.mock('../../api/axios', () => ({
 vi.mock('../../hooks/useStickToBottom', () => ({
   default: vi.fn(),
 }));
+
+vi.mock('../../hooks/useTrainerBriefing', () => ({
+  default: vi.fn(),
+}));
+
+const mockBriefingData = {
+  activeStudents: 24,
+  returningThisWeek: 2,
+  stagnantProgress: 3,
+  inactiveStudents: 2,
+  overallAdherence: '87.00',
+  adherenceDeltaPp: '4.00',
+  computedAt: '2026-05-15T22:00:00.000Z',
+};
 
 // Fixed reference date: 2026-03-31 (Tuesday)
 const FIXED_NOW = new Date('2026-03-31T12:00:00.000Z');
@@ -89,6 +104,13 @@ describe('AiAssistant', () => {
     vi.mocked(useAiChat).mockReturnValue(mockContextValue);
     api.get.mockReset();
     api.delete.mockReset();
+
+    // Default: briefing loaded successfully
+    vi.mocked(useTrainerBriefingModule.default).mockReturnValue({
+      data: mockBriefingData,
+      loading: false,
+      error: null,
+    });
 
     mockScrollToBottom = vi.fn();
     vi.mocked(useStickToBottomModule.default).mockReturnValue({
@@ -150,7 +172,11 @@ describe('AiAssistant', () => {
     expect(screen.getByRole('heading', { name: 'iArnold', level: 1 })).toBeInTheDocument();
   });
 
-  it('renders briefing strip placeholders', () => {
+  // ---------------------------------------------------------------------------
+  // Briefing strip — success state
+  // ---------------------------------------------------------------------------
+
+  it('renders briefing strip with stat labels on success', () => {
     renderWithRouter(<AiAssistant />);
 
     expect(screen.getByLabelText('Briefing de alunos')).toBeInTheDocument();
@@ -159,6 +185,199 @@ describe('AiAssistant', () => {
     expect(screen.getByText('Inativos')).toBeInTheDocument();
     expect(screen.getByText('Adesão geral')).toBeInTheDocument();
   });
+
+  it('renders real stat values in briefing strip on success', () => {
+    renderWithRouter(<AiAssistant />);
+
+    // activeStudents = 24
+    expect(screen.getByText('24')).toBeInTheDocument();
+    // stagnantProgress = 3
+    expect(screen.getByText('3')).toBeInTheDocument();
+    // inactiveStudents = 2
+    expect(screen.getByText('2')).toBeInTheDocument();
+    // overallAdherence = 87%
+    expect(screen.getByText('87%')).toBeInTheDocument();
+  });
+
+  it('renders trend lines for active and adherence stats', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText('+2 esta semana')).toBeInTheDocument();
+    expect(screen.getByText('+4pp vs mês ant.')).toBeInTheDocument();
+  });
+
+  it('renders static trend lines for stagnant and inactive stats', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText('Sem evolução 14+ dias')).toBeInTheDocument();
+    expect(screen.getByText('Sem treino há 7+ dias')).toBeInTheDocument();
+  });
+
+  it('renders timestamp from computedAt in briefing strip', () => {
+    renderWithRouter(<AiAssistant />);
+
+    // computedAt = '2026-05-15T22:00:00.000Z' — rendered as "Atualizado HH:MM"
+    expect(screen.getByText(/^Atualizado \d{2}:\d{2}$/)).toBeInTheDocument();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Briefing strip — loading state
+  // ---------------------------------------------------------------------------
+
+  it('renders 4 skeleton tiles while briefing is loading', () => {
+    vi.mocked(useTrainerBriefingModule.default).mockReturnValue({
+      data: null,
+      loading: true,
+      error: null,
+    });
+
+    renderWithRouter(<AiAssistant />);
+
+    // Labels still visible during skeleton
+    expect(screen.getByText('Alunos ativos')).toBeInTheDocument();
+    expect(screen.getByText('Progresso estagnado')).toBeInTheDocument();
+    expect(screen.getByText('Inativos')).toBeInTheDocument();
+    expect(screen.getByText('Adesão geral')).toBeInTheDocument();
+
+    // No numeric values rendered while loading
+    expect(screen.queryByText('24')).not.toBeInTheDocument();
+    expect(screen.queryByText('87%')).not.toBeInTheDocument();
+
+    // Skeleton modifier applied to each stat cell
+    const skeletonTiles = document.querySelectorAll('.ai-chat__briefing-stat--skeleton');
+    expect(skeletonTiles).toHaveLength(4);
+  });
+
+  it('shows loading text in timestamp while briefing is loading', () => {
+    vi.mocked(useTrainerBriefingModule.default).mockReturnValue({
+      data: null,
+      loading: true,
+      error: null,
+    });
+
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText('Carregando...')).toBeInTheDocument();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Briefing strip — error state
+  // ---------------------------------------------------------------------------
+
+  it('renders inline error message when briefing fetch fails', () => {
+    vi.mocked(useTrainerBriefingModule.default).mockReturnValue({
+      data: null,
+      loading: false,
+      error: 'Não foi possível carregar o briefing',
+    });
+
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText('Não foi possível carregar o briefing')).toBeInTheDocument();
+    // Stat labels should not be rendered in error state
+    expect(screen.queryByText('Alunos ativos')).not.toBeInTheDocument();
+    // Header itself stays visible
+    expect(screen.getByRole('heading', { name: 'iArnold', level: 1 })).toBeInTheDocument();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Briefing strip — zero / empty data
+  // ---------------------------------------------------------------------------
+
+  it('renders zero values normally (no special empty state)', () => {
+    vi.mocked(useTrainerBriefingModule.default).mockReturnValue({
+      data: {
+        activeStudents: 0,
+        returningThisWeek: 0,
+        stagnantProgress: 0,
+        inactiveStudents: 0,
+        overallAdherence: '0.00',
+        adherenceDeltaPp: '0.00',
+        computedAt: '2026-05-15T22:00:00.000Z',
+      },
+      loading: false,
+      error: null,
+    });
+
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getAllByText('0')).toHaveLength(3); // activeStudents, stagnantProgress, inactiveStudents
+    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(screen.getByText('0pp vs mês ant.')).toBeInTheDocument();
+    expect(screen.queryByText('Não foi possível carregar o briefing')).not.toBeInTheDocument();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Header action buttons
+  // ---------------------------------------------------------------------------
+
+  it('renders Histórico and Nova conversa buttons in page header', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByRole('button', { name: /^histórico$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^nova conversa$/i })).toBeInTheDocument();
+  });
+
+  it('calls startNewConversation when clicking Nova conversa button', async () => {
+    const user = userEvent.setup();
+    const startNewConversation = vi.fn();
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({ startNewConversation })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    await user.click(screen.getByRole('button', { name: /^nova conversa$/i }));
+
+    expect(startNewConversation).toHaveBeenCalled();
+  });
+
+  it('calls startNewConversation when clicking Nova conversa button in messages view', async () => {
+    const user = userEvent.setup();
+    const startNewConversation = vi.fn();
+    vi.mocked(useAiChat).mockReturnValue(
+      createDefaultContextValue({
+        startNewConversation,
+        messages: [
+          { role: 'user', content: 'Olá' },
+          { role: 'assistant', content: 'Resposta', actionsExecuted: [] },
+        ],
+      })
+    );
+
+    renderWithRouter(<AiAssistant />);
+
+    await user.click(screen.getByRole('button', { name: /^nova conversa$/i }));
+
+    expect(startNewConversation).toHaveBeenCalled();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Composer meta line
+  // ---------------------------------------------------------------------------
+
+  it('shows "Contexto ativo: 24 alunos" in meta line with real data', () => {
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText(/contexto ativo: 24 alunos/i)).toBeInTheDocument();
+  });
+
+  it('shows "Contexto ativo" without count when briefing not yet loaded', () => {
+    vi.mocked(useTrainerBriefingModule.default).mockReturnValue({
+      data: null,
+      loading: true,
+      error: null,
+    });
+
+    renderWithRouter(<AiAssistant />);
+
+    expect(screen.getByText('Contexto ativo')).toBeInTheDocument();
+    expect(screen.queryByText(/contexto ativo: \d+ alunos/i)).not.toBeInTheDocument();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Create cards
+  // ---------------------------------------------------------------------------
 
   it('renders create cards with correct titles', () => {
     renderWithRouter(<AiAssistant />);
@@ -183,7 +402,6 @@ describe('AiAssistant', () => {
     const user = userEvent.setup();
     renderWithRouter(<AiAssistant />);
 
-    // Click the first prompt row (Atenção / Reativar Aluno A)
     const promptRows = screen.getAllByRole('button', { name: /aluno a/i });
     await user.click(promptRows[0]);
 
@@ -196,7 +414,6 @@ describe('AiAssistant', () => {
     renderWithRouter(<AiAssistant />);
 
     expect(screen.getByText('Atenção')).toBeInTheDocument();
-    // Two rows with "Progresso" tag
     expect(screen.getAllByText('Progresso').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Dieta')).toBeInTheDocument();
     expect(screen.getByText('Análise')).toBeInTheDocument();
@@ -294,9 +511,7 @@ describe('AiAssistant', () => {
 
     expect(screen.getByText('Olá')).toBeInTheDocument();
     expect(screen.getByText('Como posso ajudar?')).toBeInTheDocument();
-    // User avatar with initials
     expect(screen.getByText('JS')).toBeInTheDocument();
-    // Message labels
     expect(screen.getByText('Você')).toBeInTheDocument();
     expect(screen.getByText('iArnold', { selector: '.ai-chat__message-label' })).toBeInTheDocument();
   });
@@ -333,8 +548,6 @@ describe('AiAssistant', () => {
     renderWithRouter(<AiAssistant />);
 
     expect(screen.getByRole('status')).toBeInTheDocument();
-    // The skeleton rotates through athletic phrases — assert the status
-    // element is present rather than pinning to a specific phrase.
     expect(document.querySelector('.streaming-skeleton__status-text')).toBeInTheDocument();
   });
 
@@ -486,44 +699,6 @@ describe('AiAssistant', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Header action buttons
-  // ---------------------------------------------------------------------------
-
-  it('renders history button in empty state', () => {
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.getByRole('button', { name: /^histórico$/i })).toBeInTheDocument();
-  });
-
-
-
-  it('renders nova conversa button in empty state', () => {
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.getByRole('button', { name: /^nova conversa$/i })).toBeInTheDocument();
-  });
-
-  it('calls startNewConversation when clicking nova conversa button in messages view', async () => {
-    const user = userEvent.setup();
-    const startNewConversation = vi.fn();
-    vi.mocked(useAiChat).mockReturnValue(
-      createDefaultContextValue({
-        startNewConversation,
-        messages: [
-          { role: 'user', content: 'Olá' },
-          { role: 'assistant', content: 'Resposta', actionsExecuted: [] },
-        ],
-      })
-    );
-
-    renderWithRouter(<AiAssistant />);
-
-    await user.click(screen.getByRole('button', { name: /^nova conversa$/i }));
-
-    expect(startNewConversation).toHaveBeenCalled();
-  });
-
-  // ---------------------------------------------------------------------------
   // UI helpers
   // ---------------------------------------------------------------------------
 
@@ -586,7 +761,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/trainer/ai/conversations');
@@ -605,7 +781,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Nenhuma conversa ainda.')).toBeInTheDocument();
@@ -618,7 +795,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Histórico de conversas')).toBeInTheDocument();
@@ -636,7 +814,8 @@ describe('AiAssistant', () => {
     const user = userEvent.setup();
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     expect(screen.getByText('Carregando...')).toBeInTheDocument();
 
@@ -657,7 +836,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /iniciar nova conversa/i })).toBeInTheDocument();
@@ -672,7 +852,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /iniciar nova conversa/i })).toBeInTheDocument();
@@ -697,7 +878,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -721,7 +903,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -746,7 +929,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -754,10 +938,7 @@ describe('AiAssistant', () => {
 
     await user.click(screen.getByRole('button', { name: /excluir conversa: primeira conversa/i }));
 
-    // History panel should be closed
     expect(screen.queryByText('Histórico de conversas')).not.toBeInTheDocument();
-
-    // Confirm dialog should be shown
     expect(screen.getByText(/Excluir a conversa "Primeira conversa"/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Excluir$/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Cancelar$/ })).toBeInTheDocument();
@@ -772,7 +953,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -785,8 +967,9 @@ describe('AiAssistant', () => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/ai/conversations/conv-1');
     });
 
-    // Re-open history to verify
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    // Re-open history to verify removal
+    const historyBtns2 = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns2[0]);
 
     await waitFor(() => {
       expect(screen.queryByText('Primeira conversa')).not.toBeInTheDocument();
@@ -805,7 +988,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -825,14 +1009,14 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
     });
 
     await user.click(screen.getByRole('button', { name: /excluir conversa: primeira conversa/i }));
-
     expect(screen.getByText(/Excluir a conversa "Primeira conversa"/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /^Cancelar$/ }));
@@ -850,7 +1034,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /excluir conversa: primeira conversa/i })).toBeInTheDocument();
@@ -877,7 +1062,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Prévia da mensagem aqui')).toBeInTheDocument();
@@ -890,7 +1076,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /^histórico$/i }));
+    const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
+    await user.click(historyBtns[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Primeira conversa')).toBeInTheDocument();
@@ -953,7 +1140,6 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    // Skeleton is shown — neither parsed markdown nor raw token text visible
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(document.querySelector('strong')).not.toBeInTheDocument();
     expect(screen.queryByText('Faça **3 séries** de agachamento.')).not.toBeInTheDocument();
@@ -1008,7 +1194,6 @@ describe('AiAssistant', () => {
   });
 
   it('pill shows "new" variant after done fires while user is scrolled away', async () => {
-    // User is scrolled away and shouldFollow is false
     vi.mocked(useStickToBottomModule.default).mockReturnValue({
       isNearBottom: false,
       shouldFollow: false,
@@ -1017,7 +1202,6 @@ describe('AiAssistant', () => {
       bottomRef: { current: null },
     });
 
-    // Start: loading = true (streaming in progress)
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         messages: [
@@ -1030,10 +1214,8 @@ describe('AiAssistant', () => {
 
     const { rerender } = renderWithRouter(<AiAssistant />);
 
-    // Pill is hidden while streaming — no completed response yet
     expect(document.querySelector('.scroll-pill')).toHaveClass('scroll-pill--hidden');
 
-    // Simulate done: loading flips to false, message is complete
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         messages: [
@@ -1052,7 +1234,6 @@ describe('AiAssistant', () => {
       );
     });
 
-    // Pill is now visible — "new" variant (accent dot, not pulse)
     expect(document.querySelector('.scroll-pill')).not.toHaveClass('scroll-pill--hidden');
     expect(document.querySelector('.scroll-pill__dot--accent')).toBeInTheDocument();
     expect(document.querySelector('.scroll-pill__dot--pulse')).not.toBeInTheDocument();
@@ -1069,7 +1250,6 @@ describe('AiAssistant', () => {
       bottomRef: { current: null },
     });
 
-    // Start loading, then transition to done to make pill visible
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         messages: [{ role: 'user', content: 'Olá' }],

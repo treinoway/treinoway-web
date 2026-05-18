@@ -229,6 +229,12 @@ const en = {
       'anonymousRanking.helper': 'Hide other participants\' names in the ranking',
     },
   },
+  exercise: {
+    prescriptionMode: {
+      label: 'Prescription mode',
+    },
+  },
+
   exerciseGroup: {
     select: 'Select',
     cancelSelection: 'Cancel selection',
@@ -293,6 +299,24 @@ const en = {
     deleteConfirm: 'Delete "{name}"? This action cannot be undone.',
     deletedToast: 'Substitute removed.',
     deleteAria: 'Delete substitute {name}',
+  },
+
+  trainerBriefing: {
+    label: 'Briefing · Your students now',
+    updatedAt: 'Updated {time}',
+    stats: {
+      activeStudents: 'Active students',
+      activeStudentsSub: '+{count} this week',
+      stagnantProgress: 'Stagnant progress',
+      stagnantProgressSub: 'No progress 14+ days',
+      inactiveStudents: 'Inactive',
+      inactiveStudentsSub: 'No workout 7+ days',
+      adherence: 'Overall adherence',
+      adherenceDeltaPos: '+{value}pp vs prev. month',
+      adherenceDeltaNeg: '{value}pp vs prev. month',
+      adherenceDeltaNeutral: '0pp vs prev. month',
+    },
+    error: 'Could not load briefing',
   },
 
   iArnold: {

@@ -38,11 +38,23 @@ const EXERCISE_SNAPSHOT = {
   id: 'junc-1',
   name: 'Supino reto',
   type: 'strength',
+  prescriptionMode: 'reps',
   sets: 3,
   repetitions: { min: 10, max: 12 },
   restInterval: 60,
   hasLoad: true,
   suggestedLoad: 80,
+};
+
+const EXERCISE_SNAPSHOT_DURATION = {
+  id: 'junc-2',
+  name: 'Corrida leve',
+  type: 'cardio',
+  prescriptionMode: 'duration',
+  sets: 1,
+  duration: 600,
+  restInterval: 0,
+  hasLoad: false,
 };
 
 const defaultProps = {
@@ -68,7 +80,7 @@ describe('ExerciseComposer — create mode', () => {
   it('renders empty form in create mode', () => {
     renderComposer();
     expect(screen.getByLabelText(/Nome/i)).toHaveValue('');
-    expect(screen.getByLabelText(/Tipo/i)).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /Tipo/i })).toBeInTheDocument();
   });
 
   it('shows the segmented toggle with "Criar novo" and "Da biblioteca"', () => {
@@ -91,17 +103,61 @@ describe('ExerciseComposer — create mode', () => {
     expect(defaultProps.onSubmitCreate).not.toHaveBeenCalled();
   });
 
-  it('submit with name calls onSubmitCreate with payload', async () => {
+  it('renders prescription mode picker (Repetições / Tempo tabs)', () => {
+    renderComposer();
+    expect(screen.getByRole('tab', { name: /Repetições/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Tempo/i })).toBeInTheDocument();
+  });
+
+  it('defaults to "reps" mode — reps inputs visible, duration input absent', () => {
+    renderComposer();
+    expect(screen.getByRole('tab', { name: /Repetições/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByLabelText(/Repetições mínimas/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Duração/i)).not.toBeInTheDocument();
+  });
+
+  it('switching to "Tempo" mode shows duration input and hides reps', async () => {
+    const user = userEvent.setup();
+    renderComposer();
+
+    await user.click(screen.getByRole('tab', { name: /Tempo/i }));
+
+    expect(screen.getByRole('tab', { name: /Tempo/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('spinbutton', { name: /Duração/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Repetições mínimas/i)).not.toBeInTheDocument();
+  });
+
+  it('submit with name calls onSubmitCreate with payload including prescriptionMode', async () => {
     const onSubmitCreate = vi.fn();
     const user = userEvent.setup();
     renderComposer({ onSubmitCreate });
 
     await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
+    // fill reps so validation passes
+    await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
+    await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
     await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
 
     await waitFor(() => {
       expect(onSubmitCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Rosca direta', type: 'strength' })
+        expect.objectContaining({ name: 'Rosca direta', type: 'strength', prescriptionMode: 'reps' })
+      );
+    });
+  });
+
+  it('buildPayload uses "duration" prescriptionMode when switched to Tempo', async () => {
+    const onSubmitCreate = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ onSubmitCreate });
+
+    await user.type(screen.getByLabelText(/Nome/i), 'Prancha');
+    await user.click(screen.getByRole('tab', { name: /Tempo/i }));
+    await user.type(screen.getByRole('spinbutton', { name: /Duração/i }), '60');
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    await waitFor(() => {
+      expect(onSubmitCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ prescriptionMode: 'duration', duration: 60 })
       );
     });
   });
@@ -224,6 +280,33 @@ describe('ExerciseComposer — edit mode (snapshot)', () => {
     await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/Nome obrigatório/i);
+  });
+
+  it('snapshotToForm restores prescriptionMode=reps from snapshot', () => {
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT });
+    expect(screen.getByRole('tab', { name: /Repetições/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByLabelText(/Repetições mínimas/i)).toBeInTheDocument();
+  });
+
+  it('snapshotToForm restores prescriptionMode=duration from snapshot', () => {
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT_DURATION });
+    expect(screen.getByRole('tab', { name: /Tempo/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('spinbutton', { name: /Duração/i })).toBeInTheDocument();
+  });
+
+  it('submit in edit mode includes prescriptionMode in payload', async () => {
+    const onSubmitEdit = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onSubmitEdit });
+
+    await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(onSubmitEdit).toHaveBeenCalledWith(
+        'junc-1',
+        expect.objectContaining({ prescriptionMode: 'reps' })
+      );
+    });
   });
 });
 

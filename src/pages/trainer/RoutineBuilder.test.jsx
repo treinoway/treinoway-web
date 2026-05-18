@@ -2931,9 +2931,11 @@ describe('RoutineBuilder — smooth scroll after exercise creation', () => {
     // Open the add-exercise composer
     await user.click(screen.getByRole('button', { name: /Adicionar exercício/i }));
 
-    // Fill minimum required field and submit
+    // Fill minimum required fields and submit
     const nameInput = await screen.findByLabelText(/Nome/i);
     await user.type(nameInput, 'Leg press');
+    await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
+    await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
 
     await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
 
@@ -2964,6 +2966,8 @@ describe('RoutineBuilder — smooth scroll after exercise creation', () => {
 
     const nameInput = await screen.findByLabelText(/Nome/i);
     await user.type(nameInput, 'Leg press');
+    await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
+    await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
 
     window.HTMLElement.prototype.scrollIntoView.mockClear();
 

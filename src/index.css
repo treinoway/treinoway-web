@@ -887,8 +887,14 @@ html:has(.auth-page) {
 .main-content {
   flex: 1;
   overflow: auto;
+  /* clip prevents negative-margin children from painting
+     outside the main-content boundary and over the sidebar. overflow-x: clip
+     does not create a scroll container (unlike overflow-x: hidden), so the
+     existing vertical-scroll behaviour is preserved. */
+  overflow-x: clip;
   background: var(--brand-mist);
 }
+
 
 /* Fullscreen layout mode (used by AI chat, no inner padding) */
 .app-layout--fullscreen {
@@ -1234,15 +1240,20 @@ html:has(.auth-page) {
   color: var(--color-primary);
 }
 
-/* Segmented Toggle */
+/* ============================================
+   Segmented Toggle — Athletic-Tech canonical
+   Active = floating white pill + brand-primary label.
+   Track = mist background. No solid brand fill.
+   ============================================ */
 .segmented-toggle {
   display: flex;
   width: 100%;
-  padding: 4px;
-  background: var(--color-surface-container-high);
+  padding: var(--spacing-2xs);
+  background: var(--brand-mist);
   border-radius: var(--radius-brand);
   margin-bottom: var(--spacing-md);
-  min-height: 48px;
+  gap: var(--spacing-2xs);
+  /* min-height drives the track; buttons set their own */
 }
 
 .segmented-toggle--tight {
@@ -1251,43 +1262,68 @@ html:has(.auth-page) {
 
 .segmented-toggle-btn {
   flex: 1;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
   background: transparent;
   border: none;
-  border-radius: var(--radius-brand);
-  font-size: var(--font-caption-size);
+  border-radius: calc(var(--radius-brand) - var(--spacing-2xs));
+  font-size: 11px;
   font-weight: 600;
   font-family: var(--font-family-base);
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
   cursor: pointer;
   color: var(--brand-steel);
-  min-height: 40px;
-  transition: background var(--duration-fast) var(--ease-brand),
+  /* 32px natural height; 44px touch target enforced below */
+  min-height: 32px;
+  line-height: var(--line-height-tight);
+  transition:
+    background var(--duration-fast) var(--ease-brand),
     color var(--duration-fast) var(--ease-brand),
     box-shadow var(--duration-fast) var(--ease-brand);
 }
 
+@media (max-width: 767px) {
+  .segmented-toggle-btn {
+    min-height: 44px; /* 44px touch target on mobile */
+  }
+}
+
+.segmented-toggle-btn:hover {
+  color: var(--brand-slate);
+}
+
+.segmented-toggle-btn:active {
+  transform: scale(0.98);
+}
+
+.segmented-toggle-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Active state: elevated white pill, brand-colored label */
 .segmented-toggle-btn--active {
-  background: var(--brand-primary);
-  color: var(--md-on-primary);
+  background: var(--md-surface);
+  color: var(--brand-primary);
   box-shadow: var(--shadow-brand-sm);
+  border: 1px solid var(--brand-divider);
+}
+
+.segmented-toggle-btn--active:hover {
+  color: var(--brand-primary-dark);
 }
 
 /* ============================================
-   Mode Switch — sidebar variant (Athletic-Tech)
-   Applies to .segmented-toggle--mode-switch only.
-   Does NOT change the base .segmented-toggle classes
-   used in forms (ProtocolDetail, AssignAnamnesis, etc.)
+   Mode Switch variant — sidebar trainer/nutritionist toggle
+   Vertical icon+label layout; same floating-pill active treatment.
    ============================================ */
 .segmented-toggle--mode-switch {
-  background: var(--md-surface-container-high);
+  background: var(--brand-mist);
   padding: var(--spacing-2xs);
   border-radius: var(--radius-brand);
   margin-bottom: var(--spacing-md);
   gap: var(--spacing-2xs);
   min-height: unset;
-  box-shadow: var(--shadow-brand-sm);
   position: relative;
 }
 
@@ -1317,7 +1353,6 @@ html:has(.auth-page) {
 }
 
 .segmented-toggle--mode-switch .segmented-toggle-btn:hover {
-  background: var(--md-surface-container-highest);
   color: var(--brand-slate);
 }
 
@@ -1331,22 +1366,57 @@ html:has(.auth-page) {
 }
 
 .segmented-toggle--mode-switch .segmented-toggle-btn--active {
-  background: var(--brand-primary);
-  color: #FFFFFF; /* intentional: skill §2.4 — no token for white-on-brand-primary */
+  background: var(--md-surface);
+  color: var(--brand-primary);
   box-shadow: var(--shadow-brand-sm);
 }
 
-/* Accent underline stripe — kinetic sport marker on active discipline */
-.segmented-toggle--mode-switch .segmented-toggle-btn--active::after {
-  content: '';
-  position: absolute;
-  bottom: var(--spacing-xs);
-  left: 50%;
-  transform: translateX(-50%);
-  width: var(--spacing-lg);
-  height: var(--spacing-2xs); /* 2px — token: --spacing-2xs */
-  background: var(--brand-accent);
-  border-radius: var(--radius-stat);
+/* ============================================
+   Inline variant — compact horizontal icon+label toggle
+   Used inside forms (PrescriptionField reps/duration switch).
+   Same floating-pill active treatment as base; buttons are
+   flex-row with icon left, text right.
+   ============================================ */
+.segmented-toggle--inline .segmented-toggle-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+.segmented-toggle--inline .toggle-icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+/* ============================================
+   Compact modifier — inline-sized track, 28px height on desktop.
+   Use inside forms where the toggle should not span full row width
+   (e.g. PrescriptionField mode switcher, ExerciseComposer tab picker).
+   Mobile touch target (44px) is preserved via the media query below.
+   Compose with --inline when the buttons also need icon+text row layout:
+     className="segmented-toggle segmented-toggle--inline segmented-toggle--compact"
+   ============================================ */
+.segmented-toggle.segmented-toggle--compact {
+  display: inline-flex;
+  width: auto;
+  align-self: flex-start;
+  margin-bottom: var(--spacing-sm);
+}
+
+.segmented-toggle--compact .segmented-toggle-btn {
+  flex: none;
+  min-height: 28px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 10px;
+}
+
+@media (max-width: 767px) {
+  .segmented-toggle--compact .segmented-toggle-btn {
+    min-height: 44px;
+  }
 }
 
 /* ============================================
@@ -5681,11 +5751,50 @@ html:has(.auth-page) {
   color: #FCA5A5;
 }
 
+/* ---- Briefing loading skeleton ---- */
+.ai-chat__briefing-stat--skeleton .ai-chat__briefing-stat-value {
+  display: block;
+  width: 48px;
+  height: 36px;
+  border-radius: var(--radius-brand);
+  background: rgba(255, 255, 255, 0.1);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  margin-bottom: var(--spacing-xs);
+}
+
+.ai-chat__briefing-stat--skeleton .ai-chat__briefing-stat-label {
+  display: block;
+  width: 80px;
+  height: 10px;
+  border-radius: var(--radius-brand);
+  background: rgba(255, 255, 255, 0.08);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  margin-bottom: var(--spacing-xs);
+}
+
+.ai-chat__briefing-stat--skeleton .ai-chat__briefing-stat-trend {
+  display: block;
+  width: 64px;
+  height: 10px;
+  border-radius: var(--radius-brand);
+  background: rgba(255, 255, 255, 0.06);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* ---- Briefing inline error ---- */
+.ai-chat__briefing-error {
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  color: var(--stadium-text-muted);
+  position: relative;
+}
+
 /* ---- Section header (shared by Create & Prompts) ---- */
 .ai-chat__section-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  margin-top: var(--spacing-lg);
   margin-bottom: var(--spacing-md);
 }
 
@@ -6138,6 +6247,12 @@ html:has(.auth-page) {
   border-radius: var(--radius-xs);
   color: var(--brand-steel);
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* green dot inside context chip */
+.ai-chat__meta-chip-dot {
+  color: var(--md-success);
   flex-shrink: 0;
 }
 
@@ -6650,6 +6765,13 @@ html:has(.auth-page) {
   padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-xs);
   font-weight: 600;
   color: var(--brand-steel);
+}
+
+.ai-history__loading-text {
+  text-align: center;
+  color: var(--brand-steel);
+  font-size: 14px;
+  padding: var(--spacing-lg) 0;
 }
 
 .ai-history__empty-state {
@@ -15456,6 +15578,10 @@ nav.onboarding-steps {
   }
 }
 
+.composer-rest-row {
+  margin-top: var(--spacing-sm);
+}
+
 .composer-label {
   font-size: 9px;
   font-weight: 700;
@@ -17452,11 +17578,10 @@ nav.onboarding-steps {
 .segmented-toggle--type {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--spacing-2xs, 2px);
-  background: var(--md-surface-container-high);
-  padding: var(--spacing-2xs, 2px);
+  gap: var(--spacing-2xs);
+  background: var(--brand-mist);
+  padding: var(--spacing-2xs);
   border-radius: var(--radius-brand);
-  box-shadow: var(--shadow-brand-sm);
 }
 
 @media (max-width: 374px) {
@@ -17471,9 +17596,9 @@ nav.onboarding-steps {
   align-items: center;
   justify-content: center;
   gap: var(--spacing-xs);
-  min-height: 56px;
+  min-height: 52px;
   padding: var(--spacing-sm) var(--spacing-xs);
-  border-radius: calc(var(--radius-brand) - 2px);
+  border-radius: calc(var(--radius-brand) - var(--spacing-2xs));
   background: transparent;
   border: none;
   color: var(--brand-steel);
@@ -17482,38 +17607,25 @@ nav.onboarding-steps {
   font-weight: 700;
   letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
-  position: relative;
-  transition: background var(--duration-fast) var(--ease-brand),
-              color var(--duration-fast) var(--ease-brand),
-              box-shadow var(--duration-fast) var(--ease-brand);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-brand),
+    color var(--duration-fast) var(--ease-brand),
+    box-shadow var(--duration-fast) var(--ease-brand);
 }
 
 .segmented-toggle--type .segmented-toggle-btn:hover {
-  background: var(--md-surface-container);
   color: var(--brand-slate);
 }
 
 .segmented-toggle--type .segmented-toggle-btn--active {
-  background: var(--brand-primary);
-  color: #FFFFFF;
+  background: var(--md-surface);
+  color: var(--brand-primary);
   box-shadow: var(--shadow-brand-sm);
 }
 
 .segmented-toggle--type .segmented-toggle-btn--active:hover {
-  background: var(--brand-primary);
-  color: #FFFFFF;
-}
-
-.segmented-toggle--type .segmented-toggle-btn--active::after {
-  content: '';
-  position: absolute;
-  bottom: var(--spacing-xs);
-  left: 50%;
-  transform: translateX(-50%);
-  width: var(--spacing-lg);
-  height: var(--spacing-2xs);
-  background: var(--brand-accent);
-  border-radius: var(--radius-stat);
+  color: var(--brand-primary-dark);
 }
 
 .segmented-toggle--type .segmented-toggle-btn:focus-visible {
@@ -18557,8 +18669,7 @@ nav.onboarding-steps {
   transition: background-color var(--duration-fast) var(--ease-brand),
               color var(--duration-fast) var(--ease-brand),
               box-shadow var(--duration-fast) var(--ease-brand);
-  margin-top: var(--spacing-md);
-  z-index: var(--z-sticky);
+  z-index: var(--z-overlay);
   min-height: 44px;
 }
 
@@ -18585,10 +18696,8 @@ nav.onboarding-steps {
 
 @media (min-width: 1024px) {
   .iarnold-fab {
-    position: fixed;
     bottom: var(--spacing-lg);
     right: var(--spacing-lg);
-    margin-top: 0;
     z-index: var(--z-overlay);
   }
 }

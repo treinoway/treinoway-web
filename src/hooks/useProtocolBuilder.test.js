@@ -33,12 +33,14 @@ const TRAINING_TEMPLATE = {
     {
       id: 'junc-1',
       order: 0,
-      exerciseTemplate: { id: 'et-1', name: 'Supino', type: 'strength', sets: 4 },
+      prescriptionMode: 'reps',
+      exerciseTemplate: { id: 'et-1', name: 'Supino', type: 'strength', sets: 4, prescriptionMode: 'reps' },
     },
   ],
 };
 
-const EXERCISE_TEMPLATE = { id: 'et-2', name: 'Agachamento', type: 'strength', sets: 3 };
+const EXERCISE_TEMPLATE = { id: 'et-2', name: 'Agachamento', type: 'strength', sets: 3, prescriptionMode: 'reps' };
+const EXERCISE_TEMPLATE_DURATION = { id: 'et-3', name: 'Corrida', type: 'cardio', duration: 600, prescriptionMode: 'duration' };
 
 const PROTOCOL_TEMPLATE = {
   id: 'pt-1',
@@ -57,7 +59,7 @@ const PROTOCOL_TEMPLATE = {
 
 const makeGetHandler = (studentId) => (url) => {
   if (url === '/trainer/training-templates') return Promise.resolve({ data: [TRAINING_TEMPLATE] });
-  if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [EXERCISE_TEMPLATE] });
+  if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [EXERCISE_TEMPLATE, EXERCISE_TEMPLATE_DURATION] });
   if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [PROTOCOL_TEMPLATE] });
   if (url === '/trainer/students' && studentId) return Promise.resolve({ data: [STUDENT] });
   if (url === `/trainer/protocol-templates/${PROTOCOL_TEMPLATE.id}`) return Promise.resolve({ data: PROTOCOL_TEMPLATE });
@@ -82,7 +84,7 @@ describe('useProtocolBuilder — mount (no studentId)', () => {
     const { result } = renderHook(() => useProtocolBuilder(null));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.trainingTemplates).toHaveLength(1);
-    expect(result.current.exerciseTemplates).toHaveLength(1);
+    expect(result.current.exerciseTemplates).toHaveLength(2);
     expect(result.current.protocolTemplates).toHaveLength(1);
     expect(result.current.student).toBeNull();
   });
@@ -237,6 +239,89 @@ describe('useProtocolBuilder — addExercise / addExerciseFromTemplate (local on
   });
 });
 
+describe('useProtocolBuilder — prescriptionMode handling', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+    api.get.mockImplementation(makeGetHandler(null));
+  });
+
+  it('extractExercisesFromTemplate maps prescriptionMode from junction', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.importTrainingsFromLibrary(['tt-1']);
+    });
+
+    const exercise = result.current.data.trainings[0].exercises[0];
+    expect(exercise.prescriptionMode).toBe('reps');
+  });
+
+  it('addExerciseFromTemplate carries prescriptionMode from template in create mode', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let trainingId;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'Treino A', category: 'cardio' });
+      trainingId = t.id;
+      await result.current.addExerciseFromTemplate(trainingId, 'et-3');
+    });
+
+    const exercise = result.current.data.trainings[0].exercises[0];
+    expect(exercise.prescriptionMode).toBe('duration');
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('addExerciseFromTemplate respects prescriptionMode override in create mode', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let trainingId;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'Treino A', category: 'strength' });
+      trainingId = t.id;
+      await result.current.addExerciseFromTemplate(trainingId, 'et-2', { prescriptionMode: 'duration' });
+    });
+
+    const exercise = result.current.data.trainings[0].exercises[0];
+    expect(exercise.prescriptionMode).toBe('duration');
+  });
+
+  it('saveRoutine passes prescriptionMode in from-template POST for duration template', async () => {
+    api.post.mockImplementation((url) => {
+      if (url === '/trainer/protocols') return Promise.resolve({ data: { id: 'proto-pm' } });
+      if (url === '/trainer/protocols/proto-pm/trainings') return Promise.resolve({ data: { id: 'real-t-pm' } });
+      if (url === '/trainer/exercises/from-template') return Promise.resolve({ data: { id: 'real-ex-pm' } });
+      return Promise.resolve({ data: {} });
+    });
+
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let trainingId;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'Treino Cardio', category: 'cardio' });
+      trainingId = t.id;
+      await result.current.addExerciseFromTemplate(trainingId, 'et-3');
+    });
+
+    await act(async () => {
+      await result.current.saveRoutine(
+        { name: 'Rotina PM', assigneeId: null, startDate: '2026-05-01' },
+        result.current.data.trainings
+      );
+    });
+
+    expect(api.post).toHaveBeenCalledWith('/trainer/exercises/from-template', expect.objectContaining({
+      trainingId: 'real-t-pm',
+      templateId: 'et-3',
+      prescriptionMode: 'duration',
+    }));
+  });
+});
+
 describe('useProtocolBuilder — saveRoutine (multi-step POST)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -321,11 +406,12 @@ describe('useProtocolBuilder — saveRoutine (multi-step POST)', () => {
       );
     });
 
-    // exercise from template uses the correct endpoint
-    expect(api.post).toHaveBeenCalledWith('/trainer/exercises/from-template', {
+    // exercise from template uses the correct endpoint and carries prescriptionMode
+    expect(api.post).toHaveBeenCalledWith('/trainer/exercises/from-template', expect.objectContaining({
       trainingId: 'real-t-2',
       templateId: 'et-2',
-    });
+      prescriptionMode: 'reps',
+    }));
   });
 
   it('deletes protocol and re-throws on failure after creation', async () => {

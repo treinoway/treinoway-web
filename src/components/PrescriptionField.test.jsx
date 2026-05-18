@@ -37,6 +37,11 @@ describe('PrescriptionField', () => {
       expect(screen.getByLabelText(/repetições máximas/i)).toBeInTheDocument();
     });
 
+    it('renders the prescription mode section label', () => {
+      render(<Harness />);
+      expect(screen.getByText(/modo de prescrição/i)).toBeInTheDocument();
+    });
+
     it('renders the inline mode toggle with Repetições and Tempo tabs', () => {
       render(<Harness />);
       expect(screen.getByRole('tab', { name: /repetições/i })).toBeInTheDocument();
