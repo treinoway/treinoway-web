@@ -100,23 +100,81 @@ describe('ExerciseProgressionDetail', () => {
     expect(screen.getByText('Carregando...')).toBeInTheDocument();
   });
 
-  it('renders the exercise title and session count', async () => {
+  it('renders the exercise title in the stadium hero', async () => {
     api.get.mockResolvedValue({ data: buildResponse() });
     renderDetail();
 
     await waitFor(() => {
-      expect(screen.getByText('Agachamento livre')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
     });
-    expect(screen.getByText(/3 sessões neste período/)).toBeInTheDocument();
   });
 
-  it('renders the load range and trend chip on the summary line', async () => {
+  it('renders the training name eyebrow', async () => {
     api.get.mockResolvedValue({ data: buildResponse() });
     renderDetail();
 
     await waitFor(() => {
-      expect(screen.getByText(/70 → 77.5 kg/)).toBeInTheDocument();
+      expect(screen.getByText('Treino A — Pernas')).toBeInTheDocument();
     });
+  });
+
+  it('renders the KPI stat tiles: session count, peak load, variation, total reps', async () => {
+    api.get.mockResolvedValue({ data: buildResponse() });
+    renderDetail();
+
+    await waitFor(() => {
+      // session count
+      expect(screen.getByText('Sessões no período')).toBeInTheDocument();
+      // peak load label
+      expect(screen.getByText('Pico de carga')).toBeInTheDocument();
+      // variation label
+      expect(screen.getByText('Variação')).toBeInTheDocument();
+      // total reps label
+      expect(screen.getByText('Total de reps')).toBeInTheDocument();
+    });
+
+    // 3 sessions — each with 32 reps = 96 total reps
+    expect(screen.getByText('96')).toBeInTheDocument();
+    // peak load = 77.5 kg
+    expect(screen.getByText('77.5')).toBeInTheDocument();
+  });
+
+  it('renders the Evolução callout with load range when 2+ sessions exist', async () => {
+    api.get.mockResolvedValue({ data: buildResponse() });
+    renderDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Evolução')).toBeInTheDocument();
+    });
+    // load range: earliest session startLoad=70, latest endLoad=77.5
+    expect(screen.getByText(/70 → 77\.5 kg/)).toBeInTheDocument();
+  });
+
+  it('renders the Evolução empty state with helper text when only 1 session', async () => {
+    api.get.mockResolvedValue({
+      data: buildResponse({
+        sessions: [
+          {
+            sessionId: 's-solo',
+            date: '2026-04-10',
+            status: 'completed',
+            maxLoad: 80,
+            avgLoad: 80,
+            totalVolume: 800,
+            completedSets: 3,
+            totalReps: 24,
+            avgRpe: 7,
+            sets: [{ setNumber: 1, repetitions: 8, load: 80, rpe: 7, completed: true }],
+          },
+        ],
+      }),
+    });
+    renderDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Evolução')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Precisa de pelo menos 2 sessões para comparar')).toBeInTheDocument();
   });
 
   it('expands the first AND last session by default', async () => {
@@ -124,13 +182,11 @@ describe('ExerciseProgressionDetail', () => {
     renderDetail();
 
     await waitFor(() => {
-      expect(screen.getByText('Agachamento livre')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
     });
 
-    // Wait for the queueMicrotask-deferred state update.
     await waitFor(() => {
       const expandedHeaders = screen.getAllByRole('button', { expanded: true });
-      // Period chip + 2 expanded session cards = at least 2 expanded session headers
       expect(expandedHeaders.length).toBeGreaterThanOrEqual(2);
     });
   });
@@ -141,12 +197,9 @@ describe('ExerciseProgressionDetail', () => {
     renderDetail();
 
     await waitFor(() => {
-      expect(screen.getByText('Agachamento livre')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
     });
 
-    // The most recent session (s-3, 1 de mai) is expanded by default.
-    // Wait for the queueMicrotask deferred state, then find the expanded session header
-    // and toggle it closed to confirm interactivity.
     await waitFor(() => {
       const expanded = screen.getAllByRole('button', { expanded: true })
         .filter((btn) => btn.className.includes('exercise-session-card-header'));
@@ -183,13 +236,13 @@ describe('ExerciseProgressionDetail', () => {
     expect(screen.getByRole('button', { name: 'Tentar novamente' })).toBeInTheDocument();
   });
 
-  it('navigates back to student detail when "Voltar" header is clicked', async () => {
+  it('navigates back to student detail when back button is clicked', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: buildResponse() });
     renderDetail();
 
     await waitFor(() => {
-      expect(screen.getByText('Agachamento livre')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
     });
 
     await user.click(screen.getByRole('button', { name: /Voltar para aluno/ }));
@@ -211,7 +264,7 @@ describe('ExerciseProgressionDetail', () => {
     renderDetail();
 
     await waitFor(() => {
-      expect(screen.getByText('Agachamento livre')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
     });
 
     const toggle = screen.getByRole('checkbox', { name: /Incluir sessões abandonadas/ });
@@ -227,7 +280,7 @@ describe('ExerciseProgressionDetail', () => {
     renderDetail();
 
     await waitFor(() => {
-      expect(screen.getByText('Agachamento livre')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
     });
 
     const callsBefore = api.get.mock.calls.length;
@@ -290,9 +343,122 @@ describe('ExerciseProgressionDetail', () => {
     renderDetail();
 
     await waitFor(() => {
-      expect(screen.getByText('Agachamento livre')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
     });
 
     expect(screen.queryByText('Abandonada')).not.toBeInTheDocument();
+  });
+
+  it('renders Check icon for completed sets and Minus icon for skipped sets', async () => {
+    api.get.mockResolvedValue({
+      data: buildResponse({
+        sessions: [
+          {
+            sessionId: 's-mixed',
+            date: '2026-04-10',
+            status: 'completed',
+            maxLoad: 70,
+            avgLoad: 70,
+            totalVolume: 560,
+            completedSets: 1,
+            totalReps: 8,
+            avgRpe: 7,
+            sets: [
+              { setNumber: 1, repetitions: 8, load: 70, rpe: 7, completed: true },
+              { setNumber: 2, repetitions: 0, load: null, rpe: null, completed: false },
+            ],
+          },
+        ],
+      }),
+    });
+    renderDetail();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
+    });
+
+    // The session is expanded by default (only one session = both first+last)
+    await waitFor(() => {
+      expect(screen.getByLabelText('Concluída')).toBeInTheDocument();
+      expect(screen.getByLabelText('Não concluída')).toBeInTheDocument();
+    });
+  });
+
+  it('keeps the check/minus mark in the last column when set has no load and no rpe', async () => {
+    api.get.mockResolvedValue({
+      data: buildResponse({
+        sessions: [
+          {
+            sessionId: 's-noload',
+            date: '2026-04-10',
+            status: 'completed',
+            maxLoad: null,
+            avgLoad: null,
+            totalVolume: 0,
+            completedSets: 1,
+            totalReps: 10,
+            avgRpe: null,
+            sets: [
+              { setNumber: 1, repetitions: 10, load: null, rpe: null, completed: true },
+            ],
+          },
+        ],
+      }),
+    });
+    renderDetail();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
+    });
+
+    // Mark must still be present and correctly labelled regardless of missing load/rpe
+    await waitFor(() => {
+      expect(screen.getByLabelText('Concluída')).toBeInTheDocument();
+    });
+
+    // The set label and reps are present
+    expect(screen.getByText('Set 1')).toBeInTheDocument();
+    expect(screen.getByText('10 reps')).toBeInTheDocument();
+
+    // The load and rpe text must NOT appear (slots are empty placeholders)
+    expect(screen.queryByText(/kg/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/RPE/)).not.toBeInTheDocument();
+  });
+
+  it('renders load and rpe values when both are present', async () => {
+    api.get.mockResolvedValue({
+      data: buildResponse({
+        sessions: [
+          {
+            sessionId: 's-full',
+            date: '2026-04-15',
+            status: 'completed',
+            maxLoad: 80,
+            avgLoad: 80,
+            totalVolume: 640,
+            completedSets: 1,
+            totalReps: 8,
+            avgRpe: 8,
+            sets: [
+              { setNumber: 1, repetitions: 8, load: 80, rpe: 8, completed: true },
+            ],
+          },
+        ],
+      }),
+    });
+    renderDetail();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Set 1')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('8 reps')).toBeInTheDocument();
+    expect(screen.getByText('80 kg')).toBeInTheDocument();
+    expect(screen.getByText('RPE 8')).toBeInTheDocument();
+    expect(screen.getByLabelText('Concluída')).toBeInTheDocument();
   });
 });

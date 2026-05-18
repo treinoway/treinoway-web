@@ -12,6 +12,7 @@ const makeSession = (overrides = {}) => ({
     {
       id: 'elog-1',
       status: 'completed',
+      exercise: { sets: 2 },
       setLogs: [
         { id: 's1', setNumber: 1, load: 70, repetitions: 10, rpe: 7, completed: true },
         { id: 's2', setNumber: 2, load: 75, repetitions: 10, rpe: 8, completed: true },
@@ -149,6 +150,7 @@ describe('SessionDetailHero', () => {
         {
           id: 'elog-1',
           status: 'partial',
+          exercise: { sets: 2 },
           setLogs: [
             { id: 's1', setNumber: 1, load: 70, repetitions: 10, rpe: 7, completed: true },
             { id: 's2', setNumber: 2, load: 70, repetitions: 10, rpe: 7, completed: false },
@@ -164,5 +166,150 @@ describe('SessionDetailHero', () => {
       />,
     );
     expect(screen.getByText('Parcial')).toBeInTheDocument();
+  });
+
+  describe('Séries KPI (completed/planned)', () => {
+    it('shows 3/3 when planned=3 and student completed all 3 setLogs', () => {
+      const session = makeSession({
+        exerciseLogs: [
+          {
+            id: 'elog-1',
+            status: 'completed',
+            exercise: { sets: 3 },
+            setLogs: [
+              { id: 's1', setNumber: 1, load: 50, repetitions: 10, completed: true },
+              { id: 's2', setNumber: 2, load: 50, repetitions: 10, completed: true },
+              { id: 's3', setNumber: 3, load: 50, repetitions: 10, completed: true },
+            ],
+          },
+        ],
+      });
+      render(<SessionDetailHero session={session} />);
+      expect(screen.getByText('3')).toBeInTheDocument();
+      expect(screen.getByText('/3')).toBeInTheDocument();
+    });
+
+    it('shows 3/4 when planned=4 but only 3 setLogs exist (one set never started)', () => {
+      const session = makeSession({
+        exerciseLogs: [
+          {
+            id: 'elog-1',
+            status: 'partial',
+            exercise: { sets: 4 },
+            setLogs: [
+              { id: 's1', setNumber: 1, load: 50, repetitions: 10, completed: true },
+              { id: 's2', setNumber: 2, load: 50, repetitions: 10, completed: true },
+              { id: 's3', setNumber: 3, load: 50, repetitions: 10, completed: true },
+            ],
+          },
+        ],
+      });
+      render(<SessionDetailHero session={session} />);
+      expect(screen.getByText('3')).toBeInTheDocument();
+      expect(screen.getByText('/4')).toBeInTheDocument();
+    });
+
+    it('shows 5/3 when student logs extra sets beyond what was planned', () => {
+      const session = makeSession({
+        exerciseLogs: [
+          {
+            id: 'elog-1',
+            status: 'completed',
+            exercise: { sets: 3 },
+            setLogs: [
+              { id: 's1', setNumber: 1, load: 50, repetitions: 10, completed: true },
+              { id: 's2', setNumber: 2, load: 50, repetitions: 10, completed: true },
+              { id: 's3', setNumber: 3, load: 50, repetitions: 10, completed: true },
+              { id: 's4', setNumber: 4, load: 50, repetitions: 10, completed: true },
+              { id: 's5', setNumber: 5, load: 50, repetitions: 10, completed: true },
+            ],
+          },
+        ],
+      });
+      render(<SessionDetailHero session={session} />);
+      expect(screen.getByText('5')).toBeInTheDocument();
+      expect(screen.getByText('/3')).toBeInTheDocument();
+    });
+
+    it('shows 0/4 for a skipped exerciseLog with no setLogs', () => {
+      const session = makeSession({
+        exerciseLogs: [
+          {
+            id: 'elog-1',
+            status: 'skipped',
+            exercise: { sets: 4 },
+            setLogs: [],
+          },
+        ],
+      });
+      render(<SessionDetailHero session={session} />);
+      expect(screen.getByText('0')).toBeInTheDocument();
+      expect(screen.getByText('/4')).toBeInTheDocument();
+    });
+
+    it('excludes exerciseLogs without prescribed sets (exercise.sets == null) from totals', () => {
+      const session = makeSession({
+        exerciseLogs: [
+          {
+            id: 'elog-1',
+            status: 'completed',
+            exercise: { sets: null },
+            setLogs: [
+              { id: 's1', setNumber: 1, load: 100, repetitions: 10, completed: true },
+            ],
+          },
+        ],
+      });
+      render(<SessionDetailHero session={session} />);
+      // Sets unit not rendered when totalSets is 0
+      expect(screen.queryByText(/^\/\d+$/)).not.toBeInTheDocument();
+      // Volume should also be excluded — Volume total shows em dash
+      expect(screen.queryByText('1.000')).not.toBeInTheDocument();
+    });
+
+    it('sums planned sets and completed setLogs across mixed exerciseLogs (excluding those without prescribed sets)', () => {
+      const session = makeSession({
+        exerciseLogs: [
+          // Included: planned=3, 3 completed → +3 total, +3 completed, vol = 3 * 50*10 = 1500
+          {
+            id: 'elog-1',
+            status: 'completed',
+            exercise: { sets: 3 },
+            setLogs: [
+              { id: 's1', setNumber: 1, load: 50, repetitions: 10, completed: true },
+              { id: 's2', setNumber: 2, load: 50, repetitions: 10, completed: true },
+              { id: 's3', setNumber: 3, load: 50, repetitions: 10, completed: true },
+            ],
+          },
+          // Included: planned=4, 2 completed → +4 total, +2 completed, vol = 2 * 20*5 = 200
+          {
+            id: 'elog-2',
+            status: 'partial',
+            exercise: { sets: 4 },
+            setLogs: [
+              { id: 's4', setNumber: 1, load: 20, repetitions: 5, completed: true },
+              { id: 's5', setNumber: 2, load: 20, repetitions: 5, completed: true },
+              { id: 's6', setNumber: 3, load: 20, repetitions: 5, completed: false },
+            ],
+          },
+          // Excluded: exercise.sets == null — volume from this set must NOT count
+          {
+            id: 'elog-3',
+            status: 'completed',
+            exercise: { sets: null },
+            setLogs: [
+              { id: 's7', setNumber: 1, load: 999, repetitions: 99, completed: true },
+            ],
+          },
+        ],
+      });
+      render(<SessionDetailHero session={session} />);
+      // Total sets = 3 + 4 = 7; completed = 3 + 2 = 5
+      expect(screen.getByText('5')).toBeInTheDocument();
+      expect(screen.getByText('/7')).toBeInTheDocument();
+      // Volume = 1500 + 200 = 1700 (excluded log's 999*99 = 98901 must NOT appear)
+      expect(screen.getByText('1.700')).toBeInTheDocument();
+      expect(screen.queryByText('98.901')).not.toBeInTheDocument();
+    });
   });
 });

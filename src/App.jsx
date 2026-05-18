@@ -5,6 +5,7 @@ import { AiChatProvider } from './contexts/AiChatContext';
 import { ToastProvider } from './contexts/ToastContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 import Layout from './components/Layout';
 
 // Public pages
@@ -79,6 +80,7 @@ RedirectWithId.propTypes = {
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <ToastProvider>
         <ErrorBoundary>
           <AuthProvider>

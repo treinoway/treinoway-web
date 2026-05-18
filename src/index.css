@@ -18977,49 +18977,174 @@ nav.onboarding-steps {
   flex: 1;
 }
 
-/* Exercise progression detail */
+/* ============================================================
+   Exercise Progression Detail — Athletic-Tech cockpit redesign
+   ============================================================ */
+
+/* Page wrapper */
 .exercise-progression-detail {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
 }
 
-.exercise-progression-detail-header {
-  justify-content: space-between;
-  align-items: center;
-}
-
-.exercise-progression-detail-title {
-  font-family: var(--font-family-heading);
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: var(--tracking-tight, -0.02em);
-  color: var(--brand-ink);
-  margin: 0;
-}
-
-.exercise-progression-summary {
+/* ── Hero (stadium dark block) ── */
+/* .epd-hero extends .theme-stadium — adds internal flex layout */
+.epd-hero {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-md);
-  background: var(--brand-mist);
+  gap: var(--spacing-md);
+  /* Override theme-stadium's default border-radius: hero spans full page width on mobile */
   border-radius: var(--radius-brand);
+  padding: var(--spacing-lg) var(--spacing-md);
 }
 
-.exercise-progression-summary-line {
-  margin: 0;
-  font-size: 14px;
-  color: var(--brand-slate);
+/* Back button + period chip row */
+.epd-hero-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+/* Back button — ghost style for dark surface */
+.epd-back-btn {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--stadium-text-muted);
+  padding: var(--spacing-xs) 0;
+  min-height: 44px;
+  transition: color var(--duration-fast) var(--ease-brand);
 }
 
-.exercise-progression-summary-anchor {
+.epd-back-btn:hover {
+  color: var(--stadium-text);
+}
+
+.epd-back-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-brand);
+}
+
+/* Training name eyebrow above exercise title */
+.epd-hero-eyebrow {
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--stadium-text-muted);
+  line-height: var(--line-height-tight);
+}
+
+/* Exercise name — main display headline */
+.epd-hero-title {
+  font-family: var(--font-family-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--line-height-tight);
+  color: var(--stadium-text);
   margin: 0;
 }
 
+@media (min-width: 768px) {
+  .epd-hero-title {
+    font-size: 36px;
+  }
+}
+
+/* KPI tile grid — 2 col mobile, 4 col desktop */
+.epd-hero-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+@media (min-width: 768px) {
+  .epd-hero-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Evolução callout row */
+.epd-evolucao {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--stadium-surface-elevated);
+  border-radius: var(--radius-brand);
+}
+
+.epd-evolucao-label {
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--stadium-text-muted);
+  flex-shrink: 0;
+}
+
+.epd-evolucao-range {
+  font-family: var(--font-family-stat);
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--stadium-text);
+  flex: 1;
+  min-width: 0;
+}
+
+.epd-evolucao--empty .epd-evolucao-range,
+.epd-evolucao-dash {
+  font-family: var(--font-family-stat);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--stadium-text-muted);
+}
+
+.epd-evolucao-hint {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  color: var(--stadium-text-muted);
+  font-style: italic;
+}
+
+/* Anchor caption — "Comparado à 1ª sessão" */
+.epd-hero-anchor {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--stadium-text-muted);
+  line-height: var(--line-height-tight);
+}
+
+/* ── Filter row ── */
+/* Filter row — toggle for including abandoned sessions */
+.exercise-progression-filter {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--brand-mist);
+  border-radius: var(--radius-brand);
+  border: 1px solid var(--brand-divider);
+}
+
+/* ── Session list ── */
 .exercise-progression-sessions {
   list-style: none;
   margin: 0;
@@ -19029,28 +19154,42 @@ nav.onboarding-steps {
   gap: var(--spacing-sm);
 }
 
+/* Session card — branded light card surface */
 .exercise-session-card {
   background: var(--md-surface);
   border: 1px solid var(--brand-divider);
   border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-sm);
   display: flex;
   flex-direction: column;
+  transition: box-shadow var(--duration-fast) var(--ease-brand);
 }
 
+.exercise-session-card:hover {
+  box-shadow: var(--shadow-brand-md);
+}
+
+/* Card header button */
 .exercise-session-card-header {
-  display: grid;
-  grid-template-columns: minmax(60px, auto) 1fr auto;
-  gap: var(--spacing-sm);
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
   background: none;
   border: none;
   width: 100%;
   cursor: pointer;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md);
   text-align: left;
   font-family: var(--font-family-base);
   color: var(--brand-ink);
-  min-height: 44px;
+  min-height: 56px;
+  border-radius: var(--radius-brand);
+  transition: background var(--duration-fast) var(--ease-brand);
+}
+
+.exercise-session-card-header:hover {
+  background: var(--brand-mist);
 }
 
 .exercise-session-card-header:focus-visible {
@@ -19059,15 +19198,46 @@ nav.onboarding-steps {
   border-radius: var(--radius-brand);
 }
 
-.exercise-session-card-date {
-  font-weight: 600;
+/* Left block: date + summary stacked */
+.exercise-session-card-date-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xs);
+  flex: 1;
+  min-width: 0;
 }
 
+/* Date in display font — "18 MAI" */
+.exercise-session-card-date {
+  font-family: var(--font-family-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--brand-ink);
+  line-height: var(--line-height-tight);
+}
+
+/* Set count · reps total — UPPERCASE eyebrow */
 .exercise-session-card-summary {
-  font-size: 13px;
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--brand-steel);
+  line-height: var(--line-height-tight);
+}
+
+/* Right block: badge + chevron */
+.exercise-session-card-badges {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
   color: var(--brand-steel);
 }
 
+/* ── Set list (scoreboard rows) ── */
 .exercise-session-set-list {
   list-style: none;
   margin: 0;
@@ -19093,35 +19263,61 @@ nav.onboarding-steps {
   border-top: 0;
 }
 
+/* Skipped set — muted, no red (informational not error) */
 .exercise-session-set-row--skipped {
   color: var(--brand-steel);
+  opacity: 0.6;
 }
 
 .exercise-session-set-label {
-  font-weight: 600;
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
   color: var(--brand-ink);
 }
 
+/* Numeric data columns — tabular, stat font */
 .exercise-session-set-reps,
-.exercise-session-set-load,
+.exercise-session-set-load {
+  font-family: var(--font-family-stat);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--brand-slate);
+}
+
 .exercise-session-set-rpe {
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--brand-steel);
   font-variant-numeric: tabular-nums;
 }
 
+/* Empty placeholder slot — keeps the 5-column grid stable when load or rpe is absent */
+.exercise-session-set-slot-empty {
+  display: block;
+}
+
+/* Completion icon */
 .exercise-session-set-mark {
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-steel);
+}
+
+.exercise-session-set-row:not(.exercise-session-set-row--skipped) .exercise-session-set-mark {
+  color: var(--md-success);
 }
 
 .exercise-session-set-empty {
   margin: 0;
   padding: var(--spacing-sm) 0;
-}
-
-/* Filter row — toggle for including abandoned sessions */
-.exercise-progression-filter {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--brand-mist);
-  border-radius: var(--radius-brand);
 }
 
 /* Visually hidden helper for screen-reader-only headings */

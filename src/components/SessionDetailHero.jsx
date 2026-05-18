@@ -57,8 +57,15 @@ const computeKpis = (exerciseLogs) => {
   let rpeCount = 0;
 
   for (const log of exerciseLogs) {
+    const planned = log.exercise?.sets;
+    // Only count exercises that have a prescribed number of sets.
+    // SetLogs are created on demand, so falling back to setLogs.length would
+    // always make total == completed and never reflect unstarted sets.
+    if (planned == null) continue;
+
+    totalSets += planned;
+
     for (const s of log.setLogs ?? []) {
-      totalSets += 1;
       if (s.completed) {
         completedSets += 1;
         if (s.load != null && s.repetitions != null) {
