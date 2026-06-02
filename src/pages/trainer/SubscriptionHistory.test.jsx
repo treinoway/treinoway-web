@@ -52,20 +52,37 @@ const mockSubscription = {
   planName: 'Plano Performance',
 };
 
+/**
+ * Build a "YYYY-MM-DD" string offset by `monthDelta` months from today.
+ * Day is clamped to 1 (start) or 28 (end) to avoid month-length edge cases.
+ */
+const relativeDate = (monthDelta, day = 1) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1 + monthDelta; // 1-based, may overflow
+  const normalized = new Date(year, month - 1, day);
+  const y = normalized.getFullYear();
+  const m = String(normalized.getMonth() + 1).padStart(2, '0');
+  const d = String(normalized.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+// Paid cycle: two months ago (firmly in the past regardless of current date).
 const makePaidPayment = (overrides = {}) => ({
   id: 'pay-1',
-  cycleStartDate: '2026-04-01',
-  cycleEndDate: '2026-04-30',
+  cycleStartDate: relativeDate(-2, 1),
+  cycleEndDate: relativeDate(-2, 28),
   amount: '540',
   status: 'paid',
-  paidAt: '2026-04-03',
+  paidAt: relativeDate(-2, 3),
   ...overrides,
 });
 
+// Pending cycle: starts this month, ends next month (always in the future).
 const makePendingPayment = (overrides = {}) => ({
   id: 'pay-2',
-  cycleStartDate: '2026-05-01',
-  cycleEndDate: '2026-05-31',
+  cycleStartDate: relativeDate(0, 1),
+  cycleEndDate: relativeDate(1, 28),
   amount: '540',
   status: 'pending',
   paidAt: null,
@@ -137,8 +154,9 @@ describe('SubscriptionHistory', () => {
   describe('year grouping and history rows', () => {
     it('groups payments by year with a year label', async () => {
       renderPage();
-      await waitFor(() => screen.getByText('2026'));
-      expect(screen.getByText('2026')).toBeTruthy();
+      const expectedYear = relativeDate(-2, 1).slice(0, 4);
+      await waitFor(() => screen.getByText(expectedYear));
+      expect(screen.getByText(expectedYear)).toBeTruthy();
     });
 
     it('renders cycle badge day and month', async () => {
@@ -147,13 +165,18 @@ describe('SubscriptionHistory', () => {
       await waitFor(() => screen.getAllByText('01'));
       const dayEls = screen.getAllByText('01');
       expect(dayEls.length).toBeGreaterThanOrEqual(1);
-      // April entry should show "abr" month label
-      expect(screen.getByText('abr')).toBeTruthy();
+      // Paid cycle starts 2 months ago — derive expected short month abbreviation
+      const SHORT_MONTH_PT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+      const paidStart = relativeDate(-2, 1);
+      const expectedMonth = SHORT_MONTH_PT[Number(paidStart.slice(5, 7)) - 1];
+      expect(screen.getByText(expectedMonth)).toBeTruthy();
     });
 
     it('renders period range in short format', async () => {
       renderPage();
-      await waitFor(() => screen.getByText(/01\/04/));
+      const paidStart = relativeDate(-2, 1);
+      const expectedShort = `${paidStart.slice(8, 10)}/${paidStart.slice(5, 7)}`;
+      await waitFor(() => screen.getByText(new RegExp(expectedShort)));
     });
 
     it('renders status pills for each entry', async () => {
@@ -165,7 +188,7 @@ describe('SubscriptionHistory', () => {
 
   describe('filtering', () => {
     it('filters to show only paid entries', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       renderPage();
       await waitFor(() => screen.getByRole('tab', { name: 'Pagos' }));
       await user.click(screen.getByRole('tab', { name: 'Pagos' }));
@@ -174,7 +197,7 @@ describe('SubscriptionHistory', () => {
     });
 
     it('filters to show only pending entries', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       renderPage();
       await waitFor(() => screen.getByRole('tab', { name: 'Pendentes' }));
       await user.click(screen.getByRole('tab', { name: 'Pendentes' }));
@@ -183,7 +206,7 @@ describe('SubscriptionHistory', () => {
     });
 
     it('shows empty state when no entries match filter', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       listPaymentsForSubscription.mockResolvedValue([makePaidPayment()]);
       renderPage();
       await waitFor(() => screen.getByRole('tab', { name: 'Atrasados' }));
@@ -196,7 +219,7 @@ describe('SubscriptionHistory', () => {
 
   describe('row menu actions', () => {
     it('shows "Reverter pagamento" in menu for paid entry', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       renderPage();
       // Entries sorted descending: May (pending) first, April (paid) second
       await waitFor(() => screen.getAllByRole('button', { name: /ações/i }));
@@ -206,7 +229,7 @@ describe('SubscriptionHistory', () => {
     });
 
     it('shows "Marcar pago" in menu for non-paid entry', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       renderPage();
       await waitFor(() => screen.getAllByRole('button', { name: /ações/i }));
       const menuButtons = screen.getAllByRole('button', { name: /ações/i });
@@ -215,7 +238,7 @@ describe('SubscriptionHistory', () => {
     });
 
     it('calls markPaymentAsPaid when "Marcar pago" is clicked', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       markPaymentAsPaid.mockResolvedValue({ ...makePendingPayment(), status: 'paid' });
       renderPage();
       await waitFor(() => screen.getAllByRole('button', { name: /ações/i }));
@@ -226,7 +249,7 @@ describe('SubscriptionHistory', () => {
     });
 
     it('calls markPaymentAsPending when "Reverter pagamento" is clicked', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       markPaymentAsPending.mockResolvedValue({ ...makePaidPayment(), status: 'pending' });
       renderPage();
       await waitFor(() => screen.getAllByRole('button', { name: /ações/i }));
@@ -239,7 +262,7 @@ describe('SubscriptionHistory', () => {
 
   describe('delete confirmation', () => {
     it('opens confirm dialog when Excluir is clicked', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       renderPage();
       // Use paid row (index 1, April) which has Excluir in its menu
       await waitFor(() => screen.getAllByRole('button', { name: /ações/i }));
@@ -250,7 +273,7 @@ describe('SubscriptionHistory', () => {
     });
 
     it('cancels delete dialog without calling API', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       renderPage();
       await waitFor(() => screen.getAllByRole('button', { name: /ações/i }));
       const menuButtons = screen.getAllByRole('button', { name: /ações/i });
@@ -262,7 +285,7 @@ describe('SubscriptionHistory', () => {
     });
 
     it('calls deletePaymentCycle on confirm', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       deletePaymentCycle.mockResolvedValue({});
       renderPage();
       await waitFor(() => screen.getAllByRole('button', { name: /ações/i }));
@@ -282,7 +305,7 @@ describe('SubscriptionHistory', () => {
     });
 
     it('opens the add cycle sheet', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       renderPage();
       await waitFor(() => screen.getByText('Adicionar cobrança'));
       await user.click(screen.getByText('Adicionar cobrança'));
@@ -291,7 +314,7 @@ describe('SubscriptionHistory', () => {
     });
 
     it('closes the add cycle sheet on Cancelar', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       renderPage();
       await waitFor(() => screen.getByText('Adicionar cobrança'));
       await user.click(screen.getByText('Adicionar cobrança'));
@@ -300,7 +323,7 @@ describe('SubscriptionHistory', () => {
     });
 
     it('calls createPaymentCycle on submit', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       createPaymentCycle.mockResolvedValue(makePendingPayment({ id: 'pay-new' }));
       renderPage();
       await waitFor(() => screen.getByText('Adicionar cobrança'));

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'; // afterEach used inside scoped describe blocks
 import userEvent from '@testing-library/user-event';
 import { render, screen } from '../test/test-utils';
 import SubscriptionCard from './SubscriptionCard';
@@ -65,6 +65,9 @@ describe('SubscriptionCard', () => {
   });
 
   describe('active subscription', () => {
+    beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-05-15')); });
+    afterEach(() => { vi.useRealTimers(); });
+
     it('renders the eyebrow with ASSINATURA text', () => {
       render(
         <SubscriptionCard
@@ -164,6 +167,9 @@ describe('SubscriptionCard', () => {
   });
 
   describe('cycle track', () => {
+    beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-05-15')); });
+    afterEach(() => { vi.useRealTimers(); });
+
     it('renders cycle track when nextPayment has cycle dates', () => {
       render(
         <SubscriptionCard
@@ -238,6 +244,9 @@ describe('SubscriptionCard', () => {
   });
 
   describe('status border class', () => {
+    beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-05-15')); });
+    afterEach(() => { vi.useRealTimers(); });
+
     it('applies --pending class for pending status', () => {
       render(
         <SubscriptionCard
