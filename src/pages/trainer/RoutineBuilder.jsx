@@ -515,10 +515,30 @@ const WeekdayChip = ({ value, onChange, readOnly }) => {
     return found ? found.label : value;
   }, [value]);
 
-  const readPos = useCallback(() => {
+  const POPOVER_HEIGHT_FALLBACK = 300;
+  const POPOVER_WIDTH_FALLBACK = 160;
+  const POPOVER_GAP = 4;
+  const POPOVER_EDGE_MARGIN = 8;
+
+  const calcPos = useCallback(() => {
     if (!triggerRef.current) return null;
     const rect = triggerRef.current.getBoundingClientRect();
-    return { top: rect.bottom + 4, left: rect.left };
+    const popoverHeight = popoverRef.current?.offsetHeight || POPOVER_HEIGHT_FALLBACK;
+    const popoverWidth = popoverRef.current?.offsetWidth || POPOVER_WIDTH_FALLBACK;
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const flipUp = spaceBelow < popoverHeight + POPOVER_GAP && spaceAbove > spaceBelow;
+    const top = flipUp
+      ? Math.max(POPOVER_EDGE_MARGIN, rect.top - popoverHeight - POPOVER_GAP)
+      : rect.bottom + POPOVER_GAP;
+
+    const left = Math.min(
+      rect.left,
+      window.innerWidth - popoverWidth - POPOVER_EDGE_MARGIN
+    );
+
+    return { top, left };
   }, []);
 
   const handleToggle = useCallback(
@@ -528,18 +548,26 @@ const WeekdayChip = ({ value, onChange, readOnly }) => {
         setOpen(false);
         return;
       }
-      const pos = readPos();
+      const pos = calcPos();
       if (pos) setPopoverPos(pos);
       setOpen(true);
     },
-    [open, readPos]
+    [open, calcPos]
   );
 
   useEffect(() => {
     if (!open) return;
 
+    // After the popover mounts its real dimensions are available. Schedule a
+    // recalc one frame later so the flip-up logic can use offsetHeight/offsetWidth
+    // instead of the fallback constants used during the initial toggle.
+    const rafId = requestAnimationFrame(() => {
+      const pos = calcPos();
+      if (pos) setPopoverPos(pos);
+    });
+
     const recalcPosition = () => {
-      const pos = readPos();
+      const pos = calcPos();
       if (pos) setPopoverPos(pos);
     };
 
@@ -557,12 +585,13 @@ const WeekdayChip = ({ value, onChange, readOnly }) => {
     window.addEventListener('resize', recalcPosition);
     window.addEventListener('scroll', recalcPosition, true);
     return () => {
+      cancelAnimationFrame(rafId);
       document.removeEventListener('pointerdown', handlePointerOutside);
       document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('resize', recalcPosition);
       window.removeEventListener('scroll', recalcPosition, true);
     };
-  }, [open, readPos]);
+  }, [open, calcPos]);
 
   const handleSelect = (dayValue) => {
     onChange(dayValue || null);

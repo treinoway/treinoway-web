@@ -873,6 +873,129 @@ describe('RoutineBuilder — WeekdayChip portal', () => {
   });
 });
 
+// ─── Tests — WeekdayChip flip/clamp positioning ───────────────────────────────
+
+describe('RoutineBuilder — WeekdayChip flip & clamp positioning', () => {
+  // Capture original window dimensions so we can restore them after each test
+  // that overrides them via Object.defineProperty. Without this the mutated
+  // values leak into other test files and cause flaky failures.
+  const originalInnerHeight = window.innerHeight;
+  const originalInnerWidth = window.innerWidth;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({
+      ...EMPTY_HOOK_STATE,
+      data: {
+        ...EMPTY_HOOK_STATE.data,
+        trainings: [{ ...TRAINING_EMPTY }],
+      },
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'innerHeight', { value: originalInnerHeight, writable: true, configurable: true });
+    Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, writable: true, configurable: true });
+  });
+
+  it('popover opens and renders all weekday options when getBoundingClientRect returns zeros', async () => {
+    // jsdom always returns zeros — flip logic must not crash in this degenerate case
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0,
+    });
+
+    const user = userEvent.setup();
+    renderNew();
+
+    await user.click(screen.getByRole('button', { name: /Dia da semana/i }));
+
+    expect(screen.getByRole('listbox', { name: /Escolher dia/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Segunda/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Terça/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Não definido/i })).toBeInTheDocument();
+  });
+
+  it('positions popover below trigger when there is ample space below', async () => {
+    // Trigger near the top — plenty of space below, flip should NOT happen
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 50, bottom: 80, left: 20, right: 120, width: 100, height: 30,
+    });
+    Object.defineProperty(window, 'innerHeight', { value: 800, writable: true, configurable: true });
+    Object.defineProperty(window, 'innerWidth', { value: 400, writable: true, configurable: true });
+
+    const user = userEvent.setup();
+    renderNew();
+
+    await user.click(screen.getByRole('button', { name: /Dia da semana/i }));
+
+    const popover = screen.getByRole('listbox', { name: /Escolher dia/i });
+    // top should be rect.bottom + 4 = 84 when space is ample
+    expect(parseFloat(popover.style.top)).toBeGreaterThanOrEqual(80);
+    expect(parseFloat(popover.style.top)).toBeLessThan(200);
+  });
+
+  it('flips popover upward when trigger is near the bottom of the viewport', async () => {
+    // Trigger near the bottom — not enough space below, must flip up
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 650, bottom: 680, left: 20, right: 120, width: 100, height: 30,
+    });
+    Object.defineProperty(window, 'innerHeight', { value: 700, writable: true, configurable: true });
+    Object.defineProperty(window, 'innerWidth', { value: 400, writable: true, configurable: true });
+
+    const user = userEvent.setup();
+    renderNew();
+
+    await user.click(screen.getByRole('button', { name: /Dia da semana/i }));
+
+    const popover = screen.getByRole('listbox', { name: /Escolher dia/i });
+    // When flipped up, top must be strictly less than rect.top (650)
+    expect(parseFloat(popover.style.top)).toBeLessThan(650);
+  });
+
+  it('clamps left so popover does not overflow right edge on narrow viewports', async () => {
+    // Trigger near right edge of a 375px viewport
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 100, bottom: 130, left: 300, right: 375, width: 75, height: 30,
+    });
+    Object.defineProperty(window, 'innerHeight', { value: 800, writable: true, configurable: true });
+    Object.defineProperty(window, 'innerWidth', { value: 375, writable: true, configurable: true });
+
+    const user = userEvent.setup();
+    renderNew();
+
+    await user.click(screen.getByRole('button', { name: /Dia da semana/i }));
+
+    const popover = screen.getByRole('listbox', { name: /Escolher dia/i });
+    // left must be clamped to ≤ innerWidth - popoverWidth - margin = 375 - 160 - 8 = 207
+    expect(parseFloat(popover.style.left)).toBeLessThanOrEqual(207);
+  });
+
+  it('selecting a day still calls onChange correctly after flip calculation', async () => {
+    const updateTrainingWeekDay = vi.fn();
+    useRoutineBuilder.mockReturnValue({
+      ...EMPTY_HOOK_STATE,
+      updateTrainingWeekDay,
+      data: {
+        ...EMPTY_HOOK_STATE.data,
+        trainings: [{ ...TRAINING_EMPTY }],
+      },
+    });
+
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 650, bottom: 680, left: 20, right: 120, width: 100, height: 30,
+    });
+    Object.defineProperty(window, 'innerHeight', { value: 700, writable: true, configurable: true });
+
+    const user = userEvent.setup();
+    renderNew();
+
+    await user.click(screen.getByRole('button', { name: /Dia da semana/i }));
+    await user.click(screen.getByRole('option', { name: /Quarta/i }));
+
+    expect(updateTrainingWeekDay).toHaveBeenCalledWith('training-2', 'wednesday');
+  });
+});
+
 // ─── Tests — add training sheet (replaces quick-create) ──────────────────────
 
 describe('RoutineBuilder — add training sheet', () => {

@@ -16660,19 +16660,17 @@ nav.onboarding-steps {
 
 /* ── Weekday picker popover ── */
 .weekday-popover {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
   background: var(--md-surface);
   border: 1px solid var(--md-outline-variant);
   border-radius: var(--radius-brand);
   box-shadow: var(--shadow-brand-md);
-  z-index: var(--z-dropdown);
   padding: var(--spacing-xs);
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 160px;
+  max-height: calc(100vh - var(--spacing-lg) * 2);
+  overflow-y: auto;
 }
 
 .weekday-popover-item {
