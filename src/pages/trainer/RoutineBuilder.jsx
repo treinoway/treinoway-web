@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import {
@@ -25,6 +25,7 @@ import {
   Dumbbell,
   Edit3,
   FileDown,
+  GripVertical,
   MoreVertical,
   Pencil,
   Plus,
@@ -842,6 +843,7 @@ const ExerciseRow = ({
   selectionDisabled,
   selectionDisabledReason,
   onToggleSelect,
+  dragHandle,
 }) => {
   const name = ex.name || ex.exerciseTemplate?.name || '—';
   const meta = formatExerciseMeta(ex.exerciseTemplate || ex);
@@ -921,6 +923,7 @@ const ExerciseRow = ({
       onClick={isClickable ? handleRowClick : undefined}
       onKeyDown={isClickable ? handleRowKeyDown : undefined}
     >
+      {dragHandle}
       {selectionMode && (
         <button
           type="button"
@@ -979,6 +982,7 @@ ExerciseRow.propTypes = {
   selectionDisabled: PropTypes.bool,
   selectionDisabledReason: PropTypes.string,
   onToggleSelect: PropTypes.func,
+  dragHandle: PropTypes.node,
 };
 
 ExerciseRow.defaultProps = {
@@ -993,6 +997,7 @@ ExerciseRow.defaultProps = {
   selectionDisabled: false,
   selectionDisabledReason: null,
   onToggleSelect: null,
+  dragHandle: null,
 };
 
 // ─── smoothScrollTo ───────────────────────────────────────────────────────────
@@ -1078,6 +1083,7 @@ const ExerciseRowWithSubstitutes = ({
   substitutesExpanded,
   onToggleSubstitutes,
   onDeleteSubstitute,
+  dragHandle,
 }) => {
   const substitutes = Array.isArray(ex.substitutes) ? ex.substitutes : [];
   const supportsSubstitutes = mode === 'protocol';
@@ -1115,6 +1121,7 @@ const ExerciseRowWithSubstitutes = ({
         selectionDisabled={selectionDisabled}
         selectionDisabledReason={selectionDisabledReason}
         onToggleSelect={onToggleSelect}
+        dragHandle={dragHandle}
       />
       {showInline && (
         <>
@@ -1169,6 +1176,7 @@ ExerciseRowWithSubstitutes.propTypes = {
   substitutesExpanded: PropTypes.bool,
   onToggleSubstitutes: PropTypes.func,
   onDeleteSubstitute: PropTypes.func,
+  dragHandle: PropTypes.node,
 };
 
 ExerciseRowWithSubstitutes.defaultProps = {
@@ -1184,6 +1192,7 @@ ExerciseRowWithSubstitutes.defaultProps = {
   substitutesExpanded: false,
   onToggleSubstitutes: null,
   onDeleteSubstitute: null,
+  dragHandle: null,
 };
 
 // ─── BisetGroupBlock ──────────────────────────────────────────────────────────
@@ -1212,11 +1221,13 @@ const BisetGroupBlock = ({
   expandedSubstituteIds,
   onToggleSubstitutes,
   onDeleteSubstitute,
+  dragHandle,
 }) => {
   void groupId; // groupId implied by members[*].supersetGroupId
   return (
     <div className="biset-group-section" role="group" aria-label="Bi-set">
       <div className="biset-group-section-head">
+        {dragHandle}
         <BiSetBadge
           onClick={readOnly ? undefined : onOpenBisetSheet}
           ariaLabel={readOnly ? undefined : 'Abrir ações do bi-set'}
@@ -1329,6 +1340,7 @@ BisetGroupBlock.propTypes = {
   expandedSubstituteIds: PropTypes.instanceOf(Set),
   onDeleteSubstitute: PropTypes.func,
   onToggleSubstitutes: PropTypes.func,
+  dragHandle: PropTypes.node,
 };
 
 BisetGroupBlock.defaultProps = {
@@ -1346,6 +1358,7 @@ BisetGroupBlock.defaultProps = {
   expandedSubstituteIds: null,
   onToggleSubstitutes: null,
   onDeleteSubstitute: null,
+  dragHandle: null,
 };
 
 // ─── TrainingItem ─────────────────────────────────────────────────────────────
@@ -1378,11 +1391,17 @@ const MAX_BISET_MEMBERS = 6;
  *
  * disabled=true when selectionMode is active so dragging does not interfere
  * with checkbox selection.
+ *
+ * The drag activation is scoped to the handle element via setActivatorNodeRef.
+ * The handle ReactNode is injected into children as the `dragHandle` prop so
+ * the row/block can place it at the leading edge.
  */
 const SortableExerciseEntry = ({ id, disabled, children }) => {
   const {
+    attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -1398,7 +1417,7 @@ const SortableExerciseEntry = ({ id, disabled, children }) => {
       }
     : undefined;
 
-  const className = [
+  const entryClass = [
     'exercise-sortable-entry',
     isDragging ? 'exercise-sortable-entry--dragging' : '',
     disabled ? 'exercise-sortable-entry--disabled' : '',
@@ -1406,14 +1425,36 @@ const SortableExerciseEntry = ({ id, disabled, children }) => {
     .filter(Boolean)
     .join(' ');
 
+  // The handle is the sole drag-activation target. When disabled it renders
+  // as a non-interactive visual indicator (aria-hidden).
+  const dragHandle = disabled ? (
+    <span
+      className="exercise-drag-handle exercise-drag-handle--disabled"
+      aria-hidden="true"
+    >
+      <GripVertical size={16} strokeWidth={2} />
+    </span>
+  ) : (
+    <span
+      ref={setActivatorNodeRef}
+      className={`exercise-drag-handle${isDragging ? ' exercise-drag-handle--grabbing' : ''}`}
+      aria-label={t('exercise.reorderHandle') || 'Reordenar exercício'}
+      role="button"
+      tabIndex={0}
+      {...listeners}
+      {...attributes}
+    >
+      <GripVertical size={16} strokeWidth={2} />
+    </span>
+  );
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={className}
-      {...(!disabled && listeners)}
+      className={entryClass}
     >
-      {children}
+      {React.cloneElement(children, { dragHandle })}
     </div>
   );
 };

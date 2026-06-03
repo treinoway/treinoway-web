@@ -881,6 +881,7 @@ const ptBR = {
     prescriptionMode: {
       label: "Modo de prescrição",
     },
+    reorderHandle: "Reordenar exercício",
   },
 
   exerciseGroup: {

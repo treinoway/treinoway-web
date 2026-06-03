@@ -15643,21 +15643,62 @@ nav.onboarding-steps {
   cursor: grabbing;
 }
 
-/* Inner exercise-row-wide adopts grab cursor only when drag is active.
-   The --disabled modifier (read-only view) and --dragging state are both
-   excluded so the student's read-only routine never shows a grab cursor. */
-.exercise-sortable-entry:not(.exercise-sortable-entry--dragging):not(.exercise-sortable-entry--disabled) .exercise-row-wide {
-  cursor: grab;
-}
-
-.exercise-sortable-entry:not(.exercise-sortable-entry--dragging):not(.exercise-sortable-entry--disabled):active .exercise-row-wide {
-  cursor: grabbing;
-}
-
 /* Restore normal scroll behaviour on mobile when drag is disabled.
    touch-action: none on a non-draggable item blocks scroll on iOS/Android. */
 .exercise-sortable-entry--disabled {
   touch-action: auto;
+}
+
+/* ── Exercise drag handle ────────────────────────────────────────────────────
+   Visible GripVertical affordance at the leading edge of every draggable row.
+   Scoped to the handle element so the cursor is precise and the rest of the
+   row keeps its default/pointer cursor. */
+.exercise-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 44px;
+  color: var(--brand-steel);
+  cursor: grab;
+  touch-action: none;
+  border-radius: var(--radius-brand);
+  transition:
+    color var(--duration-fast) var(--ease-brand),
+    background var(--duration-fast) var(--ease-brand);
+}
+
+.exercise-drag-handle:hover {
+  color: var(--brand-ink);
+  background: var(--md-surface-container-high);
+}
+
+.exercise-drag-handle:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.exercise-drag-handle--grabbing,
+.exercise-drag-handle:active {
+  cursor: grabbing;
+  color: var(--brand-primary);
+  background: var(--md-surface-container-high);
+}
+
+/* Hidden/inert when the sortable entry is disabled (readOnly / selectionMode).
+   Pointer-events off so it never intercepts taps during selection. */
+.exercise-drag-handle--disabled {
+  color: var(--brand-divider);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Desktop: reduce height to 40px minimum (still fine for mouse targets). */
+@media (min-width: 1024px) {
+  .exercise-drag-handle {
+    height: 40px;
+  }
 }
 
 /* Ghost overlay rendered by DragOverlay — floats at cursor while dragging.

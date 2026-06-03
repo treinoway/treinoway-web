@@ -1242,6 +1242,68 @@ describe('RoutineBuilder — exercise row actions', () => {
   });
 });
 
+// ─── Tests — drag handle affordance ──────────────────────────────────────────
+
+describe('RoutineBuilder — drag handle affordance', () => {
+  const expandTraining = async (user) => {
+    const chevron = screen.getByRole('button', { name: /Expandir treino/i });
+    await user.click(chevron);
+    await screen.findByRole('list', { name: /Exercícios/i });
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  });
+
+  it('renders a drag handle button with aria-label "Reordenar exercício" for a draggable row', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expandTraining(user);
+
+    expect(
+      screen.getByRole('button', { name: /Reordenar exercício/i })
+    ).toBeInTheDocument();
+  });
+
+  it('drag handle is NOT present as an interactive button in readOnly mode', async () => {
+    useProtocolBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+
+    const user = userEvent.setup();
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1',
+      path: '/trainer/protocols/:id',
+    });
+
+    const chevron = screen.getByRole('button', { name: /Expandir treino/i });
+    await user.click(chevron);
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    // The handle renders as aria-hidden span (no role=button) when disabled
+    expect(
+      screen.queryByRole('button', { name: /Reordenar exercício/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('drag handle is NOT present as an interactive button in selectionMode', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expandTraining(user);
+
+    // Enter selection mode via the training menu ("Opções do treino <name>")
+    const trainingMenu = screen.getByRole('button', {
+      name: /Opções do treino/i,
+    });
+    await user.click(trainingMenu);
+    await user.click(await screen.findByRole('menuitem', { name: /Selecionar/i }));
+
+    // Handle should no longer be an interactive button
+    expect(
+      screen.queryByRole('button', { name: /Reordenar exercício/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
 // ─── Tests — inline edit composer position ───────────────────────────────────
 
 describe('RoutineBuilder — inline edit composer replaces the row in place', () => {
