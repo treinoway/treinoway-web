@@ -24,7 +24,7 @@ const EMPTY_FORM = {
   restInterval: '',
   videoUrl: '',
   duration: '',
-  hasLoad: false,
+  hasLoad: true,
   suggestedLoad: '',
   notes: '',
 };
@@ -36,7 +36,7 @@ const buildPayload = (form) => {
     hasLoad: form.hasLoad,
     prescriptionMode: form.prescriptionMode,
   };
-  if (form.videoUrl?.trim()) payload.videoUrl = form.videoUrl.trim();
+  payload.videoUrl = form.videoUrl?.trim() ? form.videoUrl.trim() : null;
   if (form.sets !== '' && form.sets != null) payload.sets = parseInt(form.sets, 10);
   if (form.prescriptionMode === 'duration') {
     if (form.duration !== '' && form.duration != null) {
@@ -66,7 +66,7 @@ const snapshotToForm = (snapshot) => ({
   repetitionsMin: snapshot.repetitions?.min ?? snapshot.exerciseTemplate?.repetitions?.min ?? '',
   repetitionsMax: snapshot.repetitions?.max ?? snapshot.exerciseTemplate?.repetitions?.max ?? '',
   restInterval: snapshot.restInterval ?? snapshot.exerciseTemplate?.restInterval ?? '',
-  videoUrl: snapshot.videoUrl || snapshot.exerciseTemplate?.videoUrl || '',
+  videoUrl: snapshot.videoUrl ?? '',
   duration: snapshot.duration ?? snapshot.exerciseTemplate?.duration ?? '',
   hasLoad: snapshot.hasLoad ?? snapshot.exerciseTemplate?.hasLoad ?? false,
   suggestedLoad: snapshot.suggestedLoad ?? snapshot.exerciseTemplate?.suggestedLoad ?? '',

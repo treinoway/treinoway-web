@@ -156,6 +156,26 @@ describe('ExerciseForm', () => {
     expect(await screen.findByTitle('Vídeo de demonstração do exercício')).toBeInTheDocument();
   });
 
+  it('"exercício com carga" is checked by default on a new exercise', () => {
+    renderForm();
+    expect(screen.getByLabelText(/exercício com carga/i)).toBeChecked();
+  });
+
+  it('"carga sugerida" field is visible by default on a new exercise', () => {
+    renderForm();
+    expect(screen.getByLabelText(/carga sugerida/i)).toBeInTheDocument();
+  });
+
+  it('"exercício com carga" can be unchecked and hides the load field', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(screen.getByLabelText(/exercício com carga/i));
+
+    expect(screen.getByLabelText(/exercício com carga/i)).not.toBeChecked();
+    expect(screen.queryByLabelText(/carga sugerida/i)).not.toBeInTheDocument();
+  });
+
   it('includes optional fields in payload when filled (reps mode)', async () => {
     const user = userEvent.setup();
     api.post.mockResolvedValueOnce({ data: {} });
@@ -167,7 +187,7 @@ describe('ExerciseForm', () => {
     await user.type(screen.getByLabelText(/repetições mínimas/i), '8');
     await user.type(screen.getByLabelText(/repetições máximas/i), '10');
     await user.type(screen.getByLabelText(/intervalo de descanso/i), '90');
-    await user.click(screen.getByLabelText(/exercício com carga/i));
+    // hasLoad is already checked by default — just fill in the load value
     await user.type(screen.getByLabelText(/carga sugerida/i), '80');
     await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
 

@@ -18,7 +18,7 @@ const EMPTY_FORM = {
   repetitionsMax: '',
   duration: '',
   restInterval: '',
-  hasLoad: false,
+  hasLoad: true,
   suggestedLoad: '',
   notes: '',
 };
@@ -30,7 +30,7 @@ const buildPayload = (data) => {
     hasLoad: data.hasLoad,
     prescriptionMode: data.prescriptionMode,
   };
-  if (data.videoUrl?.trim()) payload.videoUrl = data.videoUrl.trim();
+  payload.videoUrl = data.videoUrl?.trim() ? data.videoUrl.trim() : null;
   if (data.sets !== '' && data.sets != null) payload.sets = parseInt(data.sets, 10);
 
   if (data.prescriptionMode === 'duration') {

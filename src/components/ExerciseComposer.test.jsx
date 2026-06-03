@@ -172,6 +172,24 @@ describe('ExerciseComposer — create mode', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
+  it('"exercício com carga" is checked by default on a new exercise', async () => {
+    const user = userEvent.setup();
+    renderComposer();
+
+    await user.click(screen.getByRole('button', { name: /Mostrar mais campos/i }));
+
+    expect(screen.getByRole('checkbox', { name: /Exercício com carga/i })).toBeChecked();
+  });
+
+  it('"carga sugerida" field is visible by default when advanced fields are expanded', async () => {
+    const user = userEvent.setup();
+    renderComposer();
+
+    await user.click(screen.getByRole('button', { name: /Mostrar mais campos/i }));
+
+    expect(screen.getByLabelText(/Carga sugerida/i)).toBeInTheDocument();
+  });
+
   it('"Mostrar mais campos" toggle expands advanced fields', async () => {
     const user = userEvent.setup();
     renderComposer();
