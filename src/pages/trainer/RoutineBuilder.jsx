@@ -49,6 +49,7 @@ import BiSetBadge from '../../components/BiSetBadge';
 import BiSetActionSheet from '../../components/BiSetActionSheet';
 import SubstituteComposerSheet from '../../components/SubstituteComposerSheet';
 import SubstitutesInline from '../../components/SubstitutesInline';
+import IntensityBadge from '../../components/IntensityBadge';
 import SelectionActionBar, { SelectionInstructionStrip } from '../../components/SelectionActionBar';
 import api from '../../api/axios';
 import { t } from '../../i18n';
@@ -847,6 +848,8 @@ const ExerciseRow = ({
 }) => {
   const name = ex.name || ex.exerciseTemplate?.name || '—';
   const meta = formatExerciseMeta(ex.exerciseTemplate || ex);
+  const intensity = ex.intensity ?? ex.exerciseTemplate?.intensity ?? null;
+  const intensityLabel = ex.intensityLabel ?? ex.exerciseTemplate?.intensityLabel ?? null;
 
   const isInteractive = !readOnly && !selectionMode && onEdit;
 
@@ -945,7 +948,10 @@ const ExerciseRow = ({
       )}
       <span className="exercise-row-index" aria-hidden="true">{index + 1}</span>
       <div className="exercise-row-wide-body">
-        <span className="exercise-row-wide-name">{name}</span>
+        <span className="exercise-row-wide-name-row">
+          <span className="exercise-row-wide-name">{name}</span>
+          <IntensityBadge intensity={intensity} label={intensityLabel} />
+        </span>
         {meta && (
           <span className="exercise-row-wide-meta">
             {meta}

@@ -1,0 +1,2172 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Treinoway — Financeiro (Mock)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  /* Type */
+  --font-family-base: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-family-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-family-stat: 'Space Grotesk', ui-monospace, monospace;
+
+  /* Spacing */
+  --spacing-2xs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  --radius-brand: 8px;
+  --radius-stat: 4px;
+
+  /* Brand */
+  --brand-primary: #0A5FCC;
+  --brand-primary-dark: #083E85;
+  --brand-accent: #FF6B1A;
+  --brand-ink: #0A0F1C;
+  --brand-slate: #1E293B;
+  --brand-steel: #64748B;
+  --brand-mist: #F1F5F9;
+  --brand-divider: #E2E8F0;
+  --brand-accent-container: #FFF1EA;
+
+  /* Stadium (dark) */
+  --stadium-bg: #0A0F1C;
+  --stadium-surface: #111827;
+  --stadium-surface-elevated: #1E293B;
+  --stadium-text: #F1F5F9;
+  --stadium-text-muted: #94A3B8;
+  --stadium-accent: #38BDF8;
+  --stadium-divider: #1E293B;
+
+  /* Surface light */
+  --color-background: #F8F9FB;
+  --color-surface: #FFFFFF;
+  --color-on-surface: #1C1C1E;
+  --color-surface-variant: #E8E8ED;
+  --color-on-surface-variant: #626267;
+  --color-surface-container: #F0F1F4;
+  --color-surface-container-high: #E6E7EB;
+  --color-surface-container-highest: #DCDDE2;
+  --color-outline: #8E8E93;
+  --color-outline-variant: #C7C7CC;
+
+  /* Tracking */
+  --tracking-wide: 0.08em;
+  --tracking-wider: 0.12em;
+
+  /* Motion */
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-kinetic: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+
+  /* Elevation */
+  --shadow-brand-sm: 0 1px 3px rgba(10, 15, 28, 0.08), 0 0 0 1px rgba(10, 15, 28, 0.04);
+  --shadow-brand-md: 0 4px 12px -2px rgba(10, 15, 28, 0.1), 0 0 0 1px rgba(10, 15, 28, 0.05);
+  --shadow-brand-lg: 0 16px 40px -8px rgba(10, 15, 28, 0.18), 0 0 0 1px rgba(10, 15, 28, 0.06);
+  --shadow-stadium: 0 0 0 1px rgba(148, 163, 184, 0.1);
+
+  /* Color usage in Athletic-Tech context (daltônico-safe)
+     blue  = success / paid
+     orange = warn / overdue / abandoned
+     amber  = pending
+  */
+  --status-paid: #0A5FCC;
+  --status-paid-bg: rgba(10, 95, 204, 0.1);
+  --status-pending: #B57000;
+  --status-pending-bg: rgba(245, 158, 11, 0.14);
+  --status-overdue: #FF6B1A;
+  --status-overdue-bg: rgba(255, 107, 26, 0.12);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font-family-base);
+  color: var(--brand-ink);
+  background: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  font-size: 15px;
+  line-height: 1.5;
+}
+button { background: none; border: 0; cursor: pointer; font: inherit; color: inherit; }
+input, select, textarea { font: inherit; color: inherit; }
+
+/* ====== Layout shell ====== */
+.app-layout {
+  display: grid;
+  grid-template-columns: 256px 1fr;
+  min-height: 100vh;
+}
+@media (max-width: 1023px) {
+  .app-layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+}
+
+/* ====== Sidebar ====== */
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background: var(--color-surface);
+  border-right: 1px solid var(--brand-divider);
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md) var(--spacing-sm);
+}
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
+}
+.sidebar-logo {
+  width: 32px;
+  height: 32px;
+  background: var(--brand-ink);
+  color: var(--brand-mist);
+  border-radius: var(--radius-brand);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: var(--tracking-wide);
+}
+.sidebar-wordmark {
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+.sidebar-section-label {
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  padding: var(--spacing-md) var(--spacing-sm) var(--spacing-xs);
+}
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 10px var(--spacing-sm);
+  border-radius: var(--radius-brand);
+  color: var(--brand-slate);
+  font-size: 14px;
+  font-weight: 500;
+  transition: background var(--duration-fast) var(--ease-brand), color var(--duration-fast) var(--ease-brand);
+  text-decoration: none;
+  position: relative;
+}
+.sidebar-link:hover { background: var(--brand-mist); color: var(--brand-ink); }
+.sidebar-link--active {
+  background: var(--brand-mist);
+  color: var(--brand-primary);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--brand-primary);
+}
+.sidebar-link-icon { display: inline-flex; }
+.sidebar-link-badge {
+  margin-left: auto;
+  background: var(--brand-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  min-width: 18px;
+  text-align: center;
+}
+.sidebar-footer {
+  margin-top: auto;
+  padding: var(--spacing-sm);
+  border-top: 1px solid var(--brand-divider);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.sidebar-avatar {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--brand-primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: var(--tracking-wide);
+}
+.sidebar-user-name { font-size: 13px; font-weight: 600; }
+.sidebar-user-email { font-size: 11px; color: var(--brand-steel); }
+
+/* ====== Main content ====== */
+.main {
+  padding: var(--spacing-md);
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+}
+@media (min-width: 768px) {
+  .main { padding: var(--spacing-lg); }
+}
+@media (min-width: 1024px) {
+  .main { padding: var(--spacing-xl); }
+}
+
+/* ====== Athletic-Tech Hero (Stadium) ====== */
+.fin-hero {
+  background: var(--stadium-bg);
+  color: var(--stadium-text);
+  border-radius: 16px;
+  padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-stadium);
+  margin-bottom: var(--spacing-md);
+}
+.fin-hero::before {
+  /* Subtle radial sheen */
+  content: '';
+  position: absolute;
+  top: -20%; right: -10%;
+  width: 480px; height: 480px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.18), transparent 60%);
+  pointer-events: none;
+}
+.fin-hero::after {
+  /* Faint grid */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+.fin-hero > * { position: relative; z-index: 1; }
+
+.fin-hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-lg);
+}
+.fin-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--stadium-text-muted);
+  margin-bottom: var(--spacing-xs);
+}
+.fin-hero-eyebrow-dot {
+  width: 6px; height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--stadium-accent);
+  box-shadow: 0 0 12px var(--stadium-accent);
+  animation: hero-pulse 2.4s var(--ease-brand) infinite;
+}
+@keyframes hero-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.fin-hero-title {
+  font-family: var(--font-family-display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--stadium-text);
+}
+.fin-hero-subtitle {
+  color: var(--stadium-text-muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+.period-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background: var(--stadium-surface-elevated);
+  border: 1px solid var(--stadium-divider);
+  border-radius: var(--radius-brand);
+  padding: 4px;
+}
+.period-picker button {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-xs);
+  color: var(--stadium-text-muted);
+  transition: background var(--duration-fast) var(--ease-brand), color var(--duration-fast) var(--ease-brand);
+}
+.period-picker button:hover { background: var(--stadium-bg); color: var(--stadium-text); }
+.period-picker-label {
+  font-family: var(--font-family-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  padding: 0 var(--spacing-sm);
+  color: var(--stadium-text);
+  min-width: 110px;
+  text-align: center;
+}
+
+/* Hero KPI grid */
+.fin-hero-kpis {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+@media (min-width: 640px) {
+  .fin-hero-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .fin-hero-kpis { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+}
+
+.fin-hero-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md) 0;
+  border-left: 1px solid var(--stadium-divider);
+  padding-left: var(--spacing-md);
+}
+.fin-hero-kpi:first-child { border-left: 0; padding-left: 0; }
+@media (max-width: 639px) {
+  .fin-hero-kpi { border-left: 0; padding-left: 0; border-top: 1px solid var(--stadium-divider); padding-top: var(--spacing-md); }
+  .fin-hero-kpi:first-child { border-top: 0; padding-top: 0; }
+}
+
+.kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--stadium-text-muted);
+}
+.kpi-value {
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-weight: 700;
+  color: var(--stadium-text);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.kpi-value--hero { font-size: 56px; }
+.kpi-value--default { font-size: 32px; }
+.kpi-currency { font-size: 0.5em; color: var(--stadium-text-muted); font-weight: 500; margin-right: 4px; vertical-align: 0.4em; }
+.kpi-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: var(--font-family-stat);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+}
+.kpi-delta--up { color: var(--stadium-accent); }
+.kpi-delta--down { color: var(--brand-accent); }
+.kpi-foot {
+  font-size: 11px;
+  color: var(--stadium-text-muted);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* ====== Pulse waveform (mirrors PulseWaveform.jsx) ====== */
+.fin-waveform {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--stadium-divider);
+}
+.pulse-wave {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+.pulse-wave-axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-family-base);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--stadium-text-muted);
+}
+.pulse-wave-bars {
+  display: grid;
+  grid-template-columns: repeat(30, 1fr);
+  align-items: flex-end;
+  gap: 2px;
+  height: 64px;
+  width: 100%;
+  padding-top: 14px;
+}
+.pulse-bar {
+  height: 100%;
+  background: rgba(241, 245, 249, 0.06);
+  border-radius: 1px;
+  position: relative;
+  transition: transform var(--duration-fast) var(--ease-brand);
+  display: flex;
+  align-items: flex-end;
+  cursor: pointer;
+}
+.pulse-bar:hover { transform: scaleY(1.04); }
+.pulse-bar-fill {
+  width: 100%;
+  border-radius: 1px;
+}
+.pulse-bar-fill--success {
+  background: linear-gradient(
+    180deg,
+    var(--stadium-accent),
+    color-mix(in srgb, var(--stadium-accent) 40%, transparent)
+  );
+}
+.pulse-bar-fill--partial {
+  background: linear-gradient(
+    180deg,
+    var(--stadium-accent),
+    color-mix(in srgb, var(--stadium-accent) 40%, transparent)
+  );
+  opacity: 0.55;
+}
+.pulse-bar-fill--danger {
+  background: linear-gradient(
+    180deg,
+    var(--brand-accent),
+    color-mix(in srgb, var(--brand-accent) 40%, transparent)
+  );
+}
+.pulse-bar-fill--empty {
+  background: rgba(241, 245, 249, 0.10);
+  height: 18% !important;
+}
+.pulse-bar--today { overflow: visible; }
+.pulse-bar--today::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--stadium-accent);
+  opacity: 0.55;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.pulse-bar--today::after {
+  content: "HOJE";
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-family-base);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  color: var(--stadium-bg);
+  background: var(--stadium-accent);
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.pulse-bar--today .pulse-bar-fill {
+  box-shadow:
+    0 -3px 0 var(--stadium-accent),
+    0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+.pulse-wave-key {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm) var(--spacing-md);
+  font-family: var(--font-family-base);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--stadium-text-muted);
+  margin-top: var(--spacing-xs);
+}
+.pulse-wave-key-item { display: inline-flex; align-items: center; gap: 6px; }
+.pulse-wave-key-swatch { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.pulse-wave-key-swatch--success { background: var(--stadium-accent); }
+.pulse-wave-key-swatch--partial { background: var(--stadium-accent); opacity: 0.55; }
+.pulse-wave-key-swatch--danger { background: var(--brand-accent); }
+.pulse-wave-key-meta { margin-left: auto; font-weight: 500; }
+
+/* ====== Page header (non-hero) ====== */
+.page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin: var(--spacing-lg) 0 var(--spacing-md);
+  flex-wrap: wrap;
+}
+.page-section-title {
+  font-family: var(--font-family-display);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.page-section-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  margin-bottom: 2px;
+}
+
+/* ====== Tabs (segmented) ====== */
+.tabs {
+  display: inline-flex;
+  background: var(--color-surface-container);
+  border-radius: var(--radius-brand);
+  padding: 4px;
+  gap: 2px;
+}
+.tab-btn {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  padding: 8px 14px;
+  border-radius: calc(var(--radius-brand) - 2px);
+  transition: background var(--duration-fast) var(--ease-brand), color var(--duration-fast) var(--ease-brand);
+}
+.tab-btn:hover { color: var(--brand-ink); }
+.tab-btn--active {
+  background: var(--color-surface);
+  color: var(--brand-primary);
+  box-shadow: var(--shadow-brand-sm);
+}
+.tab-btn .tab-count {
+  display: inline-block;
+  margin-left: 6px;
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1;
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* ====== Toolbar / filters ====== */
+.fin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  flex-wrap: wrap;
+}
+.search-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  height: 40px;
+  background: var(--color-surface);
+  border: 1px solid var(--brand-divider);
+  border-radius: var(--radius-brand);
+  padding: 0 var(--spacing-sm) 0 36px;
+  font-size: 14px;
+  transition: border-color var(--duration-fast) var(--ease-brand), box-shadow var(--duration-fast) var(--ease-brand);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.3-4.3'/></svg>");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+}
+.search-input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(10, 95, 204, 0.12);
+}
+.chip-row {
+  display: inline-flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+.chip {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  background: var(--color-surface);
+  border: 1px solid var(--brand-divider);
+  border-radius: var(--radius-full);
+  padding: 6px 12px;
+  transition: all var(--duration-fast) var(--ease-brand);
+}
+.chip:hover { color: var(--brand-ink); border-color: var(--brand-steel); }
+.chip--active { background: var(--brand-ink); color: var(--brand-mist); border-color: var(--brand-ink); }
+.chip--overdue-active { background: var(--brand-accent); color: #fff; border-color: var(--brand-accent); }
+
+/* ====== Section title (with eyebrow) ====== */
+.fin-section { margin-bottom: var(--spacing-xl); }
+.fin-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+.fin-section-title {
+  font-family: var(--font-family-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.fin-section-aside {
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1;
+  font-size: 13px;
+  color: var(--brand-steel);
+}
+
+/* ====== Payment row (Athletic-Tech) ====== */
+.payment-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+.payment-row {
+  background: var(--color-surface);
+  border-radius: var(--radius-brand);
+  border-left: 3px solid transparent;
+  padding: var(--spacing-md);
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  grid-template-areas:
+    "avatar info amount"
+    "avatar meta meta"
+    "track  track track"
+    "actions actions actions";
+  align-items: center;
+  gap: var(--spacing-sm) var(--spacing-md);
+  box-shadow: var(--shadow-brand-sm);
+  transition: transform var(--duration-fast) var(--ease-brand), box-shadow var(--duration-fast) var(--ease-brand);
+}
+.payment-row:hover { transform: translateY(-1px); box-shadow: var(--shadow-brand-md); }
+.payment-row--overdue { border-left-color: var(--brand-accent); }
+.payment-row--paid { opacity: 0.95; }
+.payment-row--paid .payment-amount { color: var(--brand-steel); }
+
+@media (min-width: 768px) {
+  .payment-row {
+    grid-template-columns: 44px 1.4fr 1.1fr 140px 110px auto;
+    grid-template-areas: "avatar info track amount status actions";
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+  .payment-meta-mobile { display: none; }
+}
+
+.payment-avatar {
+  grid-area: avatar;
+  width: 40px; height: 40px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--brand-ink), var(--brand-slate));
+  color: var(--brand-mist);
+  display: grid; place-items: center;
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: var(--tracking-wide);
+}
+.payment-info { grid-area: info; min-width: 0; }
+.payment-name {
+  font-family: var(--font-family-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--brand-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.payment-meta {
+  font-size: 12px;
+  color: var(--brand-steel);
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.payment-meta-dot { width: 3px; height: 3px; border-radius: var(--radius-full); background: var(--brand-steel); }
+
+/* Cycle track (inline timeline) — desktop only */
+.payment-track {
+  grid-area: track;
+  display: none;
+}
+@media (min-width: 768px) {
+  .payment-track { display: flex; align-items: center; gap: var(--spacing-xs); }
+}
+.cycle-bar {
+  position: relative;
+  height: 6px;
+  background: var(--color-surface-container);
+  border-radius: var(--radius-full);
+  flex: 1;
+  overflow: hidden;
+}
+.cycle-bar-fill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: var(--brand-primary);
+  border-radius: inherit;
+}
+.cycle-bar-fill--overdue { background: var(--brand-accent); }
+.cycle-bar-fill--pending { background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary) 60%, var(--color-surface-container-high) 60%); }
+.cycle-label {
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-steel);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.payment-amount {
+  grid-area: amount;
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-align: right;
+  white-space: nowrap;
+}
+.payment-amount small { font-size: 0.55em; color: var(--brand-steel); font-weight: 500; vertical-align: 0.35em; margin-right: 2px; }
+
+.payment-status { grid-area: status; }
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+.status-pill::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+.status-pill--paid { background: var(--status-paid-bg); color: var(--status-paid); }
+.status-pill--pending { background: var(--status-pending-bg); color: var(--status-pending); }
+.status-pill--overdue { background: var(--status-overdue-bg); color: var(--status-overdue); }
+.status-pill--overdue::before { animation: hero-pulse 1.6s var(--ease-brand) infinite; }
+
+.payment-actions {
+  grid-area: actions;
+  display: flex;
+  gap: var(--spacing-xs);
+  justify-content: flex-end;
+  align-items: center;
+}
+@media (max-width: 767px) {
+  .payment-actions { padding-top: var(--spacing-xs); border-top: 0; justify-content: stretch; }
+  .payment-actions .btn { flex: 1; }
+}
+
+/* ====== Buttons ====== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: var(--radius-brand);
+  transition: all var(--duration-fast) var(--ease-brand);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.btn--primary { background: var(--brand-primary); color: #fff; }
+.btn--primary:hover { background: var(--brand-primary-dark); box-shadow: var(--shadow-brand-md); }
+.btn--secondary { background: var(--color-surface); color: var(--brand-ink); border-color: var(--brand-divider); }
+.btn--secondary:hover { border-color: var(--brand-steel); }
+.btn--ghost { color: var(--brand-steel); }
+.btn--ghost:hover { background: var(--color-surface-container); color: var(--brand-ink); }
+.btn--sm { padding: 6px 10px; font-size: 12px; }
+.btn--icon { width: 36px; height: 36px; padding: 0; }
+
+.row-menu {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-brand);
+  color: var(--brand-steel);
+  transition: background var(--duration-fast) var(--ease-brand), color var(--duration-fast) var(--ease-brand);
+}
+.row-menu:hover { background: var(--color-surface-container); color: var(--brand-ink); }
+
+/* ====== Plans grid ====== */
+.plans-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+@media (min-width: 640px) {
+  .plans-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .plans-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.plan-card {
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-brand-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--duration-fast) var(--ease-brand), box-shadow var(--duration-fast) var(--ease-brand);
+}
+.plan-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-brand-md); }
+.plan-card--featured {
+  background: var(--brand-ink);
+  color: var(--stadium-text);
+  box-shadow: 0 16px 40px -10px rgba(10, 95, 204, 0.35), 0 0 0 1px rgba(56, 189, 248, 0.18);
+}
+.plan-card--featured::before {
+  content: '';
+  position: absolute;
+  inset: -40% -40% auto auto;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.18), transparent 65%);
+}
+.plan-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  position: relative;
+  z-index: 1;
+}
+.plan-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  margin-bottom: 4px;
+}
+.plan-card--featured .plan-eyebrow { color: var(--stadium-accent); }
+.plan-name {
+  font-family: var(--font-family-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  position: relative;
+  z-index: 1;
+}
+.plan-price-value {
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.plan-price-currency { font-size: 14px; color: var(--brand-steel); font-weight: 500; }
+.plan-card--featured .plan-price-currency { color: var(--stadium-text-muted); }
+.plan-price-period { font-size: 12px; color: var(--brand-steel); margin-left: 4px; letter-spacing: var(--tracking-wide); text-transform: uppercase; font-weight: 600; }
+.plan-card--featured .plan-price-period { color: var(--stadium-text-muted); }
+
+.plan-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+  position: relative;
+  z-index: 1;
+}
+.plan-stat {
+  background: var(--color-surface-container);
+  border-radius: var(--radius-brand);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+.plan-card--featured .plan-stat { background: rgba(255,255,255,0.05); }
+.plan-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+}
+.plan-card--featured .plan-stat-label { color: var(--stadium-text-muted); }
+.plan-stat-value {
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.plan-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-top: auto;
+  position: relative;
+  z-index: 1;
+}
+.plan-card--featured .btn--secondary { background: rgba(255,255,255,0.06); border-color: rgba(148,163,184,0.2); color: var(--stadium-text); }
+
+.recurrence-tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  background: var(--brand-mist);
+  color: var(--brand-slate);
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+}
+.plan-card--featured .recurrence-tag { background: rgba(56, 189, 248, 0.14); color: var(--stadium-accent); }
+
+/* ====== History / Subscription strip ====== */
+.history-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+  background: var(--brand-ink);
+  color: var(--stadium-text);
+  border-radius: 12px;
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+.history-stat {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-left: 1px solid var(--stadium-divider);
+}
+.history-stat:first-child { border-left: 0; }
+.history-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--stadium-text-muted);
+  display: block;
+  margin-bottom: 4px;
+}
+.history-stat-value {
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.history-stat-value small { font-size: 0.55em; color: var(--stadium-text-muted); font-weight: 500; vertical-align: 0.35em; margin-right: 2px; }
+
+.history-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: var(--spacing-md);
+  align-items: center;
+  padding: var(--spacing-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-brand);
+  margin-bottom: var(--spacing-xs);
+  box-shadow: var(--shadow-brand-sm);
+}
+.history-row-cycle {
+  width: 48px;
+  text-align: center;
+  font-family: var(--font-family-display);
+  font-weight: 600;
+}
+.history-row-cycle-num {
+  display: block;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+.history-row-cycle-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+}
+.history-row-period {
+  font-size: 13px;
+  font-weight: 500;
+}
+.history-row-period-meta {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-steel);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+.history-row-amount {
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+@media (max-width: 639px) {
+  .history-row { grid-template-columns: auto 1fr auto; }
+  .history-row .row-menu { grid-column: 3; }
+  .history-row-amount { grid-column: 1 / -1; text-align: right; }
+}
+
+.history-year-label {
+  font-family: var(--font-family-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  margin: var(--spacing-lg) 0 var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.history-year-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--brand-divider);
+}
+
+/* ====== Bottom sheet (plan modal) ====== */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 28, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1100;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet-backdrop.open { display: flex; }
+@media (min-width: 768px) {
+  .sheet-backdrop.open { align-items: center; }
+}
+.sheet {
+  background: var(--color-surface);
+  width: 100%;
+  max-width: 520px;
+  border-radius: 16px 16px 0 0;
+  padding: var(--spacing-lg);
+  max-height: 92vh;
+  overflow-y: auto;
+  animation: sheet-in 280ms var(--ease-brand);
+}
+@media (min-width: 768px) {
+  .sheet { border-radius: 16px; }
+}
+@keyframes sheet-in {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.sheet-grabber {
+  width: 40px; height: 4px;
+  background: var(--color-surface-container-high);
+  border-radius: var(--radius-full);
+  margin: 0 auto var(--spacing-md);
+}
+.sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+.sheet-title {
+  font-family: var(--font-family-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.sheet-close {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-full);
+  color: var(--brand-steel);
+  transition: background var(--duration-fast) var(--ease-brand), color var(--duration-fast) var(--ease-brand);
+}
+.sheet-close:hover { background: var(--color-surface-container); color: var(--brand-ink); }
+
+/* Form */
+.form-group { margin-bottom: var(--spacing-md); }
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  margin-bottom: var(--spacing-xs);
+}
+.form-input {
+  width: 100%;
+  height: 44px;
+  background: var(--color-surface);
+  border: 1px solid var(--brand-divider);
+  border-radius: var(--radius-brand);
+  padding: 0 var(--spacing-md);
+  font-size: 15px;
+  transition: border-color var(--duration-fast) var(--ease-brand), box-shadow var(--duration-fast) var(--ease-brand);
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(10, 95, 204, 0.12);
+}
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--color-surface-container);
+  border-radius: var(--radius-brand);
+  padding: 4px;
+  gap: 2px;
+}
+.segmented button {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  padding: 8px 6px;
+  border-radius: calc(var(--radius-brand) - 2px);
+  color: var(--brand-steel);
+  transition: background var(--duration-fast) var(--ease-brand), color var(--duration-fast) var(--ease-brand);
+}
+.segmented button.active { background: var(--color-surface); color: var(--brand-primary); box-shadow: var(--shadow-brand-sm); }
+
+.preview-card {
+  background: var(--brand-ink);
+  color: var(--stadium-text);
+  border-radius: 12px;
+  padding: var(--spacing-md);
+  position: relative;
+  overflow: hidden;
+}
+.preview-card::before {
+  content: '';
+  position: absolute;
+  inset: -50% auto auto -20%;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.18), transparent 60%);
+}
+.preview-card > * { position: relative; z-index: 1; }
+.preview-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--stadium-text-muted);
+  margin-bottom: var(--spacing-xs);
+}
+.preview-amount {
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.preview-amount small { font-size: 0.45em; color: var(--stadium-text-muted); font-weight: 500; vertical-align: 0.4em; margin-right: 4px; }
+.preview-meta {
+  font-size: 11px;
+  color: var(--stadium-text-muted);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.preview-discount-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--stadium-divider);
+}
+.preview-discount-line strong {
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1;
+  color: var(--stadium-accent);
+  font-size: 14px;
+}
+
+.btn-group { display: flex; gap: var(--spacing-sm); }
+.btn-group .btn { flex: 1; }
+
+/* ====== Detail panel (right) and back-to-top link ====== */
+.section-anchor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  margin-bottom: var(--spacing-md);
+  text-decoration: none;
+}
+.section-anchor:hover { color: var(--brand-ink); }
+
+/* ====== Insights row (small charts) ====== */
+.insights-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+@media (min-width: 768px) {
+  .insights-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.insight-card {
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-brand-sm);
+}
+.insight-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-sm);
+}
+.insight-value {
+  font-family: var(--font-family-stat);
+  font-feature-settings: 'tnum' 1;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.insight-delta { font-size: 11px; font-weight: 700; letter-spacing: var(--tracking-wide); text-transform: uppercase; }
+.insight-delta--up { color: var(--brand-primary); }
+.insight-delta--down { color: var(--brand-accent); }
+.spark {
+  width: 100%;
+  height: 40px;
+  display: block;
+}
+
+/* ====== Mock toggle row ====== */
+.mock-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(248, 249, 251, 0.85);
+  backdrop-filter: blur(10px);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--brand-divider);
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.mock-nav-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  margin-right: var(--spacing-sm);
+}
+.mock-nav a { color: var(--brand-primary); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-wide); font-size: 11px; text-decoration: none; padding: 4px 10px; border-radius: var(--radius-brand); background: var(--color-surface); border: 1px solid var(--brand-divider); }
+.mock-nav a:hover { background: var(--brand-mist); }
+
+/* ====== Mobile top app bar (decorative) ====== */
+.top-app-bar {
+  display: none;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--brand-divider);
+  padding: var(--spacing-sm) var(--spacing-md);
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+@media (max-width: 1023px) {
+  .top-app-bar { display: flex; }
+}
+
+.brand-wordmark {
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  font-size: 14px;
+}
+
+/* ====== Empty state ====== */
+.empty-state {
+  background: var(--color-surface);
+  border: 1px dashed var(--brand-divider);
+  border-radius: 12px;
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+.empty-state-title {
+  font-family: var(--font-family-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+.empty-state-desc {
+  color: var(--brand-steel);
+  font-size: 13px;
+  margin-bottom: var(--spacing-md);
+}
+
+/* ====== Utility ====== */
+.tnum { font-family: var(--font-family-stat); font-feature-settings: 'tnum' 1; }
+.text-uppercase-wide { text-transform: uppercase; letter-spacing: var(--tracking-wide); font-weight: 600; }
+.hidden-mobile { display: none; }
+@media (min-width: 768px) { .hidden-mobile { display: initial; } }
+</style>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">TW</div>
+      <span class="sidebar-wordmark">Treinoway</span>
+    </div>
+
+    <nav>
+      <a href="#" class="sidebar-link">
+        <span class="sidebar-link-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+        <span>Painel</span>
+      </a>
+      <a href="#" class="sidebar-link">
+        <span class="sidebar-link-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+        <span>Meu Perfil</span>
+      </a>
+
+      <div class="sidebar-section-label">Treinador</div>
+
+      <a href="#" class="sidebar-link">
+        <span class="sidebar-link-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        <span>Meus Alunos</span>
+      </a>
+      <a href="#" class="sidebar-link">
+        <span class="sidebar-link-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9.91 8.21 3 9.27l5 4.87L6.82 21 12 17.77 17.18 21 16 14.14l5-4.87-6.91-1.06z"/></svg>
+        </span>
+        <span>iArnold</span>
+      </a>
+      <a href="#" class="sidebar-link">
+        <span class="sidebar-link-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        </span>
+        <span>Campeonatos</span>
+      </a>
+      <a href="#" class="sidebar-link sidebar-link--active">
+        <span class="sidebar-link-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </span>
+        <span>Financeiro</span>
+        <span class="sidebar-link-badge">7</span>
+      </a>
+      <a href="#" class="sidebar-link">
+        <span class="sidebar-link-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2a10 10 0 1 0 0 20 4 4 0 0 0 4-4 2 2 0 0 1 2-2h1a4 4 0 0 0 4-4 10 10 0 0 0-11-10z"/></svg>
+        </span>
+        <span>Sua Marca</span>
+      </a>
+      <a href="#" class="sidebar-link">
+        <span class="sidebar-link-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </span>
+        <span>Biblioteca</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-avatar">RN</div>
+      <div>
+        <div class="sidebar-user-name">Rafa Nascimento</div>
+        <div class="sidebar-user-email">rafa@treinoway.com</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main>
+    <div class="top-app-bar">
+      <span class="brand-wordmark">Treinoway · Financeiro</span>
+      <span class="tnum text-uppercase-wide" style="font-size: 11px; color: var(--brand-steel);">Mai · 2026</span>
+    </div>
+
+    <div class="mock-nav">
+      <span class="mock-nav-label">Mock</span>
+      <a href="#screen-finance">Financeiro</a>
+      <a href="#screen-plans">Planos</a>
+      <a href="#screen-history">Histórico</a>
+      <a href="#" id="open-plan-sheet">Modal: Novo plano</a>
+    </div>
+
+    <div class="main">
+
+      <!-- ============ SCREEN: FINANCEIRO PRINCIPAL ============ -->
+      <section id="screen-finance">
+
+        <!-- HERO STADIUM -->
+        <div class="fin-hero">
+          <div class="fin-hero-top">
+            <div>
+              <div class="fin-hero-eyebrow">
+                <span class="fin-hero-eyebrow-dot"></span>
+                Receita · Mês corrente
+              </div>
+              <h1 class="fin-hero-title">Financeiro</h1>
+              <p class="fin-hero-subtitle">Você cobrou 28 alunos este mês. 4 ainda devem.</p>
+            </div>
+            <div class="period-picker" role="group" aria-label="Selecionar mês">
+              <button aria-label="Mês anterior">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span class="period-picker-label">Mai · 2026</span>
+              <button aria-label="Próximo mês">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="fin-hero-kpis">
+            <div class="fin-hero-kpi">
+              <span class="kpi-label">MRR Recebido</span>
+              <span class="kpi-value kpi-value--hero"><span class="kpi-currency">R$</span>9.840</span>
+              <span class="kpi-delta kpi-delta--up">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
+                +12,4% vs Abr
+              </span>
+            </div>
+
+            <div class="fin-hero-kpi">
+              <span class="kpi-label">Pendente</span>
+              <span class="kpi-value kpi-value--default"><span class="kpi-currency">R$</span>1.620</span>
+              <span class="kpi-foot">3 alunos</span>
+            </div>
+
+            <div class="fin-hero-kpi">
+              <span class="kpi-label">Atrasado</span>
+              <span class="kpi-value kpi-value--default" style="color: var(--brand-accent);"><span class="kpi-currency" style="color:var(--brand-accent); opacity:.6;">R$</span>540</span>
+              <span class="kpi-foot" style="color: var(--brand-accent);">1 aluno · 12 dias</span>
+            </div>
+
+            <div class="fin-hero-kpi">
+              <span class="kpi-label">Inadimplência</span>
+              <span class="kpi-value kpi-value--default">3,4<span class="kpi-currency" style="vertical-align: 0.2em;">%</span></span>
+              <span class="kpi-delta kpi-delta--up">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                -1,2 p.p.
+              </span>
+            </div>
+          </div>
+
+          <!-- Pulse waveform de receita diária (mesma viz do Student Cockpit) -->
+          <div class="fin-waveform">
+            <div class="pulse-wave">
+              <div class="pulse-wave-axis" aria-hidden="true">
+                <span>1 mai</span>
+                <span>30 mai</span>
+              </div>
+              <div class="pulse-wave-bars" id="waveform-bars" role="group" aria-label="Receita dos últimos 30 dias"></div>
+              <div class="pulse-wave-key" aria-hidden="true">
+                <span class="pulse-wave-key-item"><span class="pulse-wave-key-swatch pulse-wave-key-swatch--success"></span>Recebido</span>
+                <span class="pulse-wave-key-item"><span class="pulse-wave-key-swatch pulse-wave-key-swatch--partial"></span>Pendente</span>
+                <span class="pulse-wave-key-item"><span class="pulse-wave-key-swatch pulse-wave-key-swatch--danger"></span>Atrasado</span>
+                <span class="pulse-wave-key-meta">altura = valor</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs + Toolbar -->
+        <div class="page-header-row">
+          <div class="tabs" role="tablist" aria-label="Visão financeira">
+            <button class="tab-btn tab-btn--active" role="tab" aria-selected="true">Cobranças <span class="tab-count">11</span></button>
+            <button class="tab-btn" role="tab" aria-selected="false" id="open-plans">Planos <span class="tab-count">5</span></button>
+          </div>
+          <button class="btn btn--primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nova cobrança
+          </button>
+        </div>
+
+        <div class="fin-toolbar">
+          <input type="search" class="search-input" placeholder="Buscar por aluno" aria-label="Buscar cobranças por aluno" />
+          <div class="chip-row" role="tablist" aria-label="Filtrar">
+            <button class="chip chip--active">Todas</button>
+            <button class="chip">Pendentes</button>
+            <button class="chip chip--overdue-active">Atrasadas · 1</button>
+            <button class="chip">Pagas</button>
+          </div>
+        </div>
+
+        <!-- Section: Atrasados (sempre primeiro) -->
+        <section class="fin-section">
+          <div class="fin-section-head">
+            <h2 class="fin-section-title">Atrasados</h2>
+            <span class="fin-section-aside">1 cobrança · R$ 540,00</span>
+          </div>
+
+          <div class="payment-list">
+            <article class="payment-row payment-row--overdue">
+              <div class="payment-avatar">MR</div>
+              <div class="payment-info">
+                <div class="payment-name">Marina Rocha</div>
+                <div class="payment-meta">
+                  <span>Plano Performance</span>
+                  <span class="payment-meta-dot"></span>
+                  <span>Mensal</span>
+                </div>
+              </div>
+              <div class="payment-track">
+                <div class="cycle-bar"><div class="cycle-bar-fill cycle-bar-fill--overdue" style="width: 100%"></div></div>
+                <span class="cycle-label">Venceu há 12d</span>
+              </div>
+              <div class="payment-amount"><small>R$</small>540<small>,00</small></div>
+              <div class="payment-status"><span class="status-pill status-pill--overdue">Atrasado</span></div>
+              <div class="payment-actions">
+                <button class="btn btn--ghost btn--sm hidden-mobile">Cobrar</button>
+                <button class="btn btn--primary btn--sm">Marcar pago</button>
+                <button class="row-menu" aria-label="Ações">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section: Pendentes -->
+        <section class="fin-section">
+          <div class="fin-section-head">
+            <h2 class="fin-section-title">Pendentes do mês</h2>
+            <span class="fin-section-aside">3 cobranças · R$ 1.620,00</span>
+          </div>
+
+          <div class="payment-list">
+            <article class="payment-row">
+              <div class="payment-avatar">JS</div>
+              <div class="payment-info">
+                <div class="payment-name">João Silveira</div>
+                <div class="payment-meta">
+                  <span>Plano Performance</span>
+                  <span class="payment-meta-dot"></span>
+                  <span>Mensal</span>
+                </div>
+              </div>
+              <div class="payment-track">
+                <div class="cycle-bar"><div class="cycle-bar-fill cycle-bar-fill--pending" style="width: 80%"></div></div>
+                <span class="cycle-label">Vence em 6d</span>
+              </div>
+              <div class="payment-amount"><small>R$</small>540<small>,00</small></div>
+              <div class="payment-status"><span class="status-pill status-pill--pending">Pendente</span></div>
+              <div class="payment-actions">
+                <button class="btn btn--primary btn--sm">Marcar pago</button>
+                <button class="row-menu" aria-label="Ações">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
+              </div>
+            </article>
+
+            <article class="payment-row">
+              <div class="payment-avatar">CB</div>
+              <div class="payment-info">
+                <div class="payment-name">Camila Borges</div>
+                <div class="payment-meta">
+                  <span>Plano Essencial</span>
+                  <span class="payment-meta-dot"></span>
+                  <span>Trimestral</span>
+                </div>
+              </div>
+              <div class="payment-track">
+                <div class="cycle-bar"><div class="cycle-bar-fill cycle-bar-fill--pending" style="width: 50%"></div></div>
+                <span class="cycle-label">Vence em 15d</span>
+              </div>
+              <div class="payment-amount"><small>R$</small>720<small>,00</small></div>
+              <div class="payment-status"><span class="status-pill status-pill--pending">Pendente</span></div>
+              <div class="payment-actions">
+                <button class="btn btn--primary btn--sm">Marcar pago</button>
+                <button class="row-menu" aria-label="Ações">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
+              </div>
+            </article>
+
+            <article class="payment-row">
+              <div class="payment-avatar">PL</div>
+              <div class="payment-info">
+                <div class="payment-name">Pedro Lacerda</div>
+                <div class="payment-meta">
+                  <span>Plano Performance</span>
+                  <span class="payment-meta-dot"></span>
+                  <span>Mensal</span>
+                </div>
+              </div>
+              <div class="payment-track">
+                <div class="cycle-bar"><div class="cycle-bar-fill cycle-bar-fill--pending" style="width: 30%"></div></div>
+                <span class="cycle-label">Vence em 22d</span>
+              </div>
+              <div class="payment-amount"><small>R$</small>360<small>,00</small></div>
+              <div class="payment-status"><span class="status-pill status-pill--pending">Pendente</span></div>
+              <div class="payment-actions">
+                <button class="btn btn--primary btn--sm">Marcar pago</button>
+                <button class="row-menu" aria-label="Ações">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section: Pagas (collapsed by default em produção; aqui aberto) -->
+        <section class="fin-section">
+          <div class="fin-section-head">
+            <h2 class="fin-section-title">Recebidos · Maio</h2>
+            <span class="fin-section-aside">7 cobranças · R$ 4.680,00</span>
+          </div>
+
+          <div class="payment-list">
+            <article class="payment-row payment-row--paid">
+              <div class="payment-avatar">AB</div>
+              <div class="payment-info">
+                <div class="payment-name">Ana Beatriz</div>
+                <div class="payment-meta">
+                  <span>Plano Performance</span>
+                  <span class="payment-meta-dot"></span>
+                  <span>Pago em 03/05</span>
+                </div>
+              </div>
+              <div class="payment-track">
+                <div class="cycle-bar"><div class="cycle-bar-fill" style="width: 100%"></div></div>
+                <span class="cycle-label">PR · 03/05</span>
+              </div>
+              <div class="payment-amount"><small>R$</small>540<small>,00</small></div>
+              <div class="payment-status"><span class="status-pill status-pill--paid">Pago</span></div>
+              <div class="payment-actions">
+                <button class="row-menu" aria-label="Ações">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
+              </div>
+            </article>
+            <article class="payment-row payment-row--paid">
+              <div class="payment-avatar">FT</div>
+              <div class="payment-info">
+                <div class="payment-name">Felipe Tavares</div>
+                <div class="payment-meta">
+                  <span>Plano Essencial</span>
+                  <span class="payment-meta-dot"></span>
+                  <span>Pago em 05/05</span>
+                </div>
+              </div>
+              <div class="payment-track">
+                <div class="cycle-bar"><div class="cycle-bar-fill" style="width: 100%"></div></div>
+                <span class="cycle-label">PR · 05/05</span>
+              </div>
+              <div class="payment-amount"><small>R$</small>240<small>,00</small></div>
+              <div class="payment-status"><span class="status-pill status-pill--paid">Pago</span></div>
+              <div class="payment-actions">
+                <button class="row-menu" aria-label="Ações">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
+              </div>
+            </article>
+            <article class="payment-row payment-row--paid">
+              <div class="payment-avatar">LM</div>
+              <div class="payment-info">
+                <div class="payment-name">Letícia Martins</div>
+                <div class="payment-meta">
+                  <span>Plano Performance</span>
+                  <span class="payment-meta-dot"></span>
+                  <span>Pago em 07/05</span>
+                </div>
+              </div>
+              <div class="payment-track">
+                <div class="cycle-bar"><div class="cycle-bar-fill" style="width: 100%"></div></div>
+                <span class="cycle-label">PR · 07/05</span>
+              </div>
+              <div class="payment-amount"><small>R$</small>540<small>,00</small></div>
+              <div class="payment-status"><span class="status-pill status-pill--paid">Pago</span></div>
+              <div class="payment-actions">
+                <button class="row-menu" aria-label="Ações">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <!-- ============ SCREEN: PLANOS ============ -->
+      <section id="screen-plans" style="margin-top: var(--spacing-xxl);">
+        <a href="#screen-finance" class="section-anchor">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar à visão
+        </a>
+
+        <div class="page-header-row">
+          <div>
+            <div class="page-section-eyebrow">Catálogo</div>
+            <h2 class="page-section-title">Planos de assinatura</h2>
+          </div>
+          <button class="btn btn--primary" id="open-plan-sheet-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Novo plano
+          </button>
+        </div>
+
+        <!-- Insights row -->
+        <div class="insights-grid">
+          <div class="insight-card">
+            <div class="insight-card-head">
+              <div>
+                <div class="page-section-eyebrow">MRR Projetado</div>
+                <div class="insight-value"><small style="font-size: 0.45em; color: var(--brand-steel); vertical-align: 0.5em;">R$</small> 11.460</div>
+              </div>
+              <span class="insight-delta insight-delta--up">+8,2%</span>
+            </div>
+            <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+              <polyline points="0,30 20,28 40,24 60,26 80,18 100,20 120,14 140,12 160,10 180,8 200,6" fill="none" stroke="var(--brand-primary)" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="insight-card">
+            <div class="insight-card-head">
+              <div>
+                <div class="page-section-eyebrow">Assinantes ativos</div>
+                <div class="insight-value">28</div>
+              </div>
+              <span class="insight-delta insight-delta--up">+3 mês</span>
+            </div>
+            <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+              <polyline points="0,32 20,30 40,28 60,24 80,22 100,18 120,18 140,16 160,12 180,10 200,8" fill="none" stroke="var(--brand-primary)" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="insight-card">
+            <div class="insight-card-head">
+              <div>
+                <div class="page-section-eyebrow">Churn 30d</div>
+                <div class="insight-value">2,1<small style="font-size: 0.45em; color: var(--brand-steel); vertical-align: 0.5em;">%</small></div>
+              </div>
+              <span class="insight-delta insight-delta--up">-0,4 p.p.</span>
+            </div>
+            <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+              <polyline points="0,8 20,12 40,14 60,18 80,18 100,22 120,20 140,24 160,24 180,28 200,30" fill="none" stroke="var(--brand-accent)" stroke-width="2"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="plans-grid">
+          <article class="plan-card plan-card--featured">
+            <div class="plan-card-head">
+              <div>
+                <div class="plan-eyebrow">Mais assinado</div>
+                <div class="plan-name">Performance</div>
+              </div>
+              <span class="recurrence-tag">Mensal</span>
+            </div>
+            <div class="plan-price">
+              <span class="plan-price-currency">R$</span>
+              <span class="plan-price-value">540</span>
+              <span class="plan-price-period">/mês</span>
+            </div>
+            <div class="plan-stats">
+              <div class="plan-stat">
+                <div class="plan-stat-label">Ativos</div>
+                <div class="plan-stat-value">18</div>
+              </div>
+              <div class="plan-stat">
+                <div class="plan-stat-label">Receita/mês</div>
+                <div class="plan-stat-value">9,7k</div>
+              </div>
+            </div>
+            <div class="plan-actions">
+              <button class="btn btn--secondary" style="flex:1;">Editar</button>
+              <button class="btn btn--icon btn--secondary" aria-label="Ações">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+              </button>
+            </div>
+          </article>
+
+          <article class="plan-card">
+            <div class="plan-card-head">
+              <div>
+                <div class="plan-eyebrow">Entry</div>
+                <div class="plan-name">Essencial</div>
+              </div>
+              <span class="recurrence-tag">Mensal</span>
+            </div>
+            <div class="plan-price">
+              <span class="plan-price-currency">R$</span>
+              <span class="plan-price-value">240</span>
+              <span class="plan-price-period">/mês</span>
+            </div>
+            <div class="plan-stats">
+              <div class="plan-stat">
+                <div class="plan-stat-label">Ativos</div>
+                <div class="plan-stat-value">7</div>
+              </div>
+              <div class="plan-stat">
+                <div class="plan-stat-label">Receita/mês</div>
+                <div class="plan-stat-value">1,7k</div>
+              </div>
+            </div>
+            <div class="plan-actions">
+              <button class="btn btn--secondary" style="flex:1;">Editar</button>
+              <button class="btn btn--icon btn--secondary" aria-label="Ações">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+              </button>
+            </div>
+          </article>
+
+          <article class="plan-card">
+            <div class="plan-card-head">
+              <div>
+                <div class="plan-eyebrow">Long-term</div>
+                <div class="plan-name">Trimestral Pro</div>
+              </div>
+              <span class="recurrence-tag">Trimestral</span>
+            </div>
+            <div class="plan-price">
+              <span class="plan-price-currency">R$</span>
+              <span class="plan-price-value">1.440</span>
+              <span class="plan-price-period">/trim.</span>
+            </div>
+            <div class="plan-stats">
+              <div class="plan-stat">
+                <div class="plan-stat-label">Ativos</div>
+                <div class="plan-stat-value">3</div>
+              </div>
+              <div class="plan-stat">
+                <div class="plan-stat-label">Receita/mês</div>
+                <div class="plan-stat-value">1,4k</div>
+              </div>
+            </div>
+            <div class="plan-actions">
+              <button class="btn btn--secondary" style="flex:1;">Editar</button>
+              <button class="btn btn--icon btn--secondary" aria-label="Ações">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ============ SCREEN: HISTÓRICO DO ALUNO ============ -->
+      <section id="screen-history" style="margin-top: var(--spacing-xxl);">
+        <a href="#screen-finance" class="section-anchor">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar ao aluno
+        </a>
+
+        <div class="page-header-row" style="margin-top: 0;">
+          <div>
+            <div class="page-section-eyebrow">Histórico financeiro</div>
+            <h2 class="page-section-title">Marina Rocha</h2>
+          </div>
+          <div class="chip-row">
+            <button class="chip chip--active">Todas</button>
+            <button class="chip">Pagas</button>
+            <button class="chip">Pendentes</button>
+            <button class="chip">Atrasadas</button>
+          </div>
+        </div>
+
+        <!-- Stadium strip -->
+        <div class="history-strip">
+          <div class="history-stat">
+            <span class="history-stat-label">Receita total</span>
+            <span class="history-stat-value"><small>R$</small>5.940</span>
+          </div>
+          <div class="history-stat">
+            <span class="history-stat-label">Cobranças</span>
+            <span class="history-stat-value">12</span>
+          </div>
+          <div class="history-stat">
+            <span class="history-stat-label">Cliente desde</span>
+            <span class="history-stat-value" style="font-size: 16px;">Jun · 2025</span>
+          </div>
+        </div>
+
+        <div class="history-year-label">2026</div>
+        <div class="history-row">
+          <div class="history-row-cycle">
+            <span class="history-row-cycle-num">05</span>
+            <span class="history-row-cycle-label">Mai</span>
+          </div>
+          <div>
+            <div class="history-row-period">01/05 – 31/05/2026</div>
+            <div class="history-row-period-meta">Plano Performance · Mensal</div>
+          </div>
+          <div class="history-row-amount"><span class="status-pill status-pill--overdue" style="margin-right: var(--spacing-sm);">Atrasado</span><small style="font-size: 0.55em; color: var(--brand-steel); vertical-align: 0.35em;">R$</small> 540</div>
+          <button class="row-menu" aria-label="Ações">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
+        </div>
+        <div class="history-row">
+          <div class="history-row-cycle">
+            <span class="history-row-cycle-num">04</span>
+            <span class="history-row-cycle-label">Abr</span>
+          </div>
+          <div>
+            <div class="history-row-period">01/04 – 30/04/2026</div>
+            <div class="history-row-period-meta">Plano Performance · Pago em 03/04</div>
+          </div>
+          <div class="history-row-amount"><span class="status-pill status-pill--paid" style="margin-right: var(--spacing-sm);">Pago</span><small style="font-size: 0.55em; color: var(--brand-steel); vertical-align: 0.35em;">R$</small> 540</div>
+          <button class="row-menu" aria-label="Ações">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
+        </div>
+        <div class="history-row">
+          <div class="history-row-cycle">
+            <span class="history-row-cycle-num">03</span>
+            <span class="history-row-cycle-label">Mar</span>
+          </div>
+          <div>
+            <div class="history-row-period">01/03 – 31/03/2026</div>
+            <div class="history-row-period-meta">Plano Performance · Pago em 02/03</div>
+          </div>
+          <div class="history-row-amount"><span class="status-pill status-pill--paid" style="margin-right: var(--spacing-sm);">Pago</span><small style="font-size: 0.55em; color: var(--brand-steel); vertical-align: 0.35em;">R$</small> 540</div>
+          <button class="row-menu" aria-label="Ações">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
+        </div>
+
+        <div class="history-year-label">2025</div>
+        <div class="history-row">
+          <div class="history-row-cycle">
+            <span class="history-row-cycle-num">12</span>
+            <span class="history-row-cycle-label">Dez</span>
+          </div>
+          <div>
+            <div class="history-row-period">01/12 – 31/12/2025</div>
+            <div class="history-row-period-meta">Plano Essencial · Pago em 04/12</div>
+          </div>
+          <div class="history-row-amount"><span class="status-pill status-pill--paid" style="margin-right: var(--spacing-sm);">Pago</span><small style="font-size: 0.55em; color: var(--brand-steel); vertical-align: 0.35em;">R$</small> 240</div>
+          <button class="row-menu" aria-label="Ações">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
+        </div>
+
+        <div style="text-align:center; margin-top: var(--spacing-md);">
+          <button class="btn btn--secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar cobrança
+          </button>
+        </div>
+      </section>
+
+      <div style="height: var(--spacing-xxl);"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ MODAL / BOTTOM SHEET: NOVO PLANO ============ -->
+<div class="sheet-backdrop" id="plan-sheet" role="dialog" aria-modal="true" aria-labelledby="plan-sheet-title">
+  <div class="sheet">
+    <div class="sheet-grabber" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <div>
+        <div class="page-section-eyebrow">Novo plano</div>
+        <h3 class="sheet-title" id="plan-sheet-title">Criar plano de assinatura</h3>
+      </div>
+      <button class="sheet-close" aria-label="Fechar" id="close-plan-sheet">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="plan-name">Nome do plano</label>
+      <input id="plan-name" class="form-input" type="text" value="Performance Plus" />
+    </div>
+
+    <div class="form-group">
+      <span class="form-label">Recorrência</span>
+      <div class="segmented" role="group" aria-label="Recorrência">
+        <button class="active">Mensal</button>
+        <button>Trimestral</button>
+        <button>Semestral</button>
+        <button>Anual</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="plan-price">Valor por cobrança</label>
+      <input id="plan-price" class="form-input tnum" type="text" value="640,00" inputmode="decimal" />
+    </div>
+
+    <div class="form-group">
+      <span class="form-label">Desconto padrão</span>
+      <div class="segmented" role="group" aria-label="Tipo de desconto" style="grid-template-columns: repeat(3, 1fr);">
+        <button>Nenhum</button>
+        <button class="active">Percentual</button>
+        <button>Valor fixo</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="plan-discount">Desconto (%)</label>
+      <input id="plan-discount" class="form-input tnum" type="text" value="10" inputmode="decimal" />
+    </div>
+
+    <div class="preview-card">
+      <div class="preview-eyebrow">Pré-visualização</div>
+      <div class="preview-amount"><small>R$</small>576<small>,00</small></div>
+      <div class="preview-meta">a cada mês · após desconto</div>
+      <div class="preview-discount-line">
+        <span style="font-size: 11px; letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--stadium-text-muted); font-weight: 600;">Desconto aplicado</span>
+        <strong>-R$ 64,00 · 10%</strong>
+      </div>
+    </div>
+
+    <div class="btn-group" style="margin-top: var(--spacing-lg);">
+      <button class="btn btn--secondary" id="close-plan-sheet-2">Cancelar</button>
+      <button class="btn btn--primary">Criar plano</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== Pulse waveform generator (mirrors PulseWaveform.jsx) ======
+(function buildWaveform() {
+  const container = document.getElementById('waveform-bars');
+  if (!container) return;
+  const days = 30;
+  const todayIdx = 22; // mock: today is day 23 of the cycle
+
+  // Deterministic-ish revenue per day
+  const data = Array.from({ length: days }, (_, i) => {
+    const base = 280 + Math.sin(i * 0.7) * 120 + Math.cos(i * 0.3) * 80;
+    const spike = (i === 4 || i === 11 || i === 20) ? 280 : 0;
+    const value = Math.max(0, Math.round(base + spike));
+    // status assignment: overdue=18, partial=last few, future=after today, success=rest
+    let status;
+    if (i > todayIdx) status = 'empty';
+    else if (i === 18) status = 'danger';
+    else if (i === 9 || i === 16) status = 'partial';
+    else status = 'success';
+    return { value, status };
+  });
+  const max = Math.max(...data.map((d) => d.value));
+
+  data.forEach((bar, i) => {
+    const barEl = document.createElement('div');
+    barEl.className = 'pulse-bar' + (i === todayIdx ? ' pulse-bar--today' : '');
+    const fill = document.createElement('div');
+    fill.className = 'pulse-bar-fill pulse-bar-fill--' + bar.status;
+    if (bar.status !== 'empty') {
+      const pct = Math.max(8, Math.round((bar.value / max) * 100));
+      fill.style.height = pct + '%';
+    }
+    barEl.appendChild(fill);
+    container.appendChild(barEl);
+  });
+})();
+
+// ====== Plan sheet open/close ======
+const sheet = document.getElementById('plan-sheet');
+function openSheet(e) { e && e.preventDefault(); sheet.classList.add('open'); }
+function closeSheet() { sheet.classList.remove('open'); }
+document.getElementById('open-plan-sheet').addEventListener('click', openSheet);
+document.getElementById('open-plan-sheet-2').addEventListener('click', openSheet);
+document.getElementById('close-plan-sheet').addEventListener('click', closeSheet);
+document.getElementById('close-plan-sheet-2').addEventListener('click', closeSheet);
+sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+
+// ====== Segmented toggle interactivity ======
+document.querySelectorAll('.segmented').forEach((group) => {
+  group.querySelectorAll('button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      group.querySelectorAll('button').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+});
+document.querySelectorAll('.tabs').forEach((group) => {
+  group.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      group.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('tab-btn--active'));
+      btn.classList.add('tab-btn--active');
+    });
+  });
+});
+document.querySelectorAll('.chip-row').forEach((group) => {
+  group.querySelectorAll('.chip').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      group.querySelectorAll('.chip').forEach((b) => b.classList.remove('chip--active', 'chip--overdue-active'));
+      btn.classList.add('chip--active');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

@@ -14,6 +14,7 @@ import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import SwapExerciseSheet from '../../components/SwapExerciseSheet';
 import SubstitutedLogLine from '../../components/SubstitutedLogLine';
 import DurationLabel from '../../components/DurationLabel';
+import StudentIntensityBand from '../../components/StudentIntensityBand';
 import { t } from '../../i18n';
 
 const interpolate = (template, values) =>
@@ -375,6 +376,14 @@ function ExerciseLogCard({ sessionId, exerciseLog, isSessionActive, onUpdated, o
 
       {!collapsed && (
         <div className="exercise-log-card-body">
+          {exerciseLog.exercise?.intensity && (
+            <StudentIntensityBand
+              exerciseName={exerciseLog.exercise?.name ?? 'Exercício'}
+              summary={meta}
+              intensity={exerciseLog.exercise.intensity}
+              label={exerciseLog.exercise.intensityLabel}
+            />
+          )}
           {setLogs.length > 0 && (
             <div className="set-log-list">
               {setLogs.map((setLog) => (
@@ -429,6 +438,8 @@ ExerciseLogCard.propTypes = {
       name: PropTypes.string,
       notes: PropTypes.string,
       videoUrl: PropTypes.string,
+      intensity: PropTypes.string,
+      intensityLabel: PropTypes.string,
       substitutes: PropTypes.array,
     }),
     setLogs: PropTypes.array,

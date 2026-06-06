@@ -220,6 +220,8 @@ const ptBR = {
     "exercise.substituteNotFound": "Substituto não encontrado.",
     "exercise.logAlreadySubstituted":
       "Este exercício já foi substituído nesta sessão.",
+    "exercise.intensityRequiresCardio":
+      "A intensidade só pode ser definida para exercícios do tipo cardio.",
     "subscription.planNotFound": "Plano não encontrado.",
     "subscription.planArchived": "Este plano está arquivado.",
     "subscription.bothDiscountsSet": "Escolha apenas um tipo de desconto.",

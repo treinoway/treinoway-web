@@ -196,6 +196,26 @@
   --stadium-accent-hover: #60CDFF;
   --stadium-divider: #1E293B;
 
+  /* Effort-tier scale — governed semantic effort scale (NOT brand color).
+     green→red is a justified semantic exception (cf. HR zones). Referenced by
+     the intensity ramp, the intensity badge and the student effort band.
+     Kept off --brand-accent and off all CTAs. */
+  --effort-tier-1-rail: #34C77B;
+  --effort-tier-2-rail: #7BC34F;
+  --effort-tier-3-rail: #F2B53D;
+  --effort-tier-4-rail: #F2792D;
+  --effort-tier-5-rail: #E23D3D;
+  --effort-tier-1-bg: #E4F7EE;
+  --effort-tier-1-fg: #1E8A56;
+  --effort-tier-2-bg: #EDF6E2;
+  --effort-tier-2-fg: #4C8A23;
+  --effort-tier-3-bg: #FCF1DA;
+  --effort-tier-3-fg: #9A6A0E;
+  --effort-tier-4-bg: #FDEADD;
+  --effort-tier-4-fg: #B65316;
+  --effort-tier-5-bg: #FBE3E3;
+  --effort-tier-5-fg: #C12B2B;
+
   /* Shape */
   --radius-brand: 8px;
   --radius-stat: 4px;
@@ -2392,6 +2412,24 @@ html:has(.auth-page) {
   flex-shrink: 0;
 }
 
+/* ============================================
+   Intensity badge — effort-tier tinted .badge
+   ============================================ */
+.intensity-badge {
+  gap: 5px;
+}
+
+.intensity-badge .badge-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.intensity-badge[data-tier="1"] { background: var(--effort-tier-1-bg); color: var(--effort-tier-1-fg); }
+.intensity-badge[data-tier="2"] { background: var(--effort-tier-2-bg); color: var(--effort-tier-2-fg); }
+.intensity-badge[data-tier="3"] { background: var(--effort-tier-3-bg); color: var(--effort-tier-3-fg); }
+.intensity-badge[data-tier="4"] { background: var(--effort-tier-4-bg); color: var(--effort-tier-4-fg); }
+.intensity-badge[data-tier="5"] { background: var(--effort-tier-5-bg); color: var(--effort-tier-5-fg); }
+
 .badge-role {
   display: inline-block;
   padding: 0.25rem 0.75rem;
@@ -2717,6 +2755,13 @@ html:has(.auth-page) {
 
 .training-card-exercise-row:hover {
   background: var(--color-surface-container);
+}
+
+.training-card-exercise-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
 }
 
 .training-card-exercise-name {
@@ -9517,6 +9562,290 @@ html:has(.auth-page) {
 }
 
 /* ============================================
+   Exercise intensity (ACSM cardio effort scale)
+   Conditional input ramp, type-flip warning,
+   defensive 400 error and student read-only band.
+   ============================================ */
+.intensity-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  animation: intensity-reveal var(--duration-slow) var(--ease-brand);
+}
+
+.intensity-field--retained {
+  margin-top: var(--spacing-md);
+}
+
+@keyframes intensity-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.intensity-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.intensity-field-label {
+  margin-bottom: 0;
+}
+
+.intensity-acsm-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2xs);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+}
+
+.intensity-ramp {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--spacing-2xs);
+}
+
+.intensity-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-2xs);
+  border: 1px solid var(--brand-divider);
+  border-radius: var(--radius-brand);
+  background: var(--md-surface);
+  cursor: pointer;
+  position: relative;
+  transition:
+    border-color var(--duration-fast) var(--ease-brand),
+    background var(--duration-fast) var(--ease-brand),
+    box-shadow var(--duration-fast) var(--ease-brand);
+}
+
+.intensity-step:hover {
+  background: var(--brand-mist);
+}
+
+.intensity-step:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-color: var(--brand-primary);
+}
+
+.intensity-step:disabled {
+  cursor: default;
+}
+
+.intensity-step-bar {
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--md-surface-container-high);
+}
+
+.intensity-step-name {
+  font-family: var(--font-family-display);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-steel);
+  text-align: center;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
+}
+
+.intensity-step[data-tier="1"] .intensity-step-bar { background: var(--effort-tier-1-rail); }
+.intensity-step[data-tier="2"] .intensity-step-bar { background: var(--effort-tier-2-rail); }
+.intensity-step[data-tier="3"] .intensity-step-bar { background: var(--effort-tier-3-rail); }
+.intensity-step[data-tier="4"] .intensity-step-bar { background: var(--effort-tier-4-rail); }
+.intensity-step[data-tier="5"] .intensity-step-bar { background: var(--effort-tier-5-rail); }
+
+.intensity-step--active {
+  border-color: var(--brand-primary);
+  background: var(--md-surface);
+  box-shadow: var(--shadow-focus);
+}
+
+.intensity-step--active .intensity-step-name {
+  color: var(--brand-ink);
+}
+
+.intensity-step--error {
+  border-color: var(--md-error);
+  box-shadow: 0 0 0 2px var(--md-error);
+}
+
+.intensity-clear {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 12px;
+  min-height: 36px;
+  border-radius: var(--radius-brand);
+  background: var(--brand-mist);
+  color: var(--brand-steel);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-brand),
+    color var(--duration-fast) var(--ease-brand);
+}
+
+.intensity-clear:hover {
+  background: var(--md-surface-container-high);
+  color: var(--brand-ink);
+}
+
+/* Type-flip warning (intensity retained, stripped from payload) */
+.intensity-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--md-warning-container);
+  color: #7A4A05;
+  border-left: 3px solid var(--md-warning);
+  border-radius: var(--radius-brand);
+  font-size: 13px;
+}
+
+.intensity-warning > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--md-warning);
+}
+
+.intensity-warning-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.intensity-warning-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.intensity-inline-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: 36px;
+  padding: 7px 12px;
+  border-radius: var(--radius-brand);
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-brand),
+    color var(--duration-fast) var(--ease-brand);
+}
+
+.intensity-inline-action--primary {
+  background: var(--brand-primary);
+  color: #FFFFFF;
+}
+
+.intensity-inline-action--primary:hover {
+  background: var(--brand-primary-dark);
+}
+
+.intensity-inline-action--ghost {
+  background: transparent;
+  color: var(--brand-slate);
+  box-shadow: inset 0 0 0 1px var(--md-outline-variant);
+}
+
+.intensity-inline-action--ghost:hover {
+  background: var(--md-surface-container-high);
+  color: var(--brand-ink);
+}
+
+.form-error .intensity-inline-action--ghost {
+  color: var(--md-error);
+  box-shadow: inset 0 0 0 1px var(--md-error);
+}
+
+.form-error .intensity-inline-action--ghost:hover {
+  background: var(--md-error-container);
+}
+
+/* Student read-only effort band (dark .theme-stadium surface) */
+.student-intensity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.student-intensity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.student-intensity-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--stadium-text-muted);
+}
+
+.student-intensity-name {
+  font-family: var(--font-family-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--stadium-text);
+}
+
+.student-intensity .stat-display {
+  background: transparent;
+  padding: 0;
+}
+
+.student-intensity-ramp {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--spacing-2xs);
+}
+
+.student-intensity-seg {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.student-intensity-seg--on[data-tier="1"] { background: var(--effort-tier-1-rail); }
+.student-intensity-seg--on[data-tier="2"] { background: var(--effort-tier-2-rail); }
+.student-intensity-seg--on[data-tier="3"] { background: var(--effort-tier-3-rail); }
+.student-intensity-seg--on[data-tier="4"] { background: var(--effort-tier-4-rail); }
+.student-intensity-seg--on[data-tier="5"] { background: var(--effort-tier-5-rail); }
+
+.student-intensity-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--stadium-text-muted);
+}
+
+/* ============================================
    InfoPopover — small anchored informational dialog
    ============================================ */
 .info-popover-wrapper {
@@ -15459,6 +15788,13 @@ nav.onboarding-steps {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.exercise-row-wide-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
 }
 
 .exercise-row-wide-name {

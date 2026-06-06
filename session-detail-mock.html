@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Treinoway · Detalhe da Sessão (Mock)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --brand-ink: #0a0f1c;
+        --brand-slate: #1e293b;
+        --brand-steel: #64748b;
+        --brand-mist: #f1f5f9;
+        --brand-divider: #e2e8f0;
+        --brand-primary: #0a5fcc;
+        --brand-primary-dark: #083e85;
+        --brand-accent: #ff6b1a;
+        --brand-accent-container: #fff1ea;
+
+        --md-surface: #ffffff;
+        --md-surface-container: #f0f1f4;
+        --md-surface-container-high: #e6e7eb;
+        --md-outline-variant: #c7c7cc;
+        --md-error: #d32f2f;
+
+        --stadium-bg: #0a0f1c;
+        --stadium-surface: #111827;
+        --stadium-surface-elevated: #1e293b;
+        --stadium-text: #f1f5f9;
+        --stadium-text-muted: #94a3b8;
+        --stadium-accent: #38bdf8;
+        --stadium-divider: #1e293b;
+
+        --spacing-xs: 4px;
+        --spacing-sm: 8px;
+        --spacing-md: 16px;
+        --spacing-lg: 24px;
+        --spacing-xl: 32px;
+
+        --radius-stat: 4px;
+        --radius-brand: 8px;
+        --radius-lg: 20px;
+        --radius-full: 9999px;
+
+        --shadow-brand-sm: 0 1px 2px rgba(10, 15, 28, 0.06), 0 0 0 1px rgba(10, 15, 28, 0.04);
+        --shadow-brand-md: 0 4px 12px rgba(10, 15, 28, 0.1), 0 0 0 1px rgba(10, 15, 28, 0.04);
+        --shadow-brand-lg: 0 18px 48px rgba(10, 15, 28, 0.18), 0 0 0 1px rgba(10, 15, 28, 0.06);
+        --shadow-stadium: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        --shadow-focus: 0 0 0 2px var(--brand-primary);
+
+        --duration-fast: 150ms;
+        --duration-base: 200ms;
+        --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+
+        --font-family-display: 'Space Grotesk', system-ui, sans-serif;
+        --font-family-base: 'Inter', system-ui, sans-serif;
+        --font-family-stat: 'Space Grotesk', ui-monospace, monospace;
+
+        --tracking-tight: -0.02em;
+        --tracking-wide: 0.08em;
+        --tracking-wider: 0.12em;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body {
+        font-family: var(--font-family-base);
+        color: var(--brand-ink);
+        background: var(--md-surface-container);
+        -webkit-font-smoothing: antialiased;
+      }
+      button { font: inherit; cursor: pointer; background: none; border: none; color: inherit; }
+      a { color: var(--brand-primary); text-decoration: none; }
+
+      .icon { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .icon-sm { width: 14px; height: 14px; }
+      .icon-lg { width: 20px; height: 20px; }
+
+      /* === App shell + sidebar reuse from cockpit mock === */
+      .app-layout { min-height: 100vh; display: flex; flex-direction: column; }
+      @media (min-width: 768px) { .app-layout { flex-direction: row; height: 100vh; overflow: hidden; } }
+      .main-content { flex: 1; overflow: auto; background: var(--brand-mist); }
+      .mock-shell { max-width: 1120px; margin: 0 auto; padding: var(--spacing-md); }
+      @media (min-width: 768px) { .mock-shell { padding: var(--spacing-lg); } }
+      @media (min-width: 1024px) { .mock-shell { padding: var(--spacing-xl); } }
+
+      .sidebar { background: var(--md-surface); border-right: 1px solid var(--brand-divider); width: 16rem; display: none; flex-direction: column; }
+      @media (min-width: 768px) { .sidebar { display: flex; flex-shrink: 0; } }
+      .sidebar-header { padding: var(--spacing-md); border-bottom: 1px solid var(--brand-divider); display: flex; align-items: center; gap: var(--spacing-sm); }
+      .sidebar-logo-icon { width: 32px; height: 32px; border-radius: var(--radius-stat); background: linear-gradient(135deg, var(--brand-primary), var(--stadium-accent)); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-family-display); font-weight: 700; font-size: 14px; }
+      .sidebar-nav { flex: 1; padding: var(--spacing-md); display: flex; flex-direction: column; gap: var(--spacing-xs); }
+      .sidebar-section-label { font-size: 10px; font-weight: 700; letter-spacing: var(--tracking-wider); color: var(--brand-steel); margin-top: var(--spacing-md); padding: var(--spacing-sm) var(--spacing-sm) 0; border-top: 1px solid var(--brand-divider); text-transform: uppercase; }
+      .sidebar-link { display: flex; align-items: center; gap: var(--spacing-md); padding: var(--spacing-sm) 12px; border-radius: var(--radius-brand); color: var(--brand-slate); font-size: 14px; transition: background var(--duration-fast) var(--ease-brand); }
+      .sidebar-link:hover { background: rgba(0, 0, 0, 0.04); color: var(--brand-ink); }
+      .sidebar-link--active { background: rgba(10, 95, 204, 0.08); color: var(--brand-primary); border-left: 3px solid var(--brand-primary); padding-left: calc(12px - 3px); }
+
+      /* === Back nav === */
+      .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--brand-primary);
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        padding: var(--spacing-xs) 0;
+        margin-bottom: var(--spacing-md);
+      }
+      .btn-back:hover { opacity: 0.7; }
+
+      /* === Stadium hero === */
+      .theme-stadium { background: var(--stadium-bg); color: var(--stadium-text); }
+      .session-hero {
+        border-radius: var(--radius-brand);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-stadium);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: var(--spacing-xl);
+      }
+      @media (min-width: 1024px) { .session-hero { padding: var(--spacing-xl); } }
+      .session-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 85% 15%, rgba(56, 189, 248, 0.12), transparent 60%);
+        pointer-events: none;
+      }
+
+      .session-hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--stadium-text-muted);
+        margin-bottom: var(--spacing-sm);
+        position: relative;
+      }
+      .session-hero-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: var(--radius-full);
+        background: var(--stadium-accent);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+      }
+      .session-hero-status-dot--abandoned { background: var(--brand-accent); box-shadow: 0 0 0 3px rgba(255, 107, 26, 0.25); }
+      .session-hero-status-label--ok { color: var(--stadium-accent); }
+      .session-hero-status-label--abandoned { color: var(--brand-accent); }
+
+      .session-hero-title {
+        font-family: var(--font-family-display);
+        font-weight: 700;
+        font-size: 28px;
+        letter-spacing: var(--tracking-tight);
+        color: var(--stadium-text);
+        margin-bottom: var(--spacing-xs);
+        position: relative;
+      }
+      .session-hero-subtitle {
+        font-size: 13px;
+        color: var(--stadium-text-muted);
+        font-variant-numeric: tabular-nums;
+        margin-bottom: var(--spacing-lg);
+        position: relative;
+      }
+      .session-hero-subtitle-sep { margin: 0 var(--spacing-xs); opacity: 0.4; }
+
+      /* KPI grid */
+      .session-hero-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-md);
+        position: relative;
+        margin-bottom: var(--spacing-lg);
+      }
+      @media (min-width: 1024px) {
+        .session-hero-stats {
+          grid-template-columns: repeat(4, 1fr);
+          gap: var(--spacing-lg);
+        }
+      }
+      .stat-display {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-md) 0;
+        border-top: 1px solid var(--stadium-divider);
+      }
+      @media (min-width: 1024px) { .stat-display { border-top: none; padding: 0; } }
+      .stat-display-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--stadium-text-muted);
+      }
+      .stat-display-value {
+        font-family: var(--font-family-stat);
+        font-weight: 600;
+        font-size: 40px;
+        line-height: 1;
+        letter-spacing: var(--tracking-tight);
+        color: var(--stadium-text);
+        font-variant-numeric: tabular-nums;
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+      }
+      @media (min-width: 1024px) { .stat-display-value { font-size: 48px; } }
+      .stat-display-unit {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--stadium-text-muted);
+      }
+      .stat-display-trend {
+        font-family: var(--font-family-base);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--stadium-text-muted);
+      }
+
+      /* Hero actions */
+      .session-hero-actions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        position: relative;
+      }
+      @media (min-width: 768px) {
+        .session-hero-actions { flex-direction: row; }
+      }
+      .btn-stadium {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
+        padding: 12px var(--spacing-md);
+        border-radius: var(--radius-brand);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        min-height: 44px;
+        transition: background var(--duration-fast) var(--ease-brand);
+        background: var(--stadium-accent);
+        color: var(--stadium-bg);
+        flex: 1;
+      }
+      .btn-stadium:hover { background: #60cdff; }
+      .btn-stadium--ghost {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--stadium-text);
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+      }
+      .btn-stadium--ghost:hover { background: rgba(255, 255, 255, 0.1); }
+      .btn-stadium--danger {
+        background: transparent;
+        color: var(--brand-accent);
+        box-shadow: inset 0 0 0 1px rgba(255, 107, 26, 0.4);
+        flex: 0 0 auto;
+      }
+      .btn-stadium--danger:hover { background: rgba(255, 107, 26, 0.1); }
+
+      /* === Notes grid (student + trainer) === */
+      .notes-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-xl);
+      }
+      @media (min-width: 1024px) {
+        .notes-grid { grid-template-columns: 1fr 1fr; }
+      }
+      .note-panel {
+        background: var(--md-surface);
+        border-radius: var(--radius-brand);
+        box-shadow: var(--shadow-brand-sm);
+        padding: var(--spacing-lg);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: var(--spacing-md);
+        align-items: start;
+        position: relative;
+        overflow: hidden;
+      }
+      .note-panel::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+      }
+      .note-panel--student::before { background: var(--brand-accent); }
+      .note-panel--trainer::before { background: var(--stadium-accent); }
+      .note-panel-content { min-width: 0; }
+      .note-panel-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        margin-bottom: var(--spacing-xs);
+      }
+      .note-panel--student .note-panel-eyebrow { color: var(--brand-accent); }
+      .note-panel--trainer .note-panel-eyebrow { color: var(--stadium-accent); }
+      .note-panel-text {
+        font-size: 14px;
+        color: var(--brand-ink);
+        line-height: 1.5;
+      }
+      .note-panel-text--empty {
+        color: var(--brand-steel);
+        font-style: italic;
+      }
+      .note-panel-author {
+        font-size: 11px;
+        color: var(--brand-steel);
+        margin-top: var(--spacing-xs);
+      }
+      .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: 6px var(--spacing-sm);
+        background: var(--md-surface);
+        color: var(--brand-ink);
+        box-shadow: inset 0 0 0 1px var(--md-outline-variant);
+        border-radius: var(--radius-brand);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        min-height: 36px;
+        transition: background var(--duration-fast) var(--ease-brand);
+      }
+      .btn-secondary:hover { background: var(--md-surface-container-high); }
+
+      /* === Section headers === */
+      .cockpit-section { margin-bottom: var(--spacing-xl); }
+      .cockpit-section-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+      }
+      .cockpit-section-eyebrow {
+        font-family: var(--font-family-display);
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--brand-ink);
+        display: inline-flex;
+        align-items: baseline;
+        gap: var(--spacing-sm);
+      }
+      .cockpit-section-eyebrow-suffix {
+        font-weight: 500;
+        font-size: 11px;
+        color: var(--brand-steel);
+        letter-spacing: var(--tracking-wide);
+      }
+
+      /* === Exercise cards === */
+      .exercise-card {
+        background: var(--md-surface);
+        border-radius: var(--radius-brand);
+        box-shadow: var(--shadow-brand-sm);
+        margin-bottom: var(--spacing-sm);
+        overflow: hidden;
+        transition: box-shadow var(--duration-fast) var(--ease-brand);
+      }
+      .exercise-card:hover { box-shadow: var(--shadow-brand-md); }
+
+      .exercise-card-header {
+        display: grid;
+        grid-template-columns: 32px 1fr auto auto;
+        align-items: center;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md) var(--spacing-lg);
+      }
+      .exercise-card-index {
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-stat);
+        background: var(--brand-ink);
+        color: var(--md-surface);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-family-display);
+        font-size: 13px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .exercise-card-body { min-width: 0; }
+      .exercise-card-name {
+        font-family: var(--font-family-base);
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--brand-ink);
+        margin-bottom: 2px;
+      }
+      .exercise-card-meta {
+        font-size: 12px;
+        color: var(--brand-steel);
+        font-variant-numeric: tabular-nums;
+      }
+      .exercise-card-meta-sep { margin: 0 var(--spacing-xs); opacity: 0.4; }
+
+      .exercise-card-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        line-height: 1;
+      }
+      .exercise-card-stat-label {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--brand-steel);
+        margin-bottom: 4px;
+      }
+      .exercise-card-stat-value {
+        font-family: var(--font-family-stat);
+        font-size: 16px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: var(--brand-ink);
+      }
+      .exercise-card-stat-unit {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--brand-steel);
+        margin-left: 2px;
+      }
+
+      .exercise-card-chevron {
+        color: var(--brand-steel);
+        transition: transform var(--duration-base) var(--ease-brand);
+      }
+      .exercise-card.open .exercise-card-chevron { transform: rotate(180deg); }
+
+      .exercise-card-body-detail {
+        display: none;
+        padding: 0 var(--spacing-lg) var(--spacing-md);
+        border-top: 1px solid var(--brand-divider);
+      }
+      .exercise-card.open .exercise-card-body-detail { display: block; }
+
+      /* === Exercise skipped state === */
+      .exercise-card-status {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        padding: 4px var(--spacing-sm);
+        border-radius: var(--radius-stat);
+        background: var(--brand-accent-container);
+        color: var(--brand-accent);
+      }
+      .exercise-card--skipped .exercise-card-index {
+        background: var(--brand-accent);
+      }
+      .exercise-card-skip-note {
+        margin-top: var(--spacing-md);
+        padding: var(--spacing-md);
+        background: var(--brand-accent-container);
+        border-radius: var(--radius-brand);
+        border-left: 3px solid var(--brand-accent);
+        font-size: 13px;
+        color: var(--brand-ink);
+        line-height: 1.5;
+      }
+      .exercise-card-skip-note-label {
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--brand-accent);
+        margin-bottom: 4px;
+      }
+
+      /* === Sets table === */
+      .sets-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: var(--spacing-md);
+        font-variant-numeric: tabular-nums;
+      }
+      .sets-table th {
+        font-family: var(--font-family-base);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--brand-steel);
+        text-align: left;
+        padding: var(--spacing-sm) 0;
+        border-bottom: 1px solid var(--brand-divider);
+      }
+      .sets-table th.sets-table-th-num { text-align: right; }
+      .sets-table td {
+        padding: var(--spacing-sm) 0;
+        border-bottom: 1px solid var(--brand-divider);
+        font-size: 13px;
+        color: var(--brand-ink);
+      }
+      .sets-table tr:last-child td { border-bottom: none; }
+      .sets-table td.sets-table-num {
+        text-align: right;
+        font-family: var(--font-family-stat);
+        font-weight: 600;
+      }
+      .sets-table-set-num {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+      }
+      .sets-table-bar {
+        width: 3px;
+        height: 16px;
+        border-radius: 2px;
+        background: var(--stadium-accent);
+      }
+      .sets-table-bar--skipped { background: var(--brand-accent); }
+      .sets-table-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        color: var(--stadium-accent);
+      }
+      .sets-table-status--skipped { color: var(--brand-accent); }
+      .sets-table-pr-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-family: var(--font-family-base);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        padding: 2px var(--spacing-xs);
+        background: var(--brand-accent-container);
+        color: var(--brand-accent);
+        border-radius: var(--radius-stat);
+        margin-left: var(--spacing-xs);
+      }
+      .sets-table-note-trigger {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: var(--radius-full);
+        background: var(--brand-accent-container);
+        color: var(--brand-accent);
+        cursor: pointer;
+        margin-left: var(--spacing-xs);
+        transition: background var(--duration-fast) var(--ease-brand), color var(--duration-fast) var(--ease-brand);
+      }
+      .sets-table-note-trigger:hover {
+        background: color-mix(in srgb, var(--brand-accent) 22%, transparent);
+      }
+      .sets-table-note-trigger svg {
+        width: 13px;
+        height: 13px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .sets-table-note-trigger svg { width: 11px; height: 11px; stroke-width: 2; }
+      .sets-table-note-row { display: none; }
+      .sets-table-note-row.open { display: table-row; }
+      .sets-table-note-row td {
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: var(--brand-mist);
+        font-size: 12px;
+        color: var(--brand-slate);
+        line-height: 1.5;
+      }
+      .sets-table-note-row-label {
+        display: inline-block;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--brand-steel);
+        margin-right: var(--spacing-xs);
+      }
+
+      /* === FAB === */
+      .fab {
+        position: fixed;
+        bottom: var(--spacing-lg);
+        right: var(--spacing-lg);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: 12px var(--spacing-lg);
+        background: var(--brand-ink);
+        color: #fff;
+        border-radius: var(--radius-full);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        box-shadow: var(--shadow-brand-lg);
+        transition: transform var(--duration-fast) var(--ease-brand);
+        z-index: 100;
+      }
+      .fab:hover { transform: translateY(-2px); }
+      .fab svg { color: var(--stadium-accent); }
+
+      /* === Toast === */
+      .toast {
+        position: fixed;
+        bottom: calc(var(--spacing-lg) + 60px);
+        right: var(--spacing-lg);
+        background: var(--brand-ink);
+        color: #fff;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-brand);
+        font-size: 13px;
+        box-shadow: var(--shadow-brand-lg);
+        transform: translateY(20px);
+        opacity: 0;
+        transition: transform var(--duration-base) var(--ease-brand), opacity var(--duration-base) var(--ease-brand);
+        pointer-events: none;
+        max-width: 320px;
+        z-index: 200;
+      }
+      .toast.show { transform: translateY(0); opacity: 1; }
+      .toast-accent { color: var(--stadium-accent); font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div class="app-layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-logo-icon">TW</span>
+          <strong style="font-family: var(--font-family-display); letter-spacing: var(--tracking-tight)">Treinoway</strong>
+        </div>
+        <nav class="sidebar-nav">
+          <a href="#" class="sidebar-link">
+            <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+            Painel
+          </a>
+          <a href="#" class="sidebar-link">
+            <svg class="icon icon-lg" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+            Meu Perfil
+          </a>
+          <div class="sidebar-section-label">Treinador</div>
+          <a href="#" class="sidebar-link sidebar-link--active">
+            <svg class="icon icon-lg" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21c0-4 3-7 6-7s6 3 6 7M16 3a4 4 0 010 8M22 21c0-3-2-6-5-6.5"/></svg>
+            Meus Alunos
+          </a>
+          <a href="#" class="sidebar-link">
+            <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2z"/></svg>
+            iArnold
+          </a>
+          <a href="#" class="sidebar-link">
+            <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M6 9h12M6 9V5h12v4M6 9c0 4 3 7 6 7s6-3 6-7M12 16v3M9 22h6"/></svg>
+            Campeonatos
+          </a>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <div class="mock-shell">
+          <button class="btn-back">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Neto Santos · Sessões
+          </button>
+
+          <!-- ============== STADIUM HERO ============== -->
+          <section class="theme-stadium session-hero">
+            <div class="session-hero-eyebrow">
+              <span class="session-hero-status-dot session-hero-status-dot--abandoned"></span>
+              <span class="session-hero-status-label--abandoned">Parcial</span>
+              <span style="opacity:0.4">·</span>
+              <span>Quinta · 13 Maio 2026 · 18h32</span>
+            </div>
+            <h1 class="session-hero-title">Treino B · Costas e Bíceps</h1>
+            <div class="session-hero-subtitle">
+              Hipertrofia Intermediário
+              <span class="session-hero-subtitle-sep">·</span>
+              Semana 3 / 8
+              <span class="session-hero-subtitle-sep">·</span>
+              Sessão #14
+            </div>
+
+            <div class="session-hero-stats">
+              <div class="stat-display">
+                <span class="stat-display-label">Duração</span>
+                <span class="stat-display-value">58<span class="stat-display-unit">min</span></span>
+                <span class="stat-display-trend">início 18h32 · fim 19h30</span>
+              </div>
+              <div class="stat-display">
+                <span class="stat-display-label">Volume total</span>
+                <span class="stat-display-value">4.030<span class="stat-display-unit">kg</span></span>
+                <span class="stat-display-trend">−6% vs anterior</span>
+              </div>
+              <div class="stat-display">
+                <span class="stat-display-label">Séries</span>
+                <span class="stat-display-value">15<span class="stat-display-unit">/19</span></span>
+                <span class="stat-display-trend">79% completas</span>
+              </div>
+              <div class="stat-display">
+                <span class="stat-display-label">RPE médio</span>
+                <span class="stat-display-value">7.5</span>
+                <span class="stat-display-trend">moderado-alto</span>
+              </div>
+            </div>
+
+            <div class="session-hero-actions">
+              <button class="btn-stadium">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Editar anotação
+              </button>
+              <button class="btn-stadium btn-stadium--ghost">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2z"/></svg>
+                Analisar com iArnold
+              </button>
+            </div>
+          </section>
+
+          <!-- ============== NOTES (aluno + treinador) ============== -->
+          <div class="notes-grid">
+            <section class="note-panel note-panel--student">
+              <div class="note-panel-content">
+                <span class="note-panel-eyebrow">
+                  <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+                  Anotação do aluno
+                </span>
+                <p class="note-panel-text">Costas pesaram no aquecimento, demorou pra soltar. Bíceps voou. Saí muito satisfeito.</p>
+                <p class="note-panel-author">Neto Santos · ao finalizar · 13 Maio 2026 · 19h30</p>
+              </div>
+            </section>
+
+            <section class="note-panel note-panel--trainer">
+              <div class="note-panel-content">
+                <span class="note-panel-eyebrow">
+                  <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z"/></svg>
+                  Anotação do treinador
+                </span>
+                <p class="note-panel-text">Ótimo desempenho hoje. Aumentar carga da remada curvada para 80kg na próxima. Atenção à postura no fim das séries de bíceps.</p>
+                <p class="note-panel-author">Adeildo Neto · 13 Maio 2026 · 21h05</p>
+              </div>
+              <button class="btn-secondary">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Editar
+              </button>
+            </section>
+          </div>
+
+          <!-- ============== EXERCISES ============== -->
+          <section class="cockpit-section">
+            <header class="cockpit-section-header">
+              <h2 class="cockpit-section-eyebrow">
+                Exercícios
+                <span class="cockpit-section-eyebrow-suffix">· 5 exercícios · 24 séries</span>
+              </h2>
+            </header>
+
+            <div class="exercise-card open">
+              <button class="exercise-card-header" style="width:100%;text-align:left;background:none;border:none;cursor:pointer">
+                <span class="exercise-card-index">1</span>
+                <div class="exercise-card-body">
+                  <div class="exercise-card-name">Remada Curvada</div>
+                  <div class="exercise-card-meta">4 séries · 8-12 reps<span class="exercise-card-meta-sep">·</span>desc. 90s</div>
+                </div>
+                <div class="exercise-card-stat">
+                  <span class="exercise-card-stat-label">Volume</span>
+                  <span class="exercise-card-stat-value">2.250<span class="exercise-card-stat-unit">kg</span></span>
+                </div>
+                <svg class="icon exercise-card-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="exercise-card-body-detail">
+                <table class="sets-table">
+                  <thead>
+                    <tr>
+                      <th>Série</th>
+                      <th class="sets-table-th-num">Carga</th>
+                      <th class="sets-table-th-num">Reps</th>
+                      <th class="sets-table-th-num">RPE</th>
+                      <th style="text-align:right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="sets-table-set-num"><span class="sets-table-bar"></span>1</span></td>
+                      <td class="sets-table-num">70 kg</td>
+                      <td class="sets-table-num">12</td>
+                      <td class="sets-table-num">6.5</td>
+                      <td style="text-align:right"><span class="sets-table-status">✓ Completa</span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="sets-table-set-num"><span class="sets-table-bar"></span>2</span></td>
+                      <td class="sets-table-num">75 kg</td>
+                      <td class="sets-table-num">10</td>
+                      <td class="sets-table-num">7.5</td>
+                      <td style="text-align:right"><span class="sets-table-status">✓ Completa</span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="sets-table-set-num"><span class="sets-table-bar"></span>3</span></td>
+                      <td class="sets-table-num">75 kg <span class="sets-table-pr-chip">PR</span></td>
+                      <td class="sets-table-num">10</td>
+                      <td class="sets-table-num">8</td>
+                      <td style="text-align:right"><span class="sets-table-status">✓ Completa</span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="sets-table-set-num"><span class="sets-table-bar"></span>4</span></td>
+                      <td class="sets-table-num">75 kg</td>
+                      <td class="sets-table-num">8</td>
+                      <td class="sets-table-num">8.5</td>
+                      <td style="text-align:right"><span class="sets-table-status">✓ Completa</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="exercise-card open">
+              <button class="exercise-card-header" style="width:100%;text-align:left;background:none;border:none;cursor:pointer">
+                <span class="exercise-card-index">2</span>
+                <div class="exercise-card-body">
+                  <div class="exercise-card-name">Puxada Frontal</div>
+                  <div class="exercise-card-meta">4 séries · 10-12 reps<span class="exercise-card-meta-sep">·</span>desc. 75s</div>
+                </div>
+                <div class="exercise-card-stat">
+                  <span class="exercise-card-stat-label">Volume</span>
+                  <span class="exercise-card-stat-value">1.800<span class="exercise-card-stat-unit">kg</span></span>
+                </div>
+                <svg class="icon exercise-card-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="exercise-card-body-detail">
+                <table class="sets-table">
+                  <thead><tr><th>Série</th><th class="sets-table-th-num">Carga</th><th class="sets-table-th-num">Reps</th><th class="sets-table-th-num">RPE</th><th style="text-align:right">Status</th></tr></thead>
+                  <tbody>
+                    <tr><td><span class="sets-table-set-num"><span class="sets-table-bar"></span>1</span></td><td class="sets-table-num">55 kg</td><td class="sets-table-num">12</td><td class="sets-table-num">7</td><td style="text-align:right"><span class="sets-table-status">✓ Completa</span></td></tr>
+                    <tr data-toggle-note="set-2-2"><td><span class="sets-table-set-num"><span class="sets-table-bar"></span>2</span></td><td class="sets-table-num">60 kg</td><td class="sets-table-num">10</td><td class="sets-table-num">7.5</td><td style="text-align:right"><span class="sets-table-status">✓ Completa</span><button class="sets-table-note-trigger" aria-label="Ver nota do aluno"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z"/></svg></button></td></tr>
+                    <tr class="sets-table-note-row" data-note="set-2-2"><td colspan="5"><span class="sets-table-note-row-label">Aluno</span>Foquei no controle excêntrico, desceu mais devagar.</td></tr>
+                    <tr><td><span class="sets-table-set-num"><span class="sets-table-bar"></span>3</span></td><td class="sets-table-num">60 kg</td><td class="sets-table-num">10</td><td class="sets-table-num">8</td><td style="text-align:right"><span class="sets-table-status">✓ Completa</span></td></tr>
+                    <tr data-toggle-note="set-2-4"><td><span class="sets-table-set-num"><span class="sets-table-bar sets-table-bar--skipped"></span>4</span></td><td class="sets-table-num">—</td><td class="sets-table-num">—</td><td class="sets-table-num">—</td><td style="text-align:right"><span class="sets-table-status sets-table-status--skipped">⤬ Pulada</span><button class="sets-table-note-trigger" aria-label="Ver nota do aluno"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z"/></svg></button></td></tr>
+                    <tr class="sets-table-note-row open" data-note="set-2-4"><td colspan="5"><span class="sets-table-note-row-label">Aluno</span>Ombro travou no final da 3ª, segurei pra não machucar.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="exercise-card exercise-card--skipped">
+              <button class="exercise-card-header" style="width:100%;text-align:left;background:none;border:none;cursor:pointer">
+                <span class="exercise-card-index">3</span>
+                <div class="exercise-card-body">
+                  <div class="exercise-card-name">Remada Cavalinho</div>
+                  <div class="exercise-card-meta">3 séries planejadas · 12 reps<span class="exercise-card-meta-sep">·</span>desc. 60s</div>
+                </div>
+                <span class="exercise-card-status">
+                  <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  Pulado
+                </span>
+                <svg class="icon exercise-card-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="exercise-card-body-detail">
+                <div class="exercise-card-skip-note">
+                  <span class="exercise-card-skip-note-label">Motivo · anotação do aluno</span>
+                  Mesmo padrão de puxada da remada curvada, ombro estava sobrecarregado. Substituí por mais 1 série de pulldown unilateral.
+                </div>
+              </div>
+            </div>
+
+            <div class="exercise-card">
+              <button class="exercise-card-header" style="width:100%;text-align:left;background:none;border:none;cursor:pointer">
+                <span class="exercise-card-index">4</span>
+                <div class="exercise-card-body">
+                  <div class="exercise-card-name">Rosca Direta</div>
+                  <div class="exercise-card-meta">4 séries · 10 reps<span class="exercise-card-meta-sep">·</span>desc. 60s</div>
+                </div>
+                <div class="exercise-card-stat">
+                  <span class="exercise-card-stat-label">Volume</span>
+                  <span class="exercise-card-stat-value">128<span class="exercise-card-stat-unit">kg</span></span>
+                </div>
+                <svg class="icon exercise-card-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+            </div>
+
+            <div class="exercise-card">
+              <button class="exercise-card-header" style="width:100%;text-align:left;background:none;border:none;cursor:pointer">
+                <span class="exercise-card-index">5</span>
+                <div class="exercise-card-body">
+                  <div class="exercise-card-name">Rosca Martelo</div>
+                  <div class="exercise-card-meta">4 séries · 10 reps<span class="exercise-card-meta-sep">·</span>desc. 60s</div>
+                </div>
+                <div class="exercise-card-stat">
+                  <span class="exercise-card-stat-label">Volume</span>
+                  <span class="exercise-card-stat-value">102<span class="exercise-card-stat-unit">kg</span></span>
+                </div>
+                <svg class="icon exercise-card-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <button class="fab">
+      <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2z"/></svg>
+      Perguntar ao iArnold
+    </button>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      // Toggle exercise cards
+      document.querySelectorAll('.exercise-card-header').forEach((header) => {
+        header.addEventListener('click', () => {
+          header.parentElement.classList.toggle('open');
+        });
+      });
+
+      // Toggle set notes
+      document.querySelectorAll('.sets-table-note-trigger').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const row = btn.closest('tr');
+          const key = row.dataset.toggleNote;
+          const noteRow = document.querySelector(`tr.sets-table-note-row[data-note="${key}"]`);
+          if (noteRow) noteRow.classList.toggle('open');
+        });
+      });
+
+      // Toast
+      const toastEl = document.getElementById('toast');
+      let toastTimer;
+      function toast(msg) {
+        clearTimeout(toastTimer);
+        toastEl.innerHTML = msg;
+        toastEl.classList.add('show');
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
+      }
+
+      // CTAs
+      document.querySelectorAll('.btn-stadium').forEach((b) => {
+        b.addEventListener('click', () => {
+          toast(`Ação: <span class="toast-accent">${b.textContent.trim()}</span>`);
+        });
+      });
+      document.querySelector('.btn-back').addEventListener('click', () =>
+        toast('Voltando: <span class="toast-accent">Sessões de Neto Santos</span>'),
+      );
+      document.querySelector('.fab').addEventListener('click', () =>
+        toast('Abrindo <span class="toast-accent">iArnold</span>…'),
+      );
+      document.querySelectorAll('.note-panel .btn-secondary').forEach((b) =>
+        b.addEventListener('click', () => toast('Editando anotação…')),
+      );
+    </script>
+  </body>
+</html>

@@ -278,6 +278,52 @@ describe('ExerciseForm', () => {
       });
     });
 
+    it('renders the intensity ramp only when type is cardio', async () => {
+      const user = userEvent.setup();
+      renderForm();
+      expect(
+        screen.queryByRole('radiogroup', { name: 'Intensidade' })
+      ).not.toBeInTheDocument();
+      await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'cardio');
+      expect(
+        screen.getByRole('radiogroup', { name: 'Intensidade' })
+      ).toBeInTheDocument();
+    });
+
+    it('sends the selected intensity key for a cardio exercise', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValueOnce({ data: {} });
+      renderForm();
+      await switchToDuration(user);
+      await user.type(screen.getByLabelText(/nome/i), 'Esteira');
+      await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'cardio');
+      await user.type(screen.getByLabelText(/^duração$/i), '20');
+      await user.click(screen.getByRole('radio', { name: 'Moderada' }));
+      await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith(
+          '/trainer/trainings/training-1/exercises',
+          expect.objectContaining({ intensity: 'moderate' })
+        );
+      });
+    });
+
+    it('strips intensity from the payload when type is not cardio', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValueOnce({ data: {} });
+      renderForm();
+      await user.type(screen.getByLabelText(/nome/i), 'Supino');
+      await selectOption(user, screen.getByRole('combobox', { name: /tipo/i }), 'strength');
+      await fillRepsValues(user);
+      await user.click(screen.getByRole('button', { name: /adicionar exercício/i }));
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith(
+          '/trainer/trainings/training-1/exercises',
+          expect.objectContaining({ intensity: null })
+        );
+      });
+    });
+
     it('sends duration and prescriptionMode "duration" in payload when duration mode active', async () => {
       const user = userEvent.setup();
       api.post.mockResolvedValueOnce({ data: {} });

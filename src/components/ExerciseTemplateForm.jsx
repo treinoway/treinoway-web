@@ -14,10 +14,14 @@ import {
 } from 'lucide-react';
 import VideoLibraryPicker from './VideoLibraryPicker';
 import PrescriptionField from './PrescriptionField';
+import IntensityField from './IntensityField';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
 import { getYoutubeVideoId } from '../utils/youtube';
+import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
+
+const INTENSITY_REQUIRES_CARDIO_CODE = 'exercise.intensityRequiresCardio';
 
 const EXERCISE_TYPES = [
   { value: 'strength', label: 'Força', Icon: Dumbbell },
@@ -43,6 +47,7 @@ const EMPTY_FORM = {
   hasLoad: true,
   suggestedLoad: '',
   notes: '',
+  intensity: null,
 };
 
 const buildPayload = (data) => {
@@ -53,6 +58,7 @@ const buildPayload = (data) => {
     hasLoad: data.hasLoad,
     prescriptionMode: data.prescriptionMode,
   };
+  payload.intensity = data.type === 'cardio' ? (data.intensity || null) : null;
   if (data.videoUrl?.trim()) payload.videoUrl = data.videoUrl.trim();
   if (data.sets !== '' && data.sets != null) payload.sets = parseInt(data.sets, 10);
 
@@ -96,6 +102,7 @@ const buildInitialForm = (template) => {
     hasLoad: template.hasLoad || false,
     suggestedLoad: template.suggestedLoad ?? '',
     notes: template.notes || '',
+    intensity: template.intensity ?? null,
   };
 };
 
@@ -104,6 +111,7 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
   const [loading, setLoading] = useState(false);
   const [durationError, setDurationError] = useState('');
   const [repsError, setRepsError] = useState('');
+  const [intensityError, setIntensityError] = useState('');
   const [formData, setFormData] = useState(() => buildInitialForm(exerciseTemplate));
   const [pickerOpen, setPickerOpen] = useState(false);
   const [videoPlaying, setVideoPlaying] = useState(false);
@@ -118,6 +126,7 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
     setFormData(initial);
     setDurationError('');
     setRepsError('');
+    setIntensityError('');
     setPublicConfirmedThisSession(false);
     onNameChange?.(initial.name);
   }, [exerciseTemplate, onNameChange]);
@@ -134,6 +143,21 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
 
   const clearDurationError = useCallback(() => setDurationError(''), []);
   const clearRepsError = useCallback(() => setRepsError(''), []);
+
+  const handleIntensityChange = useCallback((value) => {
+    setIntensityError('');
+    setFormData((prev) => ({ ...prev, intensity: value }));
+  }, []);
+
+  const handleIntensityClear = useCallback(() => {
+    setIntensityError('');
+    setFormData((prev) => ({ ...prev, intensity: null }));
+  }, []);
+
+  const handleKeepCardio = useCallback(() => {
+    setIntensityError('');
+    setFormData((prev) => ({ ...prev, type: 'cardio' }));
+  }, []);
 
   const handleRestChipClick = (seconds) => {
     setFormData((prev) => ({ ...prev, restInterval: String(seconds) }));
@@ -182,7 +206,12 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
       }
       onSuccess?.(response.data);
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      const message = error.userMessage || translateError(error);
+      if (error.response?.data?.messageCode === INTENSITY_REQUIRES_CARDIO_CODE) {
+        setIntensityError(message);
+      } else {
+        showToast(message, 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -265,6 +294,17 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
               ))}
             </div>
           </div>
+
+          <IntensityField
+            idPrefix="etf"
+            type={formData.type}
+            intensity={formData.intensity}
+            options={EXERCISE_INTENSITY_OPTIONS}
+            errorMessage={intensityError}
+            onChange={handleIntensityChange}
+            onClear={handleIntensityClear}
+            onKeepCardio={handleKeepCardio}
+          />
         </div>
 
         {/* ==== Demonstração (vídeo) ==== */}

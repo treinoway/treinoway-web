@@ -11,6 +11,7 @@ import { getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
 import { getYoutubeVideoId } from '../../utils/youtube';
 import { useToast } from '../../contexts/ToastContext';
+import IntensityBadge from '../../components/IntensityBadge';
 
 const MyProtocolDetail = () => {
   const { id } = useParams();
@@ -227,7 +228,13 @@ const MyProtocolDetail = () => {
                         return (
                           <div key={exercise.id} className="training-card-exercise-row">
                             <div>
-                              <span className="training-card-exercise-name">{exercise.name}</span>
+                              <span className="training-card-exercise-name-row">
+                                <span className="training-card-exercise-name">{exercise.name}</span>
+                                <IntensityBadge
+                                  intensity={exercise.intensity}
+                                  label={exercise.intensityLabel}
+                                />
+                              </span>
                               {meta && (
                                 <span className="training-card-exercise-meta">{meta}</span>
                               )}

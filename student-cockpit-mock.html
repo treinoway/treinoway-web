@@ -1,0 +1,2792 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Treinoway · Student Cockpit (Mock)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* === Athletic-Tech tokens === */
+        --brand-ink: #0a0f1c;
+        --brand-slate: #1e293b;
+        --brand-steel: #64748b;
+        --brand-mist: #f1f5f9;
+        --brand-divider: #e2e8f0;
+        --brand-primary: #0a5fcc;
+        --brand-primary-dark: #083e85;
+        --brand-accent: #ff6b1a;
+        --brand-accent-container: #fff1ea;
+
+        --md-surface: #ffffff;
+        --md-surface-container: #f0f1f4;
+        --md-surface-container-high: #e6e7eb;
+        --md-outline-variant: #c7c7cc;
+        --md-error: #d32f2f;
+        --md-error-container: #fddede;
+        --md-success: #2e7d32;
+        --md-success-container: #d4edda;
+
+        --stadium-bg: #0a0f1c;
+        --stadium-surface: #111827;
+        --stadium-surface-elevated: #1e293b;
+        --stadium-text: #f1f5f9;
+        --stadium-text-muted: #94a3b8;
+        --stadium-accent: #38bdf8;
+        --stadium-divider: #1e293b;
+
+        --spacing-xs: 4px;
+        --spacing-sm: 8px;
+        --spacing-md: 16px;
+        --spacing-lg: 24px;
+        --spacing-xl: 32px;
+        --spacing-xxl: 48px;
+
+        --radius-stat: 4px;
+        --radius-brand: 8px;
+        --radius-lg: 20px;
+        --radius-full: 9999px;
+
+        --shadow-brand-sm: 0 1px 2px rgba(10, 15, 28, 0.06), 0 0 0 1px rgba(10, 15, 28, 0.04);
+        --shadow-brand-md: 0 4px 12px rgba(10, 15, 28, 0.1), 0 0 0 1px rgba(10, 15, 28, 0.04);
+        --shadow-brand-lg: 0 18px 48px rgba(10, 15, 28, 0.18), 0 0 0 1px rgba(10, 15, 28, 0.06);
+        --shadow-stadium: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        --shadow-focus: 0 0 0 2px var(--brand-primary);
+
+        --duration-fast: 150ms;
+        --duration-base: 200ms;
+        --duration-slow: 300ms;
+        --duration-achievement: 280ms;
+        --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+        --ease-kinetic: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+        --font-family-display: 'Space Grotesk', system-ui, sans-serif;
+        --font-family-base: 'Inter', system-ui, sans-serif;
+        --font-family-stat: 'Space Grotesk', ui-monospace, monospace;
+
+        --tracking-tight: -0.02em;
+        --tracking-normal: 0;
+        --tracking-wide: 0.08em;
+        --tracking-wider: 0.12em;
+
+        --line-height-tight: 1.2;
+        --line-height-normal: 1.5;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        font-family: var(--font-family-base);
+        color: var(--brand-ink);
+        background: var(--md-surface-container);
+        line-height: var(--line-height-normal);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      img,
+      svg {
+        display: block;
+      }
+
+      button {
+        font: inherit;
+        cursor: pointer;
+        background: none;
+        border: none;
+        color: inherit;
+      }
+
+      a {
+        color: var(--brand-primary);
+        text-decoration: none;
+      }
+
+      /* === App shell === */
+      .app-layout {
+        min-height: 100vh;
+        background: var(--md-surface-container);
+        display: flex;
+        flex-direction: column;
+      }
+      @media (min-width: 768px) {
+        .app-layout {
+          flex-direction: row;
+          height: 100vh;
+          overflow: hidden;
+        }
+      }
+
+      .main-content {
+        flex: 1;
+        overflow: auto;
+        background: var(--brand-mist);
+      }
+      .mock-shell {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: var(--spacing-md);
+      }
+      @media (min-width: 768px) {
+        .mock-shell {
+          padding: var(--spacing-lg);
+        }
+      }
+      @media (min-width: 1024px) {
+        .mock-shell {
+          padding: var(--spacing-xl);
+        }
+      }
+
+      /* === Sidebar === */
+      .sidebar {
+        background: var(--md-surface);
+        border-right: 1px solid var(--brand-divider);
+        transition: width var(--duration-base) var(--ease-brand);
+        display: none;
+        flex-direction: column;
+      }
+      @media (min-width: 768px) {
+        .sidebar {
+          display: flex;
+          overflow-y: auto;
+          flex-shrink: 0;
+        }
+      }
+      .sidebar--open {
+        width: 16rem;
+      }
+      .sidebar--collapsed {
+        width: 5rem;
+        overflow: hidden;
+      }
+      .sidebar .sidebar-link-label,
+      .sidebar .sidebar-section-label,
+      .sidebar .sidebar-dropdown-chevron,
+      .sidebar .sidebar-link-badge,
+      .sidebar .btn-logout span,
+      .sidebar .sidebar-user-info {
+        opacity: 1;
+        max-width: 12rem;
+        overflow: hidden;
+        white-space: nowrap;
+        transition: opacity var(--duration-base) var(--ease-brand),
+          max-width var(--duration-base) var(--ease-brand);
+      }
+      .sidebar--collapsed .sidebar-link-label,
+      .sidebar--collapsed .sidebar-section-label,
+      .sidebar--collapsed .sidebar-dropdown-chevron,
+      .sidebar--collapsed .sidebar-link-badge,
+      .sidebar--collapsed .btn-logout span,
+      .sidebar--collapsed .sidebar-user-info {
+        opacity: 0;
+        max-width: 0;
+        pointer-events: none;
+      }
+
+      .sidebar-header {
+        padding: var(--spacing-md);
+        border-bottom: 1px solid var(--brand-divider);
+      }
+      .sidebar-header-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .sidebar-logo-btn {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm);
+        border-radius: var(--radius-brand);
+        min-height: 2.75rem;
+        transition: background var(--duration-fast) var(--ease-brand);
+      }
+      .sidebar-logo-btn:hover {
+        background: var(--brand-mist);
+      }
+      .sidebar-logo-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: var(--radius-stat);
+        background: linear-gradient(135deg, var(--brand-primary), var(--stadium-accent));
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-family-display);
+        font-weight: 700;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      .sidebar-toggle-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-sm);
+        border-radius: var(--radius-brand);
+        color: var(--brand-steel);
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+        flex-shrink: 0;
+        overflow: hidden;
+        transition: background var(--duration-base) var(--ease-brand),
+          color var(--duration-base) var(--ease-brand),
+          opacity var(--duration-base) var(--ease-brand),
+          max-width var(--duration-base) var(--ease-brand),
+          padding var(--duration-base) var(--ease-brand);
+      }
+      .sidebar-toggle-btn:hover {
+        background: var(--brand-mist);
+        color: var(--brand-ink);
+      }
+      .sidebar--collapsed .sidebar-toggle-btn {
+        opacity: 0;
+        max-width: 0;
+        min-width: 0;
+        padding: 0;
+        pointer-events: none;
+      }
+
+      .sidebar-nav {
+        flex: 1;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .sidebar-section-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        color: var(--brand-steel);
+        margin-top: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+        padding: var(--spacing-sm) var(--spacing-sm) 0;
+        border-top: 1px solid var(--brand-divider);
+        text-transform: uppercase;
+      }
+      .sidebar-link {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--radius-brand);
+        transition: background-color var(--duration-fast) var(--ease-brand),
+          color var(--duration-fast) var(--ease-brand);
+        color: var(--brand-slate);
+      }
+      .sidebar-link:hover {
+        background: rgba(0, 0, 0, 0.04);
+        color: var(--brand-ink);
+      }
+      .sidebar-link--active {
+        background: rgba(10, 95, 204, 0.08);
+        color: var(--brand-primary);
+        border-left: 3px solid var(--brand-primary);
+        padding-left: calc(0.75rem - 3px);
+      }
+      .sidebar-link--active:hover {
+        background: rgba(10, 95, 204, 0.12);
+        color: var(--brand-primary);
+      }
+      .sidebar-link-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .sidebar-link-label {
+        margin-left: 0.75rem;
+        font-size: 14px;
+      }
+      .sidebar-link-badge {
+        margin-left: auto;
+        background: var(--brand-accent);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: var(--radius-stat);
+        line-height: 1.3;
+      }
+
+      .sidebar-dropdown-toggle {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--radius-brand);
+        color: var(--brand-slate);
+        font-size: 14px;
+        text-align: left;
+        transition: background-color var(--duration-fast) var(--ease-brand),
+          color var(--duration-fast) var(--ease-brand);
+      }
+      .sidebar-dropdown-toggle:hover {
+        background: rgba(0, 0, 0, 0.04);
+        color: var(--brand-ink);
+      }
+      .sidebar-dropdown-chevron {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        transition: transform 0.2s ease;
+        opacity: 0.6;
+      }
+      .sidebar-dropdown-chevron--open {
+        transform: rotate(180deg);
+      }
+      .sidebar-dropdown-children {
+        display: none;
+        flex-direction: column;
+        gap: 0.125rem;
+        padding-left: 0.75rem;
+        margin-top: 0.125rem;
+      }
+      .sidebar-dropdown-children.open {
+        display: flex;
+      }
+      .sidebar--collapsed .sidebar-dropdown-children {
+        display: none !important;
+      }
+      .sidebar-child-link {
+        display: flex;
+        align-items: center;
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--radius-brand);
+        color: var(--brand-steel);
+        font-size: 13px;
+        transition: background-color var(--duration-fast) var(--ease-brand),
+          color var(--duration-fast) var(--ease-brand);
+      }
+      .sidebar-child-link:hover {
+        background: rgba(0, 0, 0, 0.04);
+        color: var(--brand-ink);
+      }
+
+      .sidebar-footer {
+        padding: var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+        border-top: 1px solid var(--brand-divider);
+      }
+      .sidebar-user-info {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+      }
+      .sidebar-user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-full);
+        background: var(--brand-primary);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .sidebar-user-name {
+        font-size: 0.875rem;
+        color: var(--brand-ink);
+        margin-bottom: 0.25rem;
+      }
+      .sidebar-user-email {
+        font-size: 0.75rem;
+        color: var(--brand-steel);
+      }
+      .btn-logout {
+        width: 100%;
+        padding: var(--spacing-sm);
+        background: transparent;
+        color: var(--brand-steel);
+        border-radius: var(--radius-brand);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
+        font-size: 13px;
+        font-weight: 600;
+        transition: background-color var(--duration-fast) var(--ease-brand),
+          color var(--duration-fast) var(--ease-brand);
+      }
+      .btn-logout:hover {
+        background: rgba(0, 0, 0, 0.04);
+        color: var(--md-error);
+      }
+
+      /* === Back nav === */
+      .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--brand-primary);
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        padding: var(--spacing-xs) 0;
+        margin-bottom: var(--spacing-md);
+        transition: opacity var(--duration-fast) var(--ease-brand);
+      }
+      .btn-back:hover {
+        opacity: 0.7;
+      }
+
+      /* === Stadium hero === */
+      .theme-stadium {
+        background: var(--stadium-bg);
+        color: var(--stadium-text);
+      }
+
+      .student-cockpit-hero {
+        border-radius: var(--radius-brand);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-stadium);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: var(--spacing-xl);
+      }
+      @media (min-width: 1024px) {
+        .student-cockpit-hero {
+          padding: var(--spacing-xl);
+        }
+      }
+
+      .student-cockpit-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 85% 15%, rgba(56, 189, 248, 0.12), transparent 60%);
+        pointer-events: none;
+      }
+
+      .student-cockpit-hero-identity {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+        position: relative;
+      }
+
+      /* === Subscription strip === */
+      .subscription-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-lg);
+        position: relative;
+      }
+      .subscription-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: var(--radius-brand);
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+        font-size: 11px;
+        color: var(--stadium-text-muted);
+        transition: background var(--duration-fast) var(--ease-brand);
+      }
+      .subscription-chip:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .subscription-chip-label {
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--stadium-text-muted);
+      }
+      .subscription-chip-value {
+        font-family: var(--font-family-display);
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--stadium-text);
+        letter-spacing: var(--tracking-tight);
+      }
+      .subscription-chip-value-stat {
+        font-family: var(--font-family-stat);
+        font-variant-numeric: tabular-nums;
+      }
+      .subscription-chip-sub {
+        font-size: 10px;
+        color: var(--stadium-text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .subscription-chip--warn {
+        background: rgba(255, 107, 26, 0.12);
+        box-shadow: inset 0 0 0 1px rgba(255, 107, 26, 0.4);
+      }
+      .subscription-chip--warn .subscription-chip-label {
+        color: var(--brand-accent);
+      }
+      .subscription-chip--warn .subscription-chip-value {
+        color: #ffb38a;
+      }
+      .subscription-chip-divider {
+        width: 1px;
+        height: 16px;
+        background: rgba(148, 163, 184, 0.3);
+      }
+      .subscription-chip-action {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        color: var(--stadium-accent);
+        padding: 4px var(--spacing-sm);
+        border-radius: var(--radius-stat);
+        transition: background var(--duration-fast) var(--ease-brand);
+      }
+      .subscription-chip-action:hover {
+        background: rgba(56, 189, 248, 0.12);
+      }
+      .subscription-chip--warn .subscription-chip-action {
+        color: var(--brand-accent);
+      }
+      .subscription-chip--warn .subscription-chip-action:hover {
+        background: rgba(255, 107, 26, 0.15);
+      }
+
+      .student-cockpit-hero-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius-full);
+        background: var(--stadium-surface-elevated);
+        color: var(--stadium-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-family-display);
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: var(--tracking-tight);
+        box-shadow: 0 0 0 2px var(--stadium-accent);
+        flex-shrink: 0;
+      }
+
+      .student-cockpit-hero-identity-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .student-cockpit-hero-name {
+        font-family: var(--font-family-display);
+        font-weight: 700;
+        font-size: 24px;
+        letter-spacing: var(--tracking-tight);
+        line-height: var(--line-height-tight);
+        color: var(--stadium-text);
+      }
+      @media (min-width: 768px) {
+        .student-cockpit-hero-name {
+          font-size: 28px;
+        }
+      }
+
+      .student-cockpit-hero-meta {
+        font-size: 13px;
+        color: var(--stadium-text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .student-cockpit-hero-meta-sep {
+        margin: 0 var(--spacing-xs);
+        opacity: 0.4;
+      }
+
+      /* === Eyebrow with active protocol + period === */
+      .student-cockpit-hero-eyebrow {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-lg);
+        position: relative;
+      }
+      @media (min-width: 768px) {
+        .student-cockpit-hero-eyebrow {
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+        }
+      }
+
+      .student-cockpit-hero-protocol {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--stadium-text-muted);
+      }
+      .student-cockpit-hero-protocol-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: var(--radius-full);
+        background: var(--stadium-accent);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+        animation: pulse 2s var(--ease-brand) infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.55;
+        }
+      }
+      .student-cockpit-hero-protocol-name {
+        color: var(--stadium-text);
+      }
+      .student-cockpit-hero-protocol-week {
+        color: var(--stadium-accent);
+      }
+
+      .period-picker-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        background: var(--stadium-surface-elevated);
+        color: var(--stadium-text);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--radius-brand);
+        transition: background var(--duration-fast) var(--ease-brand);
+        align-self: flex-start;
+      }
+      .period-picker-btn:hover {
+        background: rgba(56, 189, 248, 0.12);
+      }
+
+      /* === Stat grid === */
+      .student-cockpit-hero-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+        position: relative;
+      }
+      @media (min-width: 1024px) {
+        .student-cockpit-hero-stats {
+          grid-template-columns: repeat(4, 1fr);
+          gap: var(--spacing-lg);
+        }
+      }
+
+      .stat-display {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-md) 0;
+        border-top: 1px solid var(--stadium-divider);
+      }
+      @media (min-width: 1024px) {
+        .stat-display {
+          border-top: none;
+          padding: 0;
+        }
+      }
+
+      .stat-display-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--stadium-text-muted);
+      }
+
+      .stat-display-value {
+        font-family: var(--font-family-stat);
+        font-weight: 600;
+        font-size: 56px;
+        line-height: 1;
+        letter-spacing: var(--tracking-tight);
+        color: var(--stadium-text);
+        font-variant-numeric: tabular-nums;
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+      }
+      @media (max-width: 767px) {
+        .stat-display-value {
+          font-size: 40px;
+        }
+      }
+
+      .stat-display-unit {
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--stadium-text-muted);
+      }
+
+      .stat-display-trend {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-family: var(--font-family-base);
+        font-size: 12px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .stat-display-trend--up {
+        color: var(--stadium-accent);
+      }
+      .stat-display-trend--down {
+        color: var(--brand-accent);
+      }
+      .stat-display-trend--neutral {
+        color: var(--stadium-text-muted);
+      }
+
+      /* === Viz === */
+      .student-cockpit-hero-viz {
+        position: relative;
+        margin-bottom: var(--spacing-lg);
+        padding: var(--spacing-md);
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--radius-brand);
+        box-shadow: var(--shadow-stadium);
+      }
+
+      .waveform {
+        display: flex;
+        align-items: flex-end;
+        gap: 3px;
+        height: 92px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      }
+      .waveform-bar {
+        flex: 1;
+        background: linear-gradient(180deg, var(--stadium-accent), rgba(56, 189, 248, 0.4));
+        border-radius: 2px;
+        min-height: 4px;
+        transition: opacity var(--duration-fast) var(--ease-brand);
+        align-self: flex-end;
+      }
+      .waveform-bar--rest {
+        background: transparent;
+        min-height: 0;
+        height: 1px !important;
+      }
+      .waveform-bar--abandoned {
+        background: linear-gradient(180deg, var(--brand-accent), rgba(255, 107, 26, 0.4));
+      }
+
+      .waveform-axis {
+        display: flex;
+        justify-content: space-between;
+        margin-top: var(--spacing-sm);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        color: var(--stadium-text-muted);
+      }
+
+      .waveform-legend {
+        display: flex;
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-sm);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--stadium-text-muted);
+        flex-wrap: wrap;
+      }
+      .waveform-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+      }
+      .waveform-legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+      }
+
+      /* === CTAs === */
+      .student-cockpit-hero-actions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        position: relative;
+      }
+      @media (min-width: 768px) {
+        .student-cockpit-hero-actions {
+          flex-direction: row;
+        }
+      }
+
+      .btn-primary,
+      .btn-secondary,
+      .btn-stadium {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        padding: 12px var(--spacing-md);
+        border-radius: var(--radius-brand);
+        min-height: 44px;
+        transition: all var(--duration-fast) var(--ease-brand);
+        white-space: nowrap;
+      }
+
+      .btn-primary {
+        background: var(--brand-primary);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--brand-primary-dark);
+        box-shadow: var(--shadow-brand-sm);
+      }
+
+      .btn-stadium {
+        background: var(--stadium-accent);
+        color: var(--stadium-bg);
+        flex: 1;
+      }
+      .btn-stadium:hover {
+        background: #60cdff;
+      }
+      .btn-stadium--ghost {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--stadium-text);
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+      }
+      .btn-stadium--ghost:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .btn-secondary {
+        background: var(--md-surface);
+        color: var(--brand-ink);
+        box-shadow: inset 0 0 0 1px var(--md-outline-variant);
+      }
+      .btn-secondary:hover {
+        background: var(--md-surface-container-high);
+      }
+
+      .btn-sm {
+        font-size: 12px;
+        min-height: 36px;
+        padding: 6px var(--spacing-sm);
+      }
+
+      /* === Sections === */
+      .cockpit-section {
+        margin-bottom: var(--spacing-xl);
+      }
+
+      .cockpit-grid-2col {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--spacing-xl);
+        margin-bottom: var(--spacing-xl);
+      }
+      @media (min-width: 1024px) {
+        .cockpit-grid-2col {
+          grid-template-columns: 1fr 1fr;
+          gap: var(--spacing-lg);
+        }
+        .cockpit-grid-2col .cockpit-section {
+          margin-bottom: 0;
+        }
+      }
+
+      .cockpit-section-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .cockpit-section-eyebrow {
+        font-family: var(--font-family-display);
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--brand-ink);
+        display: inline-flex;
+        align-items: baseline;
+        gap: var(--spacing-sm);
+      }
+      .cockpit-section-eyebrow-suffix {
+        font-weight: 500;
+        font-size: 11px;
+        color: var(--brand-steel);
+        letter-spacing: var(--tracking-wide);
+      }
+
+      .cockpit-section-link {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        color: var(--brand-primary);
+      }
+      .cockpit-section-link:hover {
+        color: var(--brand-primary-dark);
+      }
+
+      /* === Recent sessions === */
+      .session-row {
+        display: grid;
+        grid-template-columns: 4px 56px 1fr auto auto;
+        align-items: center;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
+        background: var(--md-surface);
+        border-radius: var(--radius-brand);
+        box-shadow: var(--shadow-brand-sm);
+        margin-bottom: var(--spacing-sm);
+        transition: box-shadow var(--duration-fast) var(--ease-brand);
+      }
+      .session-row:hover {
+        box-shadow: var(--shadow-brand-md);
+      }
+
+      .session-row-status {
+        align-self: stretch;
+        background: var(--stadium-accent);
+        border-radius: 2px;
+      }
+      .session-row-status--partial {
+        background: var(--stadium-accent);
+        opacity: 0.5;
+      }
+      .session-row-status--abandoned {
+        background: var(--brand-accent);
+      }
+
+      .session-row-date {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-family: var(--font-family-display);
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .session-row-date-dow {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--brand-steel);
+        margin-bottom: 4px;
+      }
+      .session-row-date-day {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--brand-ink);
+        letter-spacing: var(--tracking-tight);
+      }
+      .session-row-date-month {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--brand-steel);
+        margin-top: 2px;
+      }
+
+      .session-row-body {
+        min-width: 0;
+      }
+      .session-row-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--brand-ink);
+        margin-bottom: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .session-row-meta {
+        font-size: 12px;
+        color: var(--brand-steel);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .session-row-chip {
+        font-family: var(--font-family-stat);
+        font-size: 12px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        padding: 4px var(--spacing-sm);
+        background: var(--md-surface-container);
+        border-radius: var(--radius-stat);
+        color: var(--brand-slate);
+      }
+      .session-row-chip-label {
+        font-family: var(--font-family-base);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        color: var(--brand-steel);
+        margin-right: 4px;
+        text-transform: uppercase;
+      }
+
+      .session-row-note {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-full);
+        background: var(--md-surface-container);
+        color: var(--brand-steel);
+      }
+
+      @media (max-width: 767px) {
+        .session-row {
+          grid-template-columns: 4px 44px 1fr auto;
+        }
+        .session-row-note {
+          display: none;
+        }
+      }
+
+      /* === Progression === */
+      .progression-group {
+        background: var(--md-surface);
+        border-radius: var(--radius-brand);
+        box-shadow: var(--shadow-brand-sm);
+        margin-bottom: var(--spacing-sm);
+        overflow: hidden;
+      }
+      .progression-group-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        width: 100%;
+        padding: var(--spacing-md);
+        text-align: left;
+        transition: background var(--duration-fast) var(--ease-brand);
+      }
+      .progression-group-header:hover {
+        background: var(--md-surface-container);
+      }
+      .progression-group-letter {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-stat);
+        background: var(--brand-ink);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-family-display);
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .progression-group-title {
+        flex: 1;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--brand-ink);
+      }
+      .progression-group-meta {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        color: var(--brand-steel);
+      }
+
+      .progression-list {
+        list-style: none;
+        border-top: 1px solid var(--brand-divider);
+      }
+      .progression-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto auto;
+        align-items: center;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
+        border-bottom: 1px solid var(--brand-divider);
+        transition: background var(--duration-fast) var(--ease-brand);
+      }
+      .progression-row:last-child {
+        border-bottom: none;
+      }
+      .progression-row:hover {
+        background: var(--md-surface-container);
+      }
+
+      .progression-row-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--brand-ink);
+      }
+      .progression-row-trail {
+        font-size: 11px;
+        color: var(--brand-steel);
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+      }
+      .progression-row-load {
+        font-family: var(--font-family-stat);
+        font-size: 16px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: var(--brand-ink);
+      }
+      .progression-row-load-unit {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--brand-steel);
+        margin-left: 2px;
+      }
+
+      .progression-sparkline {
+        width: 96px;
+        height: 28px;
+        display: none;
+      }
+      @media (min-width: 1024px) {
+        .progression-sparkline {
+          display: block;
+        }
+      }
+
+      .trend-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-family: var(--font-family-stat);
+        font-size: 12px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        padding: 4px var(--spacing-sm);
+        border-radius: var(--radius-stat);
+      }
+      .trend-chip--up {
+        background: rgba(10, 95, 204, 0.1);
+        color: var(--brand-primary);
+      }
+      .trend-chip--down {
+        background: var(--brand-accent-container);
+        color: var(--brand-accent);
+      }
+      .trend-chip--neutral {
+        background: var(--md-surface-container);
+        color: var(--brand-steel);
+      }
+
+      /* === Plano atual (rich card) === */
+      .plan-card {
+        background: var(--md-surface);
+        border-radius: var(--radius-brand);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-brand-sm);
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+        position: relative;
+        overflow: hidden;
+      }
+      @media (min-width: 768px) {
+        .plan-card {
+          grid-template-columns: 1fr auto;
+          align-items: center;
+          gap: var(--spacing-xl);
+        }
+      }
+      .plan-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(180deg, var(--brand-primary), var(--stadium-accent));
+      }
+
+      .plan-card-body {
+        min-width: 0;
+      }
+      .plan-card-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--brand-steel);
+        margin-bottom: var(--spacing-xs);
+      }
+      .plan-card-title {
+        font-family: var(--font-family-display);
+        font-weight: 700;
+        font-size: 20px;
+        letter-spacing: var(--tracking-tight);
+        color: var(--brand-ink);
+        margin-bottom: var(--spacing-xs);
+      }
+      .plan-card-meta {
+        display: flex;
+        gap: var(--spacing-md);
+        font-size: 12px;
+        color: var(--brand-steel);
+        font-variant-numeric: tabular-nums;
+        flex-wrap: wrap;
+        margin-bottom: var(--spacing-md);
+      }
+      .plan-card-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+      }
+      .plan-card-progress {
+        height: 6px;
+        background: var(--md-surface-container);
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        margin-bottom: var(--spacing-xs);
+      }
+      .plan-card-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--brand-primary), var(--stadium-accent));
+        border-radius: var(--radius-full);
+      }
+      .plan-card-progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        color: var(--brand-steel);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .plan-card-countdown {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-md) var(--spacing-lg);
+        background: var(--md-surface-container);
+        border-radius: var(--radius-brand);
+        min-width: 180px;
+      }
+      .plan-card-countdown--warn {
+        background: var(--brand-accent-container);
+      }
+      .plan-card-countdown-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--brand-steel);
+      }
+      .plan-card-countdown--warn .plan-card-countdown-label {
+        color: var(--brand-accent);
+      }
+      .plan-card-countdown-value {
+        font-family: var(--font-family-stat);
+        font-weight: 600;
+        font-size: 40px;
+        line-height: 1;
+        letter-spacing: var(--tracking-tight);
+        color: var(--brand-ink);
+        font-variant-numeric: tabular-nums;
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+      }
+      .plan-card-countdown-unit {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--brand-steel);
+      }
+      .plan-card-countdown-date {
+        font-size: 11px;
+        color: var(--brand-steel);
+        font-variant-numeric: tabular-nums;
+      }
+      .plan-card-countdown-actions {
+        display: flex;
+        gap: var(--spacing-xs);
+        margin-top: var(--spacing-sm);
+      }
+
+      /* === Routine card (history) === */
+      .routine-card {
+        background: var(--md-surface);
+        border-radius: var(--radius-brand);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-brand-sm);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: var(--spacing-md);
+        align-items: start;
+      }
+
+      .routine-card-title {
+        font-family: var(--font-family-display);
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: var(--tracking-tight);
+        color: var(--brand-ink);
+        margin-bottom: var(--spacing-xs);
+      }
+      .routine-card-meta {
+        display: flex;
+        gap: var(--spacing-md);
+        font-size: 12px;
+        color: var(--brand-steel);
+        font-variant-numeric: tabular-nums;
+        flex-wrap: wrap;
+      }
+      .routine-card-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+      }
+      .routine-card-progress {
+        margin-top: var(--spacing-md);
+        height: 6px;
+        background: var(--md-surface-container);
+        border-radius: var(--radius-full);
+        overflow: hidden;
+      }
+      .routine-card-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--brand-primary), var(--stadium-accent));
+        border-radius: var(--radius-full);
+      }
+      .routine-card-progress-label {
+        margin-top: var(--spacing-xs);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        color: var(--brand-steel);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        padding: 4px var(--spacing-sm);
+        border-radius: var(--radius-stat);
+      }
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: var(--radius-full);
+        background: currentColor;
+      }
+      .badge-green {
+        background: rgba(10, 95, 204, 0.1);
+        color: var(--brand-primary);
+      }
+      .badge-blue {
+        background: var(--brand-accent-container);
+        color: var(--brand-accent);
+      }
+      .badge-gray {
+        background: var(--md-surface-container);
+        color: var(--brand-steel);
+      }
+
+      /* === Anamnese card === */
+      .anamnese-card {
+        background: var(--md-surface);
+        border-radius: var(--radius-brand);
+        padding: var(--spacing-md);
+        box-shadow: var(--shadow-brand-sm);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-sm);
+      }
+      .anamnese-card-text {
+        min-width: 0;
+      }
+      .anamnese-card-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--brand-ink);
+        margin-bottom: 2px;
+      }
+      .anamnese-card-meta {
+        font-size: 12px;
+        color: var(--brand-steel);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* === Empty states === */
+      .empty-state {
+        text-align: center;
+        padding: var(--spacing-xl) var(--spacing-md);
+        background: var(--md-surface);
+        border-radius: var(--radius-brand);
+        box-shadow: var(--shadow-brand-sm);
+        border: 1px dashed var(--brand-divider);
+      }
+      .empty-state-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius-full);
+        background: var(--brand-accent-container);
+        color: var(--brand-accent);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: var(--spacing-md);
+      }
+      .empty-state-title {
+        font-family: var(--font-family-display);
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--brand-ink);
+        margin-bottom: var(--spacing-xs);
+      }
+      .empty-state-description {
+        font-size: 13px;
+        color: var(--brand-steel);
+        margin-bottom: var(--spacing-md);
+      }
+
+      /* === FAB === */
+      .fab {
+        position: fixed;
+        bottom: var(--spacing-lg);
+        right: var(--spacing-lg);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: 12px var(--spacing-lg);
+        background: var(--brand-ink);
+        color: #fff;
+        border-radius: var(--radius-full);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        box-shadow: var(--shadow-brand-lg);
+        transition: transform var(--duration-fast) var(--ease-brand),
+          box-shadow var(--duration-fast) var(--ease-brand);
+        z-index: 100;
+      }
+      .fab:hover {
+        transform: translateY(-2px);
+      }
+      .fab svg {
+        color: var(--stadium-accent);
+      }
+
+      /* === Sparkline svg === */
+      .sparkline-path {
+        fill: none;
+        stroke: var(--brand-primary);
+        stroke-width: 2;
+      }
+      .sparkline-area {
+        fill: rgba(10, 95, 204, 0.08);
+        stroke: none;
+      }
+
+      /* === Helpers === */
+      .icon {
+        width: 16px;
+        height: 16px;
+        stroke: currentColor;
+        stroke-width: 2;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .icon-sm {
+        width: 14px;
+        height: 14px;
+      }
+      .icon-lg {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* === Period dropdown === */
+      .period-picker-wrap {
+        position: relative;
+      }
+      .period-picker-menu {
+        position: absolute;
+        right: 0;
+        top: calc(100% + var(--spacing-xs));
+        min-width: 220px;
+        background: var(--stadium-surface);
+        border-radius: var(--radius-brand);
+        box-shadow: var(--shadow-brand-lg), inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+        padding: var(--spacing-xs);
+        z-index: 50;
+        display: none;
+      }
+      .period-picker-wrap.open .period-picker-menu {
+        display: block;
+      }
+      .period-picker-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-md);
+        width: 100%;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--radius-stat);
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--stadium-text);
+        text-align: left;
+        transition: background var(--duration-fast) var(--ease-brand);
+      }
+      .period-picker-option:hover {
+        background: rgba(56, 189, 248, 0.12);
+      }
+      .period-picker-option.active {
+        background: rgba(56, 189, 248, 0.16);
+        color: var(--stadium-accent);
+      }
+      .period-picker-option-check {
+        opacity: 0;
+        color: var(--stadium-accent);
+      }
+      .period-picker-option.active .period-picker-option-check {
+        opacity: 1;
+      }
+
+      /* === Toast === */
+      .toast {
+        position: fixed;
+        bottom: calc(var(--spacing-lg) + 60px);
+        right: var(--spacing-lg);
+        background: var(--brand-ink);
+        color: #fff;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-brand);
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: var(--shadow-brand-lg);
+        z-index: 200;
+        transform: translateY(20px);
+        opacity: 0;
+        transition: transform var(--duration-base) var(--ease-brand),
+          opacity var(--duration-base) var(--ease-brand);
+        pointer-events: none;
+        max-width: 320px;
+      }
+      .toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      .toast-accent {
+        color: var(--stadium-accent);
+        font-weight: 600;
+      }
+
+      /* === Waveform tooltip === */
+      .waveform {
+        position: relative;
+      }
+      .waveform-bar {
+        cursor: pointer;
+      }
+      .waveform-bar:hover {
+        opacity: 0.7;
+      }
+      .waveform-tooltip {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        background: var(--stadium-surface-elevated);
+        color: var(--stadium-text);
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--radius-stat);
+        font-size: 11px;
+        line-height: 1.4;
+        white-space: nowrap;
+        box-shadow: var(--shadow-brand-md);
+        pointer-events: none;
+        opacity: 0;
+        transform: translateX(-50%) translateY(4px);
+        transition: opacity var(--duration-fast) var(--ease-brand),
+          transform var(--duration-fast) var(--ease-brand);
+        z-index: 10;
+      }
+      .waveform-tooltip.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      .waveform-tooltip-label {
+        font-weight: 700;
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        font-size: 10px;
+        color: var(--stadium-accent);
+        display: block;
+        margin-bottom: 2px;
+      }
+
+      /* === Progression collapse === */
+      .progression-group-body {
+        display: none;
+      }
+      .progression-group.open .progression-group-body {
+        display: block;
+      }
+      .progression-group-header svg.chevron {
+        transition: transform var(--duration-fast) var(--ease-brand);
+      }
+      .progression-group.open .progression-group-header svg.chevron {
+        transform: rotate(180deg);
+      }
+
+      /* === Modal (bottom sheet) === */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 15, 28, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--duration-slow) var(--ease-brand);
+      }
+      .overlay.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .bottom-sheet {
+        background: var(--md-surface);
+        width: 100%;
+        max-width: 480px;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        padding: var(--spacing-lg);
+        transform: translateY(20px);
+        transition: transform var(--duration-slow) var(--ease-brand);
+        box-shadow: var(--shadow-brand-lg);
+      }
+      @media (min-width: 768px) {
+        .overlay {
+          align-items: center;
+        }
+        .bottom-sheet {
+          border-radius: var(--radius-lg);
+        }
+      }
+      .overlay.show .bottom-sheet {
+        transform: translateY(0);
+      }
+      .bottom-sheet-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--spacing-md);
+      }
+      .bottom-sheet-title {
+        font-family: var(--font-family-display);
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: var(--tracking-tight);
+      }
+      .bottom-sheet-close {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--brand-steel);
+        transition: background var(--duration-fast) var(--ease-brand);
+      }
+      .bottom-sheet-close:hover {
+        background: var(--md-surface-container);
+      }
+      .form-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: var(--tracking-wider);
+        text-transform: uppercase;
+        color: var(--brand-steel);
+        margin-bottom: var(--spacing-xs);
+      }
+      .form-input {
+        width: 100%;
+        padding: 10px var(--spacing-md);
+        border-radius: var(--radius-brand);
+        border: 1px solid var(--md-outline-variant);
+        font: inherit;
+        background: var(--md-surface);
+        margin-bottom: var(--spacing-md);
+      }
+      .form-input:focus {
+        outline: none;
+        box-shadow: var(--shadow-focus);
+        border-color: var(--brand-primary);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-layout">
+      <!-- ============== SIDEBAR ============== -->
+      <aside class="sidebar sidebar--open" id="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-header-inner">
+            <button class="sidebar-logo-btn" id="sidebarLogoBtn" aria-label="Expandir menu">
+              <span class="sidebar-logo-icon">TW</span>
+            </button>
+            <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Recolher menu">
+              <svg class="icon icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M9 3v18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a href="#" class="sidebar-link" aria-label="Painel">
+            <span class="sidebar-link-icon">
+              <svg class="icon icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 12l9-9 9 9M5 10v10h14V10" />
+              </svg>
+            </span>
+            <span class="sidebar-link-label">Painel</span>
+          </a>
+          <a href="#" class="sidebar-link" aria-label="Meu Perfil">
+            <span class="sidebar-link-icon">
+              <svg class="icon icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="7" r="4" />
+                <path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
+              </svg>
+            </span>
+            <span class="sidebar-link-label">Meu Perfil</span>
+          </a>
+
+          <div class="sidebar-section-label">Treinador</div>
+
+          <a href="#" class="sidebar-link sidebar-link--active" aria-label="Meus Alunos">
+            <span class="sidebar-link-icon">
+              <svg class="icon icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="9" cy="7" r="4" />
+                <path d="M3 21c0-4 3-7 6-7s6 3 6 7M16 3a4 4 0 010 8M22 21c0-3-2-6-5-6.5" />
+              </svg>
+            </span>
+            <span class="sidebar-link-label">Meus Alunos</span>
+          </a>
+
+          <a href="#" class="sidebar-link" aria-label="iArnold">
+            <span class="sidebar-link-icon">
+              <svg class="icon icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2z" />
+              </svg>
+            </span>
+            <span class="sidebar-link-label">iArnold</span>
+            <span class="sidebar-link-badge">IA</span>
+          </a>
+
+          <a href="#" class="sidebar-link" aria-label="Campeonatos">
+            <span class="sidebar-link-icon">
+              <svg class="icon icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9h12M6 9V5h12v4M6 9c0 4 3 7 6 7s6-3 6-7M12 16v3M9 22h6" />
+              </svg>
+            </span>
+            <span class="sidebar-link-label">Campeonatos</span>
+          </a>
+
+          <a href="#" class="sidebar-link" aria-label="Sua Marca">
+            <span class="sidebar-link-icon">
+              <svg class="icon icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="13.5" cy="6.5" r="2.5" />
+                <circle cx="17.5" cy="10.5" r="2.5" />
+                <circle cx="8.5" cy="7.5" r="2.5" />
+                <circle cx="6.5" cy="12.5" r="2.5" />
+                <path d="M12 22a10 10 0 110-20c5 0 9 4 9 8 0 3-2 4-4 4h-2c-2 0-3 1-3 3 0 3 1 5 0 5z" />
+              </svg>
+            </span>
+            <span class="sidebar-link-label">Sua Marca</span>
+          </a>
+
+          <button class="sidebar-dropdown-toggle" id="bibToggle" aria-expanded="false">
+            <span class="sidebar-link-icon">
+              <svg class="icon icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+              </svg>
+            </span>
+            <span class="sidebar-link-label">Biblioteca</span>
+            <span class="sidebar-dropdown-chevron" id="bibChevron">
+              <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </span>
+          </button>
+          <div class="sidebar-dropdown-children" id="bibChildren">
+            <a href="#" class="sidebar-child-link">
+              <span class="sidebar-link-icon">
+                <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M8 7h8M8 12h8M8 17h5" />
+                </svg>
+              </span>
+              <span class="sidebar-link-label">Rotinas</span>
+            </a>
+            <a href="#" class="sidebar-child-link">
+              <span class="sidebar-link-icon">
+                <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 4v16M18 4v16M2 8h4M2 16h4M18 8h4M18 16h4M6 12h12" />
+                </svg>
+              </span>
+              <span class="sidebar-link-label">Treinos únicos</span>
+            </a>
+            <a href="#" class="sidebar-child-link">
+              <span class="sidebar-link-icon">
+                <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+              </span>
+              <span class="sidebar-link-label">Exercícios</span>
+            </a>
+            <a href="#" class="sidebar-child-link">
+              <span class="sidebar-link-icon">
+                <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                  <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+                </svg>
+              </span>
+              <span class="sidebar-link-label">Anamneses</span>
+            </a>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-avatar">AN</div>
+            <div>
+              <div class="sidebar-user-name">Adeildo Neto</div>
+              <div class="sidebar-user-email">treinador@email.com</div>
+            </div>
+          </div>
+          <button class="btn-logout" aria-label="Sair">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
+            <span>Sair</span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <div class="mock-shell">
+      <!-- Back nav -->
+      <button class="btn-back">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        Alunos
+      </button>
+
+      <!-- ============== STADIUM HERO ============== -->
+      <section class="theme-stadium student-cockpit-hero">
+        <!-- Identity -->
+        <div class="student-cockpit-hero-identity">
+          <div class="student-cockpit-hero-avatar">NS</div>
+          <div class="student-cockpit-hero-identity-text">
+            <h1 class="student-cockpit-hero-name">Neto Santos</h1>
+            <div class="student-cockpit-hero-meta">
+              neto@aluno.com
+              <span class="student-cockpit-hero-meta-sep">·</span>
+              desde Fev/2026
+            </div>
+          </div>
+        </div>
+
+        <!-- Subscription strip -->
+        <div class="subscription-strip" id="subscriptionStrip">
+          <div class="subscription-chip" data-chip="plan">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--stadium-accent)">
+              <path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6z" />
+            </svg>
+            <span class="subscription-chip-label">Plano</span>
+            <span class="subscription-chip-value">Trimestral</span>
+            <span class="subscription-chip-sub">R$ 297/mês</span>
+            <span class="subscription-chip-divider"></span>
+            <button class="subscription-chip-action" data-action="change-plan">Alterar</button>
+          </div>
+
+          <div class="subscription-chip" id="renewalChip" data-chip="renewal">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--stadium-accent)">
+              <path d="M21 12a9 9 0 11-3.5-7.1L21 8" />
+              <path d="M21 3v5h-5" />
+            </svg>
+            <span class="subscription-chip-label">Renova em</span>
+            <span class="subscription-chip-value subscription-chip-value-stat" id="renewalDays">42<span style="font-size:10px;color:var(--stadium-text-muted);margin-left:2px">dias</span></span>
+            <span class="subscription-chip-sub" id="renewalDate">26/jun/2026</span>
+            <span class="subscription-chip-divider"></span>
+            <button class="subscription-chip-action" data-action="renew">Renovar</button>
+          </div>
+        </div>
+
+        <!-- Eyebrow row -->
+        <div class="student-cockpit-hero-eyebrow">
+          <div class="student-cockpit-hero-protocol">
+            <span class="student-cockpit-hero-protocol-dot" aria-hidden="true"></span>
+            <span>Rotina ativa</span>
+            <span style="opacity: 0.4">·</span>
+            <span class="student-cockpit-hero-protocol-name">Hipertrofia Intermediário</span>
+            <span style="opacity: 0.4">·</span>
+            <span class="student-cockpit-hero-protocol-week">Semana 3/8</span>
+          </div>
+
+          <div class="period-picker-wrap" id="periodPicker">
+            <button class="period-picker-btn" id="periodPickerBtn" aria-haspopup="true" aria-expanded="false">
+              <span id="periodPickerLabel">Últimos 30 dias</span>
+              <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            <div class="period-picker-menu" role="listbox">
+              <button class="period-picker-option" data-key="7" data-label="Últimos 7 dias">
+                Últimos 7 dias
+                <svg class="icon icon-sm period-picker-option-check" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </button>
+              <button class="period-picker-option active" data-key="30" data-label="Últimos 30 dias">
+                Últimos 30 dias
+                <svg class="icon icon-sm period-picker-option-check" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </button>
+              <button class="period-picker-option" data-key="90" data-label="Últimos 90 dias">
+                Últimos 90 dias
+                <svg class="icon icon-sm period-picker-option-check" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </button>
+              <button class="period-picker-option" data-key="365" data-label="Últimos 12 meses">
+                Últimos 12 meses
+                <svg class="icon icon-sm period-picker-option-check" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="student-cockpit-hero-stats" id="heroStats">
+          <!-- populated via JS -->
+        </div>
+
+        <!-- Viz -->
+        <div class="student-cockpit-hero-viz">
+          <div class="waveform" id="waveform" aria-label="Atividade diária" role="img"></div>
+          <div class="waveform-axis" id="waveformAxis"></div>
+          <div class="waveform-legend">
+            <span class="waveform-legend-item">
+              <span class="waveform-legend-dot" style="background: #38bdf8"></span>Concluído
+            </span>
+            <span class="waveform-legend-item">
+              <span class="waveform-legend-dot" style="background: #ff6b1a"></span>Abandonado
+            </span>
+            <span class="waveform-legend-item" style="margin-left: auto">altura = volume</span>
+          </div>
+        </div>
+
+        <!-- CTAs -->
+        <div class="student-cockpit-hero-actions">
+          <button class="btn-stadium">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Nova rotina
+          </button>
+          <button class="btn-stadium btn-stadium--ghost">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Vincular anamnese
+          </button>
+        </div>
+      </section>
+
+      <div class="cockpit-grid-2col">
+      <!-- ============== SESSÕES RECENTES ============== -->
+      <section class="cockpit-section">
+        <header class="cockpit-section-header">
+          <h2 class="cockpit-section-eyebrow">Sessões recentes</h2>
+          <a href="#" class="cockpit-section-link">
+            Ver todas
+            <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </a>
+        </header>
+
+        <div class="session-row">
+          <span class="session-row-status" aria-hidden="true"></span>
+          <div class="session-row-date">
+            <span class="session-row-date-dow">Qui</span>
+            <span class="session-row-date-day">13</span>
+            <span class="session-row-date-month">Mai</span>
+          </div>
+          <div class="session-row-body">
+            <div class="session-row-name">Treino B · Costas e Bíceps</div>
+            <div class="session-row-meta">24 de 24 séries · 58 min</div>
+          </div>
+          <span class="session-row-chip"><span class="session-row-chip-label">RPE</span>7.5</span>
+          <div class="session-row-note" aria-label="Tem nota do treinador">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="session-row">
+          <span class="session-row-status" aria-hidden="true"></span>
+          <div class="session-row-date">
+            <span class="session-row-date-dow">Ter</span>
+            <span class="session-row-date-day">11</span>
+            <span class="session-row-date-month">Mai</span>
+          </div>
+          <div class="session-row-body">
+            <div class="session-row-name">Treino A · Peito e Tríceps</div>
+            <div class="session-row-meta">22 de 22 séries · 52 min</div>
+          </div>
+          <span class="session-row-chip"><span class="session-row-chip-label">RPE</span>8.0</span>
+          <div class="session-row-note" style="visibility: hidden"></div>
+        </div>
+
+        <div class="session-row">
+          <span class="session-row-status session-row-status--partial" aria-hidden="true"></span>
+          <div class="session-row-date">
+            <span class="session-row-date-dow">Dom</span>
+            <span class="session-row-date-day">09</span>
+            <span class="session-row-date-month">Mai</span>
+          </div>
+          <div class="session-row-body">
+            <div class="session-row-name">Treino C · Pernas</div>
+            <div class="session-row-meta">18 de 24 séries · 41 min</div>
+          </div>
+          <span class="session-row-chip"><span class="session-row-chip-label">RPE</span>9.0</span>
+          <div class="session-row-note" aria-label="Tem nota do treinador">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="session-row">
+          <span class="session-row-status" aria-hidden="true"></span>
+          <div class="session-row-date">
+            <span class="session-row-date-dow">Qui</span>
+            <span class="session-row-date-day">06</span>
+            <span class="session-row-date-month">Mai</span>
+          </div>
+          <div class="session-row-body">
+            <div class="session-row-name">Treino B · Costas e Bíceps</div>
+            <div class="session-row-meta">24 de 24 séries · 55 min</div>
+          </div>
+          <span class="session-row-chip"><span class="session-row-chip-label">RPE</span>7.0</span>
+          <div class="session-row-note" style="visibility: hidden"></div>
+        </div>
+
+        <div class="session-row">
+          <span class="session-row-status" aria-hidden="true"></span>
+          <div class="session-row-date">
+            <span class="session-row-date-dow">Ter</span>
+            <span class="session-row-date-day">04</span>
+            <span class="session-row-date-month">Mai</span>
+          </div>
+          <div class="session-row-body">
+            <div class="session-row-name">Treino A · Peito e Tríceps</div>
+            <div class="session-row-meta">22 de 22 séries · 49 min</div>
+          </div>
+          <span class="session-row-chip"><span class="session-row-chip-label">RPE</span>7.5</span>
+          <div class="session-row-note" style="visibility: hidden"></div>
+        </div>
+      </section>
+
+      <!-- ============== PROGRESSÃO DE CARGA ============== -->
+      <section class="cockpit-section">
+        <header class="cockpit-section-header">
+          <h2 class="cockpit-section-eyebrow">
+            Progressão de carga
+            <span class="cockpit-section-eyebrow-suffix">· vs 1ª sessão</span>
+          </h2>
+        </header>
+
+        <div class="progression-group open" data-group="B">
+          <button class="progression-group-header" aria-expanded="true">
+            <span class="progression-group-letter">B</span>
+            <span class="progression-group-title">Treino B · Costas e Bíceps</span>
+            <span class="progression-group-meta">4 exercícios</span>
+            <svg class="icon chevron" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 15l-6-6-6 6" />
+            </svg>
+          </button>
+          <div class="progression-group-body">
+          <ul class="progression-list">
+            <li class="progression-row">
+              <div>
+                <div class="progression-row-name">Remada Curvada</div>
+                <div class="progression-row-trail">8 sessões · 60kg → 75kg</div>
+              </div>
+              <svg class="progression-sparkline" viewBox="0 0 96 28" preserveAspectRatio="none">
+                <path
+                  class="sparkline-area"
+                  d="M0 22 L12 20 L24 18 L36 16 L48 14 L60 10 L72 8 L84 6 L96 4 L96 28 L0 28 Z"
+                />
+                <path class="sparkline-path" d="M0 22 L12 20 L24 18 L36 16 L48 14 L60 10 L72 8 L84 6 L96 4" />
+              </svg>
+              <span class="progression-row-load">75<span class="progression-row-load-unit">kg</span></span>
+              <span class="trend-chip trend-chip--up">
+                <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 17l5-5 5 5M7 7l5 5 5-5" />
+                </svg>
+                +25%
+              </span>
+            </li>
+            <li class="progression-row">
+              <div>
+                <div class="progression-row-name">Puxada Frontal</div>
+                <div class="progression-row-trail">8 sessões · 50kg → 60kg</div>
+              </div>
+              <svg class="progression-sparkline" viewBox="0 0 96 28" preserveAspectRatio="none">
+                <path
+                  class="sparkline-area"
+                  d="M0 20 L12 19 L24 18 L36 15 L48 14 L60 12 L72 10 L84 9 L96 8 L96 28 L0 28 Z"
+                />
+                <path class="sparkline-path" d="M0 20 L12 19 L24 18 L36 15 L48 14 L60 12 L72 10 L84 9 L96 8" />
+              </svg>
+              <span class="progression-row-load">60<span class="progression-row-load-unit">kg</span></span>
+              <span class="trend-chip trend-chip--up">+20%</span>
+            </li>
+            <li class="progression-row">
+              <div>
+                <div class="progression-row-name">Rosca Direta</div>
+                <div class="progression-row-trail">8 sessões · 14kg → 16kg</div>
+              </div>
+              <svg class="progression-sparkline" viewBox="0 0 96 28" preserveAspectRatio="none">
+                <path
+                  class="sparkline-area"
+                  d="M0 18 L12 18 L24 17 L36 17 L48 16 L60 15 L72 14 L84 14 L96 13 L96 28 L0 28 Z"
+                />
+                <path class="sparkline-path" d="M0 18 L12 18 L24 17 L36 17 L48 16 L60 15 L72 14 L84 14 L96 13" />
+              </svg>
+              <span class="progression-row-load">16<span class="progression-row-load-unit">kg</span></span>
+              <span class="trend-chip trend-chip--up">+14%</span>
+            </li>
+            <li class="progression-row">
+              <div>
+                <div class="progression-row-name">Rosca Martelo</div>
+                <div class="progression-row-trail">8 sessões · 12kg → 12kg</div>
+              </div>
+              <svg class="progression-sparkline" viewBox="0 0 96 28" preserveAspectRatio="none">
+                <path
+                  class="sparkline-area"
+                  d="M0 14 L12 14 L24 14 L36 14 L48 14 L60 14 L72 14 L84 14 L96 14 L96 28 L0 28 Z"
+                />
+                <path class="sparkline-path" d="M0 14 L12 14 L24 14 L36 14 L48 14 L60 14 L72 14 L84 14 L96 14" />
+              </svg>
+              <span class="progression-row-load">12<span class="progression-row-load-unit">kg</span></span>
+              <span class="trend-chip trend-chip--neutral">0%</span>
+            </li>
+          </ul>
+          </div>
+        </div>
+
+        <div class="progression-group" data-group="A">
+          <button class="progression-group-header" aria-expanded="false">
+            <span class="progression-group-letter">A</span>
+            <span class="progression-group-title">Treino A · Peito e Tríceps</span>
+            <span class="progression-group-meta">3 exercícios</span>
+            <svg class="icon chevron" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 15l-6-6-6 6" />
+            </svg>
+          </button>
+          <div class="progression-group-body">
+            <ul class="progression-list">
+              <li class="progression-row">
+                <div>
+                  <div class="progression-row-name">Supino Reto</div>
+                  <div class="progression-row-trail">8 sessões · 70kg → 85kg</div>
+                </div>
+                <svg class="progression-sparkline" viewBox="0 0 96 28" preserveAspectRatio="none">
+                  <path class="sparkline-area" d="M0 22 L12 21 L24 18 L36 16 L48 14 L60 11 L72 8 L84 6 L96 4 L96 28 L0 28 Z" />
+                  <path class="sparkline-path" d="M0 22 L12 21 L24 18 L36 16 L48 14 L60 11 L72 8 L84 6 L96 4" />
+                </svg>
+                <span class="progression-row-load">85<span class="progression-row-load-unit">kg</span></span>
+                <span class="trend-chip trend-chip--up">+21%</span>
+              </li>
+              <li class="progression-row">
+                <div>
+                  <div class="progression-row-name">Supino Inclinado</div>
+                  <div class="progression-row-trail">7 sessões · 50kg → 60kg</div>
+                </div>
+                <svg class="progression-sparkline" viewBox="0 0 96 28" preserveAspectRatio="none">
+                  <path class="sparkline-area" d="M0 20 L12 19 L24 17 L36 15 L48 14 L60 12 L72 11 L84 9 L96 8 L96 28 L0 28 Z" />
+                  <path class="sparkline-path" d="M0 20 L12 19 L24 17 L36 15 L48 14 L60 12 L72 11 L84 9 L96 8" />
+                </svg>
+                <span class="progression-row-load">60<span class="progression-row-load-unit">kg</span></span>
+                <span class="trend-chip trend-chip--up">+20%</span>
+              </li>
+              <li class="progression-row">
+                <div>
+                  <div class="progression-row-name">Tríceps Pulley</div>
+                  <div class="progression-row-trail">8 sessões · 30kg → 28kg</div>
+                </div>
+                <svg class="progression-sparkline" viewBox="0 0 96 28" preserveAspectRatio="none">
+                  <path class="sparkline-area" d="M0 12 L12 13 L24 13 L36 14 L48 14 L60 15 L72 15 L84 16 L96 16 L96 28 L0 28 Z" />
+                  <path class="sparkline-path" d="M0 12 L12 13 L24 13 L36 14 L48 14 L60 15 L72 15 L84 16 L96 16" />
+                </svg>
+                <span class="progression-row-load">28<span class="progression-row-load-unit">kg</span></span>
+                <span class="trend-chip trend-chip--down">-7%</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="progression-group" data-group="C">
+          <button class="progression-group-header" aria-expanded="false">
+            <span class="progression-group-letter">C</span>
+            <span class="progression-group-title">Treino C · Pernas</span>
+            <span class="progression-group-meta">5 exercícios</span>
+            <svg class="icon chevron" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 15l-6-6-6 6" />
+            </svg>
+          </button>
+          <div class="progression-group-body">
+            <ul class="progression-list">
+              <li class="progression-row">
+                <div>
+                  <div class="progression-row-name">Agachamento Livre</div>
+                  <div class="progression-row-trail">7 sessões · 80kg → 100kg</div>
+                </div>
+                <svg class="progression-sparkline" viewBox="0 0 96 28" preserveAspectRatio="none">
+                  <path class="sparkline-area" d="M0 22 L12 20 L24 17 L36 14 L48 12 L60 9 L72 7 L84 5 L96 3 L96 28 L0 28 Z" />
+                  <path class="sparkline-path" d="M0 22 L12 20 L24 17 L36 14 L48 12 L60 9 L72 7 L84 5 L96 3" />
+                </svg>
+                <span class="progression-row-load">100<span class="progression-row-load-unit">kg</span></span>
+                <span class="trend-chip trend-chip--up">+25%</span>
+              </li>
+              <li class="progression-row">
+                <div>
+                  <div class="progression-row-name">Leg Press 45°</div>
+                  <div class="progression-row-trail">7 sessões · 180kg → 220kg</div>
+                </div>
+                <svg class="progression-sparkline" viewBox="0 0 96 28" preserveAspectRatio="none">
+                  <path class="sparkline-area" d="M0 20 L12 18 L24 16 L36 14 L48 12 L60 10 L72 8 L84 7 L96 6 L96 28 L0 28 Z" />
+                  <path class="sparkline-path" d="M0 20 L12 18 L24 16 L36 14 L48 12 L60 10 L72 8 L84 7 L96 6" />
+                </svg>
+                <span class="progression-row-load">220<span class="progression-row-load-unit">kg</span></span>
+                <span class="trend-chip trend-chip--up">+22%</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      </div>
+
+      <!-- ============== HISTÓRICO DE ROTINAS ============== -->
+      <section class="cockpit-section">
+        <header class="cockpit-section-header">
+          <h2 class="cockpit-section-eyebrow">Histórico de rotinas</h2>
+          <a href="#" class="cockpit-section-link">
+            Ver todas (3)
+            <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </a>
+        </header>
+
+        <div class="routine-card">
+          <div>
+            <div class="routine-card-title">Hipertrofia Iniciante — 3x por semana</div>
+            <div class="routine-card-meta">
+              <span class="routine-card-meta-item">
+                <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <path d="M16 2v4M8 2v4M3 10h18" />
+                </svg>
+                01/01/2026 — 27/04/2026
+              </span>
+              <span class="routine-card-meta-item">
+                <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v6l4 2" />
+                </svg>
+                16 semanas · concluído
+              </span>
+            </div>
+          </div>
+          <span class="badge badge-gray"><span class="badge-dot"></span>Arquivado</span>
+        </div>
+      </section>
+
+      <!-- ============== ANAMNESES ============== -->
+      <section class="cockpit-section">
+        <header class="cockpit-section-header">
+          <h2 class="cockpit-section-eyebrow">Anamneses</h2>
+          <a href="#" class="cockpit-section-link">
+            Ver todas (2)
+            <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </a>
+        </header>
+
+        <div class="anamnese-card">
+          <div class="anamnese-card-text">
+            <div class="anamnese-card-title">PAR-Q + Histórico de Lesões</div>
+            <div class="anamnese-card-meta">Vinculada em 12/04/2026 · Respondida</div>
+          </div>
+          <span class="badge badge-green"><span class="badge-dot"></span>OK</span>
+        </div>
+
+        <div class="anamnese-card">
+          <div class="anamnese-card-text">
+            <div class="anamnese-card-title">Avaliação Física Inicial</div>
+            <div class="anamnese-card-meta">Vinculada em 28/03/2026 · Pendente</div>
+          </div>
+          <span class="badge badge-blue"><span class="badge-dot"></span>Aguarda</span>
+        </div>
+      </section>
+        </div>
+      </main>
+    </div>
+
+    <!-- FAB iArnold -->
+    <button class="fab" id="fab" aria-label="Perguntar ao iArnold">
+      <svg class="icon icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2zM19 14l.8 2.4 2.2.6-2.2.6L19 20l-.8-2.4-2.2-.6 2.2-.6L19 14zM5 14l.8 2.4 2.2.6-2.2.6L5 20l-.8-2.4-2.2-.6 2.2-.6L5 14z"
+        />
+      </svg>
+      Perguntar ao iArnold
+    </button>
+
+    <!-- Toast -->
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- Modal: Nova rotina -->
+    <div class="overlay" id="newRoutineOverlay">
+      <div class="bottom-sheet" role="dialog" aria-labelledby="newRoutineTitle">
+        <div class="bottom-sheet-header">
+          <h2 id="newRoutineTitle" class="bottom-sheet-title">Nova rotina</h2>
+          <button class="bottom-sheet-close" data-close="newRoutineOverlay" aria-label="Fechar">
+            <svg class="icon icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <label class="form-label" for="routineName">Nome</label>
+        <input id="routineName" class="form-input" placeholder="ex.: Hipertrofia Avançado" />
+        <label class="form-label" for="routineWeeks">Duração (semanas)</label>
+        <input id="routineWeeks" type="number" class="form-input" value="8" min="1" />
+        <button class="btn-primary" style="width: 100%" data-confirm="routine">Criar rotina</button>
+      </div>
+    </div>
+
+    <!-- Modal: Vincular anamnese -->
+    <div class="overlay" id="linkAnamneseOverlay">
+      <div class="bottom-sheet" role="dialog" aria-labelledby="linkAnamneseTitle">
+        <div class="bottom-sheet-header">
+          <h2 id="linkAnamneseTitle" class="bottom-sheet-title">Vincular anamnese</h2>
+          <button class="bottom-sheet-close" data-close="linkAnamneseOverlay" aria-label="Fechar">
+            <svg class="icon icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <label class="form-label" for="anamneseSelect">Selecionar anamnese</label>
+        <select id="anamneseSelect" class="form-input">
+          <option>PAR-Q + Histórico de Lesões</option>
+          <option>Avaliação Postural</option>
+          <option>Histórico Alimentar</option>
+        </select>
+        <button class="btn-primary" style="width: 100%" data-confirm="anamnese">Vincular</button>
+      </div>
+    </div>
+
+    <script>
+      // ============ Mock data per period ============
+      const DATA = {
+        7: {
+          adherence: 100,
+          adherenceDelta: 8,
+          lastSession: { value: 'há 2', unit: 'dias', sub: '12 mai' },
+          sessionsPerWeek: { value: 3.5, unit: '/sem', sub: 'acima do alvo' },
+          streak: { value: 12, unit: 'dias', sub: 'ativo' },
+          bars: 7,
+          axis: ['09 mai', '12 mai', '15 mai'],
+        },
+        30: {
+          adherence: 100,
+          adherenceDelta: 5,
+          lastSession: { value: 'há 2', unit: 'dias', sub: '12 mai' },
+          sessionsPerWeek: { value: 2.5, unit: '/sem', sub: 'no alvo' },
+          streak: { value: 12, unit: 'dias', sub: 'ativo' },
+          bars: 30,
+          axis: ['15 abr', '30 abr', '15 mai'],
+        },
+        90: {
+          adherence: 88,
+          adherenceDelta: -3,
+          lastSession: { value: 'há 2', unit: 'dias', sub: '12 mai' },
+          sessionsPerWeek: { value: 2.3, unit: '/sem', sub: 'abaixo do alvo' },
+          streak: { value: 18, unit: 'dias', sub: 'em fev' },
+          bars: 60,
+          axis: ['15 fev', '01 abr', '15 mai'],
+        },
+        365: {
+          adherence: 76,
+          adherenceDelta: 12,
+          lastSession: { value: 'há 2', unit: 'dias', sub: '12 mai' },
+          sessionsPerWeek: { value: 2.1, unit: '/sem', sub: 'abaixo do alvo' },
+          streak: { value: 22, unit: 'dias', sub: 'em out/25' },
+          bars: 52,
+          axis: ['mai/25', 'nov/25', 'mai/26'],
+        },
+      };
+
+      // ============ Stats render ============
+      function renderStats(key) {
+        const d = DATA[key];
+        const deltaCls = d.adherenceDelta > 0 ? 'up' : d.adherenceDelta < 0 ? 'down' : 'neutral';
+        const deltaSign = d.adherenceDelta > 0 ? '+' : '';
+        const arrow =
+          d.adherenceDelta === 0
+            ? ''
+            : `<svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="${
+                d.adherenceDelta > 0 ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'
+              }"/></svg>`;
+        document.getElementById('heroStats').innerHTML = `
+          <div class="stat-display">
+            <span class="stat-display-label">Aderência</span>
+            <span class="stat-display-value">${d.adherence}<span class="stat-display-unit">%</span></span>
+            <span class="stat-display-trend stat-display-trend--${deltaCls}">${arrow}${deltaSign}${d.adherenceDelta}% vs anterior</span>
+          </div>
+          <div class="stat-display">
+            <span class="stat-display-label">Última sessão</span>
+            <span class="stat-display-value">${d.lastSession.value}<span class="stat-display-unit">${d.lastSession.unit}</span></span>
+            <span class="stat-display-trend stat-display-trend--neutral">${d.lastSession.sub}</span>
+          </div>
+          <div class="stat-display">
+            <span class="stat-display-label">Sessões/sem</span>
+            <span class="stat-display-value">${d.sessionsPerWeek.value}<span class="stat-display-unit">${d.sessionsPerWeek.unit}</span></span>
+            <span class="stat-display-trend stat-display-trend--up">${d.sessionsPerWeek.sub}</span>
+          </div>
+          <div class="stat-display">
+            <span class="stat-display-label">Streak máximo</span>
+            <span class="stat-display-value">${d.streak.value}<span class="stat-display-unit">${d.streak.unit}</span></span>
+            <span class="stat-display-trend stat-display-trend--neutral">${d.streak.sub}</span>
+          </div>
+        `;
+      }
+
+      // ============ Waveform render ============
+      function renderWaveform(key) {
+        const d = DATA[key];
+        const wave = document.getElementById('waveform');
+        const axis = document.getElementById('waveformAxis');
+        const bars = [];
+        const today = new Date('2026-05-15');
+        for (let i = 0; i < d.bars; i++) {
+          const r = Math.random();
+          let cls = 'waveform-bar';
+          let h = 40 + Math.round(Math.random() * 60);
+          let label = 'Concluído';
+          let kg = `${Math.round(2000 + r * 4000)}kg`;
+          if (r < 0.4) {
+            cls = 'waveform-bar waveform-bar--rest';
+            h = 0;
+            label = 'Repouso';
+            kg = '—';
+          } else if (r < 0.45) {
+            cls = 'waveform-bar waveform-bar--abandoned';
+            h = 12 + Math.round(Math.random() * 22);
+            label = 'Abandonado';
+          }
+          const date = new Date(today);
+          date.setDate(today.getDate() - (d.bars - 1 - i));
+          const dateLabel = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+          bars.push(
+            `<span class="${cls}" style="height:${h}%" data-label="${label}" data-date="${dateLabel}" data-vol="${kg}"></span>`,
+          );
+        }
+        wave.innerHTML = bars.join('');
+        axis.innerHTML = d.axis.map((a) => `<span>${a}</span>`).join('');
+        attachWaveformTooltip();
+      }
+
+      // ============ Waveform tooltip ============
+      let tooltipEl = null;
+      function attachWaveformTooltip() {
+        const wave = document.getElementById('waveform');
+        if (!tooltipEl) {
+          tooltipEl = document.createElement('div');
+          tooltipEl.className = 'waveform-tooltip';
+          wave.parentElement.appendChild(tooltipEl);
+        }
+        wave.querySelectorAll('.waveform-bar').forEach((bar) => {
+          bar.addEventListener('mouseenter', () => {
+            const label = bar.dataset.label;
+            const date = bar.dataset.date;
+            const vol = bar.dataset.vol;
+            tooltipEl.innerHTML = `<span class="waveform-tooltip-label">${label}</span>${date} · ${vol}`;
+            const rect = bar.getBoundingClientRect();
+            const parentRect = wave.parentElement.getBoundingClientRect();
+            tooltipEl.style.left = `${rect.left - parentRect.left + rect.width / 2}px`;
+            tooltipEl.style.top = `${rect.top - parentRect.top}px`;
+            tooltipEl.classList.add('show');
+          });
+          bar.addEventListener('mouseleave', () => tooltipEl.classList.remove('show'));
+        });
+      }
+
+      // ============ Period picker ============
+      const periodPicker = document.getElementById('periodPicker');
+      const periodPickerBtn = document.getElementById('periodPickerBtn');
+      const periodPickerLabel = document.getElementById('periodPickerLabel');
+
+      periodPickerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = periodPicker.classList.toggle('open');
+        periodPickerBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      document.addEventListener('click', () => {
+        periodPicker.classList.remove('open');
+        periodPickerBtn.setAttribute('aria-expanded', 'false');
+      });
+      periodPicker.addEventListener('click', (e) => e.stopPropagation());
+
+      periodPicker.querySelectorAll('.period-picker-option').forEach((opt) => {
+        opt.addEventListener('click', () => {
+          periodPicker.querySelectorAll('.period-picker-option').forEach((o) => o.classList.remove('active'));
+          opt.classList.add('active');
+          const key = opt.dataset.key;
+          periodPickerLabel.textContent = opt.dataset.label;
+          periodPicker.classList.remove('open');
+          renderStats(key);
+          renderWaveform(key);
+          toast(`Período: <span class="toast-accent">${opt.dataset.label}</span>`);
+        });
+      });
+
+      // ============ Progression collapse ============
+      document.querySelectorAll('.progression-group-header').forEach((header) => {
+        header.addEventListener('click', () => {
+          const group = header.parentElement;
+          const open = group.classList.toggle('open');
+          header.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      });
+
+      // ============ Toast ============
+      const toastEl = document.getElementById('toast');
+      let toastTimer;
+      function toast(msg) {
+        clearTimeout(toastTimer);
+        toastEl.innerHTML = msg;
+        toastEl.classList.add('show');
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
+      }
+
+      // ============ Modals ============
+      function openOverlay(id) {
+        document.getElementById(id).classList.add('show');
+      }
+      function closeOverlay(id) {
+        document.getElementById(id).classList.remove('show');
+      }
+      document.querySelectorAll('[data-close]').forEach((btn) => {
+        btn.addEventListener('click', () => closeOverlay(btn.dataset.close));
+      });
+      document.querySelectorAll('.overlay').forEach((ov) => {
+        ov.addEventListener('click', (e) => {
+          if (e.target === ov) ov.classList.remove('show');
+        });
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') document.querySelectorAll('.overlay.show').forEach((o) => o.classList.remove('show'));
+      });
+
+      // Hero CTAs
+      const ctas = document.querySelectorAll('.student-cockpit-hero-actions .btn-stadium');
+      ctas[0].addEventListener('click', () =>
+        toast('Navegando: <span class="toast-accent">/trainer/protocols/new?studentId=…</span>'),
+      );
+      ctas[1].addEventListener('click', () => openOverlay('linkAnamneseOverlay'));
+
+      // Confirm buttons
+      document.querySelector('[data-confirm="routine"]').addEventListener('click', () => {
+        const name = document.getElementById('routineName').value || 'Nova rotina';
+        closeOverlay('newRoutineOverlay');
+        toast(`Rotina criada: <span class="toast-accent">${name}</span>`);
+      });
+      document.querySelector('[data-confirm="anamnese"]').addEventListener('click', () => {
+        const name = document.getElementById('anamneseSelect').value;
+        closeOverlay('linkAnamneseOverlay');
+        toast(`Anamnese vinculada: <span class="toast-accent">${name}</span>`);
+      });
+
+      // FAB
+      document.getElementById('fab').addEventListener('click', () => {
+        toast('Abrindo <span class="toast-accent">iArnold</span>…');
+      });
+
+      // Section links
+      document.querySelectorAll('.cockpit-section-link').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const label = link.textContent.trim().split('\n')[0].trim();
+          toast(`Navegando: <span class="toast-accent">${label}</span>`);
+        });
+      });
+
+      // Back nav
+      document.querySelector('.btn-back').addEventListener('click', () => toast('Voltando para <span class="toast-accent">Alunos</span>…'));
+
+      // Session row click
+      document.querySelectorAll('.session-row').forEach((row) => {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', () => {
+          const name = row.querySelector('.session-row-name').textContent;
+          toast(`Abrindo sessão: <span class="toast-accent">${name}</span>`);
+        });
+      });
+
+      // Progression row click
+      document.querySelectorAll('.progression-row').forEach((row) => {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', () => {
+          const name = row.querySelector('.progression-row-name').textContent;
+          toast(`Detalhes: <span class="toast-accent">${name}</span>`);
+        });
+      });
+
+      // Routine card click (histórico)
+      document.querySelectorAll('.routine-card').forEach((card) => {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => {
+          const name = card.querySelector('.routine-card-title').textContent;
+          toast(`Abrindo: <span class="toast-accent">${name}</span>`);
+        });
+      });
+
+      // Subscription chip actions
+      document.querySelectorAll('[data-action]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const action = btn.dataset.action;
+          if (action === 'renew') toast('Abrindo fluxo de <span class="toast-accent">renovação</span>…');
+          if (action === 'change-plan') toast('Abrindo <span class="toast-accent">alterar plano</span>…');
+        });
+      });
+
+      // Renewal warn threshold (≤14 dias)
+      const renewalDays = 42;
+      if (renewalDays <= 14) {
+        document.getElementById('renewalChip').classList.add('subscription-chip--warn');
+      }
+
+      // Anamnese cards
+      document.querySelectorAll('.anamnese-card').forEach((card) => {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => {
+          const name = card.querySelector('.anamnese-card-title').textContent;
+          toast(`Abrindo: <span class="toast-accent">${name}</span>`);
+        });
+      });
+
+      // Sidebar toggle
+      const sidebar = document.getElementById('sidebar');
+      const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+      const sidebarLogoBtn = document.getElementById('sidebarLogoBtn');
+      sidebarToggleBtn.addEventListener('click', () => {
+        sidebar.classList.remove('sidebar--open');
+        sidebar.classList.add('sidebar--collapsed');
+      });
+      sidebarLogoBtn.addEventListener('click', () => {
+        if (sidebar.classList.contains('sidebar--collapsed')) {
+          sidebar.classList.remove('sidebar--collapsed');
+          sidebar.classList.add('sidebar--open');
+        }
+      });
+
+      // Biblioteca dropdown
+      const bibToggle = document.getElementById('bibToggle');
+      const bibChildren = document.getElementById('bibChildren');
+      const bibChevron = document.getElementById('bibChevron');
+      bibToggle.addEventListener('click', () => {
+        if (sidebar.classList.contains('sidebar--collapsed')) {
+          sidebar.classList.remove('sidebar--collapsed');
+          sidebar.classList.add('sidebar--open');
+          bibChildren.classList.add('open');
+          bibChevron.classList.add('sidebar-dropdown-chevron--open');
+          bibToggle.setAttribute('aria-expanded', 'true');
+          return;
+        }
+        const open = bibChildren.classList.toggle('open');
+        bibChevron.classList.toggle('sidebar-dropdown-chevron--open', open);
+        bibToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+
+      // Sidebar links toast feedback
+      document.querySelectorAll('.sidebar-link, .sidebar-child-link').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const label = link.getAttribute('aria-label') || link.querySelector('.sidebar-link-label')?.textContent;
+          toast(`Navegando: <span class="toast-accent">${label}</span>`);
+        });
+      });
+
+      // Initial render
+      renderStats('30');
+      renderWaveform('30');
+    </script>
+  </body>
+</html>

@@ -9,7 +9,9 @@ import {
 } from 'lucide-react';
 import VideoField from './VideoField';
 import PrescriptionField from './PrescriptionField';
+import IntensityField from './IntensityField';
 import { EXERCISE_TYPE_OPTIONS } from '../constants/exerciseTypes';
+import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
 import { formatExerciseMeta } from '../utils/exerciseMeta';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -27,6 +29,7 @@ const EMPTY_FORM = {
   hasLoad: true,
   suggestedLoad: '',
   notes: '',
+  intensity: null,
 };
 
 const buildPayload = (form) => {
@@ -55,6 +58,8 @@ const buildPayload = (form) => {
     payload.suggestedLoad = parseFloat(form.suggestedLoad);
   }
   if (form.notes?.trim()) payload.notes = form.notes.trim();
+  // Intensity is cardio-only: kept in state, stripped from payload for non-cardio.
+  payload.intensity = form.type === 'cardio' ? (form.intensity || null) : null;
   return payload;
 };
 
@@ -71,6 +76,7 @@ const snapshotToForm = (snapshot) => ({
   hasLoad: snapshot.hasLoad ?? snapshot.exerciseTemplate?.hasLoad ?? false,
   suggestedLoad: snapshot.suggestedLoad ?? snapshot.exerciseTemplate?.suggestedLoad ?? '',
   notes: snapshot.notes || snapshot.exerciseTemplate?.notes || '',
+  intensity: snapshot.intensity ?? snapshot.exerciseTemplate?.intensity ?? null,
 });
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -193,6 +199,18 @@ const ExerciseComposer = ({
     setForm((prev) => ({ ...prev, ...patch }));
   };
 
+  const handleIntensityChange = (value) => {
+    setForm((prev) => ({ ...prev, intensity: value }));
+  };
+
+  const handleIntensityClear = () => {
+    setForm((prev) => ({ ...prev, intensity: null }));
+  };
+
+  const handleKeepCardio = () => {
+    setForm((prev) => ({ ...prev, type: 'cardio' }));
+  };
+
   const validate = () => {
     const errs = {};
     if (!form.name.trim()) errs.name = 'Nome obrigatório';
@@ -286,6 +304,17 @@ const ExerciseComposer = ({
           )}
         </div>
       </div>
+
+      {/* Intensity (cardio-only) */}
+      <IntensityField
+        idPrefix="composer"
+        type={form.type}
+        intensity={form.intensity}
+        options={EXERCISE_INTENSITY_OPTIONS}
+        onChange={handleIntensityChange}
+        onClear={handleIntensityClear}
+        onKeepCardio={handleKeepCardio}
+      />
 
       {/* Prescription: mode toggle + sets + reps/duration */}
       <PrescriptionField

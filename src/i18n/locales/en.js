@@ -36,6 +36,8 @@ const en = {
     'exercise.substituteNotFound': 'Substitute not found.',
     'exercise.logAlreadySubstituted':
       'This exercise has already been substituted in this session.',
+    'exercise.intensityRequiresCardio':
+      'Intensity can only be set for cardio exercises.',
     'subscription.planNotFound': 'Plan not found.',
     'subscription.planArchived': 'This plan is archived.',
     'subscription.bothDiscountsSet': 'Choose only one discount type.',

@@ -3,10 +3,14 @@ import PropTypes from 'prop-types';
 import Select from '../components/Select';
 import VideoField from './VideoField';
 import PrescriptionField from './PrescriptionField';
+import IntensityField from './IntensityField';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
 import { EXERCISE_TYPE_OPTIONS } from '../constants/exerciseTypes';
+import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
+
+const INTENSITY_REQUIRES_CARDIO_CODE = 'exercise.intensityRequiresCardio';
 
 const EMPTY_FORM = {
   name: '',
@@ -21,6 +25,7 @@ const EMPTY_FORM = {
   hasLoad: true,
   suggestedLoad: '',
   notes: '',
+  intensity: null,
 };
 
 const buildPayload = (data) => {
@@ -54,6 +59,13 @@ const buildPayload = (data) => {
     payload.suggestedLoad = parseFloat(data.suggestedLoad, 10);
   }
   if (data.notes?.trim()) payload.notes = data.notes.trim();
+  // Intensity is cardio-only: retained in local state, stripped from the payload
+  // for any non-cardio type. PATCH clears it explicitly with null.
+  if (data.type === 'cardio') {
+    payload.intensity = data.intensity || null;
+  } else {
+    payload.intensity = null;
+  }
   return payload;
 };
 
@@ -72,6 +84,7 @@ const buildInitialForm = (exercise) => {
     hasLoad: exercise.hasLoad || false,
     suggestedLoad: exercise.suggestedLoad ?? '',
     notes: exercise.notes || '',
+    intensity: exercise.intensity ?? null,
   };
 };
 
@@ -80,6 +93,7 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
   const [loading, setLoading] = useState(false);
   const [durationError, setDurationError] = useState('');
   const [repsError, setRepsError] = useState('');
+  const [intensityError, setIntensityError] = useState('');
   const [formData, setFormData] = useState(() => buildInitialForm(exercise));
   const isEditing = !!exercise?.id;
   const isDraftMode = !isEditing && !trainingId;
@@ -88,6 +102,7 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
     setFormData(buildInitialForm(exercise));
     setDurationError('');
     setRepsError('');
+    setIntensityError('');
   }, [exercise]);
 
   const handlePrescriptionChange = useCallback((patch) => {
@@ -96,6 +111,21 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
 
   const clearDurationError = useCallback(() => setDurationError(''), []);
   const clearRepsError = useCallback(() => setRepsError(''), []);
+
+  const handleIntensityChange = useCallback((value) => {
+    setIntensityError('');
+    setFormData((prev) => ({ ...prev, intensity: value }));
+  }, []);
+
+  const handleIntensityClear = useCallback(() => {
+    setIntensityError('');
+    setFormData((prev) => ({ ...prev, intensity: null }));
+  }, []);
+
+  const handleKeepCardio = useCallback(() => {
+    setIntensityError('');
+    setFormData((prev) => ({ ...prev, type: 'cardio' }));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -128,7 +158,12 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
       }
       onSuccess?.();
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      const message = error.userMessage || translateError(error);
+      if (error.response?.data?.messageCode === INTENSITY_REQUIRES_CARDIO_CODE) {
+        setIntensityError(message);
+      } else {
+        showToast(message, 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -169,6 +204,17 @@ const ExerciseForm = ({ trainingId, exercise, onSuccess, onCancel, headerContent
             ))}
           </Select>
         </div>
+
+        <IntensityField
+          idPrefix="exercise-form"
+          type={formData.type}
+          intensity={formData.intensity}
+          options={EXERCISE_INTENSITY_OPTIONS}
+          errorMessage={intensityError}
+          onChange={handleIntensityChange}
+          onClear={handleIntensityClear}
+          onKeepCardio={handleKeepCardio}
+        />
 
         <VideoField
           value={formData.videoUrl}
