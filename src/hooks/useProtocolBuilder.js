@@ -546,6 +546,45 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     [mutate, isEditMode]
   );
 
+  // ── reorderExercises ───────────────────────────────────────────────────────
+
+  /**
+   * Persist a new exercise order for a training.
+   *
+   * Persisted training (edit mode + real UUID): PATCH the order endpoint, then
+   * mirror the reordered array into local state.
+   * Draft training (create mode OR temp id): local-only — saveRoutine POSTs
+   * exercises in array order, so the local order persists on save.
+   *
+   * Errors propagate so useExerciseReorder rolls back + toasts.
+   */
+  const reorderExercises = useCallback(
+    (trainingId, orderedExerciseIds, reorderedExercises) => {
+      const isPersisted = isEditMode && !String(trainingId).startsWith('tmp_');
+
+      const applyLocalOrder = () =>
+        setData((prev) => ({
+          ...prev,
+          trainings: prev.trainings.map((t) =>
+            t.id === trainingId ? { ...t, exercises: reorderedExercises } : t
+          ),
+        }));
+
+      if (!isPersisted) {
+        applyLocalOrder();
+        return Promise.resolve();
+      }
+
+      return mutate(async () => {
+        await api.patch(`/trainer/trainings/${trainingId}/exercises/order`, {
+          exerciseIds: orderedExerciseIds,
+        });
+        applyLocalOrder();
+      });
+    },
+    [mutate, isEditMode]
+  );
+
   // ── saveExerciseAsTemplate ─────────────────────────────────────────────────
 
   const saveExerciseAsTemplate = useCallback(
@@ -743,6 +782,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     addExerciseFromTemplate,
     updateExercise,
     deleteExercise,
+    reorderExercises,
     saveExerciseAsTemplate,
     restoreSessionTracking,
     loadFromTemplate,

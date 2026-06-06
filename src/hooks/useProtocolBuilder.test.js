@@ -607,7 +607,7 @@ describe('useProtocolBuilder — API surface parity', () => {
       'importTrainingsFromLibrary', 'updateTraining',
       'updateTrainingWeekDay', 'deleteTraining',
       'addExercise', 'addExerciseFromTemplate',
-      'updateExercise', 'deleteExercise',
+      'updateExercise', 'deleteExercise', 'reorderExercises',
       'saveExerciseAsTemplate', 'restoreSessionTracking',
     ];
     for (const key of required) {
@@ -911,5 +911,116 @@ describe('useProtocolBuilder — edit mode: deleteTraining failure', () => {
     expect(result.current.data.trainings).toHaveLength(0);
     expect(api.delete).not.toHaveBeenCalled();
     expect(mockShowToast).not.toHaveBeenCalled();
+  });
+});
+
+describe('useProtocolBuilder — reorderExercises', () => {
+  const REORDER_EXERCISES = [
+    { id: 'ex-a', name: 'A' },
+    { id: 'ex-b', name: 'B' },
+  ];
+
+  const makeReorderEditModeGetHandler = () => (url) => {
+    if (url === `/trainer/protocols/${PROTOCOL_ID}`)
+      return Promise.resolve({
+        data: {
+          id: PROTOCOL_ID,
+          name: 'Protocolo Editável',
+          type: 'strength',
+          trainingLevel: '',
+          genderOrdination: '',
+          description: '',
+          startDate: '2026-05-01',
+          expirationDate: '',
+          assigneeId: null,
+          trainings: [EDIT_TRAINING],
+        },
+      });
+    if (url === `/trainer/trainings/${EDIT_TRAINING.id}/exercises`)
+      return Promise.resolve({ data: REORDER_EXERCISES });
+    if (url === '/trainer/training-templates') return Promise.resolve({ data: [] });
+    if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
+    if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+    return Promise.resolve({ data: [] });
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+  });
+
+  it('edit mode (persisted UUID): PATCHes the order endpoint and reorders local state', async () => {
+    api.get.mockImplementation(makeReorderEditModeGetHandler());
+    api.patch.mockResolvedValue({ data: {} });
+
+    const { result } = renderHook(() =>
+      useProtocolBuilder(null, { protocolId: PROTOCOL_ID })
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const reordered = [REORDER_EXERCISES[1], REORDER_EXERCISES[0]];
+    await act(async () => {
+      await result.current.reorderExercises(
+        EDIT_TRAINING.id,
+        ['ex-b', 'ex-a'],
+        reordered
+      );
+    });
+
+    expect(api.patch).toHaveBeenCalledWith(
+      `/trainer/trainings/${EDIT_TRAINING.id}/exercises/order`,
+      { exerciseIds: ['ex-b', 'ex-a'] }
+    );
+    expect(result.current.data.trainings[0].exercises.map((e) => e.id)).toEqual([
+      'ex-b',
+      'ex-a',
+    ]);
+  });
+
+  it('edit mode with a temp id: reorders local state and makes NO api call', async () => {
+    api.get.mockImplementation(makeReorderEditModeGetHandler());
+
+    const { result } = renderHook(() =>
+      useProtocolBuilder(null, { protocolId: PROTOCOL_ID })
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // Add a draft training with a tmp_ id while in edit mode is not possible via
+    // createTraining (it POSTs), so simulate by reordering a synthetic temp id.
+    const tempId = 'tmp_abc';
+    await act(async () => {
+      await result.current.reorderExercises(tempId, ['x'], [{ id: 'x' }]);
+    });
+
+    expect(api.patch).not.toHaveBeenCalled();
+  });
+
+  it('create mode (draft): reorders local state and makes NO api call', async () => {
+    api.get.mockImplementation(makeGetHandler(null));
+
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let tid;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'T', category: 'strength' });
+      tid = t.id;
+      await result.current.addExercise(tid, { id: 'ignored', name: 'A', type: 'strength' });
+      await result.current.addExercise(tid, { id: 'ignored', name: 'B', type: 'strength' });
+    });
+
+    const created = result.current.data.trainings[0].exercises;
+    const reordered = [created[1], created[0]];
+
+    await act(async () => {
+      await result.current.reorderExercises(
+        tid,
+        [created[1].id, created[0].id],
+        reordered
+      );
+    });
+
+    expect(api.patch).not.toHaveBeenCalled();
+    expect(result.current.data.trainings[0].exercises).toEqual(reordered);
   });
 });

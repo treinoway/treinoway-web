@@ -886,6 +886,37 @@ describe('deleteExercise', () => {
   });
 });
 
+// ─── reorderExercises ─────────────────────────────────────────────────────────
+
+describe('reorderExercises', () => {
+  it('updates local exercise order without calling the API', async () => {
+    const { result } = renderHook(() => useRoutineBuilder('r1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const original = result.current.data.trainings[0].exercises;
+    // Append a second exercise locally so there is something to reorder.
+    await act(async () => {
+      await result.current.addExercise('t1', { name: 'Agachamento', type: 'strength', sets: 3 });
+    });
+
+    const exercises = result.current.data.trainings[0].exercises;
+    const reordered = [exercises[1], exercises[0]];
+
+    await act(async () => {
+      await result.current.reorderExercises(
+        't1',
+        [exercises[1].id, exercises[0].id],
+        reordered
+      );
+    });
+
+    expect(api.patch).not.toHaveBeenCalled();
+    expect(result.current.data.trainings[0].exercises).toEqual(reordered);
+    // Sanity: original first exercise is now last.
+    expect(result.current.data.trainings[0].exercises[1].id).toBe(original[0].id);
+  });
+});
+
 // ─── saveExerciseAsTemplate ───────────────────────────────────────────────────
 
 describe('saveExerciseAsTemplate', () => {

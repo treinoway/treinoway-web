@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import { useToast } from '../contexts/ToastContext';
-import api from '../api/axios';
 import buildExerciseRenderEntries from '../utils/exerciseRenderEntries';
 
 /**
@@ -11,17 +10,21 @@ import buildExerciseRenderEntries from '../utils/exerciseRenderEntries';
  * The hook:
  *   1. Derives render entries from `exercises` via buildExerciseRenderEntries.
  *   2. On dragEnd: reorders entries optimistically, flattens back to exercises
- *      (keeping bi-set members contiguous), fires
- *      PATCH /trainer/trainings/:trainingId/exercises/order.
+ *      (keeping bi-set members contiguous), and delegates persistence to the
+ *      injected `onReorder` callback. The callback owns the API call (or the
+ *      local-only update for draft/template builders) — this hook never calls
+ *      the API directly.
  *   3. Rolls back local state and shows an error toast on failure.
  *   4. Resets local state whenever the canonical `exercises` prop changes
  *      (e.g. after a refetch from the parent).
  *
  * @param {object}   params
- * @param {string}   params.trainingId        - Training UUID.
+ * @param {string}   params.trainingId        - Training id (UUID or temp draft id).
  * @param {object[]} params.exercises         - Canonical flat exercise array.
  * @param {boolean}  params.readOnly          - When true, all drag handlers are no-ops.
- * @param {Function} [params.onRefetchTraining] - Called after a successful PATCH.
+ * @param {Function} [params.onReorder]       - async (orderedExerciseIds, reorderedExercises) => void.
+ *                                              Persists the new order. Omit/null to disable persistence.
+ * @param {Function} [params.onRefetchTraining] - Called after a successful onReorder.
  *
  * @returns {{
  *   localExercises: object[],
@@ -33,7 +36,7 @@ import buildExerciseRenderEntries from '../utils/exerciseRenderEntries';
  *   handleDragCancel:Function,
  * }}
  */
-const useExerciseReorder = ({ trainingId, exercises, readOnly, onRefetchTraining }) => {
+const useExerciseReorder = ({ exercises, readOnly, onReorder, onRefetchTraining }) => {
   const { showToast } = useToast();
 
   // localExercises shadows training.exercises during a drag.
@@ -95,9 +98,7 @@ const useExerciseReorder = ({ trainingId, exercises, readOnly, onRefetchTraining
         .map((ex) => ex.id);
 
       try {
-        await api.patch(`/trainer/trainings/${trainingId}/exercises/order`, {
-          exerciseIds,
-        });
+        if (onReorder) await onReorder(exerciseIds, reorderedExercises);
         if (onRefetchTraining) await onRefetchTraining();
       } catch (err) {
         // Rollback on failure.
@@ -113,7 +114,7 @@ const useExerciseReorder = ({ trainingId, exercises, readOnly, onRefetchTraining
       entryIds,
       localEntries,
       localExercises,
-      trainingId,
+      onReorder,
       onRefetchTraining,
       showToast,
     ]

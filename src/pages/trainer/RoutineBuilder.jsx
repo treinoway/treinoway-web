@@ -1491,6 +1491,7 @@ const TrainingItem = ({
   onEditExercise,
   onImportFromLibrary,
   onDeleteExercise,
+  onReorder,
   onRefetchTraining,
 }) => {
   const { showToast } = useToast();
@@ -1525,6 +1526,7 @@ const TrainingItem = ({
     trainingId: training.id,
     exercises: canonicalExercises,
     readOnly: readOnly || false,
+    onReorder,
     onRefetchTraining,
   });
 
@@ -2149,6 +2151,7 @@ TrainingItem.propTypes = {
   onEditExercise: PropTypes.func,
   onImportFromLibrary: PropTypes.func,
   onDeleteExercise: PropTypes.func,
+  onReorder: PropTypes.func,
   onRefetchTraining: PropTypes.func,
 };
 
@@ -2162,6 +2165,7 @@ TrainingItem.defaultProps = {
   onEditExercise: null,
   onImportFromLibrary: null,
   onDeleteExercise: null,
+  onReorder: null,
   onRefetchTraining: null,
 };
 
@@ -3191,6 +3195,11 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
                 Promise.all(ids.map((tmplId) => routine.addExerciseFromTemplate(t.id, tmplId)))
               }
               onDeleteExercise={readOnly ? null : (exId) => routine.deleteExercise(t.id, exId)}
+              onReorder={
+                readOnly
+                  ? null
+                  : (ids, reordered) => routine.reorderExercises(t.id, ids, reordered)
+              }
               onRefetchTraining={
                 readOnly || !routine.refetchTrainingExercises
                   ? null

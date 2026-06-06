@@ -452,6 +452,27 @@ const useRoutineBuilder = (routineId) => {
     [mutate]
   );
 
+  // ── reorderExercises ──────────────────────────────────────────────────────
+
+  /**
+   * Local-only reorder for training templates. There is no training-template
+   * exercise-order endpoint, so the new order lives in the draft and persisted
+   * template ordering is out of scope/deferred. Signature matches the protocol
+   * builder so useExerciseReorder can call either interchangeably.
+   */
+  const reorderExercises = useCallback(
+    (trainingId, orderedExerciseIds, reorderedExercises) => {
+      setData((prev) => ({
+        ...prev,
+        trainings: prev.trainings.map((t) =>
+          t.id === trainingId ? { ...t, exercises: reorderedExercises } : t
+        ),
+      }));
+      return Promise.resolve();
+    },
+    []
+  );
+
   // ── saveExerciseAsTemplate ────────────────────────────────────────────────
 
   /**
@@ -528,6 +549,7 @@ const useRoutineBuilder = (routineId) => {
     addExerciseFromTemplate,
     updateExercise,
     deleteExercise,
+    reorderExercises,
     saveExerciseAsTemplate,
     restoreSessionTracking,
     refetchTrainingExercises,
