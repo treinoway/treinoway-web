@@ -16222,101 +16222,93 @@ nav.onboarding-steps {
   transform: rotate(180deg);
 }
 
-/* Advanced fields zone */
-.composer-advanced {
-  margin-top: 6px;
+/* ── Composer bands — visual grouping with hairline divider ── */
+.composer-band {
+  padding-top: var(--spacing-sm);
+  padding-bottom: var(--spacing-sm);
+  border-top: 1px solid var(--brand-divider);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  animation: composer-advanced-in var(--duration-base) var(--ease-brand);
+  gap: var(--spacing-sm);
 }
 
-@keyframes composer-advanced-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.composer-video-wrap {
-  position: relative;
-}
-
-.composer-video-icon {
-  position: absolute;
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: #FF0000;
-}
-
-.composer-input--video {
-  padding-left: 28px;
-}
-
-.composer-video-ok {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+.composer-band-label {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
-  color: var(--md-success);
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
+  color: var(--brand-steel);
+  display: block;
 }
 
-.composer-video-preview {
-  margin-top: 6px;
-  background: #000;
-  border-radius: var(--radius-brand);
-  aspect-ratio: 16/9;
+/* Carga + Descanso — stacked on mobile, 2-col on desktop */
+.composer-carga-rest-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .composer-carga-rest-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Carga column: wraps toggle + optional kg reveal */
+.composer-load-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* Rest group within prescription band */
+.composer-rest-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.composer-rest-group .prescription-chips {
+  margin-bottom: 0;
+}
+
+/* Suffix input inside composer: composer-input drives the left portion */
+.composer-rest-group .form-input-with-suffix .composer-input,
+.composer-load-reveal .form-input-with-suffix .composer-input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Carga toggle row */
+.composer-load-toggle-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #fff;
-  position: relative;
-  overflow: hidden;
-  max-width: 280px;
-}
-
-.composer-video-preview iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-
-.composer-duration-field--disabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.composer-load-row {
-  display: grid;
-  grid-template-columns: auto 1fr;
+  justify-content: space-between;
   gap: var(--spacing-md);
-  align-items: center;
+  min-height: 44px;
 }
 
-.composer-checkbox-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
+.composer-load-toggle-label {
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 600;
   color: var(--brand-ink);
-  font-weight: 500;
-  cursor: pointer;
-  user-select: none;
+  line-height: var(--line-height-tight);
 }
 
-.composer-checkbox-row input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--brand-primary);
-  cursor: pointer;
+/* Carga kg reveal — animates in */
+.composer-load-reveal {
+  animation: composer-reveal var(--duration-base) var(--ease-brand);
 }
+
+@keyframes composer-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 
 .composer-textarea {
   background: var(--md-surface);

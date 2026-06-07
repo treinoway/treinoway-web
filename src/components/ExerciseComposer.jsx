@@ -2,19 +2,35 @@ import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
   Check,
-  ChevronDown,
   Library,
   Plus,
   Search,
 } from 'lucide-react';
-import VideoField from './VideoField';
 import PrescriptionField from './PrescriptionField';
 import IntensityField from './IntensityField';
+import VideoField from './VideoField';
 import { EXERCISE_TYPE_OPTIONS } from '../constants/exerciseTypes';
 import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
 import { formatExerciseMeta } from '../utils/exerciseMeta';
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const REST_CHIPS = [60, 90, 120, 180];
+
+/**
+ * Types that have load enabled by default when the user hasn't manually overridden.
+ */
+const LOAD_DEFAULT_BY_TYPE = {
+  strength: true,
+  cardio: false,
+  mobility: false,
+  stretching: false,
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const getLoadDefault = (type) =>
+  LOAD_DEFAULT_BY_TYPE[type] ?? false;
 
 const EMPTY_FORM = {
   name: '',
@@ -58,7 +74,6 @@ const buildPayload = (form) => {
     payload.suggestedLoad = parseFloat(form.suggestedLoad);
   }
   if (form.notes?.trim()) payload.notes = form.notes.trim();
-  // Intensity is cardio-only: kept in state, stripped from payload for non-cardio.
   payload.intensity = form.type === 'cardio' ? (form.intensity || null) : null;
   return payload;
 };
@@ -165,8 +180,8 @@ LibraryPanel.propTypes = {
  * Unified inline composer for creating and editing exercises within a training.
  *
  * Props:
- *   snapshot = null/undefined → create mode (Estados B / C)
- *   snapshot = object         → edit mode   (Estado D)
+ *   snapshot = null/undefined → create mode
+ *   snapshot = object         → edit mode
  */
 const ExerciseComposer = ({
   snapshot,
@@ -183,7 +198,8 @@ const ExerciseComposer = ({
   const [form, setForm] = useState(() =>
     isEditMode ? snapshotToForm(snapshot) : { ...EMPTY_FORM }
   );
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Tracks whether the user has manually toggled carga (overrides type-derived default)
+  const [loadManuallySet, setLoadManuallySet] = useState(false);
   const [librarySearch, setLibrarySearch] = useState('');
   const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
   const [errors, setErrors] = useState({});
@@ -191,8 +207,22 @@ const ExerciseComposer = ({
   const [repsError, setRepsError] = useState('');
 
   const handleFieldChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+
+      // When type changes, derive hasLoad default unless user has manually overridden
+      if (field === 'type' && !loadManuallySet) {
+        next.hasLoad = getLoadDefault(value);
+      }
+
+      return next;
+    });
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const handleLoadToggle = (checked) => {
+    setLoadManuallySet(true);
+    setForm((prev) => ({ ...prev, hasLoad: checked }));
   };
 
   const handlePrescriptionChange = (patch) => {
@@ -209,6 +239,10 @@ const ExerciseComposer = ({
 
   const handleKeepCardio = () => {
     setForm((prev) => ({ ...prev, type: 'cardio' }));
+  };
+
+  const handleRestChipClick = (seconds) => {
+    setForm((prev) => ({ ...prev, restInterval: String(seconds) }));
   };
 
   const validate = () => {
@@ -260,157 +294,191 @@ const ExerciseComposer = ({
     );
   };
 
-  // ── Form ──────────────────────────────────────────────────────────────────
+  const activeRestChip = REST_CHIPS.includes(Number(form.restInterval))
+    ? Number(form.restInterval)
+    : null;
+
+  // ── Create/edit form ──────────────────────────────────────────────────────
 
   const renderCreateForm = (onSubmit, submitLabel) => (
     <form onSubmit={onSubmit} noValidate>
-      {/* Row 1: Name + Type */}
-      <div className="composer-name-type-row">
-        <div>
-          <label className="composer-label" htmlFor="composer-name">
-            Nome <span aria-hidden="true">*</span>
-          </label>
-          <input
-            id="composer-name"
-            className="composer-input"
-            type="text"
-            value={form.name}
-            onChange={(e) => handleFieldChange('name', e.target.value)}
-            placeholder="Ex: Remada unilateral"
-            required
-            autoFocus={!isEditMode}
-          />
-          {errors.name && (
-            <span className="form-error" role="alert">{errors.name}</span>
-          )}
-        </div>
-        <div>
-          <label className="composer-label" htmlFor="composer-type">
-            Tipo <span aria-hidden="true">*</span>
-          </label>
-          <select
-            id="composer-type"
-            className="composer-select"
-            value={form.type}
-            onChange={(e) => handleFieldChange('type', e.target.value)}
-            required
-          >
-            {EXERCISE_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          {errors.type && (
-            <span className="form-error" role="alert">{errors.type}</span>
-          )}
-        </div>
-      </div>
 
-      {/* Intensity (cardio-only) */}
-      <IntensityField
-        idPrefix="composer"
-        type={form.type}
-        intensity={form.intensity}
-        options={EXERCISE_INTENSITY_OPTIONS}
-        onChange={handleIntensityChange}
-        onClear={handleIntensityClear}
-        onKeepCardio={handleKeepCardio}
-      />
+      {/* ── Band 1: O ESSENCIAL ── */}
+      <div className="composer-band">
+        <span className="composer-band-label">O Essencial</span>
 
-      {/* Prescription: mode toggle + sets + reps/duration */}
-      <PrescriptionField
-        idPrefix="composer"
-        formData={form}
-        onChange={handlePrescriptionChange}
-        durationError={durationError}
-        onClearDurationError={() => setDurationError('')}
-        repsError={repsError}
-        onClearRepsError={() => setRepsError('')}
-      />
-
-      {/* Rest interval */}
-      <div className="composer-rest-row">
-        <label className="composer-label" htmlFor="composer-rest">Descanso (s)</label>
-        <input
-          id="composer-rest"
-          className="composer-input"
-          type="number"
-          min="0"
-          value={form.restInterval}
-          onChange={(e) => handleFieldChange('restInterval', e.target.value)}
-          placeholder="60"
-        />
-      </div>
-
-      {/* Progressive disclosure toggle */}
-      <button
-        type="button"
-        className="composer-more-toggle"
-        onClick={() => setShowAdvanced((v) => !v)}
-        aria-expanded={showAdvanced}
-      >
-        <ChevronDown
-          size={12}
-          strokeWidth={2}
-          className={`composer-more-toggle-icon${showAdvanced ? ' composer-more-toggle-icon--open' : ''}`}
-          aria-hidden="true"
-        />
-        {showAdvanced ? 'Ocultar campos avançados' : 'Mostrar mais campos'}
-      </button>
-
-      {/* Advanced fields */}
-      {showAdvanced && (
-        <div className="composer-advanced">
-          {/* Video */}
-          <VideoField
-            value={form.videoUrl}
-            onChange={(url) => handleFieldChange('videoUrl', url)}
-          />
-
-          {/* Has load + Suggested load */}
-          <div className="composer-load-row">
-            <label className="composer-checkbox-row">
-              <input
-                type="checkbox"
-                checked={form.hasLoad}
-                onChange={(e) => handleFieldChange('hasLoad', e.target.checked)}
-              />
-              Exercício com carga
+        <div className="composer-name-type-row">
+          <div>
+            <label className="composer-label" htmlFor="composer-name">
+              Nome <span aria-hidden="true">*</span>
             </label>
-            {form.hasLoad && (
-              <div>
-                <label className="composer-label" htmlFor="composer-load">
-                  Carga sugerida (kg)
-                </label>
+            <input
+              id="composer-name"
+              className="composer-input"
+              type="text"
+              value={form.name}
+              onChange={(e) => handleFieldChange('name', e.target.value)}
+              placeholder="Ex: Remada unilateral"
+              required
+              autoFocus={!isEditMode}
+            />
+            {errors.name && (
+              <span className="form-error" role="alert">{errors.name}</span>
+            )}
+          </div>
+          <div>
+            <label className="composer-label" htmlFor="composer-type">
+              Tipo <span aria-hidden="true">*</span>
+            </label>
+            <select
+              id="composer-type"
+              className="composer-select"
+              value={form.type}
+              onChange={(e) => handleFieldChange('type', e.target.value)}
+              required
+            >
+              {EXERCISE_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            {errors.type && (
+              <span className="form-error" role="alert">{errors.type}</span>
+            )}
+          </div>
+        </div>
+
+        <IntensityField
+          idPrefix="composer"
+          type={form.type}
+          intensity={form.intensity}
+          options={EXERCISE_INTENSITY_OPTIONS}
+          onChange={handleIntensityChange}
+          onClear={handleIntensityClear}
+          onKeepCardio={handleKeepCardio}
+        />
+      </div>
+
+      {/* ── Band 2: PRESCRIÇÃO ── */}
+      <div className="composer-band">
+        <span className="composer-band-label">Prescrição</span>
+
+        <PrescriptionField
+          idPrefix="composer"
+          formData={form}
+          onChange={handlePrescriptionChange}
+          durationError={durationError}
+          onClearDurationError={() => setDurationError('')}
+          repsError={repsError}
+          onClearRepsError={() => setRepsError('')}
+        />
+
+        {/* Descanso + Carga — side-by-side on desktop, stacked on mobile */}
+        <div className="composer-carga-rest-row">
+          {/* Descanso — chips + suffix input */}
+          <div className="composer-rest-group">
+            <label className="composer-label" htmlFor="composer-rest">Descanso</label>
+            <div
+              className="prescription-chips"
+              role="group"
+              aria-label="Atalhos de descanso"
+            >
+              {REST_CHIPS.map((seconds) => (
+                <button
+                  key={seconds}
+                  type="button"
+                  className={`prescription-chip${activeRestChip === seconds ? ' prescription-chip--active' : ''}`}
+                  onClick={() => handleRestChipClick(seconds)}
+                  aria-pressed={activeRestChip === seconds}
+                >
+                  {seconds}s
+                </button>
+              ))}
+            </div>
+            <div className="form-input-with-suffix">
+              <input
+                id="composer-rest"
+                className="composer-input"
+                type="number"
+                min="0"
+                value={form.restInterval}
+                onChange={(e) => handleFieldChange('restInterval', e.target.value)}
+                placeholder="90"
+                aria-label="Intervalo de descanso em segundos"
+              />
+              <span className="form-input-suffix" aria-hidden="true">s</span>
+            </div>
+          </div>
+
+          {/* Carga — toggle + optional kg reveal */}
+          <div className="composer-load-col">
+            <div className="composer-load-toggle-row">
+              <span className="composer-load-toggle-label" id="composer-load-label">
+                Exercício com carga
+              </span>
+              <label className="switch">
                 <input
-                  id="composer-load"
-                  className="composer-input"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={form.suggestedLoad}
-                  onChange={(e) => handleFieldChange('suggestedLoad', e.target.value)}
-                  placeholder="Ex: 20"
+                  type="checkbox"
+                  role="switch"
+                  aria-labelledby="composer-load-label"
+                  checked={form.hasLoad}
+                  onChange={(e) => handleLoadToggle(e.target.checked)}
                 />
+                <span className="switch-slider" />
+              </label>
+            </div>
+
+            {/* Carga kg input — reveals only when hasLoad */}
+            {form.hasLoad && (
+              <div className="composer-load-reveal">
+                <label className="composer-label" htmlFor="composer-load">
+                  Carga sugerida
+                </label>
+                <div className="form-input-with-suffix">
+                  <input
+                    id="composer-load"
+                    className="composer-input"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={form.suggestedLoad}
+                    onChange={(e) => handleFieldChange('suggestedLoad', e.target.value)}
+                    placeholder="Ex: 20"
+                  />
+                  <span className="form-input-suffix" aria-hidden="true">kg</span>
+                </div>
               </div>
             )}
           </div>
-
-          {/* Notes */}
-          <div>
-            <label className="composer-label" htmlFor="composer-notes">Observações</label>
-            <textarea
-              id="composer-notes"
-              className="composer-textarea"
-              value={form.notes}
-              onChange={(e) => handleFieldChange('notes', e.target.value)}
-              placeholder="Dica de execução, postura, foco muscular…"
-              rows={3}
-            />
-          </div>
         </div>
-      )}
+      </div>
 
-      {/* Actions */}
+      {/* ── Band 3: DETALHES ── */}
+      <div className="composer-band">
+        <span className="composer-band-label">Detalhes</span>
+
+        {/* Vídeo — library picker + YouTube URL fallback */}
+        <VideoField
+          value={form.videoUrl}
+          onChange={(url) => handleFieldChange('videoUrl', url)}
+          label="Vídeo de demonstração"
+        />
+
+        {/* Observações — uncapped */}
+        <div>
+          <label className="composer-label" htmlFor="composer-notes">Observações</label>
+          <textarea
+            id="composer-notes"
+            className="composer-textarea"
+            value={form.notes}
+            onChange={(e) => handleFieldChange('notes', e.target.value)}
+            placeholder="Dica de execução, postura, foco muscular…"
+            rows={3}
+            aria-label="Observações"
+          />
+        </div>
+      </div>
+
+      {/* ── Footer ── */}
       <div className="composer-actions">
         <button
           type="button"
