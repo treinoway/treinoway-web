@@ -7,6 +7,7 @@ import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import { formatDuration } from '../../utils/formatDuration';
 import TrainingMetaRow from '../../components/TrainingMetaRow';
 import { getWeekDayLabel } from '../../constants/weekDays';
+import { sortTrainingsByWeekDay } from '../../utils/sortTrainingsByWeekDay';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
 import { getYoutubeVideoId } from '../../utils/youtube';
@@ -54,8 +55,9 @@ const MyProtocolDetail = () => {
     try {
       const response = await api.get(`/my/protocols/${id}/trainings`);
       const list = response.data || [];
-      setTrainings(list);
-      list.forEach((t) => fetchExercisesForTraining(t.id));
+      const sorted = sortTrainingsByWeekDay(list);
+      setTrainings(sorted);
+      sorted.forEach((t) => fetchExercisesForTraining(t.id));
     } catch (error) {
       console.error('Failed to fetch trainings:', error);
     }

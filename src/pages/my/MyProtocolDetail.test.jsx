@@ -360,4 +360,57 @@ describe('MyProtocolDetail', () => {
       expect(screen.getByText('2')).toBeInTheDocument();
     });
   });
+
+  it('renders assigned training before unassigned training regardless of API order', async () => {
+    // API returns unassigned first, then assigned — UI must reorder.
+    const trainingsUnassignedFirst = [
+      { id: 11, name: 'Treino B', order: 1, notes: null },
+      { id: 10, name: 'Treino A', order: 2, weekDay: 'MONDAY', notes: null },
+    ];
+    setupApiMocks({
+      trainings: trainingsUnassignedFirst,
+      exercisesMap: { 10: [], 11: [] },
+    });
+
+    renderMyProtocolDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Treino A')).toBeInTheDocument();
+      expect(screen.getByText('Treino B')).toBeInTheDocument();
+    });
+
+    const trainingNames = screen
+      .getAllByRole('heading', { level: 3 })
+      .map((el) => el.textContent);
+    const indexA = trainingNames.indexOf('Treino A');
+    const indexB = trainingNames.indexOf('Treino B');
+    expect(indexA).toBeLessThan(indexB);
+  });
+
+  it('sorts multiple assigned trainings by canonical weekday order', async () => {
+    const trainingsOutOfOrder = [
+      { id: 1, name: 'Treino Sexta', order: 1, weekDay: 'FRIDAY', notes: null },
+      { id: 2, name: 'Treino Segunda', order: 2, weekDay: 'MONDAY', notes: null },
+      { id: 3, name: 'Treino Quarta', order: 3, weekDay: 'WEDNESDAY', notes: null },
+    ];
+    setupApiMocks({
+      trainings: trainingsOutOfOrder,
+      exercisesMap: { 1: [], 2: [], 3: [] },
+    });
+
+    renderMyProtocolDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Treino Segunda')).toBeInTheDocument();
+    });
+
+    const trainingNames = screen
+      .getAllByRole('heading', { level: 3 })
+      .map((el) => el.textContent);
+    const indexSeg = trainingNames.indexOf('Treino Segunda');
+    const indexQua = trainingNames.indexOf('Treino Quarta');
+    const indexSex = trainingNames.indexOf('Treino Sexta');
+    expect(indexSeg).toBeLessThan(indexQua);
+    expect(indexQua).toBeLessThan(indexSex);
+  });
 });

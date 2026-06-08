@@ -54,6 +54,7 @@ import SelectionActionBar, { SelectionInstructionStrip } from '../../components/
 import api from '../../api/axios';
 import { t } from '../../i18n';
 import { WEEK_DAY_OPTIONS_SHORT } from '../../constants/weekDays';
+import { sortTrainingsByWeekDay } from '../../utils/sortTrainingsByWeekDay';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import DurationLabel from '../../components/DurationLabel';
 import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/protocolTypes';
@@ -3033,13 +3034,13 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
     [trainings]
   );
 
-  // Flat ordered list of all trainings (assigned first, then unassigned) for
-  // the sheet — mirrors the render order used in the canvas below.
-  const orderedTrainings = useMemo(() => {
-    const assigned = trainings.filter((t) => t.weekDay);
-    const unassigned = trainings.filter((t) => !t.weekDay);
-    return [...assigned, ...unassigned];
-  }, [trainings]);
+  // Flat ordered list of all trainings (assigned first sorted by weekday,
+  // then unassigned) for the sheet — mirrors the render order used in the
+  // canvas below.
+  const orderedTrainings = useMemo(
+    () => sortTrainingsByWeekDay(trainings),
+    [trainings]
+  );
 
   const handleScrollToTraining = useCallback((trainingId) => {
     // Expand the training card if it is collapsed.
@@ -3171,8 +3172,9 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         )}
 
         {trainings.length > 0 && (() => {
-          const assignedTrainings = trainings.filter((t) => t.weekDay);
-          const unassignedTrainings = trainings.filter((t) => !t.weekDay);
+          const sortedTrainings = sortTrainingsByWeekDay(trainings);
+          const assignedTrainings = sortedTrainings.filter((t) => t.weekDay);
+          const unassignedTrainings = sortedTrainings.filter((t) => !t.weekDay);
           const showUnassignedHeader = assignedTrainings.length > 0 && unassignedTrainings.length > 0;
 
           const renderTrainingItem = (t, i) => (
