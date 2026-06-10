@@ -2,6 +2,9 @@ const en = {
   errors: {
     TRAINING_TEMPLATE_EXERCISE_NOT_FOUND: 'Exercise not found in this training template.',
     FORBIDDEN_NOT_TEMPLATE_OWNER: 'You do not have permission to edit this template.',
+    ASSIGNEE_NOT_FOUND: 'Student not found.',
+    TRAINING_TEMPLATE_NOT_OWNED: 'One or more training templates do not belong to your profile.',
+    EXERCISE_TEMPLATE_NOT_OWNED: 'One or more exercise templates do not belong to your profile.',
   },
   messageCodes: {
     'anamnesis.invalidCondition': 'Invalid condition for the parent question type.',
@@ -45,6 +48,9 @@ const en = {
     'subscription.notFound': 'Subscription not found.',
     'subscription.cannotEditCancelled': 'This subscription has already been cancelled.',
     'subscription.paymentNotFound': 'Payment not found.',
+    'protocol.trainingTemplateNotOwned': 'One or more training templates do not belong to your profile.',
+    'protocol.exerciseTemplateNotOwned': 'One or more exercise templates do not belong to your profile.',
+    'platformPlan.studentBlockedOnPlan': 'This student is blocked by your current plan. Upgrade to continue.',
   },
   dashboard: {
     tabLabel: 'Activity',

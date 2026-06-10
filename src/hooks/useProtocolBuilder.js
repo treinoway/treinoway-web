@@ -29,6 +29,9 @@ const extractExercisesFromTemplate = (raw) => {
       duration: j.duration ?? j.exerciseTemplate?.duration ?? null,
       hasLoad: j.hasLoad ?? j.exerciseTemplate?.hasLoad ?? false,
       suggestedLoad: j.suggestedLoad ?? j.exerciseTemplate?.suggestedLoad ?? null,
+      restInterval: j.restInterval ?? j.exerciseTemplate?.restInterval ?? null,
+      videoUrl: j.videoUrl ?? j.exerciseTemplate?.videoUrl ?? null,
+      intensity: j.intensity ?? j.exerciseTemplate?.intensity ?? null,
       notes: j.notes ?? j.exerciseTemplate?.notes ?? null,
       _isFromTemplate: true,
     }));
@@ -36,14 +39,72 @@ const extractExercisesFromTemplate = (raw) => {
 
 const makeTempId = () => `tmp_${crypto.randomUUID()}`;
 
+// ─── Bulk-create payload mappers ────────────────────────────────────────────────
+// The POST /trainer/protocols/with-trainings endpoint uses
+// `additionalProperties: false`, so any unknown field (frontend-only flags, temp
+// ids, *Label siblings) triggers a 400. These mappers build explicit allow-lists.
+
+/**
+ * Maps a local-state exercise to the bulk-create exercise shape.
+ * Carries the template snapshot data directly and links the FK via
+ * `exerciseTemplateId` — no separate `from-template` call is needed.
+ */
+const toBulkExercise = (exercise, index) => {
+  const payload = {
+    name: exercise.name || '',
+    type: exercise.type || 'strength',
+    order: index,
+  };
+
+  const templateId = exercise._templateId;
+  if (templateId) payload.exerciseTemplateId = templateId;
+
+  if (exercise.prescriptionMode != null) payload.prescriptionMode = exercise.prescriptionMode;
+  if (exercise.sets != null) payload.sets = exercise.sets;
+  if (exercise.repetitions != null) payload.repetitions = exercise.repetitions;
+  if (exercise.duration != null) payload.duration = exercise.duration;
+  if (exercise.hasLoad != null) payload.hasLoad = exercise.hasLoad;
+  if (exercise.suggestedLoad != null) payload.suggestedLoad = exercise.suggestedLoad;
+  if (exercise.restInterval != null) payload.restInterval = exercise.restInterval;
+  if (exercise.notes != null && exercise.notes !== '') payload.notes = exercise.notes;
+  if (exercise.intensity != null && exercise.intensity !== '') payload.intensity = exercise.intensity;
+  if (exercise.videoUrl != null && exercise.videoUrl !== '') payload.videoUrl = exercise.videoUrl;
+
+  return payload;
+};
+
+/**
+ * Maps a local-state training to the bulk-create training shape, including its
+ * nested exercises. Links the library template FK via `trainingTemplateId`.
+ */
+const toBulkTraining = (training, index) => {
+  const payload = {
+    name: training.name || 'Treino',
+    category: training.category || 'strength',
+    order: index,
+  };
+
+  const trainingTemplateId = training._trainingTemplateId;
+  if (trainingTemplateId) payload.trainingTemplateId = trainingTemplateId;
+
+  if (training.bodySegment) payload.bodySegment = training.bodySegment;
+  if (training.weekDay) payload.weekDay = training.weekDay;
+  if (training.description) payload.description = training.description;
+
+  payload.exercises = (training.exercises || []).map(toBulkExercise);
+
+  return payload;
+};
+
 // ─── useProtocolBuilder ───────────────────────────────────────────────────────
 
 /**
  * Manages protocol builder state.
  *
  * Create mode (protocolId = null):
- *   All mutations are LOCAL (deferred). saveRoutine performs the multi-step
- *   sequence: POST /trainer/protocols → POST trainings × N → POST exercises × N.
+ *   All mutations are LOCAL (deferred). saveRoutine persists everything in a
+ *   single request: POST /trainer/protocols/with-trainings (protocol header +
+ *   all training days + all exercises in one transaction).
  *
  * Edit mode (protocolId set):
  *   On mount, loads protocol + trainings + exercises from the API.
@@ -485,6 +546,9 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           duration: template?.duration ?? null,
           hasLoad: template?.hasLoad ?? false,
           suggestedLoad: template?.suggestedLoad ?? null,
+          restInterval: template?.restInterval ?? null,
+          videoUrl: template?.videoUrl ?? null,
+          intensity: template?.intensity ?? null,
           notes: template?.notes ?? null,
           _isFromTemplate: true,
         };
@@ -643,7 +707,12 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
   // ── saveRoutine ────────────────────────────────────────────────────────────
 
   /**
-   * Create mode: multi-step save sequence.
+   * Create mode: single-request save. Builds one nested payload and fires
+   *   POST /trainer/protocols/with-trainings
+   * (protocol header + all training days + all exercises in one transaction).
+   * Template-backed exercises carry their snapshot data inline and link the FK
+   * via `exerciseTemplateId` — no separate `from-template` calls.
+   *
    * Edit mode: no-op — all mutations were already persisted eagerly.
    */
   const saveRoutine = useCallback(
@@ -654,7 +723,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           return { id: protocolId };
         }
 
-        const protocolPayload = {
+        const payload = {
           assigneeId: meta.assigneeId || data.assigneeId,
           name: (meta.name || '').trim(),
           startDate: meta.startDate || data.startDate,
@@ -664,63 +733,17 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           ...(meta.trainingLevel && { trainingLevel: meta.trainingLevel }),
           ...(meta.genderOrdination && { genderOrdination: meta.genderOrdination }),
           ...(meta.description?.trim() && { description: meta.description.trim() }),
+          trainings: (trainings || []).map(toBulkTraining),
         };
 
-        // Step 1: create the protocol
-        const protocolRes = await api.post('/trainer/protocols', protocolPayload);
-        const newProtocolId = protocolRes.data?.id;
+        const res = await api.post('/trainer/protocols/with-trainings', payload);
+        const newProtocolId = res.data?.id;
 
         if (!newProtocolId) {
           throw new Error('Falha ao criar protocolo: ID não retornado.');
         }
 
-        try {
-          // Step 2 + 3: create trainings, then exercises per training
-          for (const training of trainings) {
-            const trainingPayload = {
-              name: training.name || 'Treino',
-              category: training.category || 'strength',
-              ...(training.bodySegment && { bodySegment: training.bodySegment }),
-              ...(training.weekDay && { weekDay: training.weekDay }),
-              ...(training.description && { description: training.description }),
-            };
-
-            const trainingRes = await api.post(
-              `/trainer/protocols/${newProtocolId}/trainings`,
-              trainingPayload
-            );
-            const trainingId = trainingRes.data?.id;
-            if (!trainingId) continue;
-
-            for (const exercise of training.exercises || []) {
-              if (exercise._isFromTemplate && exercise._templateId) {
-                await api.post('/trainer/exercises/from-template', {
-                  trainingId,
-                  templateId: exercise._templateId,
-                  ...(exercise.prescriptionMode !== undefined && {
-                    prescriptionMode: exercise.prescriptionMode,
-                  }),
-                });
-              } else {
-                const { id: _id, _isNew: _new, _isFromTemplate: _ift, _templateId: _tid, ...exercisePayload } = exercise;
-                await api.post(
-                  `/trainer/trainings/${trainingId}/exercises`,
-                  exercisePayload
-                );
-              }
-            }
-          }
-        } catch (err) {
-          // Best-effort cleanup
-          try {
-            await api.delete(`/trainer/protocols/${newProtocolId}`);
-          } catch {
-            // ignore cleanup errors
-          }
-          throw err;
-        }
-
-        return { id: newProtocolId, ...protocolRes.data };
+        return { id: newProtocolId, ...res.data };
       }),
     [mutate, isEditMode, protocolId, data]
   );

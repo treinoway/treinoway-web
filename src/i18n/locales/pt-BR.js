@@ -49,6 +49,11 @@ const ptBR = {
     ANAMNESIS_SECTION_NOT_FOUND: "Seção da anamnese não encontrada.",
     ANAMNESIS_QUESTION_NOT_FOUND: "Pergunta da anamnese não encontrada.",
     TRAINER_PROFILE_MISSING: "Perfil de treinador não encontrado.",
+    ASSIGNEE_NOT_FOUND: "Aluno não encontrado.",
+    TRAINING_TEMPLATE_NOT_OWNED:
+      "Um ou mais modelos de treino não pertencem ao seu perfil.",
+    EXERCISE_TEMPLATE_NOT_OWNED:
+      "Um ou mais modelos de exercício não pertencem ao seu perfil.",
     IMPORT_FORMAT_CHANGED:
       "O arquivo não corresponde ao formato esperado do PrimeCoaching. Verifique se você exportou a planilha correta.",
     AI_CONVERSATION_NOT_FOUND: "Conversa não encontrada.",
@@ -229,6 +234,12 @@ const ptBR = {
     "subscription.notFound": "Assinatura não encontrada.",
     "subscription.cannotEditCancelled": "Esta assinatura já foi cancelada.",
     "subscription.paymentNotFound": "Pagamento não encontrado.",
+    "protocol.trainingTemplateNotOwned":
+      "Um ou mais modelos de treino não pertencem ao seu perfil.",
+    "protocol.exerciseTemplateNotOwned":
+      "Um ou mais modelos de exercício não pertencem ao seu perfil.",
+    "platformPlan.studentBlockedOnPlan":
+      "Este aluno está bloqueado pelo seu plano atual. Faça upgrade para continuar.",
   },
 
   httpStatus: {
