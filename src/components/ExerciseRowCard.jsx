@@ -11,12 +11,14 @@ import { ChevronRight } from 'lucide-react';
 const ExerciseRowCard = ({
   name,
   summary,
+  emptyHint,
   sourceDeleted = false,
   sourceDeletedLabel = 'Exercício original removido',
   onClick,
   ariaLabel,
 }) => {
   const label = ariaLabel || `Editar exercício ${name}`;
+  const showEmptyHint = !summary && !sourceDeleted && !!emptyHint;
 
   return (
     <button
@@ -36,6 +38,9 @@ const ExerciseRowCard = ({
           <span className="exercise-row-card__warning-text">{sourceDeletedLabel}</span>
         )}
         {summary && <span className="exercise-row-card__summary">{summary}</span>}
+        {showEmptyHint && (
+          <span className="exercise-row-card__empty-hint">{emptyHint}</span>
+        )}
       </span>
       <ChevronRight
         size={20}
@@ -50,6 +55,7 @@ const ExerciseRowCard = ({
 ExerciseRowCard.propTypes = {
   name: PropTypes.string.isRequired,
   summary: PropTypes.string,
+  emptyHint: PropTypes.string,
   sourceDeleted: PropTypes.bool,
   sourceDeletedLabel: PropTypes.string,
   onClick: PropTypes.func.isRequired,

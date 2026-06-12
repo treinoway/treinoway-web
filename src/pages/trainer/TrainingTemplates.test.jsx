@@ -20,13 +20,17 @@ vi.mock('../../api/axios', () => ({
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
+// Mutable override so tests can control the `result` emitted on creation
+// (e.g. a cardio exercise to exercise the intensity ramp path).
+let createdExerciseResult = { id: 99, name: 'Novo Exercício' };
+
 vi.mock('../../components/CreateExerciseTemplateModal', () => ({
   default: ({ open, onClose, onSuccess, exerciseTemplate }) =>
     open ? (
       <div data-testid="create-exercise-template-modal">
         {exerciseTemplate && <span data-testid="editing-exercise-id">{exerciseTemplate.id}</span>}
         <button onClick={onClose} type="button">Fechar modal exercício</button>
-        <button onClick={() => onSuccess?.(exerciseTemplate ? { ...exerciseTemplate, name: 'Exercício Editado' } : { id: 99, name: 'Novo Exercício' })} type="button">
+        <button onClick={() => onSuccess?.(exerciseTemplate ? { ...exerciseTemplate, name: 'Exercício Editado' } : createdExerciseResult)} type="button">
           {exerciseTemplate ? 'Simular exercício editado' : 'Simular exercício criado'}
         </button>
       </div>
@@ -42,6 +46,7 @@ const mockTemplates = [
 
 describe('TrainingTemplates', () => {
   beforeEach(() => {
+    createdExerciseResult = { id: 99, name: 'Novo Exercício' };
     mockShowToast.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation((url) => {
@@ -469,6 +474,140 @@ describe('TrainingTemplates', () => {
         }),
       );
     });
+  });
+
+  it('carries a time-based prescription into the create payload (duration survives round-trip)', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: { id: 1 } });
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
+    await selectOption(user, screen.getByLabelText(/selecionar exercício existente/i), '21');
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+
+    // Open the draft snapshot sheet, switch to "Tempo" and set a duration.
+    await user.click(screen.getByRole('button', { name: /editar exercício corrida/i }));
+    const dialog = screen.getByRole('dialog', { name: /editar corrida/i });
+    await user.click(within(dialog).getByRole('tab', { name: /tempo/i }));
+    await user.click(within(dialog).getByRole('button', { name: /aumentar séries/i }));
+    await user.click(within(dialog).getByRole('button', { name: /aumentar duração/i }));
+    await user.click(within(dialog).getByRole('button', { name: /^salvar$/i }));
+
+    const nameInput = screen.getAllByRole('textbox')[0];
+    await user.type(nameInput, 'Treino Tempo');
+    await selectOption(user, screen.getAllByRole('combobox')[0], 'cardio');
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        '/trainer/training-templates',
+        expect.objectContaining({
+          exerciseTemplates: [
+            expect.objectContaining({
+              exerciseTemplateId: 21,
+              prescriptionMode: 'duration',
+              repetitions: null,
+            }),
+          ],
+        }),
+      );
+    });
+    const postPayload = api.post.mock.calls[0][1];
+    expect(postPayload.exerciseTemplates[0].duration).not.toBeNull();
+  });
+
+  it('shows the intensity ramp when a picked cardio exercise is opened in the edit sheet', async () => {
+    const user = userEvent.setup();
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/exercise-templates') return Promise.resolve({
+        data: [
+          { id: 30, name: 'Esteira', type: 'cardio', typeLabel: 'Cardio', prescriptionMode: 'duration', duration: 1200 },
+          { id: 20, name: 'Supino Reto', type: 'strength', typeLabel: 'Força' },
+        ],
+      });
+      return Promise.resolve({ data: [] });
+    });
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
+
+    // The picker surfaces the exercise type so the trainer can spot cardio.
+    await user.click(screen.getByLabelText(/selecionar exercício existente/i));
+    expect(screen.getByText('Esteira (Cardio)')).toBeInTheDocument();
+    await user.click(document.querySelector('[data-value="30"]'));
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+
+    // Opening the draft cardio junction must reach EditExerciseSheet with type: 'cardio',
+    // which renders the intensity ramp.
+    await user.click(screen.getByRole('button', { name: /editar exercício esteira/i }));
+    const dialog = screen.getByRole('dialog', { name: /editar esteira/i });
+    expect(within(dialog).getByRole('radiogroup', { name: /intensidade/i })).toBeInTheDocument();
+  });
+
+  it('shows the intensity ramp when a newly created cardio exercise is opened in the edit sheet', async () => {
+    const user = userEvent.setup();
+    createdExerciseResult = { id: 40, name: 'Bicicleta', type: 'cardio', videoUrl: null, isPublic: false };
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
+    await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
+    await user.click(screen.getByRole('button', { name: /simular exercício criado/i }));
+
+    // The "Criar novo" path must build a draft junction carrying type: 'cardio',
+    // mirroring the picker path, so EditExerciseSheet renders the intensity ramp.
+    await user.click(screen.getByRole('button', { name: /editar exercício bicicleta/i }));
+    const dialog = screen.getByRole('dialog', { name: /editar bicicleta/i });
+    expect(within(dialog).getByRole('radiogroup', { name: /intensidade/i })).toBeInTheDocument();
+  });
+
+  it('does not duplicate the junction when a created exercise id already exists in the form', async () => {
+    const user = userEvent.setup();
+    createdExerciseResult = { id: 20, name: 'Supino Reto', type: 'strength', videoUrl: null, isPublic: false };
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/exercise-templates') return Promise.resolve({
+        data: [{ id: 20, name: 'Supino Reto', type: 'strength', typeLabel: 'Força' }],
+      });
+      return Promise.resolve({ data: [] });
+    });
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
+
+    // Add via picker first.
+    await selectOption(user, screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+    // Then "create" an exercise with the same id — no duplicate row/junction.
+    await user.click(screen.getByRole('button', { name: /criar novo exercício/i }));
+    await user.click(screen.getByRole('button', { name: /simular exercício criado/i }));
+
+    expect(screen.getAllByRole('button', { name: /editar exercício supino reto/i })).toHaveLength(1);
+  });
+
+  it('does not show the intensity ramp for a picked strength exercise', async () => {
+    const user = userEvent.setup();
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/exercise-templates') return Promise.resolve({
+        data: [{ id: 20, name: 'Supino Reto', type: 'strength', typeLabel: 'Força' }],
+      });
+      return Promise.resolve({ data: [] });
+    });
+    renderWithRouter(<TrainingTemplates />);
+
+    await waitFor(() => screen.getByText('Treino A'));
+    await user.click(screen.getByRole('button', { name: /novo treino único/i }));
+    await selectOption(user, screen.getByLabelText(/selecionar exercício existente/i), '20');
+    await user.click(screen.getByRole('button', { name: /adicionar exercício ao treino/i }));
+
+    await user.click(screen.getByRole('button', { name: /editar exercício supino reto/i }));
+    const dialog = screen.getByRole('dialog', { name: /editar supino reto/i });
+    expect(within(dialog).queryByRole('radiogroup', { name: /intensidade/i })).not.toBeInTheDocument();
   });
 
   it('does not delete when custom dialog confirmation is cancelled', async () => {

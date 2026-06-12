@@ -21,10 +21,11 @@ vi.mock('../../api/axios', () => ({
 
 const mockShowToast = vi.fn();
 
+// Library templates are identity-only: no prescription fields.
 const mockTemplates = [
-  { id: 1, name: 'Agachamento', type: 'strength', sets: 4, repetitions: { min: 8, max: 10 }, hasLoad: true, suggestedLoad: 60, isPublic: false },
-  { id: 2, name: 'Corrida', type: 'cardio', duration: 600, isPublic: true },
-  { id: 3, name: 'Rosca Direta', type: 'strength', sets: 3, repetitions: { min: 12, max: 12 }, hasLoad: true, suggestedLoad: 10, isPublic: false, videoUrl: 'https://www.youtube.com/watch?v=abc123XYZ' },
+  { id: 1, name: 'Agachamento', type: 'strength', isPublic: false },
+  { id: 2, name: 'Corrida', type: 'cardio', isPublic: true },
+  { id: 3, name: 'Rosca Direta', type: 'strength', isPublic: false, videoUrl: 'https://www.youtube.com/watch?v=abc123XYZ' },
 ];
 
 describe('ExerciseTemplates', () => {
@@ -139,9 +140,7 @@ describe('ExerciseTemplates', () => {
     await user.type(screen.getByLabelText(/nome/i), 'Flexão');
     // Type is now a segmented radio toggle — click the radio button
     await user.click(screen.getByRole('radio', { name: /força/i }));
-    // Prescription mode is reps by default — fill required reps values.
-    await user.type(screen.getByLabelText(/repetições mínimas/i), '8');
-    await user.type(screen.getByLabelText(/repetições máximas/i), '12');
+    // Library templates are identity-only — no prescription fields to fill.
     await user.click(screen.getByRole('button', { name: /criar exercício/i }));
 
     await waitFor(() => {
@@ -151,6 +150,17 @@ describe('ExerciseTemplates', () => {
       );
       expect(mockShowToast).toHaveBeenCalledWith('Exercício criado com sucesso!', 'success');
     });
+  });
+
+  it('does not render prescription meta on the library rows', async () => {
+    renderWithRouter(<ExerciseTemplates />);
+
+    await waitFor(() => screen.getByText('Agachamento'));
+
+    // No sets×reps / load / rest strings rendered for library templates.
+    expect(screen.queryByText(/4x8/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/kg/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/descanso/i)).not.toBeInTheDocument();
   });
 
   it('populates form with existing data when Edit is clicked', async () => {

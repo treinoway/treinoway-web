@@ -4,7 +4,9 @@ import { AlertTriangle, X } from 'lucide-react';
 import NumberStepper from './NumberStepper';
 import RestQuickChips from './RestQuickChips';
 import OneTimeBanner from './OneTimeBanner';
+import IntensityField from './IntensityField';
 import { formatSnapshotSummaryTokens } from '../utils/exerciseMeta';
+import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
 
 const HEAVY_DIRTY_FIELD_COUNT = 3;
 const HEAVY_DIRTY_TIME_MS = 20000;
@@ -22,6 +24,10 @@ const LIMITS = {
 const MODE_REPS = 'reps';
 const MODE_DURATION = 'duration';
 
+const CARDIO_TYPE = 'cardio';
+
+const noop = () => {};
+
 const buildInitialState = (snapshot) => {
   const hasReps = snapshot?.repetitions?.min != null && snapshot?.repetitions?.max != null;
   const hasDuration = snapshot?.duration != null;
@@ -35,6 +41,7 @@ const buildInitialState = (snapshot) => {
     hasLoad: !!snapshot?.hasLoad,
     suggestedLoad: snapshot?.suggestedLoad ?? null,
     notes: snapshot?.notes ?? '',
+    intensity: snapshot?.intensity ?? null,
     mode,
   };
 };
@@ -54,13 +61,15 @@ const countDirtyFields = (initial, current) => {
   if (initial.hasLoad !== current.hasLoad) count += 1;
   if (!shallowEqualField(initial.suggestedLoad, current.suggestedLoad)) count += 1;
   if ((initial.notes || '') !== (current.notes || '')) count += 1;
+  if (!shallowEqualField(initial.intensity, current.intensity)) count += 1;
   if (initial.mode !== current.mode) count += 1;
   return count;
 };
 
-const buildPayload = (state) => {
+const buildPayload = (state, exerciseType) => {
   const payload = {};
   if (state.sets != null) payload.sets = state.sets;
+  payload.prescriptionMode = state.mode === MODE_DURATION ? 'duration' : 'reps';
   if (state.mode === MODE_REPS) {
     if (state.repetitionsMin != null && state.repetitionsMax != null) {
       payload.repetitions = {
@@ -79,6 +88,7 @@ const buildPayload = (state) => {
   payload.hasLoad = state.hasLoad;
   payload.suggestedLoad = state.hasLoad ? state.suggestedLoad : null;
   payload.notes = state.notes?.trim() ? state.notes.trim() : null;
+  payload.intensity = exerciseType === CARDIO_TYPE ? (state.intensity ?? null) : null;
   return payload;
 };
 
@@ -90,6 +100,8 @@ const validate = (state) => {
   if (state.mode === MODE_REPS) {
     if (state.repetitionsMin == null || state.repetitionsMax == null) {
       errors.repetitions = 'Informe repetições ou duração.';
+    } else if (state.repetitionsMin > state.repetitionsMax) {
+      errors.repetitions = 'Rep. mínima não pode ser maior que a máxima.';
     }
   } else if (state.duration == null) {
     errors.repetitions = 'Informe repetições ou duração.';
@@ -117,6 +129,8 @@ const EditExerciseSheet = ({
   onClose,
   onLightDiscard,
 }) => {
+  const exerciseType = snapshot?.type;
+  const isCardio = exerciseType === CARDIO_TYPE;
   const initialState = useMemo(() => buildInitialState(snapshot), [snapshot]);
   const [state, setState] = useState(initialState);
   const [errors, setErrors] = useState({});
@@ -137,21 +151,11 @@ const EditExerciseSheet = ({
   };
 
   const handleRepMinChange = (nextValue) => {
-    setState((prev) => {
-      const nextMax = prev.repetitionsMax != null && nextValue != null && nextValue > prev.repetitionsMax
-        ? nextValue
-        : prev.repetitionsMax;
-      return { ...prev, repetitionsMin: nextValue, repetitionsMax: nextMax };
-    });
+    updateState({ repetitionsMin: nextValue });
   };
 
   const handleRepMaxChange = (nextValue) => {
-    setState((prev) => {
-      const nextMin = prev.repetitionsMin != null && nextValue != null && nextValue < prev.repetitionsMin
-        ? nextValue
-        : prev.repetitionsMin;
-      return { ...prev, repetitionsMax: nextValue, repetitionsMin: nextMin };
-    });
+    updateState({ repetitionsMax: nextValue });
   };
 
   const handleModeChange = (nextMode) => {
@@ -161,6 +165,14 @@ const EditExerciseSheet = ({
 
   const handleHasLoadChange = (event) => {
     updateState({ hasLoad: event.target.checked });
+  };
+
+  const handleIntensityChange = (value) => {
+    updateState({ intensity: value });
+  };
+
+  const handleIntensityClear = () => {
+    updateState({ intensity: null });
   };
 
   const dirtyCount = countDirtyFields(initialState, state);
@@ -201,7 +213,7 @@ const EditExerciseSheet = ({
     if (Object.keys(nextErrors).length > 0) return;
     setSaving(true);
     try {
-      const payload = buildPayload(state);
+      const payload = buildPayload(state, exerciseType);
       await onSubmit(payload);
     } finally {
       setSaving(false);
@@ -377,6 +389,20 @@ const EditExerciseSheet = ({
                 )}
               </div>
 
+              {isCardio && (
+                <div className="edit-exercise-sheet__section">
+                  <IntensityField
+                    idPrefix="edit-exercise"
+                    type={exerciseType}
+                    intensity={state.intensity}
+                    options={EXERCISE_INTENSITY_OPTIONS}
+                    onChange={handleIntensityChange}
+                    onClear={handleIntensityClear}
+                    onKeepCardio={noop}
+                  />
+                </div>
+              )}
+
               <div className="edit-exercise-sheet__section">
                 <NumberStepper
                   label="Descanso"
@@ -466,6 +492,8 @@ const EditExerciseSheet = ({
 EditExerciseSheet.propTypes = {
   snapshot: PropTypes.shape({
     id: PropTypes.string,
+    type: PropTypes.string,
+    intensity: PropTypes.string,
     sets: PropTypes.number,
     repetitions: PropTypes.shape({
       min: PropTypes.number,

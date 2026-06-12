@@ -4,6 +4,7 @@ import EditExerciseSheet from './EditExerciseSheet';
 
 const baseSnapshot = {
   id: 'junction-1',
+  type: 'strength',
   sets: 4,
   repetitions: { min: 10, max: 10 },
   duration: null,
@@ -11,6 +12,19 @@ const baseSnapshot = {
   hasLoad: true,
   suggestedLoad: 20,
   notes: '',
+};
+
+const cardioSnapshot = {
+  id: 'junction-cardio',
+  type: 'cardio',
+  sets: 1,
+  repetitions: null,
+  duration: 600,
+  restInterval: 60,
+  hasLoad: false,
+  suggestedLoad: null,
+  notes: '',
+  intensity: 'moderate',
 };
 
 describe('EditExerciseSheet', () => {
@@ -146,6 +160,7 @@ describe('EditExerciseSheet', () => {
         restInterval: 60,
         hasLoad: true,
         suggestedLoad: 20,
+        prescriptionMode: 'reps',
       }));
     });
   });
@@ -171,8 +186,101 @@ describe('EditExerciseSheet', () => {
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
         duration: 45,
         repetitions: null,
+        prescriptionMode: 'duration',
       }));
     });
+  });
+
+  it('does not change min when max is lowered below it', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditExerciseSheet
+        snapshot={{ ...baseSnapshot, repetitions: { min: 8, max: 12 } }}
+        exerciseName="Supino reto"
+        onSubmit={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    const decreaseMax = screen.getByRole('button', { name: /diminuir rep\. máximas/i });
+    // Lower max from 12 to 7 (below min of 8).
+    for (let i = 0; i < 5; i += 1) {
+      await user.click(decreaseMax);
+    }
+
+    expect(screen.getByLabelText('Rep. máximas')).toHaveValue(7);
+    expect(screen.getByLabelText('Rep. mínimas')).toHaveValue(8);
+  });
+
+  it('does not change max when min is raised above it', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditExerciseSheet
+        snapshot={{ ...baseSnapshot, repetitions: { min: 8, max: 12 } }}
+        exerciseName="Supino reto"
+        onSubmit={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    const increaseMin = screen.getByRole('button', { name: /aumentar rep\. mínimas/i });
+    // Raise min from 8 to 13 (above max of 12).
+    for (let i = 0; i < 5; i += 1) {
+      await user.click(increaseMin);
+    }
+
+    expect(screen.getByLabelText('Rep. mínimas')).toHaveValue(13);
+    expect(screen.getByLabelText('Rep. máximas')).toHaveValue(12);
+  });
+
+  it('blocks save and shows a validation error when min is greater than max', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue();
+    render(
+      <EditExerciseSheet
+        snapshot={{ ...baseSnapshot, repetitions: { min: 8, max: 12 } }}
+        exerciseName="Supino reto"
+        onSubmit={onSubmit}
+        onClose={vi.fn()}
+      />
+    );
+
+    const decreaseMax = screen.getByRole('button', { name: /diminuir rep\. máximas/i });
+    // Lower max from 12 to 7, below the min of 8.
+    for (let i = 0; i < 5; i += 1) {
+      await user.click(decreaseMax);
+    }
+
+    await user.click(screen.getByRole('button', { name: /salvar/i }));
+
+    expect(await screen.findByText('Rep. mínima não pode ser maior que a máxima.')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('emits prescriptionMode duration after switching from reps to time', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue();
+    render(
+      <EditExerciseSheet
+        snapshot={baseSnapshot}
+        exerciseName="Supino reto"
+        onSubmit={onSubmit}
+        onClose={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole('tab', { name: /tempo/i }));
+    await user.click(screen.getByRole('button', { name: /aumentar duração/i }));
+    await user.click(screen.getByRole('button', { name: /salvar/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+        prescriptionMode: 'duration',
+        repetitions: null,
+      }));
+    });
+    const submitted = onSubmit.mock.calls[0][0];
+    expect(submitted.duration).not.toBeNull();
   });
 
   it('updates rest interval when a chip is clicked', async () => {
@@ -241,6 +349,83 @@ describe('EditExerciseSheet', () => {
     expect(screen.getByText('séries')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
     expect(screen.getByText('reps')).toBeInTheDocument();
+  });
+
+  it('renders the intensity ramp for a cardio snapshot with the current value selected', () => {
+    render(
+      <EditExerciseSheet
+        snapshot={cardioSnapshot}
+        exerciseName="Corrida"
+        onSubmit={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('radiogroup', { name: /intensidade/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /moderada/i })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('does not render the intensity ramp for a non-cardio snapshot and sends intensity null', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue();
+    render(
+      <EditExerciseSheet
+        snapshot={baseSnapshot}
+        exerciseName="Supino reto"
+        onSubmit={onSubmit}
+        onClose={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole('radiogroup', { name: /intensidade/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /aumentar séries/i }));
+    await user.click(screen.getByRole('button', { name: /salvar/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ intensity: null }));
+    });
+  });
+
+  it('emits the selected intensity in the payload for a cardio snapshot', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue();
+    render(
+      <EditExerciseSheet
+        snapshot={cardioSnapshot}
+        exerciseName="Corrida"
+        onSubmit={onSubmit}
+        onClose={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole('radio', { name: /vigorosa/i }));
+    await user.click(screen.getByRole('button', { name: /salvar/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ intensity: 'vigorous' }));
+    });
+  });
+
+  it('counts an intensity edit toward the dirty/discard guard', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onLightDiscard = vi.fn();
+    render(
+      <EditExerciseSheet
+        snapshot={cardioSnapshot}
+        exerciseName="Corrida"
+        onSubmit={vi.fn()}
+        onClose={onClose}
+        onLightDiscard={onLightDiscard}
+      />
+    );
+
+    await user.click(screen.getByRole('radio', { name: /vigorosa/i }));
+    await user.click(screen.getByRole('button', { name: /fechar$/i }));
+
+    expect(onLightDiscard).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it('keeps the sheet open and shows the saving state during submit', async () => {

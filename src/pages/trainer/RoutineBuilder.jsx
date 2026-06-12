@@ -848,7 +848,10 @@ const ExerciseRow = ({
   dragHandle,
 }) => {
   const name = ex.name || ex.exerciseTemplate?.name || '—';
-  const meta = formatExerciseMeta(ex.exerciseTemplate || ex);
+  // Prescription lives on the exercise itself; the nested exerciseTemplate is
+  // identity-only. Fall back to the type label from the template only when the
+  // exercise has no type of its own.
+  const meta = formatExerciseMeta(ex) || formatExerciseMeta(ex.exerciseTemplate);
   const intensity = ex.intensity ?? ex.exerciseTemplate?.intensity ?? null;
   const intensityLabel = ex.intensityLabel ?? ex.exerciseTemplate?.intensityLabel ?? null;
 

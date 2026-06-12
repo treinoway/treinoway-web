@@ -9,9 +9,8 @@ import {
 import PrescriptionField from './PrescriptionField';
 import IntensityField from './IntensityField';
 import VideoField from './VideoField';
-import { EXERCISE_TYPE_OPTIONS } from '../constants/exerciseTypes';
+import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel } from '../constants/exerciseTypes';
 import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
-import { formatExerciseMeta } from '../utils/exerciseMeta';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -127,7 +126,7 @@ const LibraryPanel = ({ exerciseTemplates, selectedIds, onToggle, search, onSear
         <div className="library-list" role="list">
           {filtered.map((tmpl) => {
             const selected = selectedIds.includes(tmpl.id);
-            const meta = formatExerciseMeta(tmpl);
+            const typeLabel = tmpl.type ? getExerciseTypeLabel(tmpl.type) : null;
             return (
               <button
                 key={tmpl.id}
@@ -142,10 +141,9 @@ const LibraryPanel = ({ exerciseTemplates, selectedIds, onToggle, search, onSear
                 </span>
                 <span className="library-item-body">
                   <span className="library-item-name">{tmpl.name}</span>
-                  {meta && (
+                  {typeLabel && (
                     <span className="library-item-meta">
-                      <span className="library-item-cat">{tmpl.type}</span>
-                      {meta}
+                      <span className="library-item-cat">{typeLabel}</span>
                     </span>
                   )}
                 </span>

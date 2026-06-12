@@ -34,9 +34,14 @@ export function formatRestInterval(seconds) {
 }
 
 /**
- * Builds a short meta string for an exercise or template (type, sets/reps or duration, load, rest).
- * Uses `prescriptionMode` when available; falls back to field-presence heuristic for legacy data.
- * @param {Object} template - Exercise or template with prescriptionMode, type, sets, repetitions, duration, hasLoad, suggestedLoad, restInterval
+ * Builds a short meta string for an entity that carries prescription (a real
+ * `Exercise` or a training-template junction snapshot). Library exercise
+ * templates are identity-only and no longer carry prescription — do NOT use
+ * this for them.
+ * Uses `prescriptionMode` when available; falls back to a field-presence
+ * heuristic. Missing prescription fields are tolerated: returns just the type
+ * label, or null when nothing is present.
+ * @param {Object} template - Exercise/junction snapshot with prescriptionMode, type, sets, repetitions, duration, hasLoad, suggestedLoad, restInterval
  * @returns {string|null} e.g. "Força · 4x10–12 · 60 kg · Descanso: 1min 30s" or "45 seg", or null if nothing to show
  */
 export function formatExerciseMeta(template) {

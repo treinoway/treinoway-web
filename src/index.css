@@ -10146,6 +10146,12 @@ html:has(.auth-page) {
   font-variant-numeric: tabular-nums;
 }
 
+.exercise-row-card__empty-hint {
+  font-size: var(--font-body-small-size);
+  color: var(--brand-steel);
+  font-style: italic;
+}
+
 .exercise-row-card__chevron {
   color: var(--color-on-surface-variant);
   flex-shrink: 0;

@@ -12,6 +12,7 @@ import LibraryList, { LibraryListRow } from '../../components/LibraryList';
 import LibraryFilterBar from '../../components/LibraryFilterBar';
 import { formatSnapshotSummary } from '../../utils/exerciseMeta';
 import { TRAINING_CATEGORY_OPTIONS, TRAINING_CATEGORY_LABEL } from '../../constants/trainingCategories';
+import { getExerciseTypeLabel } from '../../constants/exerciseTypes';
 
 /** @deprecated Use RowMenu from '../../components/RowMenu' instead */
 export const TemplateRowMenu = RowMenu;
@@ -108,6 +109,8 @@ const TrainingTemplates = () => {
         sets: junction.sets,
         repetitions: junction.repetitions,
         duration: junction.duration,
+        prescriptionMode: junction.prescriptionMode,
+        intensity: junction.intensity,
         hasLoad: junction.hasLoad,
         suggestedLoad: junction.suggestedLoad,
         restInterval: junction.restInterval,
@@ -194,6 +197,8 @@ const TrainingTemplates = () => {
     ...(payload.sets !== undefined && { sets: payload.sets }),
     ...(payload.repetitions !== undefined && { repetitions: payload.repetitions }),
     ...(payload.duration !== undefined && { duration: payload.duration }),
+    ...(payload.prescriptionMode !== undefined && { prescriptionMode: payload.prescriptionMode }),
+    ...(payload.intensity !== undefined && { intensity: payload.intensity }),
     ...(payload.hasLoad !== undefined && { hasLoad: payload.hasLoad }),
     ...(payload.suggestedLoad !== undefined && { suggestedLoad: payload.suggestedLoad }),
     ...(payload.restInterval !== undefined && { restInterval: payload.restInterval }),
@@ -271,6 +276,8 @@ const TrainingTemplates = () => {
     sets: et.sets ?? null,
     repetitions: et.repetitions ?? null,
     duration: et.duration ?? null,
+    prescriptionMode: et.prescriptionMode ?? 'reps',
+    intensity: et.intensity ?? null,
     hasLoad: et.hasLoad ?? false,
     suggestedLoad: et.suggestedLoad ?? null,
     restInterval: et.restInterval ?? null,
@@ -440,9 +447,14 @@ const TrainingTemplates = () => {
                     onChange={(e) => setExercisePickerValue(e.target.value)}
                   >
                     <option value="">Selecione um exercício...</option>
-                    {exerciseTemplates.map((et) => (
-                      <option key={et.id} value={et.id}>{et.name}</option>
-                    ))}
+                    {exerciseTemplates.map((et) => {
+                      const typeLabel = et.typeLabel || (et.type ? getExerciseTypeLabel(et.type) : null);
+                      return (
+                        <option key={et.id} value={et.id}>
+                          {typeLabel ? `${et.name} (${typeLabel})` : et.name}
+                        </option>
+                      );
+                    })}
                   </Select>
                 </div>
                 <button
@@ -471,6 +483,7 @@ const TrainingTemplates = () => {
                         <ExerciseRowCard
                           name={name}
                           summary={summary}
+                          emptyHint="Toque para definir séries, repetições e carga"
                           sourceDeleted={sourceDeleted}
                           onClick={() => handleOpenJunctionEdit(etId)}
                           ariaLabel={`Editar exercício ${name}`}
@@ -584,10 +597,22 @@ const TrainingTemplates = () => {
             setEditingExerciseTemplate(null);
             fetchExerciseTemplates();
             if (!wasEditing && result?.id != null) {
-              setFormData((prev) => ({
-                ...prev,
-                exerciseTemplateIds: [...prev.exerciseTemplateIds, result.id],
-              }));
+              setFormData((prev) => {
+                const alreadyAdded = prev.exerciseTemplateIds.some(
+                  (id) => String(id) === String(result.id),
+                );
+                if (alreadyAdded) return prev;
+                return {
+                  ...prev,
+                  exerciseTemplateIds: [...prev.exerciseTemplateIds, result.id],
+                };
+              });
+              setExerciseJunctions((prev) => {
+                if (prev.some((j) => String(j.exerciseTemplateId) === String(result.id))) {
+                  return prev;
+                }
+                return [...prev, buildDraftJunctionFromTemplate(result)];
+              });
             }
           }}
         />

@@ -63,33 +63,6 @@ const ExerciseTemplates = () => {
     setFormName('');
   };
 
-  const formatExerciseMeta = (template) => {
-    const parts = [];
-    if (template.type) parts.push(getExerciseTypeLabel(template.type));
-    const reps = template.repetitions;
-    const repsLabel = reps != null
-      ? (reps.min === reps.max ? String(reps.min) : `${reps.min}–${reps.max}`)
-      : null;
-    if (template.sets != null && repsLabel != null) {
-      parts.push(`${template.sets}x${repsLabel}`);
-    } else if (template.duration != null) {
-      parts.push(`${template.duration}s`);
-    }
-    if (template.hasLoad && template.suggestedLoad != null) {
-      parts.push(`${template.suggestedLoad} kg`);
-    }
-    if (template.restInterval != null && template.restInterval > 0) {
-      const minutes = Math.floor(template.restInterval / 60);
-      const remaining = template.restInterval % 60;
-      let formatted;
-      if (minutes === 0) formatted = `${remaining}s`;
-      else if (remaining === 0) formatted = `${minutes}min`;
-      else formatted = `${minutes}min ${remaining}s`;
-      parts.push(`Descanso: ${formatted}`);
-    }
-    return parts.length ? parts.join(' · ') : null;
-  };
-
   const normalizedQuery = searchQuery.toLowerCase().trim();
   const filteredTemplates = normalizedQuery
     ? templates.filter((t) => t.name.toLowerCase().includes(normalizedQuery))
@@ -156,7 +129,6 @@ const ExerciseTemplates = () => {
       {!showForm && !templatesLoading && templates.length > 0 && (
         <LibraryList emptyMessage={`Nenhum resultado para "${searchQuery}"`}>
           {filteredTemplates.map((template) => {
-            const meta = formatExerciseMeta(template);
             const hasVideo = !!getYoutubeVideoId(template.videoUrl);
             const typeLabel = template.type ? getExerciseTypeLabel(template.type) : null;
 
@@ -172,7 +144,6 @@ const ExerciseTemplates = () => {
               <LibraryListRow
                 key={template.id}
                 title={template.name}
-                subtitle={meta}
                 badges={badges}
                 rowMenuProps={{
                   ariaLabel: `Ações do modelo ${template.name}`,

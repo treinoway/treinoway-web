@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
   Film,
@@ -13,15 +13,10 @@ import {
   Link,
 } from 'lucide-react';
 import VideoLibraryPicker from './VideoLibraryPicker';
-import PrescriptionField from './PrescriptionField';
-import IntensityField from './IntensityField';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
 import { getYoutubeVideoId } from '../utils/youtube';
-import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
-
-const INTENSITY_REQUIRES_CARDIO_CODE = 'exercise.intensityRequiresCardio';
 
 const EXERCISE_TYPES = [
   { value: 'strength', label: 'Força', Icon: Dumbbell },
@@ -30,24 +25,11 @@ const EXERCISE_TYPES = [
   { value: 'stretching', label: 'Alongamento', Icon: Activity },
 ];
 
-const REST_CHIPS = [60, 90, 120, 180];
-const NOTES_MAX = 240;
-
 const EMPTY_FORM = {
   name: '',
   type: 'strength',
   videoUrl: '',
   isPublic: false,
-  prescriptionMode: 'reps',
-  sets: '',
-  repetitionsMin: '',
-  repetitionsMax: '',
-  duration: '',
-  restInterval: '',
-  hasLoad: true,
-  suggestedLoad: '',
-  notes: '',
-  intensity: null,
 };
 
 const buildPayload = (data) => {
@@ -55,34 +37,8 @@ const buildPayload = (data) => {
     name: data.name,
     type: data.type,
     isPublic: data.isPublic,
-    hasLoad: data.hasLoad,
-    prescriptionMode: data.prescriptionMode,
   };
-  payload.intensity = data.type === 'cardio' ? (data.intensity || null) : null;
   if (data.videoUrl?.trim()) payload.videoUrl = data.videoUrl.trim();
-  if (data.sets !== '' && data.sets != null) payload.sets = parseInt(data.sets, 10);
-
-  if (data.prescriptionMode === 'duration') {
-    if (data.duration !== '' && data.duration != null) {
-      payload.duration = parseInt(data.duration, 10);
-    }
-  } else if (
-    data.repetitionsMin !== '' && data.repetitionsMin != null &&
-    data.repetitionsMax !== '' && data.repetitionsMax != null
-  ) {
-    payload.repetitions = {
-      min: parseInt(data.repetitionsMin, 10),
-      max: parseInt(data.repetitionsMax, 10),
-    };
-  }
-
-  if (data.restInterval !== '' && data.restInterval != null) {
-    payload.restInterval = parseInt(data.restInterval, 10);
-  }
-  if (data.hasLoad && data.suggestedLoad !== '' && data.suggestedLoad != null) {
-    payload.suggestedLoad = parseFloat(data.suggestedLoad, 10);
-  }
-  if (data.notes?.trim()) payload.notes = data.notes.trim();
   return payload;
 };
 
@@ -93,25 +49,12 @@ const buildInitialForm = (template) => {
     type: template.type || '',
     videoUrl: template.videoUrl || '',
     isPublic: template.isPublic || false,
-    prescriptionMode: template.prescriptionMode ?? 'reps',
-    sets: template.sets ?? '',
-    repetitionsMin: template.repetitions?.min ?? '',
-    repetitionsMax: template.repetitions?.max ?? '',
-    duration: template.duration ?? '',
-    restInterval: template.restInterval ?? '',
-    hasLoad: template.hasLoad || false,
-    suggestedLoad: template.suggestedLoad ?? '',
-    notes: template.notes || '',
-    intensity: template.intensity ?? null,
   };
 };
 
 const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameChange }) => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [durationError, setDurationError] = useState('');
-  const [repsError, setRepsError] = useState('');
-  const [intensityError, setIntensityError] = useState('');
   const [formData, setFormData] = useState(() => buildInitialForm(exerciseTemplate));
   const [pickerOpen, setPickerOpen] = useState(false);
   const [videoPlaying, setVideoPlaying] = useState(false);
@@ -124,9 +67,6 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
   useEffect(() => {
     const initial = buildInitialForm(exerciseTemplate);
     setFormData(initial);
-    setDurationError('');
-    setRepsError('');
-    setIntensityError('');
     setPublicConfirmedThisSession(false);
     onNameChange?.(initial.name);
   }, [exerciseTemplate, onNameChange]);
@@ -135,32 +75,6 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
   const handleNameChange = (value) => {
     setFormData((prev) => ({ ...prev, name: value }));
     onNameChange?.(value);
-  };
-
-  const handlePrescriptionChange = useCallback((patch) => {
-    setFormData((prev) => ({ ...prev, ...patch }));
-  }, []);
-
-  const clearDurationError = useCallback(() => setDurationError(''), []);
-  const clearRepsError = useCallback(() => setRepsError(''), []);
-
-  const handleIntensityChange = useCallback((value) => {
-    setIntensityError('');
-    setFormData((prev) => ({ ...prev, intensity: value }));
-  }, []);
-
-  const handleIntensityClear = useCallback(() => {
-    setIntensityError('');
-    setFormData((prev) => ({ ...prev, intensity: null }));
-  }, []);
-
-  const handleKeepCardio = useCallback(() => {
-    setIntensityError('');
-    setFormData((prev) => ({ ...prev, type: 'cardio' }));
-  }, []);
-
-  const handleRestChipClick = (seconds) => {
-    setFormData((prev) => ({ ...prev, restInterval: String(seconds) }));
   };
 
   const handlePublicToggle = (checked) => {
@@ -182,17 +96,6 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (formData.prescriptionMode === 'duration') {
-      if (!formData.duration || Number(formData.duration) < 1) {
-        setDurationError('Defina o valor antes de salvar.');
-        return;
-      }
-    } else if (!formData.repetitionsMin || !formData.repetitionsMax) {
-      setRepsError('Defina o valor antes de salvar.');
-      return;
-    }
-
     setLoading(true);
     try {
       const payload = buildPayload(formData);
@@ -206,12 +109,7 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
       }
       onSuccess?.(response.data);
     } catch (error) {
-      const message = error.userMessage || translateError(error);
-      if (error.response?.data?.messageCode === INTENSITY_REQUIRES_CARDIO_CODE) {
-        setIntensityError(message);
-      } else {
-        showToast(message, 'error');
-      }
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -238,10 +136,6 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
       onCancel: () => setConfirmDialog(null),
     });
   };
-
-  const activeRestChip = REST_CHIPS.includes(Number(formData.restInterval))
-    ? Number(formData.restInterval)
-    : null;
 
   return (
     <>
@@ -295,16 +189,12 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
             </div>
           </div>
 
-          <IntensityField
-            idPrefix="etf"
-            type={formData.type}
-            intensity={formData.intensity}
-            options={EXERCISE_INTENSITY_OPTIONS}
-            errorMessage={intensityError}
-            onChange={handleIntensityChange}
-            onClear={handleIntensityClear}
-            onKeepCardio={handleKeepCardio}
-          />
+          <div className="info-banner">
+            <span className="info-banner-icon">
+              <Info size={16} strokeWidth={2} aria-hidden="true" />
+            </span>
+            <span>Séries, repetições, carga e descanso são definidos ao adicionar este exercício a um treino.</span>
+          </div>
         </div>
 
         {/* ==== Demonstração (vídeo) ==== */}
@@ -416,141 +306,6 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
           </div>
         </div>
 
-        {/* ==== Prescrição padrão ==== */}
-        <div className="form-section">
-          <div className="form-section-title-row">
-            <h2 className="form-section-display-title">Prescrição padrão</h2>
-          </div>
-          <PrescriptionField
-            idPrefix="etf"
-            formData={formData}
-            onChange={handlePrescriptionChange}
-            durationError={durationError}
-            onClearDurationError={clearDurationError}
-            repsError={repsError}
-            onClearRepsError={clearRepsError}
-          />
-        </div>
-
-        {/* ==== Descanso ==== */}
-        <div className="form-section">
-          <div className="form-section-title-row">
-            <h2 className="form-section-display-title">Descanso</h2>
-            <span className="form-section-meta-eyebrow">Entre séries</span>
-          </div>
-
-          <div className="form-group">
-            <div
-              className="prescription-chips"
-              role="group"
-              aria-label="Atalhos de descanso"
-            >
-              {REST_CHIPS.map((seconds) => (
-                <button
-                  key={seconds}
-                  type="button"
-                  className={`prescription-chip${activeRestChip === seconds ? ' prescription-chip--active' : ''}`}
-                  onClick={() => handleRestChipClick(seconds)}
-                  aria-pressed={activeRestChip === seconds}
-                >
-                  {seconds}s
-                </button>
-              ))}
-            </div>
-            <label className="form-label" htmlFor="etf-restInterval">
-              Intervalo de descanso
-            </label>
-            <div className="form-input-with-suffix">
-              <input
-                id="etf-restInterval"
-                type="number"
-                min="0"
-                value={formData.restInterval}
-                onChange={(e) => setFormData((prev) => ({ ...prev, restInterval: e.target.value }))}
-                className="form-input"
-                placeholder="Ex: 90"
-                aria-label="Intervalo de descanso em segundos"
-              />
-              <span className="form-input-suffix" aria-hidden="true">s</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ==== Carga sugerida ==== */}
-        <div className="form-section">
-          <div className="form-section-title-row">
-            <h2 className="form-section-display-title">Carga sugerida</h2>
-            <span className="form-section-meta-eyebrow">Padrão do modelo</span>
-          </div>
-
-          <div className="toggle-row">
-            <div className="toggle-row-content">
-              <span className="toggle-row-title" id="etf-hasload-title">
-                Exercício com carga
-              </span>
-              <span className="toggle-row-sub" id="etf-hasload-sub">
-                Habilita o campo de carga sugerida em kg.
-              </span>
-            </div>
-            <label className="switch">
-              <input
-                type="checkbox"
-                checked={formData.hasLoad}
-                onChange={(e) => setFormData((prev) => ({ ...prev, hasLoad: e.target.checked }))}
-                role="switch"
-                aria-labelledby="etf-hasload-title"
-                aria-describedby="etf-hasload-sub"
-              />
-              <span className="switch-slider" />
-            </label>
-          </div>
-
-          {formData.hasLoad && (
-            <div className="form-group">
-              <label className="form-label" htmlFor="etf-suggestedLoad">Carga em kg</label>
-              <div className="form-input-with-suffix">
-                <input
-                  id="etf-suggestedLoad"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={formData.suggestedLoad}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, suggestedLoad: e.target.value }))}
-                  className="form-input"
-                  placeholder="Ex: 60"
-                />
-                <span className="form-input-suffix" aria-hidden="true">kg</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ==== Observações ==== */}
-        <div className="form-section">
-          <div className="form-section-title-row">
-            <h2 className="form-section-display-title">Observações</h2>
-          </div>
-
-          <div className="form-group">
-            <div className="form-label-row">
-              <label className="form-label" htmlFor="etf-notes">Orientações</label>
-              <span className="form-counter" aria-live="polite">
-                {formData.notes.length}/{NOTES_MAX}
-              </span>
-            </div>
-            <textarea
-              id="etf-notes"
-              value={formData.notes}
-              onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-              rows={3}
-              className="form-textarea"
-              placeholder="Orientações ou anotações sobre este exercício"
-              maxLength={NOTES_MAX}
-              aria-label="Observações"
-            />
-          </div>
-        </div>
-
         {/* ==== Visibilidade ==== */}
         <div className="form-section">
           <div className="form-section-title-row">
@@ -610,7 +365,7 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
         onSelect={(video) => setFormData((prev) => ({ ...prev, videoUrl: video.url }))}
       />
 
-      {/* ==== Confirm dialog — visibilidade pública ==== */}
+      {/* ==== Confirm dialog — visibilidade pública / remover vídeo ==== */}
       {confirmDialog && (
         <div
           className="overlay"
