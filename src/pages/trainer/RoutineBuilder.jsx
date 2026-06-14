@@ -3288,7 +3288,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
           onClick={handleEdit}
           aria-label="Editar rotina"
         >
-          <Pencil size={18} strokeWidth={2} aria-hidden="true" />
+          <Pencil size={16} strokeWidth={2} aria-hidden="true" />
           EDITAR
         </button>
       )}
@@ -3302,7 +3302,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
           aria-disabled={!canSave}
           aria-label={routine.saving ? 'Salvando' : editProtocolId ? 'Concluir edição' : 'Salvar rotina'}
         >
-          <Save size={18} strokeWidth={2} aria-hidden="true" />
+          <Save size={16} strokeWidth={2} aria-hidden="true" />
           {routine.saving ? 'SALVANDO…' : editProtocolId ? 'CONCLUIR' : 'SALVAR'}
         </button>
       )}

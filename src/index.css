@@ -2104,7 +2104,9 @@ html:has(.auth-page) {
   padding: 0.5rem 1rem;
   border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-md);
-  font-size: 0.875rem;
+  /* 1rem (16px) on mobile prevents iOS Safari auto-zoom on focus.
+     Restored to 0.875rem at min-width 768px where auto-zoom is not a concern. */
+  font-size: 1rem;
   font-family: inherit;
   background-color: var(--color-surface);
   color: var(--color-on-surface);
@@ -2126,7 +2128,7 @@ html:has(.auth-page) {
   padding: 0.5rem 0.75rem 0.5rem 1rem;
   border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-md);
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-family: inherit;
   background-color: var(--color-surface);
   color: var(--color-on-surface);
@@ -2249,6 +2251,58 @@ html:has(.auth-page) {
 .form-input--error:focus {
   box-shadow: 0 0 0 2px var(--color-error);
   border-color: transparent;
+}
+
+/* ── iOS Safari anti-zoom: all focusable form controls must be ≥16px on mobile.
+   Smaller design-intended sizes are restored at ≥768px where auto-zoom is not
+   a concern. Base (375px) values are set on each control; this block reverts. ── */
+@media (min-width: 768px) {
+  .form-input,
+  .form-select,
+  .form-textarea {
+    font-size: 0.875rem;
+  }
+
+  .form-input--sm {
+    font-size: 0.875rem;
+  }
+
+  .custom-select__trigger {
+    font-size: 0.875rem;
+  }
+
+  .composer-input,
+  .composer-select {
+    font-size: 0.75rem;
+  }
+
+  .composer-textarea {
+    font-size: 0.75rem;
+  }
+
+  .identity-description-textarea {
+    font-size: 0.875rem;
+  }
+
+  .library-search-input {
+    font-size: 0.8125rem;
+  }
+
+  .toolbar-search-input {
+    font-size: 0.8125rem;
+  }
+
+  .search-input-wrap input {
+    font-size: 0.8125rem;
+  }
+
+  .students-search-input {
+    font-size: 0.875rem;
+  }
+
+  .fin-search-input {
+    font-size: 0.875rem;
+  }
 }
 
 .form-error {
@@ -5513,7 +5567,7 @@ html:has(.auth-page) {
 
 .form-input--sm {
   padding: 6px 10px;
-  font-size: var(--font-body-small-size);
+  font-size: 1rem;
 }
 
 .filter-row {
@@ -11218,7 +11272,7 @@ html:has(.auth-page) {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 38px;
   font-family: var(--font-family-base);
-  font-size: var(--font-body-small-size);
+  font-size: 1rem;
   border: 1px solid transparent;
   background: var(--brand-mist);
   border-radius: var(--radius-brand);
@@ -13028,7 +13082,7 @@ nav.onboarding-steps {
   outline: none;
   background: none;
   flex: 1;
-  font-size: 13px;
+  font-size: 1rem;
   font-family: var(--font-family-base);
   color: var(--brand-ink);
   min-width: 0;
@@ -13063,7 +13117,7 @@ nav.onboarding-steps {
   background: none;
   border: none;
   outline: none;
-  font-size: 13px;
+  font-size: 1rem;
   flex: 1;
   color: var(--brand-ink);
   font-family: var(--font-family-base);
@@ -16151,7 +16205,7 @@ nav.onboarding-steps {
   border: 1px solid var(--md-outline-variant);
   border-radius: 5px;
   padding: 6px 8px;
-  font-size: 12px;
+  font-size: 1rem;
   width: 100%;
   outline: none;
   transition: all var(--duration-fast) var(--ease-brand);
@@ -16170,7 +16224,7 @@ nav.onboarding-steps {
   border: 1px solid var(--md-outline-variant);
   border-radius: 5px;
   padding: 6px 8px;
-  font-size: 12px;
+  font-size: 1rem;
   width: 100%;
   outline: none;
   color: var(--brand-ink);
@@ -16326,7 +16380,7 @@ nav.onboarding-steps {
   border: 1px solid var(--md-outline-variant);
   border-radius: 5px;
   padding: 6px 8px;
-  font-size: 12px;
+  font-size: 1rem;
   width: 100%;
   outline: none;
   min-height: 54px;
@@ -16371,7 +16425,7 @@ nav.onboarding-steps {
   outline: none;
   background: none;
   flex: 1;
-  font-size: 13px;
+  font-size: 1rem;
   min-width: 0;
   color: var(--brand-ink);
   font-family: var(--font-family-base);
@@ -16741,15 +16795,14 @@ nav.onboarding-steps {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
-  height: 56px;
-  min-height: 44px;
-  padding: 0 var(--spacing-md);
+  height: 44px;
+  padding: 0 var(--spacing-sm);
   border: none;
   border-radius: var(--radius-full);
   background: var(--brand-primary);
   color: #fff;
   font-family: var(--font-family-base);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
@@ -17279,7 +17332,7 @@ nav.onboarding-steps {
 
 .identity-description-textarea {
   font-family: var(--font-family-base);
-  font-size: 14px;
+  font-size: 1rem;
   font-weight: 400;
   color: var(--brand-ink);
   background: var(--brand-mist);
@@ -24836,7 +24889,7 @@ nav.onboarding-steps {
   border: 1px solid var(--brand-divider);
   border-radius: var(--radius-brand);
   padding: 0 var(--spacing-sm) 0 36px;
-  font-size: 14px;
+  font-size: 1rem;
   font-family: var(--font-family-base);
   color: var(--brand-ink);
   transition: border-color var(--duration-fast) var(--ease-brand), box-shadow var(--duration-fast) var(--ease-brand);
