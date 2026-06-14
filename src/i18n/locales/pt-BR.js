@@ -265,6 +265,15 @@ const ptBR = {
 
   fallback: "Ocorreu um erro inesperado. Tente novamente.",
 
+  platformPlan: {
+    tier: {
+      FREE: "Grátis",
+      PRO: "Pro",
+      PLATINUM: "Platinum",
+      DIAMOND: "Diamond",
+    },
+  },
+
   branding: {
     pageTitle: "Sua Marca",
     saveSuccess: "Marca salva com sucesso.",

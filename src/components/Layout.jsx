@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import useActiveMode from '../hooks/useActiveMode';
 import useFinanceiroBadge from '../hooks/useFinanceiroBadge';
+import { t } from '../i18n';
 
 const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
 
@@ -75,6 +76,12 @@ const Layout = ({ children, noPadding = false }) => {
   ];
 
   const isStudentUser = user?.email === 'n.santos1897@gmail.com';
+
+  const getPlanBadgeClass = (tier) => {
+    if (tier === 'PRO') return 'badge badge-blue';
+    if (tier === 'PLATINUM' || tier === 'DIAMOND') return 'badge badge-accent';
+    return 'badge badge-gray';
+  };
 
   const navLinks = [
     { path: '/', label: 'Painel', Icon: Home },
@@ -329,6 +336,11 @@ const Layout = ({ children, noPadding = false }) => {
             <div>
               <div className="sidebar-user-name">{user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : ''}</div>
               <div className="sidebar-user-email">{user?.email}</div>
+              {user?.platformPlan?.tier && (
+                <span className={`${getPlanBadgeClass(user.platformPlan.tier)} sidebar-plan-badge`}>
+                  {t(`platformPlan.tier.${user.platformPlan.tier}`) || user.platformPlan.tier}
+                </span>
+              )}
             </div>
           </div>
           <button onClick={handleLogout} className="btn-logout" aria-label="Sair da conta">

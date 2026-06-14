@@ -867,6 +867,10 @@ html:has(.auth-page) {
   margin-bottom: 0.5rem;
 }
 
+.sidebar-plan-badge {
+  margin-top: var(--spacing-xs);
+}
+
 .sidebar-roles {
   display: flex;
   gap: 0.25rem;

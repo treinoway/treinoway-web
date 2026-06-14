@@ -588,6 +588,87 @@ describe('Layout', () => {
     });
   });
 
+  // ---------------------------------------------------------------------------
+  // Platform plan badge
+  // ---------------------------------------------------------------------------
+
+  describe('platform plan badge', () => {
+    it('shows "Grátis" badge for FREE tier', () => {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com', platformPlan: { tier: 'FREE', status: 'ACTIVE' } },
+        logout: mockLogout,
+        hasRole: mockHasRole.mockReturnValue(false),
+      });
+
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.getByText('Grátis')).toBeInTheDocument();
+    });
+
+    it('shows "Pro" badge for PRO tier', () => {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com', platformPlan: { tier: 'PRO', status: 'ACTIVE' } },
+        logout: mockLogout,
+        hasRole: mockHasRole.mockReturnValue(false),
+      });
+
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.getByText('Pro')).toBeInTheDocument();
+    });
+
+    it('shows "Platinum" badge for PLATINUM tier', () => {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com', platformPlan: { tier: 'PLATINUM', status: 'ACTIVE' } },
+        logout: mockLogout,
+        hasRole: mockHasRole.mockReturnValue(false),
+      });
+
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.getByText('Platinum')).toBeInTheDocument();
+    });
+
+    it('shows "Diamond" badge for DIAMOND tier', () => {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com', platformPlan: { tier: 'DIAMOND', status: 'ACTIVE' } },
+        logout: mockLogout,
+        hasRole: mockHasRole.mockReturnValue(false),
+      });
+
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.getByText('Diamond')).toBeInTheDocument();
+    });
+
+    it('renders no plan badge when platformPlan is undefined (student user)', () => {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' },
+        logout: mockLogout,
+        hasRole: mockHasRole.mockReturnValue(false),
+      });
+
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.queryByText('Grátis')).not.toBeInTheDocument();
+      expect(screen.queryByText('Pro')).not.toBeInTheDocument();
+      expect(screen.queryByText('Platinum')).not.toBeInTheDocument();
+      expect(screen.queryByText('Diamond')).not.toBeInTheDocument();
+    });
+
+    it('renders no plan badge when platformPlan.tier is missing', () => {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com', platformPlan: { status: 'ACTIVE' } },
+        logout: mockLogout,
+        hasRole: mockHasRole.mockReturnValue(false),
+      });
+
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.queryByText('Grátis')).not.toBeInTheDocument();
+    });
+  });
+
   it('hides student items even when the user has no email set', () => {
       useAuth.mockReturnValue({
         user: { firstName: 'Sem', lastName: 'Email' },

@@ -52,6 +52,15 @@ const en = {
     'protocol.exerciseTemplateNotOwned': 'One or more exercise templates do not belong to your profile.',
     'platformPlan.studentBlockedOnPlan': 'This student is blocked by your current plan. Upgrade to continue.',
   },
+  platformPlan: {
+    tier: {
+      FREE: 'Free',
+      PRO: 'Pro',
+      PLATINUM: 'Platinum',
+      DIAMOND: 'Diamond',
+    },
+  },
+
   dashboard: {
     tabLabel: 'Activity',
     summarySectionTitle: 'Summary',
