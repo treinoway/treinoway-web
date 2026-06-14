@@ -45,11 +45,28 @@ beforeEach(() => {
 
 const STUDENT_EMAIL = 'n.santos1897@gmail.com';
 
-function setupAuth({ email = 'ana@example.com', isTrainer = false } = {}) {
+function setupAuth({ email = 'ana@example.com', isTrainer = false, aiActionsPerStudent } = {}) {
+  const platformPlan =
+    aiActionsPerStudent !== undefined
+      ? { limits: { aiActionsPerStudent } }
+      : undefined;
   useAuth.mockReturnValue({
-    user: { firstName: 'Ana', lastName: 'Lima', email },
+    user: { firstName: 'Ana', lastName: 'Lima', email, platformPlan },
     logout: mockLogout,
     hasRole: mockHasRole.mockReturnValue(isTrainer),
+  });
+}
+
+function setupTrainerWithAi({ aiActionsPerStudent = 3 } = {}) {
+  useAuth.mockReturnValue({
+    user: {
+      firstName: 'Ana',
+      lastName: 'Lima',
+      email: 'ana@example.com',
+      platformPlan: { limits: { aiActionsPerStudent } },
+    },
+    logout: mockLogout,
+    hasRole: mockHasRole.mockReturnValue(true),
   });
 }
 
@@ -272,8 +289,50 @@ describe('Layout', () => {
   // AI Floating Action Button
   // ---------------------------------------------------------------------------
 
+  // ---------------------------------------------------------------------------
+  // iArnold sidebar link — plan-based gate
+  // ---------------------------------------------------------------------------
+
+  it('shows iArnold sidebar link when aiActionsPerStudent > 0 (PLATINUM = 3)', () => {
+    setupTrainerWithAi({ aiActionsPerStudent: 3 });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const sidebar = document.querySelector('.sidebar');
+    expect(within(sidebar).getByRole('link', { name: 'iArnold' })).toBeInTheDocument();
+  });
+
+  it('hides iArnold sidebar link when aiActionsPerStudent === 0 (FREE)', () => {
+    setupTrainerWithAi({ aiActionsPerStudent: 0 });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const sidebar = document.querySelector('.sidebar');
+    expect(within(sidebar).queryByRole('link', { name: 'iArnold' })).not.toBeInTheDocument();
+  });
+
+  it('hides iArnold sidebar link when platformPlan is undefined (student user)', () => {
+    setupAuth({ isTrainer: false });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    expect(screen.queryByRole('link', { name: 'iArnold' })).not.toBeInTheDocument();
+  });
+
   it('shows floating button when AI is loading for trainers', () => {
-    mockHasRole.mockReturnValue(true);
+    setupTrainerWithAi();
     useAiChat.mockReturnValue({ loading: true, hasNewResponse: false });
 
     renderWithRouter(
@@ -286,7 +345,7 @@ describe('Layout', () => {
   });
 
   it('shows floating button with badge when hasNewResponse is true for trainers', () => {
-    mockHasRole.mockReturnValue(true);
+    setupTrainerWithAi();
     useAiChat.mockReturnValue({ loading: false, hasNewResponse: true });
 
     renderWithRouter(
@@ -301,7 +360,7 @@ describe('Layout', () => {
   });
 
   it('shows pulse indicator when AI is loading', () => {
-    mockHasRole.mockReturnValue(true);
+    setupTrainerWithAi();
     useAiChat.mockReturnValue({ loading: true, hasNewResponse: false });
 
     renderWithRouter(
@@ -328,7 +387,7 @@ describe('Layout', () => {
   });
 
   it('does not show floating button when AI is idle', () => {
-    mockHasRole.mockReturnValue(true);
+    setupTrainerWithAi();
     useAiChat.mockReturnValue({ loading: false, hasNewResponse: false });
 
     renderWithRouter(
@@ -342,7 +401,7 @@ describe('Layout', () => {
 
   it('navigates to /trainer/ai-assistant on FAB click', async () => {
     const user = userEvent.setup();
-    mockHasRole.mockReturnValue(true);
+    setupTrainerWithAi();
     useAiChat.mockReturnValue({ loading: true, hasNewResponse: false });
 
     renderWithRouter(
