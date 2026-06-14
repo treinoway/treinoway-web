@@ -4,6 +4,7 @@ import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import api from '../api/axios';
 import { translateError } from '../i18n';
+import { setSentryUser } from '../lib/sentry';
 import { clearOnboardingSessionState } from '../hooks/useOnboardingStatus';
 
 const AuthContext = createContext(null);
@@ -266,6 +267,12 @@ export const AuthProvider = ({ children }) => {
 
     return response.data;
   };
+
+  // Keep Sentry's user scope in sync (id only — never email/PII).
+  // Covers login, signup, Google, localStorage bootstrap, and logout in one place.
+  useEffect(() => {
+    setSentryUser(user?.id ?? null);
+  }, [user]);
 
   // Keep React state in sync when axios interceptor refreshes the token
   useEffect(() => {

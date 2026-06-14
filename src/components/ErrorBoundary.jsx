@@ -1,5 +1,7 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
+import * as Sentry from '@sentry/react';
+import { isSentryEnabled } from '../lib/sentry';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -13,6 +15,12 @@ class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
+    // Capture render-time crashes (no-op when DSN is unset).
+    if (isSentryEnabled) {
+      Sentry.captureException(error, {
+        contexts: { react: { componentStack: errorInfo?.componentStack } },
+      });
+    }
   }
 
   render() {

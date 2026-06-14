@@ -2,6 +2,7 @@ import axios from 'axios';
 import { getErrorMessage } from '../utils/errorMessages';
 import { extractErrorInfo } from '../i18n';
 import { getDeviceTimezone } from '../utils/timezone';
+import { reportApiError } from '../lib/sentry';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -159,6 +160,11 @@ api.interceptors.response.use(
     // Attach user-friendly message and structured error info
     error.userMessage = getErrorMessage(error);
     error.errorInfo = extractErrorInfo(error);
+
+    // Report only UNEXPECTED failures (5xx + network/transport) to Sentry.
+    // Expected 4xx business/validation errors are skipped to avoid noise.
+    // No-op when VITE_SENTRY_DSN is unset.
+    reportApiError(error);
 
     // For network errors (no response), emit event for toast.
     // Skip cancelled requests (AbortController / axios cancel) — those are intentional.
