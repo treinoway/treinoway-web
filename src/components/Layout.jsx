@@ -16,7 +16,8 @@ const Layout = ({ children, noPadding = false }) => {
   const [bibliotecaPopover, setBibliotecaPopover] = useState(false);
   const { user, logout, hasRole } = useAuth();
   const { loading: aiLoading, hasNewResponse: aiHasNewResponse } = useAiChat();
-  const showAi = user?.platformPlan?.limits?.aiActionsPerStudent > 0;
+  const aiCap = user?.platformPlan?.limits?.aiActionsPerStudent;
+  const showAi = aiCap === null || aiCap > 0;
   const location = useLocation();
   const navigate = useNavigate();
   const popoverRef = useRef(null);

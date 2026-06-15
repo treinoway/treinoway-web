@@ -319,6 +319,19 @@ describe('Layout', () => {
     expect(within(sidebar).queryByRole('link', { name: 'iArnold' })).not.toBeInTheDocument();
   });
 
+  it('shows iArnold sidebar link when aiActionsPerStudent === null (DIAMOND = unlimited)', () => {
+    setupTrainerWithAi({ aiActionsPerStudent: null });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const sidebar = document.querySelector('.sidebar');
+    expect(within(sidebar).getByRole('link', { name: 'iArnold' })).toBeInTheDocument();
+  });
+
   it('hides iArnold sidebar link when platformPlan is undefined (student user)', () => {
     setupAuth({ isTrainer: false });
 
