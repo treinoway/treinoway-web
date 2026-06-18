@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Dumbbell, Info } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
@@ -10,15 +10,25 @@ import ExerciseRowCard from '../../components/ExerciseRowCard';
 import RowMenu from '../../components/RowMenu';
 import LibraryList, { LibraryListRow } from '../../components/LibraryList';
 import LibraryFilterBar from '../../components/LibraryFilterBar';
+import LibraryBatchBar from '../../components/LibraryBatchBar';
 import { formatSnapshotSummary } from '../../utils/exerciseMeta';
 import { TRAINING_CATEGORY_OPTIONS, TRAINING_CATEGORY_LABEL } from '../../constants/trainingCategories';
+import { BODY_SEGMENT_OPTIONS, BODY_SEGMENT_LABEL } from '../../constants/bodySegments';
 import { getExerciseTypeLabel } from '../../constants/exerciseTypes';
 
 /** @deprecated Use RowMenu from '../../components/RowMenu' instead */
 export const TemplateRowMenu = RowMenu;
 
 const CATEGORY_LABEL = TRAINING_CATEGORY_LABEL;
-const BODY_SEGMENT_LABEL = { upper: 'Superior', lower: 'Inferior', full_body: 'Corpo Inteiro' };
+
+const PAGE_LIMIT = 20;
+const SEARCH_DEBOUNCE_MS = 300;
+const ALL_FILTER = 'all';
+
+const CATEGORY_FILTERS = [
+  { value: ALL_FILTER, label: 'Todos' },
+  ...TRAINING_CATEGORY_OPTIONS,
+];
 
 const TrainingTemplates = () => {
   const { showToast } = useToast();
@@ -33,9 +43,18 @@ const TrainingTemplates = () => {
   const [exerciseTemplates, setExerciseTemplates] = useState([]);
   const [exercisePickerValue, setExercisePickerValue] = useState('');
   const [loadingEdit, setLoadingEdit] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [exerciseJunctions, setExerciseJunctions] = useState([]);
   const [editingJunctionId, setEditingJunctionId] = useState(null);
+
+  const [total, setTotal] = useState(0);
+  const [searchInput, setSearchInput] = useState('');
+  const [q, setQ] = useState('');
+  const [category, setCategory] = useState('');
+  const [bodySegment, setBodySegment] = useState('');
+  const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  const debounceRef = useRef(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -47,30 +66,56 @@ const TrainingTemplates = () => {
   });
 
   useEffect(() => {
-    fetchTemplates();
-    fetchExerciseTemplates();
-  }, []);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setQ(searchInput);
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchInput]);
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     setTemplatesLoading(true);
     try {
-      const response = await api.get('/trainer/training-templates');
-      setTemplates(response.data);
+      const params = { page, limit: PAGE_LIMIT };
+      if (q) params.q = q;
+      if (category) params.category = category;
+      if (bodySegment) params.bodySegment = bodySegment;
+      const response = await api.get('/trainer/training-templates', { params });
+      setTemplates(response.data.data);
+      setTotal(response.data.total);
     } catch (error) {
-      console.error('Failed to fetch training templates:', error);
+      showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setTemplatesLoading(false);
     }
-  };
+  }, [page, q, category, bodySegment, showToast]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  // Selection is per-page: drop it whenever the page/query/filters change.
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [page, q, category, bodySegment]);
 
   const fetchExerciseTemplates = async () => {
     try {
-      const response = await api.get('/trainer/exercise-templates');
-      setExerciseTemplates(response.data || []);
+      // Picker source list — request limit=100; library pagination UI is out of
+      // scope for the picker. If a trainer exceeds 100 templates the picker
+      // truncates; acceptable for now (search box exists on the dedicated
+      // library pages).
+      const response = await api.get('/trainer/exercise-templates', { params: { limit: 100 } });
+      setExerciseTemplates(response.data?.data || []);
     } catch (error) {
       console.error('Failed to fetch exercise templates:', error);
     }
   };
+
+  useEffect(() => {
+    fetchExerciseTemplates();
+  }, []);
 
   const normalizeExerciseTemplateIds = (ids) =>
     (ids || []).map((id) => (typeof id === 'number' ? id : Number.isNaN(Number(id)) ? id : Number(id)));
@@ -253,7 +298,7 @@ const TrainingTemplates = () => {
 
   const handleDelete = (id) => {
     setConfirmDialog({
-      message: 'Tem certeza que deseja excluir este treino único? Esta ação não pode ser desfeita.',
+      message: 'Excluir este treino único? Esta ação não pode ser desfeita.',
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
@@ -265,6 +310,42 @@ const TrainingTemplates = () => {
         }
       },
     });
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const handleBatchDelete = () => {
+    const count = selectedIds.length;
+    setConfirmDialog({
+      message: `Excluir ${count} ${count === 1 ? 'item' : 'itens'} selecionado${count === 1 ? '' : 's'}? Esta ação não pode ser desfeita.`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          const res = await api.post('/trainer/training-templates/batch-delete', {
+            ids: selectedIds,
+          });
+          showToast(`${res.data.deletedCount} itens excluídos.`, 'success');
+          setSelectedIds([]);
+          fetchTemplates();
+        } catch (error) {
+          showToast(error.userMessage || translateError(error), 'error');
+        }
+      },
+    });
+  };
+
+  const handleCategoryFilterChange = (value) => {
+    setCategory(value === ALL_FILTER ? '' : value);
+    setPage(1);
+  };
+
+  const handleBodySegmentChange = (value) => {
+    setBodySegment(value);
+    setPage(1);
   };
 
   const buildDraftJunctionFromTemplate = (et) => ({
@@ -330,10 +411,31 @@ const TrainingTemplates = () => {
     setEditingJunctionId(null);
   };
 
-  const normalizedQuery = searchQuery.toLowerCase().trim();
-  const filteredTemplates = normalizedQuery
-    ? templates.filter((t) => t.name.toLowerCase().includes(normalizedQuery))
-    : templates;
+  const hasActiveFilters = !!q || !!category || !!bodySegment;
+  const isEmptyLibrary = total === 0 && !hasActiveFilters;
+  const totalPages = Math.ceil(total / PAGE_LIMIT);
+  const showList = !showForm && !templatesLoading && !isEmptyLibrary;
+  const activeCategoryValue = category || ALL_FILTER;
+
+  const pageIds = templates.map((t) => t.id);
+  const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+
+  const handleToggleSelectAll = () => {
+    setSelectedIds(allSelected ? [] : [...pageIds]);
+  };
+
+  const bodySegmentSelect = (
+    <Select
+      value={bodySegment}
+      onChange={(e) => handleBodySegmentChange(e.target.value)}
+      aria-label="Filtrar por segmento"
+    >
+      <option value="">Todos os segmentos</option>
+      {BODY_SEGMENT_OPTIONS.map((opt) => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
+    </Select>
+  );
 
   return (
     <div>
@@ -343,7 +445,7 @@ const TrainingTemplates = () => {
           <h1>Treinos únicos</h1>
         </div>
         <div className="page-header-actions">
-          {!showForm && templates.length > 0 && (
+          {!showForm && !isEmptyLibrary && (
             <button onClick={() => setShowForm(true)} className="btn-primary">
               + Novo treino único
             </button>
@@ -351,12 +453,16 @@ const TrainingTemplates = () => {
         </div>
       </div>
 
-      {!showForm && !templatesLoading && templates.length > 0 && (
+      {showList && (
         <LibraryFilterBar
-          searchValue={searchQuery}
-          onSearchChange={setSearchQuery}
+          searchValue={searchInput}
+          onSearchChange={setSearchInput}
           searchPlaceholder="Buscar treino por nome…"
           searchAriaLabel="Buscar treinos"
+          filters={CATEGORY_FILTERS}
+          activeFilter={activeCategoryValue}
+          onFilterChange={handleCategoryFilterChange}
+          sortSelect={bodySegmentSelect}
         />
       )}
 
@@ -530,43 +636,81 @@ const TrainingTemplates = () => {
         </div>
       )}
 
-      {!showForm && !templatesLoading && templates.length > 0 && (
-        <LibraryList emptyMessage={`Nenhum resultado para "${searchQuery}"`}>
-          {filteredTemplates.map((template) => {
-            const categoryLabel = CATEGORY_LABEL[template.category];
-            const bodySegmentLabel = BODY_SEGMENT_LABEL[template.bodySegment];
+      {showList && (
+        <>
+          <LibraryBatchBar
+            allSelected={allSelected}
+            selectedCount={selectedIds.length}
+            onToggleSelectAll={handleToggleSelectAll}
+            onDelete={handleBatchDelete}
+          />
 
-            const badges = (
-              <>
-                {categoryLabel && <span className="badge badge-blue">{categoryLabel}</span>}
-                {bodySegmentLabel && <span className="badge badge-gray">{bodySegmentLabel}</span>}
-                {template.isPublic && <span className="badge badge-green">Público</span>}
-              </>
-            );
+          <LibraryList
+            emptyMessage={`Nenhum resultado para "${q}"`}
+            isNoResults={hasActiveFilters}
+          >
+            {templates.map((template) => {
+              const categoryLabel = CATEGORY_LABEL[template.category];
+              const bodySegmentLabel = BODY_SEGMENT_LABEL[template.bodySegment];
 
-            const subtitle = [
-              categoryLabel,
-              bodySegmentLabel,
-            ].filter(Boolean).join(' · ') || null;
+              const badges = (
+                <>
+                  {categoryLabel && <span className="badge badge-blue">{categoryLabel}</span>}
+                  {bodySegmentLabel && <span className="badge badge-gray">{bodySegmentLabel}</span>}
+                  {template.isPublic && <span className="badge badge-green">Público</span>}
+                </>
+              );
 
-            return (
-              <LibraryListRow
-                key={template.id}
-                title={template.name}
-                subtitle={subtitle}
-                badges={badges}
-                rowMenuProps={{
-                  ariaLabel: `Ações do modelo ${template.name}`,
-                  onEdit: () => handleEdit(template),
-                  onDelete: () => handleDelete(template.id),
-                }}
-              />
-            );
-          })}
-        </LibraryList>
+              const subtitle = [
+                categoryLabel,
+                bodySegmentLabel,
+              ].filter(Boolean).join(' · ') || null;
+
+              return (
+                <LibraryListRow
+                  key={template.id}
+                  title={template.name}
+                  subtitle={subtitle}
+                  badges={badges}
+                  selectable
+                  selected={selectedIds.includes(template.id)}
+                  onToggleSelect={() => toggleSelect(template.id)}
+                  selectAriaLabel={`Selecionar ${template.name}`}
+                  rowMenuProps={{
+                    ariaLabel: `Ações do modelo ${template.name}`,
+                    onEdit: () => handleEdit(template),
+                    onDelete: () => handleDelete(template.id),
+                  }}
+                />
+              );
+            })}
+          </LibraryList>
+
+          {totalPages > 1 && (
+            <div className="pagination-row">
+              <button
+                className="btn btn-sm btn-secondary"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Anterior
+              </button>
+              <span className="text-sm text-muted">
+                Página {page} de {totalPages}
+              </span>
+              <button
+                className="btn btn-sm btn-secondary"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {!showForm && !templatesLoading && templates.length === 0 && (
+      {!showForm && !templatesLoading && isEmptyLibrary && (
         <>
           <div className="info-banner">
             <span className="info-banner-icon"><Info size={16} strokeWidth={1.6} /></span>

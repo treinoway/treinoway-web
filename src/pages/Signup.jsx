@@ -109,7 +109,7 @@ const Signup = () => {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <img src="/img/treino_way_transparente.png" alt="Treinoway" className="auth-logo" />
+        <img src="/img/treino_way_transparente.png" alt="TeuFit" className="auth-logo" />
         <h1 className="auth-heading">Criar conta</h1>
         <p className="auth-subtitle">Gerencie seus alunos e treinos.</p>
 

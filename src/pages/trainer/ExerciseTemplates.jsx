@@ -1,39 +1,80 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Dumbbell, Info, Layers } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import { getExerciseTypeLabel } from '../../constants/exerciseTypes';
+import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel } from '../../constants/exerciseTypes';
 import { getYoutubeVideoId } from '../../utils/youtube';
 import LibraryList, { LibraryListRow } from '../../components/LibraryList';
 import LibraryFilterBar from '../../components/LibraryFilterBar';
+import LibraryBatchBar from '../../components/LibraryBatchBar';
 import ExerciseTemplateForm from '../../components/ExerciseTemplateForm';
+
+const PAGE_LIMIT = 20;
+const SEARCH_DEBOUNCE_MS = 300;
+const ALL_FILTER = 'all';
+
+const TYPE_FILTERS = [
+  { value: ALL_FILTER, label: 'Todos' },
+  ...EXERCISE_TYPE_OPTIONS,
+];
 
 const ExerciseTemplates = () => {
   const { showToast } = useToast();
   const [templates, setTemplates] = useState([]);
+  const [total, setTotal] = useState(0);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [formName, setFormName] = useState('');
+
+  const [searchInput, setSearchInput] = useState('');
+  const [q, setQ] = useState('');
+  const [type, setType] = useState('');
+  const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  const debounceRef = useRef(null);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setQ(searchInput);
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchInput]);
 
   const fetchTemplates = useCallback(async () => {
     setTemplatesLoading(true);
     try {
-      const response = await api.get('/trainer/exercise-templates');
-      setTemplates(response.data || []);
+      const params = { page, limit: PAGE_LIMIT };
+      if (q) params.q = q;
+      if (type) params.type = type;
+      const response = await api.get('/trainer/exercise-templates', { params });
+      setTemplates(response.data.data);
+      setTotal(response.data.total);
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setTemplatesLoading(false);
     }
-  }, [showToast]);
+  }, [page, q, type, showToast]);
 
   useEffect(() => {
     fetchTemplates();
   }, [fetchTemplates]);
+
+  // Selection is per-page: drop it whenever the page/query/filter changes.
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [page, q, type]);
+
+  const handleFilterChange = (value) => {
+    setType(value === ALL_FILTER ? '' : value);
+    setPage(1);
+  };
 
   const handleEdit = (template) => {
     setEditingId(template.id);
@@ -43,12 +84,45 @@ const ExerciseTemplates = () => {
 
   const handleDelete = (id) => {
     setConfirmDialog({
-      message: 'Tem certeza que deseja excluir este exercício? Esta ação não pode ser desfeita.',
+      message: 'Excluir este exercício? Esta ação não pode ser desfeita.',
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
           await api.delete(`/trainer/exercise-templates/${id}`);
           showToast('Exercício excluído com sucesso!', 'success');
+          fetchTemplates();
+        } catch (error) {
+          showToast(error.userMessage || translateError(error), 'error');
+        }
+      },
+    });
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const pageIds = templates.map((t) => t.id);
+  const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+
+  const handleToggleSelectAll = () => {
+    setSelectedIds(allSelected ? [] : [...pageIds]);
+  };
+
+  const handleBatchDelete = () => {
+    const count = selectedIds.length;
+    setConfirmDialog({
+      message: `Excluir ${count} ${count === 1 ? 'item' : 'itens'} selecionado${count === 1 ? '' : 's'}? Esta ação não pode ser desfeita.`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          const res = await api.post('/trainer/exercise-templates/batch-delete', {
+            ids: selectedIds,
+          });
+          showToast(`${res.data.deletedCount} itens excluídos.`, 'success');
+          setSelectedIds([]);
           fetchTemplates();
         } catch (error) {
           showToast(error.userMessage || translateError(error), 'error');
@@ -63,10 +137,11 @@ const ExerciseTemplates = () => {
     setFormName('');
   };
 
-  const normalizedQuery = searchQuery.toLowerCase().trim();
-  const filteredTemplates = normalizedQuery
-    ? templates.filter((t) => t.name.toLowerCase().includes(normalizedQuery))
-    : templates;
+  const hasActiveFilters = !!q || !!type;
+  const isEmptyLibrary = total === 0 && !hasActiveFilters;
+  const totalPages = Math.ceil(total / PAGE_LIMIT);
+  const showList = !showForm && !templatesLoading && !isEmptyLibrary;
+  const activeFilterValue = type || ALL_FILTER;
 
   return (
     <div>
@@ -77,7 +152,7 @@ const ExerciseTemplates = () => {
             <h1>Exercícios</h1>
           </div>
           <div className="page-header-actions">
-            {templates.length > 0 && (
+            {!isEmptyLibrary && (
               <button onClick={() => setShowForm(true)} className="btn-primary">
                 + Novo exercício
               </button>
@@ -86,12 +161,15 @@ const ExerciseTemplates = () => {
         </div>
       )}
 
-      {!showForm && !templatesLoading && templates.length > 0 && (
+      {showList && (
         <LibraryFilterBar
-          searchValue={searchQuery}
-          onSearchChange={setSearchQuery}
+          searchValue={searchInput}
+          onSearchChange={setSearchInput}
           searchPlaceholder="Buscar exercício por nome…"
           searchAriaLabel="Buscar exercícios"
+          filters={TYPE_FILTERS}
+          activeFilter={activeFilterValue}
+          onFilterChange={handleFilterChange}
         />
       )}
 
@@ -126,37 +204,75 @@ const ExerciseTemplates = () => {
         </div>
       )}
 
-      {!showForm && !templatesLoading && templates.length > 0 && (
-        <LibraryList emptyMessage={`Nenhum resultado para "${searchQuery}"`}>
-          {filteredTemplates.map((template) => {
-            const hasVideo = !!getYoutubeVideoId(template.videoUrl);
-            const typeLabel = template.type ? getExerciseTypeLabel(template.type) : null;
+      {showList && (
+        <>
+          <LibraryBatchBar
+            allSelected={allSelected}
+            selectedCount={selectedIds.length}
+            onToggleSelectAll={handleToggleSelectAll}
+            onDelete={handleBatchDelete}
+          />
 
-            const badges = (
-              <>
-                {typeLabel && <span className="badge badge-blue">{typeLabel}</span>}
-                {template.isPublic && <span className="badge badge-green">Público</span>}
-                {hasVideo && <span className="badge badge-gray">Vídeo</span>}
-              </>
-            );
+          <LibraryList
+            emptyMessage={`Nenhum resultado para "${q}"`}
+            isNoResults={hasActiveFilters}
+          >
+            {templates.map((template) => {
+              const hasVideo = !!getYoutubeVideoId(template.videoUrl);
+              const typeLabel = template.type ? getExerciseTypeLabel(template.type) : null;
 
-            return (
-              <LibraryListRow
-                key={template.id}
-                title={template.name}
-                badges={badges}
-                rowMenuProps={{
-                  ariaLabel: `Ações do modelo ${template.name}`,
-                  onEdit: () => handleEdit(template),
-                  onDelete: () => handleDelete(template.id),
-                }}
-              />
-            );
-          })}
-        </LibraryList>
+              const badges = (
+                <>
+                  {typeLabel && <span className="badge badge-blue">{typeLabel}</span>}
+                  {template.isPublic && <span className="badge badge-green">Público</span>}
+                  {hasVideo && <span className="badge badge-gray">Vídeo</span>}
+                </>
+              );
+
+              return (
+                <LibraryListRow
+                  key={template.id}
+                  title={template.name}
+                  badges={badges}
+                  selectable
+                  selected={selectedIds.includes(template.id)}
+                  onToggleSelect={() => toggleSelect(template.id)}
+                  selectAriaLabel={`Selecionar ${template.name}`}
+                  rowMenuProps={{
+                    ariaLabel: `Ações do modelo ${template.name}`,
+                    onEdit: () => handleEdit(template),
+                    onDelete: () => handleDelete(template.id),
+                  }}
+                />
+              );
+            })}
+          </LibraryList>
+
+          {totalPages > 1 && (
+            <div className="pagination-row">
+              <button
+                className="btn btn-sm btn-secondary"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Anterior
+              </button>
+              <span className="text-sm text-muted">
+                Página {page} de {totalPages}
+              </span>
+              <button
+                className="btn btn-sm btn-secondary"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {!showForm && !templatesLoading && templates.length === 0 && (
+      {!showForm && !templatesLoading && isEmptyLibrary && (
         <>
           <div className="info-banner">
             <span className="info-banner-icon"><Info size={16} strokeWidth={1.6} /></span>

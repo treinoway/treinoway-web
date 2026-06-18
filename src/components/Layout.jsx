@@ -101,7 +101,7 @@ const Layout = ({ children, noPadding = false }) => {
       <div className="top-app-bar">
         <img
           src="/img/treino_way_transparente.png"
-          alt="Treinoway"
+          alt="TeuFit"
           className="top-app-bar-logo"
         />
         <span className="top-app-bar-user">{user?.firstName}</span>
@@ -118,7 +118,7 @@ const Layout = ({ children, noPadding = false }) => {
               aria-label={sidebarOpen ? 'Recolher menu lateral' : 'Expandir menu lateral'}
               aria-expanded={sidebarOpen}
             >
-              <img src="/img/treinoway.ico" alt="Treinoway" className="sidebar-logo-icon" />
+              <img src="/img/treinoway.ico" alt="TeuFit" className="sidebar-logo-icon" />
             </button>
             <button
               type="button"

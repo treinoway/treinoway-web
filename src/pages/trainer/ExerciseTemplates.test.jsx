@@ -28,11 +28,16 @@ const mockTemplates = [
   { id: 3, name: 'Rosca Direta', type: 'strength', isPublic: false, videoUrl: 'https://www.youtube.com/watch?v=abc123XYZ' },
 ];
 
+// Build a backend-style pagination envelope for the list endpoint.
+const envelope = (data, total = data.length, page = 1, limit = 20) => ({
+  data: { data, total, page, limit },
+});
+
 describe('ExerciseTemplates', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
-    api.get.mockResolvedValue({ data: mockTemplates });
+    api.get.mockResolvedValue(envelope(mockTemplates));
     api.post.mockReset();
     api.patch.mockReset();
     api.delete.mockReset();
@@ -62,7 +67,7 @@ describe('ExerciseTemplates', () => {
   });
 
   it('shows empty state and info banner when there are no templates', async () => {
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue(envelope([]));
 
     renderWithRouter(<ExerciseTemplates />);
 
@@ -74,7 +79,7 @@ describe('ExerciseTemplates', () => {
 
   it('shows CTA button in empty state that opens the create form', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue(envelope([]));
 
     renderWithRouter(<ExerciseTemplates />);
 
@@ -105,7 +110,7 @@ describe('ExerciseTemplates', () => {
 
     expect(screen.getByText('Carregando...')).toBeInTheDocument();
 
-    resolveTemplates({ data: [] });
+    resolveTemplates(envelope([]));
 
     await waitFor(() => {
       expect(screen.getByText('Nenhum exercício ainda')).toBeInTheDocument();
@@ -128,9 +133,7 @@ describe('ExerciseTemplates', () => {
   it('calls POST to create a new template on form submission', async () => {
     const user = userEvent.setup();
     api.post.mockResolvedValue({ data: { id: 3, name: 'Flexão', type: 'strength', isPublic: false } });
-    api.get.mockResolvedValue({
-      data: [...mockTemplates, { id: 3, name: 'Flexão', type: 'strength', isPublic: false }],
-    });
+    api.get.mockResolvedValue(envelope([...mockTemplates, { id: 3, name: 'Flexão', type: 'strength', isPublic: false }]));
 
     renderWithRouter(<ExerciseTemplates />);
 
@@ -320,5 +323,102 @@ describe('ExerciseTemplates', () => {
     );
     expect(inlineIframe).toBeTruthy();
     expect(screen.queryByRole('img', { name: /miniatura do vídeo/i })).not.toBeInTheDocument();
+  });
+
+  describe('Server-driven list (pagination, search, filters, batch delete)', () => {
+    it('renders rows from the pagination envelope (res.data.data)', async () => {
+      renderWithRouter(<ExerciseTemplates />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Agachamento')).toBeInTheDocument();
+        expect(screen.getByText('Corrida')).toBeInTheDocument();
+      });
+    });
+
+    it('sends params.q to the API after debounced search', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ExerciseTemplates />);
+
+      await waitFor(() => screen.getByText('Agachamento'));
+
+      await user.type(screen.getByLabelText(/buscar exerc/i), 'Agacha');
+
+      await waitFor(() => {
+        expect(api.get).toHaveBeenCalledWith(
+          '/trainer/exercise-templates',
+          expect.objectContaining({ params: expect.objectContaining({ q: 'Agacha' }) }),
+        );
+      });
+    });
+
+    it('sends the lowercase type value and resets page on filter tab click', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ExerciseTemplates />);
+
+      await waitFor(() => screen.getByText('Agachamento'));
+
+      await user.click(screen.getByRole('tab', { name: /^força$/i }));
+
+      await waitFor(() => {
+        expect(api.get).toHaveBeenCalledWith(
+          '/trainer/exercise-templates',
+          expect.objectContaining({ params: expect.objectContaining({ type: 'strength', page: 1 }) }),
+        );
+      });
+    });
+
+    it('shows pagination controls and advances the page', async () => {
+      const user = userEvent.setup();
+      api.get.mockResolvedValue(envelope(mockTemplates, 45));
+      renderWithRouter(<ExerciseTemplates />);
+
+      await waitFor(() => screen.getByText('Agachamento'));
+
+      expect(screen.getByText('Página 1 de 3')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /anterior/i })).toBeDisabled();
+
+      await user.click(screen.getByRole('button', { name: /próxima/i }));
+
+      await waitFor(() => {
+        expect(api.get).toHaveBeenCalledWith(
+          '/trainer/exercise-templates',
+          expect.objectContaining({ params: expect.objectContaining({ page: 2 }) }),
+        );
+      });
+    });
+
+    it('selects a row and batch-deletes the selection', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValue({ data: { deletedCount: 1 } });
+      renderWithRouter(<ExerciseTemplates />);
+
+      await waitFor(() => screen.getByText('Agachamento'));
+
+      await user.click(screen.getByRole('checkbox', { name: /selecionar agachamento/i }));
+
+      const batchButton = screen.getByRole('button', { name: /excluir selecionados/i });
+      expect(batchButton).toBeInTheDocument();
+
+      await user.click(batchButton);
+      await user.click(screen.getByRole('button', { name: /confirmar/i }));
+
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith('/trainer/exercise-templates/batch-delete', { ids: [1] });
+        expect(mockShowToast).toHaveBeenCalledWith('1 itens excluídos.', 'success');
+      });
+    });
+
+    it('select-all toggles every row checkbox on the current page', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ExerciseTemplates />);
+
+      await waitFor(() => screen.getByText('Agachamento'));
+
+      await user.click(screen.getByRole('button', { name: /selecionar todos/i }));
+
+      expect(screen.getByRole('checkbox', { name: /selecionar agachamento/i })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /selecionar corrida/i })).toBeChecked();
+      expect(screen.getByRole('button', { name: /limpar seleção/i })).toBeInTheDocument();
+    });
   });
 });

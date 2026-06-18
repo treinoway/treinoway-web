@@ -25,7 +25,7 @@ describe('Login', () => {
   it('renders logo, heading, email field, password field, and submit button', () => {
     renderWithRouter(<Login />);
 
-    expect(screen.getByRole('img', { name: /treinoway/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /teufit/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /entrar/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/e-mail/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^senha$/i)).toBeInTheDocument();

@@ -67,7 +67,7 @@ const Login = () => {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <img src="/img/treino_way_transparente.png" alt="Treinoway" className="auth-logo" />
+        <img src="/img/treino_way_transparente.png" alt="TeuFit" className="auth-logo" />
         <h1 className="auth-heading">Entrar</h1>
 
         {error && <p className="auth-error">{error}</p>}

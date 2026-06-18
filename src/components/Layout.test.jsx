@@ -94,7 +94,7 @@ describe('Layout', () => {
     const icon = sidebar.querySelector('.sidebar-logo-icon');
     expect(icon).toBeInTheDocument();
     expect(icon.tagName).toBe('IMG');
-    expect(icon).toHaveAttribute('alt', 'Treinoway');
+    expect(icon).toHaveAttribute('alt', 'TeuFit');
   });
 
   it('renders same sidebar-logo-icon in collapsed state', async () => {
@@ -113,7 +113,7 @@ describe('Layout', () => {
     const icon = sidebar.querySelector('.sidebar-logo-icon');
     expect(icon).toBeInTheDocument();
     expect(icon.tagName).toBe('IMG');
-    expect(icon).toHaveAttribute('alt', 'Treinoway');
+    expect(icon).toHaveAttribute('alt', 'TeuFit');
   });
 
   // ---------------------------------------------------------------------------

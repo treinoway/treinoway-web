@@ -45,6 +45,11 @@ const makeUserError = (message) => {
   return err;
 };
 
+// Backend-style pagination envelope for list endpoints.
+const envelope = (data, total = data.length, page = 1, limit = 100) => ({
+  data: { data, total, page, limit },
+});
+
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -52,8 +57,8 @@ beforeEach(() => {
 
   api.get.mockImplementation((url) => {
     if (url === '/trainer/protocol-templates/r1') return Promise.resolve({ data: ROUTINE });
-    if (url === '/trainer/training-templates') return Promise.resolve({ data: TRAINING_TEMPLATES });
-    if (url === '/trainer/exercise-templates') return Promise.resolve({ data: EXERCISE_TEMPLATES });
+    if (url === '/trainer/training-templates') return Promise.resolve(envelope(TRAINING_TEMPLATES));
+    if (url === '/trainer/exercise-templates') return Promise.resolve(envelope(EXERCISE_TEMPLATES));
     return Promise.reject(makeUserError(`Unexpected GET: ${url}`));
   });
 
@@ -155,10 +160,24 @@ describe('new routine (routineId null)', () => {
     expect(result.current.data.trainings).toEqual([]);
   });
 
-  it('fetches supporting lists (training + exercise templates)', async () => {
+  it('fetches supporting lists (training + exercise templates) from the envelope', async () => {
     const { result } = renderHook(() => useRoutineBuilder(null));
     await waitFor(() => expect(result.current.trainingTemplates).toEqual(TRAINING_TEMPLATES));
     expect(result.current.exerciseTemplates).toEqual(EXERCISE_TEMPLATES);
+  });
+
+  it('requests picker source lists with limit=100', async () => {
+    const { result } = renderHook(() => useRoutineBuilder(null));
+    await waitFor(() => expect(result.current.trainingTemplates).toEqual(TRAINING_TEMPLATES));
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/trainer/training-templates',
+      expect.objectContaining({ params: expect.objectContaining({ limit: 100 }) }),
+    );
+    expect(api.get).toHaveBeenCalledWith(
+      '/trainer/exercise-templates',
+      expect.objectContaining({ params: expect.objectContaining({ limit: 100 }) }),
+    );
   });
 });
 
@@ -445,8 +464,8 @@ describe('importTrainingsFromLibrary', () => {
     api.get.mockImplementation((url) => {
       if (url === '/trainer/protocol-templates/r1') return Promise.resolve({ data: ROUTINE });
       if (url === '/trainer/training-templates')
-        return Promise.resolve({ data: [templateWithExercises] });
-      if (url === '/trainer/exercise-templates') return Promise.resolve({ data: EXERCISE_TEMPLATES });
+        return Promise.resolve(envelope([templateWithExercises]));
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope(EXERCISE_TEMPLATES));
       return Promise.reject(makeUserError(`Unexpected GET: ${url}`));
     });
 
@@ -479,8 +498,8 @@ describe('extractExercises fallbacks (via normalizeTraining)', () => {
             trainings: [{ id: 't-empty', name: 'Sem Exercícios', category: 'strength' }],
           },
         });
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: [] });
-      if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope([]));
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([]));
       return Promise.reject(makeUserError(`Unexpected GET: ${url}`));
     });
 
@@ -516,8 +535,8 @@ describe('extractExercises fallbacks (via normalizeTraining)', () => {
             ],
           },
         });
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: [] });
-      if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope([]));
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([]));
       return Promise.reject(makeUserError(`Unexpected GET: ${url}`));
     });
 
@@ -546,8 +565,8 @@ describe('extractExercises fallbacks (via normalizeTraining)', () => {
             ],
           },
         });
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: [] });
-      if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope([]));
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([]));
       return Promise.reject(makeUserError(`Unexpected GET: ${url}`));
     });
 
@@ -578,8 +597,8 @@ describe('extractExercises fallbacks (via normalizeTraining)', () => {
             ],
           },
         });
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: [] });
-      if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope([]));
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([]));
       return Promise.reject(makeUserError(`Unexpected GET: ${url}`));
     });
 
@@ -605,8 +624,8 @@ describe('extractExercises fallbacks (via normalizeTraining)', () => {
             ],
           },
         });
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: [] });
-      if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope([]));
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([]));
       return Promise.reject(makeUserError(`Unexpected GET: ${url}`));
     });
 

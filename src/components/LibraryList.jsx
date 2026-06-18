@@ -15,6 +15,10 @@ import RowMenu from './RowMenu';
  *  - rowMenuProps (object)             — forwarded to RowMenu (ariaLabel, onEdit, onDelete, …)
  *  - onClick (func)                    — row click handler
  *  - ariaLabel (string)                — aria-label for the row button
+ *  - selectable (bool)                 — when true, renders a leading selection checkbox
+ *  - selected (bool)                   — checkbox checked state
+ *  - onToggleSelect (func)             — called when the checkbox is toggled
+ *  - selectAriaLabel (string)          — aria-label for the selection checkbox
  */
 export const LibraryListRow = ({
   title,
@@ -24,6 +28,10 @@ export const LibraryListRow = ({
   rowMenuProps,
   onClick,
   ariaLabel,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
+  selectAriaLabel,
 }) => (
   <div
     className="library-stat-row"
@@ -39,6 +47,20 @@ export const LibraryListRow = ({
     aria-label={ariaLabel}
   >
     <div className="library-stat-row-identity">
+      {selectable && (
+        <span
+          className="library-row-checkbox-wrap"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            className="library-row-checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect?.()}
+            aria-label={selectAriaLabel}
+          />
+        </span>
+      )}
       <div className="library-stat-row-name-block">
         <div className="library-stat-row-title-line">
           <span className="library-stat-row-name">{title}</span>
@@ -70,6 +92,10 @@ LibraryListRow.propTypes = {
   rowMenuProps: PropTypes.object,
   onClick: PropTypes.func,
   ariaLabel: PropTypes.string,
+  selectable: PropTypes.bool,
+  selected: PropTypes.bool,
+  onToggleSelect: PropTypes.func,
+  selectAriaLabel: PropTypes.string,
 };
 
 /**
@@ -86,8 +112,11 @@ const LibraryList = ({
   emptyMessage = 'Nenhum item encontrado',
   isNoResults = false,
 }) => {
+  // Flatten one level so an empty `.map()` (which yields a truthy []) does not
+  // count as a rendered row — this keeps the no-results state working when the
+  // list mixes a conditional row with a mapped collection.
   const hasChildren = Array.isArray(children)
-    ? children.filter(Boolean).length > 0
+    ? children.flat().filter(Boolean).length > 0
     : !!children;
 
   if (!hasChildren) {

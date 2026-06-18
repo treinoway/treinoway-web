@@ -27,7 +27,7 @@ const LibraryFilterBar = ({
   filterCounts,
   sortSelect,
 }) => (
-  <div className="students-toolbar" role="search">
+  <div className="students-toolbar library-filter-toolbar" role="search">
     <div className="students-search-wrap">
       <Search size={16} strokeWidth={2} aria-hidden="true" />
       <input

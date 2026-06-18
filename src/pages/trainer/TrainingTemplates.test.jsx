@@ -44,25 +44,31 @@ const mockTemplates = [
   { id: 2, name: 'Treino B', description: 'Descrição do treino B', isPublic: true, category: 'cardio', bodySegment: 'lower' },
 ];
 
+// Build a backend-style pagination envelope for list endpoints.
+const envelope = (data, total = data.length, page = 1, limit = 20) => ({
+  data: { data, total, page, limit },
+});
+
+const exerciseTemplatesEnvelope = envelope([
+  { id: 20, name: 'Supino Reto' },
+  { id: 21, name: 'Corrida' },
+  { id: 99, name: 'Novo Exercício' },
+]);
+
 describe('TrainingTemplates', () => {
   beforeEach(() => {
     createdExerciseResult = { id: 99, name: 'Novo Exercício' };
     mockShowToast.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation((url) => {
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope(mockTemplates));
       if (typeof url === 'string' && url.startsWith('/trainer/training-templates/')) {
         const id = url.replace('/trainer/training-templates/', '');
         const template = mockTemplates.find((t) => String(t.id) === String(id));
+        // Single-resource GET is NOT paginated — return the bare record.
         return Promise.resolve({ data: template || mockTemplates[0] });
       }
-      if (url === '/trainer/exercise-templates') return Promise.resolve({
-        data: [
-          { id: 20, name: 'Supino Reto' },
-          { id: 21, name: 'Corrida' },
-          { id: 99, name: 'Novo Exercício' },
-        ],
-      });
+      if (url === '/trainer/exercise-templates') return Promise.resolve(exerciseTemplatesEnvelope);
       return Promise.resolve({ data: [] });
     });
     api.post.mockReset();
@@ -94,7 +100,7 @@ describe('TrainingTemplates', () => {
   });
 
   it('shows empty state and info banner when there are no templates', async () => {
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue(envelope([]));
 
     renderWithRouter(<TrainingTemplates />);
 
@@ -106,7 +112,7 @@ describe('TrainingTemplates', () => {
 
   it('empty state CTA opens the create form', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue(envelope([]));
 
     renderWithRouter(<TrainingTemplates />);
 
@@ -141,7 +147,7 @@ describe('TrainingTemplates', () => {
     expect(screen.getByText('Carregando...')).toBeInTheDocument();
     expect(screen.queryByText('Nenhum treino único ainda')).not.toBeInTheDocument();
 
-    resolveTemplates({ data: [] });
+    resolveTemplates(envelope([]));
 
     await waitFor(() => {
       expect(screen.getByText('Nenhum treino único ainda')).toBeInTheDocument();
@@ -180,7 +186,7 @@ describe('TrainingTemplates', () => {
   it('calls POST to create a new template on form submission', async () => {
     const user = userEvent.setup();
     api.post.mockResolvedValue({ data: { id: 3, name: 'Novo Treino', isPublic: false } });
-    api.get.mockResolvedValue({ data: [...mockTemplates, { id: 3, name: 'Novo Treino', isPublic: false }] });
+    api.get.mockResolvedValue(envelope([...mockTemplates, { id: 3, name: 'Novo Treino', isPublic: false }]));
 
     renderWithRouter(<TrainingTemplates />);
 
@@ -233,19 +239,17 @@ describe('TrainingTemplates', () => {
   it('shows exercises in form when GET by ID returns exerciseTemplateIds', async () => {
     const user = userEvent.setup();
     api.get.mockImplementation((url) => {
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope(mockTemplates));
       if (url === '/trainer/training-templates/1') {
         return Promise.resolve({
           data: { ...mockTemplates[0], exerciseTemplateIds: [20] },
         });
       }
-      if (url === '/trainer/exercise-templates') return Promise.resolve({
-        data: [
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([
           { id: 20, name: 'Supino Reto' },
           { id: 21, name: 'Corrida' },
           { id: 99, name: 'Novo Exercício' },
-        ],
-      });
+        ]));
       return Promise.resolve({ data: [] });
     });
     renderWithRouter(<TrainingTemplates />);
@@ -264,7 +268,7 @@ describe('TrainingTemplates', () => {
     const user = userEvent.setup();
     const uuid = '8981a001-f57c-4e0d-9932-23a35cb629d3';
     api.get.mockImplementation((url) => {
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope(mockTemplates));
       if (url === '/trainer/training-templates/1') {
         return Promise.resolve({
           data: {
@@ -275,13 +279,11 @@ describe('TrainingTemplates', () => {
           },
         });
       }
-      if (url === '/trainer/exercise-templates') return Promise.resolve({
-        data: [
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([
           { id: 20, name: 'Supino Reto' },
           { id: 21, name: 'Corrida' },
           { id: uuid, name: 'Tríceps Polia' },
-        ],
-      });
+        ]));
       return Promise.resolve({ data: [] });
     });
     renderWithRouter(<TrainingTemplates />);
@@ -426,9 +428,8 @@ describe('TrainingTemplates', () => {
     const user = userEvent.setup();
     api.post.mockResolvedValue({ data: { id: 1 } });
     api.get.mockImplementation((url) => {
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
-      if (url === '/trainer/exercise-templates') return Promise.resolve({
-        data: [
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope(mockTemplates));
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([
           {
             id: 20,
             name: 'Supino Reto',
@@ -439,8 +440,7 @@ describe('TrainingTemplates', () => {
             suggestedLoad: 20,
             restInterval: 60,
           },
-        ],
-      });
+        ]));
       return Promise.resolve({ data: [] });
     });
     renderWithRouter(<TrainingTemplates />);
@@ -520,13 +520,11 @@ describe('TrainingTemplates', () => {
   it('shows the intensity ramp when a picked cardio exercise is opened in the edit sheet', async () => {
     const user = userEvent.setup();
     api.get.mockImplementation((url) => {
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
-      if (url === '/trainer/exercise-templates') return Promise.resolve({
-        data: [
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope(mockTemplates));
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([
           { id: 30, name: 'Esteira', type: 'cardio', typeLabel: 'Cardio', prescriptionMode: 'duration', duration: 1200 },
           { id: 20, name: 'Supino Reto', type: 'strength', typeLabel: 'Força' },
-        ],
-      });
+        ]));
       return Promise.resolve({ data: [] });
     });
     renderWithRouter(<TrainingTemplates />);
@@ -568,10 +566,8 @@ describe('TrainingTemplates', () => {
     const user = userEvent.setup();
     createdExerciseResult = { id: 20, name: 'Supino Reto', type: 'strength', videoUrl: null, isPublic: false };
     api.get.mockImplementation((url) => {
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
-      if (url === '/trainer/exercise-templates') return Promise.resolve({
-        data: [{ id: 20, name: 'Supino Reto', type: 'strength', typeLabel: 'Força' }],
-      });
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope(mockTemplates));
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([{ id: 20, name: 'Supino Reto', type: 'strength', typeLabel: 'Força' }]));
       return Promise.resolve({ data: [] });
     });
     renderWithRouter(<TrainingTemplates />);
@@ -592,10 +588,8 @@ describe('TrainingTemplates', () => {
   it('does not show the intensity ramp for a picked strength exercise', async () => {
     const user = userEvent.setup();
     api.get.mockImplementation((url) => {
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
-      if (url === '/trainer/exercise-templates') return Promise.resolve({
-        data: [{ id: 20, name: 'Supino Reto', type: 'strength', typeLabel: 'Força' }],
-      });
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope(mockTemplates));
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([{ id: 20, name: 'Supino Reto', type: 'strength', typeLabel: 'Força' }]));
       return Promise.resolve({ data: [] });
     });
     renderWithRouter(<TrainingTemplates />);
@@ -659,13 +653,11 @@ describe('TrainingTemplates', () => {
 
   const setupEditExerciseTest = () => {
     api.get.mockImplementation((url) => {
-      if (url === '/trainer/training-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/training-templates') return Promise.resolve(envelope(mockTemplates));
       if (url === '/trainer/training-templates/1') {
         return Promise.resolve({ data: { ...mockTemplates[0], exerciseTemplateIds: [20] } });
       }
-      if (url === '/trainer/exercise-templates') return Promise.resolve({
-        data: [{ id: 20, name: 'Supino Reto' }, { id: 21, name: 'Corrida' }],
-      });
+      if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([{ id: 20, name: 'Supino Reto' }, { id: 21, name: 'Corrida' }]));
       return Promise.resolve({ data: [] });
     });
   };
@@ -736,17 +728,13 @@ describe('TrainingTemplates', () => {
     const setupSnapshotTest = () => {
       api.get.mockImplementation((url) => {
         if (url === '/trainer/training-templates') {
-          return Promise.resolve({
-            data: [{ id: templateUuid, name: 'Treino A', isPublic: false, category: 'strength', bodySegment: 'upper' }],
-          });
+          return Promise.resolve(envelope([{ id: templateUuid, name: 'Treino A', isPublic: false, category: 'strength', bodySegment: 'upper' }]));
         }
         if (url === `/trainer/training-templates/${templateUuid}`) {
           return Promise.resolve({ data: baseTemplateWithSnapshot });
         }
         if (url === '/trainer/exercise-templates') {
-          return Promise.resolve({
-            data: [{ id: exerciseTemplateUuid, name: 'Supino Reto', type: 'strength' }],
-          });
+          return Promise.resolve(envelope([{ id: exerciseTemplateUuid, name: 'Supino Reto', type: 'strength' }]));
         }
         return Promise.resolve({ data: [] });
       });
@@ -870,6 +858,107 @@ describe('TrainingTemplates', () => {
           }),
         );
       });
+    });
+  });
+
+  describe('Server-driven list (pagination, search, filters, batch delete)', () => {
+    it('renders rows from the pagination envelope (res.data.data)', async () => {
+      renderWithRouter(<TrainingTemplates />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Treino A')).toBeInTheDocument();
+        expect(screen.getByText('Treino B')).toBeInTheDocument();
+      });
+    });
+
+    it('sends params.q to the API after debounced search', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<TrainingTemplates />);
+
+      await waitFor(() => screen.getByText('Treino A'));
+
+      await user.type(screen.getByLabelText(/buscar treino/i), 'Treino A');
+
+      await waitFor(() => {
+        expect(api.get).toHaveBeenCalledWith(
+          '/trainer/training-templates',
+          expect.objectContaining({ params: expect.objectContaining({ q: 'Treino A' }) }),
+        );
+      });
+    });
+
+    it('sends the lowercase category value and resets page on filter tab click', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<TrainingTemplates />);
+
+      await waitFor(() => screen.getByText('Treino A'));
+
+      await user.click(screen.getByRole('tab', { name: /^força$/i }));
+
+      await waitFor(() => {
+        expect(api.get).toHaveBeenCalledWith(
+          '/trainer/training-templates',
+          expect.objectContaining({ params: expect.objectContaining({ category: 'strength', page: 1 }) }),
+        );
+      });
+    });
+
+    it('shows pagination controls and advances the page', async () => {
+      const user = userEvent.setup();
+      api.get.mockImplementation((url) => {
+        if (url === '/trainer/training-templates') return Promise.resolve(envelope(mockTemplates, 45));
+        if (url === '/trainer/exercise-templates') return Promise.resolve(exerciseTemplatesEnvelope);
+        return Promise.resolve({ data: [] });
+      });
+      renderWithRouter(<TrainingTemplates />);
+
+      await waitFor(() => screen.getByText('Treino A'));
+
+      expect(screen.getByText('Página 1 de 3')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /anterior/i })).toBeDisabled();
+
+      await user.click(screen.getByRole('button', { name: /próxima/i }));
+
+      await waitFor(() => {
+        expect(api.get).toHaveBeenCalledWith(
+          '/trainer/training-templates',
+          expect.objectContaining({ params: expect.objectContaining({ page: 2 }) }),
+        );
+      });
+    });
+
+    it('selects a row and batch-deletes the selection', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValue({ data: { deletedCount: 1 } });
+      renderWithRouter(<TrainingTemplates />);
+
+      await waitFor(() => screen.getByText('Treino A'));
+
+      await user.click(screen.getByRole('checkbox', { name: /selecionar treino a/i }));
+
+      const batchButton = screen.getByRole('button', { name: /excluir selecionados/i });
+      expect(batchButton).toBeInTheDocument();
+
+      await user.click(batchButton);
+      await user.click(screen.getByRole('button', { name: /confirmar/i }));
+
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith('/trainer/training-templates/batch-delete', { ids: [1] });
+        expect(mockShowToast).toHaveBeenCalledWith('1 itens excluídos.', 'success');
+      });
+    });
+
+    it('select-all toggles every row checkbox on the current page', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<TrainingTemplates />);
+
+      await waitFor(() => screen.getByText('Treino A'));
+
+      await user.click(screen.getByRole('button', { name: /selecionar todos/i }));
+
+      expect(screen.getByRole('checkbox', { name: /selecionar treino a/i })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /selecionar treino b/i })).toBeChecked();
+      expect(screen.getByRole('button', { name: /limpar seleção/i })).toBeInTheDocument();
     });
   });
 });

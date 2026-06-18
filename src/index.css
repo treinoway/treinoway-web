@@ -25891,6 +25891,122 @@ nav.onboarding-steps {
   min-width: 0;
 }
 
+.library-row-checkbox-wrap {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.library-row-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--brand-primary);
+}
+
+/* ── Batch-select toolbar: slim contextual bar, flush above the list ──
+   Shares the row surface and horizontal inset (18px) so it reads as the
+   header of the list rather than a detached card. A single baseline aligns
+   the select toggle, the count and the delete action. */
+.library-batch-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-height: 40px;
+  padding: var(--spacing-xs) 18px;
+  margin-bottom: var(--spacing-sm);
+  background: var(--md-surface);
+  border-radius: var(--radius-brand);
+  border: 1px solid var(--md-outline-variant);
+}
+
+/* Text toggle (not a checkbox): flips its own label by selection state */
+.library-batch-bar-select {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xs) 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--brand-primary);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-brand);
+}
+
+.library-batch-bar-select:hover {
+  color: var(--md-primary);
+  text-decoration: underline;
+}
+
+.library-batch-bar-select:focus-visible {
+  outline: none;
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-focus);
+}
+
+.library-batch-bar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-left: auto;
+}
+
+.library-batch-bar-count {
+  font-family: var(--font-family-stat);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--brand-steel);
+}
+
+/* Compact danger affordance: danger-outline, sized like a normal action */
+.library-batch-bar-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: 32px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--md-error);
+  border-radius: var(--radius-brand);
+  background: transparent;
+  color: var(--md-error);
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-brand);
+}
+
+.library-batch-bar-delete:hover {
+  background: var(--md-error-container);
+}
+
+.library-batch-bar-delete:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ── Library filter toolbar: balance search vs. tabs on one aligned row ── */
+.library-filter-toolbar {
+  gap: var(--spacing-md);
+}
+
+/* Cap the search so it stays balanced with the filter tabs instead of
+   dwarfing them; it still flexes down on narrow viewports. */
+.library-filter-toolbar .students-search-wrap {
+  flex: 1 1 240px;
+  max-width: 420px;
+}
+
+.library-filter-toolbar .students-filter-group {
+  flex-shrink: 0;
+}
+
 .library-stat-row-name-block {
   flex: 1;
   min-width: 0;

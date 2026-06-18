@@ -25,7 +25,7 @@ describe('Signup', () => {
   it('renders logo, heading, subtitle, email field, password field, and submit button', () => {
     renderWithRouter(<Signup />);
 
-    expect(screen.getByRole('img', { name: /treinoway/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /teufit/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /criar conta/i })).toBeInTheDocument();
     expect(screen.getByText(/gerencie seus alunos e treinos/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/e-mail/i)).toBeInTheDocument();

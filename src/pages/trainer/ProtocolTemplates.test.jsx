@@ -25,6 +25,7 @@ vi.mock('../../contexts/ToastContext', () => ({
 vi.mock('../../api/axios', () => ({
   default: {
     get: vi.fn(),
+    post: vi.fn(),
     delete: vi.fn(),
   },
   onNetworkError: vi.fn(() => vi.fn()),
@@ -62,6 +63,11 @@ const mockTemplates = [
   },
 ];
 
+// Build a backend-style pagination envelope for the list endpoint.
+const envelope = (data, total = data.length, page = 1, limit = 20) => ({
+  data: { data, total, page, limit },
+});
+
 const makeDraft = (overrides = {}) =>
   JSON.stringify({
     version: ROUTINE_DRAFT_VERSION,
@@ -83,9 +89,10 @@ describe('ProtocolTemplates', () => {
     mockNavigate.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockImplementation((url) => {
-      if (url === '/trainer/protocol-templates') return Promise.resolve({ data: mockTemplates });
+      if (url === '/trainer/protocol-templates') return Promise.resolve(envelope(mockTemplates));
       return Promise.resolve({ data: [] });
     });
+    api.post.mockReset();
     api.delete.mockReset();
     vi.mocked(cleanupDraftResources).mockClear();
     vi.mocked(cleanupDraftResources).mockResolvedValue({ successCount: 0, failureCount: 0, errors: [] });
@@ -143,55 +150,51 @@ describe('ProtocolTemplates', () => {
     });
   });
 
-  // ── Filter tabs with counters ──────────────────────────────────────────────
-  it('shows filter tabs with correct counts', async () => {
+  // ── Server-side type filter tabs ───────────────────────────────────────────
+  it('renders server-side type filter tabs (Todos + protocol types)', async () => {
     renderWithRouter(<ProtocolTemplates />);
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /todas/i })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: /prontas/i })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: /rascunho/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /todos/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /^força$/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /^cardio$/i })).toBeInTheDocument();
     });
-
-    // All count = 2, ready = 1 (scheduleTemplatesCount: 3), draft = 1 (scheduleTemplatesCount: 0)
-    const allTab = screen.getByRole('tab', { name: /todas/i });
-    const readyTab = screen.getByRole('tab', { name: /prontas/i });
-    const draftTab = screen.getByRole('tab', { name: /rascunho/i });
-
-    expect(within(allTab).getByText('2')).toBeInTheDocument();
-    expect(within(readyTab).getByText('1')).toBeInTheDocument();
-    expect(within(draftTab).getByText('1')).toBeInTheDocument();
   });
 
-  it('filters to ready templates when clicking Prontas tab', async () => {
+  it('sends the lowercase type value and resets page on filter tab click', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ProtocolTemplates />);
 
+    await waitFor(() => screen.getByText('Modelo Força'));
+
+    await user.click(screen.getByRole('tab', { name: /^força$/i }));
+
     await waitFor(() => {
-      expect(screen.getByText('Modelo Força')).toBeInTheDocument();
+      expect(api.get).toHaveBeenCalledWith(
+        '/trainer/protocol-templates',
+        expect.objectContaining({ params: expect.objectContaining({ type: 'strength', page: 1 }) }),
+      );
     });
-
-    await user.click(screen.getByRole('tab', { name: /prontas/i }));
-
-    expect(screen.getByText('Modelo Força')).toBeInTheDocument();
-    expect(screen.queryByText('Modelo Cardio')).not.toBeInTheDocument();
   });
 
-  it('filters to draft templates when clicking Rascunho tab', async () => {
+  it('sends the lowercase trainingLevel value when the level select changes', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ProtocolTemplates />);
 
+    await waitFor(() => screen.getByText('Modelo Força'));
+
+    await user.click(screen.getByRole('combobox', { name: /filtrar por nível/i }));
+    await user.click(screen.getByRole('option', { name: 'Iniciante' }));
+
     await waitFor(() => {
-      expect(screen.getByText('Modelo Cardio')).toBeInTheDocument();
+      expect(api.get).toHaveBeenCalledWith(
+        '/trainer/protocol-templates',
+        expect.objectContaining({ params: expect.objectContaining({ trainingLevel: 'beginner', page: 1 }) }),
+      );
     });
-
-    await user.click(screen.getByRole('tab', { name: /rascunho/i }));
-
-    expect(screen.getByText('Modelo Cardio')).toBeInTheDocument();
-    expect(screen.queryByText('Modelo Força')).not.toBeInTheDocument();
   });
 
   // ── Search ─────────────────────────────────────────────────────────────────
-  it('filters templates by search term', async () => {
+  it('sends params.q to the API after debounced search', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ProtocolTemplates />);
 
@@ -199,15 +202,24 @@ describe('ProtocolTemplates', () => {
       expect(screen.getByText('Modelo Força')).toBeInTheDocument();
     });
 
-    const searchInput = screen.getByRole('textbox', { name: /buscar rotina/i });
-    await user.type(searchInput, 'Força');
+    await user.type(screen.getByRole('textbox', { name: /buscar rotina/i }), 'Força');
 
-    expect(screen.getByText('Modelo Força')).toBeInTheDocument();
-    expect(screen.queryByText('Modelo Cardio')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith(
+        '/trainer/protocol-templates',
+        expect.objectContaining({ params: expect.objectContaining({ q: 'Força' }) }),
+      );
+    });
   });
 
-  it('shows no-results empty state when search yields nothing', async () => {
+  it('shows no-results empty state when the filtered page is empty', async () => {
     const user = userEvent.setup();
+    api.get.mockImplementation((url, config) => {
+      if (url !== '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+      // A search query returns an empty page; the unfiltered load returns templates.
+      const hasQuery = !!config?.params?.q;
+      return Promise.resolve(hasQuery ? envelope([], 0) : envelope(mockTemplates));
+    });
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => {
@@ -216,12 +228,22 @@ describe('ProtocolTemplates', () => {
 
     await user.type(screen.getByRole('textbox', { name: /buscar rotina/i }), 'xyznotfound');
 
-    expect(screen.getByText(/nenhuma rotina encontrada/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith(
+        '/trainer/protocol-templates',
+        expect.objectContaining({ params: expect.objectContaining({ q: 'xyznotfound' }) }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Modelo Força')).not.toBeInTheDocument();
+      expect(screen.getByText(/nenhuma rotina encontrada/i)).toBeInTheDocument();
+    });
   });
 
   // ── Empty state ────────────────────────────────────────────────────────────
   it('shows themed empty state when no templates exist', async () => {
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue(envelope([]));
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => {
@@ -244,7 +266,7 @@ describe('ProtocolTemplates', () => {
 
   it('navigates to /new from the empty state button', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue(envelope([]));
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => {
@@ -469,29 +491,7 @@ describe('ProtocolTemplates', () => {
     expect(localStorage.getItem(ROUTINE_DRAFT_KEY)).not.toBeNull();
   });
 
-  it('shows draft card in "Rascunho" filter', async () => {
-    const user = userEvent.setup();
-    localStorage.setItem(ROUTINE_DRAFT_KEY, makeDraft());
-    renderWithRouter(<ProtocolTemplates />);
-    await waitFor(() => {
-      expect(screen.getByText('Modelo Força')).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('tab', { name: /rascunho/i }));
-    expect(screen.getByText('EM ANDAMENTO')).toBeInTheDocument();
-  });
-
-  it('hides draft card in "Prontas" filter', async () => {
-    const user = userEvent.setup();
-    localStorage.setItem(ROUTINE_DRAFT_KEY, makeDraft());
-    renderWithRouter(<ProtocolTemplates />);
-    await waitFor(() => {
-      expect(screen.getByText('Modelo Força')).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('tab', { name: /prontas/i }));
-    expect(screen.queryByText('EM ANDAMENTO')).not.toBeInTheDocument();
-  });
-
-  it('shows draft card in "Todas" filter', async () => {
+  it('shows the draft card on the unfiltered first page', async () => {
     localStorage.setItem(ROUTINE_DRAFT_KEY, makeDraft());
     renderWithRouter(<ProtocolTemplates />);
     await waitFor(() => {
@@ -500,38 +500,23 @@ describe('ProtocolTemplates', () => {
     expect(screen.getByText('EM ANDAMENTO')).toBeInTheDocument();
   });
 
-  it('counts localStorage draft in "Todas" tab counter', async () => {
+  it('hides the draft card once a server-side filter is active', async () => {
+    const user = userEvent.setup();
     localStorage.setItem(ROUTINE_DRAFT_KEY, makeDraft());
     renderWithRouter(<ProtocolTemplates />);
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /todas/i })).toBeInTheDocument();
+      expect(screen.getByText('Modelo Força')).toBeInTheDocument();
     });
-    const allTab = screen.getByRole('tab', { name: /todas/i });
-    expect(within(allTab).getByText('3')).toBeInTheDocument();
-  });
-
-  it('counts localStorage draft in "Rascunho" tab counter', async () => {
-    localStorage.setItem(ROUTINE_DRAFT_KEY, makeDraft());
-    renderWithRouter(<ProtocolTemplates />);
+    // The draft row cannot be paginated/filtered server-side, so applying a
+    // type filter hides it.
+    await user.click(screen.getByRole('tab', { name: /^força$/i }));
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /rascunho/i })).toBeInTheDocument();
+      expect(screen.queryByText('EM ANDAMENTO')).not.toBeInTheDocument();
     });
-    const draftTab = screen.getByRole('tab', { name: /rascunho/i });
-    expect(within(draftTab).getByText('2')).toBeInTheDocument();
-  });
-
-  it('does not count localStorage draft in "Prontas" tab counter', async () => {
-    localStorage.setItem(ROUTINE_DRAFT_KEY, makeDraft());
-    renderWithRouter(<ProtocolTemplates />);
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /prontas/i })).toBeInTheDocument();
-    });
-    const readyTab = screen.getByRole('tab', { name: /prontas/i });
-    expect(within(readyTab).getByText('1')).toBeInTheDocument();
   });
 
   it('does not show empty state when only localStorage draft exists (no server templates)', async () => {
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue(envelope([]));
     localStorage.setItem(ROUTINE_DRAFT_KEY, makeDraft());
     renderWithRouter(<ProtocolTemplates />);
     await waitFor(() => {
@@ -541,7 +526,7 @@ describe('ProtocolTemplates', () => {
   });
 
   it('shows empty state when 0 server templates and no localStorage draft', async () => {
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue(envelope([]));
     renderWithRouter(<ProtocolTemplates />);
     await waitFor(() => {
       expect(screen.getByText(/comece pelo treino/i)).toBeInTheDocument();
@@ -676,5 +661,71 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /descartar/i }));
 
     expect(screen.getByText(/treinos e exercícios criados aqui também serão apagados/i)).toBeInTheDocument();
+  });
+
+  // ── Pagination + batch delete ──────────────────────────────────────────────
+  it('renders rows from the pagination envelope (res.data.data)', async () => {
+    renderWithRouter(<ProtocolTemplates />);
+    await waitFor(() => {
+      expect(screen.getByText('Modelo Força')).toBeInTheDocument();
+      expect(screen.getByText('Modelo Cardio')).toBeInTheDocument();
+    });
+  });
+
+  it('shows pagination controls and advances the page', async () => {
+    const user = userEvent.setup();
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/protocol-templates') return Promise.resolve(envelope(mockTemplates, 45));
+      return Promise.resolve({ data: [] });
+    });
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+
+    expect(screen.getByText('Página 1 de 3')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /anterior/i })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: /próxima/i }));
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith(
+        '/trainer/protocol-templates',
+        expect.objectContaining({ params: expect.objectContaining({ page: 2 }) }),
+      );
+    });
+  });
+
+  it('selects a row and batch-deletes the selection', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: { deletedCount: 1 } });
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+
+    await user.click(screen.getByRole('checkbox', { name: /selecionar modelo força/i }));
+
+    const batchButton = screen.getByRole('button', { name: /excluir selecionados/i });
+    expect(batchButton).toBeInTheDocument();
+
+    await user.click(batchButton);
+    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/protocol-templates/batch-delete', { ids: [1] });
+      expect(mockShowToast).toHaveBeenCalledWith('1 itens excluídos.', 'success');
+    });
+  });
+
+  it('select-all toggles every row checkbox on the current page', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<ProtocolTemplates />);
+
+    await waitFor(() => screen.getByText('Modelo Força'));
+
+    await user.click(screen.getByRole('button', { name: /selecionar todos/i }));
+
+    expect(screen.getByRole('checkbox', { name: /selecionar modelo força/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /selecionar modelo cardio/i })).toBeChecked();
+    expect(screen.getByRole('button', { name: /limpar seleção/i })).toBeInTheDocument();
   });
 });

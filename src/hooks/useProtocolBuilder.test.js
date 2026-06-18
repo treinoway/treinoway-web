@@ -96,10 +96,15 @@ const PROTOCOL_TEMPLATE = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Backend-style pagination envelope for list endpoints.
+const envelope = (data, total = data.length, page = 1, limit = 100) => ({
+  data: { data, total, page, limit },
+});
+
 const makeGetHandler = (studentId) => (url) => {
-  if (url === '/trainer/training-templates') return Promise.resolve({ data: [TRAINING_TEMPLATE, TRAINING_TEMPLATE_FULL] });
-  if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [EXERCISE_TEMPLATE, EXERCISE_TEMPLATE_DURATION, EXERCISE_TEMPLATE_FULL] });
-  if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [PROTOCOL_TEMPLATE] });
+  if (url === '/trainer/training-templates') return Promise.resolve(envelope([TRAINING_TEMPLATE, TRAINING_TEMPLATE_FULL]));
+  if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([EXERCISE_TEMPLATE, EXERCISE_TEMPLATE_DURATION, EXERCISE_TEMPLATE_FULL]));
+  if (url === '/trainer/protocol-templates') return Promise.resolve(envelope([PROTOCOL_TEMPLATE]));
   if (url === '/trainer/students' && studentId) return Promise.resolve({ data: [STUDENT] });
   if (url === `/trainer/protocol-templates/${PROTOCOL_TEMPLATE.id}`) return Promise.resolve({ data: PROTOCOL_TEMPLATE });
   return Promise.resolve({ data: [] });
@@ -882,9 +887,9 @@ const makeEditModeGetHandler = () => (url) => {
     });
   if (url === `/trainer/trainings/${EDIT_TRAINING.id}/exercises`)
     return Promise.resolve({ data: [] });
-  if (url === '/trainer/training-templates') return Promise.resolve({ data: [] });
-  if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
-  if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+  if (url === '/trainer/training-templates') return Promise.resolve(envelope([]));
+  if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([]));
+  if (url === '/trainer/protocol-templates') return Promise.resolve(envelope([]));
   return Promise.resolve({ data: [] });
 };
 
@@ -981,9 +986,9 @@ describe('useProtocolBuilder — edit mode: importTrainingsFromLibrary', () => {
         },
       });
     if (url === '/trainer/training-templates')
-      return Promise.resolve({ data: [EDIT_TRAINING_TEMPLATE] });
-    if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
-    if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+      return Promise.resolve(envelope([EDIT_TRAINING_TEMPLATE]));
+    if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([]));
+    if (url === '/trainer/protocol-templates') return Promise.resolve(envelope([]));
     return Promise.resolve({ data: [] });
   };
 
@@ -1168,9 +1173,9 @@ describe('useProtocolBuilder — reorderExercises', () => {
       });
     if (url === `/trainer/trainings/${EDIT_TRAINING.id}/exercises`)
       return Promise.resolve({ data: REORDER_EXERCISES });
-    if (url === '/trainer/training-templates') return Promise.resolve({ data: [] });
-    if (url === '/trainer/exercise-templates') return Promise.resolve({ data: [] });
-    if (url === '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+    if (url === '/trainer/training-templates') return Promise.resolve(envelope([]));
+    if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([]));
+    if (url === '/trainer/protocol-templates') return Promise.resolve(envelope([]));
     return Promise.resolve({ data: [] });
   };
 

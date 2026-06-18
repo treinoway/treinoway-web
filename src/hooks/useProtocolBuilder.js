@@ -155,18 +155,22 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
       try {
         if (isEditMode) {
           // Edit mode: load protocol with trainings + exercises in parallel with library data
+          // Picker source lists — request limit=100; library pagination UI is
+          // out of scope for the picker. If a trainer exceeds 100 templates the
+          // picker truncates; acceptable for now (search box exists on the
+          // dedicated library pages).
           const [protocolRes, templatesRes, exTemplatesRes, protocolTemplatesRes] =
             await Promise.all([
               api.get(`/trainer/protocols/${protocolId}`),
-              api.get('/trainer/training-templates'),
-              api.get('/trainer/exercise-templates'),
-              api.get('/trainer/protocol-templates'),
+              api.get('/trainer/training-templates', { params: { limit: 100 } }),
+              api.get('/trainer/exercise-templates', { params: { limit: 100 } }),
+              api.get('/trainer/protocol-templates', { params: { limit: 100 } }),
             ]);
 
           const protocol = protocolRes.data;
-          setTrainingTemplates(templatesRes.data || []);
-          setExerciseTemplates(exTemplatesRes.data || []);
-          setProtocolTemplates(protocolTemplatesRes.data || []);
+          setTrainingTemplates(templatesRes.data?.data || []);
+          setExerciseTemplates(exTemplatesRes.data?.data || []);
+          setProtocolTemplates(protocolTemplatesRes.data?.data || []);
 
           // Load exercises for each training in parallel
           const rawTrainings = protocol.trainings || [];
@@ -202,10 +206,14 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           }
         } else {
           // Create mode: load library data + optionally find the student
+          // Picker source lists — request limit=100; library pagination UI is
+          // out of scope for the picker. If a trainer exceeds 100 templates the
+          // picker truncates; acceptable for now (search box exists on the
+          // dedicated library pages).
           const requests = [
-            api.get('/trainer/training-templates'),
-            api.get('/trainer/exercise-templates'),
-            api.get('/trainer/protocol-templates'),
+            api.get('/trainer/training-templates', { params: { limit: 100 } }),
+            api.get('/trainer/exercise-templates', { params: { limit: 100 } }),
+            api.get('/trainer/protocol-templates', { params: { limit: 100 } }),
           ];
 
           if (studentId) {
@@ -213,9 +221,9 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           }
 
           const results = await Promise.all(requests);
-          setTrainingTemplates(results[0].data || []);
-          setExerciseTemplates(results[1].data || []);
-          setProtocolTemplates(results[2].data || []);
+          setTrainingTemplates(results[0].data?.data || []);
+          setExerciseTemplates(results[1].data?.data || []);
+          setProtocolTemplates(results[2].data?.data || []);
 
           if (studentId && results[3]) {
             const students = results[3].data || [];

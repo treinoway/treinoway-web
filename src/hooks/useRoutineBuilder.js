@@ -93,12 +93,16 @@ const useRoutineBuilder = (routineId) => {
 
       const fetchSupportingData = async () => {
         try {
+          // Picker source lists — request limit=100; library pagination UI is out
+          // of scope for the picker. If a trainer exceeds 100 templates the picker
+          // truncates; acceptable for now (search box exists on the dedicated
+          // library pages).
           const [trainingRes, exerciseRes] = await Promise.all([
-            api.get('/trainer/training-templates'),
-            api.get('/trainer/exercise-templates'),
+            api.get('/trainer/training-templates', { params: { limit: 100 } }),
+            api.get('/trainer/exercise-templates', { params: { limit: 100 } }),
           ]);
-          setTrainingTemplates(trainingRes.data || []);
-          setExerciseTemplates(exerciseRes.data || []);
+          setTrainingTemplates(trainingRes.data?.data || []);
+          setExerciseTemplates(exerciseRes.data?.data || []);
         } catch (err) {
           setError(err.userMessage || err.message || 'Erro ao carregar dados.');
         }
@@ -112,14 +116,18 @@ const useRoutineBuilder = (routineId) => {
       setLoading(true);
       setError(null);
       try {
+        // Picker source lists — request limit=100; library pagination UI is out
+        // of scope for the picker. If a trainer exceeds 100 templates the picker
+        // truncates; acceptable for now (search box exists on the dedicated
+        // library pages).
         const [routineRes, trainingRes, exerciseRes] = await Promise.all([
           api.get(`/trainer/protocol-templates/${routineId}`),
-          api.get('/trainer/training-templates'),
-          api.get('/trainer/exercise-templates'),
+          api.get('/trainer/training-templates', { params: { limit: 100 } }),
+          api.get('/trainer/exercise-templates', { params: { limit: 100 } }),
         ]);
         setData(normalizeRoutine(routineRes.data));
-        setTrainingTemplates(trainingRes.data || []);
-        setExerciseTemplates(exerciseRes.data || []);
+        setTrainingTemplates(trainingRes.data?.data || []);
+        setExerciseTemplates(exerciseRes.data?.data || []);
       } catch (err) {
         setError(err.userMessage || err.message || 'Erro ao carregar rotina.');
       } finally {
