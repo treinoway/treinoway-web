@@ -11,6 +11,7 @@ import Layout from './components/Layout';
 // Public pages
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 // Protected pages
 import Dashboard from './pages/Dashboard';
@@ -89,6 +90,7 @@ function App() {
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
           {/* Protected routes */}
           <Route
