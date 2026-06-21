@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ROUTINE_DRAFT_KEY, ROUTINE_DRAFT_VERSION } from '../utils/routineDraft';
 
+/** Builds a structural signature from the training-id sets. */
+const structuralSignature = (trainingIds, createdIds) =>
+  trainingIds.join(',') + '|' + createdIds.join(',');
+
 const DRAFT_KEY = ROUTINE_DRAFT_KEY;
 const DRAFT_VERSION = ROUTINE_DRAFT_VERSION;
 const DEBOUNCE_MS = 1500;
@@ -38,8 +42,10 @@ const useRoutineDraft = ({
   const [lastSaved, setLastSaved] = useState(null);
   // Tracks whether the one-time restore has run (or been skipped).
   const hasRestoredRef = useRef(false);
-  // Always points to the latest computed payload for flush-on-unmount.
+  // Always points to the latest computed payload for flush-on-unmount / beforeunload.
   const latestPayloadRef = useRef(null);
+  // Remembers the structural signature of the last localStorage write.
+  const lastSavedSignatureRef = useRef(null);
   // Tick counter to force label re-render every 30s.
   const [, setTick] = useState(0);
 
@@ -139,26 +145,45 @@ const useRoutineDraft = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, metaKey, trainings, overridesKey, createdKey, junctionsKey]);
 
-  // ── Autosave with debounce (only after restore has completed) ────────────────
+  // ── Autosave: immediate on structural changes, debounced for name/meta ────────
 
   useEffect(() => {
     if (!enabled || !hasRestoredRef.current) return;
 
-    const timer = setTimeout(() => {
-      const payload = latestPayloadRef.current;
-      if (!payload) return;
+    const payload = latestPayloadRef.current;
+    if (!payload) return;
+
+    const currentSignature = structuralSignature(
+      payload.trainingIds,
+      payload.createdTrainingIds
+    );
+    const isStructuralChange = currentSignature !== lastSavedSignatureRef.current;
+
+    const persist = () => {
+      const p = latestPayloadRef.current;
+      if (!p) return;
       const savedAt = new Date().toISOString();
       try {
         localStorage.setItem(
           DRAFT_KEY,
-          JSON.stringify({ version: DRAFT_VERSION, savedAt, data: payload })
+          JSON.stringify({ version: DRAFT_VERSION, savedAt, data: p })
+        );
+        lastSavedSignatureRef.current = structuralSignature(
+          p.trainingIds,
+          p.createdTrainingIds
         );
         setLastSaved(savedAt);
       } catch {
         // Storage quota exceeded or private browsing — fail silently.
       }
-    }, DEBOUNCE_MS);
+    };
 
+    if (isStructuralChange) {
+      persist();
+      return;
+    }
+
+    const timer = setTimeout(persist, DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [enabled, name, metaKey, trainings, overridesKey, createdKey, junctionsKey]);
 
@@ -190,6 +215,39 @@ const useRoutineDraft = ({
         // Ignore.
       }
     };
+  }, [enabled]);
+
+  // ── Synchronous flush on hard browser close (beforeunload) ───────────────────
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const handleBeforeUnload = () => {
+      if (!hasRestoredRef.current) return;
+      const payload = latestPayloadRef.current;
+      if (!payload) return;
+
+      const hasName = !!payload.name?.trim();
+      const hasTrainings = payload.trainingIds.length > 0;
+      const hasMeta =
+        payload.meta &&
+        Object.values(payload.meta).some((v) => v !== null && v !== '' && v !== undefined);
+
+      if (!hasName && !hasTrainings && !hasMeta) return;
+
+      try {
+        const savedAt = new Date().toISOString();
+        localStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({ version: DRAFT_VERSION, savedAt, data: payload })
+        );
+      } catch {
+        // Ignore — private browsing or quota exhausted.
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [enabled]);
 
   // ── Periodic label refresh (every 30s while a saved timestamp exists) ────────

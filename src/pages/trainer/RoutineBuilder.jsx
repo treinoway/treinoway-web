@@ -40,6 +40,7 @@ import { useToast } from '../../contexts/ToastContext';
 import useRoutineBuilder from '../../hooks/useRoutineBuilder';
 import useProtocolBuilder from '../../hooks/useProtocolBuilder';
 import useRoutineDraft from '../../hooks/useRoutineDraft';
+import useUnsavedChangesWarning from '../../hooks/useUnsavedChangesWarning';
 import useBisetCreate from '../../hooks/useBisetCreate';
 import useExerciseReorder from '../../hooks/useExerciseReorder';
 import formatRelativeTime from '../../utils/relativeTime';
@@ -2799,8 +2800,13 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
   const [summarySheetOpen, setSummarySheetOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const sentinelRef = useRef(null);
+  // Tracks whether the trainer has made any mutation in template-edit mode.
+  // Starts false so the guard does not fire while the initial data is loading
+  // into state — it only activates after the first explicit change.
+  const touchedRef = useRef(false);
 
   const isProtocol = mode === 'protocol';
+  const isTemplateEdit = !isProtocol && !!routineId;
 
   // Sync title from API when edit-mode data first arrives.
   const loadedName = routine.data?.name;
@@ -2888,6 +2894,33 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
     onRestore: handleRestore,
   });
 
+  // ── Unsaved-changes guard ─────────────────────────────────────────────────
+  //
+  // Fires the native browser beforeunload prompt when the trainer would lose
+  // in-memory work by closing or reloading the window.
+  //
+  // Protocol EDIT  → eager mutations, always persisted → no guard.
+  // Protocol VIEW  → read-only → no guard.
+  // Protocol CREATE → dirty when name, trainings, or startDate are non-empty.
+  // Template CREATE → dirty when name, trainings, or meta fields are non-empty
+  //                   (mirrors the draft flush-on-unmount guard in useRoutineDraft).
+  // Template EDIT  → dirty only after the trainer makes an explicit mutation,
+  //                   tracked via touchedRef (avoids false-positive on initial load).
+
+  const hasMeta = Object.values(draftMeta).some(
+    (v) => v !== null && v !== '' && v !== undefined
+  );
+
+  const isDirty = (() => {
+    if (readOnly || editProtocolId) return false;
+    if (isTemplateEdit) return touchedRef.current;
+    if (isProtocol) return hasName || hasTrainings || !!(routine.data?.startDate);
+    // Template CREATE
+    return hasName || hasTrainings || hasMeta;
+  })();
+
+  useUnsavedChangesWarning(isDirty);
+
   const saveStatusLabel = (() => {
     if (editProtocolId) return 'Editando rotina do aluno';
     if (isProtocol) return 'Rotina do aluno · Pronto para salvar';
@@ -2939,11 +2972,13 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
 
   const handleTitleBlur = useCallback(() => {
     setIsTitleEditing(false);
+    touchedRef.current = true;
     routine.updateMeta({ name: titleName });
   }, [routine, titleName]);
 
   const handleCreateTraining = useCallback(
     async (payload) => {
+      touchedRef.current = true;
       const created = await routine.createTraining(payload);
       if (created?.id) setExpandedId(created.id);
       return created;
@@ -2953,6 +2988,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
 
   const handleImportTrainings = useCallback(
     async (ids) => {
+      touchedRef.current = true;
       const imported = await routine.importTrainingsFromLibrary(ids);
       return imported;
     },
@@ -3020,15 +3056,39 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
 
   const handleUpdateTraining = useCallback(
     async (id, payload) => {
+      touchedRef.current = true;
       await routine.updateTraining(id, payload);
     },
     [routine]
   );
 
   const handleImportTemplate = useCallback((templateId) => {
+    touchedRef.current = true;
     setImportTemplateSheetOpen(false);
     routine.loadFromTemplate(templateId);
   }, [routine]);
+
+  const handleTitleChange = useCallback((value) => {
+    touchedRef.current = true;
+    setTitleName(value);
+  }, []);
+
+  const handleUpdateMeta = useCallback((patch) => {
+    touchedRef.current = true;
+    routine.updateMeta(patch);
+  }, [routine]);
+
+  const handleDeleteTraining = useCallback((trainingId) => {
+    touchedRef.current = true;
+    routine.deleteTraining(trainingId);
+  }, [routine]);
+
+  // Sets the touched flag then forwards to a routine mutation. Used for inline
+  // exercise-level callbacks where extracting a full named handler would add
+  // more indirection than clarity.
+  const markTouched = useCallback(() => {
+    touchedRef.current = true;
+  }, []);
 
   // ── Summary sheet ────────────────────────────────────────────────────────
 
@@ -3108,7 +3168,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         scrolled={isScrolled}
         onTitleClick={readOnly ? null : handleTitleClick}
         onBlur={readOnly ? null : handleTitleBlur}
-        onChange={readOnly ? null : setTitleName}
+        onChange={readOnly ? null : handleTitleChange}
         onBack={handleBack}
         onCancel={readOnly ? null : handleCancel}
         onSave={readOnly ? null : handleSave}
@@ -3123,7 +3183,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         routineData={routine.data}
         mode={mode}
         readOnly={readOnly}
-        onUpdateMeta={readOnly ? null : routine.updateMeta}
+        onUpdateMeta={readOnly ? null : handleUpdateMeta}
       />
 
       <BuilderStatsRow trainings={trainings} />
@@ -3192,18 +3252,19 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
               mode={mode}
               onToggleExpand={() => handleToggleExpand(t.id)}
               onEditTraining={readOnly ? null : handleOpenEditTraining}
-              onChangeWeekDay={readOnly ? null : (weekDay) => routine.updateTrainingWeekDay(t.id, weekDay)}
-              onDeleteTraining={readOnly ? null : () => routine.deleteTraining(t.id)}
-              onAddExercise={readOnly ? null : (payload) => routine.addExercise(t.id, payload)}
-              onEditExercise={readOnly ? null : (exId, payload) => routine.updateExercise(t.id, exId, payload)}
-              onImportFromLibrary={readOnly ? null : (ids) =>
-                Promise.all(ids.map((tmplId) => routine.addExerciseFromTemplate(t.id, tmplId)))
-              }
-              onDeleteExercise={readOnly ? null : (exId) => routine.deleteExercise(t.id, exId)}
+              onChangeWeekDay={readOnly ? null : (weekDay) => { markTouched(); routine.updateTrainingWeekDay(t.id, weekDay); }}
+              onDeleteTraining={readOnly ? null : () => handleDeleteTraining(t.id)}
+              onAddExercise={readOnly ? null : (payload) => { markTouched(); return routine.addExercise(t.id, payload); }}
+              onEditExercise={readOnly ? null : (exId, payload) => { markTouched(); return routine.updateExercise(t.id, exId, payload); }}
+              onImportFromLibrary={readOnly ? null : (ids) => {
+                markTouched();
+                return Promise.all(ids.map((tmplId) => routine.addExerciseFromTemplate(t.id, tmplId)));
+              }}
+              onDeleteExercise={readOnly ? null : (exId) => { markTouched(); return routine.deleteExercise(t.id, exId); }}
               onReorder={
                 readOnly
                   ? null
-                  : (ids, reordered) => routine.reorderExercises(t.id, ids, reordered)
+                  : (ids, reordered) => { markTouched(); return routine.reorderExercises(t.id, ids, reordered); }
               }
               onRefetchTraining={
                 readOnly || !routine.refetchTrainingExercises

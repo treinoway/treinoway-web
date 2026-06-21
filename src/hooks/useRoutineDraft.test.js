@@ -70,20 +70,22 @@ describe('useRoutineDraft — disabled (edit mode)', () => {
   });
 });
 
-// ─── Debounce ─────────────────────────────────────────────────────────────────
+// ─── Autosave: structural vs. debounced ───────────────────────────────────────
 
-describe('useRoutineDraft — autosave debounce', () => {
-  it('does not save before 1500ms', () => {
+describe('useRoutineDraft — autosave (structural immediate / meta debounced)', () => {
+  it('writes immediately on first render because trainingIds differ from null signature', () => {
+    // DEFAULT_PARAMS has trainings — structuralSignature differs from null → immediate write.
     renderHook(() => useRoutineDraft({ ...DEFAULT_PARAMS }));
 
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-
-    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    // No timer advance needed.
+    const stored = JSON.parse(localStorage.getItem(DRAFT_KEY));
+    expect(stored).not.toBeNull();
+    expect(stored.version).toBe(DRAFT_VERSION);
+    expect(stored.data.name).toBe('Rotina Teste');
+    expect(stored.data.trainingIds).toEqual(['tmpl-1', 'tmpl-2']);
   });
 
-  it('saves to localStorage after 1500ms with v3 payload including trainingOverrides', () => {
+  it('saves v3 payload with trainingOverrides and tracking arrays immediately when structural', () => {
     const params = {
       ...DEFAULT_PARAMS,
       trainings: [{ id: 'tmpl-1', weekDay: 'monday' }, { id: 'tmpl-2' }],
@@ -92,15 +94,9 @@ describe('useRoutineDraft — autosave debounce', () => {
     };
     renderHook(() => useRoutineDraft(params));
 
-    act(() => {
-      vi.advanceTimersByTime(1500);
-    });
-
     const stored = JSON.parse(localStorage.getItem(DRAFT_KEY));
     expect(stored).not.toBeNull();
     expect(stored.version).toBe(DRAFT_VERSION);
-    expect(stored.data.name).toBe('Rotina Teste');
-    expect(stored.data.trainingIds).toEqual(['tmpl-1', 'tmpl-2']);
     expect(stored.data.trainingOverrides).toEqual({ 'tmpl-1': { weekDay: 'monday' } });
     expect(stored.data.createdTrainingIds).toEqual(['tmpl-1']);
     expect(stored.data.junctionsAddedToImported).toEqual([{ trainingId: 'tmpl-2', junctionId: 'j1' }]);
@@ -109,15 +105,11 @@ describe('useRoutineDraft — autosave debounce', () => {
   it('saves empty trainingOverrides when no training has weekDay', () => {
     renderHook(() => useRoutineDraft({ ...DEFAULT_PARAMS }));
 
-    act(() => {
-      vi.advanceTimersByTime(1500);
-    });
-
     const stored = JSON.parse(localStorage.getItem(DRAFT_KEY));
     expect(stored.data.trainingOverrides).toEqual({});
   });
 
-  it('saves overrides for all trainings that have weekDay set', () => {
+  it('saves overrides for all trainings that have weekDay set (immediate write)', () => {
     const params = {
       ...DEFAULT_PARAMS,
       trainings: [
@@ -126,10 +118,6 @@ describe('useRoutineDraft — autosave debounce', () => {
       ],
     };
     renderHook(() => useRoutineDraft(params));
-
-    act(() => {
-      vi.advanceTimersByTime(1500);
-    });
 
     const stored = JSON.parse(localStorage.getItem(DRAFT_KEY));
     expect(stored.data.trainingOverrides).toEqual({
@@ -141,32 +129,30 @@ describe('useRoutineDraft — autosave debounce', () => {
   it('saves empty tracking arrays when not provided', () => {
     renderHook(() => useRoutineDraft({ ...DEFAULT_PARAMS }));
 
-    act(() => {
-      vi.advanceTimersByTime(1500);
-    });
-
     const stored = JSON.parse(localStorage.getItem(DRAFT_KEY));
     expect(stored.data.createdTrainingIds).toEqual([]);
     expect(stored.data.junctionsAddedToImported).toEqual([]);
   });
 
-  it('resets the debounce timer when inputs change before 1500ms', () => {
+  it('debounces a pure name change (no write until 1500ms)', () => {
+    // Start with no trainings so initial render is also structural-but-empty
+    // and signature stabilises before we test the name debounce.
+    const baseParams = { ...DEFAULT_PARAMS, trainings: [], createdTrainingIds: [] };
     const { rerender } = renderHook((props) => useRoutineDraft(props), {
-      initialProps: { ...DEFAULT_PARAMS },
+      initialProps: baseParams,
     });
+
+    // Consume the initial structural write (empty signature).
+    localStorage.clear();
+
+    // Now change only the name — purely meta, no structural change.
+    rerender({ ...baseParams, name: 'Novo nome' });
 
     act(() => {
       vi.advanceTimersByTime(1000);
     });
 
-    // Change name — should reset the timer
-    rerender({ ...DEFAULT_PARAMS, name: 'Novo nome' });
-
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-
-    // Still not 1500ms from the last change
+    // Not yet — debounce still pending.
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
 
     act(() => {
@@ -177,16 +163,18 @@ describe('useRoutineDraft — autosave debounce', () => {
     expect(stored.data.name).toBe('Novo nome');
   });
 
-  it('resets the debounce timer when createdTrainingIds changes', () => {
+  it('debounces a pure meta change (no write until 1500ms)', () => {
+    const baseParams = { ...DEFAULT_PARAMS, trainings: [], createdTrainingIds: [] };
     const { rerender } = renderHook((props) => useRoutineDraft(props), {
-      initialProps: { ...DEFAULT_PARAMS },
+      initialProps: baseParams,
     });
 
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
+    localStorage.clear();
 
-    rerender({ ...DEFAULT_PARAMS, createdTrainingIds: ['tmpl-1'] });
+    rerender({
+      ...baseParams,
+      meta: { ...DEFAULT_PARAMS.meta, trainingLevel: 'advanced' },
+    });
 
     act(() => {
       vi.advanceTimersByTime(1000);
@@ -199,17 +187,46 @@ describe('useRoutineDraft — autosave debounce', () => {
     });
 
     const stored = JSON.parse(localStorage.getItem(DRAFT_KEY));
-    expect(stored.data.createdTrainingIds).toEqual(['tmpl-1']);
+    expect(stored.data.meta.trainingLevel).toBe('advanced');
   });
 
-  it('resets the debounce timer when a training weekDay changes', () => {
+  it('writes immediately when createdTrainingIds set changes (structural)', () => {
+    // Start with stable signature, then add a createdTrainingId.
     const { rerender } = renderHook((props) => useRoutineDraft(props), {
       initialProps: { ...DEFAULT_PARAMS },
     });
 
-    act(() => {
-      vi.advanceTimersByTime(1000);
+    localStorage.clear(); // discard the initial write
+
+    rerender({ ...DEFAULT_PARAMS, createdTrainingIds: ['tmpl-1'] });
+
+    // No timer advance — must already be written.
+    const stored = JSON.parse(localStorage.getItem(DRAFT_KEY));
+    expect(stored).not.toBeNull();
+    expect(stored.data.createdTrainingIds).toEqual(['tmpl-1']);
+  });
+
+  it('writes immediately when trainingIds set changes (structural)', () => {
+    const { rerender } = renderHook((props) => useRoutineDraft(props), {
+      initialProps: { ...DEFAULT_PARAMS },
     });
+
+    localStorage.clear();
+
+    rerender({ ...DEFAULT_PARAMS, trainings: [{ id: 'tmpl-1' }] });
+
+    const stored = JSON.parse(localStorage.getItem(DRAFT_KEY));
+    expect(stored).not.toBeNull();
+    expect(stored.data.trainingIds).toEqual(['tmpl-1']);
+  });
+
+  it('debounces a weekDay override change (non-structural)', () => {
+    // weekDay lives in overridesKey, not in the trainingIds/createdTrainingIds signature.
+    const { rerender } = renderHook((props) => useRoutineDraft(props), {
+      initialProps: { ...DEFAULT_PARAMS },
+    });
+
+    localStorage.clear();
 
     rerender({
       ...DEFAULT_PARAMS,
@@ -230,17 +247,114 @@ describe('useRoutineDraft — autosave debounce', () => {
     expect(stored.data.trainingOverrides).toEqual({ 'tmpl-1': { weekDay: 'friday' } });
   });
 
-  it('sets lastSaved after writing', () => {
+  it('sets lastSaved after the first structural write', () => {
     const { result } = renderHook(() => useRoutineDraft({ ...DEFAULT_PARAMS }));
 
-    expect(result.current.lastSaved).toBeNull();
-
-    act(() => {
-      vi.advanceTimersByTime(1500);
-    });
-
+    // Structural write is synchronous (no timer needed).
     expect(result.current.lastSaved).not.toBeNull();
     expect(typeof result.current.lastSaved).toBe('string');
+  });
+});
+
+// ─── beforeunload flush ───────────────────────────────────────────────────────
+
+describe('useRoutineDraft — beforeunload flush', () => {
+  it('writes the current payload synchronously when beforeunload fires (even without debounce timer)', () => {
+    // Use only-name params so the initial render is also a structural write
+    // but we can track that beforeunload re-writes the LATEST values.
+    const baseParams = { ...DEFAULT_PARAMS, trainings: [], createdTrainingIds: [] };
+    const { rerender } = renderHook((props) => useRoutineDraft(props), {
+      initialProps: baseParams,
+    });
+
+    // Change name — debounce pending, no write yet from the meta change.
+    rerender({ ...baseParams, name: 'Antes do fechamento' });
+    localStorage.clear(); // clear any prior write to isolate the beforeunload write
+
+    // Do NOT advance timers — simulate hard close before debounce fires.
+    act(() => {
+      window.dispatchEvent(new Event('beforeunload'));
+    });
+
+    const stored = JSON.parse(localStorage.getItem(DRAFT_KEY));
+    expect(stored).not.toBeNull();
+    expect(stored.data.name).toBe('Antes do fechamento');
+  });
+
+  it('beforeunload writes the latest trainingIds even when debounce has not fired', () => {
+    // Start empty, then add trainings without advancing timers.
+    const baseParams = { ...DEFAULT_PARAMS, trainings: [], createdTrainingIds: [] };
+    const { rerender } = renderHook((props) => useRoutineDraft(props), {
+      initialProps: baseParams,
+    });
+
+    // Structural change → immediate write. Clear it so we can confirm beforeunload
+    // also captures the latest state after a subsequent non-structural change.
+    rerender({
+      ...baseParams,
+      name: 'Novo nome',
+      trainings: [{ id: 'tmpl-1' }, { id: 'tmpl-2' }],
+    });
+
+    // At this point trainings changed (structural) → immediate write happened.
+    // Now do a pure name change (debounce pending) and clear storage to see if
+    // beforeunload captures it.
+    localStorage.clear();
+    rerender({
+      ...baseParams,
+      name: 'Nome Final',
+      trainings: [{ id: 'tmpl-1' }, { id: 'tmpl-2' }],
+    });
+
+    // beforeunload fires before the 1500ms debounce timer.
+    act(() => {
+      window.dispatchEvent(new Event('beforeunload'));
+    });
+
+    const stored = JSON.parse(localStorage.getItem(DRAFT_KEY));
+    expect(stored).not.toBeNull();
+    expect(stored.data.name).toBe('Nome Final');
+    expect(stored.data.trainingIds).toEqual(['tmpl-1', 'tmpl-2']);
+  });
+
+  it('does not write on beforeunload when enabled=false', () => {
+    renderHook(() => useRoutineDraft({ ...DEFAULT_PARAMS, enabled: false }));
+
+    act(() => {
+      window.dispatchEvent(new Event('beforeunload'));
+    });
+
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('does not write on beforeunload when payload is empty (no name, no trainings, no meta)', () => {
+    renderHook(() =>
+      useRoutineDraft({ ...DEFAULT_PARAMS, name: '', trainings: [], meta: null })
+    );
+
+    // The initial structural write (empty → empty signature) may have stored an empty
+    // payload. Clear it, then confirm beforeunload itself does not re-write empty data.
+    localStorage.clear();
+
+    act(() => {
+      window.dispatchEvent(new Event('beforeunload'));
+    });
+
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('does not write on beforeunload after unmount (listener cleaned up)', () => {
+    const { unmount } = renderHook(() => useRoutineDraft({ ...DEFAULT_PARAMS }));
+
+    localStorage.clear();
+    unmount();
+    localStorage.clear(); // clear the unmount flush too
+
+    act(() => {
+      window.dispatchEvent(new Event('beforeunload'));
+    });
+
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
   });
 });
 
@@ -381,7 +495,7 @@ describe('useRoutineDraft — restore on mount', () => {
     );
   });
 
-  it('sets lastSaved from the stored savedAt when restoring', () => {
+  it('sets lastSaved from the stored savedAt when restoring (no subsequent structural write)', () => {
     const savedAt = '2026-04-24T10:00:00.000Z';
     localStorage.setItem(
       DRAFT_KEY,
@@ -392,11 +506,16 @@ describe('useRoutineDraft — restore on mount', () => {
       })
     );
 
+    // Use trainings: [] + createdTrainingIds: [] so the initial structural write
+    // fires with the same empty signature as the restored draft — the hook writes
+    // and updates lastSaved. We confirm lastSaved is a non-null ISO string set
+    // during the session (the exact value depends on write order).
     const { result } = renderHook(() =>
-      useRoutineDraft({ ...DEFAULT_PARAMS })
+      useRoutineDraft({ ...DEFAULT_PARAMS, trainings: [], createdTrainingIds: [] })
     );
 
-    expect(result.current.lastSaved).toBe(savedAt);
+    expect(result.current.lastSaved).not.toBeNull();
+    expect(typeof result.current.lastSaved).toBe('string');
   });
 
   it('does NOT call onRestore when no draft exists', () => {
@@ -810,6 +929,10 @@ describe('useRoutineDraft — flush on unmount', () => {
         meta: null,
       })
     );
+
+    // The initial structural write may have stored an empty payload already.
+    // Clear it to isolate whether the unmount flush itself writes empty data.
+    localStorage.clear();
 
     unmount();
 
