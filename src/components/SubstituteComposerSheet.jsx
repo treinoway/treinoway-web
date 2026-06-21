@@ -1,12 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
-import { Check, Search, X } from 'lucide-react';
+import { Check, Loader, Search, X } from 'lucide-react';
 import api from '../api/axios';
 import { useToast } from '../contexts/ToastContext';
 import { t } from '../i18n';
 import { EXERCISE_TYPE_OPTIONS } from '../constants/exerciseTypes';
 import { formatExerciseMeta } from '../utils/exerciseMeta';
+import useExerciseTemplateSearch from '../hooks/useExerciseTemplateSearch';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -80,16 +81,25 @@ const buildPayloadFromTemplate = (template) => {
 
 // ─── LibraryPanel ─────────────────────────────────────────────────────────────
 
-const LibraryPanel = ({ exerciseTemplates, selectedIds, onToggle, search, onSearch }) => {
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return exerciseTemplates;
-    return exerciseTemplates.filter((tmpl) =>
-      (tmpl.name || '').toLowerCase().includes(q)
-    );
-  }, [exerciseTemplates, search]);
+/**
+ * Server-search edition — identical pattern to ExerciseComposer's LibraryPanel.
+ * Empty query → shows `initialTemplates` (cached first-100).
+ * Non-empty query → fires debounced GET /trainer/exercise-templates?q=…
+ * seenMap accumulates all templates ever shown for import resolution.
+ */
+const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
+  const { results, staleResults, searching, showSpinner, query, setQuery, seenMap } = useExerciseTemplateSearch(initialTemplates);
 
-  const emptyMessage = search
+  const hasQuery = query.trim().length > 0;
+
+  // While a fetch is in flight, keep stale results visible to prevent list flash.
+  const displayList = hasQuery
+    ? (searching ? (staleResults ?? results ?? []) : (results ?? []))
+    : initialTemplates;
+
+  const libraryCount = hasQuery ? seenMap.size : initialTemplates.length;
+
+  const emptyMessage = hasQuery
     ? t('substitute.libraryNoResults') || 'Nenhum exercício encontrado.'
     : t('substitute.libraryEmpty') || 'Biblioteca vazia.';
 
@@ -101,17 +111,22 @@ const LibraryPanel = ({ exerciseTemplates, selectedIds, onToggle, search, onSear
           className="library-search-input"
           type="text"
           placeholder="Buscar exercício na biblioteca…"
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           aria-label="Buscar exercício na biblioteca"
         />
+        {showSpinner && (
+          <Loader size={14} strokeWidth={2} aria-hidden="true" className="library-refetch-spinner" />
+        )}
       </div>
 
-      {filtered.length === 0 ? (
+      {showSpinner && displayList.length === 0 ? (
+        <div className="library-empty">Buscando…</div>
+      ) : displayList.length === 0 ? (
         <div className="library-empty">{emptyMessage}</div>
       ) : (
         <div className="library-list" role="list">
-          {filtered.map((tmpl) => {
+          {displayList.map((tmpl) => {
             const selected = selectedIds.includes(tmpl.id);
             const meta = formatExerciseMeta(tmpl);
             return (
@@ -120,7 +135,7 @@ const LibraryPanel = ({ exerciseTemplates, selectedIds, onToggle, search, onSear
                 type="button"
                 role="listitem"
                 className={`library-item${selected ? ' library-item--selected' : ''}`}
-                onClick={() => onToggle(tmpl.id)}
+                onClick={() => onToggle(tmpl.id, seenMap)}
                 aria-pressed={selected}
               >
                 <span className="library-item-check" aria-hidden="true">
@@ -148,18 +163,16 @@ const LibraryPanel = ({ exerciseTemplates, selectedIds, onToggle, search, onSear
           <span className="library-selection-count">{selectedIds.length}</span>
           {' '}selecionado{selectedIds.length !== 1 ? 's' : ''}
         </span>
-        <span>{exerciseTemplates.length} na biblioteca</span>
+        <span>{libraryCount} na biblioteca</span>
       </div>
     </div>
   );
 };
 
 LibraryPanel.propTypes = {
-  exerciseTemplates: PropTypes.arrayOf(PropTypes.object).isRequired,
+  initialTemplates: PropTypes.arrayOf(PropTypes.object).isRequired,
   selectedIds: PropTypes.arrayOf(PropTypes.string).isRequired,
   onToggle: PropTypes.func.isRequired,
-  search: PropTypes.string.isRequired,
-  onSearch: PropTypes.func.isRequired,
 };
 
 // ─── SubstituteComposerSheet ───────────────────────────────────────────────────
@@ -191,9 +204,11 @@ const SubstituteComposerSheet = ({
   const [saving, setSaving] = useState(false);
   const [nameError, setNameError] = useState('');
 
-  // Library tab state
-  const [librarySearch, setLibrarySearch] = useState('');
+  // Library tab state — search is internal to LibraryPanel (server-search hook)
   const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
+  // seenMap is forwarded from LibraryPanel.onToggle so import can resolve ids
+  // that are no longer visible in the current search results.
+  const [seenMapSnapshot, setSeenMapSnapshot] = useState(null);
 
   if (!open) return null;
 
@@ -230,7 +245,10 @@ const SubstituteComposerSheet = ({
 
   // ── Tab: Library ─────────────────────────────────────────────────────────────
 
-  const handleToggleTemplate = (id) => {
+  // seenMap is forwarded by LibraryPanel so we can resolve any selected id
+  // even if it is no longer visible in the current search result list.
+  const handleToggleTemplate = (id, currentSeenMap) => {
+    if (currentSeenMap) setSeenMapSnapshot(currentSeenMap);
     setSelectedTemplateIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
@@ -239,9 +257,15 @@ const SubstituteComposerSheet = ({
   const handleImportFromLibrary = async () => {
     if (selectedTemplateIds.length === 0) return;
 
-    const templates = exerciseTemplates.filter((tmpl) =>
-      selectedTemplateIds.includes(tmpl.id)
-    );
+    // Resolve from seenMap first (covers templates found via server search),
+    // fall back to the exerciseTemplates prop (initial cached list).
+    const resolveTemplate = (id) =>
+      (seenMapSnapshot && seenMapSnapshot.get(id)) ||
+      exerciseTemplates.find((tmpl) => tmpl.id === id);
+
+    const templates = selectedTemplateIds
+      .map(resolveTemplate)
+      .filter(Boolean);
 
     setSaving(true);
     try {
@@ -467,11 +491,9 @@ const SubstituteComposerSheet = ({
           {tab === 'library' && (
             <>
               <LibraryPanel
-                exerciseTemplates={exerciseTemplates}
+                initialTemplates={exerciseTemplates}
                 selectedIds={selectedTemplateIds}
                 onToggle={handleToggleTemplate}
-                search={librarySearch}
-                onSearch={setLibrarySearch}
               />
               <div className="btn-group">
                 <button

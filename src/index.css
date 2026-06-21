@@ -16558,6 +16558,26 @@ nav.onboarding-steps {
   font-weight: 700;
 }
 
+/* ── Library refetch indicator (inline; never replaces the list) ── */
+.library-refetch-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 12px;
+  font-family: var(--font-family-base);
+  color: var(--brand-steel);
+  padding: var(--spacing-xs) 0;
+}
+
+.library-refetch-spinner {
+  animation: library-refetch-spin 800ms linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes library-refetch-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Training empty hero (Estado D — no exercises yet) ── */
 .training-empty-hero {
   background: var(--md-surface);

@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   Check,
   Library,
+  Loader,
   Plus,
   Search,
 } from 'lucide-react';
+import useExerciseTemplateSearch from '../hooks/useExerciseTemplateSearch';
 import PrescriptionField from './PrescriptionField';
 import IntensityField from './IntensityField';
 import VideoField from './VideoField';
@@ -95,14 +97,34 @@ const snapshotToForm = (snapshot) => ({
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const LibraryPanel = ({ exerciseTemplates, selectedIds, onToggle, search, onSearch }) => {
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return exerciseTemplates;
-    return exerciseTemplates.filter((t) =>
-      (t.name || '').toLowerCase().includes(q)
-    );
-  }, [exerciseTemplates, search]);
+/**
+ * LibraryPanel — server-search edition.
+ *
+ * When the search box is empty it shows the `initialTemplates` (the cached
+ * first-100 list from useProtocolBuilder). When the user types, it fires a
+ * debounced GET /trainer/exercise-templates?q=… so the full library is
+ * reachable regardless of the 100-item initial cap.
+ *
+ * `seenMap` (from useExerciseTemplateSearch) accumulates every template ever
+ * shown, so `onToggle` / import can resolve selected ids even after the query
+ * changes.
+ */
+const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
+  const { results, staleResults, searching, showSpinner, query, setQuery, seenMap } = useExerciseTemplateSearch(initialTemplates);
+
+  const hasQuery = query.trim().length > 0;
+
+  // While a fetch is in flight, keep showing stale results so the list never
+  // blanks out mid-keystroke. Only fall back to empty once results arrive.
+  const displayList = hasQuery
+    ? (searching ? (staleResults ?? results ?? []) : (results ?? []))
+    : initialTemplates;
+
+  const emptyMessage = hasQuery ? 'Nenhum exercício encontrado.' : 'Biblioteca vazia.';
+
+  // Total count shown in the footer: use seenMap size when a query is active
+  // (it reflects all unique templates discovered so far), otherwise show initial count.
+  const libraryCount = hasQuery ? seenMap.size : initialTemplates.length;
 
   return (
     <div className="library-panel">
@@ -112,19 +134,22 @@ const LibraryPanel = ({ exerciseTemplates, selectedIds, onToggle, search, onSear
           className="library-search-input"
           type="text"
           placeholder="Buscar exercício na biblioteca…"
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           aria-label="Buscar exercício na biblioteca"
         />
+        {showSpinner && (
+          <Loader size={14} strokeWidth={2} aria-hidden="true" className="library-refetch-spinner" />
+        )}
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="library-empty">
-          {search ? 'Nenhum exercício encontrado.' : 'Biblioteca vazia.'}
-        </div>
+      {showSpinner && displayList.length === 0 ? (
+        <div className="library-empty">Buscando…</div>
+      ) : displayList.length === 0 ? (
+        <div className="library-empty">{emptyMessage}</div>
       ) : (
         <div className="library-list" role="list">
-          {filtered.map((tmpl) => {
+          {displayList.map((tmpl) => {
             const selected = selectedIds.includes(tmpl.id);
             const typeLabel = tmpl.type ? getExerciseTypeLabel(tmpl.type) : null;
             return (
@@ -133,7 +158,7 @@ const LibraryPanel = ({ exerciseTemplates, selectedIds, onToggle, search, onSear
                 type="button"
                 role="listitem"
                 className={`library-item${selected ? ' library-item--selected' : ''}`}
-                onClick={() => onToggle(tmpl.id)}
+                onClick={() => onToggle(tmpl.id, seenMap)}
                 aria-pressed={selected}
               >
                 <span className="library-item-check" aria-hidden="true">
@@ -158,18 +183,16 @@ const LibraryPanel = ({ exerciseTemplates, selectedIds, onToggle, search, onSear
           <span className="library-selection-count">{selectedIds.length}</span>
           {' '}selecionado{selectedIds.length !== 1 ? 's' : ''}
         </span>
-        <span>{exerciseTemplates.length} na biblioteca</span>
+        <span>{libraryCount} na biblioteca</span>
       </div>
     </div>
   );
 };
 
 LibraryPanel.propTypes = {
-  exerciseTemplates: PropTypes.arrayOf(PropTypes.object).isRequired,
+  initialTemplates: PropTypes.arrayOf(PropTypes.object).isRequired,
   selectedIds: PropTypes.arrayOf(PropTypes.string).isRequired,
   onToggle: PropTypes.func.isRequired,
-  search: PropTypes.string.isRequired,
-  onSearch: PropTypes.func.isRequired,
 };
 
 // ─── ExerciseComposer ─────────────────────────────────────────────────────────
@@ -198,7 +221,6 @@ const ExerciseComposer = ({
   );
   // Tracks whether the user has manually toggled carga (overrides type-derived default)
   const [loadManuallySet, setLoadManuallySet] = useState(false);
-  const [librarySearch, setLibrarySearch] = useState('');
   const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
   const [errors, setErrors] = useState({});
   const [durationError, setDurationError] = useState('');
@@ -286,6 +308,8 @@ const ExerciseComposer = ({
     onSubmitFromLibrary(selectedTemplateIds);
   };
 
+  // seenMap is passed from LibraryPanel so selection always resolves even when
+  // the query changes and the template is no longer in the visible list.
   const handleToggleTemplate = (id) => {
     setSelectedTemplateIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -545,11 +569,9 @@ const ExerciseComposer = ({
       {!isEditMode && tab === 'library' && (
         <>
           <LibraryPanel
-            exerciseTemplates={exerciseTemplates}
+            initialTemplates={exerciseTemplates}
             selectedIds={selectedTemplateIds}
             onToggle={handleToggleTemplate}
-            search={librarySearch}
-            onSearch={setLibrarySearch}
           />
           <div className="composer-actions">
             <button

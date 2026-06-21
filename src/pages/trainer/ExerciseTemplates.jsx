@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Dumbbell, Info, Layers } from 'lucide-react';
+import { Dumbbell, Info, Layers, Loader } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import useDelayedFlag from '../../hooks/useDelayedFlag';
 import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel } from '../../constants/exerciseTypes';
 import { getYoutubeVideoId } from '../../utils/youtube';
 import LibraryList, { LibraryListRow } from '../../components/LibraryList';
@@ -23,7 +24,6 @@ const ExerciseTemplates = () => {
   const { showToast } = useToast();
   const [templates, setTemplates] = useState([]);
   const [total, setTotal] = useState(0);
-  const [templatesLoading, setTemplatesLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
@@ -36,6 +36,15 @@ const ExerciseTemplates = () => {
   const [selectedIds, setSelectedIds] = useState([]);
 
   const debounceRef = useRef(null);
+  // True only until the very first fetch resolves. After that, refetches (search,
+  // filter, pagination) use an inline loading indicator so the filter bar / list
+  // stay mounted and the search input never loses focus.
+  const hasLoadedOnceRef = useRef(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refetching, setRefetching] = useState(false);
+  // Delayed flag: only show the refetch indicator after 250 ms so fast fetches
+  // never flash a spinner on screen.
+  const showRefetchIndicator = useDelayedFlag(refetching, 250);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -47,7 +56,11 @@ const ExerciseTemplates = () => {
   }, [searchInput]);
 
   const fetchTemplates = useCallback(async () => {
-    setTemplatesLoading(true);
+    if (!hasLoadedOnceRef.current) {
+      setInitialLoading(true);
+    } else {
+      setRefetching(true);
+    }
     try {
       const params = { page, limit: PAGE_LIMIT };
       if (q) params.q = q;
@@ -55,10 +68,12 @@ const ExerciseTemplates = () => {
       const response = await api.get('/trainer/exercise-templates', { params });
       setTemplates(response.data.data);
       setTotal(response.data.total);
+      hasLoadedOnceRef.current = true;
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
     } finally {
-      setTemplatesLoading(false);
+      setInitialLoading(false);
+      setRefetching(false);
     }
   }, [page, q, type, showToast]);
 
@@ -138,9 +153,12 @@ const ExerciseTemplates = () => {
   };
 
   const hasActiveFilters = !!q || !!type;
-  const isEmptyLibrary = total === 0 && !hasActiveFilters;
+  const isEmptyLibrary = total === 0 && !hasActiveFilters && !initialLoading;
   const totalPages = Math.ceil(total / PAGE_LIMIT);
-  const showList = !showForm && !templatesLoading && !isEmptyLibrary;
+  // The filter bar and list stay mounted across refetches so the search input
+  // never unmounts mid-keystroke. Only hide during initial load or form mode.
+  const showFilterBar = !showForm && !initialLoading && !isEmptyLibrary;
+  const showList = !showForm && !initialLoading && !isEmptyLibrary;
   const activeFilterValue = type || ALL_FILTER;
 
   return (
@@ -161,7 +179,7 @@ const ExerciseTemplates = () => {
         </div>
       )}
 
-      {showList && (
+      {showFilterBar && (
         <LibraryFilterBar
           searchValue={searchInput}
           onSearchChange={setSearchInput}
@@ -198,7 +216,7 @@ const ExerciseTemplates = () => {
         </div>
       )}
 
-      {templatesLoading && !showForm && (
+      {initialLoading && !showForm && (
         <div className="loading-screen">
           <span className="loading-text">Carregando...</span>
         </div>
@@ -206,6 +224,13 @@ const ExerciseTemplates = () => {
 
       {showList && (
         <>
+          {showRefetchIndicator && (
+            <div className="library-refetch-indicator" aria-live="polite" aria-label="Atualizando lista…">
+              <Loader size={14} strokeWidth={2} aria-hidden="true" className="library-refetch-spinner" />
+              <span>Buscando…</span>
+            </div>
+          )}
+
           <LibraryBatchBar
             allSelected={allSelected}
             selectedCount={selectedIds.length}
@@ -272,7 +297,7 @@ const ExerciseTemplates = () => {
         </>
       )}
 
-      {!showForm && !templatesLoading && isEmptyLibrary && (
+      {!showForm && !initialLoading && isEmptyLibrary && (
         <>
           <div className="info-banner">
             <span className="info-banner-icon"><Info size={16} strokeWidth={1.6} /></span>

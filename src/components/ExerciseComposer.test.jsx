@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '../test/test-utils';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, act } from '../test/test-utils';
 import userEvent from '@testing-library/user-event';
 import ExerciseComposer from './ExerciseComposer';
 
@@ -12,6 +12,18 @@ vi.mock('../contexts/ToastContext', () => ({
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'test-uid' }, loading: false }),
 }));
+
+// API mock — used by useExerciseTemplateSearch inside LibraryPanel
+vi.mock('../api/axios', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
+
+import api from '../api/axios';
 
 // VideoLibraryPicker makes real API calls — stub it out entirely.
 vi.mock('./VideoLibraryPicker', () => ({
@@ -479,10 +491,17 @@ describe('ExerciseComposer — edit mode (snapshot)', () => {
 describe('ExerciseComposer — library tab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    // Default: server search returns empty (won't be called when query is blank)
+    api.get.mockResolvedValue({ data: { data: [], total: 0 } });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('switching to "Da biblioteca" shows the library panel', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     renderComposer();
 
     await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
@@ -492,8 +511,11 @@ describe('ExerciseComposer — library tab', () => {
     expect(screen.getByText('Corrida')).toBeInTheDocument();
   });
 
-  it('search filters library items', async () => {
-    const user = userEvent.setup();
+  it('search sends request to server and shows results', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    api.get.mockResolvedValue({
+      data: { data: [EXERCISE_TEMPLATES[0]], total: 1 },
+    });
     renderComposer();
 
     await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
@@ -502,13 +524,47 @@ describe('ExerciseComposer — library tab', () => {
       'agach'
     );
 
-    expect(screen.getByText('Agachamento')).toBeInTheDocument();
-    expect(screen.queryByText('Corrida')).not.toBeInTheDocument();
+    // Advance past debounce (300 ms) + spinner delay (250 ms)
+    act(() => { vi.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith(
+        '/trainer/exercise-templates',
+        expect.objectContaining({ params: expect.objectContaining({ q: 'agach' }) })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Agachamento')).toBeInTheDocument();
+    });
+  });
+
+  it('server search surfaces a template NOT in the initial cached list', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    const serverOnlyTemplate = { id: 'tmpl-server', name: 'Leg Press', type: 'strength' };
+    api.get.mockResolvedValue({
+      data: { data: [serverOnlyTemplate], total: 1 },
+    });
+    renderComposer();
+
+    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    expect(screen.queryByText('Leg Press')).not.toBeInTheDocument();
+
+    await user.type(
+      screen.getByRole('textbox', { name: /Buscar exercício/i }),
+      'leg'
+    );
+
+    act(() => { vi.advanceTimersByTime(600); });
+
+    await waitFor(() => {
+      expect(screen.getByText('Leg Press')).toBeInTheDocument();
+    });
   });
 
   it('selecting items and clicking import calls onSubmitFromLibrary', async () => {
     const onSubmitFromLibrary = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     renderComposer({ onSubmitFromLibrary });
 
     await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
@@ -519,7 +575,7 @@ describe('ExerciseComposer — library tab', () => {
   });
 
   it('import button is disabled when no items selected', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     renderComposer();
 
     await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
@@ -530,12 +586,122 @@ describe('ExerciseComposer — library tab', () => {
 
   it('cancel on library tab calls onCancel', async () => {
     const onCancel = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     renderComposer({ onCancel });
 
     await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
     await user.click(screen.getByRole('button', { name: /Cancelar/i }));
 
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('search input stays in the document while server fetch is in flight', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    let resolveSearch;
+    const searchPromise = new Promise((resolve) => { resolveSearch = resolve; });
+    api.get.mockReturnValueOnce(searchPromise);
+    renderComposer();
+
+    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await user.type(
+      screen.getByRole('textbox', { name: /Buscar exercício/i }),
+      'flex'
+    );
+
+    act(() => { vi.advanceTimersByTime(350); });
+
+    // Input must still be present while fetch is pending
+    expect(screen.getByRole('textbox', { name: /Buscar exercício/i })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Buscar exercício/i })).toHaveValue('flex');
+
+    resolveSearch({ data: { data: [], total: 0 } });
+    await waitFor(() => {
+      expect(screen.queryByText('Buscando…')).not.toBeInTheDocument();
+    });
+  });
+
+  it('spinner does not appear when fetch resolves before the 250 ms threshold', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    // Resolve immediately (synchronously via microtask) — well under 250 ms
+    api.get.mockResolvedValue({ data: { data: [EXERCISE_TEMPLATES[0]], total: 1 } });
+    renderComposer();
+
+    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await user.type(
+      screen.getByRole('textbox', { name: /Buscar exercício/i }),
+      'ag'
+    );
+
+    // Advance past debounce so the fetch fires, but stay under the spinner delay
+    act(() => { vi.advanceTimersByTime(310); });
+
+    // Flush the resolved promise
+    await waitFor(() => {
+      expect(screen.getByText('Agachamento')).toBeInTheDocument();
+    });
+
+    // Spinner must never have appeared
+    expect(screen.queryByRole('img', { hidden: true, name: /spinner/i })).not.toBeInTheDocument();
+    // The .library-refetch-spinner element should not be in the DOM
+    expect(document.querySelector('.library-refetch-spinner')).toBeNull();
+  });
+
+  it('spinner appears after 250 ms when fetch is still in flight', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    let resolveSearch;
+    api.get.mockReturnValue(new Promise((resolve) => { resolveSearch = resolve; }));
+    renderComposer();
+
+    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await user.type(
+      screen.getByRole('textbox', { name: /Buscar exercício/i }),
+      'slow'
+    );
+
+    // Advance past debounce (300 ms) so fetch starts, then past spinner delay (250 ms).
+    await act(async () => { vi.advanceTimersByTime(600); });
+
+    // waitFor lets React settle after the timer-triggered state updates
+    await waitFor(() => {
+      expect(document.querySelector('.library-refetch-spinner')).not.toBeNull();
+    });
+
+    // Resolve and confirm spinner goes away
+    resolveSearch({ data: { data: [], total: 0 } });
+    await waitFor(() => {
+      expect(document.querySelector('.library-refetch-spinner')).toBeNull();
+    });
+  });
+
+  it('prior results stay visible while a new search is in flight', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+
+    // First search resolves immediately with Agachamento
+    api.get.mockResolvedValueOnce({ data: { data: [EXERCISE_TEMPLATES[0]], total: 1 } });
+    // Second search is slow — will not resolve until we call resolveSecond
+    let resolveSecond;
+    api.get.mockReturnValueOnce(new Promise((resolve) => { resolveSecond = resolve; }));
+
+    renderComposer();
+    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+
+    // First search: type, flush debounce + spinner delay, wait for result
+    await user.type(screen.getByRole('textbox', { name: /Buscar exercício/i }), 'ag');
+    await act(async () => { vi.advanceTimersByTime(600); });
+    await waitFor(() => expect(screen.getByText('Agachamento')).toBeInTheDocument());
+
+    // Second search — clear and type new query
+    await user.clear(screen.getByRole('textbox', { name: /Buscar exercício/i }));
+    await user.type(screen.getByRole('textbox', { name: /Buscar exercício/i }), 'corr');
+    // Advance past debounce only — fetch fires but has not resolved yet
+    await act(async () => { vi.advanceTimersByTime(310); });
+
+    // While second fetch is pending, stale result (Agachamento) must still show
+    expect(screen.getByText('Agachamento')).toBeInTheDocument();
+    expect(screen.queryByText('Nenhum exercício encontrado.')).not.toBeInTheDocument();
+
+    // Resolve second fetch and confirm new result appears
+    resolveSecond({ data: { data: [EXERCISE_TEMPLATES[1]], total: 1 } });
+    await waitFor(() => expect(screen.getByText('Corrida')).toBeInTheDocument());
   });
 });

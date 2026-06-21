@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter } from '../../test/test-utils';
 import ExerciseTemplates from './ExerciseTemplates';
@@ -114,6 +114,50 @@ describe('ExerciseTemplates', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Nenhum exercício ainda')).toBeInTheDocument();
+    });
+  });
+
+  it('keeps search input mounted across a refetch — full-screen loader does not reappear', async () => {
+    const user = userEvent.setup();
+
+    // First call resolves normally (initial load)
+    let resolveSecond;
+    const secondFetch = new Promise((resolve) => { resolveSecond = resolve; });
+    let callCount = 0;
+
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/exercise-templates') {
+        callCount += 1;
+        if (callCount === 1) return Promise.resolve(envelope(mockTemplates));
+        return secondFetch;
+      }
+      return Promise.resolve({ data: [] });
+    });
+
+    renderWithRouter(<ExerciseTemplates />);
+
+    // Wait for initial load to complete
+    await waitFor(() => screen.getByText('Agachamento'));
+
+    // The search input should now be in the document
+    const searchInput = screen.getByLabelText(/buscar exerc/i);
+    expect(searchInput).toBeInTheDocument();
+
+    // Type a character — triggers a debounced refetch
+    await user.type(searchInput, 'A');
+
+    // The full-screen loader must NOT appear during the refetch
+    expect(screen.queryByText('Carregando...')).not.toBeInTheDocument();
+
+    // The search input must still be in the document with the typed value
+    expect(screen.getByLabelText(/buscar exerc/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/buscar exerc/i)).toHaveValue('A');
+
+    // Resolve the second fetch
+    resolveSecond(envelope(mockTemplates));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Buscando…')).not.toBeInTheDocument();
     });
   });
 
@@ -419,6 +463,73 @@ describe('ExerciseTemplates', () => {
       expect(screen.getByRole('checkbox', { name: /selecionar agachamento/i })).toBeChecked();
       expect(screen.getByRole('checkbox', { name: /selecionar corrida/i })).toBeChecked();
       expect(screen.getByRole('button', { name: /limpar seleção/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('Delayed refetch indicator', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('refetch indicator does not appear when fetch resolves before 250 ms threshold', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+
+      let callCount = 0;
+      api.get.mockImplementation(() => {
+        callCount += 1;
+        // Both initial and refetch resolve immediately
+        return Promise.resolve(envelope(mockTemplates));
+      });
+
+      renderWithRouter(<ExerciseTemplates />);
+      await waitFor(() => screen.getByText('Agachamento'));
+
+      // Type to trigger a debounced refetch
+      await user.type(screen.getByLabelText(/buscar exerc/i), 'A');
+
+      // Advance past debounce (300 ms) — fetch fires and resolves instantly
+      act(() => { vi.advanceTimersByTime(350); });
+
+      // Flush promises
+      await waitFor(() => expect(callCount).toBeGreaterThan(1));
+
+      // The spinner must never have appeared (delay = 250 ms, but fetch resolved before that)
+      expect(document.querySelector('.library-refetch-indicator')).toBeNull();
+    });
+
+    it('refetch indicator appears after 250 ms when fetch is still in flight', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+
+      let resolveSecond;
+      let callCount = 0;
+      api.get.mockImplementation(() => {
+        callCount += 1;
+        if (callCount === 1) return Promise.resolve(envelope(mockTemplates));
+        return new Promise((resolve) => { resolveSecond = resolve; });
+      });
+
+      renderWithRouter(<ExerciseTemplates />);
+      await waitFor(() => screen.getByText('Agachamento'));
+
+      await user.type(screen.getByLabelText(/buscar exerc/i), 'slow');
+
+      // Advance past debounce (300 ms) + spinner delay (250 ms).
+      await act(async () => { vi.advanceTimersByTime(600); });
+
+      // waitFor lets React settle after the timer-triggered state updates
+      await waitFor(() => {
+        expect(document.querySelector('.library-refetch-indicator')).not.toBeNull();
+      });
+
+      // Resolve and confirm it disappears
+      resolveSecond(envelope(mockTemplates));
+      await waitFor(() => {
+        expect(document.querySelector('.library-refetch-indicator')).toBeNull();
+      });
     });
   });
 });

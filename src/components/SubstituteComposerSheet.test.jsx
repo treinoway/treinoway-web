@@ -17,6 +17,8 @@ vi.mock('../api/axios', () => ({
   },
 }));
 
+// useExerciseTemplateSearch uses api.get — we must keep the mock in sync
+
 vi.mock('../constants/exerciseTypes', () => ({
   EXERCISE_TYPE_OPTIONS: [
     { value: 'strength', label: 'Força' },
@@ -85,6 +87,9 @@ describe('SubstituteComposerSheet', () => {
     onClose.mockReset();
     onCreated.mockReset();
     api.post.mockReset();
+    api.get.mockReset();
+    // Default: server search returns empty (only fires when query is non-empty)
+    api.get.mockResolvedValue({ data: { data: [], total: 0 } });
     vi.mocked(useToast).mockReturnValue({ showToast });
   });
 
@@ -313,5 +318,109 @@ describe('SubstituteComposerSheet', () => {
     await user.click(screen.getByRole('tab', { name: /da biblioteca/i }));
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  // ── Server-search tests ─────────────────────────────────────────────────────
+
+  it('search sends GET request with q param to server', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({
+      data: { data: [exerciseTemplates[0]], total: 1 },
+    });
+    renderSheet();
+
+    await user.click(screen.getByRole('tab', { name: /da biblioteca/i }));
+    await user.type(screen.getByLabelText('Buscar exercício na biblioteca'), 'supino');
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith(
+        '/trainer/exercise-templates',
+        expect.objectContaining({ params: expect.objectContaining({ q: 'supino' }) })
+      );
+    });
+  });
+
+  it('server search surfaces a template NOT in the initial cached list', async () => {
+    const user = userEvent.setup();
+    const serverOnlyTemplate = {
+      id: 'tmpl-server',
+      name: 'Puxada frente',
+      type: 'strength',
+      hasLoad: true,
+      prescriptionMode: 'reps',
+    };
+    api.get.mockResolvedValue({
+      data: { data: [serverOnlyTemplate], total: 1 },
+    });
+    renderSheet();
+
+    await user.click(screen.getByRole('tab', { name: /da biblioteca/i }));
+    expect(screen.queryByText('Puxada frente')).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Buscar exercício na biblioteca'), 'puxada');
+
+    await waitFor(() => {
+      expect(screen.getByText('Puxada frente')).toBeInTheDocument();
+    });
+  });
+
+  it('search input stays in the document while server fetch is in flight', async () => {
+    const user = userEvent.setup();
+    let resolveSearch;
+    const searchPromise = new Promise((resolve) => { resolveSearch = resolve; });
+    api.get.mockReturnValueOnce(searchPromise);
+    renderSheet();
+
+    await user.click(screen.getByRole('tab', { name: /da biblioteca/i }));
+    await user.type(screen.getByLabelText('Buscar exercício na biblioteca'), 'flex');
+
+    const searchInput = screen.getByLabelText('Buscar exercício na biblioteca');
+    expect(searchInput).toBeInTheDocument();
+    expect(searchInput).toHaveValue('flex');
+
+    resolveSearch({ data: { data: [], total: 0 } });
+    await waitFor(() => {
+      expect(screen.queryByText('Buscando…')).not.toBeInTheDocument();
+    });
+  });
+
+  it('imports a template found via server search (not in initial prop)', async () => {
+    const user = userEvent.setup();
+    const serverOnlyTemplate = {
+      id: 'tmpl-server',
+      name: 'Puxada frente',
+      type: 'strength',
+      hasLoad: true,
+      suggestedLoad: 50,
+      prescriptionMode: 'reps',
+      sets: 3,
+      repetitions: { min: 10, max: 12 },
+      restInterval: 60,
+    };
+    api.get.mockResolvedValue({
+      data: { data: [serverOnlyTemplate], total: 1 },
+    });
+    api.post.mockResolvedValueOnce({ data: { id: 'sub-x', name: 'Puxada frente' } });
+
+    renderSheet();
+
+    await user.click(screen.getByRole('tab', { name: /da biblioteca/i }));
+    await user.type(screen.getByLabelText('Buscar exercício na biblioteca'), 'puxada');
+
+    await waitFor(() => {
+      expect(screen.getByText('Puxada frente')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Puxada frente').closest('button'));
+    await user.click(screen.getByRole('button', { name: /importar 1/i }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        '/trainer/exercises/ex-1/substitutes',
+        expect.objectContaining({ name: 'Puxada frente', type: 'strength' })
+      );
+    });
+    expect(onCreated).toHaveBeenCalledWith({ id: 'sub-x', name: 'Puxada frente' });
+    expect(onClose).toHaveBeenCalled();
   });
 });
