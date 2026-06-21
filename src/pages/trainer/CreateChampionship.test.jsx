@@ -188,10 +188,19 @@ describe('CreateChampionship', () => {
 
     await user.type(screen.getByLabelText('Nome do campeonato'), 'Campeonato de Verão');
 
-    // Type a future start date directly into the BrandCalendar text input.
-    // Must be >= today (2026-04-16) to pass the minDate constraint.
+    // Compute a start date that is always one month from today so the test
+    // never fails due to the minDate constraint (which rejects past dates).
+    const future = new Date();
+    future.setMonth(future.getMonth() + 1);
+    const yyyy = future.getFullYear();
+    const mm = String(future.getMonth() + 1).padStart(2, '0');
+    const dd = String(future.getDate()).padStart(2, '0');
+    // BrandCalendar text input expects dd/mm/yyyy input (typed without slashes).
+    const startDateInput = `${dd}${mm}${yyyy}`;
+    const expectedStartDate = `${yyyy}-${mm}-${dd}`;
+
     const startInput = screen.getByRole('textbox', { name: /Início/i });
-    await user.type(startInput, '20062026');
+    await user.type(startInput, startDateInput);
 
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
 
@@ -200,7 +209,7 @@ describe('CreateChampionship', () => {
         '/trainer/challenges',
         expect.objectContaining({
           name: 'Campeonato de Verão',
-          startDate: '2026-06-20',
+          startDate: expectedStartDate,
           participantMode: 'all',
           ptsWorkoutCompleted: 10,
           ptsDailyCheckin: 2,
