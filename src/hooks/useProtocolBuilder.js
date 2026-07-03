@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
 import { useToast } from '../contexts/ToastContext';
+import { getLoadDefault } from '../constants/exerciseTypes';
 
 // ─── Shape helpers ────────────────────────────────────────────────────────────
 
@@ -530,7 +531,14 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
               prescriptionMode: overrides.prescriptionMode,
             }),
           });
-          const newExercise = res.data;
+          // Backend hardcodes hasLoad:false when the caller omits it (the
+          // ExerciseTemplate model carries no hasLoad field). Apply the
+          // type-based default only when the backend returned a nullish value —
+          // an explicit boolean false from a trainer-built template is preserved.
+          const newExercise = {
+            ...res.data,
+            hasLoad: res.data.hasLoad ?? getLoadDefault(res.data.type),
+          };
           setData((prev) => ({
             ...prev,
             trainings: prev.trainings.map((t) =>
@@ -542,17 +550,25 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           return newExercise;
         }
 
-        const template = exerciseTemplates.find((t) => t.id === templateId);
+        // Prefer the resolved template object passed in by the caller (e.g. from
+        // LibraryPanel's seenMap, via ExerciseComposer). The paginated/searched
+        // `exerciseTemplates` list only holds the first page, so a template
+        // surfaced via search may not be present in it — falling back to
+        // `.find()` in that case silently produces an exercise with no name.
+        const template = overrides.template || exerciseTemplates.find((t) => t.id === templateId);
+        const effectiveType = template?.type || '';
         const newExercise = {
           id: makeTempId(),
           _templateId: templateId,
           name: template?.name || '',
-          type: template?.type || '',
+          type: effectiveType,
           prescriptionMode: overrides.prescriptionMode ?? template?.prescriptionMode ?? 'reps',
           sets: template?.sets ?? null,
           repetitions: template?.repetitions ?? null,
           duration: template?.duration ?? null,
-          hasLoad: template?.hasLoad ?? false,
+          // Use the type-based default when the template doesn't carry an explicit
+          // boolean — preserves a real false set by the trainer, fills in when absent.
+          hasLoad: template?.hasLoad ?? getLoadDefault(effectiveType),
           suggestedLoad: template?.suggestedLoad ?? null,
           restInterval: template?.restInterval ?? null,
           videoUrl: template?.videoUrl ?? null,

@@ -904,6 +904,12 @@ const ptBR = {
       label: "Modo de prescrição",
     },
     reorderHandle: "Reordenar exercício",
+    prescriptionWarn: {
+      reps: "Nenhuma repetição definida. Deseja salvar assim mesmo?",
+      duration: "Nenhuma duração definida. Deseja salvar assim mesmo?",
+      confirm: "Salvar mesmo assim",
+      cancel: "Voltar e preencher",
+    },
   },
 
   exerciseGroup: {

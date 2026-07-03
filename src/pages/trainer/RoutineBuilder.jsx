@@ -1607,8 +1607,8 @@ const TrainingItem = ({
     setComposerState(null);
   };
 
-  const handleImport = async (templateIds) => {
-    await onImportFromLibrary(templateIds);
+  const handleImport = async (templateIds, templatesById) => {
+    await onImportFromLibrary(templateIds, templatesById);
     setComposerState(null);
   };
 
@@ -3256,9 +3256,15 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
               onDeleteTraining={readOnly ? null : () => handleDeleteTraining(t.id)}
               onAddExercise={readOnly ? null : (payload) => { markTouched(); return routine.addExercise(t.id, payload); }}
               onEditExercise={readOnly ? null : (exId, payload) => { markTouched(); return routine.updateExercise(t.id, exId, payload); }}
-              onImportFromLibrary={readOnly ? null : (ids) => {
+              onImportFromLibrary={readOnly ? null : (ids, templatesById) => {
                 markTouched();
-                return Promise.all(ids.map((tmplId) => routine.addExerciseFromTemplate(t.id, tmplId)));
+                return Promise.all(
+                  ids.map((tmplId) =>
+                    routine.addExerciseFromTemplate(t.id, tmplId, {
+                      template: templatesById?.[tmplId],
+                    })
+                  )
+                );
               }}
               onDeleteExercise={readOnly ? null : (exId) => { markTouched(); return routine.deleteExercise(t.id, exId); }}
               onReorder={

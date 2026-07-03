@@ -2992,6 +2992,13 @@ describe('RoutineBuilder — smooth scroll on training expand', () => {
     await user.click(expandBtn);
     await screen.findByRole('list', { name: /Exercícios/i });
 
+    // Expanding schedules the scroll inside a requestAnimationFrame callback.
+    // Flush it before clearing the mock, otherwise a slow/late-firing rAF can
+    // land after mockClear() and get miscounted against the collapse assertion.
+    await waitFor(() => {
+      expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+    });
+
     // Reset the mock count after expand
     window.HTMLElement.prototype.scrollIntoView.mockClear();
 
@@ -3153,6 +3160,14 @@ describe('RoutineBuilder — smooth scroll after exercise creation', () => {
     await user.type(nameInput, 'Leg press');
     await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
     await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
+
+    // Expanding the training earlier schedules a scroll inside a
+    // requestAnimationFrame callback. Flush it before clearing the mock,
+    // otherwise a slow/late-firing rAF can land after mockClear() and get
+    // miscounted against the post-save "not called" assertion below.
+    await waitFor(() => {
+      expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+    });
 
     window.HTMLElement.prototype.scrollIntoView.mockClear();
 

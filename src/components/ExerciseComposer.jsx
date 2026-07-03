@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import {
   Check,
@@ -11,27 +12,15 @@ import useExerciseTemplateSearch from '../hooks/useExerciseTemplateSearch';
 import PrescriptionField from './PrescriptionField';
 import IntensityField from './IntensityField';
 import VideoField from './VideoField';
-import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel } from '../constants/exerciseTypes';
+import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel, getLoadDefault } from '../constants/exerciseTypes';
+import { t } from '../i18n';
 import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const REST_CHIPS = [60, 90, 120, 180];
 
-/**
- * Types that have load enabled by default when the user hasn't manually overridden.
- */
-const LOAD_DEFAULT_BY_TYPE = {
-  strength: true,
-  cardio: false,
-  mobility: false,
-  stretching: false,
-};
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const getLoadDefault = (type) =>
-  LOAD_DEFAULT_BY_TYPE[type] ?? false;
 
 const EMPTY_FORM = {
   name: '',
@@ -222,9 +211,13 @@ const ExerciseComposer = ({
   // Tracks whether the user has manually toggled carga (overrides type-derived default)
   const [loadManuallySet, setLoadManuallySet] = useState(false);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
+  // Resolved template objects for the current selection, keyed by id. Populated
+  // from LibraryPanel's seenMap on toggle so the full template (name, type,
+  // prescription…) survives even when the paginated/searched template is not
+  // present in the `exerciseTemplates` initial-list prop.
+  const [selectedTemplatesById, setSelectedTemplatesById] = useState({});
   const [errors, setErrors] = useState({});
-  const [durationError, setDurationError] = useState('');
-  const [repsError, setRepsError] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   const handleFieldChange = (field, value) => {
     setForm((prev) => {
@@ -272,24 +265,40 @@ const ExerciseComposer = ({
     return errs;
   };
 
-  const validatePrescription = () => {
+  const checkPrescriptionEmpty = () => {
     if (form.prescriptionMode === 'duration') {
-      if (!form.duration || Number(form.duration) < 1) {
-        setDurationError('Defina o valor antes de salvar.');
-        return false;
-      }
-    } else if (!form.repetitionsMin || !form.repetitionsMax) {
-      setRepsError('Defina o valor antes de salvar.');
-      return false;
+      return !form.duration || String(form.duration).trim() === '';
     }
-    return true;
+    return (
+      String(form.repetitionsMin ?? '').trim() === '' &&
+      String(form.repetitionsMax ?? '').trim() === ''
+    );
+  };
+
+  const doSaveCreate = () => {
+    setConfirmDialog(null);
+    setErrors({});
+    onSubmitCreate(buildPayload(form));
+  };
+
+  const doSaveEdit = () => {
+    setConfirmDialog(null);
+    setErrors({});
+    onSubmitEdit(snapshot.id, buildPayload(form));
   };
 
   const handleSubmitCreate = (e) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    if (!validatePrescription()) return;
+    if (checkPrescriptionEmpty()) {
+      const warnKey = form.prescriptionMode === 'duration' ? 'duration' : 'reps';
+      setConfirmDialog({
+        message: t(`exercise.prescriptionWarn.${warnKey}`),
+        onConfirm: doSaveCreate,
+      });
+      return;
+    }
     setErrors({});
     onSubmitCreate(buildPayload(form));
   };
@@ -298,22 +307,36 @@ const ExerciseComposer = ({
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    if (!validatePrescription()) return;
+    if (checkPrescriptionEmpty()) {
+      const warnKey = form.prescriptionMode === 'duration' ? 'duration' : 'reps';
+      setConfirmDialog({
+        message: t(`exercise.prescriptionWarn.${warnKey}`),
+        onConfirm: doSaveEdit,
+      });
+      return;
+    }
     setErrors({});
     onSubmitEdit(snapshot.id, buildPayload(form));
   };
 
   const handleImport = () => {
     if (selectedTemplateIds.length === 0) return;
-    onSubmitFromLibrary(selectedTemplateIds);
+    onSubmitFromLibrary(selectedTemplateIds, selectedTemplatesById);
   };
 
   // seenMap is passed from LibraryPanel so selection always resolves even when
-  // the query changes and the template is no longer in the visible list.
-  const handleToggleTemplate = (id) => {
+  // the query changes and the template is no longer in the visible list. We
+  // capture the resolved template object here (not just the id) so callers can
+  // use it as the source of truth instead of re-deriving from a possibly-stale
+  // paginated `exerciseTemplates` list.
+  const handleToggleTemplate = (id, seenMap) => {
     setSelectedTemplateIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
+    const resolved = seenMap?.get(id);
+    if (resolved) {
+      setSelectedTemplatesById((prev) => ({ ...prev, [id]: resolved }));
+    }
   };
 
   const activeRestChip = REST_CHIPS.includes(Number(form.restInterval))
@@ -388,10 +411,6 @@ const ExerciseComposer = ({
           idPrefix="composer"
           formData={form}
           onChange={handlePrescriptionChange}
-          durationError={durationError}
-          onClearDurationError={() => setDurationError('')}
-          repsError={repsError}
-          onClearRepsError={() => setRepsError('')}
         />
 
         {/* Descanso + Carga — side-by-side on desktop, stacked on mobile */}
@@ -596,6 +615,31 @@ const ExerciseComposer = ({
             </button>
           </div>
         </>
+      )}
+
+      {confirmDialog && createPortal(
+        <div className="overlay" onClick={() => setConfirmDialog(null)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-dialog-message">{confirmDialog.message}</p>
+            <div className="confirm-dialog-actions">
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={confirmDialog.onConfirm}
+              >
+                {t('exercise.prescriptionWarn.confirm')}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setConfirmDialog(null)}
+              >
+                {t('exercise.prescriptionWarn.cancel')}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
     </div>

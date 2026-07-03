@@ -24,3 +24,24 @@ export function getExerciseTypeLabel(type) {
   const normalized = type.toLowerCase();
   return LABELS_BY_VALUE[normalized] || type;
 }
+
+/**
+ * Types that have load enabled by default when the user hasn't manually overridden.
+ * strength → true (barbell/dumbbell exercises carry weight by definition)
+ * all others → false
+ */
+export const LOAD_DEFAULT_BY_TYPE = {
+  strength: true,
+  cardio: false,
+  mobility: false,
+  stretching: false,
+};
+
+/**
+ * Returns the default hasLoad value for a given exercise type.
+ * Falls back to false for unknown types.
+ * @param {string} type - e.g. "strength", "cardio"
+ * @returns {boolean}
+ */
+export const getLoadDefault = (type) =>
+  LOAD_DEFAULT_BY_TYPE[type] ?? false;

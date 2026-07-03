@@ -562,7 +562,7 @@ describe('ExerciseComposer — library tab', () => {
     });
   });
 
-  it('selecting items and clicking import calls onSubmitFromLibrary', async () => {
+  it('selecting items and clicking import calls onSubmitFromLibrary with ids and resolved templates', async () => {
     const onSubmitFromLibrary = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     renderComposer({ onSubmitFromLibrary });
@@ -571,7 +571,38 @@ describe('ExerciseComposer — library tab', () => {
     await user.click(screen.getByText('Agachamento'));
     await user.click(screen.getByRole('button', { name: /Importar 1/i }));
 
-    expect(onSubmitFromLibrary).toHaveBeenCalledWith(['tmpl-1']);
+    expect(onSubmitFromLibrary).toHaveBeenCalledWith(
+      ['tmpl-1'],
+      { 'tmpl-1': EXERCISE_TEMPLATES[0] }
+    );
+  });
+
+  it('selecting a template that only exists in search results (not in the initial list) resolves its full object on import', async () => {
+    const onSubmitFromLibrary = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    const serverOnlyTemplate = { id: 'tmpl-server', name: 'Leg Press', type: 'strength' };
+    api.get.mockResolvedValue({
+      data: { data: [serverOnlyTemplate], total: 1 },
+    });
+    renderComposer({ onSubmitFromLibrary });
+
+    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await user.type(
+      screen.getByRole('textbox', { name: /Buscar exercício/i }),
+      'leg'
+    );
+    act(() => { vi.advanceTimersByTime(600); });
+    await waitFor(() => {
+      expect(screen.getByText('Leg Press')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Leg Press'));
+    await user.click(screen.getByRole('button', { name: /Importar 1/i }));
+
+    expect(onSubmitFromLibrary).toHaveBeenCalledWith(
+      ['tmpl-server'],
+      { 'tmpl-server': serverOnlyTemplate }
+    );
   });
 
   it('import button is disabled when no items selected', async () => {
@@ -703,5 +734,85 @@ describe('ExerciseComposer — library tab', () => {
     // Resolve second fetch and confirm new result appears
     resolveSecond({ data: { data: [EXERCISE_TEMPLATES[1]], total: 1 } });
     await waitFor(() => expect(screen.getByText('Corrida')).toBeInTheDocument());
+  });
+});
+
+// ─── Tests — prescription warn dialog ────────────────────────────────────────
+
+describe('ExerciseComposer — prescription warn dialog', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('reps mode with empty reps opens warn dialog and does not call onSubmitCreate', async () => {
+    const onSubmitCreate = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ onSubmitCreate });
+
+    await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    expect(await screen.findByText(/Nenhuma repetição definida/i)).toBeInTheDocument();
+    expect(onSubmitCreate).not.toHaveBeenCalled();
+  });
+
+  it('reps mode warn dialog: confirm saves the exercise', async () => {
+    const onSubmitCreate = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ onSubmitCreate });
+
+    await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+    await screen.findByText(/Nenhuma repetição definida/i);
+
+    await user.click(screen.getByRole('button', { name: /Salvar mesmo assim/i }));
+
+    await waitFor(() => {
+      expect(onSubmitCreate).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('reps mode warn dialog: cancel closes dialog without saving', async () => {
+    const onSubmitCreate = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ onSubmitCreate });
+
+    await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+    await screen.findByText(/Nenhuma repetição definida/i);
+
+    await user.click(screen.getByRole('button', { name: /Voltar e preencher/i }));
+
+    expect(screen.queryByText(/Nenhuma repetição definida/i)).not.toBeInTheDocument();
+    expect(onSubmitCreate).not.toHaveBeenCalled();
+  });
+
+  it('duration mode with empty duration opens warn dialog', async () => {
+    const onSubmitCreate = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ onSubmitCreate });
+
+    await user.type(screen.getByLabelText(/Nome/i), 'Prancha');
+    await user.click(screen.getByRole('tab', { name: /Tempo/i }));
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    expect(await screen.findByText(/Nenhuma duração definida/i)).toBeInTheDocument();
+    expect(onSubmitCreate).not.toHaveBeenCalled();
+  });
+
+  it('filled reps saves directly without showing warn dialog', async () => {
+    const onSubmitCreate = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ onSubmitCreate });
+
+    await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
+    await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
+    await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    await waitFor(() => {
+      expect(onSubmitCreate).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByText(/Nenhuma repetição definida/i)).not.toBeInTheDocument();
   });
 });
