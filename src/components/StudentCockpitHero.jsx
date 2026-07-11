@@ -161,7 +161,7 @@ const StudentCockpitHero = ({
   const protocol = summary?.currentProtocol ?? null;
 
   return (
-    <section className="theme-stadium student-cockpit-hero" aria-label="Painel do aluno">
+    <section className="student-cockpit-hero" aria-label="Painel do aluno">
       <div className="student-cockpit-hero-identity">
         <div className="student-cockpit-hero-avatar" aria-hidden="true">
           {avatarInitial}
@@ -250,7 +250,7 @@ const StudentCockpitHero = ({
       <div className="student-cockpit-hero-actions">
         <button
           type="button"
-          className="btn-stadium"
+          className="btn-primary"
           onClick={onCreateProtocol}
         >
           <Plus size={16} strokeWidth={2} aria-hidden="true" />
@@ -258,7 +258,7 @@ const StudentCockpitHero = ({
         </button>
         <button
           type="button"
-          className="btn-stadium btn-stadium--ghost"
+          className="btn-secondary"
           onClick={onLinkAnamnesis}
         >
           <Plus size={16} strokeWidth={2} aria-hidden="true" />

@@ -6,7 +6,11 @@ compatibility: Designed for Claude Code on the treinoway-web project
 
 Review every UI change in the current task against all sections below. Fix violations before finishing.
 
-**Brand direction:** Athletic-Tech (Whoop + Strava 2024 DNA). When the token catalog offers a "legacy" alias (`--color-*`, `--md-*`, `--shadow-sm`, `--ease-out`, `--radius-sm`, `--font-h1-*`, etc.), always prefer the canonical `--brand-*` / `--radius-brand` / `--shadow-brand-*` / `--ease-brand` / `--font-family-display` equivalents in new code. Legacy aliases exist to keep older components compiling; they are not deprecation targets for mass-rewrite, but no new code should introduce them.
+**Brand direction: TeuFit ("menos é mais").** Treinoway rebranded to **TeuFit** (rebrand phase 1 shipped: foundation tokens + Dashboard/Students/StudentDetail). The product is no longer Athletic-Tech/Whoop-Strava dark-cockpit — it's **rounded, warm, acolhedor**, with **one restrained geometric cut** as an accent motif, never a repeating pattern. Voice: proximidade, clareza, eficiência — "amigável & companheiro" (constância sem neura), "técnico & preciso," "direto & sem ruído." **Not** a coach that shouts extreme discipline. See §3.3 for the full new brand foundation, and §3.4/§4.16 for what's explicitly retired (dark stadium theme).
+
+When the token catalog offers a "legacy" alias (`--color-*`, `--md-*`, `--shadow-sm`, `--ease-out`, `--radius-sm`, `--font-h1-*`, etc.), always prefer the canonical `--brand-*` / `--radius-brand` / `--shadow-brand-*` / `--ease-brand` / `--font-family-display` equivalents in new code. Legacy aliases exist to keep older components compiling; they are not deprecation targets for mass-rewrite, but no new code should introduce them.
+
+**Rebrand status:** tokens (`src/index.css` `:root`) and `index.html` fonts are fully migrated. `Dashboard.jsx`, `Students.jsx`, `StudentDetail.jsx` (+ `StudentCockpitHero`/`PulseWaveform`/`PulseHeatmap`, its exclusive sub-components) are migrated off the dark-cockpit look. Every other screen still inherits the new tokens automatically (colors/fonts/radius are global), but screens that hardcode `.theme-stadium` (`SessionDetailHero`, `StudentIntensityBand`/`WorkoutSession`) or `.dashboard-stat`/`.stat-card`-style legacy blocks have **not** been visually re-audited yet — treat them as legacy debt, not as a reference for new work.
 
 ---
 
@@ -42,10 +46,10 @@ All tokens live in `src/index.css` `:root`. Reference them as `var(--token-name)
 | | `--md-surface-container` | `#F0F1F4` | Page background sections |
 | | `--md-surface-container-high` | `#E6E7EB` | Hover bg, alt rows |
 | | `--md-outline-variant` | `#C7C7CC` | Input borders, outlined button borders |
-| **Color — brand** | `--brand-primary` | `#0A5FCC` | Primary CTA, links, active states |
-| | `--brand-primary-dark` | `#083E85` | Primary CTA hover/pressed |
-| | `--brand-accent` | `#FF6B1A` | PRs, achievements, highlights. **Never in primary CTA** |
-| | `--brand-accent-container` | `#FFF1EA` | Background for accent chips |
+| **Color — brand** | `--brand-primary` | `#1054B2` (TeuFit Azul de Performance) | Primary CTA, links, active states |
+| | `--brand-primary-dark` | `#0D47A1` | Primary CTA hover/pressed |
+| | `--brand-accent` | `#FF6F00` (TeuFit Laranja de Adrenalina) | PRs, achievements, highlights. **Never in primary CTA.** **Contrast alert:** ≈2.8:1 against white — fails AA even at large-text size. Never use as small text/icon color on a light surface; use on a tinted container, on a dark chip, or as a large bold stat number only |
+| | `--brand-accent-container` | `#FFECDC` | Background for accent chips |
 | **Color — status** | `--md-error` | `#D32F2F` | Error text, danger buttons |
 | | `--md-error-container` | `#FDDEDE` | Error banner bg |
 | | `--md-success` | `#2E7D32` | Success text, badges |
@@ -56,9 +60,9 @@ All tokens live in `src/index.css` `:root`. Reference them as `var(--token-name)
 | | `--spacing-lg` | `24px` | Section padding, card padding |
 | | `--spacing-xl` | `32px` | Between major sections |
 | | `--spacing-xxl` | `48px` | Page top padding, hero spacing |
-| **Radius** | `--radius-stat` | `4px` | Stat chips, compact badges |
-| | `--radius-brand` | `8px` | Default for buttons, cards, modals, inputs |
-| | `--radius-lg` | `20px` | Bottom-sheets, large modals |
+| **Radius** | `--radius-stat` | `4px` | Stat chips, compact badges — kept tight on purpose: the "geometric cut" contrast against rounder surfaces |
+| | `--radius-brand` | `16px` | Default for buttons, cards, modals, inputs — TeuFit is rounded/acolhedor by default |
+| | `--radius-lg` | `28px` | Bottom-sheets, large modals |
 | | `--radius-full` | `9999px` | Avatars, pill badges |
 | **Shadow** | `--shadow-brand-sm` | subtle ink + 1px hairline | Cards at rest, buttons outlined |
 | | `--shadow-brand-md` | deeper ink + hairline | Card hover, dropdown, row menu |
@@ -71,13 +75,13 @@ All tokens live in `src/index.css` `:root`. Reference them as `var(--token-name)
 | | `--duration-achievement` | `280ms` | PR unlocks, confetti, celebration |
 | | `--ease-brand` | `cubic-bezier(0.22, 1, 0.36, 1)` | Default for hovers/transitions |
 | | `--ease-kinetic` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Achievements (slight overshoot) |
-| **Typography — family** | `--font-family-display` | `'Space Grotesk', ...` | H1, H2, section titles, stat numbers |
-| | `--font-family-base` | `'Inter', ...` | Body, labels, inputs, buttons |
-| | `--font-family-stat` | `'Space Grotesk', monospace` | Performance numbers (always with `tabular-nums`) |
+| **Typography — family** | `--font-family-display` | `'Nunito Sans', 'Space Grotesk', ...` | H1, H2, section titles, stat numbers |
+| | `--font-family-base` | `'Nunito Sans', 'Inter', ...` | Body, labels, inputs, buttons |
+| | `--font-family-stat` | `'Nunito Sans', monospace` | Performance numbers (always with `tabular-nums`) |
 | **Typography — tracking** | `--tracking-tight` | `-0.02em` | Display titles |
 | | `--tracking-normal` | `0` | Body |
-| | `--tracking-wide` | `0.08em` | Buttons, stat labels (UPPERCASE) |
-| | `--tracking-wider` | `0.12em` | Eyebrows, overlines (UPPERCASE) |
+| | `--tracking-wide` | `0.03em` | Buttons, stat labels (UPPERCASE) — softened from the old 0.08em; TeuFit is not athletic-aggressive |
+| | `--tracking-wider` | `0.06em` | Eyebrows, overlines (UPPERCASE) — softened from the old 0.12em |
 | **Typography — line-height** | `--line-height-tight` | `1.2` | Headings |
 | | `--line-height-normal` | `1.5` | Body |
 | | `--line-height-relaxed` | `1.7` | Long-form/help |
@@ -92,12 +96,12 @@ All tokens live in `src/index.css` `:root`. Reference them as `var(--token-name)
 
 ### 2.2 Typography scale (size + weight)
 
-Athletic-Tech applies **Space Grotesk (display) for hierarchy** and **Inter (base) for everything else**.
+TeuFit is "menos é mais" — **one superfamily, Nunito Sans, for both display and body** (Light→Black weights). Display/hero moments use ExtraBold(800)/Black(900); routine headings stay at 600–700. There is no separate display typeface anymore — `--font-family-display` and `--font-family-base` both resolve to Nunito Sans, differentiated only by weight/size, not by typeface.
 
 | Use | Size | Weight | Family | Tracking | Notes |
 |---|---|---|---|---|---|
-| H1 page title | `28px` | `700` | display | `tight` | Mobile may shrink to `24px` via `clamp()` |
-| H2 section | `22px` | `600` | display | `tight` | — |
+| H1 page title | `28px` | `600`–`700` | display | `tight` | Mobile may shrink to `24px` via `clamp()`. Hero-level moments (dashboard greeting, profile hero name) go `800` |
+| H2 section | `22px` | `600`–`700` | display | `tight` | — |
 | H3 card title | `18px` | `600` | display | `normal` | — |
 | Body large | `18px` | `400` | base | `normal` | Emphasized paragraphs |
 | Body | `16px` | `400` | base | `normal` | Default text |
@@ -193,22 +197,24 @@ Rules:
 - The header never carries a subtitle-with-counters strip. Counters belong to the stats row (§4.18) or to filter tabs (§4.17); the header stays clean.
 - Actions align to the right with `gap: var(--spacing-sm)`. Primary is always the rightmost button.
 
-### 3.3 Brand Foundation — Athletic-Tech
+### 3.3 Brand Foundation — TeuFit
 
-DNA: Whoop + Strava 2024. Performance app for serious trainers who work with data.
+DNA: **"menos é mais."** Zero fitness clichés (no dumbbells, apples, flames, generic gym icons). The interface breathes; information is the focus. Voice: proximidade, clareza, eficiência — amigável & companheiro (constância sem neura), técnico & preciso, direto & sem ruído. Not a coach that shouts extreme discipline.
 
 Principles:
-1. **Numbers are the voice** — large stat numbers in Space Grotesk + `tabular-nums`. Data > label.
-2. **UPPERCASE tracking-wide for action** — buttons, stat labels, eyebrows.
-3. **High contrast, focused color** — electric blue + alert orange + deep black.
-4. **8px corners** — technical, sharp, not brutalist.
-5. **Kinetic motion** — 150ms hover (`ease-brand`), 280ms achievements (`ease-kinetic` overshoot).
-6. **Stadium mode (dark) for focus** — workout execution, summaries, detailed stats.
-7. **Imperative voice, action-oriented, numbers always visible.**
+1. **Rounded + geometric duality** — generously rounded surfaces (`--radius-brand` 16px, `--radius-lg` 28px) express acolhimento/bem-estar; **one** restrained angular/diagonal cut (never a repeating pattern — see the logomark's single pennant-flag accent) directs the eye toward performance. Use the cut sparingly, on hero moments only.
+2. **One typeface, many weights** — Nunito Sans Light→Black for both display and body. No separate display typeface.
+3. **Numbers still matter** — stat numbers in `--font-family-stat` (Nunito Sans) + `tabular-nums`, but they no longer need a dark "cockpit" stage to read as important.
+4. **Softened UPPERCASE** — buttons/eyebrows may stay uppercase, but tracking is subtle (`--tracking-wide` 0.03em, `--tracking-wider` 0.06em), not athletic-aggressive.
+5. **Warm, focused color** — TeuFit Azul de Performance (`#1054B2`) + Laranja de Adrenalina (`#FF6F00`, sparingly — see contrast alert in §2.1) + the existing ink/steel/mist neutrals.
+6. **Kinetic-but-gentle motion** — 150ms hover (`ease-brand`), 280ms achievements (`ease-kinetic` overshoot). Motion confirms, it doesn't shout.
+7. **Direct, warm voice** — clear and efficient, never hype, never a lecture.
 
-### 3.4 Stadium palette (dark theme)
+### 3.4 Stadium palette (dark theme) — **DEPRECATED, do not use in new/touched screens**
 
-Activated by wrapping content in `<div className="theme-stadium">`. Children inherit via CSS cascade.
+This is old Athletic-Tech doctrine. TeuFit is light, warm, and acolhedor — a dark "cockpit" stage contradicts the new brand. `StudentCockpitHero` (and its exclusive sub-components `PulseWaveform`/`PulseHeatmap`/`SubscriptionStrip`) were migrated off `.theme-stadium` in rebrand phase 1; do the same the next time you touch any other screen still wrapped in `.theme-stadium` (`SessionDetailHero`, `StudentIntensityBand`/`WorkoutSession` as of this writing). Do not wrap any new UI in `.theme-stadium`, and do not introduce new `--stadium-*` consumers outside the existing legacy screens.
+
+Activated by wrapping content in `<div className="theme-stadium">`. Children inherit via CSS cascade. Token values are unchanged and still live in `src/index.css` (kept for the screens not yet migrated):
 
 | Token | Value | Use |
 |---|---|---|
@@ -221,8 +227,7 @@ Activated by wrapping content in `<div className="theme-stadium">`. Children inh
 | `--stadium-accent-hover` | `#60CDFF` | Hover state for accent |
 | `--stadium-divider` | `#1E293B` | Dividers inside stadium |
 
-When to apply: workout execution, post-workout summary, detailed performance stat pages.
-When **not** to apply: CRUD/admin screens (student list, forms, settings).
+Legacy guidance (superseded): "workout execution / detailed stats → stadium mode." Do not follow this for new work — flag it to the user instead if a task seems to call for it.
 
 ---
 
@@ -567,24 +572,11 @@ Trend classes: `.stat-display-trend--up` (green, up arrow), `.stat-display-trend
 
 Anti-pattern: using `<h1>` or body typography to display performance numbers. Always `.stat-display` + `--font-family-stat` + `tabular-nums`.
 
-### 4.16 Stadium Theme
+### 4.16 Stadium Theme — **DEPRECATED, do not use in new/touched screens**
 
-When to apply: workout execution, post-workout summary, detailed performance dashboards — focus contexts where dark reduces distraction.
+Old Athletic-Tech doctrine (see §3.4). Do not wrap any new UI in `.theme-stadium`. Build hero/stat moments as light, rounded, warm surfaces instead — see `StudentCockpitHero` (`src/components/StudentCockpitHero.jsx` + its `.student-cockpit-hero*` CSS in `src/index.css`) for the current reference pattern: `--md-surface` background, `--brand-divider` border, `--radius-lg`, `.stat-display` used at its normal (light) default styling, `btn-primary`/`btn-secondary` for the CTA row.
 
-How: wrap the section with `<section className="theme-stadium">`. Children inherit the `--stadium-*` palette via CSS cascade.
-
-```jsx
-<section className="theme-stadium">
-  <div className="stat-display stat-display--hero">
-    <span className="stat-display-value">
-      85<span className="stat-display-unit">%</span>
-    </span>
-    <span className="stat-display-label">ADERÊNCIA SEMANAL</span>
-  </div>
-</section>
-```
-
-Anti-pattern: applying `.theme-stadium` to entire CRUD/admin pages (student list, forms, settings). Stadium is for performance focus, not admin.
+Screens still wrapped in `.theme-stadium` as of this writing (`SessionDetailHero`, `StudentIntensityBand`/`WorkoutSession`) have not been migrated yet — treat as legacy debt, migrate the next time you touch them, don't extend the pattern.
 
 ### 4.17 Toolbar (search + filter + sort)
 
@@ -773,6 +765,8 @@ When an icon is the **sole content** of a button, `aria-label` is required:
 
 ### 6.3 Logo
 
+**Pending rebrand work:** this is still the old Treinoway mark/filename — out of scope for rebrand phase 1 (no TeuFit logo asset was provided yet). Do not rename the file or change the `alt` text speculatively; wait for the actual TeuFit logo asset and update this section together with the swap.
+
 - File: `public/img/treino_way_transparente.png`
 - Minimum clear-space: the height of the "T" letter on all sides.
 - Minimum size: **80px width**.
@@ -784,14 +778,16 @@ When an icon is the **sole content** of a button, `aria-label` is required:
 
 ---
 
-## 7. Voz & Microcopy
+## 7. Voz & Microcopy — TeuFit
+
+TeuFit brand voice (from `Teufit_BrandExpression.pdf`): "Não somos um robô frio e nem um coach que GRITA por disciplina extrema. Somos um parceiro da rotina do aluno e a plataforma de confiança do treinador." Three pillars: **Amigável & Companheiro** (constância sem neura), **Técnico & Preciso** (orientado a resultados), **Direto & Sem Bugs**. Notification/UI copy should be leve e empática, focused on daily consistency, without unnecessary pressure.
 
 ### 7.1 Princípios
 
 1. **Numbers lead** — "+12% de volume" > "Seu volume aumentou em 12%".
-2. **Imperative action** — "Conclua o treino", "Registre o peso".
+2. **Imperative action, but warm** — "Conclua o treino", "Registre o peso" — direct, never a shouted command.
 3. **Technical terms accepted** — volume, carga, RPE, PR, série, rep, ciclo.
-4. **No emoji, no softening** — "Treino concluído." (not "Parabéns! Você terminou o treino!")
+4. **No emoji, no hype, but not cold either** — "Treino concluído." (not "Parabéns! Você terminou o treino!" and not a robotic non-response either — TeuFit is a companion, not a robot or a drill sergeant).
 5. **"Você"** — never "tu" or "vocês".
 
 ### 7.2 Glossário controlado
@@ -941,7 +937,7 @@ Run through every item before marking a UI task complete.
 Known inconsistencies in the current codebase. Prescribed corrections for future incremental refactors — do **not** fix them as a side effect of unrelated tasks.
 
 1. **Dark theme** — add `@media (prefers-color-scheme: dark)` overrides for all tokens. Component code should need no changes if tokens are used correctly.
-2. **Normalize `--radius-md`** — currently `14px`, target `12px`. Better: migrate all non-stat uses to `--radius-brand` (8px) and retire `--radius-md` / `--radius-sm`.
+2. **Normalize `--radius-md`** — currently `14px`, now *smaller* than the canonical `--radius-brand` (`16px`, bumped in the TeuFit rebrand) it's supposed to alias to. Migrate all non-stat uses to `--radius-brand` and retire `--radius-md` / `--radius-sm`.
 3. **Migrate magic z-index** — raw `z-index` values (10, 50, 100, 9999) still exist in some components. Migrate all to `var(--z-*)`.
 4. **Migrate hardcoded transitions** — replace `transition: 0.2s ease` with `var(--duration-fast) var(--ease-brand)`.
 5. **Apply line-heights systematically** — tokens are defined but not applied to `.card-title`, `.card-description`, `h1`–`h3`, body text classes.
@@ -951,3 +947,6 @@ Known inconsistencies in the current codebase. Prescribed corrections for future
 9. **Consolidate `student-badge` into `badge`** — `Students.jsx` defines a parallel badge system. Migrate to the canonical `badge badge-*` and delete `.student-badge*` CSS.
 10. **Add `--spacing-2xs: 2px`** — current spacing scale starts at 4px; 2px is occasionally needed for borders, dots, ring-offsets and is currently hardcoded.
 11. **Reevaluate typography sizes for Space Grotesk** — the `--font-h1-size: 24px` default was set for Open Sans/Fjalla. §2.2 specifies `28px` for Athletic-Tech H1; introduce size tokens (`--font-display-h1-size: 28px`, etc.) and migrate components off the legacy `--font-h1-*` tokens.
+12. **Migrate remaining `.theme-stadium` screens** — `SessionDetailHero`, `StudentIntensityBand`/`WorkoutSession` still use the deprecated dark stadium theme (§3.4/§4.16). `StudentCockpitHero` is the reference migration; follow the same pattern (light `--md-surface` + `--brand-*` tokens, `.stat-display` default styling, `btn-primary`/`btn-secondary` instead of a bespoke dark button variant).
+13. **TeuFit logo asset** — `public/img/treino_way_transparente.png` and its `alt="Treinoway"` (§6.3) are still the old mark; swap when a real TeuFit logo file is provided.
+14. **`--brand-accent` contrast** — `#FF6F00` is ≈2.8:1 against white, failing AA even at large-text size. Pre-existing usages as text-on-light (e.g. `.summary-stat-card--amber .summary-stat-card-value`) inherited this automatically from the token remap; consider a dedicated darker "on-light" text variant (the codebase already has this pattern for the effort-tier scale: `--effort-tier-4-rail` for visual fills vs `--effort-tier-4-fg` for text) rather than using `--brand-accent` directly as text color.

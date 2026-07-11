@@ -75,7 +75,7 @@ describe('axios interceptor — app-timezone header', () => {
     expect(sentConfig.headers.Authorization).toBeUndefined();
   });
 
-  it('does not attach the header when baseURL does not match the Treinoway API', async () => {
+  it('does not attach the header when baseURL does not match the TeuFit API', async () => {
     setIntlTimezone('America/Sao_Paulo');
     localStorage.setItem('accessToken', 'token-abc');
     const api = await loadApi();

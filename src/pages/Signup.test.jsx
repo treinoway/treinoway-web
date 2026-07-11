@@ -27,7 +27,7 @@ describe('Signup', () => {
 
     expect(screen.getByRole('img', { name: /teufit/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /criar conta/i })).toBeInTheDocument();
-    expect(screen.getByText(/gerencie seus alunos e treinos/i)).toBeInTheDocument();
+    expect(screen.getByText(/alunos, treinos e resultados/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/e-mail/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^senha$/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^criar conta$/i })).toBeInTheDocument();

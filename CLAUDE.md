@@ -42,7 +42,7 @@ The canonical design system reference is the `apply-design` skill (`treinoway-we
 
 All visual code must use tokens from `src/index.css` — never hardcoded hex, px, or inline fixed values. Mobile-first is non-negotiable: base styles target 375px, all breakpoints use `min-width` at 768px and 1024px. Icons come exclusively from `lucide-react` with `strokeWidth={2}`. New CSS goes in `src/index.css` in the appropriate section; check for an existing class before creating a new one.
 
-**Brand expression:** Athletic-Tech DNA (Space Grotesk display + Inter body, UPPERCASE tracking-wide on buttons/labels, `--radius-brand: 8px`, kinetic motion). Use `StatDisplay` for performance numbers. Use `.theme-stadium` wrapper for dark stats/execution screens. See skill §3.5–3.8 for full spec.
+**Brand expression:** the product rebranded to **TeuFit** — "menos é mais," acolhedor, rounded + one restrained geometric-cut accent (never a repeating pattern). One typeface, **Nunito Sans** (Light→Black), for both display and body — no separate display face. Primary `#1054B2`, accent `#FF6F00` (sparingly — see skill §2.1 contrast alert, never as small text/icon color on light bg). `--radius-brand: 16px`. UPPERCASE tracking on buttons/labels is now subtle (`--tracking-wide: 0.03em`), not athletic-aggressive. Use `StatDisplay` for performance numbers. **The old Athletic-Tech "dark stadium cockpit" doctrine is retired — do not wrap new/touched screens in `.theme-stadium`.** See skill §3.3–3.4 and §4.16 for the full spec and what's deprecated.
 
 ---
 

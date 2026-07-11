@@ -22,20 +22,15 @@ describe('Login', () => {
     mockLoginWithGoogle.mockReset();
   });
 
-  it('renders logo, heading, email field, password field, and submit button', () => {
+  it('renders logo, heading, subtitle, email field, password field, and submit button', () => {
     renderWithRouter(<Login />);
 
     expect(screen.getByRole('img', { name: /teufit/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /entrar/i })).toBeInTheDocument();
+    expect(screen.getByText(/bem-vindo de volta/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/e-mail/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^senha$/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^entrar$/i })).toBeInTheDocument();
-  });
-
-  it('does not render a subtitle', () => {
-    renderWithRouter(<Login />);
-
-    expect(screen.queryByText(/gerencie seus alunos/i)).not.toBeInTheDocument();
   });
 
   it('renders Google login button', () => {

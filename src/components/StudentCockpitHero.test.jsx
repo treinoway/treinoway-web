@@ -273,4 +273,23 @@ describe('StudentCockpitHero', () => {
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('dialog', { name: /aderência/i })).not.toBeInTheDocument();
   });
+
+  // TeuFit rebrand regression guard — the hero must stay off the retired
+  // dark "stadium cockpit" theme and use the canonical light button classes.
+  it('does not use the deprecated dark stadium theme', () => {
+    renderWithRouter(<StudentCockpitHero {...defaultProps} />);
+    const hero = screen.getByRole('region', { name: /painel do aluno/i });
+    expect(hero).not.toHaveClass('theme-stadium');
+    expect(hero).toHaveClass('student-cockpit-hero');
+  });
+
+  it('uses canonical btn-primary/btn-secondary for the CTA row, not btn-stadium', () => {
+    renderWithRouter(<StudentCockpitHero {...defaultProps} />);
+    const createButton = screen.getByRole('button', { name: /nova rotina/i });
+    const linkButton = screen.getByRole('button', { name: /vincular anamnese/i });
+    expect(createButton).toHaveClass('btn-primary');
+    expect(linkButton).toHaveClass('btn-secondary');
+    expect(createButton.className).not.toMatch(/btn-stadium/);
+    expect(linkButton.className).not.toMatch(/btn-stadium/);
+  });
 });

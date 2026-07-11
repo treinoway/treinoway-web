@@ -95,6 +95,7 @@ describe('Layout', () => {
     expect(icon).toBeInTheDocument();
     expect(icon.tagName).toBe('IMG');
     expect(icon).toHaveAttribute('alt', 'TeuFit');
+    expect(icon).toHaveAttribute('src', '/img/teufit-f-blue.png');
   });
 
   it('renders same sidebar-logo-icon in collapsed state', async () => {
@@ -114,6 +115,25 @@ describe('Layout', () => {
     expect(icon).toBeInTheDocument();
     expect(icon.tagName).toBe('IMG');
     expect(icon).toHaveAttribute('alt', 'TeuFit');
+    expect(icon).toHaveAttribute('src', '/img/teufit-f-blue.png');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Top app bar — logo icon (mobile)
+  // ---------------------------------------------------------------------------
+
+  it('renders the top-app-bar logo pointing at the TeuFit blue F icon', () => {
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const logo = document.querySelector('.top-app-bar-logo');
+    expect(logo).toBeInTheDocument();
+    expect(logo.tagName).toBe('IMG');
+    expect(logo).toHaveAttribute('alt', 'TeuFit');
+    expect(logo).toHaveAttribute('src', '/img/teufit-f-blue.png');
   });
 
   // ---------------------------------------------------------------------------

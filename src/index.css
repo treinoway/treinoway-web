@@ -2,9 +2,9 @@
    CSS Variables - Design Tokens
    ============================================ */
 :root {
-  /* Font Family */
-  --font-family-base: 'Inter', -apple-system, system-ui, sans-serif;
-  --font-family-heading: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  /* Font Family — TeuFit brand: Nunito Sans (superfamily, Light→Black) for both display and body */
+  --font-family-base: 'Nunito Sans', 'Inter', -apple-system, system-ui, sans-serif;
+  --font-family-heading: 'Nunito Sans', 'Space Grotesk', system-ui, -apple-system, sans-serif;
 
   /* Typography */
   --font-h1-size: 24px;
@@ -52,22 +52,22 @@
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-lg: 28px;
   --radius-xl: 28px;
   --radius-full: 9999px;
 
-  /* Material 3 Colors - Light Theme (seed: #1565C0 blue, accent: #B55A02 orange) */
+  /* Material 3 Colors - Light Theme (seed: #1054B2 TeuFit Azul de Performance, accent: #FF6F00 TeuFit Laranja de Adrenalina) */
   /* Primary - Blue */
-  --color-primary: #1565C0;
+  --color-primary: #1054B2;
   --color-on-primary: #FFFFFF;
-  --color-primary-container: #D4E3F7;
-  --color-on-primary-container: #0D3B6F;
+  --color-primary-container: #D6E5F8;
+  --color-on-primary-container: #0A3A73;
 
   /* Secondary - Orange */
-  --color-secondary: #B55A02;
+  --color-secondary: #FF6F00;
   --color-on-secondary: #FFFFFF;
-  --color-secondary-container: #FDDCBA;
-  --color-on-secondary-container: #6B3400;
+  --color-secondary-container: #FFE1C2;
+  --color-on-secondary-container: #7A3900;
   --color-notice-bg: #FFF7ED;
   --color-notice-bg-hover: #FEF3E2;
 
@@ -173,9 +173,9 @@
   /* Brand Expression v2 — Athletic-Tech (see apply-design skill §3.5) */
 
   /* Paleta Light (default) */
-  --brand-primary: #0A5FCC;
-  --brand-primary-dark: #083E85;
-  --brand-accent: #FF6B1A;
+  --brand-primary: #1054B2;
+  --brand-primary-dark: #0D47A1;
+  --brand-accent: #FF6F00;
   --brand-ink: #0A0F1C;
   --brand-slate: #1E293B;
   --brand-steel: #64748B;
@@ -216,8 +216,9 @@
   --effort-tier-5-bg: #FBE3E3;
   --effort-tier-5-fg: #C12B2B;
 
-  /* Shape */
-  --radius-brand: 8px;
+  /* Shape — TeuFit is rounded/acolhedor by default; radius-stat stays tight for the
+     geometric-cut contrast (chips/badges), radius-brand/lg carry the "breathing" warmth. */
+  --radius-brand: 16px;
   --radius-stat: 4px;
 
   /* Motion */
@@ -232,26 +233,26 @@
   --shadow-stadium: 0 0 0 1px rgba(148, 163, 184, 0.1);
 
   /* Typography */
-  --font-family-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  --font-family-base: 'Inter', -apple-system, system-ui, sans-serif;
-  --font-family-stat: 'Space Grotesk', ui-monospace, monospace;
+  --font-family-display: 'Nunito Sans', 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-family-base: 'Nunito Sans', 'Inter', -apple-system, system-ui, sans-serif;
+  --font-family-stat: 'Nunito Sans', ui-monospace, monospace;
 
   /* Tracking */
   --tracking-tight: -0.02em;
   --tracking-normal: 0;
-  --tracking-wide: 0.08em;
-  --tracking-wider: 0.12em;
+  --tracking-wide: 0.03em;
+  --tracking-wider: 0.06em;
 
   /* iArnold extended palette */
-  --brand-accent-container: #FFF1EA;
+  --brand-accent-container: #FFECDC;
   --md-warning: #F59E0B;
   --md-warning-container: #FFFBEB;
 
   /* Bi-set (superset) accent — derived from brand primary so the technical/blue
      identity stays coherent with selection/active states. */
   --color-superset: var(--brand-primary);
-  --color-superset-tint: rgba(10, 95, 204, 0.06);
-  --color-superset-tint-strong: rgba(10, 95, 204, 0.12);
+  --color-superset-tint: rgba(16, 84, 178, 0.06);
+  --color-superset-tint-strong: rgba(16, 84, 178, 0.12);
 
   /* BrandCalendar */
   --calendar-cell-mobile: 44px;
@@ -978,8 +979,11 @@ html:has(.auth-page) {
 }
 
 .top-app-bar-logo {
-  max-height: 2rem;
-  width: auto;
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .top-app-bar-user {
@@ -4234,57 +4238,88 @@ html:has(.auth-page) {
    Dashboard Hero & Quick Actions
    ============================================ */
 .dashboard-hero {
-  background: linear-gradient(135deg, var(--brand-ink) 0%, var(--brand-primary-dark) 100%);
-  border-radius: var(--radius-brand);
-  color: var(--md-on-primary);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--color-primary-container) 0%, var(--md-surface) 70%);
+  border-radius: var(--radius-lg);
+  color: var(--brand-ink);
   padding: var(--spacing-xl) var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
+}
+
+/* Single restrained geometric-cut accent (TeuFit duality: rounded surface + one
+   angular highlight) — never repeated as a pattern, just this one hero moment. */
+.dashboard-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 45%;
+  margin-left: auto;
+  background: var(--brand-accent);
+  clip-path: polygon(62% 0, 100% 0, 100% 100%, 30% 100%);
+  opacity: 0.08;
+  pointer-events: none;
 }
 
 .dashboard-hero-greeting {
   font-family: var(--font-family-display);
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 800;
   letter-spacing: var(--tracking-tight);
   margin: 0 0 4px;
   line-height: var(--line-height-tight);
-  color: inherit;
+  color: var(--brand-ink);
+  position: relative;
 }
 
 .dashboard-hero-subtitle {
   font-size: var(--font-body-size);
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--brand-steel);
   margin: 0 0 var(--spacing-md);
+  position: relative;
 }
 
 .dashboard-hero-cta {
-  display: inline-block;
-  background: rgba(255, 255, 255, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background: var(--brand-primary);
   color: #FFFFFF;
   border-radius: var(--radius-brand);
-  padding: 6px 16px;
+  padding: 8px var(--spacing-md);
   font-family: var(--font-family-base);
   font-size: var(--font-caption-size);
   font-weight: 600;
   text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
-  transition: background var(--duration-fast) var(--ease-brand);
+  letter-spacing: var(--tracking-normal);
+  transition: background var(--duration-fast) var(--ease-brand),
+              transform var(--duration-fast) var(--ease-brand);
+  position: relative;
+  min-height: 36px;
 }
 
 .dashboard-hero-cta:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--brand-primary-dark);
+  transform: translateY(-1px);
+}
+
+.dashboard-hero-cta:active {
+  transform: scale(0.98);
+}
+
+.dashboard-hero-cta:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
 }
 
 .dashboard-section-title {
   font-family: var(--font-family-display);
   font-size: var(--font-h2-size);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: var(--tracking-tight);
   margin: 0 0 var(--spacing-md);
   color: var(--brand-ink);
-  text-transform: uppercase;
 }
 
 .quick-actions {
@@ -20169,7 +20204,7 @@ nav.onboarding-steps {
   font-weight: 500;
   letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
 }
 .pulse-wave-bars {
   display: grid;
@@ -20182,7 +20217,7 @@ nav.onboarding-steps {
 }
 .pulse-bar {
   height: 100%;
-  background: rgba(241, 245, 249, 0.06);
+  background: color-mix(in srgb, var(--brand-ink) 6%, transparent);
   border-radius: 1px;
   position: relative;
   transition: transform var(--duration-fast) var(--ease-brand),
@@ -20204,15 +20239,15 @@ nav.onboarding-steps {
 .pulse-bar-fill--success {
   background: linear-gradient(
     180deg,
-    var(--stadium-accent),
-    color-mix(in srgb, var(--stadium-accent) 40%, transparent)
+    var(--brand-primary),
+    color-mix(in srgb, var(--brand-primary) 40%, transparent)
   );
 }
 .pulse-bar-fill--partial {
   background: linear-gradient(
     180deg,
-    var(--stadium-accent),
-    color-mix(in srgb, var(--stadium-accent) 40%, transparent)
+    var(--brand-primary),
+    color-mix(in srgb, var(--brand-primary) 40%, transparent)
   );
   opacity: 0.55;
 }
@@ -20224,11 +20259,11 @@ nav.onboarding-steps {
   );
 }
 .pulse-bar-fill--empty {
-  background: rgba(241, 245, 249, 0.10);
+  background: color-mix(in srgb, var(--brand-ink) 10%, transparent);
   height: 18% !important;
 }
 .pulse-bar-fill--ghost {
-  background: rgba(241, 245, 249, 0.04);
+  background: color-mix(in srgb, var(--brand-ink) 4%, transparent);
   height: 22% !important;
 }
 
@@ -20241,7 +20276,7 @@ nav.onboarding-steps {
   bottom: 0;
   left: 50%;
   width: 1px;
-  background: var(--stadium-accent);
+  background: var(--brand-primary);
   opacity: 0.55;
   transform: translateX(-50%);
   pointer-events: none;
@@ -20256,8 +20291,8 @@ nav.onboarding-steps {
   font-size: 8px;
   font-weight: 700;
   letter-spacing: var(--tracking-wider);
-  color: var(--stadium-bg);
-  background: var(--stadium-accent);
+  color: #FFFFFF;
+  background: var(--brand-primary);
   padding: 2px 5px;
   border-radius: 3px;
   white-space: nowrap;
@@ -20265,12 +20300,12 @@ nav.onboarding-steps {
 }
 .pulse-bar--today .pulse-bar-fill {
   box-shadow:
-    0 -3px 0 var(--stadium-accent),
-    0 0 0 1px rgba(56, 189, 248, 0.35);
+    0 -3px 0 var(--brand-primary),
+    0 0 0 1px var(--color-superset-tint-strong);
 }
 .pulse-bar--focus .pulse-bar-fill {
-  box-shadow: 0 -2px 0 var(--stadium-accent),
-              0 0 0 1px rgba(56, 189, 248, 0.45);
+  box-shadow: 0 -2px 0 var(--brand-primary),
+              0 0 0 1px var(--color-superset-tint-strong);
 }
 
 /* Encoding key */
@@ -20284,7 +20319,7 @@ nav.onboarding-steps {
   font-weight: 600;
   letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
   margin-top: var(--spacing-2xs);
 }
 .pulse-wave-key-item {
@@ -20299,14 +20334,14 @@ nav.onboarding-steps {
   border-radius: 1px;
   position: relative;
 }
-.pulse-wave-key-swatch--success { background: var(--stadium-accent); }
+.pulse-wave-key-swatch--success { background: var(--brand-primary); }
 .pulse-wave-key-swatch--partial {
-  background: var(--stadium-accent);
+  background: var(--brand-primary);
   opacity: 0.55;
 }
 .pulse-wave-key-swatch--danger { background: var(--brand-accent); }
 .pulse-wave-key-meta {
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
   margin-left: auto;
   text-transform: none;
   letter-spacing: 0;
@@ -20371,7 +20406,7 @@ nav.onboarding-steps {
   font-weight: 700;
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
 }
 .pulse-heatmap-axis-top span {
   text-align: center;
@@ -20392,7 +20427,7 @@ nav.onboarding-steps {
   font-variant-numeric: tabular-nums;
   font-size: 9px;
   font-weight: 700;
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
   text-align: right;
   align-self: center;
   line-height: 1;
@@ -20400,24 +20435,24 @@ nav.onboarding-steps {
 }
 .pulse-heatmap-cell {
   border-radius: 2px;
-  background: rgba(241, 245, 249, 0.06);
+  background: color-mix(in srgb, var(--brand-ink) 6%, transparent);
   transition: transform var(--duration-fast) var(--ease-brand);
   position: relative;
 }
 .pulse-heatmap-grid .pulse-heatmap-cell:hover { transform: scale(1.15); }
-.pulse-heatmap-cell--s1 { background: color-mix(in srgb, var(--stadium-accent) 32%, transparent); }
-.pulse-heatmap-cell--s2 { background: color-mix(in srgb, var(--stadium-accent) 55%, transparent); }
-.pulse-heatmap-cell--s3 { background: color-mix(in srgb, var(--stadium-accent) 78%, transparent); }
-.pulse-heatmap-cell--s4 { background: var(--stadium-accent); }
+.pulse-heatmap-cell--s1 { background: color-mix(in srgb, var(--brand-primary) 32%, transparent); }
+.pulse-heatmap-cell--s2 { background: color-mix(in srgb, var(--brand-primary) 55%, transparent); }
+.pulse-heatmap-cell--s3 { background: color-mix(in srgb, var(--brand-primary) 78%, transparent); }
+.pulse-heatmap-cell--s4 { background: var(--brand-primary); }
 .pulse-heatmap-cell--partial   {
-  background: var(--stadium-accent);
+  background: var(--brand-primary);
   opacity: 0.55;
 }
 .pulse-heatmap-cell--abandoned { background: var(--brand-accent); }
 .pulse-heatmap-cell--today {
   box-shadow:
-    0 0 0 2px var(--stadium-accent),
-    0 0 0 4px rgba(56, 189, 248, 0.18);
+    0 0 0 2px var(--brand-primary),
+    0 0 0 4px var(--color-superset-tint-strong);
   overflow: visible;
 }
 .pulse-heatmap-cell--today::after {
@@ -20430,8 +20465,8 @@ nav.onboarding-steps {
   font-size: 8px;
   font-weight: 700;
   letter-spacing: var(--tracking-wider);
-  color: var(--stadium-bg);
-  background: var(--stadium-accent);
+  color: #FFFFFF;
+  background: var(--brand-primary);
   padding: 2px 5px;
   border-radius: 3px;
   white-space: nowrap;
@@ -20451,7 +20486,7 @@ nav.onboarding-steps {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wider);
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
 }
 .pulse-heatmap-legend-scale {
   display: inline-flex;
@@ -20463,7 +20498,7 @@ nav.onboarding-steps {
   height: 10px;
   border-radius: 2px;
 }
-.pulse-heatmap-legend-swatch--empty { background: rgba(241, 245, 249, 0.06); }
+.pulse-heatmap-legend-swatch--empty { background: color-mix(in srgb, var(--brand-ink) 6%, transparent); }
 
 /* --- Tooltip ---------------------------------------------- */
 .pulse-tooltip {
@@ -22547,9 +22582,11 @@ nav.onboarding-steps {
 
 /* --- Hero (stadium wrapper) --- */
 .student-cockpit-hero {
-  border-radius: var(--radius-brand);
+  background: var(--md-surface);
+  border: 1px solid var(--brand-divider);
+  border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
-  box-shadow: var(--shadow-stadium);
+  box-shadow: var(--shadow-brand-sm);
   position: relative;
   overflow: hidden;
   margin-bottom: var(--spacing-xl);
@@ -22565,7 +22602,7 @@ nav.onboarding-steps {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 85% 15%, rgba(56, 189, 248, 0.12), transparent 60%);
+  background: radial-gradient(circle at 85% 15%, var(--color-superset-tint-strong), transparent 60%);
   pointer-events: none;
 }
 
@@ -22582,8 +22619,8 @@ nav.onboarding-steps {
   width: 56px;
   height: 56px;
   border-radius: var(--radius-full);
-  background: var(--stadium-surface-elevated);
-  color: var(--stadium-accent);
+  background: var(--color-primary-container);
+  color: var(--brand-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -22591,7 +22628,7 @@ nav.onboarding-steps {
   font-weight: 700;
   font-size: 22px;
   letter-spacing: var(--tracking-tight);
-  box-shadow: 0 0 0 2px var(--stadium-accent);
+  box-shadow: 0 0 0 2px var(--brand-primary);
   flex-shrink: 0;
 }
 
@@ -22604,11 +22641,11 @@ nav.onboarding-steps {
 
 .student-cockpit-hero-name {
   font-family: var(--font-family-display);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 24px;
   letter-spacing: var(--tracking-tight);
   line-height: var(--line-height-tight);
-  color: var(--stadium-text);
+  color: var(--brand-ink);
 }
 
 @media (min-width: 768px) {
@@ -22619,7 +22656,7 @@ nav.onboarding-steps {
 
 .student-cockpit-hero-meta {
   font-size: 13px;
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
   font-variant-numeric: tabular-nums;
 }
 
@@ -22642,30 +22679,30 @@ nav.onboarding-steps {
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--brand-mist);
   border-radius: var(--radius-brand);
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+  box-shadow: inset 0 0 0 1px var(--brand-divider);
   font-size: 11px;
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
   transition: background var(--duration-fast) var(--ease-brand);
 }
 
 .subscription-chip:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--md-surface-container-high);
 }
 
 .subscription-chip-label {
   font-weight: 700;
   letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
 }
 
 .subscription-chip-value {
   font-family: var(--font-family-display);
   font-weight: 700;
   font-size: 13px;
-  color: var(--stadium-text);
+  color: var(--brand-ink);
   letter-spacing: var(--tracking-tight);
 }
 
@@ -22676,26 +22713,26 @@ nav.onboarding-steps {
 
 .subscription-chip-sub {
   font-size: 10px;
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
   font-variant-numeric: tabular-nums;
 }
 
 .subscription-chip--warn {
-  background: rgba(255, 107, 26, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(255, 107, 26, 0.4);
+  background: var(--brand-accent-container);
+  box-shadow: inset 0 0 0 1px rgba(255, 111, 0, 0.35);
 }
 
 .subscription-chip--warn .subscription-chip-label {
-  color: var(--brand-accent);
+  color: var(--effort-tier-4-fg);
 }
 
 .subscription-chip--warn .subscription-chip-value {
-  color: #ffb38a;
+  color: var(--effort-tier-4-fg);
 }
 
 .subscription-chip-days-unit {
   font-size: 10px;
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
   margin-left: var(--spacing-xs);
   font-family: var(--font-family-base);
   font-weight: 400;
@@ -22704,7 +22741,7 @@ nav.onboarding-steps {
 .subscription-chip-divider {
   width: 1px;
   height: 16px;
-  background: rgba(148, 163, 184, 0.3);
+  background: var(--brand-divider);
   flex-shrink: 0;
 }
 
@@ -22713,7 +22750,7 @@ nav.onboarding-steps {
   font-weight: 700;
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
-  color: var(--stadium-accent);
+  color: var(--brand-primary);
   padding: 4px var(--spacing-sm);
   border-radius: var(--radius-stat);
   transition: background var(--duration-fast) var(--ease-brand);
@@ -22721,15 +22758,15 @@ nav.onboarding-steps {
 }
 
 .subscription-chip-action:hover {
-  background: rgba(56, 189, 248, 0.12);
+  background: var(--color-superset-tint);
 }
 
 .subscription-chip--warn .subscription-chip-action {
-  color: var(--brand-accent);
+  color: var(--effort-tier-4-fg);
 }
 
 .subscription-chip--warn .subscription-chip-action:hover {
-  background: rgba(255, 107, 26, 0.15);
+  background: rgba(255, 111, 0, 0.12);
 }
 
 /* --- Eyebrow row (active protocol + period picker) --- */
@@ -22757,7 +22794,7 @@ nav.onboarding-steps {
   font-weight: 700;
   letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
-  color: var(--stadium-text-muted);
+  color: var(--brand-steel);
   flex-wrap: wrap;
 }
 
@@ -22765,8 +22802,8 @@ nav.onboarding-steps {
   width: 8px;
   height: 8px;
   border-radius: var(--radius-full);
-  background: var(--stadium-accent);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--color-superset-tint-strong);
   flex-shrink: 0;
   animation: cockpit-dot-pulse 2s var(--ease-brand) infinite;
 }
@@ -22781,23 +22818,22 @@ nav.onboarding-steps {
 }
 
 .student-cockpit-hero-protocol-name {
-  color: var(--stadium-text);
+  color: var(--brand-ink);
 }
 
 .student-cockpit-hero-protocol-week {
-  color: var(--stadium-accent);
+  color: var(--brand-primary);
 }
 
 .cockpit-period-btn {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
-  background: var(--stadium-surface-elevated);
-  color: var(--stadium-text);
+  background: var(--brand-mist);
+  color: var(--brand-ink);
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
+  letter-spacing: var(--tracking-normal);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-brand);
   min-height: 44px;
@@ -22806,7 +22842,7 @@ nav.onboarding-steps {
 }
 
 .cockpit-period-btn:hover {
-  background: rgba(56, 189, 248, 0.12);
+  background: var(--color-superset-tint);
 }
 
 .cockpit-period-btn:focus-visible {
@@ -22836,9 +22872,8 @@ nav.onboarding-steps {
   }
 }
 
-/* stadium overrides for stat-display inside hero */
 .student-cockpit-hero .stat-display {
-  border-top: 1px solid var(--stadium-divider);
+  border-top: 1px solid var(--brand-divider);
   padding-top: var(--spacing-md);
 }
 
@@ -22854,9 +22889,8 @@ nav.onboarding-steps {
   position: relative;
   margin-bottom: var(--spacing-lg);
   padding: var(--spacing-md);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--brand-mist);
   border-radius: var(--radius-brand);
-  box-shadow: var(--shadow-stadium);
 }
 
 /* --- CTA row --- */
@@ -22867,67 +22901,13 @@ nav.onboarding-steps {
   position: relative;
 }
 
+.student-cockpit-hero-actions > button {
+  flex: 1;
+}
+
 @media (min-width: 768px) {
   .student-cockpit-hero-actions {
     flex-direction: row;
-  }
-}
-
-/* Stadium-specific button variant (inside .theme-stadium) */
-.btn-stadium {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-  font-family: var(--font-family-base);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  padding: 12px var(--spacing-md);
-  border-radius: var(--radius-brand);
-  min-height: 44px;
-  flex: 1;
-  background: var(--stadium-accent);
-  color: var(--stadium-bg);
-  transition: background var(--duration-fast) var(--ease-brand),
-    transform var(--duration-fast) var(--ease-brand);
-}
-
-.btn-stadium:hover {
-  background: var(--stadium-accent-hover, #60cdff);
-}
-
-.btn-stadium:active {
-  transform: scale(0.98);
-}
-
-.btn-stadium:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-}
-
-.btn-stadium--ghost {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--stadium-text);
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
-}
-
-.btn-stadium--ghost:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.btn-stadium--compact {
-  flex: 0 0 auto;
-  align-self: flex-start;
-  padding: var(--spacing-xs) var(--spacing-md);
-  font-size: 12px;
-  min-height: 36px;
-}
-
-@media (min-width: 768px) {
-  .btn-stadium {
-    min-height: 40px;
   }
 }
 
@@ -23056,8 +23036,8 @@ nav.onboarding-steps {
 }
 
 .cockpit-routine-card--active {
-  border-left: 3px solid var(--stadium-accent);
-  background: color-mix(in srgb, var(--stadium-accent) 4%, var(--md-surface));
+  border-left: 3px solid var(--brand-primary);
+  background: color-mix(in srgb, var(--brand-primary) 4%, var(--md-surface));
 }
 
 .cockpit-routine-card-body {

@@ -100,7 +100,7 @@ const Layout = ({ children, noPadding = false }) => {
       {/* Top App Bar — visible only on mobile */}
       <div className="top-app-bar">
         <img
-          src="/img/treino_way_transparente.png"
+          src="/img/teufit-f-blue.png"
           alt="TeuFit"
           className="top-app-bar-logo"
         />
@@ -118,7 +118,7 @@ const Layout = ({ children, noPadding = false }) => {
               aria-label={sidebarOpen ? 'Recolher menu lateral' : 'Expandir menu lateral'}
               aria-expanded={sidebarOpen}
             >
-              <img src="/img/treinoway.ico" alt="TeuFit" className="sidebar-logo-icon" />
+              <img src="/img/teufit-f-blue.png" alt="TeuFit" className="sidebar-logo-icon" />
             </button>
             <button
               type="button"
