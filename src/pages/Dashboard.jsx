@@ -2,31 +2,46 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
-import { Link, useNavigate } from 'react-router-dom';
-import { Dumbbell, ClipboardList, Palette, Sparkles, Trophy, Salad } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { UserPlus, ClipboardList, Palette, Sparkles, Trophy, HeartPulse } from 'lucide-react';
 import api from '../api/axios';
 import NoStudentsModal from '../components/NoStudentsModal';
 import OnboardingChecklistCard from '../components/OnboardingChecklistCard';
 import NutritionistActivationSheet from '../components/NutritionistActivationSheet';
 import NutritionistOnboardingCard from '../components/NutritionistOnboardingCard';
+import WelcomeHero from '../components/WelcomeHero';
+import ControlTower from '../components/ControlTower';
+import ActionGrid from '../components/ActionGrid';
+import ActionCard from '../components/ActionCard';
 import useActiveMode from '../hooks/useActiveMode';
+import useTrainerRoster from '../hooks/useTrainerRoster';
+import useTrainerDashboard from '../hooks/useTrainerDashboard';
+import formatHeroDateLabel from '../utils/formatHeroDate';
+import getGreeting from '../utils/getGreeting';
 
 const SKIP_STORAGE_KEY = 'treinoway.skipNoStudentsWarning';
+const AI_SUPPRESSED_EMAIL = 'gabriel.araujo.lima2011@gmail.com';
+const STUDENT_ONLY_EMAIL = 'n.santos1897@gmail.com';
 
 const Dashboard = () => {
   const { user, hasRole, refreshUser, updateTokens } = useAuth();
-  const isStudentUser = user?.email === 'n.santos1897@gmail.com';
+  const isStudentUser = user?.email === STUDENT_ONLY_EMAIL;
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [activeMode] = useActiveMode();
   const isDualRole = hasRole('TRAINER') && hasRole('NUTRITIONIST');
   const showTrainerCards = hasRole('TRAINER') && (!isDualRole || activeMode === 'trainer');
   const showNutritionistOnboarding = hasRole('NUTRITIONIST') && (!isDualRole || activeMode === 'nutritionist');
-  const [loading, setLoading] = useState(false);
+  const isActivationMode = !hasRole('TRAINER') && !isStudentUser;
+
+  const [becomingTrainer, setBecomingTrainer] = useState(false);
   const [checkingStudents, setCheckingStudents] = useState(false);
   const [showNoStudentsModal, setShowNoStudentsModal] = useState(false);
   const [showNutritionistSheet, setShowNutritionistSheet] = useState(false);
   const [nutritionistIncomplete, setNutritionistIncomplete] = useState(false);
+
+  const roster = useTrainerRoster(showTrainerCards);
+  const controlTower = useTrainerDashboard(showTrainerCards);
 
   useEffect(() => {
     if (refreshUser) {
@@ -56,6 +71,17 @@ const Dashboard = () => {
       // localStorage unavailable; proceed with API check
     }
 
+    // Roster counts are usually already known (cache or the Pulse fetch), so
+    // this is instant — only a true cache miss falls back to a fresh check.
+    if (roster.hasCounts) {
+      if (roster.isEmpty) {
+        setShowNoStudentsModal(true);
+      } else {
+        navigate('/trainer/protocols/new');
+      }
+      return;
+    }
+
     setCheckingStudents(true);
     try {
       const response = await api.get('/trainer/students');
@@ -82,7 +108,7 @@ const Dashboard = () => {
   };
 
   const handleBecomeTrainer = async () => {
-    setLoading(true);
+    setBecomingTrainer(true);
 
     try {
       const response = await api.patch('/become-trainer');
@@ -98,114 +124,131 @@ const Dashboard = () => {
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
     } finally {
-      setLoading(false);
+      setBecomingTrainer(false);
     }
   };
 
+  const dateLabel = formatHeroDateLabel();
+  const greeting = getGreeting();
+
+  let heroCta = null;
+  if (showTrainerCards) {
+    heroCta = roster.hasCounts && roster.isEmpty
+      ? { label: 'Vincular primeiro aluno', to: '/trainer/students' }
+      : { label: 'Criar rotina', onClick: handleCreateRoutine, loading: checkingStudents };
+  }
+
   return (
     <div>
-      <div className="dashboard-hero">
-        <h1 className="dashboard-hero-greeting">{user?.firstName ? `Olá, ${user.firstName}!` : 'Bem-vindo!'}</h1>
-        <p className="dashboard-hero-subtitle">Pronto para o trabalho de hoje?</p>
-        {hasRole('TRAINER') && (
-          <Link to="/trainer/students" className="dashboard-hero-cta">
-            Ver meus alunos →
-          </Link>
-        )}
-      </div>
+      <WelcomeHero
+        name={user?.firstName}
+        dateLabel={dateLabel}
+        subtitle="Pronto para o trabalho de hoje?"
+        cta={heroCta}
+        greeting={greeting}
+      />
+
+      {showTrainerCards && (
+        <ControlTower
+          data={controlTower.data}
+          loading={controlTower.loading}
+          error={controlTower.error}
+          onRetry={controlTower.refetch}
+        />
+      )}
 
       {showTrainerCards && <OnboardingChecklistCard />}
       {showNutritionistOnboarding && nutritionistIncomplete && <NutritionistOnboardingCard />}
 
-      <section>
-        <h2 className="dashboard-section-title">Ações Rápidas</h2>
-        <div className="quick-actions">
-          {showTrainerCards && user?.email !== 'gabriel.araujo.lima2011@gmail.com' && (
-            <Link to="/trainer/ai-assistant" className="quick-action-card quick-action-card--ai">
-              <div className="quick-action-icon quick-action-icon--ai">
-                <Sparkles size={20} strokeWidth={2} />
-              </div>
-              <span className="quick-action-label quick-action-label--ai">iArnold</span>
-              <p className="quick-action-desc quick-action-desc--ai">Crie treinos e rotinas com linguagem natural usando inteligência artificial</p>
-            </Link>
-          )}
-
-          {showTrainerCards && (
-            <button
-              onClick={handleCreateRoutine}
-              disabled={checkingStudents}
-              className="quick-action-card quick-action-card--highlight"
-            >
-              <div className="quick-action-icon">
-                <ClipboardList size={20} strokeWidth={2} />
-              </div>
-              <span className="quick-action-label">
-                {checkingStudents ? 'Verificando...' : 'Criar Rotina para um Aluno'}
-              </span>
-              <p className="quick-action-desc">Monte uma nova rotina de treino personalizada e vincule diretamente a um aluno</p>
-            </button>
-          )}
-
-          {showTrainerCards && (
-            <Link to="/trainer/branding" className="quick-action-card">
-              <div className="quick-action-icon">
-                <Palette size={20} strokeWidth={2} />
-              </div>
-              <span className="quick-action-label">Personalize sua Marca</span>
-              <p className="quick-action-desc">Defina as cores e o visual da sua marca para criar uma experiência personalizada para seus alunos</p>
-            </Link>
-          )}
-
-          {showTrainerCards && (
-            <Link to="/trainer/challenges" className="quick-action-card">
-              <div className="quick-action-icon">
-                <Trophy size={20} strokeWidth={2} />
-              </div>
-              <span className="quick-action-label">Campeonatos</span>
-              <p className="quick-action-desc">Veja os campeonatos e desafios dos seus alunos</p>
-            </Link>
-          )}
-
-          {isStudentUser && (
-            <Link to="/my/challenges" className="quick-action-card">
-              <div className="quick-action-icon">
-                <Trophy size={20} strokeWidth={2} />
-              </div>
-              <span className="quick-action-label">Campeonatos</span>
-              <p className="quick-action-desc">Participe de campeonatos e acompanhe seu desempenho</p>
-            </Link>
-          )}
-
-          {!hasRole('TRAINER') && (
-            <button
+      {isActivationMode && (
+        <section>
+          <div className="section-header">
+            <h2 className="dashboard-section-title">Comece a atender</h2>
+          </div>
+          <ActionGrid>
+            <ActionCard
+              icon={UserPlus}
+              title="Seja um Treinador"
+              description="Habilite sua conta para criar rotinas, gerenciar alunos e muito mais"
               onClick={handleBecomeTrainer}
-              disabled={loading}
-              className="quick-action-card"
-            >
-              <div className="quick-action-icon">
-                <Dumbbell size={20} strokeWidth={2} />
-              </div>
-              <span className="quick-action-label">
-                {loading ? 'Processando...' : 'Seja um Treinador'}
-              </span>
-              <p className="quick-action-desc">Habilite sua conta para criar rotinas, gerenciar alunos e muito mais</p>
-            </button>
-          )}
+              loading={becomingTrainer}
+              variant="primary"
+            />
+            {!hasRole('NUTRITIONIST') && (
+              <ActionCard
+                icon={HeartPulse}
+                title="Seja um Nutricionista"
+                description="Ative seu perfil de nutricionista e comece a atender clientes na plataforma"
+                onClick={() => setShowNutritionistSheet(true)}
+              />
+            )}
+          </ActionGrid>
+        </section>
+      )}
 
-          {!hasRole('NUTRITIONIST') && (
-            <button
-              onClick={() => setShowNutritionistSheet(true)}
-              className="quick-action-card"
-            >
-              <div className="quick-action-icon">
-                <Salad size={20} strokeWidth={2} />
-              </div>
-              <span className="quick-action-label">Seja um Nutricionista</span>
-              <p className="quick-action-desc">Ative seu perfil de nutricionista e comece a atender clientes na plataforma</p>
-            </button>
-          )}
-        </div>
-      </section>
+      {(showTrainerCards || isStudentUser) && (
+        <section>
+          <div className="section-header">
+            <h2 className="dashboard-section-title">Ações</h2>
+          </div>
+          <ActionGrid>
+            {showTrainerCards && user?.email !== AI_SUPPRESSED_EMAIL && (
+              <ActionCard
+                icon={Sparkles}
+                title="iArnold"
+                description="Crie treinos e rotinas com linguagem natural usando inteligência artificial"
+                to="/trainer/ai-assistant"
+                variant="ai"
+              />
+            )}
+
+            {showTrainerCards && (
+              <ActionCard
+                icon={Palette}
+                title="Sua marca"
+                description="Defina as cores e o visual da sua marca para criar uma experiência personalizada para seus alunos"
+                to="/trainer/branding"
+              />
+            )}
+
+            {showTrainerCards && (
+              <ActionCard
+                icon={Trophy}
+                title="Campeonatos"
+                description="Veja os campeonatos e desafios dos seus alunos"
+                to="/trainer/challenges"
+              />
+            )}
+
+            {showTrainerCards && !hasRole('NUTRITIONIST') && (
+              <ActionCard
+                icon={HeartPulse}
+                title="Seja um Nutricionista"
+                description="Ative seu perfil de nutricionista e comece a atender clientes na plataforma"
+                onClick={() => setShowNutritionistSheet(true)}
+              />
+            )}
+
+            {isStudentUser && (
+              <ActionCard
+                icon={ClipboardList}
+                title="Meus treinos"
+                description="Veja seus treinos e registre suas séries"
+                to="/my/protocols"
+              />
+            )}
+
+            {isStudentUser && (
+              <ActionCard
+                icon={Trophy}
+                title="Campeonatos"
+                description="Participe de campeonatos e acompanhe seu desempenho"
+                to="/my/challenges"
+              />
+            )}
+          </ActionGrid>
+        </section>
+      )}
 
       <NoStudentsModal
         open={showNoStudentsModal}

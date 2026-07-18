@@ -1032,6 +1032,72 @@ const ptBR = {
     deletedToast: "Substituto removido.",
     deleteAria: "Excluir substituto {name}",
   },
+  students: {
+    viewProfileAria: "Ver perfil de {name}.",
+    rowBlockersAria: "{name} — {blockers}. Ver perfil.",
+    quotaBanner: {
+      title: "Você atingiu o limite de alunos da sua cota",
+      bodyOne: "{count} aluno está bloqueado pela sua cota. Faça upgrade para liberá-lo.",
+      bodyOther: "{count} alunos estão bloqueados pela sua cota. Faça upgrade para liberá-los.",
+      cta: "Fazer upgrade",
+    },
+  },
+
+  controlTower: {
+    title: "Tua semana em foco",
+    loadingAria: "Carregando tua semana em foco",
+    updatedPrefix: "atualizado {timestamp}",
+    retryButton: "Atualizar",
+    retryFallback: "Não foi possível atualizar.",
+    radar: {
+      label: "Radar",
+      calmMessage: "Nada exige ação agora",
+      expiredPlans: {
+        label: "Planos expirados",
+        subcue: "Cobrança não renovada",
+        ariaLabel: "{count} planos expirados, ver detalhes",
+      },
+      renewingSoon: {
+        label: "Renovação em até 7 dias",
+        subcue: "Vence em até 7 dias",
+        ariaLabel: "{count} planos com renovação em até 7 dias, ver detalhes",
+      },
+      expiredRoutines: {
+        label: "Rotinas vencidas",
+        subcue: "Sem rotina ativa",
+      },
+      routinesExpiringSoon: {
+        label: "Rotinas vencendo em até 7 dias",
+        subcue: "Renovar em breve",
+      },
+    },
+    finance: {
+      label: "Financeiro",
+      monthReceived: "Recebido no mês",
+      totalReceived: "Acumulado total",
+      overdue: {
+        label: "Pagamentos em atraso",
+        subcueStale: "Toque para atualizar",
+        subcueAmount: "{amount} em atraso",
+        ariaLabel: "{count} pagamentos em atraso, ver detalhes",
+      },
+    },
+    pulse: {
+      label: "Pulso",
+      inactiveStudents: {
+        label: "Alunos inativos 7d+",
+        subcue: "Sem atividade recente",
+        ariaLabel: "{count} alunos inativos há 7 dias ou mais, ver detalhes",
+      },
+      adherenceMonth: "Adesão do mês",
+      weekPr: {
+        label: "PRs da semana",
+        countOne: "1 PR",
+        countOther: "{count} PRs",
+        empty: "Nenhum PR essa semana",
+      },
+    },
+  },
 };
 
 export default ptBR;

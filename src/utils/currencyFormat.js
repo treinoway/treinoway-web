@@ -43,3 +43,21 @@ export const parseCurrencyBRL = (rawValue) => {
   if (!Number.isFinite(numericValue)) return null;
   return numericValue;
 };
+
+/**
+ * Format a monetary value as BRL currency, abbreviating amounts ≥ R$1,000,000
+ * as "R$ X,X mi" (e.g. 1200000 → "R$ 1,2 mi"). Use for compact stat readouts
+ * where the full value belongs in a `title` attribute for on-demand precision.
+ * Returns "-" for null/undefined/invalid input.
+ */
+export const formatCurrencyCompactBRL = (value) => {
+  if (value === null || value === undefined || value === '') return '-';
+  const numericValue = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numericValue)) return '-';
+  if (Math.abs(numericValue) < 1_000_000) return formatCurrencyBRL(numericValue);
+  const millions = (numericValue / 1_000_000).toLocaleString('pt-BR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  return `R$ ${millions} mi`;
+};

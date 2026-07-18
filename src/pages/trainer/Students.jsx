@@ -13,10 +13,16 @@ import {
   Trash2,
   TriangleAlert,
   OctagonAlert,
+  ClipboardList,
+  CreditCard,
+  XCircle,
+  Clock,
+  ArrowUpCircle,
+  ArrowUp,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
-import { translateError } from '../../i18n';
+import { t, translateError } from '../../i18n';
 import api from '../../api/axios';
 import { markOnboardingStepOptimistic } from '../../hooks/useOnboardingStatus';
 import formatRelativeTime from '../../utils/relativeTime';
@@ -80,19 +86,24 @@ Avatar.defaultProps = {
 const StatusBadge = ({ status }) => {
   if (status === 'ativo') {
     return (
-      <span className="student-badge student-badge--green">
-        <span className="student-badge-dot" />
+      <span className="badge badge-green">
+        <span className="badge-dot" />
         Ativo
       </span>
     );
   }
   if (status === 'pendente') {
-    return <span className="student-badge student-badge--blue">Pendente</span>;
+    return <span className="badge badge-blue">Pendente</span>;
   }
   if (status === 'vencido') {
-    return <span className="student-badge student-badge--red">Vencido</span>;
+    return <span className="badge badge-red">Vencido</span>;
   }
-  return <span className="student-badge">Ativo</span>;
+  return (
+    <span className="badge badge-green">
+      <span className="badge-dot" />
+      Ativo
+    </span>
+  );
 };
 
 StatusBadge.propTypes = {
@@ -103,41 +114,136 @@ StatusBadge.defaultProps = {
   status: 'ativo',
 };
 
-/* ─── StatsHeader ───────────────────────────────────────────────────────── */
+/* ─── Readiness ─────────────────────────────────────────────────────────── */
+/* Renders the backend-supplied `blockersLabel[i]` (pre-translated pt-BR) as
+   chips, keyed/ordered by `blockers[i]`. Icons map from the stable code; text
+   is always the backend label — never re-translated in the frontend.
+   `blocked_on_plan` is the trainer's seat-quota gate (blue "upgrade" chip);
+   every other code is a student issue (amber "attention" chip). */
 
-const StatsHeader = ({ students }) => {
+const PLATFORM_BLOCKER = 'blocked_on_plan';
+
+const BLOCKER_ICON = {
+  no_active_protocol: ClipboardList,
+  no_subscription: CreditCard,
+  subscription_cancelled: XCircle,
+  subscription_overdue: Clock,
+  blocked_on_plan: ArrowUpCircle,
+};
+
+const hasBlockers = (student) =>
+  Array.isArray(student.blockers) && student.blockers.length > 0;
+
+const getRowRailClass = (student) => {
+  if (!hasBlockers(student)) return '';
+  if (student.blockers.includes(PLATFORM_BLOCKER)) return ' student-stat-row--platform';
+  return ' student-stat-row--needs-action';
+};
+
+const getRowAriaLabel = (student, fullName) => {
+  if (!hasBlockers(student)) {
+    return (t('students.viewProfileAria') || 'Ver perfil de {name}.').replace('{name}', fullName);
+  }
+  const labels = Array.isArray(student.blockersLabel) ? student.blockersLabel.filter(Boolean) : [];
+  return (t('students.rowBlockersAria') || '{name} — {blockers}. Ver perfil.')
+    .replace('{name}', fullName)
+    .replace('{blockers}', labels.join(', '));
+};
+
+const ReadinessChips = ({ blockers, blockersLabel }) => (
+  <div className="readiness-chips" aria-hidden="true">
+    {blockers.map((code, index) => {
+      const Icon = BLOCKER_ICON[code] || TriangleAlert;
+      const variant = code === PLATFORM_BLOCKER ? 'platform' : 'blocker';
+      const label = blockersLabel?.[index] || '';
+      return (
+        <span key={`${code}-${index}`} className={`readiness-chip readiness-chip--${variant}`}>
+          <Icon size={13} strokeWidth={2} aria-hidden="true" />
+          {label}
+        </span>
+      );
+    })}
+  </div>
+);
+
+ReadinessChips.propTypes = {
+  blockers: PropTypes.arrayOf(PropTypes.string).isRequired,
+  blockersLabel: PropTypes.arrayOf(PropTypes.string),
+};
+
+ReadinessChips.defaultProps = {
+  blockersLabel: [],
+};
+
+/* ─── QuotaBanner ───────────────────────────────────────────────────────── */
+/* Surfaces the platform seat-quota problem once, at list level, with a single
+   upgrade CTA — never per row. Shown only when ≥1 student is blocked_on_plan. */
+
+const QuotaBanner = ({ count, onUpgrade }) => {
+  const bodyKey = count === 1 ? 'students.quotaBanner.bodyOne' : 'students.quotaBanner.bodyOther';
+  const body = (t(bodyKey) || '').replace('{count}', String(count));
+
+  return (
+    <div className="quota-banner" role="status">
+      <span className="quota-banner-icon" aria-hidden="true">
+        <ArrowUp size={20} strokeWidth={2} />
+      </span>
+      <div className="quota-banner-text">
+        <strong>{t('students.quotaBanner.title')}</strong>
+        <span>{body}</span>
+      </div>
+      <button type="button" className="btn-primary" onClick={onUpgrade}>
+        {t('students.quotaBanner.cta')}
+      </button>
+    </div>
+  );
+};
+
+QuotaBanner.propTypes = {
+  count: PropTypes.number.isRequired,
+  onUpgrade: PropTypes.func.isRequired,
+};
+
+/* ─── StudentsStatsHero ─────────────────────────────────────────────────── */
+/* Single rounded surface for the page's aggregate counters. Carries the
+   page's one restrained geometric-cut accent (see .students-stats-hero::before
+   in index.css) — the cut appears here only, never repeated per stat. */
+
+const StudentsStatsHero = ({ students }) => {
   const total = students.length;
   const active = students.filter((s) => s.status === 'ativo').length;
   const pending = students.filter((s) => s.status === 'pendente').length;
   const overdue = students.filter((s) => s.status === 'vencido').length;
 
   return (
-    <div className="students-stats-row" aria-label="Resumo de alunos">
-      <div className="students-stat-card">
-        <span className="students-stat-card-label">Total</span>
-        <span className="students-stat-card-value">{total}</span>
-        <span className="students-stat-card-sub">{active} ativos</span>
-      </div>
-      <div className="students-stat-card">
-        <span className="students-stat-card-label">Ativos</span>
-        <span className="students-stat-card-value students-stat-card-value--accent">{active}</span>
-        <span className="students-stat-card-sub">com treinos vigentes</span>
-      </div>
-      <div className="students-stat-card">
-        <span className="students-stat-card-label">Pendentes</span>
-        <span className="students-stat-card-value students-stat-card-value--warn">{pending}</span>
-        <span className="students-stat-card-sub">aguardando anamnese</span>
-      </div>
-      <div className="students-stat-card">
-        <span className="students-stat-card-label">Atenção</span>
-        <span className="students-stat-card-value students-stat-card-value--danger">{overdue}</span>
-        <span className="students-stat-card-sub">planos vencidos</span>
+    <div className="students-stats-hero" aria-label="Resumo de alunos">
+      <div className="students-stats-hero-grid">
+        <div className="students-stats-hero-stat">
+          <span className="students-stats-hero-stat-label">Total</span>
+          <span className="students-stats-hero-stat-value">{total}</span>
+          <span className="students-stats-hero-stat-sub">{active} ativos</span>
+        </div>
+        <div className="students-stats-hero-stat">
+          <span className="students-stats-hero-stat-label">Ativos</span>
+          <span className="students-stats-hero-stat-value students-stats-hero-stat-value--accent">{active}</span>
+          <span className="students-stats-hero-stat-sub">com treinos vigentes</span>
+        </div>
+        <div className="students-stats-hero-stat">
+          <span className="students-stats-hero-stat-label">Pendentes</span>
+          <span className="students-stats-hero-stat-value students-stats-hero-stat-value--warn">{pending}</span>
+          <span className="students-stats-hero-stat-sub">aguardando anamnese</span>
+        </div>
+        <div className="students-stats-hero-stat">
+          <span className="students-stats-hero-stat-label">Atenção</span>
+          <span className="students-stats-hero-stat-value students-stats-hero-stat-value--danger">{overdue}</span>
+          <span className="students-stats-hero-stat-sub">planos vencidos</span>
+        </div>
       </div>
     </div>
   );
 };
 
-StatsHeader.propTypes = {
+StudentsStatsHero.propTypes = {
   students: PropTypes.array.isRequired,
 };
 
@@ -224,11 +330,13 @@ const lastWorkoutLevel = (iso) => {
   return 'ok';
 };
 
-const LEVEL_COLOR = {
-  ok: undefined,
-  warn: 'var(--md-warning)',
-  danger: 'var(--color-error)',
-  none: 'var(--brand-steel)',
+// warn uses the effort-tier "on light" amber-safe text token — --brand-accent
+// and --md-warning both fail WCAG AA as small text on a white surface.
+const LEVEL_VALUE_CLASS = {
+  ok: '',
+  warn: 'student-stat-inline-value--warn',
+  danger: 'student-stat-inline-value--danger',
+  none: 'student-stat-inline-value--none',
 };
 
 const LEVEL_TITLE = {
@@ -255,7 +363,7 @@ const StudentsStatsFirst = ({ students, onUnlink, navigate }) => (
       return (
         <div
           key={student.id}
-          className="student-stat-row"
+          className={`student-stat-row${getRowRailClass(student)}`}
           onClick={() => navigate(`/trainer/students/${student.id}`, { state: { student } })}
           role="button"
           tabIndex={0}
@@ -265,11 +373,11 @@ const StudentsStatsFirst = ({ students, onUnlink, navigate }) => (
               navigate(`/trainer/students/${student.id}`, { state: { student } });
             }
           }}
-          aria-label={`Ver perfil de ${fullName}`}
+          aria-label={getRowAriaLabel(student, fullName)}
         >
           <div className="student-stat-row-identity">
             <Avatar name={fullName} status={status} size={40} />
-            <div style={{ minWidth: 0 }}>
+            <div className="student-stat-row-info">
               <div className="student-stat-row-name">{fullName}</div>
               <div className="student-stat-row-meta">
                 <StatusBadge status={status} />
@@ -277,6 +385,9 @@ const StudentsStatsFirst = ({ students, onUnlink, navigate }) => (
                   <span>{student.email}</span>
                 )}
               </div>
+              {hasBlockers(student) && (
+                <ReadinessChips blockers={student.blockers} blockersLabel={student.blockersLabel} />
+              )}
             </div>
           </div>
 
@@ -292,10 +403,7 @@ const StudentsStatsFirst = ({ students, onUnlink, navigate }) => (
                     className="student-stat-inline"
                     title={LEVEL_TITLE.adherence[aLvl]}
                   >
-                    <span
-                      className="student-stat-inline-value"
-                      style={LEVEL_COLOR[aLvl] ? { color: LEVEL_COLOR[aLvl], display: 'inline-flex', alignItems: 'center', gap: 4 } : undefined}
-                    >
+                    <span className={`student-stat-inline-value ${LEVEL_VALUE_CLASS[aLvl]}`.trim()}>
                       <LevelIcon level={aLvl} />
                       {student.adherence == null ? '—' : `${Math.round(student.adherence)}%`}
                     </span>
@@ -310,10 +418,7 @@ const StudentsStatsFirst = ({ students, onUnlink, navigate }) => (
                     className="student-stat-inline"
                     title={LEVEL_TITLE.lastWorkout[lwLvl]}
                   >
-                    <span
-                      className="student-stat-inline-value"
-                      style={LEVEL_COLOR[lwLvl] ? { color: LEVEL_COLOR[lwLvl], display: 'inline-flex', alignItems: 'center', gap: 4 } : undefined}
-                    >
+                    <span className={`student-stat-inline-value ${LEVEL_VALUE_CLASS[lwLvl]}`.trim()}>
                       <LevelIcon level={lwLvl} />
                       {formatRelativeTime(student.lastWorkoutAt) ?? '—'}
                     </span>
@@ -461,11 +566,10 @@ const LinkStudentModal = ({ onClose, onSubmit, linking }) => {
               />
               <span className="form-hint">O aluno receberá um convite por e-mail.</span>
             </div>
-            <div className="btn-group" style={{ marginTop: 'var(--spacing-lg)' }}>
+            <div className="btn-group btn-group--equal mt-lg">
               <button
                 type="submit"
                 className="btn-primary"
-                style={{ flex: 1 }}
                 disabled={linking || !email.trim()}
               >
                 {linking ? 'Vinculando…' : 'Vincular'}
@@ -473,7 +577,6 @@ const LinkStudentModal = ({ onClose, onSubmit, linking }) => {
               <button
                 type="button"
                 className="btn-secondary"
-                style={{ flex: 1 }}
                 onClick={onClose}
                 disabled={linking}
               >
@@ -504,7 +607,7 @@ const ImportPreviewTable = ({ students, selectedEmails, onToggleStudent, onToggl
       <table className="students-t-import">
         <thead>
           <tr>
-            <th style={{ width: 36 }}>
+            <th className="students-t-import-checkbox-col">
               <input
                 type="checkbox"
                 aria-label="Selecionar todos"
@@ -536,20 +639,20 @@ const ImportPreviewTable = ({ students, selectedEmails, onToggleStudent, onToggl
                   {student.email || '—'}
                 </span>
               </td>
-              <td className="table-col-desktop-only" style={{ color: 'var(--brand-steel)' }}>
+              <td className="table-col-desktop-only text-steel">
                 {student.email || '—'}
               </td>
               <td className="table-col-desktop-only">{student.plan || '—'}</td>
               <td>
                 {student.duplicateEmail ? (
-                  <span className="student-badge student-badge--red">Duplicado</span>
+                  <span className="badge badge-red">Duplicado</span>
                 ) : student.status === 'ATIVO' || student.status === 'Entregue' ? (
-                  <span className="student-badge student-badge--green">
-                    <span className="student-badge-dot" />
+                  <span className="badge badge-green">
+                    <span className="badge-dot" />
                     Ativo
                   </span>
                 ) : (
-                  <span className="student-badge student-badge--blue">Pendente</span>
+                  <span className="badge badge-blue">Pendente</span>
                 )}
               </td>
             </tr>
@@ -636,7 +739,7 @@ const ImportStudentsModal = ({
 
           {importStep === 'platform' && (
             <>
-              <p className="form-hint" style={{ marginBottom: 'var(--spacing-md)' }}>
+              <p className="form-hint mb-md">
                 Selecione a plataforma de origem.
               </p>
               <button
@@ -681,11 +784,10 @@ const ImportStudentsModal = ({
                   disabled={importLoading}
                 />
               </div>
-              <div className="btn-group" style={{ marginTop: 'var(--spacing-md)' }}>
+              <div className="btn-group btn-group--equal mt-md">
                 <button
                   type="submit"
                   className="btn-primary"
-                  style={{ flex: 1 }}
                   disabled={importLoading || !importFile}
                 >
                   {importLoading ? 'Processando…' : 'Continuar'}
@@ -693,7 +795,6 @@ const ImportStudentsModal = ({
                 <button
                   type="button"
                   className="btn-secondary"
-                  style={{ flex: 1 }}
                   onClick={onGoBack}
                   disabled={importLoading}
                 >
@@ -711,8 +812,8 @@ const ImportStudentsModal = ({
                   <strong>{importData.summary.total}</strong>{' '}
                   {importData.summary.total === 1 ? 'aluno encontrado' : 'alunos encontrados'}
                 </span>
-                <span style={{ color: 'var(--brand-steel)' }}>·</span>
-                <span style={{ color: 'var(--brand-steel)' }}>
+                <span className="text-steel">·</span>
+                <span className="text-steel">
                   <strong>{importData.summary.duplicateEmails}</strong>{' '}
                   {importData.summary.duplicateEmails === 1 ? 'duplicado' : 'duplicados'}
                 </span>
@@ -728,11 +829,10 @@ const ImportStudentsModal = ({
                 onToggleAll={onToggleAll}
               />
 
-              <div className="btn-group" style={{ marginTop: 'var(--spacing-md)' }}>
+              <div className="btn-group btn-group--equal mt-md">
                 <button
                   type="button"
                   className="btn-primary"
-                  style={{ flex: 1 }}
                   disabled={selectedEmails.size === 0}
                   onClick={onSendInvites}
                 >
@@ -741,7 +841,6 @@ const ImportStudentsModal = ({
                 <button
                   type="button"
                   className="btn-secondary"
-                  style={{ flex: 1 }}
                   onClick={onGoBack}
                 >
                   Voltar
@@ -789,16 +888,24 @@ const getStudentName = (student) => {
   return name || null;
 };
 
+const VALID_STATUS_FILTERS = ['ativo', 'pendente', 'vencido'];
+
+const readInitialStatusFilter = (searchParams) => {
+  const status = searchParams.get('status');
+  return VALID_STATUS_FILTERS.includes(status) ? status : 'all';
+};
+
 const Students = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(() => readInitialStatusFilter(searchParams));
   const [sortBy, setSortBy] = useState('name');
 
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -835,6 +942,11 @@ const Students = () => {
     pendente: students.filter((s) => s.status === 'pendente').length,
     vencido: students.filter((s) => s.status === 'vencido').length,
   }), [students]);
+
+  const blockedByQuotaCount = useMemo(
+    () => students.filter((s) => Array.isArray(s.blockers) && s.blockers.includes(PLATFORM_BLOCKER)).length,
+    [students]
+  );
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -999,8 +1111,13 @@ const Students = () => {
         </div>
       </div>
 
-      {/* Stats row — only when students exist */}
-      {students.length > 0 && <StatsHeader students={students} />}
+      {/* Stats hero — only when students exist */}
+      {students.length > 0 && <StudentsStatsHero students={students} />}
+
+      {/* Quota banner — surfaces the seat-quota problem once, at list level */}
+      {blockedByQuotaCount > 0 && (
+        <QuotaBanner count={blockedByQuotaCount} onUpgrade={() => navigate('/profile')} />
+      )}
 
       {/* Empty state */}
       {students.length === 0 ? (
@@ -1034,12 +1151,11 @@ const Students = () => {
         <div className="overlay" onClick={() => setConfirmDialog(null)}>
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <p className="confirm-dialog-message">{confirmDialog.message}</p>
-            <div className="btn-group">
+            <div className="btn-group btn-group--equal">
               <button
                 type="button"
                 onClick={confirmDialog.onConfirm}
                 className="btn-danger"
-                style={{ flex: 1 }}
               >
                 Desvincular
               </button>
@@ -1047,7 +1163,6 @@ const Students = () => {
                 type="button"
                 onClick={() => setConfirmDialog(null)}
                 className="btn-secondary"
-                style={{ flex: 1 }}
               >
                 Cancelar
               </button>

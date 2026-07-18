@@ -352,6 +352,61 @@ describe('Students', () => {
     expect(screen.getByText('Bruno Costa')).toBeInTheDocument();
   });
 
+  // ── Toolbar — status filter initialized from ?status= URL param ───────
+
+  it('initializes the status filter from a valid ?status= param (pendente)', async () => {
+    api.get.mockResolvedValue({ data: mockMultipleStudents });
+    renderWithRouter(<Students />, { route: '/trainer/students?status=pendente' });
+
+    await waitFor(() => expect(screen.getByText('Bruno Costa')).toBeInTheDocument());
+    expect(screen.queryByText('Ana Silva')).not.toBeInTheDocument();
+    expect(screen.queryByText('Carla Lima')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /pendentes/i })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('initializes the status filter from a valid ?status= param (vencido)', async () => {
+    api.get.mockResolvedValue({ data: mockMultipleStudents });
+    renderWithRouter(<Students />, { route: '/trainer/students?status=vencido' });
+
+    await waitFor(() => expect(screen.getByText('Carla Lima')).toBeInTheDocument());
+    expect(screen.queryByText('Ana Silva')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bruno Costa')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /atenção/i })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('falls back to "all" when ?status= is missing', async () => {
+    api.get.mockResolvedValue({ data: mockMultipleStudents });
+    renderWithRouter(<Students />, { route: '/trainer/students' });
+
+    await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
+    expect(screen.getByText('Bruno Costa')).toBeInTheDocument();
+    expect(screen.getByText('Carla Lima')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^todos/i })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('falls back to "all" when ?status= is invalid', async () => {
+    api.get.mockResolvedValue({ data: mockMultipleStudents });
+    renderWithRouter(<Students />, { route: '/trainer/students?status=bogus' });
+
+    await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
+    expect(screen.getByText('Bruno Costa')).toBeInTheDocument();
+    expect(screen.getByText('Carla Lima')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^todos/i })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('keeps the tab UI as the source of truth after mount (still switchable)', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockMultipleStudents });
+    renderWithRouter(<Students />, { route: '/trainer/students?status=pendente' });
+
+    await waitFor(() => expect(screen.getByText('Bruno Costa')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('tab', { name: /^todos/i }));
+    expect(screen.getByText('Ana Silva')).toBeInTheDocument();
+    expect(screen.getByText('Bruno Costa')).toBeInTheDocument();
+    expect(screen.getByText('Carla Lima')).toBeInTheDocument();
+  });
+
   // ── Unlink flow ───────────────────────────────────────────────────────
 
   it('clicking trash button opens the confirm dialog directly', async () => {
@@ -835,5 +890,97 @@ describe('Students', () => {
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith('Erro ao carregar alunos.', 'error');
     });
+  });
+
+  // ── Readiness indicators ───────────────────────────────────────────────
+
+  const mockStudentsWithReadiness = (list) => {
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: list });
+      return Promise.resolve({ data: [] });
+    });
+  };
+
+  it('renders a clean row with no chips when a student is ready', async () => {
+    mockStudentsWithReadiness([
+      { id: 'r1', firstName: 'Marina', lastName: 'Alves', email: 'marina@example.com', status: 'ativo', ready: true, blockers: [], blockersLabel: [] },
+    ]);
+    renderWithRouter(<Students />);
+
+    const row = await screen.findByRole('button', { name: 'Ver perfil de Marina Alves.' });
+    expect(row).toBeInTheDocument();
+    // No blocker chips anywhere
+    expect(screen.queryByText('Sem rotina ativa')).not.toBeInTheDocument();
+    // No quota banner
+    expect(screen.queryByText(/limite de alunos da sua cota/i)).not.toBeInTheDocument();
+  });
+
+  it('renders a single blocker chip and folds it into the row aria-label', async () => {
+    mockStudentsWithReadiness([
+      { id: 'r2', firstName: 'Rafael', lastName: 'Souza', email: 'rafael@example.com', status: 'pendente', ready: false, blockers: ['no_active_protocol'], blockersLabel: ['Sem rotina ativa'] },
+    ]);
+    renderWithRouter(<Students />);
+
+    const row = await screen.findByRole('button', { name: 'Rafael Souza — Sem rotina ativa. Ver perfil.' });
+    expect(row).toBeInTheDocument();
+    expect(within(row).getByText('Sem rotina ativa')).toBeInTheDocument();
+  });
+
+  it('renders multiple blocker chips in backend order and lists them in the aria-label', async () => {
+    mockStudentsWithReadiness([
+      { id: 'r3', firstName: 'Bruno', lastName: 'Carvalho', email: 'bruno@example.com', status: 'ativo', ready: false, blockers: ['no_active_protocol', 'subscription_overdue'], blockersLabel: ['Sem rotina ativa', 'Pagamento em atraso'] },
+    ]);
+    renderWithRouter(<Students />);
+
+    const row = await screen.findByRole('button', { name: 'Bruno Carvalho — Sem rotina ativa, Pagamento em atraso. Ver perfil.' });
+    expect(within(row).getByText('Sem rotina ativa')).toBeInTheDocument();
+    expect(within(row).getByText('Pagamento em atraso')).toBeInTheDocument();
+  });
+
+  it('shows the platform chip and the list-level quota banner for blocked_on_plan', async () => {
+    mockStudentsWithReadiness([
+      { id: 'r4', firstName: 'Camila', lastName: 'Nunes', email: 'camila@example.com', status: 'ativo', ready: false, blockers: ['blocked_on_plan'], blockersLabel: ['Bloqueado pela sua cota'] },
+    ]);
+    renderWithRouter(<Students />);
+
+    const row = await screen.findByRole('button', { name: 'Camila Nunes — Bloqueado pela sua cota. Ver perfil.' });
+    expect(within(row).getByText('Bloqueado pela sua cota')).toBeInTheDocument();
+    // Quota banner surfaces once with the upgrade CTA
+    expect(screen.getByText('Você atingiu o limite de alunos da sua cota')).toBeInTheDocument();
+    expect(screen.getByText(/1 aluno está bloqueado pela sua cota/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fazer upgrade' })).toBeInTheDocument();
+  });
+
+  it('pluralizes the quota banner body when multiple students are blocked by quota', async () => {
+    mockStudentsWithReadiness([
+      { id: 'r5', firstName: 'Camila', lastName: 'Nunes', email: 'camila@example.com', status: 'ativo', ready: false, blockers: ['blocked_on_plan'], blockersLabel: ['Bloqueado pela sua cota'] },
+      { id: 'r6', firstName: 'Lucas', lastName: 'Pereira', email: 'lucas@example.com', status: 'pendente', ready: false, blockers: ['no_active_protocol', 'blocked_on_plan'], blockersLabel: ['Sem rotina ativa', 'Bloqueado pela sua cota'] },
+    ]);
+    renderWithRouter(<Students />);
+
+    await screen.findByText('Você atingiu o limite de alunos da sua cota');
+    expect(screen.getByText(/2 alunos estão bloqueados pela sua cota/i)).toBeInTheDocument();
+  });
+
+  it('renders both chips for a combined student + platform block', async () => {
+    mockStudentsWithReadiness([
+      { id: 'r7', firstName: 'Lucas', lastName: 'Pereira', email: 'lucas@example.com', status: 'pendente', ready: false, blockers: ['no_active_protocol', 'blocked_on_plan'], blockersLabel: ['Sem rotina ativa', 'Bloqueado pela sua cota'] },
+    ]);
+    renderWithRouter(<Students />);
+
+    const row = await screen.findByRole('button', { name: 'Lucas Pereira — Sem rotina ativa, Bloqueado pela sua cota. Ver perfil.' });
+    expect(within(row).getByText('Sem rotina ativa')).toBeInTheDocument();
+    expect(within(row).getByText('Bloqueado pela sua cota')).toBeInTheDocument();
+  });
+
+  it('degrades gracefully when readiness fields are absent (search shape)', async () => {
+    mockStudentsWithReadiness([
+      { id: 'r8', firstName: 'Diego', lastName: 'Martins', email: 'diego@example.com', status: 'ativo' },
+    ]);
+    renderWithRouter(<Students />);
+
+    const row = await screen.findByRole('button', { name: 'Ver perfil de Diego Martins.' });
+    expect(row).toBeInTheDocument();
+    expect(screen.queryByText(/limite de alunos da sua cota/i)).not.toBeInTheDocument();
   });
 });

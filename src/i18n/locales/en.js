@@ -363,6 +363,72 @@ const en = {
       ],
     },
   },
+  students: {
+    viewProfileAria: 'View {name}’s profile.',
+    rowBlockersAria: '{name} — {blockers}. View profile.',
+    quotaBanner: {
+      title: 'You have reached your plan’s student limit',
+      bodyOne: '{count} student is blocked by your quota. Upgrade to unblock.',
+      bodyOther: '{count} students are blocked by your quota. Upgrade to unblock them.',
+      cta: 'Upgrade',
+    },
+  },
+
+  controlTower: {
+    title: 'Your week at a glance',
+    loadingAria: 'Loading your week at a glance',
+    updatedPrefix: 'updated {timestamp}',
+    retryButton: 'Refresh',
+    retryFallback: 'Could not refresh.',
+    radar: {
+      label: 'Radar',
+      calmMessage: 'Nothing needs attention right now',
+      expiredPlans: {
+        label: 'Expired plans',
+        subcue: 'Billing not renewed',
+        ariaLabel: '{count} expired plans, view details',
+      },
+      renewingSoon: {
+        label: 'Renewing within 7 days',
+        subcue: 'Due within 7 days',
+        ariaLabel: '{count} plans renewing within 7 days, view details',
+      },
+      expiredRoutines: {
+        label: 'Expired routines',
+        subcue: 'No active routine',
+      },
+      routinesExpiringSoon: {
+        label: 'Routines expiring within 7 days',
+        subcue: 'Renew soon',
+      },
+    },
+    finance: {
+      label: 'Finance',
+      monthReceived: 'Received this month',
+      totalReceived: 'Total received',
+      overdue: {
+        label: 'Overdue payments',
+        subcueStale: 'Tap to refresh',
+        subcueAmount: '{amount} overdue',
+        ariaLabel: '{count} overdue payments, view details',
+      },
+    },
+    pulse: {
+      label: 'Pulse',
+      inactiveStudents: {
+        label: 'Inactive students 7d+',
+        subcue: 'No recent activity',
+        ariaLabel: '{count} students inactive for 7 days or more, view details',
+      },
+      adherenceMonth: 'Adherence this month',
+      weekPr: {
+        label: 'PRs this week',
+        countOne: '1 PR',
+        countOther: '{count} PRs',
+        empty: 'No PRs this week',
+      },
+    },
+  },
 };
 
 export default en;

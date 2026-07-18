@@ -81,6 +81,7 @@
   --color-error: #D32F2F;
   --color-on-error: #FFFFFF;
   --color-error-container: #FDDEDE;
+  --color-error-container-fg: #B71C1C;
   --color-on-error-container: #410002;
 
   /* Success (custom) */
@@ -129,6 +130,7 @@
   --md-background: var(--color-background);
   --md-error: var(--color-error);
   --md-error-container: var(--color-error-container);
+  --md-error-container-fg: var(--color-error-container-fg);
   --md-on-error-container: var(--color-on-error-container);
   --md-success: var(--color-success);
   --md-success-container: var(--color-success-container);
@@ -245,6 +247,11 @@
 
   /* iArnold extended palette */
   --brand-accent-container: #FFECDC;
+  /* Blue tonal container for celebration/informational tiles — kept distinct
+     from --brand-accent-container (peach) so "good news" tiles never read as
+     the same amber/orange family as --control-tile--warn. ~5.6:1 contrast
+     with --brand-primary text. */
+  --brand-primary-container: #D6E5F8;
   --md-warning: #F59E0B;
   --md-warning-container: #FFFBEB;
 
@@ -4240,7 +4247,7 @@ html:has(.auth-page) {
 .dashboard-hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--color-primary-container) 0%, var(--md-surface) 70%);
+  background: var(--md-surface);
   border-radius: var(--radius-lg);
   color: var(--brand-ink);
   padding: var(--spacing-xl) var(--spacing-lg);
@@ -4261,6 +4268,20 @@ html:has(.auth-page) {
   pointer-events: none;
 }
 
+/* Date eyebrow above the greeting, e.g. "SEGUNDA, 14 DE JULHO". Omitted
+   entirely (not rendered as "Invalid Date") when the date is unavailable. */
+.dashboard-hero-eyebrow {
+  display: block;
+  font-family: var(--font-family-base);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-steel);
+  margin: 0 0 var(--spacing-xs);
+  position: relative;
+}
+
 .dashboard-hero-greeting {
   font-family: var(--font-family-display);
   font-size: 28px;
@@ -4270,6 +4291,10 @@ html:has(.auth-page) {
   line-height: var(--line-height-tight);
   color: var(--brand-ink);
   position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .dashboard-hero-subtitle {
@@ -4286,17 +4311,26 @@ html:has(.auth-page) {
   gap: var(--spacing-xs);
   background: var(--brand-primary);
   color: #FFFFFF;
+  border: none;
   border-radius: var(--radius-brand);
   padding: 8px var(--spacing-md);
   font-family: var(--font-family-base);
   font-size: var(--font-caption-size);
   font-weight: 600;
+  text-transform: uppercase;
   text-decoration: none;
-  letter-spacing: var(--tracking-normal);
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
   transition: background var(--duration-fast) var(--ease-brand),
               transform var(--duration-fast) var(--ease-brand);
   position: relative;
-  min-height: 36px;
+  min-height: 44px;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-hero-cta {
+    min-height: 40px;
+  }
 }
 
 .dashboard-hero-cta:hover {
@@ -4313,6 +4347,11 @@ html:has(.auth-page) {
   box-shadow: var(--shadow-focus);
 }
 
+.dashboard-hero-cta--button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .dashboard-section-title {
   font-family: var(--font-family-display);
   font-size: var(--font-h2-size);
@@ -4322,10 +4361,359 @@ html:has(.auth-page) {
   color: var(--brand-ink);
 }
 
+/* ============================================
+   Control Tower — "Tua semana em foco" panel
+   Single card surface, three bands (Radar / Financeiro / Pulso), fed by one
+   data source (useTrainerDashboard). Attention-by-exception: a zero tile is
+   muted/non-clickable; only pendências earn color + icon + a tap target.
+   ============================================ */
+.control-tower {
+  background: var(--md-surface);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-sm);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.control-tower-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.control-tower-title {
+  font-family: var(--font-family-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--line-height-tight);
+  color: var(--brand-ink);
+  margin: 0;
+}
+
+.control-tower-timestamp {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--brand-steel);
+  white-space: nowrap;
+}
+
+.control-tower-retry-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.control-tower-retry {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .control-tower-retry {
+    min-height: 40px;
+  }
+}
+
+.control-tower-retry:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ---------- Band shell ---------- */
+.control-band + .control-band {
+  margin-top: var(--spacing-lg);
+}
+
+.control-band-overline {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  text-transform: uppercase;
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  color: var(--brand-steel);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Tile-card grid — mobile-first 2-up, auto-fit at wider widths so a band
+   with only 1-2 pendências stretches to fill the row instead of leaving
+   dead space to the right (unused explicit tracks collapse to 0 under
+   auto-fit, so the populated tracks absorb the freed 1fr space). */
+.control-band-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+  align-items: stretch;
+}
+
+@media (min-width: 768px) {
+  .control-band-tiles {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--spacing-md);
+  }
+}
+
+@media (min-width: 1024px) {
+  .control-band-tiles {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+/* Financeiro readouts are long pt-BR currency strings ("R$ 128.900,00") —
+   give them a single mobile column instead of the shared 2-up grid so the
+   value never wraps mid-number. Reverts to the same auto-fit density as
+   every other band from 768px up. */
+.control-band--finance .control-band-tiles {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .control-band--finance .control-band-tiles {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .control-band--finance .control-band-tiles {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+.control-band-calm {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--md-surface-container);
+  border-radius: var(--radius-brand);
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-ink);
+}
+
+.control-band-calm-icon {
+  color: var(--md-success);
+  flex-shrink: 0;
+}
+
+/* ---------- Tile (card) — reused across all bands ---------- */
+.control-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacing-2xs);
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-brand);
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow-brand-sm);
+  overflow: hidden;
+}
+
+.control-tile--critical {
+  background: var(--md-error-container);
+}
+
+.control-tile--warn {
+  background: var(--effort-tier-4-bg);
+}
+
+.control-tile--neutral {
+  background: var(--md-surface-container);
+}
+
+/* Celebration uses a BLUE tinted container (--brand-primary-container), not
+   accent-container (peach), which read as amber-adjacent to
+   --control-tile--warn and misread as "needs attention" for what is actually
+   good news. ~5.6:1 contrast with --brand-primary text below, comfortably
+   AA. Also keeps orange reserved for the rare accent moments per brand
+   guidance instead of tinting a 3rd tile amber-family. */
+.control-tile--celebration {
+  background: var(--brand-primary-container);
+}
+
+.control-tile--clickable {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+  transition: box-shadow var(--duration-fast) var(--ease-brand), transform var(--duration-fast) var(--ease-brand);
+}
+
+.control-tile--clickable:hover {
+  box-shadow: var(--shadow-brand-md);
+}
+
+.control-tile--clickable:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.control-tile--clickable:active {
+  transform: scale(0.98);
+}
+
+.control-tile-label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.control-tile-icon {
+  flex-shrink: 0;
+}
+
+.control-tile--critical .control-tile-icon {
+  color: var(--md-error);
+}
+
+.control-tile--warn .control-tile-icon {
+  color: var(--effort-tier-4-fg);
+}
+
+.control-tile--neutral .control-tile-icon {
+  color: var(--brand-steel);
+}
+
+.control-tile--celebration .control-tile-icon {
+  color: var(--brand-primary);
+}
+
+.control-tile-label {
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-ink);
+  min-width: 0;
+}
+
+.control-tile-value {
+  display: block;
+  line-height: var(--line-height-tight);
+  overflow-wrap: anywhere;
+}
+
+.control-tile-value--stat {
+  font-family: var(--font-family-stat);
+  font-size: 24px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 1024px) {
+  .control-tile-value--stat {
+    font-size: 28px;
+  }
+}
+
+.control-tile-value--message {
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-steel);
+}
+
+.control-tile-value--protagonist {
+  font-size: 32px;
+}
+
+@media (min-width: 1024px) {
+  .control-tile-value--protagonist {
+    font-size: 44px;
+  }
+}
+
+.control-tile-value--critical {
+  color: var(--md-error-container-fg);
+}
+
+.control-tile-value--warn {
+  color: var(--effort-tier-4-fg);
+}
+
+.control-tile-value--neutral {
+  color: var(--brand-ink);
+}
+
+.control-tile-value--celebration {
+  color: var(--brand-primary);
+}
+
+/* Stale Financeiro data: dim regardless of severity, never present hours-old
+   money as live. Placed last so it wins by source order (no !important). */
+.control-tile-value--dimmed {
+  color: var(--brand-steel);
+}
+
+.control-tile-subcue {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--brand-steel);
+}
+
+/* Financeiro protagonist tile ("Recebido no mês") spans the full tile-card
+   grid on mobile/tablet and 2 tracks on desktop, keeping it the biggest
+   number in the panel without needing a bespoke hero component. */
+.control-tile--finance-hero {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 1024px) {
+  .control-tile--finance-hero {
+    grid-column: span 2;
+  }
+}
+
+/* Adesão do mês reuses StatDisplay's default (column) variant so the value,
+   label and trend stack cleanly in a narrow grid column — the row-oriented
+   --inline variant overflowed a ~180px tile. Strip the component's own
+   surface/padding so it sits flush inside the shared tile-card instead of
+   nesting a second colored box. */
+.control-tile-adherence.stat-display {
+  width: 100%;
+  background: none;
+  padding: 0;
+}
+
+/* ---------- Cold-start skeleton ---------- */
+.control-tile-skeleton {
+  height: 96px;
+  border-radius: var(--radius-brand);
+}
+
 .quick-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-md);
+}
+
+/* 2-column layout (mobile + tablet): an odd number of cards would otherwise
+   leave a single card alone in the last row with an empty column beside it.
+   Stretch that lone trailing card full-width instead of showing a hole. */
+.quick-actions > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 @media (min-width: 768px) {
@@ -4338,22 +4726,29 @@ html:has(.auth-page) {
   .quick-actions {
     grid-template-columns: repeat(3, 1fr);
   }
+
+  /* 3-column layout: undo the 2-column hole fix — a lone trailing card
+     stretched full-width here would itself create the hole it's meant to avoid. */
+  .quick-actions > :last-child:nth-child(odd) {
+    grid-column: auto;
+  }
 }
 
 .quick-action-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   gap: var(--spacing-sm);
-  background: var(--color-surface);
+  background: var(--md-surface);
   border: 1px solid var(--brand-divider);
   border-radius: var(--radius-brand);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-sm);
   cursor: pointer;
   transition: box-shadow var(--duration-fast) var(--ease-brand),
               border-color var(--duration-fast) var(--ease-brand),
               transform var(--duration-fast) var(--ease-brand);
   text-decoration: none;
-  color: var(--color-on-surface);
+  color: var(--brand-ink);
   text-align: left;
   width: 100%;
 }
@@ -4364,12 +4759,26 @@ html:has(.auth-page) {
   transform: translateY(-2px);
 }
 
+.quick-action-card:active {
+  transform: scale(0.98);
+}
+
+.quick-action-card:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.quick-action-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .quick-action-icon {
   background: var(--brand-primary);
   color: var(--md-on-primary);
   border-radius: var(--radius-brand);
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4378,43 +4787,36 @@ html:has(.auth-page) {
 
 .quick-action-label {
   font-family: var(--font-family-display);
-  font-size: var(--font-body-size);
+  font-size: var(--font-body-small-size);
   font-weight: 600;
   color: var(--brand-ink);
+  line-height: var(--line-height-tight);
 }
 
 .quick-action-desc {
-  font-size: var(--font-body-small-size);
-  color: var(--color-on-surface-variant);
-  margin: 0;
+  display: none;
 }
 
-/* Compact quick-action cards on mobile */
-@media (max-width: 767px) {
+@media (min-width: 768px) {
   .quick-action-card {
-    flex-direction: row;
-    align-items: center;
-    padding: var(--spacing-sm);
-    gap: var(--spacing-sm);
+    flex-direction: column;
+    padding: var(--spacing-lg);
   }
-  .quick-action-desc {
-    display: none;
-  }
+
   .quick-action-icon {
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
   }
+
   .quick-action-label {
-    font-size: var(--font-body-small-size);
-    font-weight: 600;
-    text-align: left;
-    line-height: 1.2;
+    font-size: var(--font-body-size);
   }
-  .quick-action-card--ai {
-    grid-column: span 2;
-    flex-direction: row;
-    align-items: center;
+
+  .quick-action-desc {
+    display: block;
+    color: var(--brand-steel);
+    margin: 0;
+    font-size: var(--font-body-small-size);
   }
 }
 
@@ -4792,15 +5194,27 @@ html:has(.auth-page) {
    Quick Action Card Highlight
    ============================================ */
 .quick-action-card--highlight {
-  border-color: var(--brand-primary);
-  border-width: 2px;
+  background: var(--brand-primary);
+  border: none;
+  color: #FFFFFF;
 }
 
-/* Quick action AI card — desktop: uniform 1-col (span removed) */
-@media (min-width: 1024px) {
-  .quick-action-card--ai {
-    /* grid-column: span 2; — removed, uniform 3-col grid */
-  }
+.quick-action-card--highlight:hover {
+  background: var(--brand-primary-dark);
+}
+
+.quick-action-card--highlight .quick-action-icon {
+  background: var(--md-surface);
+  color: var(--brand-primary);
+}
+
+.quick-action-card--highlight .quick-action-label,
+.quick-action-card--highlight .quick-action-desc {
+  color: #FFFFFF;
+}
+
+.quick-action-card--ai {
+  border-color: var(--brand-primary);
 }
 
 /* ============================================
@@ -7048,35 +7462,6 @@ html:has(.auth-page) {
 .ai-history__item-delete:focus-visible {
   outline: none;
   box-shadow: var(--shadow-focus);
-}
-
-/* ============================================
-   Dashboard AI Card (highlighted quick action)
-   ============================================ */
-.quick-action-card--ai {
-  background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));
-  border: none;
-  color: var(--color-on-primary);
-  transition: box-shadow var(--duration-fast) var(--ease-brand), transform var(--duration-fast) var(--ease-brand);
-}
-
-.quick-action-card--ai:hover {
-  box-shadow: var(--shadow-lg);
-  border-color: transparent;
-  transform: scale(1.02);
-}
-
-.quick-action-icon--ai {
-  background: rgba(255, 255, 255, 0.2);
-  color: #FFFFFF;
-}
-
-.quick-action-label--ai {
-  color: #FFFFFF;
-}
-
-.quick-action-desc--ai {
-  color: rgba(255, 255, 255, 0.85);
 }
 
 /* ============================================
@@ -11400,32 +11785,63 @@ html:has(.auth-page) {
   box-shadow: var(--shadow-focus);
 }
 
-/* ---------- Stats header row (4-card grid) ---------- */
-.students-stats-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+/* ---------- Stats hero strip (single geometric-cut signature accent) ----------
+   TeuFit duality: one rounded, warm surface + ONE restrained angular cut.
+   The cut lives here, once, for the whole page — never repeated per stat. */
+.students-stats-hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--md-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-brand-sm);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
   animation: students-fade-in var(--duration-base) var(--ease-brand);
 }
 
+.students-stats-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  margin-left: auto;
+  background: var(--brand-accent);
+  clip-path: polygon(68% 0, 100% 0, 100% 100%, 38% 100%);
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+.students-stats-hero-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg) var(--spacing-md);
+}
+
 @media (min-width: 768px) {
-  .students-stats-row {
+  .students-stats-hero-grid {
     grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+  }
+
+  .students-stats-hero-stat {
+    padding-left: var(--spacing-lg);
+    border-left: 1px solid var(--brand-divider);
+  }
+
+  .students-stats-hero-stat:first-child {
+    padding-left: 0;
+    border-left: 0;
   }
 }
 
-.students-stat-card {
-  background: var(--md-surface);
-  border-radius: var(--radius-brand);
-  box-shadow: var(--shadow-brand-sm);
-  padding: var(--spacing-md) 18px;
+.students-stats-hero-stat {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.students-stat-card-label {
+.students-stats-hero-stat-label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: var(--tracking-wider);
@@ -11433,7 +11849,7 @@ html:has(.auth-page) {
   color: var(--brand-steel);
 }
 
-.students-stat-card-value {
+.students-stats-hero-stat-value {
   font-family: var(--font-family-stat);
   font-variant-numeric: tabular-nums;
   font-size: 28px;
@@ -11443,11 +11859,13 @@ html:has(.auth-page) {
   line-height: 1.1;
 }
 
-.students-stat-card-value--accent { color: var(--brand-primary); }
-.students-stat-card-value--warn { color: var(--brand-accent); }
-.students-stat-card-value--danger { color: var(--md-error); }
+.students-stats-hero-stat-value--accent { color: var(--brand-primary); }
+/* Pending uses the effort-tier "on light" amber-safe text token, never
+   --brand-accent/--md-warning directly — both fail WCAG AA as text on white. */
+.students-stats-hero-stat-value--warn { color: var(--effort-tier-4-fg); }
+.students-stats-hero-stat-value--danger { color: var(--md-error); }
 
-.students-stat-card-sub {
+.students-stats-hero-stat-sub {
   font-size: 12px;
   color: var(--brand-steel);
 }
@@ -11462,15 +11880,17 @@ html:has(.auth-page) {
   align-items: center;
   gap: var(--spacing-md);
   background: var(--md-surface);
+  border: 1px solid var(--brand-divider);
   border-radius: var(--radius-brand);
   box-shadow: var(--shadow-brand-sm);
   padding: 14px 18px;
   margin-bottom: var(--spacing-sm);
   cursor: pointer;
-  transition: box-shadow var(--duration-fast) var(--ease-brand), transform var(--duration-fast) var(--ease-brand);
+  transition: box-shadow var(--duration-fast) var(--ease-brand), transform var(--duration-fast) var(--ease-brand), border-color var(--duration-fast) var(--ease-brand);
 }
 
 .student-stat-row:hover {
+  border-color: transparent;
   box-shadow: var(--shadow-brand-md);
   transform: translateX(2px);
 }
@@ -11488,10 +11908,15 @@ html:has(.auth-page) {
   min-width: 0;
 }
 
+.student-stat-row-info {
+  min-width: 0;
+}
+
 .student-stat-row-name {
-  font-weight: 600;
+  font-family: var(--font-family-display);
+  font-weight: 700;
   color: var(--brand-ink);
-  font-size: var(--font-body-small-size);
+  font-size: var(--font-body-size);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -11527,6 +11952,9 @@ html:has(.auth-page) {
 }
 
 .student-stat-inline-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-family: var(--font-family-stat);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -11535,6 +11963,12 @@ html:has(.auth-page) {
   letter-spacing: var(--tracking-tight);
   line-height: 1;
 }
+
+/* Alert-level tints — warn uses the effort-tier "on light" amber-safe token;
+   --brand-accent/--md-warning both fail WCAG AA as small text on white. */
+.student-stat-inline-value--warn { color: var(--effort-tier-4-fg); }
+.student-stat-inline-value--danger { color: var(--md-error); }
+.student-stat-inline-value--none { color: var(--brand-steel); }
 
 .student-stat-inline-unit {
   font-size: 11px;
@@ -11561,42 +11995,137 @@ html:has(.auth-page) {
   margin-top: 3px;
 }
 
-/* ---------- Students status badges (DS-compliant variants) ---------- */
-.student-badge {
+/* ---------- Student readiness (blocker chips + scan rail) ----------
+   Chips render the backend-supplied `blockersLabel[i]` full pt-BR phrase
+   ("Sem rotina ativa") — a distinct component from `badge badge-*`
+   (10px UPPERCASE status stamps). Different casing, length, and shape, so
+   it is justified as its own class rather than a badge variant. */
+.readiness-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--spacing-sm);
+}
+
+.readiness-chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  padding: 4px 10px 4px 8px;
   font-family: var(--font-family-base);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  padding: 3px var(--spacing-sm);
-  border-radius: var(--radius-stat);
-  flex-shrink: 0;
-}
-
-.student-badge--green {
-  background: var(--md-success-container);
-  color: var(--md-success);
-}
-
-.student-badge--blue {
-  background: var(--md-primary-container);
-  color: var(--md-on-primary-container);
-}
-
-.student-badge--red {
-  background: var(--md-error-container);
-  color: var(--md-error);
-}
-
-.student-badge-dot {
-  width: 6px;
-  height: 6px;
+  line-height: var(--line-height-tight);
   border-radius: var(--radius-full);
-  background: currentColor;
+  white-space: nowrap;
+}
+
+.readiness-chip svg {
+  width: 13px;
+  height: 13px;
   flex-shrink: 0;
+}
+
+/* STUDENT blocker chip — warm amber, attention not alarm. Text on white
+   (--effort-tier-4-fg on --md-surface = 4.96:1 → passes AA at 12px), soft
+   amber-tint border for definition. No green "ready" pill exists. */
+.readiness-chip--blocker {
+  background: var(--md-surface);
+  color: var(--effort-tier-4-fg);
+  border: 1px solid var(--effort-tier-4-bg);
+}
+
+/* PLATFORM blocker chip (blocked_on_plan) — brand "upgrade" energy, not a
+   judgment on the student. --brand-primary on --brand-primary-container
+   = 5.54:1 → passes AA. Fill alone defines the chip on white. */
+.readiness-chip--platform {
+  background: var(--brand-primary-container);
+  color: var(--brand-primary);
+}
+
+/* Left rail — single-color scan signal down the list. Amber = student needs
+   the trainer's action · Blue = trainer's cota/plan gate (platform priority). */
+.student-stat-row--needs-action,
+.student-stat-row--platform {
+  position: relative;
+  overflow: hidden;
+}
+
+.student-stat-row--needs-action::before,
+.student-stat-row--platform::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+
+.student-stat-row--needs-action::before {
+  background: var(--effort-tier-4-fg);
+}
+
+.student-stat-row--platform::before {
+  background: var(--brand-primary);
+}
+
+/* ---------- Trainer quota banner (list-level upgrade CTA) ----------
+   Surfaces the platform quota problem once, at list level, not per row.
+   A billing banner must not bounce — mount uses --ease-brand (no overshoot). */
+@keyframes quota-banner-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.quota-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  background: var(--brand-primary-container);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-sm);
+  padding: 14px 18px;
+  margin-bottom: var(--spacing-md);
+  animation: quota-banner-rise var(--duration-base) var(--ease-brand);
+}
+
+.quota-banner-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--brand-primary);
+  color: var(--md-surface);
+}
+
+.quota-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.quota-banner-text strong {
+  display: block;
+  font-family: var(--font-family-display);
+  font-size: 14px;
+  color: var(--brand-ink);
+}
+
+.quota-banner-text span {
+  font-size: 13px;
+  color: var(--brand-slate);
+}
+
+.quota-banner .btn-primary {
+  white-space: nowrap;
 }
 
 /* ---------- Students empty state ---------- */
@@ -11770,6 +12299,10 @@ html:has(.auth-page) {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+}
+
+.students-t-import-checkbox-col {
+  width: var(--spacing-xl);
 }
 
 .students-t-import th {

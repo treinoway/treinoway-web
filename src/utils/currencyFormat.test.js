@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatCurrencyBRL, parseCurrencyBRL, formatAmountBRL } from './currencyFormat';
+import { formatCurrencyBRL, parseCurrencyBRL, formatAmountBRL, formatCurrencyCompactBRL } from './currencyFormat';
 
 describe('formatCurrencyBRL', () => {
   it('formats a numeric string as BRL currency', () => {
@@ -26,6 +26,23 @@ describe('formatAmountBRL', () => {
   it('returns empty string for invalid input', () => {
     expect(formatAmountBRL('')).toBe('');
     expect(formatAmountBRL('abc')).toBe('');
+  });
+});
+
+describe('formatCurrencyCompactBRL', () => {
+  it('formats sub-million values exactly like formatCurrencyBRL', () => {
+    expect(formatCurrencyCompactBRL(2500)).toMatch(/R\$\s?2\.500,00/);
+  });
+
+  it('abbreviates values at or above one million as "R$ X,X mi"', () => {
+    expect(formatCurrencyCompactBRL(1200000)).toBe('R$ 1,2 mi');
+    expect(formatCurrencyCompactBRL(1000000)).toBe('R$ 1,0 mi');
+  });
+
+  it('returns a dash for empty or invalid input', () => {
+    expect(formatCurrencyCompactBRL(null)).toBe('-');
+    expect(formatCurrencyCompactBRL(undefined)).toBe('-');
+    expect(formatCurrencyCompactBRL('not-a-number')).toBe('-');
   });
 });
 
