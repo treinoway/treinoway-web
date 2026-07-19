@@ -42,7 +42,7 @@ describe('Signup', () => {
   it('renders a password hint', () => {
     renderWithRouter(<Signup />);
 
-    expect(screen.getByText(/mínimo 6 caracteres/i)).toBeInTheDocument();
+    expect(screen.getByText(/mínimo 8 caracteres/i)).toBeInTheDocument();
   });
 
   it('renders Google signup button', () => {
@@ -69,16 +69,16 @@ describe('Signup', () => {
     expect(screen.queryByLabelText(/e-mail/i)).not.toBeInTheDocument();
   });
 
-  it('shows inline error when password is shorter than 6 characters on submit', async () => {
+  it('shows inline error when password is shorter than 8 characters on submit', async () => {
     const user = userEvent.setup();
 
     renderWithRouter(<Signup />);
 
     await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
-    await user.type(screen.getByLabelText(/^senha$/i), '12345');
+    await user.type(screen.getByLabelText(/^senha$/i), '1234567');
     await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
 
-    expect(screen.getByText('A senha deve ter pelo menos 6 caracteres.')).toBeInTheDocument();
+    expect(screen.getByText('A senha deve ter pelo menos 8 caracteres.')).toBeInTheDocument();
     expect(mockSignup).not.toHaveBeenCalled();
   });
 
@@ -90,7 +90,20 @@ describe('Signup', () => {
     await user.type(screen.getByLabelText(/^senha$/i), '123');
     await user.tab();
 
-    expect(screen.getByText('A senha deve ter pelo menos 6 caracteres.')).toBeInTheDocument();
+    expect(screen.getByText('A senha deve ter pelo menos 8 caracteres.')).toBeInTheDocument();
+  });
+
+  it('shows inline validation error for a 7-character password and does not call signup', async () => {
+    const user = userEvent.setup();
+
+    renderWithRouter(<Signup />);
+
+    await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
+    await user.type(screen.getByLabelText(/^senha$/i), 'abcdefg');
+    await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
+
+    expect(screen.getByText('A senha deve ter pelo menos 8 caracteres.')).toBeInTheDocument();
+    expect(mockSignup).not.toHaveBeenCalled();
   });
 
   it('calls signup with email and password when form is valid', async () => {
@@ -100,11 +113,11 @@ describe('Signup', () => {
     renderWithRouter(<Signup />);
 
     await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
-    await user.type(screen.getByLabelText(/^senha$/i), 'pass123');
+    await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
     await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
 
     await waitFor(() => {
-      expect(mockSignup).toHaveBeenCalledWith('user@example.com', 'pass123');
+      expect(mockSignup).toHaveBeenCalledWith('user@example.com', 'pass1234');
     });
   });
 
@@ -115,7 +128,7 @@ describe('Signup', () => {
     renderWithRouter(<Signup />);
 
     await user.type(screen.getByLabelText(/e-mail/i), 'existing@example.com');
-    await user.type(screen.getByLabelText(/^senha$/i), 'pass123');
+    await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
     await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
 
     await waitFor(() => {
@@ -130,7 +143,7 @@ describe('Signup', () => {
     renderWithRouter(<Signup />);
 
     await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
-    await user.type(screen.getByLabelText(/^senha$/i), 'pass123');
+    await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
     await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
 
     expect(screen.getByRole('button', { name: /criando conta/i })).toBeDisabled();
@@ -143,7 +156,7 @@ describe('Signup', () => {
     renderWithRouter(<Signup />);
 
     await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
-    await user.type(screen.getByLabelText(/^senha$/i), 'pass123');
+    await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
     await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
 
     expect(screen.getByRole('button', { name: /cadastrar com google/i })).toBeDisabled();
@@ -226,11 +239,11 @@ describe('Signup', () => {
     renderWithRouter(<Signup />, { route: '/signup' });
 
     await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
-    await user.type(screen.getByLabelText(/^senha$/i), 'pass123');
+    await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
     await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
 
     await waitFor(() => {
-      expect(mockSignup).toHaveBeenCalledWith('user@example.com', 'pass123');
+      expect(mockSignup).toHaveBeenCalledWith('user@example.com', 'pass1234');
     });
   });
 });

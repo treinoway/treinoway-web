@@ -92,6 +92,16 @@ const ptBR = {
     GLOBAL_RANKING_REMOVED:
       "O ranking global foi descontinuado. Use os campeonatos.",
     CHALLENGE_NOT_ACTIVE: "Este campeonato não está ativo.",
+    EMAIL_REQUIRED: "Informe o e-mail.",
+    FORGOT_PASSWORD_FAILED:
+      "Não foi possível enviar o código. Tente novamente mais tarde.",
+    RESET_TOKEN_REQUIRED: "Informe o código de verificação.",
+    INVALID_RESET_TOKEN:
+      "Código inválido. Verifique o código e tente novamente.",
+    RESET_TOKEN_EXPIRED: "Código expirado. Solicite um novo código.",
+    WEAK_PASSWORD: "A senha deve ter pelo menos 8 caracteres.",
+    USER_DELETED:
+      "Esta conta foi desativada. Entre em contato com o suporte.",
   },
 
   messageCodes: {

@@ -5,6 +5,13 @@ const en = {
     ASSIGNEE_NOT_FOUND: 'Student not found.',
     TRAINING_TEMPLATE_NOT_OWNED: 'One or more training templates do not belong to your profile.',
     EXERCISE_TEMPLATE_NOT_OWNED: 'One or more exercise templates do not belong to your profile.',
+    EMAIL_REQUIRED: 'Enter your e-mail.',
+    FORGOT_PASSWORD_FAILED: 'Could not send the code. Please try again later.',
+    RESET_TOKEN_REQUIRED: 'Enter the verification code.',
+    INVALID_RESET_TOKEN: 'Invalid code. Check the code and try again.',
+    RESET_TOKEN_EXPIRED: 'Code expired. Request a new code.',
+    WEAK_PASSWORD: 'Password must be at least 8 characters long.',
+    USER_DELETED: 'This account has been deactivated. Contact support.',
   },
   messageCodes: {
     'anamnesis.invalidCondition': 'Invalid condition for the parent question type.',

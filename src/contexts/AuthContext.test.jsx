@@ -404,6 +404,146 @@ describe('AuthContext', () => {
     });
   });
 
+  describe('forgotPassword', () => {
+    const renderWithForgotPassword = (onResult) => {
+      const Consumer = () => {
+        const { forgotPassword } = useAuth();
+        return (
+          <button
+            onClick={async () => {
+              const result = await forgotPassword('user@example.com');
+              onResult(result);
+            }}
+            aria-label="Forgot Password"
+          >
+            Forgot Password
+          </button>
+        );
+      };
+
+      return renderWithRouter(
+        <AuthProvider>
+          <Consumer />
+        </AuthProvider>
+      );
+    };
+
+    it('posts to /auth/forgot-password and returns success', async () => {
+      api.post.mockResolvedValue({ data: { message: 'ok' } });
+
+      let result;
+      renderWithForgotPassword((r) => { result = r; });
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Forgot Password' }).click();
+      });
+
+      await waitFor(() => {
+        expect(result?.success).toBe(true);
+      });
+
+      expect(api.post).toHaveBeenCalledWith('/auth/forgot-password', { email: 'user@example.com' });
+    });
+
+    it('returns a translated error when the API call fails', async () => {
+      const apiError = new Error('Failed');
+      apiError.userMessage = 'Não foi possível enviar o código. Tente novamente mais tarde.';
+      api.post.mockRejectedValue(apiError);
+
+      let result;
+      renderWithForgotPassword((r) => { result = r; });
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Forgot Password' }).click();
+      });
+
+      await waitFor(() => {
+        expect(result?.success).toBe(false);
+      });
+
+      expect(result.error).toBe('Não foi possível enviar o código. Tente novamente mais tarde.');
+    });
+  });
+
+  describe('resetPassword', () => {
+    const renderWithResetPassword = (onResult) => {
+      const Consumer = () => {
+        const { resetPassword, isAuthenticated, user } = useAuth();
+        return (
+          <div>
+            <span aria-label="isAuthenticated">{isAuthenticated ? 'true' : 'false'}</span>
+            <span aria-label="email">{user?.email ?? ''}</span>
+            <button
+              onClick={async () => {
+                const result = await resetPassword('123456', 'newpass123', 'newpass123');
+                onResult(result);
+              }}
+              aria-label="Reset Password"
+            >
+              Reset Password
+            </button>
+          </div>
+        );
+      };
+
+      return renderWithRouter(
+        <AuthProvider>
+          <Consumer />
+        </AuthProvider>
+      );
+    };
+
+    it('posts to /auth/reset-password, stores tokens, fetches /me, and authenticates the user', async () => {
+      api.post.mockResolvedValue(AUTH_RESPONSE);
+      api.get.mockResolvedValue({ data: TRAINER_USER });
+
+      let result;
+      renderWithResetPassword((r) => { result = r; });
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Reset Password' }).click();
+      });
+
+      await waitFor(() => {
+        expect(result?.success).toBe(true);
+      });
+
+      expect(api.post).toHaveBeenCalledWith('/auth/reset-password', {
+        token: '123456',
+        password: 'newpass123',
+        passwordConfirmation: 'newpass123',
+      });
+      expect(api.get).toHaveBeenCalledWith('/me?include=address,socials');
+      expect(screen.getByLabelText('isAuthenticated').textContent).toBe('true');
+      expect(screen.getByLabelText('email').textContent).toBe('trainer@example.com');
+      expect(localStorage.getItem('accessToken')).toBe('access-token-123');
+      expect(localStorage.getItem('refreshToken')).toBe('refresh-token-abc');
+    });
+
+    it('stores nothing and leaves the user unauthenticated when the API call fails', async () => {
+      const apiError = new Error('Invalid token');
+      apiError.userMessage = 'Código inválido. Verifique o código e tente novamente.';
+      api.post.mockRejectedValue(apiError);
+
+      let result;
+      renderWithResetPassword((r) => { result = r; });
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Reset Password' }).click();
+      });
+
+      await waitFor(() => {
+        expect(result?.success).toBe(false);
+      });
+
+      expect(result.error).toBe('Código inválido. Verifique o código e tente novamente.');
+      expect(screen.getByLabelText('isAuthenticated').textContent).toBe('false');
+      expect(localStorage.getItem('accessToken')).toBeNull();
+      expect(localStorage.getItem('refreshToken')).toBeNull();
+      expect(localStorage.getItem('user')).toBeNull();
+    });
+  });
+
   describe('logout', () => {
     it('clears authentication state and localStorage on logout', async () => {
       localStorage.setItem('accessToken', 'stored-token');

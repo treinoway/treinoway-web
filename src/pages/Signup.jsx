@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import GoogleIcon from '../components/GoogleIcon';
 
 const GOOGLE_CREDENTIAL_CONFLICT = 'auth/account-exists-with-different-credential';
+const MIN_PASSWORD_LENGTH = 8;
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -24,8 +25,8 @@ const Signup = () => {
   const validateFields = () => {
     const errors = {};
 
-    if (password.length > 0 && password.length < 6) {
-      errors.password = 'A senha deve ter pelo menos 6 caracteres.';
+    if (password.length > 0 && password.length < MIN_PASSWORD_LENGTH) {
+      errors.password = 'A senha deve ter pelo menos 8 caracteres.';
     }
 
     return errors;
@@ -41,10 +42,10 @@ const Signup = () => {
   };
 
   const handlePasswordBlur = () => {
-    if (password.length > 0 && password.length < 6) {
+    if (password.length > 0 && password.length < MIN_PASSWORD_LENGTH) {
       setFieldErrors((prev) => ({
         ...prev,
-        password: 'A senha deve ter pelo menos 6 caracteres.',
+        password: 'A senha deve ter pelo menos 8 caracteres.',
       }));
     }
   };
@@ -60,8 +61,8 @@ const Signup = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setFieldErrors({ password: 'A senha deve ter pelo menos 6 caracteres.' });
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setFieldErrors({ password: 'A senha deve ter pelo menos 8 caracteres.' });
       return;
     }
 
@@ -170,7 +171,7 @@ const Signup = () => {
             {fieldErrors.password && (
               <span className="form-error">{fieldErrors.password}</span>
             )}
-            <span className="auth-password-hint">Mínimo 6 caracteres</span>
+            <span className="auth-password-hint">Mínimo 8 caracteres</span>
           </div>
 
           <button

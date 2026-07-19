@@ -88,35 +88,41 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(loadStoredUser);
   const [accessToken, setAccessToken] = useState(loadStoredToken);
 
+  // Shared post-authentication sequence used by login, signup, loginWithGoogle,
+  // and resetPassword: persist tokens, clear stale per-user session state,
+  // fetch the current user, then batch the state updates into one render.
+  const establishSession = async (responseData) => {
+    const { token, refresh } = extractAuthData(responseData);
+
+    if (!token) {
+      return { success: false, error: 'Resposta da API sem token de acesso.' };
+    }
+
+    // Save token to localStorage early so the interceptor can use it for /me
+    localStorage.setItem('accessToken', token);
+    if (refresh) localStorage.setItem('refreshToken', refresh);
+
+    // Clear per-user session state before fetching /me so optimistic flags
+    // from a previous account don't bleed into the new session.
+    clearOnboardingSessionState();
+
+    // Fetch user data from /me
+    const meResponse = await api.get('/me?include=address,socials');
+    const userData = meResponse.data;
+
+    localStorage.setItem('user', JSON.stringify(userData));
+    // Batch setUser and setAccessToken together so React renders once with
+    // both isAuthenticated=true and user already populated (prevents flash).
+    setUser(userData);
+    setAccessToken(token);
+
+    return { success: true };
+  };
+
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password });
-
-      const { token, refresh } = extractAuthData(response.data);
-
-      if (!token) {
-        return { success: false, error: 'Resposta da API sem token de acesso.' };
-      }
-
-      // Save token to localStorage early so the interceptor can use it for /me
-      localStorage.setItem('accessToken', token);
-      if (refresh) localStorage.setItem('refreshToken', refresh);
-
-      // Clear per-user session state before fetching /me so optimistic flags
-      // from a previous account don't bleed into the new session.
-      clearOnboardingSessionState();
-
-      // Fetch user data from /me
-      const meResponse = await api.get('/me?include=address,socials');
-      const userData = meResponse.data;
-
-      localStorage.setItem('user', JSON.stringify(userData));
-      // Batch setUser and setAccessToken together so React renders once with
-      // both isAuthenticated=true and user already populated (prevents flash).
-      setUser(userData);
-      setAccessToken(token);
-
-      return { success: true };
+      return await establishSession(response.data);
     } catch (error) {
       return {
         success: false,
@@ -128,32 +134,7 @@ export const AuthProvider = ({ children }) => {
   const signup = async (email, password) => {
     try {
       const response = await api.post('/auth/signup', { email, password });
-
-      const { token, refresh } = extractAuthData(response.data);
-
-      if (!token) {
-        return { success: false, error: 'Resposta da API sem token de acesso.' };
-      }
-
-      // Save token to localStorage early so the interceptor can use it for /me
-      localStorage.setItem('accessToken', token);
-      if (refresh) localStorage.setItem('refreshToken', refresh);
-
-      // Clear per-user session state before fetching /me so optimistic flags
-      // from a previous account don't bleed into the new session.
-      clearOnboardingSessionState();
-
-      // Fetch user data from /me
-      const meResponse = await api.get('/me?include=address,socials');
-      const userData = meResponse.data;
-
-      localStorage.setItem('user', JSON.stringify(userData));
-      // Batch setUser and setAccessToken together so React renders once with
-      // both isAuthenticated=true and user already populated (prevents flash).
-      setUser(userData);
-      setAccessToken(token);
-
-      return { success: true };
+      return await establishSession(response.data);
     } catch (error) {
       return {
         success: false,
@@ -171,31 +152,7 @@ export const AuthProvider = ({ children }) => {
       await signOut(auth);
 
       const response = await api.post('/auth/google/web', { idToken });
-
-      const { token, refresh } = extractAuthData(response.data);
-
-      if (!token) {
-        return { success: false, error: 'Resposta da API sem token de acesso.' };
-      }
-
-      // Save token to localStorage early so the interceptor can use it for /me
-      localStorage.setItem('accessToken', token);
-      if (refresh) localStorage.setItem('refreshToken', refresh);
-
-      // Clear per-user session state before fetching /me so optimistic flags
-      // from a previous account don't bleed into the new session.
-      clearOnboardingSessionState();
-
-      const meResponse = await api.get('/me?include=address,socials');
-      const userData = meResponse.data;
-
-      localStorage.setItem('user', JSON.stringify(userData));
-      // Batch setUser and setAccessToken together so React renders once with
-      // both isAuthenticated=true and user already populated (prevents flash).
-      setUser(userData);
-      setAccessToken(token);
-
-      return { success: true };
+      return await establishSession(response.data);
     } catch (error) {
       // Firebase popup closed by user
       if (error.code === 'auth/popup-closed-by-user') {
@@ -204,6 +161,34 @@ export const AuthProvider = ({ children }) => {
       return {
         success: false,
         error: translateError(error, 'Falha na autenticação com Google.'),
+      };
+    }
+  };
+
+  const forgotPassword = async (email) => {
+    try {
+      await api.post('/auth/forgot-password', { email });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: translateError(error, 'Não foi possível enviar o código. Tente novamente mais tarde.'),
+      };
+    }
+  };
+
+  const resetPassword = async (token, password, passwordConfirmation) => {
+    try {
+      const response = await api.post('/auth/reset-password', {
+        token,
+        password,
+        passwordConfirmation,
+      });
+      return await establishSession(response.data);
+    } catch (error) {
+      return {
+        success: false,
+        error: translateError(error, 'Não foi possível redefinir a senha.'),
       };
     }
   };
@@ -293,6 +278,8 @@ export const AuthProvider = ({ children }) => {
     login,
     loginWithGoogle,
     signup,
+    forgotPassword,
+    resetPassword,
     logout,
     updateUser,
     updateTokens,
