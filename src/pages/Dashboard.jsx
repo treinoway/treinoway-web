@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, ClipboardList, Palette, Sparkles, Trophy, HeartPulse } from 'lucide-react';
+import { UserPlus, Palette, Sparkles, Trophy, HeartPulse, Mail } from 'lucide-react';
 import api from '../api/axios';
 import NoStudentsModal from '../components/NoStudentsModal';
 import OnboardingChecklistCard from '../components/OnboardingChecklistCard';
@@ -21,18 +21,16 @@ import getGreeting from '../utils/getGreeting';
 
 const SKIP_STORAGE_KEY = 'treinoway.skipNoStudentsWarning';
 const AI_SUPPRESSED_EMAIL = 'gabriel.araujo.lima2011@gmail.com';
-const STUDENT_ONLY_EMAIL = 'n.santos1897@gmail.com';
 
 const Dashboard = () => {
-  const { user, hasRole, refreshUser, updateTokens } = useAuth();
-  const isStudentUser = user?.email === STUDENT_ONLY_EMAIL;
+  const { user, hasRole, isAdmin, refreshUser, updateTokens } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [activeMode] = useActiveMode();
   const isDualRole = hasRole('TRAINER') && hasRole('NUTRITIONIST');
   const showTrainerCards = hasRole('TRAINER') && (!isDualRole || activeMode === 'trainer');
   const showNutritionistOnboarding = hasRole('NUTRITIONIST') && (!isDualRole || activeMode === 'nutritionist');
-  const isActivationMode = !hasRole('TRAINER') && !isStudentUser;
+  const isActivationMode = !hasRole('TRAINER');
 
   const [becomingTrainer, setBecomingTrainer] = useState(false);
   const [checkingStudents, setCheckingStudents] = useState(false);
@@ -186,7 +184,7 @@ const Dashboard = () => {
         </section>
       )}
 
-      {(showTrainerCards || isStudentUser) && (
+      {showTrainerCards && (
         <section>
           <div className="section-header">
             <h2 className="dashboard-section-title">Ações</h2>
@@ -229,23 +227,22 @@ const Dashboard = () => {
               />
             )}
 
-            {isStudentUser && (
-              <ActionCard
-                icon={ClipboardList}
-                title="Meus treinos"
-                description="Veja seus treinos e registre suas séries"
-                to="/my/protocols"
-              />
-            )}
+          </ActionGrid>
+        </section>
+      )}
 
-            {isStudentUser && (
-              <ActionCard
-                icon={Trophy}
-                title="Campeonatos"
-                description="Participe de campeonatos e acompanhe seu desempenho"
-                to="/my/challenges"
-              />
-            )}
+      {isAdmin && (
+        <section>
+          <div className="section-header">
+            <h2 className="dashboard-section-title">Administração</h2>
+          </div>
+          <ActionGrid>
+            <ActionCard
+              icon={Mail}
+              title="Convites do beta"
+              description="Envie e gerencie os convites de acesso beta para treinadores"
+              to="/admin/invites"
+            />
           </ActionGrid>
         </section>
       )}

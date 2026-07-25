@@ -116,7 +116,9 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     setAccessToken(token);
 
-    return { success: true };
+    // Return the fresh user so callers can route by `betaAccess` immediately,
+    // without waiting for a re-render (prevents the beta-gate redirect flash).
+    return { success: true, user: userData };
   };
 
   const login = async (email, password) => {

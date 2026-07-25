@@ -453,35 +453,8 @@ describe('Layout', () => {
   // ---------------------------------------------------------------------------
 
   describe('student navigation items', () => {
-    it('shows "Minhas Rotinas" and "Anamneses" in sidebar for the student email', () => {
+    it('does not inject student sidebar links for the former student email', () => {
       setupAuth({ email: STUDENT_EMAIL });
-
-      renderWithRouter(
-        <Layout>
-          <span>Content</span>
-        </Layout>
-      );
-
-      const rotinasLinks = screen.getAllByRole('link', { name: 'Minhas Rotinas' });
-      expect(rotinasLinks.length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByRole('link', { name: 'Anamneses' })).toBeInTheDocument();
-    });
-
-    it('shows "Rotinas" bottom nav link for the student email', () => {
-      setupAuth({ email: STUDENT_EMAIL });
-
-      renderWithRouter(
-        <Layout>
-          <span>Content</span>
-        </Layout>
-      );
-
-      const rotinasLinks = screen.getAllByRole('link', { name: 'Minhas Rotinas' });
-      expect(rotinasLinks.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('hides "Minhas Rotinas" and "Anamneses" from sidebar for a non-student email', () => {
-      setupAuth({ email: 'outro@example.com' });
 
       renderWithRouter(
         <Layout>
@@ -493,7 +466,7 @@ describe('Layout', () => {
       expect(screen.queryByRole('link', { name: 'Anamneses' })).not.toBeInTheDocument();
     });
 
-    it('hides "Rotinas" bottom nav link for a non-student email', () => {
+    it('does not inject student sidebar links for a non-student email', () => {
       setupAuth({ email: 'outro@example.com' });
 
       renderWithRouter(
@@ -503,6 +476,7 @@ describe('Layout', () => {
       );
 
       expect(screen.queryByRole('link', { name: 'Minhas Rotinas' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Anamneses' })).not.toBeInTheDocument();
     });
 
     // ---------------------------------------------------------------------------

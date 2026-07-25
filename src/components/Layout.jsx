@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, Palette, Trophy, PanelLeft, Salad, Utensils, DollarSign } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, Palette, Trophy, PanelLeft, Salad, DollarSign } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import useActiveMode from '../hooks/useActiveMode';
@@ -76,8 +76,6 @@ const Layout = ({ children, noPadding = false }) => {
     { path: '/trainer/anamneses', label: 'Anamneses', Icon: FileText },
   ];
 
-  const isStudentUser = user?.email === 'n.santos1897@gmail.com';
-
   const getPlanBadgeClass = (tier) => {
     if (tier === 'PRO') return 'badge badge-blue';
     if (tier === 'PLATINUM' || tier === 'DIAMOND') return 'badge badge-accent';
@@ -87,12 +85,6 @@ const Layout = ({ children, noPadding = false }) => {
   const navLinks = [
     { path: '/', label: 'Painel', Icon: Home },
     { path: '/profile', label: 'Meu Perfil', Icon: User },
-    ...(isStudentUser ? [
-      { path: '/my/protocols', label: 'Minhas Rotinas', Icon: ClipboardList },
-      { path: '/my/diet', label: 'Minha Dieta', Icon: Utensils },
-      { path: '/my/anamneses', label: 'Anamneses', Icon: FileText },
-      { path: '/my/challenges', label: 'Campeonatos', Icon: Trophy },
-    ] : []),
   ];
 
   return (
@@ -367,32 +359,6 @@ const Layout = ({ children, noPadding = false }) => {
           </span>
           <span>Painel</span>
         </Link>
-
-        {isStudentUser && (
-          <Link
-            to="/my/protocols"
-            className={`bottom-nav-item ${isActive('/my/protocols') ? 'bottom-nav-item--active' : ''}`}
-            aria-label="Minhas Rotinas"
-          >
-            <span className="bottom-nav-item-icon" aria-hidden="true">
-              <ClipboardList size={22} strokeWidth={1.6} />
-            </span>
-            <span>Rotinas</span>
-          </Link>
-        )}
-
-        {isStudentUser && (
-          <Link
-            to="/my/diet"
-            className={`bottom-nav-item ${isActive('/my/diet') ? 'bottom-nav-item--active' : ''}`}
-            aria-label="Minha Dieta"
-          >
-            <span className="bottom-nav-item-icon" aria-hidden="true">
-              <Utensils size={22} strokeWidth={1.6} />
-            </span>
-            <span>Dieta</span>
-          </Link>
-        )}
 
         {hasRole('TRAINER') && (
           <Link

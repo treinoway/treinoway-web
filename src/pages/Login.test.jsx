@@ -8,6 +8,12 @@ vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 const mockLogin = vi.fn();
 const mockLoginWithGoogle = vi.fn();
 
@@ -20,6 +26,7 @@ describe('Login', () => {
     });
     mockLogin.mockReset();
     mockLoginWithGoogle.mockReset();
+    mockNavigate.mockReset();
   });
 
   it('renders logo, heading, subtitle, email field, password field, and submit button', () => {
@@ -204,5 +211,112 @@ describe('Login', () => {
     });
 
     expect(screen.queryByText(/e-mail ou senha incorretos/i)).not.toBeInTheDocument();
+  });
+
+  it('navigates to dashboard on successful login without a code', async () => {
+    const user = userEvent.setup();
+    mockLogin.mockResolvedValue({ success: true });
+
+    renderWithRouter(<Login />, { route: '/login' });
+
+    await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
+    await user.type(screen.getByLabelText(/^senha$/i), 'secret123');
+    await user.click(screen.getByRole('button', { name: /^entrar$/i }));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
+    });
+  });
+
+  it('navigates to /invite carrying the code on successful login when a code is present', async () => {
+    const user = userEvent.setup();
+    mockLogin.mockResolvedValue({ success: true });
+
+    renderWithRouter(<Login />, { route: '/login?code=TF-8F3K-2Q7M-04' });
+
+    await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
+    await user.type(screen.getByLabelText(/^senha$/i), 'secret123');
+    await user.click(screen.getByRole('button', { name: /^entrar$/i }));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/invite?code=TF-8F3K-2Q7M-04', { replace: true });
+    });
+  });
+
+  it('preserves the code on the signup link when a code is present', () => {
+    renderWithRouter(<Login />, { route: '/login?code=TF-8F3K-2Q7M-04' });
+
+    expect(screen.getByRole('link', { name: /criar conta/i })).toHaveAttribute(
+      'href',
+      '/signup?code=TF-8F3K-2Q7M-04'
+    );
+  });
+
+  describe('beta gate direct navigation', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('navigates straight to /invite when gate is on and the fresh user is not granted', async () => {
+      vi.stubEnv('VITE_BETA_GATE_ENABLED', 'true');
+      const user = userEvent.setup();
+      mockLogin.mockResolvedValue({ success: true, user: { betaAccess: false } });
+
+      renderWithRouter(<Login />, { route: '/login' });
+
+      await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
+      await user.type(screen.getByLabelText(/^senha$/i), 'secret123');
+      await user.click(screen.getByRole('button', { name: /^entrar$/i }));
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/invite', { replace: true });
+      });
+    });
+
+    it('navigates to dashboard when gate is on but the fresh user is granted', async () => {
+      vi.stubEnv('VITE_BETA_GATE_ENABLED', 'true');
+      const user = userEvent.setup();
+      mockLogin.mockResolvedValue({ success: true, user: { betaAccess: true } });
+
+      renderWithRouter(<Login />, { route: '/login' });
+
+      await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
+      await user.type(screen.getByLabelText(/^senha$/i), 'secret123');
+      await user.click(screen.getByRole('button', { name: /^entrar$/i }));
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
+      });
+    });
+
+    it('navigates to dashboard when the gate is disabled even if the user is not granted', async () => {
+      vi.stubEnv('VITE_BETA_GATE_ENABLED', 'false');
+      const user = userEvent.setup();
+      mockLogin.mockResolvedValue({ success: true, user: { betaAccess: false } });
+
+      renderWithRouter(<Login />, { route: '/login' });
+
+      await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
+      await user.type(screen.getByLabelText(/^senha$/i), 'secret123');
+      await user.click(screen.getByRole('button', { name: /^entrar$/i }));
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
+      });
+    });
+
+    it('navigates a not-granted Google user straight to /invite when gate is on', async () => {
+      vi.stubEnv('VITE_BETA_GATE_ENABLED', 'true');
+      const user = userEvent.setup();
+      mockLoginWithGoogle.mockResolvedValue({ success: true, user: { betaAccess: false } });
+
+      renderWithRouter(<Login />, { route: '/login' });
+
+      await user.click(screen.getByRole('button', { name: /continuar com google/i }));
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/invite', { replace: true });
+      });
+    });
   });
 });

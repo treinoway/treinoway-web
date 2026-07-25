@@ -12,6 +12,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
+import InviteRedeem from './pages/InviteRedeem';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 
 // Protected pages
@@ -58,6 +59,7 @@ import RequireRole from './components/RequireRole';
 import VideosList from './pages/admin/VideosList';
 import VideoCreate from './pages/admin/VideoCreate';
 import VideoEdit from './pages/admin/VideoEdit';
+import InvitesList from './pages/admin/InvitesList';
 
 // Student pages (diet)
 import MyDietProtocol from './pages/my/MyDietProtocol';
@@ -92,6 +94,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          {/* Beta gate redemption — self-guards auth; NOT wrapped in the
+              beta-gated ProtectedRoute to avoid a redirect loop. */}
+          <Route path="/invite" element={<InviteRedeem />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
           {/* Protected routes */}
@@ -604,6 +609,16 @@ function App() {
               <RequireRole roles={['admin']}>
                 <Layout>
                   <VideoEdit />
+                </Layout>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/invites"
+            element={
+              <RequireRole roles={['admin']}>
+                <Layout>
+                  <InvitesList />
                 </Layout>
               </RequireRole>
             }

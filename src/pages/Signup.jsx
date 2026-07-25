@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { isBetaGateEnabled } from '../hooks/useBetaGate';
 import GoogleIcon from '../components/GoogleIcon';
 
 const GOOGLE_CREDENTIAL_CONFLICT = 'auth/account-exists-with-different-credential';
@@ -17,6 +18,22 @@ const Signup = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const { signup, loginWithGoogle, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const inviteCode = searchParams.get('code') || '';
+  const loginLink = inviteCode ? `/login?code=${encodeURIComponent(inviteCode)}` : '/login';
+
+  // Route the freshly-authenticated user straight to their destination so a
+  // gated user never bounces through `/` → beta-gate redirect (white flash).
+  const resolveDestination = (user) => {
+    if (inviteCode) {
+      return `/invite?code=${encodeURIComponent(inviteCode)}`;
+    }
+    if (isBetaGateEnabled() && user?.betaAccess === false) {
+      return '/invite';
+    }
+    return '/';
+  };
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -72,7 +89,7 @@ const Signup = () => {
       const result = await signup(email, password);
 
       if (result.success) {
-        navigate('/', { replace: true });
+        navigate(resolveDestination(result.user), { replace: true });
       } else {
         setError(result.error);
         setLoading(false);
@@ -91,7 +108,7 @@ const Signup = () => {
       const result = await loginWithGoogle();
 
       if (result.success) {
-        navigate('/', { replace: true });
+        navigate(resolveDestination(result.user), { replace: true });
       } else if (result.error) {
         const message = String(result.error).includes(GOOGLE_CREDENTIAL_CONFLICT)
           ? 'Esse e-mail já está cadastrado com senha. Entre com e-mail e senha.'
@@ -142,6 +159,11 @@ const Signup = () => {
               autoComplete="email"
               disabled={loading || googleLoading}
             />
+            {inviteCode && (
+              <span className="auth-password-hint">
+                Use o e-mail em que você recebeu o convite.
+              </span>
+            )}
           </div>
 
           <div className="form-group">
@@ -185,7 +207,7 @@ const Signup = () => {
 
         <p className="auth-footer">
           Já tem uma conta?{' '}
-          <Link to="/login" className="link">Entrar</Link>
+          <Link to={loginLink} className="link">Entrar</Link>
         </p>
       </div>
     </div>

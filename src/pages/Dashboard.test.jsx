@@ -544,7 +544,7 @@ describe('Dashboard', () => {
     });
   });
 
-  describe('Student-only user', () => {
+  describe('Non-trainer user (former student-only email)', () => {
     beforeEach(() => {
       vi.mocked(useAuth).mockReturnValue({
         user: { id: 2, firstName: 'Aluno', status: 'active', email: 'n.santos1897@gmail.com', roles: [] },
@@ -555,29 +555,53 @@ describe('Dashboard', () => {
       mockHasRole.mockReturnValue(false);
     });
 
-    it('shows Campeonatos card linking to /my/challenges', () => {
+    it('does not show student-only quick action cards', () => {
       renderWithRouter(<Dashboard />);
-      expect(screen.getByRole('link', { name: /campeonatos/i })).toHaveAttribute('href', '/my/challenges');
+      expect(screen.queryByRole('link', { name: /meus treinos/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /\/my\/challenges/i })).not.toBeInTheDocument();
     });
 
-    it('shows a "Meus treinos" card linking to an existing student route', () => {
-      renderWithRouter(<Dashboard />);
-      expect(screen.getByRole('link', { name: /meus treinos/i })).toHaveAttribute('href', '/my/protocols');
-    });
-
-    it('does not show the Control Tower for a student-only user', () => {
+    it('does not show the Control Tower for a non-trainer user', () => {
       renderWithRouter(<Dashboard />);
       expect(screen.queryByRole('heading', { name: 'Tua semana em foco' })).not.toBeInTheDocument();
     });
 
-    it('does not show the activation zone for a student-only user', () => {
+    it('shows the activation zone like any other non-trainer user', () => {
       renderWithRouter(<Dashboard />);
-      expect(screen.queryByRole('heading', { name: 'Comece a atender' })).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Comece a atender' })).toBeInTheDocument();
     });
 
     it('does not show trainer quick actions', () => {
       renderWithRouter(<Dashboard />);
       expect(screen.queryByText('Sua marca')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Admin invites entry point', () => {
+    it('shows the "Convites do beta" card linking to /admin/invites for an admin', () => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 3, firstName: 'Admin', status: 'active', roles: ['admin'] },
+        hasRole: mockHasRole,
+        isAdmin: true,
+        refreshUser: mockRefreshUser,
+        updateTokens: mockUpdateTokens,
+      });
+      mockHasRole.mockReturnValue(false);
+      mockApiGet();
+
+      renderWithRouter(<Dashboard />);
+
+      expect(screen.getByRole('link', { name: /convites do beta/i }))
+        .toHaveAttribute('href', '/admin/invites');
+    });
+
+    it('hides the admin invites card for a non-admin user', () => {
+      mockHasRole.mockReturnValue(false);
+      mockApiGet();
+
+      renderWithRouter(<Dashboard />);
+
+      expect(screen.queryByText('Convites do beta')).not.toBeInTheDocument();
     });
   });
 });
