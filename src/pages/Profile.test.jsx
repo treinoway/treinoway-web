@@ -40,7 +40,6 @@ const mockUpdateUser = vi.fn();
 const mockShowToast = vi.fn();
 const mockHasRole = vi.fn(() => false);
 const mockLogout = vi.fn();
-const mockGrantAdmin = vi.fn();
 
 const mockUser = {
   id: 1,
@@ -86,7 +85,6 @@ describe('Profile', () => {
     mockHasRole.mockReturnValue(false);
     mockLogout.mockReset();
     mockNavigate.mockReset();
-    mockGrantAdmin.mockReset();
     vi.mocked(api.patch).mockClear();
     vi.mocked(api.get).mockClear();
 
@@ -98,7 +96,6 @@ describe('Profile', () => {
       hasRole: mockHasRole,
       logout: mockLogout,
       isAdmin: false,
-      grantAdmin: mockGrantAdmin,
     });
   });
 
@@ -740,102 +737,9 @@ describe('Profile', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
 
-  // Admin entry-point — three branches: admin / bootstrap email / other user
+  // Admin entry-point was removed from Profile — regression guard only
   describe('admin entry-point', () => {
-    it('shows "Acessar modo admin" and navigates to /admin/videos when user is admin', async () => {
-      const user = userEvent.setup();
-      vi.mocked(useAuth).mockReturnValue({
-        user: { ...mockUser, email: 'admin@example.com', roles: ['admin'] },
-        updateUser: mockUpdateUser,
-        refreshUser: mockRefreshUser,
-        hasRole: mockHasRole,
-        logout: mockLogout,
-        isAdmin: true,
-        grantAdmin: mockGrantAdmin,
-      });
-
-      renderWithRouter(<Profile />);
-
-      const button = screen.getByRole('button', { name: /acessar modo admin/i });
-      expect(button).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /tornar-me admin/i })).not.toBeInTheDocument();
-
-      await user.click(button);
-
-      expect(mockNavigate).toHaveBeenCalledWith('/admin/videos');
-      expect(mockGrantAdmin).not.toHaveBeenCalled();
-    });
-
-    it('shows "Tornar-me admin" for bootstrap email; click triggers grantAdmin and navigates', async () => {
-      const user = userEvent.setup();
-      mockGrantAdmin.mockResolvedValue({ user: { roles: ['TRAINER', 'admin'] } });
-      vi.mocked(useAuth).mockReturnValue({
-        user: { ...mockUser, email: 'n.santos1897@gmail.com' },
-        updateUser: mockUpdateUser,
-        refreshUser: mockRefreshUser,
-        hasRole: mockHasRole,
-        logout: mockLogout,
-        isAdmin: false,
-        grantAdmin: mockGrantAdmin,
-      });
-
-      renderWithRouter(<Profile />);
-
-      const button = screen.getByRole('button', { name: /tornar-me admin/i });
-      expect(button).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /acessar modo admin/i })).not.toBeInTheDocument();
-
-      await user.click(button);
-
-      await waitFor(() => {
-        expect(mockGrantAdmin).toHaveBeenCalledTimes(1);
-        expect(mockShowToast).toHaveBeenCalledWith('Modo admin ativado!', 'success');
-        expect(mockNavigate).toHaveBeenCalledWith('/admin/videos');
-      });
-    });
-
-    it('matches the bootstrap email case-insensitively and with surrounding whitespace', () => {
-      vi.mocked(useAuth).mockReturnValue({
-        user: { ...mockUser, email: '  N.Santos1897@Gmail.COM  ' },
-        updateUser: mockUpdateUser,
-        refreshUser: mockRefreshUser,
-        hasRole: mockHasRole,
-        logout: mockLogout,
-        isAdmin: false,
-        grantAdmin: mockGrantAdmin,
-      });
-
-      renderWithRouter(<Profile />);
-
-      expect(screen.getByRole('button', { name: /tornar-me admin/i })).toBeInTheDocument();
-    });
-
-    it('shows error toast when grantAdmin fails and does not navigate', async () => {
-      const user = userEvent.setup();
-      const grantError = new Error('Forbidden');
-      grantError.userMessage = 'Você não tem permissão.';
-      mockGrantAdmin.mockRejectedValue(grantError);
-      vi.mocked(useAuth).mockReturnValue({
-        user: { ...mockUser, email: 'n.santos1897@gmail.com' },
-        updateUser: mockUpdateUser,
-        refreshUser: mockRefreshUser,
-        hasRole: mockHasRole,
-        logout: mockLogout,
-        isAdmin: false,
-        grantAdmin: mockGrantAdmin,
-      });
-
-      renderWithRouter(<Profile />);
-
-      await user.click(screen.getByRole('button', { name: /tornar-me admin/i }));
-
-      await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith('Você não tem permissão.', 'error');
-      });
-      expect(mockNavigate).not.toHaveBeenCalledWith('/admin/videos');
-    });
-
-    it('renders no admin entry-point button for a regular non-bootstrap user', () => {
+    it('renders no admin entry-point button for a non-admin user', () => {
       vi.mocked(useAuth).mockReturnValue({
         user: { ...mockUser, email: 'someone-else@example.com' },
         updateUser: mockUpdateUser,
@@ -843,13 +747,11 @@ describe('Profile', () => {
         hasRole: mockHasRole,
         logout: mockLogout,
         isAdmin: false,
-        grantAdmin: mockGrantAdmin,
       });
 
       renderWithRouter(<Profile />);
 
       expect(screen.queryByRole('button', { name: /acessar modo admin/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /tornar-me admin/i })).not.toBeInTheDocument();
     });
   });
 });
