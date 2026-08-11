@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
-import { Check, LogOut, Shield, User } from 'lucide-react';
+import { Check, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
@@ -12,7 +12,6 @@ import NutritionistProfileSection from '../components/NutritionistProfileSection
 import Select from '../components/Select';
 import { computeMissingProfileFields } from '../utils/onboardingProfile';
 import { markOnboardingStepOptimistic } from '../hooks/useOnboardingStatus';
-import { isBootstrapAdminEmail } from '../constants/admin';
 
 // Helper function to format date without timezone conversion
 const formatDateForDisplay = (dateString) => {
@@ -69,33 +68,13 @@ SectionHeader.propTypes = {
 };
 
 const Profile = () => {
-  const { user, updateUser, refreshUser, hasRole, logout, isAdmin, grantAdmin } = useAuth();
+  const { user, updateUser, refreshUser, hasRole, logout } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
   const [cepError, setCepError] = useState('');
-  const [grantingAdmin, setGrantingAdmin] = useState(false);
-
-  const canBootstrapAdmin = !isAdmin && isBootstrapAdminEmail(user?.email);
-
-  const handleEnterAdmin = () => {
-    navigate('/admin/videos');
-  };
-
-  const handleGrantAdmin = async () => {
-    setGrantingAdmin(true);
-    try {
-      await grantAdmin();
-      showToast('Modo admin ativado!', 'success');
-      navigate('/admin/videos');
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setGrantingAdmin(false);
-    }
-  };
 
   const emptyFormData = {
     firstName: '',
@@ -359,39 +338,6 @@ useEffect(() => {
 
   return (
     <div>
-      {isAdmin && (
-        <div className="card profile-admin-card">
-          <div className="profile-admin-card__info">
-            <Shield size={20} strokeWidth={2} className="profile-admin-card__icon" aria-hidden="true" />
-            <h2 className="profile-admin-card__title">Modo admin</h2>
-          </div>
-          <button
-            type="button"
-            onClick={handleEnterAdmin}
-            className="btn-primary profile-admin-card__action"
-          >
-            Acessar modo admin
-          </button>
-        </div>
-      )}
-
-      {canBootstrapAdmin && (
-        <div className="card profile-admin-card">
-          <div className="profile-admin-card__info">
-            <Shield size={20} strokeWidth={2} className="profile-admin-card__icon" aria-hidden="true" />
-            <h2 className="profile-admin-card__title">Acesso administrativo</h2>
-          </div>
-          <button
-            type="button"
-            onClick={handleGrantAdmin}
-            disabled={grantingAdmin}
-            className="btn-primary profile-admin-card__action"
-          >
-            {grantingAdmin ? 'Ativando...' : 'Tornar-me admin'}
-          </button>
-        </div>
-      )}
-
       <div className="card card--mb">
         <div className="card-header">
           <h2 className="card-title">Informações do Perfil</h2>

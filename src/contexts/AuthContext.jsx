@@ -237,24 +237,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Bootstrap-admin grant: server returns refreshed user + rotated tokens.
-  // Errors propagate so the caller can surface `error.userMessage`.
-  const grantAdmin = async () => {
-    const response = await api.post('/me/grant-admin');
-    const updatedUser = response.data?.user ?? null;
-    const newAccessToken = response.data?.token?.accessToken ?? null;
-    const newRefreshToken = response.data?.refreshToken ?? null;
-
-    if (updatedUser) {
-      updateUser(updatedUser);
-    }
-    if (newAccessToken || newRefreshToken) {
-      updateTokens(newAccessToken, newRefreshToken);
-    }
-
-    return response.data;
-  };
-
   // Keep Sentry's user scope in sync (id only — never email/PII).
   // Covers login, signup, Google, localStorage bootstrap, and logout in one place.
   useEffect(() => {
@@ -286,7 +268,6 @@ export const AuthProvider = ({ children }) => {
     updateUser,
     updateTokens,
     refreshUser,
-    grantAdmin,
     hasRole,
     isAdmin,
     isAuthenticated: !!accessToken,
