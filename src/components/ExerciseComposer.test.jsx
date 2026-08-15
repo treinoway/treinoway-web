@@ -71,6 +71,7 @@ const EXERCISE_SNAPSHOT = {
   restInterval: 60,
   hasLoad: true,
   suggestedLoad: 80,
+  notes: 'Observação de teste',
 };
 
 const EXERCISE_SNAPSHOT_DURATION = {
@@ -395,6 +396,44 @@ describe('ExerciseComposer — VideoField integration', () => {
         }),
       );
     });
+  });
+});
+
+// ─── Tests — delete action (edit mode footer) ────────────────────────────────
+
+describe('ExerciseComposer — delete action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows the "Excluir" button in edit mode when onRequestDelete is provided', () => {
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onRequestDelete: vi.fn() });
+    expect(screen.getByRole('button', { name: /Excluir/i })).toBeInTheDocument();
+  });
+
+  it('does NOT show the "Excluir" button in edit mode when onRequestDelete is not provided', () => {
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT });
+    expect(screen.queryByRole('button', { name: /Excluir/i })).not.toBeInTheDocument();
+  });
+
+  it('does NOT show the "Excluir" button in create mode even when onRequestDelete is provided', () => {
+    renderComposer({ snapshot: null, onRequestDelete: vi.fn() });
+    expect(screen.queryByRole('button', { name: /Excluir/i })).not.toBeInTheDocument();
+  });
+
+  it('clicking "Excluir" calls onRequestDelete', async () => {
+    const onRequestDelete = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onRequestDelete });
+
+    await user.click(screen.getByRole('button', { name: /Excluir/i }));
+
+    expect(onRequestDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the "Excluir" button when saving=true', () => {
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onRequestDelete: vi.fn(), saving: true });
+    expect(screen.getByRole('button', { name: /Excluir/i })).toBeDisabled();
   });
 });
 
@@ -814,5 +853,113 @@ describe('ExerciseComposer — prescription warn dialog', () => {
       expect(onSubmitCreate).toHaveBeenCalledTimes(1);
     });
     expect(screen.queryByText(/Nenhuma repetição definida/i)).not.toBeInTheDocument();
+  });
+});
+
+// ─── Tests — clearing fields (edit vs create payload semantics) ─────────────
+
+describe('ExerciseComposer — clearing fields', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('edit mode: clearing "Séries" sends sets=null', async () => {
+    const onSubmitEdit = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onSubmitEdit });
+
+    await user.clear(screen.getByLabelText(/Séries/i));
+    await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(onSubmitEdit).toHaveBeenCalledWith(
+        'junc-1',
+        expect.objectContaining({ sets: null })
+      );
+    });
+  });
+
+  it('edit mode: clearing "Descanso" sends restInterval=null', async () => {
+    const onSubmitEdit = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onSubmitEdit });
+
+    await user.clear(screen.getByLabelText(/Intervalo de descanso em segundos/i));
+    await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(onSubmitEdit).toHaveBeenCalledWith(
+        'junc-1',
+        expect.objectContaining({ restInterval: null })
+      );
+    });
+  });
+
+  it('edit mode: clearing "Carga sugerida" sends suggestedLoad=null', async () => {
+    const onSubmitEdit = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onSubmitEdit });
+
+    await user.clear(screen.getByLabelText(/Carga sugerida/i));
+    await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(onSubmitEdit).toHaveBeenCalledWith(
+        'junc-1',
+        expect.objectContaining({ suggestedLoad: null })
+      );
+    });
+  });
+
+  it('edit mode: clearing "Observações" sends notes=""', async () => {
+    const onSubmitEdit = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onSubmitEdit });
+
+    await user.clear(screen.getByLabelText(/Observações/i));
+    await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(onSubmitEdit).toHaveBeenCalledWith(
+        'junc-1',
+        expect.objectContaining({ notes: '' })
+      );
+    });
+  });
+
+  it('edit mode: turning "Exercício com carga" off sends suggestedLoad=null even without touching the load field', async () => {
+    const onSubmitEdit = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onSubmitEdit });
+
+    await user.click(screen.getByRole('switch', { name: /Exercício com carga/i }));
+    await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(onSubmitEdit).toHaveBeenCalledWith(
+        'junc-1',
+        expect.objectContaining({ suggestedLoad: null })
+      );
+    });
+  });
+
+  it('create mode: leaving sets, restInterval, suggestedLoad and notes empty omits them from the payload', async () => {
+    const onSubmitCreate = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ onSubmitCreate });
+
+    await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
+    await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
+    await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    await waitFor(() => {
+      expect(onSubmitCreate).toHaveBeenCalledTimes(1);
+    });
+    const payload = onSubmitCreate.mock.calls[0][0];
+    expect(payload).not.toHaveProperty('sets');
+    expect(payload).not.toHaveProperty('restInterval');
+    expect(payload).not.toHaveProperty('suggestedLoad');
+    expect(payload).not.toHaveProperty('notes');
   });
 });

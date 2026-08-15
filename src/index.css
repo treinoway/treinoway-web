@@ -17205,10 +17205,18 @@ nav.onboarding-steps {
 /* Composer action row */
 .composer-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-sm);
   margin-top: var(--spacing-sm);
   padding-top: var(--spacing-sm);
   border-top: 1px solid var(--brand-divider);
+}
+
+/* Pushes the destructive action (Excluir) to the right of Cancelar/Salvar.
+   Wraps to its own right-aligned line on narrow viewports when the row
+   doesn't fit all three actions. */
+.composer-actions-delete {
+  margin-left: auto;
 }
 
 /* ── Library panel (inside composer, "Da biblioteca" mode) ── */

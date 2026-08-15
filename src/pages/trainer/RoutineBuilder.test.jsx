@@ -1242,6 +1242,80 @@ describe('RoutineBuilder — exercise row actions', () => {
   });
 });
 
+// ─── Tests — composer footer delete action ───────────────────────────────────
+
+describe('RoutineBuilder — composer footer delete action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  });
+
+  const expandTraining = async (user) => {
+    const chevron = screen.getByRole('button', { name: /Expandir treino/i });
+    await user.click(chevron);
+    await screen.findByRole('list', { name: /Exercícios/i });
+  };
+
+  const openEditComposer = async (user) => {
+    await expandTraining(user);
+    await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
+    await screen.findByRole('button', { name: /Salvar alterações/i });
+  };
+
+  it('the "Excluir" button in the composer footer opens the confirm dialog with the exercise name', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await openEditComposer(user);
+
+    await user.click(screen.getByRole('button', { name: /Excluir/i }));
+
+    expect(await screen.findByText(/Excluir "Supino reto"/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Confirmar/i })).toBeInTheDocument();
+  });
+
+  it('confirming the composer footer delete calls deleteExercise and closes the composer', async () => {
+    const deleteExercise = vi.fn().mockResolvedValue(undefined);
+    useRoutineBuilder.mockReturnValue({
+      ...POPULATED_HOOK_STATE,
+      deleteExercise,
+    });
+
+    const user = userEvent.setup();
+    renderNew();
+    await openEditComposer(user);
+
+    await user.click(screen.getByRole('button', { name: /Excluir/i }));
+    await user.click(await screen.findByRole('button', { name: /Confirmar/i }));
+
+    await waitFor(() => {
+      expect(deleteExercise).toHaveBeenCalledWith('training-1', 'ex-1');
+    });
+    expect(screen.queryByRole('button', { name: /Salvar alterações/i })).not.toBeInTheDocument();
+  });
+
+  it('cancelling the composer footer delete does NOT call deleteExercise and the composer stays open', async () => {
+    const deleteExercise = vi.fn();
+    useRoutineBuilder.mockReturnValue({
+      ...POPULATED_HOOK_STATE,
+      deleteExercise,
+    });
+
+    const user = userEvent.setup();
+    renderNew();
+    await openEditComposer(user);
+
+    await user.click(screen.getByRole('button', { name: /Excluir/i }));
+    await screen.findByText(/Excluir "Supino reto"/i);
+
+    const cancelBtns = screen.getAllByRole('button', { name: /Cancelar/i });
+    await user.click(cancelBtns[cancelBtns.length - 1]);
+
+    expect(deleteExercise).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Excluir "Supino reto"/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Salvar alterações/i })).toBeInTheDocument();
+  });
+});
+
 // ─── Tests — drag handle affordance ──────────────────────────────────────────
 
 describe('RoutineBuilder — drag handle affordance', () => {
