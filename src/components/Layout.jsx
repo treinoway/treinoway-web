@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, Palette, Trophy, PanelLeft, Salad, DollarSign } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import useActiveMode from '../hooks/useActiveMode';
-import useFinanceiroBadge from '../hooks/useFinanceiroBadge';
 import { t } from '../i18n';
 
 const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
@@ -21,10 +20,7 @@ const Layout = ({ children, noPadding = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const popoverRef = useRef(null);
-  const [activeMode, setActiveMode] = useActiveMode();
-  const isDualRole = hasRole('TRAINER') && hasRole('NUTRITIONIST');
-  const trainerActive = hasRole('TRAINER') && (!isDualRole || activeMode === 'trainer');
-  const { count: financeiroBadgeCount } = useFinanceiroBadge({ enabled: trainerActive });
+  const [, setActiveMode] = useActiveMode();
 
   const handleLogout = () => {
     logout();
@@ -125,30 +121,6 @@ const Layout = ({ children, noPadding = false }) => {
         </div>
 
         <nav className="sidebar-nav">
-          {/* Mode switcher — only for dual-role users (TRAINER + NUTRITIONIST) */}
-          {isDualRole && sidebarOpen && (
-            <div className="segmented-toggle segmented-toggle--mode-switch" role="group" aria-label="Alternar modo">
-              <button
-                type="button"
-                className={`segmented-toggle-btn${activeMode === 'trainer' ? ' segmented-toggle-btn--active' : ''}`}
-                onClick={() => setActiveMode('trainer')}
-                aria-pressed={activeMode === 'trainer'}
-              >
-                <Dumbbell size={18} strokeWidth={2} />
-                <span>Treinador</span>
-              </button>
-              <button
-                type="button"
-                className={`segmented-toggle-btn${activeMode === 'nutritionist' ? ' segmented-toggle-btn--active' : ''}`}
-                onClick={() => setActiveMode('nutritionist')}
-                aria-pressed={activeMode === 'nutritionist'}
-              >
-                <Salad size={18} strokeWidth={2} />
-                <span>Nutricionista</span>
-              </button>
-            </div>
-          )}
-
           {/* Regular nav links */}
           {navLinks.map((link) => (
             <Link
@@ -164,45 +136,8 @@ const Layout = ({ children, noPadding = false }) => {
             </Link>
           ))}
 
-          {/* Nutritionist section — hidden when dual-role and trainer mode is active */}
-          {hasRole('NUTRITIONIST') && (!isDualRole || activeMode === 'nutritionist') && (
-            <>
-              <div className="sidebar-section-label">Nutricionista</div>
-              <Link
-                to="/nutritionist/patients"
-                className={`sidebar-link ${isActive('/nutritionist/patients') ? 'sidebar-link--active' : ''}`}
-                aria-label="Pacientes"
-              >
-                <span className="sidebar-link-icon" aria-hidden="true">
-                  <Users size={20} strokeWidth={1.6} />
-                </span>
-                <span className="sidebar-link-label">Pacientes</span>
-              </Link>
-              <Link
-                to="/nutritionist/diet-protocols"
-                className={`sidebar-link ${isActive('/nutritionist/diet-protocols') ? 'sidebar-link--active' : ''}`}
-                aria-label="Protocolos"
-              >
-                <span className="sidebar-link-icon" aria-hidden="true">
-                  <ClipboardList size={20} strokeWidth={1.6} />
-                </span>
-                <span className="sidebar-link-label">Protocolos</span>
-              </Link>
-              <Link
-                to="/nutritionist/diet-templates"
-                className={`sidebar-link ${isActive('/nutritionist/diet-templates') ? 'sidebar-link--active' : ''}`}
-                aria-label="Modelos de Dieta"
-              >
-                <span className="sidebar-link-icon" aria-hidden="true">
-                  <Salad size={20} strokeWidth={1.6} />
-                </span>
-                <span className="sidebar-link-label">Modelos</span>
-              </Link>
-            </>
-          )}
-
-          {/* Trainer section — hidden when dual-role and nutritionist mode is active */}
-          {hasRole('TRAINER') && (!isDualRole || activeMode === 'trainer') && (
+          {/* Trainer section */}
+          {hasRole('TRAINER') && (
             <>
               <div className="sidebar-section-label">Treinador</div>
 
@@ -234,47 +169,6 @@ const Layout = ({ children, noPadding = false }) => {
                   </>
                 </Link>
               )}
-
-              {/* Campeonatos */}
-              <Link
-                to="/trainer/challenges"
-                className={`sidebar-link ${isActive('/trainer/challenges') ? 'sidebar-link--active' : ''}`}
-                aria-label="Campeonatos"
-              >
-                <span className="sidebar-link-icon" aria-hidden="true">
-                  <Trophy size={20} strokeWidth={1.6} />
-                </span>
-                <span className="sidebar-link-label">Campeonatos</span>
-              </Link>
-
-              {/* Financeiro */}
-              <Link
-                to="/trainer/financeiro"
-                className={`sidebar-link ${isActive('/trainer/financeiro') ? 'sidebar-link--active' : ''}`}
-                aria-label="Financeiro"
-              >
-                <span className="sidebar-link-icon" aria-hidden="true">
-                  <DollarSign size={20} strokeWidth={1.6} />
-                </span>
-                <span className="sidebar-link-label">Financeiro</span>
-                {financeiroBadgeCount > 0 && (
-                  <span className="sidebar-link-badge sidebar-link-badge--count" aria-label={`${financeiroBadgeCount} cobranças pendentes`}>
-                    {financeiroBadgeCount > 99 ? '99+' : financeiroBadgeCount}
-                  </span>
-                )}
-              </Link>
-
-              {/* Sua Marca */}
-              <Link
-                to="/trainer/branding"
-                className={`sidebar-link ${isActive('/trainer/branding') ? 'sidebar-link--active' : ''}`}
-                aria-label="Sua Marca"
-              >
-                <span className="sidebar-link-icon" aria-hidden="true">
-                  <Palette size={20} strokeWidth={1.6} />
-                </span>
-                <span className="sidebar-link-label">Sua Marca</span>
-              </Link>
 
               {/* Biblioteca dropdown */}
               <button
