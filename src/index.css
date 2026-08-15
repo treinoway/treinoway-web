@@ -15842,6 +15842,73 @@ nav.onboarding-steps {
   }
 }
 
+/* ── Builder error banner (persistent — save failure or initial load failure) ──
+   Rendered whenever routine.error is set, in every mode (create/edit/view),
+   so a failed save or a failed GET never leaves the trainer looking at a
+   silently-empty routine. */
+.builder-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin: var(--spacing-sm) var(--spacing-md) 0;
+  background: var(--md-error-container);
+  border-left: 3px solid var(--md-error);
+  border-radius: var(--radius-brand);
+  color: var(--md-error-container-fg);
+  font-size: var(--font-body-small-size);
+  line-height: var(--line-height-normal);
+  flex-shrink: 0;
+}
+
+.builder-error-banner-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--md-error);
+}
+
+@media (min-width: 768px) {
+  .builder-error-banner {
+    margin: var(--spacing-sm) var(--spacing-xl) 0;
+  }
+}
+
+/* ── Save hint (explains why the primary save action is disabled) ──
+   Support text near the button — not a tooltip, so it works on touch and is
+   always visible instead of relying on hover/focus. */
+.builder-topbar-save-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-xs);
+}
+
+.builder-save-hint {
+  font-size: var(--font-caption-size);
+  color: var(--md-error);
+  line-height: var(--line-height-normal);
+  text-align: right;
+  max-width: 220px;
+}
+
+.builder-save-hint--fab {
+  position: fixed;
+  right: var(--spacing-md);
+  bottom: calc(var(--bottom-nav-height) + var(--spacing-md) + 44px + var(--spacing-xs));
+  max-width: 200px;
+  background: var(--md-surface);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-brand);
+  box-shadow: var(--shadow-brand-sm);
+  z-index: var(--z-dropdown);
+}
+
+@media (min-width: 768px) {
+  .builder-save-hint--fab {
+    display: none;
+  }
+}
+
 /* ── Identity strip (chips under topbar) ── */
 .builder-identity-strip {
   background: var(--md-surface);

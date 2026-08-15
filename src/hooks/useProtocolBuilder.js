@@ -777,6 +777,39 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
 
   const restoreSessionTracking = useCallback(() => {}, []);
 
+  // ── hydrateFromDraft ──────────────────────────────────────────────────────
+
+  /**
+   * Restores create-mode state from a persisted protocol draft (see
+   * useProtocolDraft). Unlike template mode — where the draft only stores
+   * training-template ids re-imported via importTrainingsFromLibrary —
+   * protocol trainings are local-only objects (many built from scratch, with
+   * inline-edited exercises and temp ids), so the full trainings array is
+   * restored verbatim instead of re-derived from the library.
+   *
+   * No-op in edit mode: edit-mode mutations are already persisted eagerly,
+   * so there is nothing to hydrate from a local draft.
+   */
+  const hydrateFromDraft = useCallback(
+    ({ meta, trainings: draftTrainings } = {}) => {
+      if (isEditMode) return;
+      setData((prev) => ({
+        ...prev,
+        type: meta?.type ?? prev.type,
+        trainingLevel: meta?.trainingLevel ?? prev.trainingLevel,
+        genderOrdination: meta?.genderOrdination ?? prev.genderOrdination,
+        description: meta?.description ?? prev.description,
+        startDate: meta?.startDate ?? prev.startDate,
+        expirationDate: meta?.expirationDate ?? prev.expirationDate,
+        assigneeId: meta?.assigneeId ?? prev.assigneeId,
+        trainings: Array.isArray(draftTrainings) && draftTrainings.length > 0
+          ? draftTrainings
+          : prev.trainings,
+      }));
+    },
+    [isEditMode]
+  );
+
   // ── refetchTrainingExercises ──────────────────────────────────────────────
 
   /**
@@ -832,6 +865,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     reorderExercises,
     saveExerciseAsTemplate,
     restoreSessionTracking,
+    hydrateFromDraft,
     loadFromTemplate,
     refetchTrainingExercises,
   };

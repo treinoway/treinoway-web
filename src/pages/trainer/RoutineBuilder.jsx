@@ -17,6 +17,7 @@ import {
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import PropTypes from 'prop-types';
 import {
+  AlertTriangle,
   AlignLeft,
   ArrowLeft,
   CheckSquare,
@@ -40,6 +41,7 @@ import { useToast } from '../../contexts/ToastContext';
 import useRoutineBuilder from '../../hooks/useRoutineBuilder';
 import useProtocolBuilder from '../../hooks/useProtocolBuilder';
 import useRoutineDraft from '../../hooks/useRoutineDraft';
+import useProtocolDraft from '../../hooks/useProtocolDraft';
 import useUnsavedChangesWarning from '../../hooks/useUnsavedChangesWarning';
 import useBisetCreate from '../../hooks/useBisetCreate';
 import useExerciseReorder from '../../hooks/useExerciseReorder';
@@ -53,7 +55,7 @@ import SubstitutesInline from '../../components/SubstitutesInline';
 import IntensityBadge from '../../components/IntensityBadge';
 import SelectionActionBar, { SelectionInstructionStrip } from '../../components/SelectionActionBar';
 import api from '../../api/axios';
-import { t } from '../../i18n';
+import { t, translateError } from '../../i18n';
 import { WEEK_DAY_OPTIONS_SHORT } from '../../constants/weekDays';
 import { sortTrainingsByWeekDay } from '../../utils/sortTrainingsByWeekDay';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
@@ -2196,6 +2198,7 @@ const BuilderTopbar = ({
   onOpenSummary,
   saving,
   canSave,
+  saveHintText,
 }) => {
   const inputRef = useRef(null);
 
@@ -2344,15 +2347,23 @@ const BuilderTopbar = ({
               <X size={16} strokeWidth={2} aria-hidden="true" />
               Cancelar
             </button>
-            <button
-              className="btn-primary"
-              onClick={onSave}
-              disabled={!canSave || saving}
-              aria-disabled={!canSave}
-            >
-              <Save size={16} strokeWidth={2} aria-hidden="true" />
-              {saving ? 'Salvando…' : editProtocolId ? 'Concluir' : 'Salvar rotina'}
-            </button>
+            <div className="builder-topbar-save-group">
+              <button
+                className="btn-primary"
+                onClick={onSave}
+                disabled={!canSave || saving}
+                aria-disabled={!canSave}
+                aria-describedby={saveHintText ? 'builder-save-hint-desktop' : undefined}
+              >
+                <Save size={16} strokeWidth={2} aria-hidden="true" />
+                {saving ? 'Salvando…' : editProtocolId ? 'Concluir' : 'Salvar rotina'}
+              </button>
+              {saveHintText && (
+                <span id="builder-save-hint-desktop" className="builder-save-hint" role="note">
+                  {saveHintText}
+                </span>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -2380,6 +2391,7 @@ BuilderTopbar.propTypes = {
   onOpenSummary: PropTypes.func,
   saving: PropTypes.bool.isRequired,
   canSave: PropTypes.bool.isRequired,
+  saveHintText: PropTypes.string,
 };
 
 BuilderTopbar.defaultProps = {
@@ -2395,6 +2407,7 @@ BuilderTopbar.defaultProps = {
   onEdit: null,
   onImportTemplate: null,
   onOpenSummary: null,
+  saveHintText: null,
 };
 
 // ─── IdentityStrip ────────────────────────────────────────────────────────────
@@ -2849,6 +2862,27 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
     ? true
     : hasName && hasTrainings && hasStartDate;
 
+  // ── Save hint (explains why the primary save action is disabled) ─────────
+  // Support text near the button instead of a tooltip — a disabled button does
+  // not reliably fire a tooltip, and tooltips do not work on touch at all.
+
+  const saveHintText = useMemo(() => {
+    if (editProtocolId) return null;
+    const missing = [];
+    if (!hasName) missing.push('nome da rotina');
+    if (!hasTrainings) missing.push('ao menos um treino');
+    if (!hasStartDate) missing.push('data de início');
+    if (missing.length === 0) return null;
+    // Pristine — none of the three (name, trainings, start date) has been
+    // touched yet. Suppress the hint here: the trainer just arrived, there is
+    // nothing to explain yet, and a red warning on the very first frame only
+    // teaches them to tune it out. Once any one of the three is filled in,
+    // the hint starts listing what's still missing.
+    const isPristine = !hasName && !hasTrainings && !(isProtocol && hasStartDate);
+    if (isPristine) return null;
+    return `Para salvar, informe: ${missing.join(', ')}.`;
+  }, [editProtocolId, hasName, hasTrainings, hasStartDate, isProtocol]);
+
   // ── Draft meta (template mode only) ─────────────────────────────────────
 
   const draftMeta = useMemo(
@@ -2865,6 +2899,32 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
       routine.data?.defaultDurationWeeks,
       routine.data?.genderOrdination,
       routine.data?.description,
+    ]
+  );
+
+  // ── Draft meta (protocol create mode only) ────────────────────────────────
+  // Unlike template mode, the protocol draft also carries startDate/
+  // expirationDate/assigneeId — fields with no template-mode equivalent.
+
+  const protocolDraftMeta = useMemo(
+    () => ({
+      type: routine.data?.type || '',
+      trainingLevel: routine.data?.trainingLevel || '',
+      genderOrdination: routine.data?.genderOrdination || '',
+      description: routine.data?.description || '',
+      startDate: routine.data?.startDate || '',
+      expirationDate: routine.data?.expirationDate || '',
+      assigneeId: routine.data?.assigneeId || studentId || '',
+    }),
+    [
+      routine.data?.type,
+      routine.data?.trainingLevel,
+      routine.data?.genderOrdination,
+      routine.data?.description,
+      routine.data?.startDate,
+      routine.data?.expirationDate,
+      routine.data?.assigneeId,
+      studentId,
     ]
   );
 
@@ -2892,6 +2952,28 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
     createdTrainingIds: routine.createdTrainingIds,
     junctionsAddedToImported: routine.junctionsAddedToImported,
     onRestore: handleRestore,
+  });
+
+  // ── Autosave draft (protocol create mode only) ────────────────────────────
+  // Protocol create mode is fully deferred (nothing hits the backend until the
+  // final save), so this is the only safety net against a failed save or an
+  // accidental reload/navigation losing the trainer's work.
+
+  const handleRestoreProtocolDraft = useCallback(
+    ({ name: draftName, meta, trainings: draftTrainings }) => {
+      if (draftName) setTitleName(draftName);
+      routine.hydrateFromDraft({ meta, trainings: draftTrainings });
+    },
+    [routine]
+  );
+
+  const protocolDraft = useProtocolDraft({
+    enabled: isProtocol && !editProtocolId && !readOnly && !routine.loading && !!studentId,
+    studentId,
+    name: titleName,
+    meta: protocolDraftMeta,
+    trainings,
+    onRestore: handleRestoreProtocolDraft,
   });
 
   // ── Unsaved-changes guard ─────────────────────────────────────────────────
@@ -2923,7 +3005,10 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
 
   const saveStatusLabel = (() => {
     if (editProtocolId) return 'Editando rotina do aluno';
-    if (isProtocol) return 'Rotina do aluno · Pronto para salvar';
+    if (isProtocol) {
+      if (protocolDraft.lastSaved) return `Rascunho salvo ${formatRelativeTime(protocolDraft.lastSaved)}`;
+      return 'Rotina do aluno · Pronto para salvar';
+    }
     if (routineId) return 'Editando rotina';
     if (draft.lastSaved) return `Rascunho salvo ${formatRelativeTime(draft.lastSaved)}`;
     return 'Pronto para salvar';
@@ -3028,13 +3113,14 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         showToast('Rotina salva.', 'success');
         navigate('/trainer/routines');
       } else {
+        protocolDraft.clearDraft();
         showToast('Rotina salva.', 'success');
         navigate(`/trainer/protocols/${saved.id}`);
       }
-    } catch {
-      // error already set inside the hook
+    } catch (err) {
+      showToast(err.userMessage || translateError(err), 'error');
     }
-  }, [canSave, routine, titleName, trainings, draft, showToast, navigate, isProtocol, studentId, editProtocolId]);
+  }, [canSave, routine, titleName, trainings, draft, protocolDraft, showToast, navigate, isProtocol, studentId, editProtocolId]);
 
   const handleToggleExpand = useCallback((trainingId) => {
     setExpandedId((prev) => {
@@ -3177,7 +3263,20 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         onOpenSummary={() => setSummarySheetOpen(true)}
         saving={routine.saving}
         canSave={canSave}
+        saveHintText={readOnly ? null : saveHintText}
       />
+
+      {routine.error && (
+        <div className="builder-error-banner" role="alert">
+          <AlertTriangle
+            size={16}
+            strokeWidth={2}
+            className="builder-error-banner-icon"
+            aria-hidden="true"
+          />
+          <span>{routine.error}</span>
+        </div>
+      )}
 
       <IdentityStrip
         routineData={routine.data}
@@ -3362,16 +3461,28 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
 
       {/* Edit/create: save FAB — mobile only (desktop hidden via CSS) */}
       {!readOnly && (
-        <button
-          className="builder-edit-fab"
-          onClick={handleSave}
-          disabled={!canSave || routine.saving}
-          aria-disabled={!canSave}
-          aria-label={routine.saving ? 'Salvando' : editProtocolId ? 'Concluir edição' : 'Salvar rotina'}
-        >
-          <Save size={16} strokeWidth={2} aria-hidden="true" />
-          {routine.saving ? 'SALVANDO…' : editProtocolId ? 'CONCLUIR' : 'SALVAR'}
-        </button>
+        <>
+          <button
+            className="builder-edit-fab"
+            onClick={handleSave}
+            disabled={!canSave || routine.saving}
+            aria-disabled={!canSave}
+            aria-describedby={saveHintText ? 'builder-save-hint-mobile' : undefined}
+            aria-label={routine.saving ? 'Salvando' : editProtocolId ? 'Concluir edição' : 'Salvar rotina'}
+          >
+            <Save size={16} strokeWidth={2} aria-hidden="true" />
+            {routine.saving ? 'SALVANDO…' : editProtocolId ? 'CONCLUIR' : 'SALVAR'}
+          </button>
+          {saveHintText && (
+            <span
+              id="builder-save-hint-mobile"
+              className="builder-save-hint builder-save-hint--fab"
+              role="note"
+            >
+              {saveHintText}
+            </span>
+          )}
+        </>
       )}
 
       {/* Resumo FAB — desktop only (≥768px via CSS); mobile uses topbar trigger */}

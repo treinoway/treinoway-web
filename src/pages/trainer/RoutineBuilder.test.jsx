@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, waitFor, fireEvent, within } from '../../test/test-utils';
+import { screen, waitFor, fireEvent, within, act } from '../../test/test-utils';
 import { renderWithRoute } from '../../test/test-utils';
 import api from '../../api/axios';
 import userEvent from '@testing-library/user-event';
@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event';
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
 vi.mock('../../contexts/ToastContext', () => ({
-  useToast: () => ({ showToast: vi.fn() }),
+  useToast: vi.fn(),
 }));
 
 vi.mock('../../contexts/AuthContext', () => ({
@@ -27,6 +27,10 @@ vi.mock('../../api/axios', () => ({
 vi.mock('../../hooks/useRoutineBuilder');
 
 vi.mock('../../hooks/useRoutineDraft', () => ({
+  default: vi.fn(),
+}));
+
+vi.mock('../../hooks/useProtocolDraft', () => ({
   default: vi.fn(),
 }));
 
@@ -59,9 +63,13 @@ afterEach(() => {
 
 import useRoutineBuilder from '../../hooks/useRoutineBuilder';
 import useRoutineDraft from '../../hooks/useRoutineDraft';
+import useProtocolDraft from '../../hooks/useProtocolDraft';
 import useProtocolBuilder from '../../hooks/useProtocolBuilder';
 import useBisetCreate from '../../hooks/useBisetCreate';
+import { useToast } from '../../contexts/ToastContext';
 import RoutineBuilder from './RoutineBuilder';
+
+const mockShowToast = vi.fn();
 
 const EXERCISE_1 = {
   id: 'ex-1',
@@ -150,6 +158,8 @@ const POPULATED_HOOK_STATE = {
 // Default draft mock applied before every test; individual tests override as needed.
 beforeEach(() => {
   useRoutineDraft.mockReturnValue({ ...DEFAULT_DRAFT_STATE });
+  useProtocolDraft.mockReturnValue({ ...DEFAULT_DRAFT_STATE });
+  useToast.mockReturnValue({ showToast: mockShowToast });
   // Default no-op bi-set hook — individual tests override.
   useBisetCreate.mockReturnValue({
     createBiset: vi.fn().mockResolvedValue({ groupId: 'g1', members: [] }),
@@ -596,6 +606,75 @@ describe('RoutineBuilder — loading state (edit mode)', () => {
     await waitFor(() => {
       expect(screen.getByText(/Nova rotina · Rascunho/i)).toBeInTheDocument();
     });
+  });
+});
+
+// ─── Tests — persistent error banner (routine.error) ──────────────────────────
+// Covers both a failed save AND a failed initial load — in every case the
+// hook's `error` state must be visible on screen, never a silently-empty
+// routine (the original production bug: GET failed, loading flipped to
+// false, and the builder rendered an empty routine with zero indication
+// anything had gone wrong).
+
+describe('RoutineBuilder — persistent error banner', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders routine.error as an alert banner in template create mode', () => {
+    useRoutineBuilder.mockReturnValue({
+      ...EMPTY_HOOK_STATE,
+      error: 'Erro ao carregar dados.',
+    });
+    renderNew();
+
+    const banner = screen.getByRole('alert');
+    expect(banner).toHaveTextContent('Erro ao carregar dados.');
+  });
+
+  it('does NOT render a banner when routine.error is null', () => {
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE, error: null });
+    renderNew();
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('renders the banner in template EDIT mode when the initial GET failed', () => {
+    // loading resolved to false but data stayed at its initial shape and
+    // error is set — this is exactly the "empty routine, no warning" bug.
+    useRoutineBuilder.mockReturnValue({
+      ...EMPTY_HOOK_STATE,
+      loading: false,
+      error: 'Erro ao carregar rotina.',
+      data: null,
+    });
+    renderEdit('routine-broken');
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Erro ao carregar rotina.');
+  });
+
+  it('renders the banner in protocol VIEW (read-only) mode when the initial GET failed', () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      error: 'Erro ao carregar protocolo.',
+    });
+
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-broken',
+      path: '/trainer/protocols/:id',
+    });
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Erro ao carregar protocolo.');
+  });
+
+  it('renders the banner in protocol create mode alongside a normal empty state', () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      error: 'Erro ao salvar rotina.',
+    });
+    renderProtocol();
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Erro ao salvar rotina.');
   });
 });
 
@@ -1906,6 +1985,61 @@ describe('RoutineBuilder — clearDraft on successful save', () => {
   });
 });
 
+// ─── Tests — handleSave never fails mute (error toast) ────────────────────────
+
+describe('RoutineBuilder — handleSave failure shows an error toast (template mode)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('create mode: shows toast with err.userMessage when saveRoutine rejects', async () => {
+    const saveRoutine = vi.fn().mockRejectedValue({ userMessage: 'Erro ao salvar rotina.' });
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE, saveRoutine });
+
+    const user = userEvent.setup();
+    renderNew();
+
+    const saveButtons = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    await user.click(saveButtons[0]);
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('Erro ao salvar rotina.', 'error');
+    });
+  });
+
+  it('falls back to translateError(err) when the rejected error has no userMessage', async () => {
+    const saveRoutine = vi.fn().mockRejectedValue(new Error('boom'));
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE, saveRoutine });
+
+    const user = userEvent.setup();
+    renderNew();
+
+    const saveButtons = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    await user.click(saveButtons[0]);
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error');
+    });
+    // Never the raw Error object nor a hardcoded fallback string bypassing translateError.
+    expect(mockShowToast.mock.calls[0][0]).not.toBe('boom');
+  });
+
+  it('edit mode: shows toast when saveRoutine (Concluir) rejects', async () => {
+    const saveRoutine = vi.fn().mockRejectedValue({ userMessage: 'Erro ao atualizar rotina.' });
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE, saveRoutine });
+
+    const user = userEvent.setup();
+    renderEdit('routine-123');
+
+    const saveButtons = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    await user.click(saveButtons[0]);
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('Erro ao atualizar rotina.', 'error');
+    });
+  });
+});
+
 // ─── Tests — trainingOverrides persisted in localStorage draft ────────────────
 
 describe('RoutineBuilder — trainingOverrides in draft', () => {
@@ -2225,6 +2359,7 @@ const PROTOCOL_HOOK_EMPTY = {
   deleteExercise: vi.fn(),
   saveExerciseAsTemplate: vi.fn(),
   restoreSessionTracking: vi.fn(),
+  hydrateFromDraft: vi.fn(),
   loadFromTemplate: vi.fn(),
 };
 
@@ -2367,6 +2502,89 @@ describe('RoutineBuilder — modo protocol (studentId na URL)', () => {
   });
 });
 
+// ─── Tests — protocol draft (autosave) wiring ─────────────────────────────────
+
+describe('RoutineBuilder — protocol draft wiring', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+    useProtocolDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+  });
+
+  it('enables the protocol draft (with the studentId) in protocol CREATE mode', () => {
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY });
+    renderProtocol('student-9');
+
+    const lastCall = useProtocolDraft.mock.calls[useProtocolDraft.mock.calls.length - 1][0];
+    expect(lastCall.enabled).toBe(true);
+    expect(lastCall.studentId).toBe('student-9');
+  });
+
+  it('disables the protocol draft in protocol EDIT mode', () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      data: { ...PROTOCOL_HOOK_EMPTY.data, id: 'protocol-123' },
+    });
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/protocol-123/edit',
+      path: '/trainer/protocols/:id/edit',
+    });
+
+    const lastCall = useProtocolDraft.mock.calls[useProtocolDraft.mock.calls.length - 1][0];
+    expect(lastCall.enabled).toBe(false);
+  });
+
+  it('disables the protocol draft in protocol VIEW (read-only) mode', () => {
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY });
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1',
+      path: '/trainer/protocols/:id',
+    });
+
+    const lastCall = useProtocolDraft.mock.calls[useProtocolDraft.mock.calls.length - 1][0];
+    expect(lastCall.enabled).toBe(false);
+  });
+
+  it('disables the protocol draft in template mode', () => {
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
+    renderNew();
+
+    const lastCall = useProtocolDraft.mock.calls[useProtocolDraft.mock.calls.length - 1][0];
+    expect(lastCall.enabled).toBe(false);
+  });
+
+  it('passes the current trainings list (full local objects) to the draft hook', () => {
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_WITH_TRAININGS });
+    renderProtocol();
+
+    const lastCall = useProtocolDraft.mock.calls[useProtocolDraft.mock.calls.length - 1][0];
+    expect(lastCall.trainings).toEqual(PROTOCOL_HOOK_WITH_TRAININGS.data.trainings);
+  });
+
+  it('onRestore hydrates the title and calls routine.hydrateFromDraft with the full draft trainings', () => {
+    const hydrateFromDraft = vi.fn();
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY, hydrateFromDraft });
+    renderProtocol();
+
+    const lastCall = useProtocolDraft.mock.calls[useProtocolDraft.mock.calls.length - 1][0];
+    const draftTrainings = [{ id: 'tmp_1', name: 'Peito', exercises: [{ id: 'tmp_ex_1' }] }];
+
+    act(() => {
+      lastCall.onRestore({
+        name: 'Rotina Restaurada',
+        meta: { startDate: '2026-06-01' },
+        trainings: draftTrainings,
+      });
+    });
+
+    expect(hydrateFromDraft).toHaveBeenCalledWith({
+      meta: { startDate: '2026-06-01' },
+      trainings: draftTrainings,
+    });
+    expect(screen.getByText('Rotina Restaurada')).toBeInTheDocument();
+  });
+});
+
 // ─── Tests — protocol mode canSave ───────────────────────────────────────────
 
 describe('RoutineBuilder — canSave em modo protocol', () => {
@@ -2411,6 +2629,126 @@ describe('RoutineBuilder — canSave em modo protocol', () => {
     const saveBtns = screen.getAllByRole('button', { name: /Salvar rotina/i });
     // At least one save button should be enabled
     expect(saveBtns.some((btn) => !btn.disabled)).toBe(true);
+  });
+});
+
+// ─── Tests — save hint (explains why Salvar is disabled) ──────────────────────
+
+describe('RoutineBuilder — save hint text (why is Salvar disabled)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineDraft.mockReturnValue({ lastSaved: null, clearDraft: vi.fn() });
+  });
+
+  it('template mode: pristine state (nothing filled in) shows NO hint', () => {
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
+    renderNew();
+
+    // The trainer just arrived — nothing to explain yet. A hint here would
+    // just be a red warning greeting them on the first frame.
+    expect(screen.queryByText(/Para salvar, informe/i)).not.toBeInTheDocument();
+  });
+
+  it('template mode: shows a hint naming the still-missing fields once the trainer has started (name filled, no trainings yet)', () => {
+    useRoutineBuilder.mockReturnValue({
+      ...EMPTY_HOOK_STATE,
+      data: { ...EMPTY_HOOK_STATE.data, name: 'Rotina Hipertrofia' },
+    });
+    renderNew();
+
+    // Rendered twice — once next to the desktop topbar button, once above the
+    // mobile FAB — both must carry the exact same message.
+    const hints = screen.getAllByText('Para salvar, informe: ao menos um treino.');
+    expect(hints.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('template mode: hint disappears once name and trainings are both present', () => {
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+    renderNew();
+
+    expect(screen.queryByText(/Para salvar, informe/i)).not.toBeInTheDocument();
+  });
+
+  it('protocol mode: pristine state (nothing filled in) shows NO hint', () => {
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY });
+    renderProtocol();
+
+    expect(screen.queryByText(/Para salvar, informe/i)).not.toBeInTheDocument();
+  });
+
+  it('protocol mode: mentions "data de início" when name + trainings are set but the start date is missing', () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      data: {
+        ...PROTOCOL_HOOK_EMPTY.data,
+        name: 'Rotina Teste',
+        startDate: '',
+        trainings: [TRAINING_WITH_EXERCISES],
+      },
+    });
+    renderProtocol();
+
+    const hints = screen.getAllByText('Para salvar, informe: data de início.');
+    expect(hints.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('protocol mode: filling in ONLY the start date (name/trainings still empty) already counts as "touched" and shows the hint', () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      data: { ...PROTOCOL_HOOK_EMPTY.data, startDate: '2026-05-01' },
+    });
+    renderProtocol();
+
+    const hints = screen.getAllByText('Para salvar, informe: nome da rotina, ao menos um treino.');
+    expect(hints.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('protocol mode: hint disappears once name + startDate + trainings are all present', () => {
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_WITH_TRAININGS });
+    renderProtocol();
+
+    expect(screen.queryByText(/Para salvar, informe/i)).not.toBeInTheDocument();
+  });
+
+  it('the disabled Salvar button is associated with the hint via aria-describedby', () => {
+    useRoutineBuilder.mockReturnValue({
+      ...EMPTY_HOOK_STATE,
+      data: { ...EMPTY_HOOK_STATE.data, name: 'Rotina Hipertrofia' },
+    });
+    renderNew();
+
+    const hints = screen.getAllByText(/Para salvar, informe/i);
+    const hintIds = hints.map((el) => el.id);
+    const saveButtons = screen.getAllByRole('button', { name: /Salvar rotina/i });
+
+    expect(
+      saveButtons.some((btn) => hintIds.includes(btn.getAttribute('aria-describedby')))
+    ).toBe(true);
+  });
+
+  it('protocol EDIT mode never shows the hint (canSave is always true once loaded)', () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      data: { ...PROTOCOL_HOOK_EMPTY.data, id: 'protocol-123', name: '', trainings: [] },
+    });
+
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/protocol-123/edit',
+      path: '/trainer/protocols/:id/edit',
+    });
+
+    expect(screen.queryByText(/Para salvar, informe/i)).not.toBeInTheDocument();
+  });
+
+  it('read-only view never shows the hint (no Salvar button present)', () => {
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_EMPTY });
+
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1',
+      path: '/trainer/protocols/:id',
+    });
+
+    expect(screen.queryByText(/Para salvar, informe/i)).not.toBeInTheDocument();
   });
 });
 
@@ -2466,6 +2804,65 @@ describe('RoutineBuilder — save em modo protocol navega para /trainer/protocol
 
     await waitFor(() => expect(saveRoutine).toHaveBeenCalled());
     expect(clearDraft).not.toHaveBeenCalled();
+  });
+
+  it('calls the PROTOCOL draft clearDraft (not the template one) after a successful protocol save', async () => {
+    const protocolClearDraft = vi.fn();
+    const saveRoutine = vi.fn().mockResolvedValue({ id: 'proto-new-3' });
+    useProtocolDraft.mockReturnValue({ lastSaved: new Date().toISOString(), clearDraft: protocolClearDraft });
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_WITH_TRAININGS, saveRoutine });
+
+    const user = userEvent.setup();
+    renderProtocol();
+
+    const saveBtns = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    const enabledBtn = saveBtns.find((btn) => !btn.disabled);
+    await user.click(enabledBtn);
+
+    await waitFor(() => {
+      expect(protocolClearDraft).toHaveBeenCalled();
+    });
+  });
+
+  it('does NOT call the protocol draft clearDraft when saveRoutine rejects, and shows an error toast', async () => {
+    const protocolClearDraft = vi.fn();
+    const saveRoutine = vi.fn().mockRejectedValue({ userMessage: 'Erro ao salvar rotina do aluno.' });
+    useProtocolDraft.mockReturnValue({ lastSaved: new Date().toISOString(), clearDraft: protocolClearDraft });
+    useProtocolBuilder.mockReturnValue({ ...PROTOCOL_HOOK_WITH_TRAININGS, saveRoutine });
+
+    const user = userEvent.setup();
+    renderProtocol();
+
+    const saveBtns = screen.getAllByRole('button', { name: /Salvar rotina/i });
+    const enabledBtn = saveBtns.find((btn) => !btn.disabled);
+    await user.click(enabledBtn);
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('Erro ao salvar rotina do aluno.', 'error');
+    });
+    expect(protocolClearDraft).not.toHaveBeenCalled();
+  });
+
+  it('protocol EDIT ("Concluir") mode: shows an error toast when saveRoutine rejects', async () => {
+    const saveRoutine = vi.fn().mockRejectedValue({ userMessage: 'Erro ao concluir edição.' });
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_WITH_TRAININGS,
+      data: { ...PROTOCOL_HOOK_WITH_TRAININGS.data, id: 'protocol-123' },
+      saveRoutine,
+    });
+
+    const user = userEvent.setup();
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/protocol-123/edit',
+      path: '/trainer/protocols/:id/edit',
+    });
+
+    const saveButtons = screen.getAllByRole('button', { name: /Concluir/i });
+    await user.click(saveButtons[0]);
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('Erro ao concluir edição.', 'error');
+    });
   });
 });
 

@@ -903,7 +903,7 @@ describe('useProtocolBuilder — API surface parity', () => {
       'updateTrainingWeekDay', 'deleteTraining',
       'addExercise', 'addExerciseFromTemplate',
       'updateExercise', 'deleteExercise', 'reorderExercises',
-      'saveExerciseAsTemplate', 'restoreSessionTracking',
+      'saveExerciseAsTemplate', 'restoreSessionTracking', 'hydrateFromDraft',
     ];
     for (const key of required) {
       expect(keys).toContain(key);
@@ -1519,5 +1519,115 @@ describe('useProtocolBuilder — addExerciseFromTemplate: hasLoad type-based def
 
     const ex = result.current.data.trainings[0].exercises[0];
     expect(ex.hasLoad).toBe(true);
+  });
+});
+
+// ─── hydrateFromDraft (protocol draft restore) ────────────────────────────────
+
+describe('useProtocolBuilder — hydrateFromDraft (create mode)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+    api.get.mockImplementation(makeGetHandler('student-1'));
+  });
+
+  const DRAFT_TRAINING = {
+    id: 'tmp_draft_1',
+    name: 'Peito (rascunho)',
+    category: 'strength',
+    weekDay: null,
+    exercises: [{ id: 'tmp_draft_ex_1', name: 'Supino', sets: 4 }],
+  };
+
+  it('restores the full local trainings array verbatim (not just ids)', async () => {
+    const { result } = renderHook(() => useProtocolBuilder('student-1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      result.current.hydrateFromDraft({
+        meta: { startDate: '2026-05-01' },
+        trainings: [DRAFT_TRAINING],
+      });
+    });
+
+    expect(result.current.data.trainings).toEqual([DRAFT_TRAINING]);
+    expect(result.current.data.trainings[0].exercises).toEqual(DRAFT_TRAINING.exercises);
+  });
+
+  it('restores protocol meta fields (startDate, expirationDate, assigneeId, type, trainingLevel, genderOrdination, description)', async () => {
+    const { result } = renderHook(() => useProtocolBuilder('student-1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      result.current.hydrateFromDraft({
+        meta: {
+          type: 'strength',
+          trainingLevel: 'advanced',
+          genderOrdination: 'female',
+          description: 'Foco em hipertrofia',
+          startDate: '2026-05-01',
+          expirationDate: '2026-08-01',
+          assigneeId: 'student-1',
+        },
+        trainings: [DRAFT_TRAINING],
+      });
+    });
+
+    expect(result.current.data).toMatchObject({
+      type: 'strength',
+      trainingLevel: 'advanced',
+      genderOrdination: 'female',
+      description: 'Foco em hipertrofia',
+      startDate: '2026-05-01',
+      expirationDate: '2026-08-01',
+      assigneeId: 'student-1',
+    });
+  });
+
+  it('leaves existing trainings untouched when the draft has an empty trainings array', async () => {
+    const { result } = renderHook(() => useProtocolBuilder('student-1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      result.current.hydrateFromDraft({ meta: { startDate: '2026-05-01' }, trainings: [DRAFT_TRAINING] });
+    });
+    act(() => {
+      result.current.hydrateFromDraft({ meta: {}, trainings: [] });
+    });
+
+    // Second hydrate call had no trainings — the previously restored list is preserved.
+    expect(result.current.data.trainings).toEqual([DRAFT_TRAINING]);
+  });
+
+  it('does not throw when called with no arguments', async () => {
+    const { result } = renderHook(() => useProtocolBuilder('student-1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(() => act(() => result.current.hydrateFromDraft())).not.toThrow();
+  });
+});
+
+describe('useProtocolBuilder — hydrateFromDraft (edit mode) is a no-op', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+    api.get.mockImplementation(makeEditModeGetHandler());
+  });
+
+  it('does not overwrite eagerly-loaded edit-mode data', async () => {
+    const { result } = renderHook(() =>
+      useProtocolBuilder(null, { protocolId: PROTOCOL_ID })
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      result.current.hydrateFromDraft({
+        meta: { startDate: '2099-01-01' },
+        trainings: [{ id: 'tmp_should_not_apply', name: 'X', exercises: [] }],
+      });
+    });
+
+    expect(result.current.data.startDate).toBe('2026-05-01');
+    expect(result.current.data.trainings).toEqual([{ ...EDIT_TRAINING, exercises: [] }]);
   });
 });
