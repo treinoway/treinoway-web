@@ -7,6 +7,7 @@ import {
   Loader,
   Plus,
   Search,
+  Trash2,
 } from 'lucide-react';
 import useExerciseTemplateSearch from '../hooks/useExerciseTemplateSearch';
 import PrescriptionField from './PrescriptionField';
@@ -38,7 +39,7 @@ const EMPTY_FORM = {
   intensity: null,
 };
 
-const buildPayload = (form) => {
+const buildPayload = (form, { isEdit } = {}) => {
   const payload = {
     name: form.name.trim(),
     type: form.type,
@@ -46,7 +47,11 @@ const buildPayload = (form) => {
     prescriptionMode: form.prescriptionMode,
   };
   payload.videoUrl = form.videoUrl?.trim() ? form.videoUrl.trim() : null;
-  if (form.sets !== '' && form.sets != null) payload.sets = parseInt(form.sets, 10);
+  if (form.sets !== '' && form.sets != null) {
+    payload.sets = parseInt(form.sets, 10);
+  } else if (isEdit) {
+    payload.sets = null;
+  }
   if (form.prescriptionMode === 'duration') {
     if (form.duration !== '' && form.duration != null) {
       payload.duration = parseInt(form.duration, 10);
@@ -59,11 +64,19 @@ const buildPayload = (form) => {
   }
   if (form.restInterval !== '' && form.restInterval != null) {
     payload.restInterval = parseInt(form.restInterval, 10);
+  } else if (isEdit) {
+    payload.restInterval = null;
   }
   if (form.hasLoad && form.suggestedLoad !== '' && form.suggestedLoad != null) {
     payload.suggestedLoad = parseFloat(form.suggestedLoad);
+  } else if (isEdit) {
+    payload.suggestedLoad = null;
   }
-  if (form.notes?.trim()) payload.notes = form.notes.trim();
+  if (form.notes?.trim()) {
+    payload.notes = form.notes.trim();
+  } else if (isEdit) {
+    payload.notes = '';
+  }
   payload.intensity = form.type === 'cardio' ? (form.intensity || null) : null;
   return payload;
 };
@@ -201,6 +214,7 @@ const ExerciseComposer = ({
   onSubmitEdit,
   onSubmitFromLibrary,
   onCancel,
+  onRequestDelete,
 }) => {
   const isEditMode = snapshot != null;
 
@@ -278,13 +292,13 @@ const ExerciseComposer = ({
   const doSaveCreate = () => {
     setConfirmDialog(null);
     setErrors({});
-    onSubmitCreate(buildPayload(form));
+    onSubmitCreate(buildPayload(form, { isEdit: false }));
   };
 
   const doSaveEdit = () => {
     setConfirmDialog(null);
     setErrors({});
-    onSubmitEdit(snapshot.id, buildPayload(form));
+    onSubmitEdit(snapshot.id, buildPayload(form, { isEdit: true }));
   };
 
   const handleSubmitCreate = (e) => {
@@ -300,7 +314,7 @@ const ExerciseComposer = ({
       return;
     }
     setErrors({});
-    onSubmitCreate(buildPayload(form));
+    onSubmitCreate(buildPayload(form, { isEdit: false }));
   };
 
   const handleSubmitEdit = (e) => {
@@ -316,7 +330,7 @@ const ExerciseComposer = ({
       return;
     }
     setErrors({});
-    onSubmitEdit(snapshot.id, buildPayload(form));
+    onSubmitEdit(snapshot.id, buildPayload(form, { isEdit: true }));
   };
 
   const handleImport = () => {
@@ -536,6 +550,17 @@ const ExerciseComposer = ({
         >
           {saving ? 'Salvando…' : submitLabel}
         </button>
+        {isEditMode && onRequestDelete && (
+          <button
+            type="button"
+            className="btn-danger btn-sm composer-actions-delete"
+            onClick={onRequestDelete}
+            disabled={saving}
+          >
+            <Trash2 size={14} strokeWidth={2} aria-hidden="true" />
+            Excluir
+          </button>
+        )}
       </div>
     </form>
   );
@@ -654,10 +679,12 @@ ExerciseComposer.propTypes = {
   onSubmitEdit: PropTypes.func.isRequired,
   onSubmitFromLibrary: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
+  onRequestDelete: PropTypes.func,
 };
 
 ExerciseComposer.defaultProps = {
   snapshot: null,
+  onRequestDelete: null,
 };
 
 export default ExerciseComposer;

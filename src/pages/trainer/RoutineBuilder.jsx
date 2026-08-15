@@ -1618,6 +1618,7 @@ const TrainingItem = ({
       message: `Excluir "${name}"? Esta ação não pode ser desfeita.`,
       onConfirm: async () => {
         setConfirmDialog(null);
+        setComposerState(null);
         await onDeleteExercise(ex.id);
       },
     });
@@ -1905,6 +1906,7 @@ const TrainingItem = ({
                                 onSubmitEdit={handleEditExercise}
                                 onSubmitFromLibrary={handleImport}
                                 onCancel={() => setComposerState(null)}
+                                onRequestDelete={() => handleRequestDeleteExercise(ex)}
                               />
                             );
                           }
