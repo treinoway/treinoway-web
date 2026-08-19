@@ -14,19 +14,20 @@ import ControlTower from '../components/ControlTower';
 import ActionGrid from '../components/ActionGrid';
 import ActionCard from '../components/ActionCard';
 import useActiveMode from '../hooks/useActiveMode';
+import useAiAccess from '../hooks/useAiAccess';
 import useTrainerRoster from '../hooks/useTrainerRoster';
 import useTrainerDashboard from '../hooks/useTrainerDashboard';
 import formatHeroDateLabel from '../utils/formatHeroDate';
 import getGreeting from '../utils/getGreeting';
 
 const SKIP_STORAGE_KEY = 'treinoway.skipNoStudentsWarning';
-const AI_SUPPRESSED_EMAIL = 'gabriel.araujo.lima2011@gmail.com';
 
 const Dashboard = () => {
   const { user, hasRole, isAdmin, refreshUser, updateTokens } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [activeMode] = useActiveMode();
+  const canUseAi = useAiAccess();
   const isDualRole = hasRole('TRAINER') && hasRole('NUTRITIONIST');
   const showTrainerCards = hasRole('TRAINER') && (!isDualRole || activeMode === 'trainer');
   const showNutritionistOnboarding = hasRole('NUTRITIONIST') && (!isDualRole || activeMode === 'nutritionist');
@@ -190,7 +191,7 @@ const Dashboard = () => {
             <h2 className="dashboard-section-title">Ações</h2>
           </div>
           <ActionGrid>
-            {showTrainerCards && user?.email !== AI_SUPPRESSED_EMAIL && (
+            {canUseAi && (
               <ActionCard
                 icon={Sparkles}
                 title="iArnold"

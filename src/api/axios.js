@@ -3,8 +3,9 @@ import { getErrorMessage } from '../utils/errorMessages';
 import { extractErrorInfo } from '../i18n';
 import { getDeviceTimezone } from '../utils/timezone';
 import { reportApiError } from '../lib/sentry';
+import API_BASE_URL from './baseUrl';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const BASE_URL = API_BASE_URL;
 
 // Feature flag — flip to false to stop sending the timezone header without redeploy if needed.
 // TODO(student-timezone): replace trainer-device tz with student.timezone when capture path lands.

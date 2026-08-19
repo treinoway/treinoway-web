@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import api from '../api/axios';
+import API_BASE_URL from '../api/baseUrl';
 import { translateError } from '../i18n';
 import { setSentryUser } from '../lib/sentry';
 import { clearOnboardingSessionState } from '../hooks/useOnboardingStatus';
@@ -45,7 +46,7 @@ function extractAuthData(data) {
     if (data.trim().startsWith('<!DOCTYPE') || data.trim().startsWith('<html')) {
       console.error('[Auth] Received HTML instead of JSON. This usually means the API URL is incorrect or pointing to the frontend.');
       console.error('[Auth] Check VITE_API_BASE_URL environment variable.');
-      console.error('[Auth] Current BASE_URL:', import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000');
+      console.error('[Auth] Current BASE_URL:', API_BASE_URL || '(empty — same origin)');
       return { token: null, refresh: null, userData: null };
     }
     

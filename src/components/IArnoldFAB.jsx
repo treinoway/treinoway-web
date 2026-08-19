@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import { Sparkles } from 'lucide-react';
+import useAiAccess from '../hooks/useAiAccess';
 
 /**
  * Floating "Perguntar ao iArnold" button anchored to the activity tab.
@@ -9,9 +10,16 @@ import { Sparkles } from 'lucide-react';
  *
  * Layout: absolute on mobile (bottom of the scroll area, above the bottom nav);
  * docked on the right rail on desktop via CSS.
+ *
+ * The plan gate lives here (not at the call sites) so every mount point is
+ * covered — plans without AI would otherwise get a 403 from the backend.
  */
 const IArnoldFAB = ({ emphasized, label, onClick, disabled }) => {
+  const canUseAi = useAiAccess();
   const className = `iarnold-fab${emphasized ? ' iarnold-fab--emphasized' : ''}`;
+
+  if (!canUseAi) return null;
+
   return (
     <button
       type="button"

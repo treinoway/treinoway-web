@@ -3,11 +3,12 @@ import PropTypes from 'prop-types';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import api from '../api/axios';
+import API_BASE_URL from '../api/baseUrl';
 import { translateError } from '../i18n';
 
 const AiChatContext = createContext(null);
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const BASE_URL = API_BASE_URL;
 
 const parseSSELines = (lines) => {
   const events = [];

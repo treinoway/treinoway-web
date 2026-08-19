@@ -352,8 +352,46 @@ describe('Layout', () => {
     expect(within(sidebar).getByRole('link', { name: 'iArnold' })).toBeInTheDocument();
   });
 
-  it('hides iArnold sidebar link when platformPlan is undefined (student user)', () => {
-    setupAuth({ isTrainer: false });
+  // Fail-open: missing plan data must NOT delete the nav entry. A stale cached
+  // user (hydrated from localStorage before platformPlan shipped) would
+  // otherwise lose iArnold forever. The backend still enforces with a 403.
+  it('shows iArnold sidebar link when platformPlan is undefined (fail-open for trainers)', () => {
+    setupAuth({ isTrainer: true });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const sidebar = document.querySelector('.sidebar');
+    expect(within(sidebar).getByRole('link', { name: 'iArnold' })).toBeInTheDocument();
+  });
+
+  it('shows iArnold sidebar link when platformPlan.limits has no aiActionsPerStudent key', () => {
+    useAuth.mockReturnValue({
+      user: {
+        firstName: 'Ana',
+        lastName: 'Lima',
+        email: 'ana@example.com',
+        platformPlan: { tier: 'PRO', limits: {} },
+      },
+      logout: mockLogout,
+      hasRole: mockHasRole.mockReturnValue(true),
+    });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const sidebar = document.querySelector('.sidebar');
+    expect(within(sidebar).getByRole('link', { name: 'iArnold' })).toBeInTheDocument();
+  });
+
+  it('hides iArnold sidebar link for a non-trainer even when the plan allows AI', () => {
+    setupAuth({ isTrainer: false, aiActionsPerStudent: 3 });
 
     renderWithRouter(
       <Layout>
@@ -362,6 +400,58 @@ describe('Layout', () => {
     );
 
     expect(screen.queryByRole('link', { name: 'iArnold' })).not.toBeInTheDocument();
+  });
+
+  it('hides the iArnold bottom-nav item when aiActionsPerStudent === 0 (FREE)', () => {
+    setupTrainerWithAi({ aiActionsPerStudent: 0 });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const bottomNav = document.querySelector('.bottom-nav');
+    expect(within(bottomNav).queryByRole('link', { name: 'iArnold' })).not.toBeInTheDocument();
+  });
+
+  it('shows the iArnold bottom-nav item when platformPlan is undefined (fail-open)', () => {
+    setupAuth({ isTrainer: true });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const bottomNav = document.querySelector('.bottom-nav');
+    expect(within(bottomNav).getByRole('link', { name: 'iArnold' })).toBeInTheDocument();
+  });
+
+  it('hides the AI floating button when aiActionsPerStudent === 0 (FREE)', () => {
+    setupTrainerWithAi({ aiActionsPerStudent: 0 });
+    useAiChat.mockReturnValue({ loading: true, hasNewResponse: false });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    expect(screen.queryByRole('button', { name: /assistente ia/i })).not.toBeInTheDocument();
+  });
+
+  it('shows the AI floating button when platformPlan is undefined (fail-open)', () => {
+    setupAuth({ isTrainer: true });
+    useAiChat.mockReturnValue({ loading: true, hasNewResponse: false });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    expect(screen.getByRole('button', { name: /assistente ia processando/i })).toBeInTheDocument();
   });
 
   it('shows floating button when AI is loading for trainers', () => {
