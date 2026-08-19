@@ -33,6 +33,18 @@ export function setSentryUser(id) {
 }
 
 /**
+ * Report a non-throwing data/config anomaly as a standalone Sentry event.
+ *
+ * `level` follows Sentry's severity scale — use `'warning'` for "this should
+ * not happen but the app degraded gracefully" and `'error'` for a broken
+ * deployment. Never pass PII (email, name) in `tags`/`extra`.
+ */
+export function captureAnomaly(message, { level = 'warning', tags = {}, extra = {} } = {}) {
+  if (!isSentryEnabled) return;
+  Sentry.captureMessage(message, { level, tags, extra });
+}
+
+/**
  * Pull a backend-issued request id out of an Axios error, if present.
  * The backend may expose it either via a response header or in the error body.
  * Returns `null` when none is available (current backend does not send one yet,

@@ -17,6 +17,14 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../../contexts/ToastContext', () => ({ useToast: vi.fn() }));
 vi.mock('../../contexts/AiChatContext', () => ({ useAiChat: vi.fn() }));
+// IArnoldFAB reads the plan gate from useAuth (useAiAccess); a PRO quota keeps
+// the button rendered for these page-level assertions.
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 1, platformPlan: { tier: 'PRO', limits: { aiActionsPerStudent: 3 } } },
+    hasRole: (role) => role === 'TRAINER',
+  }),
+}));
 vi.mock('../../api/axios', () => ({
   default: { get: vi.fn() },
 }));

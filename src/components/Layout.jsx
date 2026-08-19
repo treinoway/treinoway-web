@@ -5,6 +5,7 @@ import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut,
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import useActiveMode from '../hooks/useActiveMode';
+import useAiAccess from '../hooks/useAiAccess';
 import { t } from '../i18n';
 
 const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
@@ -15,8 +16,7 @@ const Layout = ({ children, noPadding = false }) => {
   const [bibliotecaPopover, setBibliotecaPopover] = useState(false);
   const { user, logout, hasRole } = useAuth();
   const { loading: aiLoading, hasNewResponse: aiHasNewResponse } = useAiChat();
-  const aiCap = user?.platformPlan?.limits?.aiActionsPerStudent;
-  const showAi = aiCap === null || aiCap > 0;
+  const showAi = useAiAccess();
   const location = useLocation();
   const navigate = useNavigate();
   const popoverRef = useRef(null);

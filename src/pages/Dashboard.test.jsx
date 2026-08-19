@@ -70,6 +70,24 @@ const zeroDashboardData = {
   generatedAt: '2026-07-14T12:00:00.000Z',
 };
 
+// Auth mock carrying an explicit AI quota, mirroring what /me returns in
+// `platformPlan.limits.aiActionsPerStudent` (0 = FREE, 3 = PRO/PLATINUM,
+// null = DIAMOND/unlimited).
+const mockAuthWithAiQuota = (aiActionsPerStudent) => {
+  vi.mocked(useAuth).mockReturnValue({
+    user: {
+      id: 1,
+      firstName: 'João',
+      status: 'active',
+      roles: ['TRAINER'],
+      platformPlan: { tier: 'PRO', limits: { aiActionsPerStudent } },
+    },
+    hasRole: mockHasRole,
+    refreshUser: mockRefreshUser,
+    updateTokens: mockUpdateTokens,
+  });
+};
+
 const mockApiGet = (overrides = {}) => {
   api.get.mockImplementation((url) => {
     if (overrides[url]) return overrides[url]();
@@ -185,16 +203,44 @@ describe('Dashboard', () => {
       expect(screen.getByText(/linguagem natural/i)).toBeInTheDocument();
     });
 
-    it('hides the iArnold card for the suppressed AI user', () => {
+    it('hides the iArnold card when the plan quota is an explicit 0 (FREE)', () => {
+      mockAuthWithAiQuota(0);
+
+      renderWithRouter(<Dashboard />);
+      expect(screen.queryByText('iArnold')).not.toBeInTheDocument();
+    });
+
+    it('shows the iArnold card when the plan quota is null (DIAMOND = unlimited)', () => {
+      mockAuthWithAiQuota(null);
+
+      renderWithRouter(<Dashboard />);
+      expect(screen.getByText('iArnold')).toBeInTheDocument();
+    });
+
+    it('shows the iArnold card when the plan quota is 3 (PRO/PLATINUM)', () => {
+      mockAuthWithAiQuota(3);
+
+      renderWithRouter(<Dashboard />);
+      expect(screen.getByText('iArnold')).toBeInTheDocument();
+    });
+
+    // Fail-open: a stale cached user or a partial /me must not silently remove
+    // the card — the backend still enforces the plan with a 403.
+    it('shows the iArnold card when platformPlan is missing (fail-open)', () => {
+      renderWithRouter(<Dashboard />);
+      expect(screen.getByText('iArnold')).toBeInTheDocument();
+    });
+
+    it('no longer suppresses the iArnold card by hardcoded email', () => {
       vi.mocked(useAuth).mockReturnValue({
-        user: { id: 9, firstName: 'Gabriel', email: 'gabriel.araujo.lima2011@gmail.com', roles: [] },
+        user: { id: 9, firstName: 'Gabriel', email: 'gabriel.araujo.lima2011@gmail.com', roles: ['TRAINER'] },
         hasRole: mockHasRole,
         refreshUser: mockRefreshUser,
         updateTokens: mockUpdateTokens,
       });
 
       renderWithRouter(<Dashboard />);
-      expect(screen.queryByText('iArnold')).not.toBeInTheDocument();
+      expect(screen.getByText('iArnold')).toBeInTheDocument();
     });
 
     it('links "Sua marca" to /trainer/branding', () => {
