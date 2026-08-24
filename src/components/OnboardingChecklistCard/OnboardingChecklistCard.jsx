@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import useOnboardingStatus, { ONBOARDING_DISMISS_KEY } from '../../hooks/useOnboardingStatus';
+import useOnboardingStatus, { getOnboardingDismissKey } from '../../hooks/useOnboardingStatus';
 import {
   computeMissingProfileFields,
   formatMissingFieldsSubtitle,
@@ -27,25 +27,28 @@ const ROUTE_BY_STEP = {
   firstProtocolCreated: '/trainer/protocols/new',
 };
 
-const readDismissed = () => {
+const readDismissed = (userId) => {
+  if (!userId) return false;
   try {
-    return sessionStorage.getItem(ONBOARDING_DISMISS_KEY) === '1';
+    return localStorage.getItem(getOnboardingDismissKey(userId)) === '1';
   } catch {
     return false;
   }
 };
 
-const writeDismissed = () => {
+const writeDismissed = (userId) => {
+  if (!userId) return;
   try {
-    sessionStorage.setItem(ONBOARDING_DISMISS_KEY, '1');
+    localStorage.setItem(getOnboardingDismissKey(userId), '1');
   } catch {
     // ignore storage errors (private mode, etc.)
   }
 };
 
-const clearDismissed = () => {
+const clearDismissed = (userId) => {
+  if (!userId) return;
   try {
-    sessionStorage.removeItem(ONBOARDING_DISMISS_KEY);
+    localStorage.removeItem(getOnboardingDismissKey(userId));
   } catch {
     // ignore
   }
@@ -53,19 +56,24 @@ const clearDismissed = () => {
 
 const OnboardingChecklistCard = () => {
   const { me, onboarding, isTrainer, loading, fetchFailed, markStepDone } = useOnboardingStatus();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const userId = user?.id;
 
   const isTrainerFromAuth = typeof hasRole === 'function' && hasRole('TRAINER');
 
-  const [dismissed, setDismissed] = useState(readDismissed);
+  const [dismissed, setDismissed] = useState(() => readDismissed(userId));
   const [fadingOut, setFadingOut] = useState(false);
   const [optimisticSteps, setOptimisticSteps] = useState({
     profileCompleted: false,
     firstStudentLinked: false,
     firstProtocolCreated: false,
   });
+
+  useEffect(() => {
+    setDismissed(readDismissed(userId));
+  }, [userId]);
 
   const viewedReportedRef = useRef(false);
   const completionReportedRef = useRef(false);
@@ -78,7 +86,6 @@ const OnboardingChecklistCard = () => {
     const stepKey = NAV_HINT_TO_STEP[hint];
     if (!stepKey) return;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOptimisticSteps((prev) => (prev[stepKey] ? prev : { ...prev, [stepKey]: true }));
     markStepDone(stepKey);
     track('onboarding_step_completed', { step: stepKey, source: 'nav-hint' });
@@ -138,11 +145,11 @@ const OnboardingChecklistCard = () => {
   }, []);
 
   const handleDismiss = useCallback(() => {
-    writeDismissed();
+    writeDismissed(userId);
     setFadingOut(true);
     track('onboarding_checklist_dismissed', {});
     setTimeout(() => setDismissed(true), 150);
-  }, []);
+  }, [userId]);
 
   // If the backend later shows incomplete but a dismiss flag is set,
   // spec says to ignore the flag and re-render.
@@ -150,11 +157,10 @@ const OnboardingChecklistCard = () => {
     if (!dismissed) return;
     if (loading) return;
     if (doneCount < 3 && isTrainer && me?.trainerOnboarding) {
-      clearDismissed();
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      clearDismissed(userId);
       setDismissed(false);
     }
-  }, [dismissed, doneCount, isTrainer, me, loading]);
+  }, [dismissed, doneCount, isTrainer, me, loading, userId]);
 
   // Gate rendering after all hooks have run.
   if (loading) {
