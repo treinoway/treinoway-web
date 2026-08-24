@@ -3,13 +3,16 @@ import api from '../api/axios';
 
 const RETRY_DELAYS_MS = [1000, 3000];
 const OPTIMISTIC_STORAGE_KEY = 'treinoway:onboardingOptimistic';
-export const ONBOARDING_DISMISS_KEY = 'treinoway:onboardingDismissed';
+const ONBOARDING_DISMISS_KEY_PREFIX = 'treinoway:onboardingDismissed';
+const LEGACY_ONBOARDING_DISMISS_SESSION_KEY = 'treinoway:onboardingDismissed';
 const OPTIMISTIC_STEP_KEYS = ['profileCompleted', 'firstStudentLinked', 'firstProtocolCreated'];
+
+export const getOnboardingDismissKey = (userId) => `${ONBOARDING_DISMISS_KEY_PREFIX}:${userId}`;
 
 export const clearOnboardingSessionState = () => {
   try {
     sessionStorage.removeItem(OPTIMISTIC_STORAGE_KEY);
-    sessionStorage.removeItem(ONBOARDING_DISMISS_KEY);
+    sessionStorage.removeItem(LEGACY_ONBOARDING_DISMISS_SESSION_KEY);
   } catch {
     // ignore storage errors (private mode, etc.)
   }
