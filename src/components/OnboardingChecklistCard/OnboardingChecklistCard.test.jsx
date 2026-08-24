@@ -4,6 +4,7 @@ import { renderWithRouter } from '../../test/test-utils';
 import OnboardingChecklistCard from './OnboardingChecklistCard';
 import api from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
+import { getOnboardingDismissKey } from '../../hooks/useOnboardingStatus';
 
 vi.mock('../../api/axios', () => ({
   default: {
@@ -57,9 +58,10 @@ describe('OnboardingChecklistCard', () => {
   beforeEach(() => {
     api.get.mockReset();
     sessionStorage.clear();
+    localStorage.clear();
     mockHasRole.mockReset();
     mockHasRole.mockImplementation((role) => role === 'TRAINER');
-    vi.mocked(useAuth).mockReturnValue({ hasRole: mockHasRole });
+    vi.mocked(useAuth).mockReturnValue({ hasRole: mockHasRole, user: { id: 1 } });
   });
 
   it('renders nothing when user is not a trainer', async () => {
@@ -200,7 +202,90 @@ describe('OnboardingChecklistCard', () => {
       expect(container.querySelector('.onboarding-card')).not.toBeInTheDocument();
     });
 
-    expect(sessionStorage.getItem('treinoway:onboardingDismissed')).toBe('1');
+    expect(localStorage.getItem(getOnboardingDismissKey(1))).toBe('1');
+  });
+
+  it('keeps the card dismissed after remounting (survives closing/reopening the tab)', async () => {
+    const user = userEvent.setup();
+    const allDoneOnboarding = {
+      profileCompleted: true,
+      firstStudentLinked: true,
+      firstProtocolCreated: true,
+    };
+    mockMeResponse(baseTrainerWithOnboarding({ trainerOnboarding: allDoneOnboarding }));
+
+    const first = renderWithRouter(<OnboardingChecklistCard />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Dispensar checklist' })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: 'Dispensar checklist' }));
+    await waitFor(() => {
+      expect(first.container.querySelector('.onboarding-card')).not.toBeInTheDocument();
+    });
+    first.unmount();
+
+    // Dismiss flag lives in localStorage — jsdom does not clear it between
+    // "sessions" within the same test, simulating a closed/reopened tab.
+    mockMeResponse(baseTrainerWithOnboarding({ trainerOnboarding: allDoneOnboarding }));
+    const second = renderWithRouter(<OnboardingChecklistCard />);
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalled();
+    });
+
+    expect(second.container.querySelector('.onboarding-card')).not.toBeInTheDocument();
+  });
+
+  it('does not share the dismissed flag between different users', async () => {
+    const user = userEvent.setup();
+    const allDoneOnboarding = {
+      profileCompleted: true,
+      firstStudentLinked: true,
+      firstProtocolCreated: true,
+    };
+    vi.mocked(useAuth).mockReturnValue({ hasRole: mockHasRole, user: { id: 1 } });
+    mockMeResponse(baseTrainerWithOnboarding({ trainerOnboarding: allDoneOnboarding }));
+
+    const first = renderWithRouter(<OnboardingChecklistCard />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Dispensar checklist' })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: 'Dispensar checklist' }));
+    await waitFor(() => {
+      expect(first.container.querySelector('.onboarding-card')).not.toBeInTheDocument();
+    });
+    first.unmount();
+
+    // Switch to a different logged-in user (id 2) — their flag must be independent.
+    vi.mocked(useAuth).mockReturnValue({ hasRole: mockHasRole, user: { id: 2 } });
+    mockMeResponse(baseTrainerWithOnboarding({ id: 2, trainerOnboarding: allDoneOnboarding }));
+    renderWithRouter(<OnboardingChecklistCard />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Dispensar checklist' })).toBeInTheDocument();
+    });
+    expect(localStorage.getItem(getOnboardingDismissKey(1))).toBe('1');
+    expect(localStorage.getItem(getOnboardingDismissKey(2))).toBeNull();
+  });
+
+  it('does not persist or read the dismiss flag before the user id is available', async () => {
+    vi.mocked(useAuth).mockReturnValue({ hasRole: mockHasRole, user: null });
+    mockMeResponse(baseTrainerWithOnboarding({
+      trainerOnboarding: {
+        profileCompleted: true,
+        firstStudentLinked: true,
+        firstProtocolCreated: true,
+      },
+    }));
+
+    renderWithRouter(<OnboardingChecklistCard />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Dispensar checklist' })).toBeInTheDocument();
+    });
+
+    // No id yet — nothing should have been written under an "undefined" key.
+    expect(localStorage.getItem(getOnboardingDismissKey(undefined))).toBeNull();
   });
 
   it('sorts pending rows before done rows', async () => {

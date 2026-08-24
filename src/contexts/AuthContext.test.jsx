@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, act } from '@testing-library/react';
 import { renderWithRouter } from '../test/test-utils';
 import { AuthProvider, useAuth } from './AuthContext';
+import { getOnboardingDismissKey } from '../hooks/useOnboardingStatus';
 
 // Mock firebase before importing anything that uses it
 vi.mock('../firebase', () => ({
@@ -293,6 +294,25 @@ describe('AuthContext', () => {
         resolveMe({ data: TRAINER_USER });
       });
     });
+
+    it('does not clear the per-user onboarding dismiss flag (localStorage) on login', async () => {
+      localStorage.setItem(getOnboardingDismissKey(TRAINER_USER.id), '1');
+
+      api.post.mockResolvedValue(AUTH_RESPONSE);
+      api.get.mockResolvedValue({ data: TRAINER_USER });
+
+      renderProvider();
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Login' }).click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('isAuthenticated').textContent).toBe('true');
+      });
+
+      expect(localStorage.getItem(getOnboardingDismissKey(TRAINER_USER.id))).toBe('1');
+    });
   });
 
   describe('signup', () => {
@@ -579,6 +599,20 @@ describe('AuthContext', () => {
 
       expect(sessionStorage.getItem('treinoway:onboardingOptimistic')).toBeNull();
       expect(sessionStorage.getItem('treinoway:onboardingDismissed')).toBeNull();
+    });
+
+    it('does not clear the per-user onboarding dismiss flag (localStorage) on logout', async () => {
+      localStorage.setItem('accessToken', 'stored-token');
+      localStorage.setItem('user', JSON.stringify(TRAINER_USER));
+      localStorage.setItem(getOnboardingDismissKey(TRAINER_USER.id), '1');
+
+      renderProvider();
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Logout' }).click();
+      });
+
+      expect(localStorage.getItem(getOnboardingDismissKey(TRAINER_USER.id))).toBe('1');
     });
   });
 
