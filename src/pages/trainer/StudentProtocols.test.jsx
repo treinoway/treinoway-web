@@ -13,7 +13,7 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../../contexts/ToastContext', () => ({ useToast: vi.fn() }));
 vi.mock('../../api/axios', () => ({
-  default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), delete: vi.fn(), patch: vi.fn() },
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
@@ -58,6 +58,13 @@ const mockProtocols = [
     startDate: '2024-07-01',
     expirationDate: '2024-09-30',
   },
+  {
+    id: 'proto-3',
+    name: 'Protocolo Antigo',
+    status: 'archived',
+    startDate: '2024-01-01',
+    expirationDate: '2024-03-31',
+  },
 ];
 
 const mockShowToast = vi.fn();
@@ -82,6 +89,7 @@ describe('StudentProtocols', () => {
     api.get.mockReset();
     api.post.mockReset();
     api.delete.mockReset();
+    api.patch.mockReset();
   });
 
   it('shows loading state initially', () => {
@@ -188,6 +196,83 @@ describe('StudentProtocols', () => {
     await waitFor(() => expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument());
     await user.click(screen.getByText('Protocolo Full Body'));
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/protocols/proto-1');
+  });
+
+  it('shows "Arquivar" for active and completed protocols, "Desarquivar" for archived ones', async () => {
+    setup();
+    await waitFor(() => expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument());
+    expect(screen.getAllByRole('button', { name: 'Arquivar' })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Desarquivar' })).toBeInTheDocument();
+  });
+
+  it('shows reinforced warning when archiving an active routine, and archives on confirm', async () => {
+    const user = userEvent.setup();
+    api.patch.mockResolvedValue({});
+    setup();
+    await waitFor(() => expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument());
+    const archiveButtons = screen.getAllByRole('button', { name: 'Arquivar' });
+    await user.click(archiveButtons[0]); // Protocolo Full Body (active)
+    expect(
+      screen.getByText(/arquivar rotina "protocolo full body"\? o aluno ficará sem rotina ativa/i),
+    ).toBeInTheDocument();
+    expect(api.patch).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: /^confirmar$/i }));
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith('/trainer/protocols/proto-1', { status: 'archived' });
+      expect(mockShowToast).toHaveBeenCalledWith('Rotina arquivada', 'success');
+    });
+  });
+
+  it('cancels the archive warning dialog without calling api.patch', async () => {
+    const user = userEvent.setup();
+    setup();
+    await waitFor(() => expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument());
+    const archiveButtons = screen.getAllByRole('button', { name: 'Arquivar' });
+    await user.click(archiveButtons[0]);
+    await user.click(screen.getByRole('button', { name: /^cancelar$/i }));
+    expect(screen.queryByText(/arquivar rotina/i)).not.toBeInTheDocument();
+    expect(api.patch).not.toHaveBeenCalled();
+  });
+
+  it('archives a non-active (completed) routine directly, without the reinforced dialog', async () => {
+    const user = userEvent.setup();
+    api.patch.mockResolvedValue({});
+    setup();
+    await waitFor(() => expect(screen.getByText('Protocolo Cardio')).toBeInTheDocument());
+    const archiveButtons = screen.getAllByRole('button', { name: 'Arquivar' });
+    await user.click(archiveButtons[1]); // Protocolo Cardio (completed)
+    expect(screen.queryByText(/arquivar rotina/i)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith('/trainer/protocols/proto-2', { status: 'archived' });
+      expect(mockShowToast).toHaveBeenCalledWith('Rotina arquivada', 'success');
+    });
+  });
+
+  it('unarchives directly, without the reinforced dialog, and PATCHes status active', async () => {
+    const user = userEvent.setup();
+    api.patch.mockResolvedValue({});
+    setup();
+    await waitFor(() => expect(screen.getByText('Protocolo Antigo')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Desarquivar' }));
+    expect(screen.queryByText(/arquivar rotina/i)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith('/trainer/protocols/proto-3', { status: 'active' });
+      expect(mockShowToast).toHaveBeenCalledWith('Rotina reativada', 'success');
+    });
+  });
+
+  it('shows error toast when the archive PATCH fails', async () => {
+    const user = userEvent.setup();
+    api.patch.mockRejectedValue({ userMessage: 'Erro ao arquivar' });
+    setup();
+    await waitFor(() => expect(screen.getByText('Protocolo Full Body')).toBeInTheDocument());
+    const archiveButtons = screen.getAllByRole('button', { name: 'Arquivar' });
+    await user.click(archiveButtons[0]);
+    await user.click(screen.getByRole('button', { name: /^confirmar$/i }));
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('Erro ao arquivar', 'error');
+    });
   });
 
   it('shows toast on fetch error', async () => {

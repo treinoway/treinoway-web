@@ -59,6 +59,34 @@ const StudentProtocols = () => {
     });
   };
 
+  const archiveProtocol = async (protocol, nextStatus) => {
+    try {
+      await api.patch(`/trainer/protocols/${protocol.id}`, { status: nextStatus });
+      showToast(nextStatus === 'archived' ? 'Rotina arquivada' : 'Rotina reativada', 'success');
+      fetchProtocols();
+    } catch (err) {
+      showToast(err.userMessage || translateError(err), 'error');
+    }
+  };
+
+  const handleArchiveToggle = (protocol) => {
+    const isArchived = protocol.status === 'archived';
+    const nextStatus = isArchived ? 'active' : 'archived';
+
+    if (protocol.status === 'active') {
+      setConfirmDialog({
+        message: `Arquivar rotina "${protocol.name}"? O aluno ficará sem rotina ativa até que você crie ou reative outra.`,
+        onConfirm: async () => {
+          setConfirmDialog(null);
+          await archiveProtocol(protocol, nextStatus);
+        },
+      });
+      return;
+    }
+
+    archiveProtocol(protocol, nextStatus);
+  };
+
   if (loading) {
     return (
       <div className="loading-screen">
@@ -108,6 +136,7 @@ const StudentProtocols = () => {
         <div className="stack-md">
           {protocols.map((protocol) => {
             const openProtocol = () => navigate(`/trainer/protocols/${protocol.id}`);
+            const archiveLabel = protocol.status === 'archived' ? 'Desarquivar' : 'Arquivar';
             return (
               <div
                 key={protocol.id}
@@ -130,7 +159,10 @@ const StudentProtocols = () => {
                     </span>
                     <RowMenu
                       ariaLabel={`Ações da rotina ${protocol.name}`}
-                      extraItems={[{ label: 'Abrir', onClick: openProtocol }]}
+                      extraItems={[
+                        { label: 'Abrir', onClick: openProtocol },
+                        { label: archiveLabel, onClick: () => handleArchiveToggle(protocol) },
+                      ]}
                       onDelete={() => handleDelete(protocol)}
                       deleteDisabled={protocol.status === 'active'}
                       deleteDisabledTitle="Arquive a rotina antes de excluir"
