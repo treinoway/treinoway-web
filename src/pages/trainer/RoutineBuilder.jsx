@@ -51,6 +51,7 @@ import AddTrainingSheet from '../../components/AddTrainingSheet';
 import BiSetBadge from '../../components/BiSetBadge';
 import BiSetActionSheet from '../../components/BiSetActionSheet';
 import SubstituteComposerSheet from '../../components/SubstituteComposerSheet';
+import ReplaceExerciseSheet from '../../components/ReplaceExerciseSheet';
 import SubstitutesInline from '../../components/SubstitutesInline';
 import IntensityBadge from '../../components/IntensityBadge';
 import SelectionActionBar, { SelectionInstructionStrip } from '../../components/SelectionActionBar';
@@ -1048,6 +1049,7 @@ const buildExerciseRowMenu = ({
   onAddSubstitute,
   onDissolveBiset,
   onEdit,
+  onReplace,
   onDelete,
 }) => {
   const items = [{ kind: 'caption', label: 'Estrutura' }];
@@ -1069,6 +1071,14 @@ const buildExerciseRowMenu = ({
   }
   items.push({ kind: 'caption', label: 'Editar' });
   if (onEdit) items.push({ label: 'Editar', onClick: () => onEdit(ex) });
+  // Replace swaps the exercise's identity while keeping its prescription.
+  // Bi-set members are excluded in v1 — see ReplaceExerciseSheet.
+  if (!isBisetMember && onReplace) {
+    items.push({
+      label: t('replace.menuItem') || 'Substituir exercício',
+      onClick: () => onReplace(ex),
+    });
+  }
   if (onDelete) items.push({ label: 'Remover', danger: true, onClick: () => onDelete(ex) });
   return items;
 };
@@ -1093,6 +1103,7 @@ const ExerciseRowWithSubstitutes = ({
   onDelete,
   onEnterSelection,
   onAddSubstitute,
+  onReplace,
   substitutesExpanded,
   onToggleSubstitutes,
   onDeleteSubstitute,
@@ -1111,6 +1122,7 @@ const ExerciseRowWithSubstitutes = ({
         onAddSubstitute,
         onDissolveBiset: null,
         onEdit,
+        onReplace,
         onDelete,
       });
 
@@ -1186,6 +1198,7 @@ ExerciseRowWithSubstitutes.propTypes = {
   onDelete: PropTypes.func,
   onEnterSelection: PropTypes.func,
   onAddSubstitute: PropTypes.func,
+  onReplace: PropTypes.func,
   substitutesExpanded: PropTypes.bool,
   onToggleSubstitutes: PropTypes.func,
   onDeleteSubstitute: PropTypes.func,
@@ -1202,6 +1215,7 @@ ExerciseRowWithSubstitutes.defaultProps = {
   onDelete: null,
   onEnterSelection: null,
   onAddSubstitute: null,
+  onReplace: null,
   substitutesExpanded: false,
   onToggleSubstitutes: null,
   onDeleteSubstitute: null,
@@ -1498,6 +1512,7 @@ const TrainingItem = ({
   onEditExercise,
   onImportFromLibrary,
   onDeleteExercise,
+  onReplaceExercise,
   onReorder,
   onRefetchTraining,
 }) => {
@@ -1508,6 +1523,7 @@ const TrainingItem = ({
   const [selectedIds, setSelectedIds] = useState([]);
   const [bisetSheetGroupId, setBisetSheetGroupId] = useState(null);
   const [substituteComposerPrincipal, setSubstituteComposerPrincipal] = useState(null);
+  const [replacingExercise, setReplacingExercise] = useState(null);
   const [expandedSubstituteIds, setExpandedSubstituteIds] = useState(() => new Set());
   const [pendingNonAdjacentConfirm, setPendingNonAdjacentConfirm] = useState(null);
 
@@ -1739,6 +1755,23 @@ const TrainingItem = ({
     [substituteComposerPrincipal, onRefetchTraining]
   );
 
+  // ── Replace actions (template + protocol) ────────────────────────────────
+
+  const handleRequestReplace = useCallback((ex) => {
+    setReplacingExercise(ex);
+  }, []);
+
+  const handleReplaceSubmit = useCallback(
+    (templateId, templateObject) =>
+      onReplaceExercise(replacingExercise.id, templateId, templateObject),
+    [onReplaceExercise, replacingExercise]
+  );
+
+  const handleReplaced = useCallback(async () => {
+    setReplacingExercise(null);
+    if (onRefetchTraining) await onRefetchTraining();
+  }, [onRefetchTraining]);
+
   const handleToggleSubstitutes = useCallback((principalId) => {
     setExpandedSubstituteIds((prev) => {
       const next = new Set(prev);
@@ -1933,6 +1966,7 @@ const TrainingItem = ({
                                 onAddSubstitute={
                                   supportsSubstitutes ? handleAddSubstitute : null
                                 }
+                                onReplace={handleRequestReplace}
                                 substitutesExpanded={expandedSubstituteIds.has(ex.id)}
                                 onToggleSubstitutes={handleToggleSubstitutes}
                                 onDeleteSubstitute={
@@ -2103,6 +2137,16 @@ const TrainingItem = ({
         />
       )}
 
+      {/* Replace exercise (template + protocol modes, standalone exercises only) */}
+      <ReplaceExerciseSheet
+        open={!!replacingExercise}
+        exercise={replacingExercise}
+        exerciseTemplates={exerciseTemplates}
+        onClose={() => setReplacingExercise(null)}
+        onReplace={handleReplaceSubmit}
+        onReplaced={handleReplaced}
+      />
+
       {/* Non-adjacent confirmation */}
       {pendingNonAdjacentConfirm && (
         <div className="overlay" onClick={() => setPendingNonAdjacentConfirm(null)}>
@@ -2160,6 +2204,7 @@ TrainingItem.propTypes = {
   onEditExercise: PropTypes.func,
   onImportFromLibrary: PropTypes.func,
   onDeleteExercise: PropTypes.func,
+  onReplaceExercise: PropTypes.func,
   onReorder: PropTypes.func,
   onRefetchTraining: PropTypes.func,
 };
@@ -2174,6 +2219,7 @@ TrainingItem.defaultProps = {
   onEditExercise: null,
   onImportFromLibrary: null,
   onDeleteExercise: null,
+  onReplaceExercise: null,
   onReorder: null,
   onRefetchTraining: null,
 };
@@ -3368,6 +3414,10 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
                 );
               }}
               onDeleteExercise={readOnly ? null : (exId) => { markTouched(); return routine.deleteExercise(t.id, exId); }}
+              onReplaceExercise={readOnly ? null : (exId, templateId, templateObject) => {
+                markTouched();
+                return routine.replaceExerciseFromTemplate(t.id, exId, templateId, templateObject);
+              }}
               onReorder={
                 readOnly
                   ? null
