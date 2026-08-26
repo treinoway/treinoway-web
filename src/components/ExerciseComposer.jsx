@@ -218,7 +218,7 @@ const ExerciseComposer = ({
 }) => {
   const isEditMode = snapshot != null;
 
-  const [tab, setTab] = useState('create');
+  const [tab, setTab] = useState('library');
   const [form, setForm] = useState(() =>
     isEditMode ? snapshotToForm(snapshot) : { ...EMPTY_FORM }
   );
@@ -587,20 +587,20 @@ const ExerciseComposer = ({
           <button
             type="button"
             role="tab"
-            aria-selected={tab === 'create'}
-            className={`segmented-toggle-btn${tab === 'create' ? ' segmented-toggle-btn--active' : ''}`}
-            onClick={() => setTab('create')}
-          >
-            Criar novo
-          </button>
-          <button
-            type="button"
-            role="tab"
             aria-selected={tab === 'library'}
             className={`segmented-toggle-btn${tab === 'library' ? ' segmented-toggle-btn--active' : ''}`}
             onClick={() => setTab('library')}
           >
             Da biblioteca
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'create'}
+            className={`segmented-toggle-btn${tab === 'create' ? ' segmented-toggle-btn--active' : ''}`}
+            onClick={() => setTab('create')}
+          >
+            Criar novo
           </button>
         </div>
       )}

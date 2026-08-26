@@ -98,6 +98,12 @@ const defaultProps = {
 const renderComposer = (props = {}) =>
   render(<ExerciseComposer {...defaultProps} {...props} />);
 
+// Default tab (create mode) is now "Da biblioteca" — tests exercising the
+// create form must switch to "Criar novo" first.
+const switchToCreateTab = async (user) => {
+  await user.click(screen.getByRole('tab', { name: /Criar novo/i }));
+};
+
 // ─── Tests — create mode ──────────────────────────────────────────────────────
 
 describe('ExerciseComposer — create mode', () => {
@@ -105,8 +111,11 @@ describe('ExerciseComposer — create mode', () => {
     vi.clearAllMocks();
   });
 
-  it('renders empty form in create mode', () => {
+  it('renders empty form in create mode', async () => {
+    const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
+
     expect(screen.getByLabelText(/Nome/i)).toHaveValue('');
     expect(screen.getByRole('combobox', { name: /Tipo/i })).toBeInTheDocument();
   });
@@ -117,15 +126,37 @@ describe('ExerciseComposer — create mode', () => {
     expect(screen.getByRole('tab', { name: /Da biblioteca/i })).toBeInTheDocument();
   });
 
-  it('carga switch, vídeo library CTA and observações are visible immediately without any toggle', () => {
+  it('renders the tabs in physical order "Da biblioteca" then "Criar novo"', () => {
     renderComposer();
+    const tabs = screen.getAllByRole('tab').filter((el) =>
+      /Da biblioteca|Criar novo/i.test(el.textContent)
+    );
+    expect(tabs[0]).toHaveTextContent(/Da biblioteca/i);
+    expect(tabs[1]).toHaveTextContent(/Criar novo/i);
+  });
+
+  it('defaults to the "Da biblioteca" tab when opened (not in edit mode)', () => {
+    renderComposer();
+    expect(screen.getByRole('tab', { name: /Da biblioteca/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /Criar novo/i })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('list')).toBeInTheDocument();
+  });
+
+  it('carga switch, vídeo library CTA and observações are visible immediately without any toggle', async () => {
+    const user = userEvent.setup();
+    renderComposer();
+    await switchToCreateTab(user);
+
     expect(screen.getByRole('switch', { name: /Exercício com carga/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Escolher da biblioteca/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Observações/i)).toBeInTheDocument();
   });
 
-  it('does NOT have a "Mostrar mais campos" toggle', () => {
+  it('does NOT have a "Mostrar mais campos" toggle', async () => {
+    const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
+
     expect(
       screen.queryByRole('button', { name: /Mostrar mais campos/i })
     ).not.toBeInTheDocument();
@@ -134,6 +165,7 @@ describe('ExerciseComposer — create mode', () => {
   it('submit without name shows validation error', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
 
@@ -141,14 +173,20 @@ describe('ExerciseComposer — create mode', () => {
     expect(defaultProps.onSubmitCreate).not.toHaveBeenCalled();
   });
 
-  it('renders prescription mode picker (Repetições / Tempo tabs)', () => {
+  it('renders prescription mode picker (Repetições / Tempo tabs)', async () => {
+    const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
+
     expect(screen.getByRole('tab', { name: /Repetições/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Tempo/i })).toBeInTheDocument();
   });
 
-  it('defaults to "reps" mode — reps inputs visible, duration input absent', () => {
+  it('defaults to "reps" mode — reps inputs visible, duration input absent', async () => {
+    const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
+
     expect(screen.getByRole('tab', { name: /Repetições/i })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByLabelText(/Repetições mínimas/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Duração/i)).not.toBeInTheDocument();
@@ -157,6 +195,7 @@ describe('ExerciseComposer — create mode', () => {
   it('switching to "Tempo" mode shows duration input and hides reps', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     await user.click(screen.getByRole('tab', { name: /Tempo/i }));
 
@@ -165,8 +204,11 @@ describe('ExerciseComposer — create mode', () => {
     expect(screen.queryByLabelText(/Repetições mínimas/i)).not.toBeInTheDocument();
   });
 
-  it('rest chips (60s, 90s, 120s, 180s) are visible immediately', () => {
+  it('rest chips (60s, 90s, 120s, 180s) are visible immediately', async () => {
+    const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
+
     expect(screen.getByRole('button', { name: /60s/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /90s/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /120s/i })).toBeInTheDocument();
@@ -176,6 +218,7 @@ describe('ExerciseComposer — create mode', () => {
   it('clicking a rest chip sets the rest interval input value', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     await user.click(screen.getByRole('button', { name: /90s/i }));
 
@@ -187,6 +230,7 @@ describe('ExerciseComposer — create mode', () => {
     const onSubmitCreate = vi.fn();
     const user = userEvent.setup();
     renderComposer({ onSubmitCreate });
+    await switchToCreateTab(user);
 
     await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
     await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
@@ -204,6 +248,7 @@ describe('ExerciseComposer — create mode', () => {
     const onSubmitCreate = vi.fn();
     const user = userEvent.setup();
     renderComposer({ onSubmitCreate });
+    await switchToCreateTab(user);
 
     await user.type(screen.getByLabelText(/Nome/i), 'Prancha');
     await user.click(screen.getByRole('tab', { name: /Tempo/i }));
@@ -227,8 +272,11 @@ describe('ExerciseComposer — create mode', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it('disables submit button and shows "Salvando…" when saving=true', () => {
+  it('disables submit button and shows "Salvando…" when saving=true', async () => {
+    const user = userEvent.setup();
     renderComposer({ saving: true });
+    await switchToCreateTab(user);
+
     const submitBtn = screen.getByRole('button', { name: /Salvando/i });
     expect(submitBtn).toBeDisabled();
   });
@@ -241,8 +289,11 @@ describe('ExerciseComposer — carga default by type', () => {
     vi.clearAllMocks();
   });
 
-  it('strength type → carga switch ON by default', () => {
+  it('strength type → carga switch ON by default', async () => {
+    const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
+
     // default type is strength
     expect(screen.getByRole('switch', { name: /Exercício com carga/i })).toBeChecked();
   });
@@ -250,6 +301,7 @@ describe('ExerciseComposer — carga default by type', () => {
   it('switching type to cardio → carga switch turns OFF', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     await user.selectOptions(screen.getByRole('combobox', { name: /Tipo/i }), 'cardio');
 
@@ -259,6 +311,7 @@ describe('ExerciseComposer — carga default by type', () => {
   it('switching type to mobility → carga switch turns OFF', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     await user.selectOptions(screen.getByRole('combobox', { name: /Tipo/i }), 'mobility');
 
@@ -268,6 +321,7 @@ describe('ExerciseComposer — carga default by type', () => {
   it('switching type to stretching → carga switch turns OFF', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     await user.selectOptions(screen.getByRole('combobox', { name: /Tipo/i }), 'stretching');
 
@@ -277,6 +331,7 @@ describe('ExerciseComposer — carga default by type', () => {
   it('after manual toggle, changing type no longer overrides the user choice', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     // Start: strength → carga ON
     const loadSwitch = screen.getByRole('switch', { name: /Exercício com carga/i });
@@ -293,8 +348,11 @@ describe('ExerciseComposer — carga default by type', () => {
     expect(loadSwitch).not.toBeChecked();
   });
 
-  it('carga kg input is shown when switch is ON', () => {
+  it('carga kg input is shown when switch is ON', async () => {
+    const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
+
     // strength defaults to ON
     expect(screen.getByLabelText(/Carga sugerida/i)).toBeInTheDocument();
   });
@@ -302,6 +360,7 @@ describe('ExerciseComposer — carga default by type', () => {
   it('carga kg input is hidden when switch is OFF', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     await user.selectOptions(screen.getByRole('combobox', { name: /Tipo/i }), 'cardio');
 
@@ -316,8 +375,11 @@ describe('ExerciseComposer — VideoField integration', () => {
     vi.clearAllMocks();
   });
 
-  it('renders "Escolher da biblioteca" CTA and URL toggle when no video is set', () => {
+  it('renders "Escolher da biblioteca" CTA and URL toggle when no video is set', async () => {
+    const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
+
     expect(screen.getByRole('button', { name: /Escolher da biblioteca/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ou cole uma URL do YouTube/i })).toBeInTheDocument();
   });
@@ -325,6 +387,7 @@ describe('ExerciseComposer — VideoField integration', () => {
   it('URL input is hidden until the "ou cole uma URL" toggle is clicked', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     expect(screen.queryByLabelText(/URL do YouTube/i)).not.toBeInTheDocument();
 
@@ -336,6 +399,7 @@ describe('ExerciseComposer — VideoField integration', () => {
   it('typing a valid YouTube URL into the revealed input is accepted without error', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     await user.click(screen.getByRole('button', { name: /ou cole uma URL do YouTube/i }));
     await user.type(
@@ -349,6 +413,7 @@ describe('ExerciseComposer — VideoField integration', () => {
   it('shows hint for a non-YouTube URL typed into the URL input', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     await user.click(screen.getByRole('button', { name: /ou cole uma URL do YouTube/i }));
     await user.type(screen.getByLabelText(/URL do YouTube/i), 'https://vimeo.com/123456');
@@ -359,6 +424,7 @@ describe('ExerciseComposer — VideoField integration', () => {
   it('opening the library picker renders the stub dialog', async () => {
     const user = userEvent.setup();
     renderComposer();
+    await switchToCreateTab(user);
 
     await user.click(screen.getByRole('button', { name: /Escolher da biblioteca/i }));
 
@@ -371,6 +437,7 @@ describe('ExerciseComposer — VideoField integration', () => {
     const onSubmitCreate = vi.fn();
     const user = userEvent.setup();
     renderComposer({ onSubmitCreate });
+    await switchToCreateTab(user);
 
     // Fill in the required name + reps so submit passes validation
     await user.type(screen.getByLabelText(/Nome/i), 'Supino reto');
@@ -787,6 +854,7 @@ describe('ExerciseComposer — prescription warn dialog', () => {
     const onSubmitCreate = vi.fn();
     const user = userEvent.setup();
     renderComposer({ onSubmitCreate });
+    await switchToCreateTab(user);
 
     await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
     await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
@@ -799,6 +867,7 @@ describe('ExerciseComposer — prescription warn dialog', () => {
     const onSubmitCreate = vi.fn();
     const user = userEvent.setup();
     renderComposer({ onSubmitCreate });
+    await switchToCreateTab(user);
 
     await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
     await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
@@ -815,6 +884,7 @@ describe('ExerciseComposer — prescription warn dialog', () => {
     const onSubmitCreate = vi.fn();
     const user = userEvent.setup();
     renderComposer({ onSubmitCreate });
+    await switchToCreateTab(user);
 
     await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
     await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
@@ -830,6 +900,7 @@ describe('ExerciseComposer — prescription warn dialog', () => {
     const onSubmitCreate = vi.fn();
     const user = userEvent.setup();
     renderComposer({ onSubmitCreate });
+    await switchToCreateTab(user);
 
     await user.type(screen.getByLabelText(/Nome/i), 'Prancha');
     await user.click(screen.getByRole('tab', { name: /Tempo/i }));
@@ -843,6 +914,7 @@ describe('ExerciseComposer — prescription warn dialog', () => {
     const onSubmitCreate = vi.fn();
     const user = userEvent.setup();
     renderComposer({ onSubmitCreate });
+    await switchToCreateTab(user);
 
     await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
     await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
@@ -947,6 +1019,7 @@ describe('ExerciseComposer — clearing fields', () => {
     const onSubmitCreate = vi.fn();
     const user = userEvent.setup();
     renderComposer({ onSubmitCreate });
+    await switchToCreateTab(user);
 
     await user.type(screen.getByLabelText(/Nome/i), 'Rosca direta');
     await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
