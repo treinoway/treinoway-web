@@ -58,6 +58,14 @@ describe('Login', () => {
     expect(screen.getByRole('link', { name: /criar conta/i })).toBeInTheDocument();
   });
 
+  it('renders a legal footer link to the privacy policy', () => {
+    renderWithRouter(<Login />);
+
+    expect(
+      screen.getByRole('link', { name: /política de privacidade/i })
+    ).toHaveAttribute('href', '/privacy-policy');
+  });
+
   it('redirects to dashboard when already authenticated', () => {
     vi.mocked(useAuth).mockReturnValue({
       isAuthenticated: true,

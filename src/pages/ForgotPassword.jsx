@@ -324,6 +324,10 @@ const ForgotPassword = () => {
           </>
         )}
       </div>
+
+      <footer className="auth-legal">
+        <Link to="/privacy-policy" className="auth-legal-link">Política de Privacidade</Link>
+      </footer>
     </div>
   );
 };

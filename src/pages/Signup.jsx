@@ -210,6 +210,10 @@ const Signup = () => {
           <Link to={loginLink} className="link">Entrar</Link>
         </p>
       </div>
+
+      <footer className="auth-legal">
+        <Link to="/privacy-policy" className="auth-legal-link">Política de Privacidade</Link>
+      </footer>
     </div>
   );
 };

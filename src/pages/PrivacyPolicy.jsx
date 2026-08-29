@@ -6,7 +6,9 @@ const PrivacyPolicy = () => {
     <div className="privacy-page">
       <header className="privacy-header">
         <div className="privacy-header-inner">
-          <span className="privacy-brand">TeuFit</span>
+          <Link to="/login" className="privacy-brand-link" aria-label="Ir para o login">
+            <img src="/img/teufit-lockup.png" alt="TeuFit" className="privacy-brand-logo" />
+          </Link>
           <Link to="/login" className="privacy-back-link">Entrar na plataforma</Link>
         </div>
       </header>
@@ -314,10 +316,10 @@ const PrivacyPolicy = () => {
                 <li>
                   <strong>Por e-mail:</strong> envie uma solicitação para{' '}
                   <a
-                    href="mailto:contato@treinoway.com"
+                    href="mailto:contato@teufit.com.br"
                     className="privacy-contact-link"
                   >
-                    contato@treinoway.com
+                    contato@teufit.com.br
                   </a>
                   {' '}com o assunto &ldquo;Exclusão de conta&rdquo;. Responderemos e processaremos a solicitação
                   no prazo de até 15 dias úteis.
@@ -407,10 +409,10 @@ const PrivacyPolicy = () => {
                 <p>
                   E-mail:{' '}
                   <a
-                    href="mailto:contato@treinoway.com"
+                    href="mailto:contato@teufit.com.br"
                     className="privacy-contact-link"
                   >
-                    contato@treinoway.com
+                    contato@teufit.com.br
                   </a>
                 </p>
               </div>
@@ -431,6 +433,7 @@ const PrivacyPolicy = () => {
           <span className="privacy-footer-copy">
             Política de Privacidade — Última atualização: 18 de junho de 2026
           </span>
+          <Link to="/login" className="privacy-contact-link">Voltar para o login</Link>
         </div>
       </footer>
     </div>
