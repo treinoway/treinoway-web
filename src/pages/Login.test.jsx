@@ -66,6 +66,14 @@ describe('Login', () => {
     ).toHaveAttribute('href', '/privacy-policy');
   });
 
+  it('renders a legal footer link to the terms of use', () => {
+    renderWithRouter(<Login />);
+
+    expect(
+      screen.getByRole('link', { name: /termos e condições/i })
+    ).toHaveAttribute('href', '/terms');
+  });
+
   it('redirects to dashboard when already authenticated', () => {
     vi.mocked(useAuth).mockReturnValue({
       isAuthenticated: true,

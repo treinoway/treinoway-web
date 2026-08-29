@@ -3,34 +3,34 @@ import { Shield } from 'lucide-react';
 
 const PrivacyPolicy = () => {
   return (
-    <div className="privacy-page">
-      <header className="privacy-header">
-        <div className="privacy-header-inner">
-          <Link to="/login" className="privacy-brand-link" aria-label="Ir para o login">
-            <img src="/img/teufit-lockup.png" alt="TeuFit" className="privacy-brand-logo" />
+    <div className="legal-page">
+      <header className="legal-header">
+        <div className="legal-header-inner">
+          <Link to="/login" className="legal-brand-link" aria-label="Ir para o login">
+            <img src="/img/teufit-lockup.png" alt="TeuFit" className="legal-brand-logo" />
           </Link>
-          <Link to="/login" className="privacy-back-link">Entrar na plataforma</Link>
+          <Link to="/login" className="legal-back-link">Entrar na plataforma</Link>
         </div>
       </header>
 
-      <main className="privacy-main">
-        <div className="privacy-container">
+      <main className="legal-main">
+        <div className="legal-container">
 
-          <div className="privacy-hero">
-            <div className="privacy-hero-icon" aria-hidden="true">
+          <div className="legal-hero">
+            <div className="legal-hero-icon" aria-hidden="true">
               <Shield size={32} strokeWidth={2} />
             </div>
-            <div className="privacy-hero-text">
-              <p className="privacy-eyebrow">Política de Privacidade</p>
-              <h1 className="privacy-title">Privacidade e proteção de dados</h1>
-              <p className="privacy-last-updated">Última atualização: 18 de junho de 2026</p>
+            <div className="legal-hero-text">
+              <p className="legal-eyebrow">Política de Privacidade</p>
+              <h1 className="legal-title">Privacidade e proteção de dados</h1>
+              <p className="legal-last-updated">Última atualização: 18 de junho de 2026</p>
             </div>
           </div>
 
-          <div className="privacy-body">
+          <div className="legal-body">
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">1. Introdução — quem somos</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">1. Introdução — quem somos</h2>
               <p>
                 A <strong>TeuFit</strong> é uma plataforma de acompanhamento de treino online que conecta
                 personal trainers e seus alunos. Por meio de nossos aplicativos e serviços web, o personal
@@ -49,29 +49,29 @@ const PrivacyPolicy = () => {
               </p>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">2. Dados que coletamos</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">2. Dados que coletamos</h2>
               <p>
                 Coletamos dados pessoais necessários para a prestação do serviço de acompanhamento de
                 treino. As categorias são:
               </p>
 
-              <h3 className="privacy-subsection-title">2.1 Dados de cadastro</h3>
-              <ul className="privacy-list">
+              <h3 className="legal-subsection-title">2.1 Dados de cadastro</h3>
+              <ul className="legal-list">
                 <li>Nome completo;</li>
                 <li>Endereço de e-mail;</li>
                 <li>Data de nascimento;</li>
                 <li>Informações de autenticação (senha criptografada via provedor de identidade).</li>
               </ul>
 
-              <h3 className="privacy-subsection-title">2.2 Dados pessoais sensíveis — anamnese e saúde</h3>
+              <h3 className="legal-subsection-title">2.2 Dados pessoais sensíveis — anamnese e saúde</h3>
               <p>
                 A TeuFit coleta informações de saúde e físicas por meio do formulário de anamnese,
                 preenchido pelo aluno a pedido do personal trainer. Esses dados são classificados como
                 {' '}<strong>dados pessoais sensíveis</strong> nos termos do artigo 5.º, inciso II, e do
                 artigo 11 da LGPD, e recebem tratamento especialmente cuidadoso:
               </p>
-              <ul className="privacy-list">
+              <ul className="legal-list">
                 <li>Peso e altura;</li>
                 <li>Histórico de saúde e condições médicas relevantes;</li>
                 <li>Lesões, limitações físicas e restrições de movimento;</li>
@@ -85,33 +85,33 @@ const PrivacyPolicy = () => {
                 contratado pelo aluno com o seu personal trainer.
               </p>
 
-              <h3 className="privacy-subsection-title">2.3 Dados de treino e execução</h3>
-              <ul className="privacy-list">
+              <h3 className="legal-subsection-title">2.3 Dados de treino e execução</h3>
+              <ul className="legal-list">
                 <li>Registros de séries, repetições e carga de cada exercício executado;</li>
                 <li>Sessões de treino (data, duração, treino realizado);</li>
                 <li>Índice de esforço percebido (RPE) e notas de execução;</li>
                 <li>Histórico de progressão em exercícios específicos.</li>
               </ul>
 
-              <h3 className="privacy-subsection-title">2.4 Fotos de progresso</h3>
+              <h3 className="legal-subsection-title">2.4 Fotos de progresso</h3>
               <p>
                 Caso o aluno ou o personal trainer opte por registrar fotos de progresso corporal, essas
                 imagens são tratadas como dados pessoais sensíveis, armazenadas de forma segura e
                 acessíveis apenas ao próprio aluno e ao seu personal trainer responsável.
               </p>
 
-              <h3 className="privacy-subsection-title">2.5 Dados de uso e navegação</h3>
-              <ul className="privacy-list">
+              <h3 className="legal-subsection-title">2.5 Dados de uso e navegação</h3>
+              <ul className="legal-list">
                 <li>Endereço IP e identificadores de dispositivo;</li>
                 <li>Informações de sessão e autenticação;</li>
                 <li>Registros de acesso (logs) para segurança e auditoria.</li>
               </ul>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">3. Como e por que usamos seus dados (finalidade)</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">3. Como e por que usamos seus dados (finalidade)</h2>
               <p>Utilizamos os dados pessoais coletados exclusivamente para as seguintes finalidades:</p>
-              <ul className="privacy-list">
+              <ul className="legal-list">
                 <li>
                   <strong>Prestação do serviço:</strong> permitir que o personal trainer crie, ajuste e
                   acompanhe o plano de treino do aluno;
@@ -146,10 +146,10 @@ const PrivacyPolicy = () => {
               </p>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">4. Base legal para o tratamento</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">4. Base legal para o tratamento</h2>
               <p>O tratamento de dados na TeuFit é fundamentado nas seguintes hipóteses legais da LGPD:</p>
-              <ul className="privacy-list">
+              <ul className="legal-list">
                 <li>
                   <strong>Consentimento (art. 7.º, inciso I; art. 11, inciso I):</strong> para dados pessoais
                   sensíveis de saúde coletados na anamnese e para fotos de progresso, o tratamento é condicionado
@@ -171,10 +171,10 @@ const PrivacyPolicy = () => {
               </ul>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">5. Compartilhamento de dados</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">5. Compartilhamento de dados</h2>
               <p>A TeuFit compartilha dados pessoais apenas nas seguintes situações:</p>
-              <ul className="privacy-list">
+              <ul className="legal-list">
                 <li>
                   <strong>Com o personal trainer responsável:</strong> o aluno tem ciência de que seu personal
                   trainer acessa os dados de anamnese, treino, progresso e histórico de execução para
@@ -201,8 +201,8 @@ const PrivacyPolicy = () => {
               </p>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">6. Armazenamento e segurança</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">6. Armazenamento e segurança</h2>
               <p>
                 Os dados pessoais são armazenados em servidores seguros, com controle de acesso,
                 criptografia em trânsito (TLS) e em repouso. Adotamos medidas técnicas e organizacionais
@@ -220,13 +220,13 @@ const PrivacyPolicy = () => {
               </p>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">7. Direitos do titular (LGPD, art. 18)</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">7. Direitos do titular (LGPD, art. 18)</h2>
               <p>
                 Você, como titular dos dados, tem os seguintes direitos garantidos pela LGPD, que podem
                 ser exercidos a qualquer momento mediante solicitação ao nosso encarregado (DPO):
               </p>
-              <ul className="privacy-list">
+              <ul className="legal-list">
                 <li>
                   <strong>Confirmação e acesso:</strong> confirmar a existência de tratamento e acessar os
                   dados que mantemos sobre você;
@@ -277,13 +277,13 @@ const PrivacyPolicy = () => {
               </p>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">8. Retenção de dados</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">8. Retenção de dados</h2>
               <p>
                 Os dados pessoais são mantidos pelo tempo necessário para a prestação do serviço e para
                 o cumprimento de obrigações legais:
               </p>
-              <ul className="privacy-list">
+              <ul className="legal-list">
                 <li>
                   <strong>Dados de conta e cadastro:</strong> mantidos enquanto a conta estiver ativa.
                   Após o encerramento da conta, os dados são eliminados ou anonimizados em até 90 dias,
@@ -301,13 +301,13 @@ const PrivacyPolicy = () => {
               </ul>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">9. Exclusão de conta e de dados pessoais</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">9. Exclusão de conta e de dados pessoais</h2>
               <p>
                 Você pode solicitar a exclusão da sua conta e de todos os dados pessoais associados a
                 qualquer momento, de forma gratuita, por qualquer dos canais abaixo:
               </p>
-              <ul className="privacy-list">
+              <ul className="legal-list">
                 <li>
                   <strong>Pelo aplicativo:</strong> acesse a área de configurações ou perfil da conta e
                   selecione a opção <strong>Excluir conta</strong>. A solicitação será processada
@@ -317,7 +317,7 @@ const PrivacyPolicy = () => {
                   <strong>Por e-mail:</strong> envie uma solicitação para{' '}
                   <a
                     href="mailto:contato@teufit.com.br"
-                    className="privacy-contact-link"
+                    className="legal-contact-link"
                   >
                     contato@teufit.com.br
                   </a>
@@ -329,7 +329,7 @@ const PrivacyPolicy = () => {
                 Após a exclusão da conta, os seguintes dados serão eliminados ou anonimizados em até
                 90 dias:
               </p>
-              <ul className="privacy-list">
+              <ul className="legal-list">
                 <li>Dados de cadastro (nome, e-mail, data de nascimento);</li>
                 <li>Dados de anamnese e saúde;</li>
                 <li>Fotos de progresso;</li>
@@ -346,8 +346,8 @@ const PrivacyPolicy = () => {
               </p>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">10. Menores de idade</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">10. Menores de idade</h2>
               <p>
                 O uso da plataforma TeuFit por menores de 18 anos requer o consentimento específico e em
                 destaque de pelo menos um dos pais ou do responsável legal, em conformidade com o art. 14
@@ -360,13 +360,13 @@ const PrivacyPolicy = () => {
               </p>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">11. Cookies e tecnologias de rastreamento</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">11. Cookies e tecnologias de rastreamento</h2>
               <p>
                 A versão web da TeuFit utiliza tecnologias padrão de armazenamento local (cookies e
                 localStorage) para as seguintes finalidades:
               </p>
-              <ul className="privacy-list">
+              <ul className="legal-list">
                 <li>
                   <strong>Cookies estritamente necessários:</strong> manter a sessão autenticada do usuário
                   e garantir o funcionamento correto da plataforma. Não podem ser desativados;
@@ -383,8 +383,8 @@ const PrivacyPolicy = () => {
               </p>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">12. Alterações nesta política</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">12. Alterações nesta política</h2>
               <p>
                 Esta Política de Privacidade pode ser atualizada periodicamente para refletir mudanças
                 no serviço, na legislação ou nas nossas práticas de proteção de dados. A data da última
@@ -397,20 +397,20 @@ const PrivacyPolicy = () => {
               </p>
             </section>
 
-            <section className="privacy-section">
-              <h2 className="privacy-section-title">13. Contato e encarregado pelo tratamento de dados (DPO)</h2>
+            <section className="legal-section">
+              <h2 className="legal-section-title">13. Contato e encarregado pelo tratamento de dados (DPO)</h2>
               <p>
                 Para exercer seus direitos como titular, esclarecer dúvidas sobre esta política ou
                 reportar qualquer preocupação relacionada ao tratamento de dados pessoais, entre em
                 contato com nosso Encarregado pelo Tratamento de Dados Pessoais (DPO):
               </p>
-              <div className="privacy-contact-block">
+              <div className="legal-contact-block">
                 <p><strong>TeuFit</strong></p>
                 <p>
                   E-mail:{' '}
                   <a
                     href="mailto:contato@teufit.com.br"
-                    className="privacy-contact-link"
+                    className="legal-contact-link"
                   >
                     contato@teufit.com.br
                   </a>
@@ -426,14 +426,17 @@ const PrivacyPolicy = () => {
         </div>
       </main>
 
-      <footer className="privacy-footer">
-        <div className="privacy-footer-inner">
-          <span className="privacy-footer-brand">TeuFit</span>
-          <span className="privacy-footer-sep" aria-hidden="true">·</span>
-          <span className="privacy-footer-copy">
+      <footer className="legal-footer">
+        <div className="legal-footer-inner">
+          <span className="legal-footer-brand">TeuFit</span>
+          <span className="legal-footer-sep" aria-hidden="true">·</span>
+          <span className="legal-footer-copy">
             Política de Privacidade — Última atualização: 18 de junho de 2026
           </span>
-          <Link to="/login" className="privacy-contact-link">Voltar para o login</Link>
+          <span className="legal-footer-sep" aria-hidden="true">·</span>
+          <Link to="/terms" className="legal-contact-link">Termos e Condições</Link>
+          <span className="legal-footer-sep" aria-hidden="true">·</span>
+          <Link to="/login" className="legal-contact-link">Voltar para o login</Link>
         </div>
       </footer>
     </div>
