@@ -61,6 +61,23 @@ describe('ForgotPassword', () => {
     ).toHaveAttribute('href', '/privacy-policy');
   });
 
+  it('renders a legal footer link to the terms of use on step 1', () => {
+    renderWithRouter(<ForgotPassword />);
+
+    expect(
+      screen.getByRole('link', { name: /termos e condições/i })
+    ).toHaveAttribute('href', '/terms');
+  });
+
+  it('renders a legal footer link to the terms of use on step 2', async () => {
+    const user = userEvent.setup();
+    await goToResetStepViaSubmit(user);
+
+    expect(
+      screen.getByRole('link', { name: /termos e condições/i })
+    ).toHaveAttribute('href', '/terms');
+  });
+
   it('redirects to dashboard when already authenticated', () => {
     vi.mocked(useAuth).mockReturnValue({
       isAuthenticated: true,

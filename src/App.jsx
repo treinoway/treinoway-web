@@ -14,6 +14,7 @@ import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import InviteRedeem from './pages/InviteRedeem';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Terms from './pages/Terms';
 
 // Protected pages
 import Dashboard from './pages/Dashboard';
@@ -98,6 +99,7 @@ function App() {
               beta-gated ProtectedRoute to avoid a redirect loop. */}
           <Route path="/invite" element={<InviteRedeem />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<Terms />} />
 
           {/* Protected routes */}
           <Route

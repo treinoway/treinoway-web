@@ -32,6 +32,14 @@ describe('PrivacyPolicy', () => {
     ).toHaveAttribute('href', '/login');
   });
 
+  it('renders the footer link to the terms of use', () => {
+    renderWithRouter(<PrivacyPolicy />);
+
+    expect(
+      screen.getByRole('link', { name: /termos e condições/i })
+    ).toHaveAttribute('href', '/terms');
+  });
+
   it('renders the LGPD contact email in both section 9 (data-subject request) and section 13 (DPO), each with a working mailto href', () => {
     renderWithRouter(<PrivacyPolicy />);
 
