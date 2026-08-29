@@ -44,6 +44,23 @@ describe('ForgotPassword', () => {
     expect(screen.getByRole('link', { name: /entrar/i })).toBeInTheDocument();
   });
 
+  it('renders a legal footer link to the privacy policy on step 1', () => {
+    renderWithRouter(<ForgotPassword />);
+
+    expect(
+      screen.getByRole('link', { name: /política de privacidade/i })
+    ).toHaveAttribute('href', '/privacy-policy');
+  });
+
+  it('renders a legal footer link to the privacy policy on step 2', async () => {
+    const user = userEvent.setup();
+    await goToResetStepViaSubmit(user);
+
+    expect(
+      screen.getByRole('link', { name: /política de privacidade/i })
+    ).toHaveAttribute('href', '/privacy-policy');
+  });
+
   it('redirects to dashboard when already authenticated', () => {
     vi.mocked(useAuth).mockReturnValue({
       isAuthenticated: true,

@@ -322,6 +322,7 @@ html:has(.auth-page) {
 .auth-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: var(--spacing-md);
@@ -476,6 +477,45 @@ button.auth-forgot-link:disabled {
 
 .auth-footer .link:hover {
   text-decoration: underline;
+}
+
+/* Legal footer — sits inside .auth-page, below .auth-card, on the raw
+   gradient background (not the white card surface). Distinct from
+   .auth-footer (the in-card "Novo por aqui? / Criar conta" line). */
+.auth-legal {
+  width: 100%;
+  max-width: 400px;
+  margin-top: var(--spacing-lg);
+  text-align: center;
+}
+
+.auth-legal-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-brand);
+  font-size: var(--font-body-small-size);
+  font-weight: 600;
+  color: var(--color-on-primary);
+  opacity: 0.75;
+  text-decoration: none;
+  transition: opacity var(--duration-fast) var(--ease-brand);
+}
+
+.auth-legal-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.auth-legal-link:focus-visible {
+  outline: none;
+  opacity: 1;
+  background: var(--md-surface);
+  color: var(--brand-primary);
+  text-decoration: none;
+  box-shadow: var(--shadow-focus);
 }
 
 /* Password hint */
@@ -27032,15 +27072,38 @@ nav.onboarding-steps {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--spacing-md);
 }
 
-.privacy-brand {
-  font-family: var(--font-family-display);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: var(--tracking-tight);
-  color: var(--brand-primary);
+.privacy-brand-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-brand);
+  transition: opacity var(--duration-fast) var(--ease-brand);
+}
+
+.privacy-brand-link:hover {
+  opacity: 0.85;
+}
+
+.privacy-brand-link:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.privacy-brand-logo {
+  height: 24px;
+  width: auto;
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .privacy-brand-logo {
+    height: 28px;
+  }
 }
 
 .privacy-back-link {
@@ -27093,6 +27156,7 @@ nav.onboarding-steps {
 }
 
 .privacy-hero-icon {
+  position: relative;
   flex-shrink: 0;
   width: 56px;
   height: 56px;
@@ -27103,6 +27167,21 @@ nav.onboarding-steps {
   align-items: center;
   justify-content: center;
   color: var(--brand-primary);
+  overflow: hidden;
+}
+
+/* Single restrained geometric-cut accent — the one place this hero moment
+   earns the TeuFit "pennant" motif. Decorative fill only, never text/icon
+   color, so the accent's contrast-on-light limitation does not apply. */
+.privacy-hero-icon::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  background: var(--brand-accent);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
 .privacy-hero-text {
