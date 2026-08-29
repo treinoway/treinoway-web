@@ -98,8 +98,6 @@ const defaultProps = {
 const renderComposer = (props = {}) =>
   render(<ExerciseComposer {...defaultProps} {...props} />);
 
-// Default tab (create mode) is now "Da biblioteca" — tests exercising the
-// create form must switch to "Criar novo" first.
 const switchToCreateTab = async (user) => {
   await user.click(screen.getByRole('tab', { name: /Criar novo/i }));
 };
