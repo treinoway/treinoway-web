@@ -791,8 +791,6 @@ describe('ExerciseComposer — library tab', () => {
   });
 });
 
-// ─── Tests — replace via "Da biblioteca" tab (edit mode) ─────────────────────
-
 describe('ExerciseComposer — replace via library tab (edit mode)', () => {
   beforeEach(() => {
     vi.clearAllMocks();

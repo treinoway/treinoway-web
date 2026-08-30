@@ -198,11 +198,6 @@ LibraryPanel.propTypes = {
   onToggle: PropTypes.func.isRequired,
 };
 
-/**
- * LibrarySingleSelectList — same server-search behavior as LibraryPanel, but
- * single selection (used by the "Da biblioteca" tab in edit mode to swap the
- * exercise identity). Clicking a selected item again clears the selection.
- */
 const LibrarySingleSelectList = ({ initialTemplates, selectedId, onSelect }) => {
   const { results, staleResults, searching, showSpinner, query, setQuery, seenMap } =
     useExerciseTemplateSearch(initialTemplates);
