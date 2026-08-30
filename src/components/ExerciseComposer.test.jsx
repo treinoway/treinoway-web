@@ -2,16 +2,23 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act } from '../test/test-utils';
 import userEvent from '@testing-library/user-event';
 import ExerciseComposer from './ExerciseComposer';
+import { useToast } from '../contexts/ToastContext';
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
 vi.mock('../contexts/ToastContext', () => ({
-  useToast: () => ({ showToast: vi.fn() }),
+  useToast: vi.fn(),
 }));
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'test-uid' }, loading: false }),
 }));
+
+const mockShowToast = vi.fn();
+
+beforeEach(() => {
+  useToast.mockReturnValue({ showToast: mockShowToast });
+});
 
 // API mock — used by useExerciseTemplateSearch inside LibraryPanel
 vi.mock('../api/axios', () => ({
@@ -449,10 +456,18 @@ describe('ExerciseComposer — edit mode (snapshot)', () => {
     expect(screen.getByLabelText(/Nome/i)).toHaveValue('Supino reto');
   });
 
-  it('hides the segmented toggle in edit mode', () => {
+  it('shows the segmented toggle with "Editar" (not "Criar novo") and "Da biblioteca", form tab active', () => {
     renderComposer({ snapshot: EXERCISE_SNAPSHOT });
-    expect(screen.queryByRole('tab', { name: /Criar novo/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /Da biblioteca/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Criar novo' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Editar' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Da biblioteca' })).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('hides the segmented toggle when canReplaceFromLibrary is false', () => {
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, canReplaceFromLibrary: false });
+    expect(screen.queryByRole('tab', { name: 'Editar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Da biblioteca' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Salvar alterações/i })).toBeInTheDocument();
   });
 
   it('shows "Salvar alterações" submit label in edit mode', () => {
@@ -773,6 +788,90 @@ describe('ExerciseComposer — library tab', () => {
     // Resolve second fetch and confirm new result appears
     resolveSecond({ data: { data: [EXERCISE_TEMPLATES[1]], total: 1 } });
     await waitFor(() => expect(screen.getByText('Corrida')).toBeInTheDocument());
+  });
+});
+
+// ─── Tests — replace via "Da biblioteca" tab (edit mode) ─────────────────────
+
+describe('ExerciseComposer — replace via library tab (edit mode)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useToast.mockReturnValue({ showToast: mockShowToast });
+    api.get.mockResolvedValue({ data: { data: [], total: 0 } });
+  });
+
+  it('shows the single-select list and a "Substituindo" notice naming the exercise', async () => {
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT });
+
+    await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
+
+    expect(screen.getByText(/Substituindo/)).toBeInTheDocument();
+    expect(screen.getByText('Supino reto', { selector: 'strong' })).toBeInTheDocument();
+    expect(screen.getByText('Agachamento')).toBeInTheDocument();
+    expect(screen.getByText('Corrida')).toBeInTheDocument();
+  });
+
+  it('disables "Substituir" until a template is selected, single-select toggles off on repeat click', async () => {
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT });
+
+    await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
+
+    const confirmBtn = screen.getByRole('button', { name: 'Substituir' });
+    expect(confirmBtn).toBeDisabled();
+
+    const item = screen.getByText('Agachamento').closest('button');
+    await user.click(item);
+    expect(confirmBtn).not.toBeDisabled();
+
+    await user.click(item);
+    expect(confirmBtn).toBeDisabled();
+  });
+
+  it('confirming calls onSubmitReplace with the selected template id and object, then onCancel and a success toast', async () => {
+    const onSubmitReplace = vi.fn().mockResolvedValue({ id: 'new-ex' });
+    const onCancel = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onSubmitReplace, onCancel });
+
+    await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
+    await user.click(screen.getByText('Corrida'));
+    await user.click(screen.getByRole('button', { name: 'Substituir' }));
+
+    await waitFor(() => {
+      expect(onSubmitReplace).toHaveBeenCalledWith('tmpl-2', EXERCISE_TEMPLATES[1]);
+    });
+    await waitFor(() => expect(onCancel).toHaveBeenCalledTimes(1));
+    expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/substituíd/i), 'success');
+  });
+
+  it('shows an error toast (via userMessage) when onSubmitReplace fails, keeps the composer open', async () => {
+    const onSubmitReplace = vi.fn().mockRejectedValue({ userMessage: 'Não foi possível substituir.' });
+    const onCancel = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onSubmitReplace, onCancel });
+
+    await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
+    await user.click(screen.getByText('Agachamento'));
+    await user.click(screen.getByRole('button', { name: 'Substituir' }));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('Não foi possível substituir.', 'error');
+    });
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(screen.getByRole('tab', { name: 'Da biblioteca' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('cancel on the library tab calls onCancel', async () => {
+    const onCancel = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onCancel });
+
+    await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
+    await user.click(screen.getByRole('button', { name: /Cancelar/i }));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });
 

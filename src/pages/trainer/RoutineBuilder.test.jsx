@@ -4078,7 +4078,7 @@ describe('RoutineBuilder — substitute delete (protocol mode)', () => {
   });
 });
 
-describe('RoutineBuilder — replace exercise', () => {
+describe('RoutineBuilder — replace exercise via the Editar tab', () => {
   const REPLACE_TRAINING = {
     id: 'training-1',
     name: 'Treino A',
@@ -4111,40 +4111,24 @@ describe('RoutineBuilder — replace exercise', () => {
     useProtocolBuilder.mockReturnValue(buildHookState());
   });
 
-  const renderProtocolEdit = () =>
-    renderWithRoute(<RoutineBuilder />, {
-      route: '/trainer/protocols/proto-1/edit',
-      path: '/trainer/protocols/:id/edit',
-    });
-
   const expand = async (user) => {
     await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
     await screen.findByRole('list', { name: /Exercícios/i });
   };
 
-  it('row kebab exposes "Substituir exercício" in template mode', async () => {
+  it('row kebab no longer exposes "Substituir exercício"', async () => {
     const user = userEvent.setup();
     renderNew();
     await expand(user);
 
     await user.click(screen.getByRole('button', { name: /Ações de Supino reto/i }));
     expect(
-      await screen.findByRole('menuitem', { name: /Substituir exercício/i })
-    ).toBeInTheDocument();
+      screen.queryByRole('menuitem', { name: /Substituir exercício/i })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Editar' })).toBeInTheDocument();
   });
 
-  it('row kebab exposes "Substituir exercício" in protocol mode', async () => {
-    const user = userEvent.setup();
-    renderProtocolEdit();
-    await expand(user);
-
-    await user.click(screen.getByRole('button', { name: /Ações de Supino reto/i }));
-    expect(
-      await screen.findByRole('menuitem', { name: /Substituir exercício/i })
-    ).toBeInTheDocument();
-  });
-
-  it('does NOT expose "Substituir exercício" for a bi-set member', async () => {
+  it('a bi-set member kebab still does not expose "Substituir exercício"', async () => {
     const BISET_GROUP_ID = '22222222-2222-2222-2222-222222222222';
     useRoutineBuilder.mockReturnValue({
       ...buildHookState(),
@@ -4170,26 +4154,31 @@ describe('RoutineBuilder — replace exercise', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('clicking "Substituir exercício" opens the ReplaceExerciseSheet naming the exercise', async () => {
+  it('clicking "Editar" opens the composer with the form tab active by default and a "Da biblioteca" tab available', async () => {
     const user = userEvent.setup();
     renderNew();
     await expand(user);
 
-    await user.click(screen.getByRole('button', { name: /Ações de Supino reto/i }));
-    await user.click(await screen.findByRole('menuitem', { name: /Substituir exercício/i }));
+    await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
 
-    const dialog = await screen.findByRole('dialog', { name: /Substituir exercício/i });
-    expect(within(dialog).getByText(/Supino reto/)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Salvar alterações/i })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Editar' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Da biblioteca' })).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('selecting a template and confirming calls replaceExerciseFromTemplate, then closes the sheet and refetches', async () => {
+  it('switching to "Da biblioteca", selecting a template and confirming calls replaceExerciseFromTemplate, then closes the composer and refetches', async () => {
     replaceExerciseFromTemplate.mockResolvedValue({ id: 'new-ex' });
     const user = userEvent.setup();
     renderNew();
     await expand(user);
 
-    await user.click(screen.getByRole('button', { name: /Ações de Supino reto/i }));
-    await user.click(await screen.findByRole('menuitem', { name: /Substituir exercício/i }));
+    await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
+    await screen.findByRole('button', { name: /Salvar alterações/i });
+
+    await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
+    expect(screen.getByText(/Substituindo/)).toBeInTheDocument();
 
     await user.click(await screen.findByText('Supino inclinado'));
     await user.click(screen.getByRole('button', { name: 'Substituir' }));
@@ -4202,12 +4191,10 @@ describe('RoutineBuilder — replace exercise', () => {
     await waitFor(() => {
       expect(refetchTrainingExercises).toHaveBeenCalledWith('training-1');
     });
-    expect(
-      screen.queryByRole('dialog', { name: /Substituir exercício/i })
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Substituir' })).not.toBeInTheDocument();
   });
 
-  it('is not offered in read-only mode (no row kebab at all)', async () => {
+  it('is not offered in read-only mode (no row kebab, no edit button at all)', async () => {
     useProtocolBuilder.mockReturnValue({
       ...buildHookState(),
       data: { ...buildHookState().data, id: 'proto-1' },
@@ -4221,6 +4208,9 @@ describe('RoutineBuilder — replace exercise', () => {
 
     expect(
       screen.queryByRole('button', { name: /Ações de Supino reto/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Editar Supino reto/i })
     ).not.toBeInTheDocument();
   });
 });
