@@ -936,8 +936,6 @@ describe('reorderExercises', () => {
   });
 });
 
-// ─── replaceExerciseFromTemplate ───────────────────────────────────────────────
-
 describe('replaceExerciseFromTemplate', () => {
   beforeEach(() => {
     api.post.mockImplementation((url) => {

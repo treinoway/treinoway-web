@@ -674,17 +674,6 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     [mutate, isEditMode]
   );
 
-  // ── replaceExerciseFromTemplate ────────────────────────────────────────────
-
-  /**
-   * Swaps an exercise's identity (name/type/video/exerciseTemplateId) for a
-   * different library template while preserving its prescription (sets,
-   * repetitions, carga, descanso, notas). There is no atomic backend endpoint
-   * for this — see src/utils/exerciseReplacement.js for the client-side
-   * create→patch→delete→reorder orchestration. `templateObject`, when given,
-   * is forwarded to addExerciseFromTemplate so a template found only via
-   * search (not in the paginated exerciseTemplates list) still resolves.
-   */
   const replaceExerciseFromTemplate = useCallback(
     (trainingId, exerciseId, templateId, templateObject) =>
       mutate(async () => {

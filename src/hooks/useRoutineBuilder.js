@@ -482,15 +482,6 @@ const useRoutineBuilder = (routineId) => {
     []
   );
 
-  // ── replaceExerciseFromTemplate ───────────────────────────────────────────
-
-  /**
-   * Swaps an exercise's identity (name/type/video/exerciseTemplateId) for a
-   * different library template while preserving its prescription (sets,
-   * repetitions, carga, descanso, notas). There is no atomic backend endpoint
-   * for this — see src/utils/exerciseReplacement.js for the client-side
-   * create→patch→delete→reorder orchestration.
-   */
   const replaceExerciseFromTemplate = useCallback(
     (trainingId, exerciseId, templateId) =>
       mutate(async () => {

@@ -7,13 +7,6 @@ import { t, translateError } from '../i18n';
 import { getExerciseTypeLabel } from '../constants/exerciseTypes';
 import useExerciseTemplateSearch from '../hooks/useExerciseTemplateSearch';
 
-// ─── LibrarySingleSelectList ────────────────────────────────────────────────
-
-/**
- * Single-select edition of the server-search library list (see LibraryPanel
- * in ExerciseComposer/SubstituteComposerSheet). Selecting a different
- * template replaces the current selection; selecting the same one clears it.
- */
 const LibrarySingleSelectList = ({ initialTemplates, selectedId, onSelect }) => {
   const { results, staleResults, searching, showSpinner, query, setQuery, seenMap } =
     useExerciseTemplateSearch(initialTemplates);
@@ -92,18 +85,6 @@ LibrarySingleSelectList.defaultProps = {
   selectedId: null,
 };
 
-// ─── ReplaceExerciseSheet ───────────────────────────────────────────────────
-
-/**
- * Bottom-sheet used to swap an exercise's identity for a different library
- * template while keeping its current prescription (séries, reps, carga,
- * descanso, notas). Unlike SubstituteComposerSheet, this does not create an
- * additional record — the caller's `onReplace` orchestrates create→patch→
- * delete→reorder (see useRoutineBuilder/useProtocolBuilder.replaceExerciseFromTemplate).
- *
- * Only a library selection is supported here (no "criar novo" tab) — the
- * whole point is picking an existing identity to take over the slot.
- */
 const ReplaceExerciseSheet = ({
   open,
   exercise,

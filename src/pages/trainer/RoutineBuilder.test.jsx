@@ -4078,8 +4078,6 @@ describe('RoutineBuilder — substitute delete (protocol mode)', () => {
   });
 });
 
-// ─── Tests — replace exercise (template + protocol modes) ────────────────────
-
 describe('RoutineBuilder — replace exercise', () => {
   const REPLACE_TRAINING = {
     id: 'training-1',

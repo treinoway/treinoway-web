@@ -1,8 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { buildPreservedExerciseFields, replaceExerciseFromTemplate } from './exerciseReplacement';
 
-// ─── buildPreservedExerciseFields ──────────────────────────────────────────────
-
 describe('buildPreservedExerciseFields', () => {
   it('extracts flat prescription fields from a fully-populated reps-mode exercise', () => {
     const ex = {
@@ -89,8 +87,6 @@ describe('buildPreservedExerciseFields', () => {
   });
 });
 
-// ─── replaceExerciseFromTemplate ────────────────────────────────────────────────
-
 const OLD_EXERCISE = {
   id: 'ex-old',
   name: 'Supino reto',
@@ -139,8 +135,6 @@ describe('replaceExerciseFromTemplate', () => {
     });
     expect(mocks.deleteExercise).toHaveBeenCalledWith('t1', 'ex-old');
 
-    // Reordered so the new exercise occupies the old exercise's index (1),
-    // with the untouched exercise kept in place.
     const [, orderedIds, orderedExercises] = mocks.reorderExercises.mock.calls[0];
     expect(orderedIds).toEqual(['ex-other', 'ex-new']);
     expect(orderedExercises.map((ex) => ex.id)).toEqual(['ex-other', 'ex-new']);
@@ -165,7 +159,6 @@ describe('replaceExerciseFromTemplate', () => {
     ).rejects.toThrow('Falha ao salvar');
 
     expect(mocks.deleteExercise).toHaveBeenCalledWith('t1', 'ex-new');
-    // The old exercise is never touched.
     expect(mocks.deleteExercise).not.toHaveBeenCalledWith('t1', 'ex-old');
     expect(mocks.reorderExercises).not.toHaveBeenCalled();
   });
@@ -191,7 +184,6 @@ describe('replaceExerciseFromTemplate', () => {
     expect(caught).toBeDefined();
     expect(caught.isReplaceIncomplete).toBe(true);
     expect(caught.userMessage).toMatch(/revise a lista/i);
-    // The new exercise was created and left in place — no further rollback attempted.
     expect(mocks.deleteExercise).toHaveBeenCalledTimes(1);
     expect(mocks.reorderExercises).not.toHaveBeenCalled();
   });

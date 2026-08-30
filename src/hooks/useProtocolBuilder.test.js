@@ -1525,8 +1525,6 @@ describe('useProtocolBuilder — addExerciseFromTemplate: hasLoad type-based def
 
 // ─── hydrateFromDraft (protocol draft restore) ────────────────────────────────
 
-// ─── replaceExerciseFromTemplate ───────────────────────────────────────────────
-
 describe('useProtocolBuilder — replaceExerciseFromTemplate (edit mode)', () => {
   const OLD_EXERCISE = {
     id: 'ex-old',

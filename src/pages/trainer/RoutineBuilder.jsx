@@ -1071,8 +1071,6 @@ const buildExerciseRowMenu = ({
   }
   items.push({ kind: 'caption', label: 'Editar' });
   if (onEdit) items.push({ label: 'Editar', onClick: () => onEdit(ex) });
-  // Replace swaps the exercise's identity while keeping its prescription.
-  // Bi-set members are excluded in v1 — see ReplaceExerciseSheet.
   if (!isBisetMember && onReplace) {
     items.push({
       label: t('replace.menuItem') || 'Substituir exercício',
@@ -1755,8 +1753,6 @@ const TrainingItem = ({
     [substituteComposerPrincipal, onRefetchTraining]
   );
 
-  // ── Replace actions (template + protocol) ────────────────────────────────
-
   const handleRequestReplace = useCallback((ex) => {
     setReplacingExercise(ex);
   }, []);
@@ -2137,7 +2133,6 @@ const TrainingItem = ({
         />
       )}
 
-      {/* Replace exercise (template + protocol modes, standalone exercises only) */}
       <ReplaceExerciseSheet
         open={!!replacingExercise}
         exercise={replacingExercise}
