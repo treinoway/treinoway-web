@@ -201,4 +201,30 @@ describe('replaceExerciseFromTemplate', () => {
     ).rejects.toThrow();
     expect(mocks.addExerciseFromTemplate).not.toHaveBeenCalled();
   });
+
+  it('patches with the given fieldsPayload instead of the fields computed from the old exercise', async () => {
+    const mocks = buildMocks();
+    const fieldsPayload = {
+      sets: 6,
+      prescriptionMode: 'reps',
+      repetitions: { min: 5, max: 5 },
+      duration: null,
+      hasLoad: false,
+      suggestedLoad: null,
+      restInterval: 120,
+      notes: 'Editado antes de salvar',
+    };
+
+    const result = await replaceExerciseFromTemplate({
+      trainingId: 't1',
+      exerciseId: 'ex-old',
+      templateId: 'tmpl-1',
+      exercises: [OLD_EXERCISE],
+      fieldsPayload,
+      ...mocks,
+    });
+
+    expect(mocks.updateExercise).toHaveBeenCalledWith('t1', 'ex-new', fieldsPayload);
+    expect(result).toMatchObject({ id: 'ex-new', sets: 6, notes: 'Editado antes de salvar' });
+  });
 });

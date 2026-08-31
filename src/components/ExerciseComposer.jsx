@@ -298,6 +298,13 @@ const ExerciseComposer = ({
   const isEditMode = snapshot != null;
   const showTabs = isEditMode ? canReplaceFromLibrary : true;
 
+  const originalIdentity = isEditMode ? {
+    name: snapshot.name || snapshot.exerciseTemplate?.name || '',
+    type: snapshot.type || snapshot.exerciseTemplate?.type || 'strength',
+    videoUrl: snapshot.videoUrl ?? '',
+    intensity: snapshot.intensity ?? snapshot.exerciseTemplate?.intensity ?? null,
+  } : null;
+
   const { showToast } = useToast();
 
   const [tab, setTab] = useState('create');
@@ -316,7 +323,6 @@ const ExerciseComposer = ({
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [replaceTemplateId, setReplaceTemplateId] = useState(null);
   const [replaceTemplate, setReplaceTemplate] = useState(null);
-  const [replaceSaving, setReplaceSaving] = useState(false);
 
   const handleFieldChange = (field, value) => {
     setForm((prev) => {
@@ -380,10 +386,21 @@ const ExerciseComposer = ({
     onSubmitCreate(buildPayload(form, { isEdit: false }));
   };
 
-  const doSaveEdit = () => {
+  const doSaveEdit = async () => {
     setConfirmDialog(null);
     setErrors({});
-    onSubmitEdit(snapshot.id, buildPayload(form, { isEdit: true }));
+    const payload = buildPayload(form, { isEdit: true });
+    if (replaceTemplateId && onSubmitReplace) {
+      try {
+        await onSubmitReplace(replaceTemplateId, replaceTemplate, payload);
+        showToast('Exercício substituído.', 'success');
+        onCancel();
+      } catch (err) {
+        showToast(err.userMessage || translateError(err), 'error');
+      }
+      return;
+    }
+    onSubmitEdit(snapshot.id, payload);
   };
 
   const handleSubmitCreate = (e) => {
@@ -414,8 +431,7 @@ const ExerciseComposer = ({
       });
       return;
     }
-    setErrors({});
-    onSubmitEdit(snapshot.id, buildPayload(form, { isEdit: true }));
+    doSaveEdit();
   };
 
   const handleImport = () => {
@@ -442,24 +458,22 @@ const ExerciseComposer = ({
     if (replaceTemplateId === id) {
       setReplaceTemplateId(null);
       setReplaceTemplate(null);
+      setForm((prev) => ({ ...prev, ...originalIdentity }));
       return;
     }
+    const tmpl = seenMap?.get(id) || exerciseTemplates.find((t) => t.id === id) || null;
     setReplaceTemplateId(id);
-    setReplaceTemplate(seenMap?.get(id) || exerciseTemplates.find((tmpl) => tmpl.id === id) || null);
-  };
-
-  const handleConfirmReplace = async () => {
-    if (!replaceTemplateId || !onSubmitReplace) return;
-    setReplaceSaving(true);
-    try {
-      await onSubmitReplace(replaceTemplateId, replaceTemplate);
-      showToast('Exercício substituído.', 'success');
-      onCancel();
-    } catch (err) {
-      showToast(err.userMessage || translateError(err), 'error');
-    } finally {
-      setReplaceSaving(false);
+    setReplaceTemplate(tmpl);
+    if (tmpl) {
+      setForm((prev) => ({
+        ...prev,
+        name: tmpl.name || prev.name,
+        type: tmpl.type || prev.type,
+        videoUrl: tmpl.videoUrl ?? prev.videoUrl,
+        intensity: tmpl.intensity ?? prev.intensity,
+      }));
     }
+    setTab('create');
   };
 
   const activeRestChip = REST_CHIPS.includes(Number(form.restInterval))
@@ -470,6 +484,12 @@ const ExerciseComposer = ({
 
   const renderCreateForm = (onSubmit, submitLabel) => (
     <form onSubmit={onSubmit} noValidate>
+
+      {isEditMode && replaceTemplateId && (
+        <p className="text-sm text-muted mb-md">
+          Substituindo por <strong>{replaceTemplate?.name || 'exercício selecionado'}</strong> ao salvar.
+        </p>
+      )}
 
       {/* ── Band 1: O ESSENCIAL ── */}
       <div className="composer-band">
@@ -753,32 +773,14 @@ const ExerciseComposer = ({
       {tab === 'library' && isEditMode && (
         <>
           <p className="text-sm text-muted mb-md">
-            Substituindo <strong>{snapshot?.name || snapshot?.exerciseTemplate?.name || 'exercício'}</strong>.
-            Séries, reps, carga, descanso e observações são mantidos.
+            Escolha um exercício da biblioteca para substituir <strong>{snapshot?.name || snapshot?.exerciseTemplate?.name || 'exercício'}</strong>.
+            Nome, tipo e vídeo serão atualizados — os demais campos continuam editáveis na aba &quot;Editar&quot;.
           </p>
           <LibrarySingleSelectList
             initialTemplates={exerciseTemplates}
             selectedId={replaceTemplateId}
             onSelect={handleSelectReplaceTemplate}
           />
-          <div className="composer-actions">
-            <button
-              type="button"
-              className="btn-secondary btn-sm"
-              onClick={onCancel}
-              disabled={replaceSaving}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className="btn-primary btn-sm"
-              onClick={handleConfirmReplace}
-              disabled={replaceSaving || !replaceTemplateId}
-            >
-              {replaceSaving ? 'Salvando…' : 'Substituir'}
-            </button>
-          </div>
         </>
       )}
 

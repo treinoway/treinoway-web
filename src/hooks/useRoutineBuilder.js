@@ -483,7 +483,7 @@ const useRoutineBuilder = (routineId) => {
   );
 
   const replaceExerciseFromTemplate = useCallback(
-    (trainingId, exerciseId, templateId) =>
+    (trainingId, exerciseId, templateId, templateObject, fieldsPayload) =>
       mutate(async () => {
         const training = data.trainings.find((t) => t.id === trainingId);
         if (!training) throw new Error('Treino não encontrado.');
@@ -496,6 +496,7 @@ const useRoutineBuilder = (routineId) => {
           updateExercise,
           deleteExercise,
           reorderExercises,
+          fieldsPayload,
         });
       }),
     [mutate, data, addExerciseFromTemplate, updateExercise, deleteExercise, reorderExercises]

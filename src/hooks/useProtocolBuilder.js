@@ -675,7 +675,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
   );
 
   const replaceExerciseFromTemplate = useCallback(
-    (trainingId, exerciseId, templateId, templateObject) =>
+    (trainingId, exerciseId, templateId, templateObject, fieldsPayload) =>
       mutate(async () => {
         const training = data.trainings.find((t) => t.id === trainingId);
         if (!training) throw new Error('Treino não encontrado.');
@@ -689,6 +689,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           updateExercise,
           deleteExercise,
           reorderExercises,
+          fieldsPayload,
         });
       }),
     [mutate, data, addExerciseFromTemplate, updateExercise, deleteExercise, reorderExercises]

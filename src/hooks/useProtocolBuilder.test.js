@@ -1656,6 +1656,25 @@ describe('useProtocolBuilder — replaceExerciseFromTemplate (edit mode)', () =>
     const training = result.current.data.trainings.find((t) => t.id === EDIT_TRAINING.id);
     expect(training.exercises.map((ex) => ex.id).sort()).toEqual(['ex-new', OLD_EXERCISE.id].sort());
   });
+
+  it('patches with the given fieldsPayload instead of the fields preserved from the old exercise', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null, { protocolId: PROTOCOL_ID }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const fieldsPayload = { sets: 6, restInterval: 120, notes: 'Editado antes de salvar' };
+
+    await act(async () => {
+      await result.current.replaceExerciseFromTemplate(
+        EDIT_TRAINING.id,
+        OLD_EXERCISE.id,
+        'tmpl-1',
+        null,
+        fieldsPayload
+      );
+    });
+
+    expect(api.patch).toHaveBeenCalledWith('/trainer/exercises/ex-new', fieldsPayload);
+  });
 });
 
 describe('useProtocolBuilder — replaceExerciseFromTemplate (create/draft mode, local only)', () => {

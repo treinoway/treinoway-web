@@ -1028,6 +1028,22 @@ describe('replaceExerciseFromTemplate', () => {
     const training = result.current.data.trainings.find((t) => t.id === 't1');
     expect(training.exercises.map((ex) => ex.id).sort()).toEqual(['e1', 'e3']);
   });
+
+  it('patches with the given fieldsPayload instead of the fields preserved from the old exercise', async () => {
+    const { result } = renderHook(() => useRoutineBuilder('r1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const fieldsPayload = { sets: 6, repetitions: { min: 5, max: 5 } };
+
+    await act(async () => {
+      await result.current.replaceExerciseFromTemplate('t1', 'e1', 'et1', null, fieldsPayload);
+    });
+
+    expect(api.patch).toHaveBeenCalledWith(
+      '/trainer/training-templates/t1/exercises/e3',
+      fieldsPayload
+    );
+  });
 });
 
 // ─── saveExerciseAsTemplate ───────────────────────────────────────────────────

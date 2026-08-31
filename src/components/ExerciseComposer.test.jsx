@@ -798,36 +798,46 @@ describe('ExerciseComposer — replace via library tab (edit mode)', () => {
     api.get.mockResolvedValue({ data: { data: [], total: 0 } });
   });
 
-  it('shows the single-select list and a "Substituindo" notice naming the exercise', async () => {
+  it('shows the single-select list and a help notice naming the exercise being replaced, without footer buttons', async () => {
     const user = userEvent.setup();
     renderComposer({ snapshot: EXERCISE_SNAPSHOT });
 
     await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
 
-    expect(screen.getByText(/Substituindo/)).toBeInTheDocument();
+    expect(screen.getByText(/Escolha um exercício da biblioteca/)).toBeInTheDocument();
     expect(screen.getByText('Supino reto', { selector: 'strong' })).toBeInTheDocument();
     expect(screen.getByText('Agachamento')).toBeInTheDocument();
     expect(screen.getByText('Corrida')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Substituir' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
   });
 
-  it('disables "Substituir" until a template is selected, single-select toggles off on repeat click', async () => {
+  it('selecting a template switches back to "Editar" and fills name/type from the template, without calling onSubmitReplace', async () => {
+    const onSubmitReplace = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT, onSubmitReplace });
+
+    await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
+    await user.click(screen.getByText('Corrida'));
+
+    expect(screen.getByRole('tab', { name: 'Editar' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByLabelText(/Nome/i)).toHaveValue('Corrida');
+    expect(screen.getByRole('combobox', { name: /Tipo/i })).toHaveValue('cardio');
+    expect(onSubmitReplace).not.toHaveBeenCalled();
+  });
+
+  it('shows a pending-replace notice on the "Editar" tab naming the chosen template', async () => {
     const user = userEvent.setup();
     renderComposer({ snapshot: EXERCISE_SNAPSHOT });
 
     await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
+    await user.click(screen.getByText('Corrida'));
 
-    const confirmBtn = screen.getByRole('button', { name: 'Substituir' });
-    expect(confirmBtn).toBeDisabled();
-
-    const item = screen.getByText('Agachamento').closest('button');
-    await user.click(item);
-    expect(confirmBtn).not.toBeDisabled();
-
-    await user.click(item);
-    expect(confirmBtn).toBeDisabled();
+    expect(screen.getByText(/Substituindo por/)).toBeInTheDocument();
+    expect(screen.getByText('Corrida', { selector: 'strong' })).toBeInTheDocument();
   });
 
-  it('confirming calls onSubmitReplace with the selected template id and object, then onCancel and a success toast', async () => {
+  it('editing a field then saving calls onSubmitReplace with the template id, object and the edited payload', async () => {
     const onSubmitReplace = vi.fn().mockResolvedValue({ id: 'new-ex' });
     const onCancel = vi.fn();
     const user = userEvent.setup();
@@ -835,10 +845,19 @@ describe('ExerciseComposer — replace via library tab (edit mode)', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
     await user.click(screen.getByText('Corrida'));
-    await user.click(screen.getByRole('button', { name: 'Substituir' }));
+
+    const setsInput = screen.getByLabelText(/Séries/i);
+    await user.clear(setsInput);
+    await user.type(setsInput, '5');
+
+    await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
 
     await waitFor(() => {
-      expect(onSubmitReplace).toHaveBeenCalledWith('tmpl-2', EXERCISE_TEMPLATES[1]);
+      expect(onSubmitReplace).toHaveBeenCalledWith(
+        'tmpl-2',
+        EXERCISE_TEMPLATES[1],
+        expect.objectContaining({ name: 'Corrida', type: 'cardio', sets: 5 })
+      );
     });
     await waitFor(() => expect(onCancel).toHaveBeenCalledTimes(1));
     expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/substituíd/i), 'success');
@@ -852,21 +871,37 @@ describe('ExerciseComposer — replace via library tab (edit mode)', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
     await user.click(screen.getByText('Agachamento'));
-    await user.click(screen.getByRole('button', { name: 'Substituir' }));
+    await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
 
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Não foi possível substituir.', 'error');
     });
     expect(onCancel).not.toHaveBeenCalled();
-    expect(screen.getByRole('tab', { name: 'Da biblioteca' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Editar' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('cancel on the library tab calls onCancel', async () => {
+  it('clicking the same template again deselects it and restores the original name/type', async () => {
+    const user = userEvent.setup();
+    renderComposer({ snapshot: EXERCISE_SNAPSHOT });
+
+    await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
+    await user.click(screen.getByText('Corrida'));
+    expect(screen.getByLabelText(/Nome/i)).toHaveValue('Corrida');
+
+    await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
+    await user.click(screen.getByText('Corrida'));
+
+    await user.click(screen.getByRole('tab', { name: 'Editar' }));
+    expect(screen.getByLabelText(/Nome/i)).toHaveValue('Supino reto');
+    expect(screen.getByRole('combobox', { name: /Tipo/i })).toHaveValue('strength');
+    expect(screen.queryByText(/Substituindo por/)).not.toBeInTheDocument();
+  });
+
+  it('cancel on the "Editar" tab calls onCancel', async () => {
     const onCancel = vi.fn();
     const user = userEvent.setup();
     renderComposer({ snapshot: EXERCISE_SNAPSHOT, onCancel });
 
-    await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
     await user.click(screen.getByRole('button', { name: /Cancelar/i }));
 
     expect(onCancel).toHaveBeenCalledTimes(1);

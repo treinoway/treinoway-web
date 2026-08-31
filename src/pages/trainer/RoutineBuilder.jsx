@@ -1910,8 +1910,8 @@ const TrainingItem = ({
                                 onSubmitFromLibrary={handleImport}
                                 onSubmitReplace={
                                   onReplaceExercise
-                                    ? (templateId, templateObject) =>
-                                        onReplaceExercise(ex.id, templateId, templateObject).then(
+                                    ? (templateId, templateObject, fieldsPayload) =>
+                                        onReplaceExercise(ex.id, templateId, templateObject, fieldsPayload).then(
                                           async (result) => {
                                             if (onRefetchTraining) await onRefetchTraining();
                                             return result;
@@ -3383,9 +3383,9 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
                 );
               }}
               onDeleteExercise={readOnly ? null : (exId) => { markTouched(); return routine.deleteExercise(t.id, exId); }}
-              onReplaceExercise={readOnly ? null : (exId, templateId, templateObject) => {
+              onReplaceExercise={readOnly ? null : (exId, templateId, templateObject, fieldsPayload) => {
                 markTouched();
-                return routine.replaceExerciseFromTemplate(t.id, exId, templateId, templateObject);
+                return routine.replaceExerciseFromTemplate(t.id, exId, templateId, templateObject, fieldsPayload);
               }}
               onReorder={
                 readOnly

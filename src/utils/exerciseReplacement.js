@@ -48,11 +48,12 @@ export const replaceExerciseFromTemplate = async ({
   updateExercise,
   deleteExercise,
   reorderExercises,
+  fieldsPayload,
 }) => {
   const oldIndex = exercises.findIndex((ex) => ex.id === exerciseId);
   if (oldIndex === -1) throw new Error('Exercício não encontrado.');
 
-  const preservedFields = buildPreservedExerciseFields(exercises[oldIndex]);
+  const preservedFields = fieldsPayload ?? buildPreservedExerciseFields(exercises[oldIndex]);
   const mergedExercise = await createAndConfigureReplacement({
     trainingId,
     templateId,

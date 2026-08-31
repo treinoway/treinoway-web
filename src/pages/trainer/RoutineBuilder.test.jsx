@@ -4168,7 +4168,7 @@ describe('RoutineBuilder — replace exercise via the Editar tab', () => {
     expect(screen.getByRole('tab', { name: 'Da biblioteca' })).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('switching to "Da biblioteca", selecting a template and confirming calls replaceExerciseFromTemplate, then closes the composer and refetches', async () => {
+  it('switching to "Da biblioteca", selecting a template only fills the form and returns to "Editar"; saving calls replaceExerciseFromTemplate, then closes the composer and refetches', async () => {
     replaceExerciseFromTemplate.mockResolvedValue({ id: 'new-ex' });
     const user = userEvent.setup();
     renderNew();
@@ -4178,20 +4178,26 @@ describe('RoutineBuilder — replace exercise via the Editar tab', () => {
     await screen.findByRole('button', { name: /Salvar alterações/i });
 
     await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
-    expect(screen.getByText(/Substituindo/)).toBeInTheDocument();
+    expect(screen.getByText(/Escolha um exercício da biblioteca/)).toBeInTheDocument();
 
     await user.click(await screen.findByText('Supino inclinado'));
-    await user.click(screen.getByRole('button', { name: 'Substituir' }));
+
+    expect(replaceExerciseFromTemplate).not.toHaveBeenCalled();
+    expect(screen.getByRole('tab', { name: 'Editar' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByLabelText(/Nome/i)).toHaveValue('Supino inclinado');
+
+    await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
 
     await waitFor(() => {
       expect(replaceExerciseFromTemplate).toHaveBeenCalledWith(
-        'training-1', 'ex-1', 'tmpl-x', REPLACE_TEMPLATE
+        'training-1', 'ex-1', 'tmpl-x', REPLACE_TEMPLATE,
+        expect.objectContaining({ name: 'Supino inclinado' })
       );
     });
     await waitFor(() => {
       expect(refetchTrainingExercises).toHaveBeenCalledWith('training-1');
     });
-    expect(screen.queryByRole('button', { name: 'Substituir' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Salvar alterações/i })).not.toBeInTheDocument();
   });
 
   it('is not offered in read-only mode (no row kebab, no edit button at all)', async () => {
