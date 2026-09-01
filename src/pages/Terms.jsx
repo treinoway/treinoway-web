@@ -23,7 +23,7 @@ const Terms = () => {
             <div className="legal-hero-text">
               <p className="legal-eyebrow">Termos e Condições de Uso</p>
               <h1 className="legal-title">Termos e Condições de Uso da TeuFit</h1>
-              <p className="legal-last-updated">Última atualização: 29 de agosto de 2026</p>
+              <p className="legal-last-updated">Última atualização: 1.º de setembro de 2026</p>
             </div>
           </div>
 
@@ -75,19 +75,25 @@ const Terms = () => {
                   cobrança entre o aluno e o seu personal trainer — sem intermediação financeira da
                   TeuFit, conforme detalhado na Seção 4;</li>
                 <li><strong>Recursos de IA:</strong> funcionalidades da Plataforma que utilizam modelos de
-                  inteligência artificial para gerar sugestões de treino;</li>
-                <li><strong>Fase Beta:</strong> o período atual de disponibilização da Plataforma mediante
-                  convite, conforme Seção 14.</li>
+                  inteligência artificial para gerar sugestões de treino.</li>
               </ul>
             </section>
 
             <section className="legal-section">
               <h2 className="legal-section-title">3. Cadastro e conta</h2>
               <p>
-                Para usar a Plataforma, você deve ter pelo menos 18 anos de idade. O uso por menores de 18
-                anos é permitido exclusivamente mediante consentimento específico e em destaque de pelo
-                menos um dos pais ou do responsável legal, na condição de aluno, em conformidade com o
-                art. 14 da LGPD — a mesma exigência prevista na Seção 10 da nossa Política de Privacidade.
+                Para criar uma conta na condição de <strong>personal trainer</strong>, você deve ter pelo
+                menos <strong>18 anos de idade</strong>: é o personal trainer quem contrata a Assinatura da
+                Plataforma e presta serviço profissional aos seus alunos, o que exige capacidade civil
+                plena. Na condição de <strong>aluno</strong>, o cadastro é permitido a partir dos{' '}
+                <strong>13 anos de idade</strong>.
+              </p>
+              <p>
+                Não é permitido o cadastro de crianças menores de 13 anos. Para adolescentes entre 13 e 17
+                anos, o tratamento de dados pessoais se dá em execução de contrato e no melhor interesse do
+                adolescente, conforme o art. 14, <em>caput</em>, da LGPD — nos mesmos termos da Seção 10 da
+                nossa{' '}
+                <Link to="/privacy-policy" className="legal-contact-link">Política de Privacidade</Link>.
               </p>
               <p>
                 Você é responsável por fornecer informações verdadeiras, completas e atualizadas no
@@ -97,9 +103,10 @@ const Terms = () => {
                 na Seção 19.
               </p>
               <p>
-                A Plataforma encontra-se atualmente em fase beta fechada, com acesso mediante convite. A
-                TeuFit pode, a seu critério, condicionar, limitar ou expandir o acesso a novos cadastros a
-                qualquer momento, conforme Seção 14.
+                O cadastro na Plataforma é <strong>aberto</strong>: qualquer pessoa que atenda aos
+                requisitos acima pode criar uma conta livremente. O que depende de um profissional é o{' '}
+                <em>conteúdo</em> de treino — o aluno vincula-se ao seu personal trainer por meio de um
+                código para receber os treinos prescritos e acompanhar sua evolução.
               </p>
             </section>
 
@@ -188,8 +195,8 @@ const Terms = () => {
                 </li>
                 <li>Manter seus dados cadastrais atualizados;</li>
                 <li>
-                  Caso seja menor de idade, garantir que o cadastro e o acompanhamento contem com o
-                  consentimento e a supervisão de um dos pais ou responsável legal, conforme Seção 3.
+                  Caso tenha entre 13 e 17 anos, contar com a ciência e a supervisão de um dos pais ou do
+                  responsável legal para a prática dos treinos, conforme Seção 3.
                 </li>
               </ul>
             </section>
@@ -373,12 +380,13 @@ const Terms = () => {
             </section>
 
             <section className="legal-section">
-              <h2 className="legal-section-title">14. Disponibilidade, fase beta e alterações do serviço</h2>
+              <h2 className="legal-section-title">14. Disponibilidade e alterações do serviço</h2>
               <p>
-                A Plataforma encontra-se atualmente em <strong>fase beta fechada</strong>, com acesso
-                controlado por convite. Durante essa fase, funcionalidades podem ser adicionadas,
-                alteradas ou removidas sem aviso prévio equivalente ao de um serviço em operação plena, e
-                a disponibilidade do Serviço não é garantida de forma contínua ou livre de erros.
+                A TeuFit desenvolve a Plataforma de forma contínua: funcionalidades podem ser
+                <strong> adicionadas, alteradas ou removidas</strong> ao longo do tempo, à medida que o
+                Serviço evolui. A <strong>disponibilidade do Serviço não é garantida de forma contínua,
+                ininterrupta ou livre de erros</strong>, podendo haver indisponibilidades decorrentes de
+                manutenção, falhas técnicas ou de fatores fora do controle razoável da TeuFit.
               </p>
               <p>
                 A TeuFit pode realizar manutenções programadas ou emergenciais, e pode modificar ou
@@ -473,7 +481,7 @@ const Terms = () => {
           <span className="legal-footer-brand">TeuFit</span>
           <span className="legal-footer-sep" aria-hidden="true">·</span>
           <span className="legal-footer-copy">
-            Termos e Condições de Uso — Última atualização: 29 de agosto de 2026
+            Termos e Condições de Uso — Última atualização: 1.º de setembro de 2026
           </span>
           <span className="legal-footer-sep" aria-hidden="true">·</span>
           <Link to="/privacy-policy" className="legal-contact-link">Política de Privacidade</Link>

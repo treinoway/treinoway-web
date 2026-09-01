@@ -57,6 +57,41 @@ describe('Terms', () => {
     });
   });
 
+  it('does not present the platform as a beta or invite-gated product', () => {
+    const { container } = renderWithRouter(<Terms />);
+
+    expect(container.textContent).not.toMatch(/beta/i);
+    expect(container.textContent).not.toMatch(/convite/i);
+  });
+
+  it('renders the availability section without beta framing', () => {
+    renderWithRouter(<Terms />);
+
+    expect(
+      screen.getByRole('heading', { name: /14\. disponibilidade e alterações do serviço/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/não é garantida de forma contínua, ininterrupta ou livre de erros/i)
+    ).toBeInTheDocument();
+  });
+
+  it('states the 18+ trainer / 13+ student age split without promising parental consent', () => {
+    const { container } = renderWithRouter(<Terms />);
+
+    expect(screen.getByText(/Para criar uma conta na condição de/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Não é permitido o cadastro de crianças menores de 13 anos/i)
+    ).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/consentimento específico e em destaque/i);
+  });
+
+  it('describes registration as open', () => {
+    renderWithRouter(<Terms />);
+
+    expect(screen.getByText(/O cadastro na Plataforma é/i)).toBeInTheDocument();
+    expect(screen.getByText(/aberto/i)).toBeInTheDocument();
+  });
+
   it('renders a back-to-login link in the header', () => {
     renderWithRouter(<Terms />);
 

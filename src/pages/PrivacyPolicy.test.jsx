@@ -50,6 +50,53 @@ describe('PrivacyPolicy', () => {
     });
   });
 
+  it('lists every profile field the app collects in section 2.1', () => {
+    renderWithRouter(<PrivacyPolicy />);
+
+    expect(screen.getByText(/^Gênero;$/)).toBeInTheDocument();
+    expect(screen.getByText(/Endereço completo \(logradouro/i)).toBeInTheDocument();
+    expect(screen.getByText(/Perfil em rede social \(Instagram\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Foto de avatar do perfil/i)).toBeInTheDocument();
+  });
+
+  it('discloses Firebase Analytics and Crashlytics under legitimate interest', () => {
+    const { container } = renderWithRouter(<PrivacyPolicy />);
+
+    expect(
+      screen.getByRole('heading', { name: /11\. cookies, analytics e tecnologias de rastreamento/i })
+    ).toBeInTheDocument();
+    expect(container.textContent).toMatch(/Firebase Analytics/);
+    expect(container.textContent).toMatch(/Firebase Crashlytics/);
+    expect(container.textContent).toMatch(/identificador interno de usuário/i);
+    expect(container.textContent).toMatch(/base legal desses tratamentos é o\s*legítimo interesse/i);
+    expect(container.textContent).not.toMatch(/sujeito ao consentimento do usuário/i);
+  });
+
+  it('discloses that subscription and billing records survive account deletion', () => {
+    renderWithRouter(<PrivacyPolicy />);
+
+    expect(
+      screen.getByText(/registros de assinatura e de cobrança/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/de forma desvinculada dos demais dados pessoais/i)
+    ).toBeInTheDocument();
+  });
+
+  it('sets the minimum age at 18 for trainers and 13 for students, with no parental-consent promise', () => {
+    const { container } = renderWithRouter(<PrivacyPolicy />);
+
+    expect(
+      screen.getByText(/O cadastro na plataforma TeuFit exige idade mínima de/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Não é permitido o cadastro de crianças menores de 13 anos\./i)
+    ).toBeInTheDocument();
+    expect(container.textContent).toMatch(/art\. 14,\s*caput\s*, da LGPD/);
+    expect(container.textContent).not.toMatch(/beta/i);
+    expect(container.textContent).not.toMatch(/convite/i);
+  });
+
   it('renders the LGPD sections', () => {
     renderWithRouter(<PrivacyPolicy />);
 
