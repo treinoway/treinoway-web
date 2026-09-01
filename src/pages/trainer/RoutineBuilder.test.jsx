@@ -143,6 +143,7 @@ const EMPTY_HOOK_STATE = {
   addExerciseFromTemplate: vi.fn(),
   updateExercise: vi.fn(),
   deleteExercise: vi.fn(),
+  replaceExerciseFromTemplate: vi.fn(),
   saveExerciseAsTemplate: vi.fn(),
 };
 
@@ -4073,6 +4074,149 @@ describe('RoutineBuilder — substitute delete (protocol mode)', () => {
 
     expect(
       screen.queryByRole('button', { name: /Excluir substituto/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('RoutineBuilder — replace exercise via the Editar tab', () => {
+  const REPLACE_TRAINING = {
+    id: 'training-1',
+    name: 'Treino A',
+    weekDay: 'monday',
+    exercises: [EXERCISE_1],
+  };
+
+  const REPLACE_TEMPLATE = { id: 'tmpl-x', name: 'Supino inclinado', type: 'strength' };
+
+  const replaceExerciseFromTemplate = vi.fn();
+  const refetchTrainingExercises = vi.fn().mockResolvedValue(undefined);
+
+  const buildHookState = () => ({
+    ...EMPTY_HOOK_STATE,
+    replaceExerciseFromTemplate,
+    refetchTrainingExercises,
+    exerciseTemplates: [REPLACE_TEMPLATE],
+    data: {
+      ...EMPTY_HOOK_STATE.data,
+      name: 'Rotina',
+      trainings: [REPLACE_TRAINING],
+    },
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    replaceExerciseFromTemplate.mockReset();
+    refetchTrainingExercises.mockReset().mockResolvedValue(undefined);
+    useRoutineBuilder.mockReturnValue(buildHookState());
+    useProtocolBuilder.mockReturnValue(buildHookState());
+  });
+
+  const expand = async (user) => {
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+  };
+
+  it('row kebab no longer exposes "Substituir exercício"', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expand(user);
+
+    await user.click(screen.getByRole('button', { name: /Ações de Supino reto/i }));
+    expect(
+      screen.queryByRole('menuitem', { name: /Substituir exercício/i })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Editar' })).toBeInTheDocument();
+  });
+
+  it('a bi-set member kebab still does not expose "Substituir exercício"', async () => {
+    const BISET_GROUP_ID = '22222222-2222-2222-2222-222222222222';
+    useRoutineBuilder.mockReturnValue({
+      ...buildHookState(),
+      data: {
+        ...buildHookState().data,
+        trainings: [{
+          ...REPLACE_TRAINING,
+          exercises: [
+            { ...EXERCISE_1, supersetGroupId: BISET_GROUP_ID, supersetOrder: 0 },
+            { ...EXERCISE_2, supersetGroupId: BISET_GROUP_ID, supersetOrder: 1 },
+          ],
+        }],
+      },
+    });
+
+    const user = userEvent.setup();
+    renderNew();
+    await expand(user);
+
+    await user.click(screen.getByRole('button', { name: /Ações de Supino reto/i }));
+    expect(
+      screen.queryByRole('menuitem', { name: /Substituir exercício/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('clicking "Editar" opens the composer with the form tab active by default and a "Da biblioteca" tab available', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await expand(user);
+
+    await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
+
+    expect(
+      await screen.findByRole('button', { name: /Salvar alterações/i })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Editar' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Da biblioteca' })).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('switching to "Da biblioteca", selecting a template only fills the form and returns to "Editar"; saving calls replaceExerciseFromTemplate, then closes the composer and refetches', async () => {
+    replaceExerciseFromTemplate.mockResolvedValue({ id: 'new-ex' });
+    const user = userEvent.setup();
+    renderNew();
+    await expand(user);
+
+    await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
+    await screen.findByRole('button', { name: /Salvar alterações/i });
+
+    await user.click(screen.getByRole('tab', { name: 'Da biblioteca' }));
+    expect(screen.getByText(/Escolha um exercício da biblioteca/)).toBeInTheDocument();
+
+    await user.click(await screen.findByText('Supino inclinado'));
+
+    expect(replaceExerciseFromTemplate).not.toHaveBeenCalled();
+    expect(screen.getByRole('tab', { name: 'Editar' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByLabelText(/Nome/i)).toHaveValue('Supino inclinado');
+
+    await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(replaceExerciseFromTemplate).toHaveBeenCalledWith(
+        'training-1', 'ex-1', 'tmpl-x', REPLACE_TEMPLATE,
+        expect.objectContaining({ name: 'Supino inclinado' })
+      );
+    });
+    await waitFor(() => {
+      expect(refetchTrainingExercises).toHaveBeenCalledWith('training-1');
+    });
+    expect(screen.queryByRole('button', { name: /Salvar alterações/i })).not.toBeInTheDocument();
+  });
+
+  it('is not offered in read-only mode (no row kebab, no edit button at all)', async () => {
+    useProtocolBuilder.mockReturnValue({
+      ...buildHookState(),
+      data: { ...buildHookState().data, id: 'proto-1' },
+    });
+    const user = userEvent.setup();
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1',
+      path: '/trainer/protocols/:id',
+    });
+    await expand(user);
+
+    expect(
+      screen.queryByRole('button', { name: /Ações de Supino reto/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Editar Supino reto/i })
     ).not.toBeInTheDocument();
   });
 });

@@ -903,6 +903,7 @@ describe('useProtocolBuilder — API surface parity', () => {
       'updateTrainingWeekDay', 'deleteTraining',
       'addExercise', 'addExerciseFromTemplate',
       'updateExercise', 'deleteExercise', 'reorderExercises',
+      'replaceExerciseFromTemplate',
       'saveExerciseAsTemplate', 'restoreSessionTracking', 'hydrateFromDraft',
     ];
     for (const key of required) {
@@ -1523,6 +1524,201 @@ describe('useProtocolBuilder — addExerciseFromTemplate: hasLoad type-based def
 });
 
 // ─── hydrateFromDraft (protocol draft restore) ────────────────────────────────
+
+describe('useProtocolBuilder — replaceExerciseFromTemplate (edit mode)', () => {
+  const OLD_EXERCISE = {
+    id: 'ex-old',
+    name: 'Supino reto',
+    type: 'strength',
+    sets: 4,
+    repetitions: { min: 8, max: 12 },
+    hasLoad: true,
+    suggestedLoad: 40,
+    restInterval: 90,
+    notes: 'Cadência 2-0-2',
+  };
+
+  const makeEditReplaceGetHandler = () => (url) => {
+    if (url === `/trainer/protocols/${PROTOCOL_ID}`)
+      return Promise.resolve({
+        data: {
+          id: PROTOCOL_ID,
+          name: 'Protocolo Editável',
+          type: 'strength',
+          trainingLevel: '',
+          genderOrdination: '',
+          description: '',
+          startDate: '2026-05-01',
+          expirationDate: '',
+          assigneeId: null,
+          trainings: [EDIT_TRAINING],
+        },
+      });
+    if (url === `/trainer/trainings/${EDIT_TRAINING.id}/exercises`)
+      return Promise.resolve({ data: [OLD_EXERCISE] });
+    if (url === '/trainer/training-templates') return Promise.resolve(envelope([]));
+    if (url === '/trainer/exercise-templates') return Promise.resolve(envelope([]));
+    if (url === '/trainer/protocol-templates') return Promise.resolve(envelope([]));
+    return Promise.resolve({ data: [] });
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+    api.get.mockImplementation(makeEditReplaceGetHandler());
+    api.post.mockImplementation((url) =>
+      url === '/trainer/exercises/from-template'
+        ? Promise.resolve({ data: { id: 'ex-new', name: 'Supino inclinado', type: 'strength' } })
+        : Promise.reject(new Error(`Unexpected POST: ${url}`))
+    );
+    api.patch.mockImplementation((url, body) => {
+      if (url === '/trainer/exercises/ex-new') return Promise.resolve({ data: { id: 'ex-new', ...body } });
+      if (url === `/trainer/trainings/${EDIT_TRAINING.id}/exercises/order`) return Promise.resolve({ data: {} });
+      return Promise.reject(new Error(`Unexpected PATCH: ${url}`));
+    });
+    api.delete.mockImplementation((url) =>
+      url === `/trainer/exercises/${OLD_EXERCISE.id}` || url === '/trainer/exercises/ex-new'
+        ? Promise.resolve({ data: {} })
+        : Promise.reject(new Error(`Unexpected DELETE: ${url}`))
+    );
+  });
+
+  it('creates, patches preserved fields, deletes the old exercise and reorders into its slot', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null, { protocolId: PROTOCOL_ID }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let replaced;
+    await act(async () => {
+      replaced = await result.current.replaceExerciseFromTemplate(
+        EDIT_TRAINING.id,
+        OLD_EXERCISE.id,
+        'tmpl-1'
+      );
+    });
+
+    expect(api.post).toHaveBeenCalledWith('/trainer/exercises/from-template', {
+      trainingId: EDIT_TRAINING.id,
+      templateId: 'tmpl-1',
+    });
+    expect(api.patch).toHaveBeenCalledWith(
+      '/trainer/exercises/ex-new',
+      expect.objectContaining({ sets: 4, restInterval: 90, notes: 'Cadência 2-0-2' })
+    );
+    expect(api.delete).toHaveBeenCalledWith(`/trainer/exercises/${OLD_EXERCISE.id}`);
+
+    const training = result.current.data.trainings.find((t) => t.id === EDIT_TRAINING.id);
+    expect(training.exercises.map((ex) => ex.id)).toEqual(['ex-new']);
+    expect(replaced.id).toBe('ex-new');
+  });
+
+  it('rolls back the created exercise when the patch fails, leaving the old exercise intact', async () => {
+    api.patch.mockImplementation((url) =>
+      url === '/trainer/exercises/ex-new'
+        ? Promise.reject(Object.assign(new Error('Falha'), { userMessage: 'Falha ao salvar.' }))
+        : Promise.reject(new Error(`Unexpected PATCH: ${url}`))
+    );
+
+    const { result } = renderHook(() => useProtocolBuilder(null, { protocolId: PROTOCOL_ID }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(
+        result.current.replaceExerciseFromTemplate(EDIT_TRAINING.id, OLD_EXERCISE.id, 'tmpl-1')
+      ).rejects.toThrow();
+    });
+
+    expect(api.delete).toHaveBeenCalledWith('/trainer/exercises/ex-new');
+    expect(api.delete).not.toHaveBeenCalledWith(`/trainer/exercises/${OLD_EXERCISE.id}`);
+    const training = result.current.data.trainings.find((t) => t.id === EDIT_TRAINING.id);
+    expect(training.exercises.map((ex) => ex.id)).toEqual([OLD_EXERCISE.id]);
+  });
+
+  it('surfaces an incomplete-replacement error when deleting the old exercise fails', async () => {
+    api.delete.mockImplementation((url) =>
+      url === `/trainer/exercises/${OLD_EXERCISE.id}`
+        ? Promise.reject(new Error('boom'))
+        : Promise.resolve({ data: {} })
+    );
+
+    const { result } = renderHook(() => useProtocolBuilder(null, { protocolId: PROTOCOL_ID }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let caught;
+    await act(async () => {
+      try {
+        await result.current.replaceExerciseFromTemplate(EDIT_TRAINING.id, OLD_EXERCISE.id, 'tmpl-1');
+      } catch (err) {
+        caught = err;
+      }
+    });
+
+    expect(caught.isReplaceIncomplete).toBe(true);
+    const training = result.current.data.trainings.find((t) => t.id === EDIT_TRAINING.id);
+    expect(training.exercises.map((ex) => ex.id).sort()).toEqual(['ex-new', OLD_EXERCISE.id].sort());
+  });
+
+  it('patches with the given fieldsPayload instead of the fields preserved from the old exercise', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null, { protocolId: PROTOCOL_ID }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const fieldsPayload = { sets: 6, restInterval: 120, notes: 'Editado antes de salvar' };
+
+    await act(async () => {
+      await result.current.replaceExerciseFromTemplate(
+        EDIT_TRAINING.id,
+        OLD_EXERCISE.id,
+        'tmpl-1',
+        null,
+        fieldsPayload
+      );
+    });
+
+    expect(api.patch).toHaveBeenCalledWith('/trainer/exercises/ex-new', fieldsPayload);
+  });
+});
+
+describe('useProtocolBuilder — replaceExerciseFromTemplate (create/draft mode, local only)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+    api.get.mockImplementation(makeGetHandler(null));
+  });
+
+  it('replaces the exercise entirely in local state without any API call', async () => {
+    const { result } = renderHook(() => useProtocolBuilder(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let trainingId;
+    let oldExerciseId;
+    await act(async () => {
+      const t = await result.current.createTraining({ name: 'Treino A', category: 'strength' });
+      trainingId = t.id;
+      const ex = await result.current.addExercise(trainingId, {
+        name: 'Supino', type: 'strength', sets: 4, restInterval: 90,
+      });
+      oldExerciseId = ex.id;
+    });
+
+    let replaced;
+    await act(async () => {
+      replaced = await result.current.replaceExerciseFromTemplate(
+        trainingId,
+        oldExerciseId,
+        'et-2',
+        EXERCISE_TEMPLATE
+      );
+    });
+
+    const training = result.current.data.trainings.find((t) => t.id === trainingId);
+    expect(training.exercises).toHaveLength(1);
+    expect(training.exercises[0].name).toBe('Agachamento');
+    expect(training.exercises[0].sets).toBe(4); // preserved from the old exercise
+    expect(replaced.name).toBe('Agachamento');
+    expect(api.post).not.toHaveBeenCalled();
+    expect(api.patch).not.toHaveBeenCalled();
+    expect(api.delete).not.toHaveBeenCalled();
+  });
+});
 
 describe('useProtocolBuilder — hydrateFromDraft (create mode)', () => {
   beforeEach(() => {

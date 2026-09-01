@@ -479,13 +479,6 @@ button.auth-forgot-link:disabled {
   text-decoration: underline;
 }
 
-/* Legal footer — sits inside .auth-page, below .auth-card, on the raw
-   gradient background (not the white card surface). Distinct from
-   .auth-footer (the in-card "Novo por aqui? / Criar conta" line). Carries
-   both legal links ("Termos e Condições" / "Política de Privacidade"). The
-   second link is wrapped together with its "·" separator in
-   .auth-legal-group so a flex-wrap line break can only fall between the two
-   links, never leave the separator orphaned on its own line. */
 .auth-legal {
   width: 100%;
   max-width: 400px;
@@ -27191,9 +27184,6 @@ nav.onboarding-steps {
   overflow: hidden;
 }
 
-/* Single restrained geometric-cut accent — the one place this hero moment
-   earns the TeuFit "pennant" motif. Decorative fill only, never text/icon
-   color, so the accent's contrast-on-light limitation does not apply. */
 .legal-hero-icon::after {
   content: '';
   position: absolute;

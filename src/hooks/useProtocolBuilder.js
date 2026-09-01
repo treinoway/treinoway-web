@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
 import { useToast } from '../contexts/ToastContext';
 import { getLoadDefault } from '../constants/exerciseTypes';
+import { replaceExerciseFromTemplate as performReplaceExerciseFromTemplate } from '../utils/exerciseReplacement';
 
 // ─── Shape helpers ────────────────────────────────────────────────────────────
 
@@ -673,6 +674,27 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     [mutate, isEditMode]
   );
 
+  const replaceExerciseFromTemplate = useCallback(
+    (trainingId, exerciseId, templateId, templateObject, fieldsPayload) =>
+      mutate(async () => {
+        const training = data.trainings.find((t) => t.id === trainingId);
+        if (!training) throw new Error('Treino não encontrado.');
+        return performReplaceExerciseFromTemplate({
+          trainingId,
+          exerciseId,
+          templateId,
+          exercises: training.exercises,
+          addExerciseFromTemplate: (tId, tmplId) =>
+            addExerciseFromTemplate(tId, tmplId, { template: templateObject }),
+          updateExercise,
+          deleteExercise,
+          reorderExercises,
+          fieldsPayload,
+        });
+      }),
+    [mutate, data, addExerciseFromTemplate, updateExercise, deleteExercise, reorderExercises]
+  );
+
   // ── saveExerciseAsTemplate ─────────────────────────────────────────────────
 
   const saveExerciseAsTemplate = useCallback(
@@ -863,6 +885,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     updateExercise,
     deleteExercise,
     reorderExercises,
+    replaceExerciseFromTemplate,
     saveExerciseAsTemplate,
     restoreSessionTracking,
     hydrateFromDraft,

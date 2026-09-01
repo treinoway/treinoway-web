@@ -1498,6 +1498,7 @@ const TrainingItem = ({
   onEditExercise,
   onImportFromLibrary,
   onDeleteExercise,
+  onReplaceExercise,
   onReorder,
   onRefetchTraining,
 }) => {
@@ -1907,6 +1908,18 @@ const TrainingItem = ({
                                 onSubmitCreate={handleAddExercise}
                                 onSubmitEdit={handleEditExercise}
                                 onSubmitFromLibrary={handleImport}
+                                onSubmitReplace={
+                                  onReplaceExercise
+                                    ? (templateId, templateObject, fieldsPayload) =>
+                                        onReplaceExercise(ex.id, templateId, templateObject, fieldsPayload).then(
+                                          async (result) => {
+                                            if (onRefetchTraining) await onRefetchTraining();
+                                            return result;
+                                          }
+                                        )
+                                    : null
+                                }
+                                canReplaceFromLibrary={!ex.supersetGroupId}
                                 onCancel={() => setComposerState(null)}
                                 onRequestDelete={() => handleRequestDeleteExercise(ex)}
                               />
@@ -2160,6 +2173,7 @@ TrainingItem.propTypes = {
   onEditExercise: PropTypes.func,
   onImportFromLibrary: PropTypes.func,
   onDeleteExercise: PropTypes.func,
+  onReplaceExercise: PropTypes.func,
   onReorder: PropTypes.func,
   onRefetchTraining: PropTypes.func,
 };
@@ -2174,6 +2188,7 @@ TrainingItem.defaultProps = {
   onEditExercise: null,
   onImportFromLibrary: null,
   onDeleteExercise: null,
+  onReplaceExercise: null,
   onReorder: null,
   onRefetchTraining: null,
 };
@@ -3368,6 +3383,10 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
                 );
               }}
               onDeleteExercise={readOnly ? null : (exId) => { markTouched(); return routine.deleteExercise(t.id, exId); }}
+              onReplaceExercise={readOnly ? null : (exId, templateId, templateObject, fieldsPayload) => {
+                markTouched();
+                return routine.replaceExerciseFromTemplate(t.id, exId, templateId, templateObject, fieldsPayload);
+              }}
               onReorder={
                 readOnly
                   ? null

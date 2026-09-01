@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api/axios';
+import { replaceExerciseFromTemplate as performReplaceExerciseFromTemplate } from '../utils/exerciseReplacement';
 
 // ─── Shape helpers ────────────────────────────────────────────────────────────
 
@@ -481,6 +482,26 @@ const useRoutineBuilder = (routineId) => {
     []
   );
 
+  const replaceExerciseFromTemplate = useCallback(
+    (trainingId, exerciseId, templateId, templateObject, fieldsPayload) =>
+      mutate(async () => {
+        const training = data.trainings.find((t) => t.id === trainingId);
+        if (!training) throw new Error('Treino não encontrado.');
+        return performReplaceExerciseFromTemplate({
+          trainingId,
+          exerciseId,
+          templateId,
+          exercises: training.exercises,
+          addExerciseFromTemplate,
+          updateExercise,
+          deleteExercise,
+          reorderExercises,
+          fieldsPayload,
+        });
+      }),
+    [mutate, data, addExerciseFromTemplate, updateExercise, deleteExercise, reorderExercises]
+  );
+
   // ── saveExerciseAsTemplate ────────────────────────────────────────────────
 
   /**
@@ -558,6 +579,7 @@ const useRoutineBuilder = (routineId) => {
     updateExercise,
     deleteExercise,
     reorderExercises,
+    replaceExerciseFromTemplate,
     saveExerciseAsTemplate,
     restoreSessionTracking,
     refetchTrainingExercises,

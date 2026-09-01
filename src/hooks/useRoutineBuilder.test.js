@@ -936,6 +936,116 @@ describe('reorderExercises', () => {
   });
 });
 
+describe('replaceExerciseFromTemplate', () => {
+  beforeEach(() => {
+    api.post.mockImplementation((url) => {
+      if (url === '/trainer/training-templates/t1/exercises/from-template') {
+        return Promise.resolve({ data: { id: 'e3', name: 'Remada', type: 'strength' } });
+      }
+      return Promise.reject(makeUserError(`Unexpected POST: ${url}`));
+    });
+    api.patch.mockImplementation((url, body) => {
+      if (url === '/trainer/training-templates/t1/exercises/e3') {
+        return Promise.resolve({ data: { id: 'e3', ...body } });
+      }
+      return Promise.reject(makeUserError(`Unexpected PATCH: ${url}`));
+    });
+    api.delete.mockImplementation((url) => {
+      if (url === '/trainer/training-templates/t1/exercises/e1') return Promise.resolve({ data: {} });
+      if (url === '/trainer/training-templates/t1/exercises/e3') return Promise.resolve({ data: {} });
+      return Promise.reject(makeUserError(`Unexpected DELETE: ${url}`));
+    });
+  });
+
+  it('creates from template, patches preserved fields onto it, deletes the old exercise, and reorders into its slot', async () => {
+    const { result } = renderHook(() => useRoutineBuilder('r1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let replaced;
+    await act(async () => {
+      replaced = await result.current.replaceExerciseFromTemplate('t1', 'e1', 'et1');
+    });
+
+    expect(api.post).toHaveBeenCalledWith(
+      '/trainer/training-templates/t1/exercises/from-template',
+      { exerciseTemplateId: 'et1' }
+    );
+    expect(api.patch).toHaveBeenCalledWith(
+      '/trainer/training-templates/t1/exercises/e3',
+      expect.objectContaining({ sets: 4, repetitions: { min: 8, max: 12 } })
+    );
+    expect(api.delete).toHaveBeenCalledWith('/trainer/training-templates/t1/exercises/e1');
+
+    const training = result.current.data.trainings.find((t) => t.id === 't1');
+    expect(training.exercises).toHaveLength(1);
+    expect(training.exercises[0].id).toBe('e3');
+    expect(replaced.id).toBe('e3');
+  });
+
+  it('rolls back the newly-created exercise when the patch step fails, leaving the old exercise intact', async () => {
+    api.patch.mockImplementation((url) =>
+      url === '/trainer/training-templates/t1/exercises/e3'
+        ? Promise.reject(makeUserError('Falha ao salvar configuração.'))
+        : Promise.reject(makeUserError(`Unexpected PATCH: ${url}`))
+    );
+
+    const { result } = renderHook(() => useRoutineBuilder('r1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(
+        result.current.replaceExerciseFromTemplate('t1', 'e1', 'et1')
+      ).rejects.toThrow();
+    });
+
+    expect(api.delete).toHaveBeenCalledWith('/trainer/training-templates/t1/exercises/e3');
+    expect(api.delete).not.toHaveBeenCalledWith('/trainer/training-templates/t1/exercises/e1');
+    const training = result.current.data.trainings.find((t) => t.id === 't1');
+    expect(training.exercises.map((ex) => ex.id)).toEqual(['e1']);
+  });
+
+  it('surfaces a clear "incomplete" error when deleting the old exercise fails, leaving both exercises visible', async () => {
+    api.delete.mockImplementation((url) =>
+      url === '/trainer/training-templates/t1/exercises/e1'
+        ? Promise.reject(new Error('boom'))
+        : Promise.resolve({ data: {} })
+    );
+
+    const { result } = renderHook(() => useRoutineBuilder('r1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let caught;
+    await act(async () => {
+      try {
+        await result.current.replaceExerciseFromTemplate('t1', 'e1', 'et1');
+      } catch (err) {
+        caught = err;
+      }
+    });
+
+    expect(caught).toBeDefined();
+    expect(caught.isReplaceIncomplete).toBe(true);
+    const training = result.current.data.trainings.find((t) => t.id === 't1');
+    expect(training.exercises.map((ex) => ex.id).sort()).toEqual(['e1', 'e3']);
+  });
+
+  it('patches with the given fieldsPayload instead of the fields preserved from the old exercise', async () => {
+    const { result } = renderHook(() => useRoutineBuilder('r1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const fieldsPayload = { sets: 6, repetitions: { min: 5, max: 5 } };
+
+    await act(async () => {
+      await result.current.replaceExerciseFromTemplate('t1', 'e1', 'et1', null, fieldsPayload);
+    });
+
+    expect(api.patch).toHaveBeenCalledWith(
+      '/trainer/training-templates/t1/exercises/e3',
+      fieldsPayload
+    );
+  });
+});
+
 // ─── saveExerciseAsTemplate ───────────────────────────────────────────────────
 
 describe('saveExerciseAsTemplate', () => {

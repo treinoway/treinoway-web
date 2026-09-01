@@ -14,8 +14,9 @@ import PrescriptionField from './PrescriptionField';
 import IntensityField from './IntensityField';
 import VideoField from './VideoField';
 import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel, getLoadDefault } from '../constants/exerciseTypes';
-import { t } from '../i18n';
+import { t, translateError } from '../i18n';
 import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
+import { useToast } from '../contexts/ToastContext';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -197,6 +198,82 @@ LibraryPanel.propTypes = {
   onToggle: PropTypes.func.isRequired,
 };
 
+const LibrarySingleSelectList = ({ initialTemplates, selectedId, onSelect }) => {
+  const { results, staleResults, searching, showSpinner, query, setQuery, seenMap } =
+    useExerciseTemplateSearch(initialTemplates);
+
+  const hasQuery = query.trim().length > 0;
+  const displayList = hasQuery
+    ? (searching ? (staleResults ?? results ?? []) : (results ?? []))
+    : initialTemplates;
+
+  const emptyMessage = hasQuery ? 'Nenhum exercício encontrado.' : 'Biblioteca vazia.';
+
+  return (
+    <div className="library-panel">
+      <div className="library-search">
+        <Search size={14} strokeWidth={2} aria-hidden="true" />
+        <input
+          className="library-search-input"
+          type="text"
+          placeholder="Buscar exercício na biblioteca…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label="Buscar exercício na biblioteca"
+        />
+        {showSpinner && (
+          <Loader size={14} strokeWidth={2} aria-hidden="true" className="library-refetch-spinner" />
+        )}
+      </div>
+
+      {showSpinner && displayList.length === 0 ? (
+        <div className="library-empty">Buscando…</div>
+      ) : displayList.length === 0 ? (
+        <div className="library-empty">{emptyMessage}</div>
+      ) : (
+        <div className="library-list" role="list">
+          {displayList.map((tmpl) => {
+            const selected = selectedId === tmpl.id;
+            const typeLabel = tmpl.type ? getExerciseTypeLabel(tmpl.type) : null;
+            return (
+              <button
+                key={tmpl.id}
+                type="button"
+                role="listitem"
+                className={`library-item${selected ? ' library-item--selected' : ''}`}
+                onClick={() => onSelect(tmpl.id, seenMap)}
+                aria-pressed={selected}
+              >
+                <span className="library-item-check" aria-hidden="true">
+                  {selected && <Check size={12} strokeWidth={2} />}
+                </span>
+                <span className="library-item-body">
+                  <span className="library-item-name">{tmpl.name}</span>
+                  {typeLabel && (
+                    <span className="library-item-meta">
+                      <span className="library-item-cat">{typeLabel}</span>
+                    </span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+LibrarySingleSelectList.propTypes = {
+  initialTemplates: PropTypes.arrayOf(PropTypes.object).isRequired,
+  selectedId: PropTypes.string,
+  onSelect: PropTypes.func.isRequired,
+};
+
+LibrarySingleSelectList.defaultProps = {
+  selectedId: null,
+};
+
 // ─── ExerciseComposer ─────────────────────────────────────────────────────────
 
 /**
@@ -213,10 +290,22 @@ const ExerciseComposer = ({
   onSubmitCreate,
   onSubmitEdit,
   onSubmitFromLibrary,
+  onSubmitReplace,
+  canReplaceFromLibrary = true,
   onCancel,
   onRequestDelete,
 }) => {
   const isEditMode = snapshot != null;
+  const showTabs = isEditMode ? canReplaceFromLibrary : true;
+
+  const originalIdentity = isEditMode ? {
+    name: snapshot.name || snapshot.exerciseTemplate?.name || '',
+    type: snapshot.type || snapshot.exerciseTemplate?.type || 'strength',
+    videoUrl: snapshot.videoUrl ?? '',
+    intensity: snapshot.intensity ?? snapshot.exerciseTemplate?.intensity ?? null,
+  } : null;
+
+  const { showToast } = useToast();
 
   const [tab, setTab] = useState('create');
   const [form, setForm] = useState(() =>
@@ -232,6 +321,8 @@ const ExerciseComposer = ({
   const [selectedTemplatesById, setSelectedTemplatesById] = useState({});
   const [errors, setErrors] = useState({});
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [replaceTemplateId, setReplaceTemplateId] = useState(null);
+  const [replaceTemplate, setReplaceTemplate] = useState(null);
 
   const handleFieldChange = (field, value) => {
     setForm((prev) => {
@@ -295,10 +386,21 @@ const ExerciseComposer = ({
     onSubmitCreate(buildPayload(form, { isEdit: false }));
   };
 
-  const doSaveEdit = () => {
+  const doSaveEdit = async () => {
     setConfirmDialog(null);
     setErrors({});
-    onSubmitEdit(snapshot.id, buildPayload(form, { isEdit: true }));
+    const payload = buildPayload(form, { isEdit: true });
+    if (replaceTemplateId && onSubmitReplace) {
+      try {
+        await onSubmitReplace(replaceTemplateId, replaceTemplate, payload);
+        showToast('Exercício substituído.', 'success');
+        onCancel();
+      } catch (err) {
+        showToast(err.userMessage || translateError(err), 'error');
+      }
+      return;
+    }
+    onSubmitEdit(snapshot.id, payload);
   };
 
   const handleSubmitCreate = (e) => {
@@ -329,8 +431,7 @@ const ExerciseComposer = ({
       });
       return;
     }
-    setErrors({});
-    onSubmitEdit(snapshot.id, buildPayload(form, { isEdit: true }));
+    doSaveEdit();
   };
 
   const handleImport = () => {
@@ -353,6 +454,28 @@ const ExerciseComposer = ({
     }
   };
 
+  const handleSelectReplaceTemplate = (id, seenMap) => {
+    if (replaceTemplateId === id) {
+      setReplaceTemplateId(null);
+      setReplaceTemplate(null);
+      setForm((prev) => ({ ...prev, ...originalIdentity }));
+      return;
+    }
+    const tmpl = seenMap?.get(id) || exerciseTemplates.find((t) => t.id === id) || null;
+    setReplaceTemplateId(id);
+    setReplaceTemplate(tmpl);
+    if (tmpl) {
+      setForm((prev) => ({
+        ...prev,
+        name: tmpl.name || prev.name,
+        type: tmpl.type || prev.type,
+        videoUrl: tmpl.videoUrl ?? prev.videoUrl,
+        intensity: tmpl.intensity ?? prev.intensity,
+      }));
+    }
+    setTab('create');
+  };
+
   const activeRestChip = REST_CHIPS.includes(Number(form.restInterval))
     ? Number(form.restInterval)
     : null;
@@ -361,6 +484,12 @@ const ExerciseComposer = ({
 
   const renderCreateForm = (onSubmit, submitLabel) => (
     <form onSubmit={onSubmit} noValidate>
+
+      {isEditMode && replaceTemplateId && (
+        <p className="text-sm text-muted mb-md">
+          Substituindo por <strong>{replaceTemplate?.name || 'exercício selecionado'}</strong> ao salvar.
+        </p>
+      )}
 
       {/* ── Band 1: O ESSENCIAL ── */}
       <div className="composer-band">
@@ -570,19 +699,18 @@ const ExerciseComposer = ({
   return (
     <div className="inline-composer-wide">
       <div className="inline-composer-title">
-        {isEditMode || tab === 'create'
+        {tab === 'create'
           ? <Plus size={12} strokeWidth={2} aria-hidden="true" />
           : <Library size={12} strokeWidth={2} aria-hidden="true" />
         }
         {isEditMode ? 'Editar exercício' : 'Adicionar exercício'}
       </div>
 
-      {/* Segmented toggle — only in create mode */}
-      {!isEditMode && (
+      {showTabs && (
         <div
           className="segmented-toggle segmented-toggle--compact"
           role="tablist"
-          aria-label="Modo de adição"
+          aria-label={isEditMode ? 'Modo de edição' : 'Modo de adição'}
         >
           <button
             type="button"
@@ -591,7 +719,7 @@ const ExerciseComposer = ({
             className={`segmented-toggle-btn${tab === 'create' ? ' segmented-toggle-btn--active' : ''}`}
             onClick={() => setTab('create')}
           >
-            Criar novo
+            {isEditMode ? 'Editar' : 'Criar novo'}
           </button>
           <button
             type="button"
@@ -606,11 +734,11 @@ const ExerciseComposer = ({
       )}
 
       {/* Content by mode */}
-      {isEditMode && renderCreateForm(handleSubmitEdit, 'Salvar alterações')}
+      {tab === 'create' && isEditMode && renderCreateForm(handleSubmitEdit, 'Salvar alterações')}
 
-      {!isEditMode && tab === 'create' && renderCreateForm(handleSubmitCreate, 'Salvar exercício')}
+      {tab === 'create' && !isEditMode && renderCreateForm(handleSubmitCreate, 'Salvar exercício')}
 
-      {!isEditMode && tab === 'library' && (
+      {tab === 'library' && !isEditMode && (
         <>
           <LibraryPanel
             initialTemplates={exerciseTemplates}
@@ -639,6 +767,20 @@ const ExerciseComposer = ({
                 : `Importar ${selectedTemplateIds.length}`}
             </button>
           </div>
+        </>
+      )}
+
+      {tab === 'library' && isEditMode && (
+        <>
+          <p className="text-sm text-muted mb-md">
+            Escolha um exercício da biblioteca para substituir <strong>{snapshot?.name || snapshot?.exerciseTemplate?.name || 'exercício'}</strong>.
+            Nome, tipo e vídeo serão atualizados — os demais campos continuam editáveis na aba &quot;Editar&quot;.
+          </p>
+          <LibrarySingleSelectList
+            initialTemplates={exerciseTemplates}
+            selectedId={replaceTemplateId}
+            onSelect={handleSelectReplaceTemplate}
+          />
         </>
       )}
 
@@ -678,12 +820,15 @@ ExerciseComposer.propTypes = {
   onSubmitCreate: PropTypes.func.isRequired,
   onSubmitEdit: PropTypes.func.isRequired,
   onSubmitFromLibrary: PropTypes.func.isRequired,
+  onSubmitReplace: PropTypes.func,
+  canReplaceFromLibrary: PropTypes.bool,
   onCancel: PropTypes.func.isRequired,
   onRequestDelete: PropTypes.func,
 };
 
 ExerciseComposer.defaultProps = {
   snapshot: null,
+  onSubmitReplace: null,
   onRequestDelete: null,
 };
 
