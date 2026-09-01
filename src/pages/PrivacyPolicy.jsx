@@ -23,7 +23,7 @@ const PrivacyPolicy = () => {
             <div className="legal-hero-text">
               <p className="legal-eyebrow">Política de Privacidade</p>
               <h1 className="legal-title">Privacidade e proteção de dados</h1>
-              <p className="legal-last-updated">Última atualização: 18 de junho de 2026</p>
+              <p className="legal-last-updated">Última atualização: 1.º de setembro de 2026</p>
             </div>
           </div>
 
@@ -61,6 +61,16 @@ const PrivacyPolicy = () => {
                 <li>Nome completo;</li>
                 <li>Endereço de e-mail;</li>
                 <li>Data de nascimento;</li>
+                <li>Gênero;</li>
+                <li>
+                  Endereço completo (logradouro, número, complemento, bairro, cidade, estado e CEP),
+                  quando informado;
+                </li>
+                <li>Perfil em rede social (Instagram), quando informado voluntariamente;</li>
+                <li>
+                  Foto de avatar do perfil — imagem de identificação da conta, distinta das fotos de
+                  progresso corporal descritas no item 2.4 e não classificada como dado pessoal sensível;
+                </li>
                 <li>Informações de autenticação (senha criptografada via provedor de identidade).</li>
               </ul>
 
@@ -104,7 +114,11 @@ const PrivacyPolicy = () => {
               <ul className="legal-list">
                 <li>Endereço IP e identificadores de dispositivo;</li>
                 <li>Informações de sessão e autenticação;</li>
-                <li>Registros de acesso (logs) para segurança e auditoria.</li>
+                <li>Registros de acesso (logs) para segurança e auditoria;</li>
+                <li>
+                  Eventos de uso do aplicativo e relatórios de falha coletados por ferramentas de
+                  <em> analytics</em> e diagnóstico, conforme detalhado na Seção 11.
+                </li>
               </ul>
             </section>
 
@@ -341,6 +355,15 @@ const PrivacyPolicy = () => {
                 art. 15). Decorrido esse prazo, os logs também são eliminados de forma definitiva.
               </p>
               <p>
+                Também excepcionalmente, os <strong>registros de assinatura e de cobrança</strong> —
+                plano contratado, ciclo, datas, valores e status de pagamento — são retidos após a
+                exclusão da conta pelo prazo exigido pela legislação fiscal e contábil aplicável,{' '}
+                <strong>de forma desvinculada dos demais dados pessoais</strong> eliminados. Esses
+                registros são conservados exclusivamente para cumprimento de obrigação legal e
+                regulatória (art. 7.º, inciso II, da LGPD) e não são utilizados para nenhuma outra
+                finalidade.
+              </p>
+              <p>
                 A exclusão de conta é irreversível. Caso deseje retomar o uso da plataforma após a
                 exclusão, será necessário criar uma nova conta.
               </p>
@@ -349,9 +372,21 @@ const PrivacyPolicy = () => {
             <section className="legal-section">
               <h2 className="legal-section-title">10. Menores de idade</h2>
               <p>
-                O uso da plataforma TeuFit por menores de 18 anos requer o consentimento específico e em
-                destaque de pelo menos um dos pais ou do responsável legal, em conformidade com o art. 14
-                da LGPD.
+                O cadastro na plataforma TeuFit exige idade mínima de <strong>18 anos</strong> para
+                personal trainers, por serem eles quem contrata a Assinatura da Plataforma e presta
+                serviço profissional, o que exige capacidade civil plena. Na condição de{' '}
+                <strong>aluno</strong>, o cadastro é permitido a partir dos <strong>13 anos de
+                idade</strong>. Os mesmos requisitos constam da Seção 3 dos nossos Termos e Condições de
+                Uso.
+              </p>
+              <p>
+                <strong>Não é permitido o cadastro de crianças menores de 13 anos.</strong> Para
+                adolescentes entre 13 e 17 anos, o tratamento de dados pessoais ocorre em execução de
+                contrato e <strong>no melhor interesse do adolescente</strong>, conforme o art. 14,{' '}
+                <em>caput</em>, da LGPD. O § 1.º do art. 14, que exige consentimento específico e em
+                destaque de pelo menos um dos pais ou do responsável legal, dirige-se ao tratamento de
+                dados de <em>crianças</em> — pessoas de até 12 anos de idade, nos termos do Estatuto da
+                Criança e do Adolescente —, faixa etária que a Plataforma não admite.
               </p>
               <p>
                 Caso identifiquemos que coletamos dados de menor de idade sem o consentimento adequado,
@@ -361,7 +396,13 @@ const PrivacyPolicy = () => {
             </section>
 
             <section className="legal-section">
-              <h2 className="legal-section-title">11. Cookies e tecnologias de rastreamento</h2>
+              <h2 className="legal-section-title">11. Cookies, analytics e tecnologias de rastreamento</h2>
+              <p>
+                Esta seção aplica-se tanto à <strong>versão web</strong> quanto ao{' '}
+                <strong>aplicativo móvel</strong> da TeuFit.
+              </p>
+
+              <h3 className="legal-subsection-title">11.1 Cookies e armazenamento local (versão web)</h3>
               <p>
                 A versão web da TeuFit utiliza tecnologias padrão de armazenamento local (cookies e
                 localStorage) para as seguintes finalidades:
@@ -376,10 +417,37 @@ const PrivacyPolicy = () => {
                   forma segura no dispositivo do usuário para evitar logins repetidos.
                 </li>
               </ul>
+
+              <h3 className="legal-subsection-title">
+                11.2 Analytics e diagnóstico de falhas (aplicativo móvel)
+              </h3>
               <p>
-                Não utilizamos cookies de rastreamento publicitário ou de terceiros para fins de
-                publicidade comportamental. O uso de cookies de desempenho e analíticos, quando
-                implementado, será comunicado com antecedência e sujeito ao consentimento do usuário.
+                O aplicativo móvel da TeuFit utiliza os serviços <strong>Firebase Analytics</strong> e{' '}
+                <strong>Firebase Crashlytics</strong>, fornecidos pelo Google, para medir o uso da
+                Plataforma e diagnosticar falhas:
+              </p>
+              <ul className="legal-list">
+                <li>
+                  <strong>Firebase Analytics:</strong> registra eventos de uso e navegação no aplicativo,
+                  associados a um <strong>identificador interno de usuário</strong> e a propriedades de
+                  perfil — o papel na Plataforma (personal trainer ou aluno) e o status da conta —,
+                  gravados após a autenticação;
+                </li>
+                <li>
+                  <strong>Firebase Crashlytics:</strong> coleta relatórios de falhas e erros do
+                  aplicativo, incluindo dados técnicos do dispositivo e o estado da aplicação no momento
+                  da falha. A coleta é ativada na inicialização do aplicativo.
+                </li>
+              </ul>
+              <p>
+                A base legal desses tratamentos é o <strong>legítimo interesse</strong> (art. 7.º, inciso
+                IX, da LGPD), nas finalidades de segurança, prevenção de fraudes e melhoria da plataforma
+                já descritas na Seção 4 — e não o consentimento. Você pode exercer o direito de oposição
+                previsto na Seção 7 desta política pelos canais indicados na Seção 13.
+              </p>
+              <p>
+                <strong>Não utilizamos cookies ou identificadores de rastreamento publicitário</strong>,
+                nem compartilhamos dados com terceiros para fins de publicidade comportamental.
               </p>
             </section>
 
@@ -431,7 +499,7 @@ const PrivacyPolicy = () => {
           <span className="legal-footer-brand">TeuFit</span>
           <span className="legal-footer-sep" aria-hidden="true">·</span>
           <span className="legal-footer-copy">
-            Política de Privacidade — Última atualização: 18 de junho de 2026
+            Política de Privacidade — Última atualização: 1.º de setembro de 2026
           </span>
           <span className="legal-footer-sep" aria-hidden="true">·</span>
           <Link to="/terms" className="legal-contact-link">Termos e Condições</Link>
