@@ -3594,6 +3594,9 @@ describe('RoutineBuilder — smooth scroll after exercise creation', () => {
     // Open the add-exercise composer
     await user.click(screen.getByRole('button', { name: /Adicionar exercício/i }));
 
+    // Composer opens on the "Da biblioteca" tab by default — switch to "Criar novo"
+    await user.click(await screen.findByRole('tab', { name: /Criar novo/i }));
+
     // Fill minimum required fields and submit
     const nameInput = await screen.findByLabelText(/Nome/i);
     await user.type(nameInput, 'Leg press');
@@ -3626,6 +3629,9 @@ describe('RoutineBuilder — smooth scroll after exercise creation', () => {
     await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
     await screen.findByRole('list', { name: /Exercícios/i });
     await user.click(screen.getByRole('button', { name: /Adicionar exercício/i }));
+
+    // Composer opens on the "Da biblioteca" tab by default — switch to "Criar novo"
+    await user.click(await screen.findByRole('tab', { name: /Criar novo/i }));
 
     const nameInput = await screen.findByLabelText(/Nome/i);
     await user.type(nameInput, 'Leg press');
