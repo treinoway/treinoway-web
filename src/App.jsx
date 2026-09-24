@@ -15,6 +15,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import InviteRedeem from './pages/InviteRedeem';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Terms from './pages/Terms';
+import AccountDeletion from './pages/AccountDeletion';
 
 // Protected pages
 import Dashboard from './pages/Dashboard';
@@ -100,6 +101,7 @@ function App() {
           <Route path="/invite" element={<InviteRedeem />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/account-deletion" element={<AccountDeletion />} />
 
           {/* Protected routes */}
           <Route

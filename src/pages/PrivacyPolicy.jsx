@@ -23,7 +23,7 @@ const PrivacyPolicy = () => {
             <div className="legal-hero-text">
               <p className="legal-eyebrow">Política de Privacidade</p>
               <h1 className="legal-title">Privacidade e proteção de dados</h1>
-              <p className="legal-last-updated">Última atualização: 1.º de setembro de 2026</p>
+              <p className="legal-last-updated">Última atualização: 9 de setembro de 2026</p>
             </div>
           </div>
 
@@ -66,7 +66,11 @@ const PrivacyPolicy = () => {
                   Endereço completo (logradouro, número, complemento, bairro, cidade, estado e CEP),
                   quando informado;
                 </li>
-                <li>Perfil em rede social (Instagram), quando informado voluntariamente;</li>
+                <li>
+                  Perfis em redes sociais e aplicativos de mensagem (Instagram, WhatsApp, X,
+                  Facebook, Threads, LinkedIn e YouTube), quando informados voluntariamente. O
+                  contato de WhatsApp constitui número de telefone;
+                </li>
                 <li>
                   Foto de avatar do perfil — imagem de identificação da conta, distinta das fotos de
                   progresso corporal descritas no item 2.4 e não classificada como dado pessoal sensível;
@@ -499,10 +503,12 @@ const PrivacyPolicy = () => {
           <span className="legal-footer-brand">TeuFit</span>
           <span className="legal-footer-sep" aria-hidden="true">·</span>
           <span className="legal-footer-copy">
-            Política de Privacidade — Última atualização: 1.º de setembro de 2026
+            Política de Privacidade — Última atualização: 9 de setembro de 2026
           </span>
           <span className="legal-footer-sep" aria-hidden="true">·</span>
           <Link to="/terms" className="legal-contact-link">Termos e Condições</Link>
+          <span className="legal-footer-sep" aria-hidden="true">·</span>
+          <Link to="/account-deletion" className="legal-contact-link">Exclusão de Conta</Link>
           <span className="legal-footer-sep" aria-hidden="true">·</span>
           <Link to="/login" className="legal-contact-link">Voltar para o login</Link>
         </div>

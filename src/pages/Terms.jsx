@@ -486,6 +486,8 @@ const Terms = () => {
           <span className="legal-footer-sep" aria-hidden="true">·</span>
           <Link to="/privacy-policy" className="legal-contact-link">Política de Privacidade</Link>
           <span className="legal-footer-sep" aria-hidden="true">·</span>
+          <Link to="/account-deletion" className="legal-contact-link">Exclusão de Conta</Link>
+          <span className="legal-footer-sep" aria-hidden="true">·</span>
           <Link to="/login" className="legal-contact-link">Voltar para o login</Link>
         </div>
       </footer>

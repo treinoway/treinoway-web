@@ -51,12 +51,15 @@ describe('PrivacyPolicy', () => {
   });
 
   it('lists every profile field the app collects in section 2.1', () => {
-    renderWithRouter(<PrivacyPolicy />);
+    const { container } = renderWithRouter(<PrivacyPolicy />);
 
     expect(screen.getByText(/^Gênero;$/)).toBeInTheDocument();
     expect(screen.getByText(/Endereço completo \(logradouro/i)).toBeInTheDocument();
-    expect(screen.getByText(/Perfil em rede social \(Instagram\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Foto de avatar do perfil/i)).toBeInTheDocument();
+    expect(container.textContent).toMatch(
+      /Instagram, WhatsApp, X,\s*Facebook, Threads, LinkedIn e YouTube/
+    );
+    expect(container.textContent).toMatch(/número de telefone/i);
   });
 
   it('discloses Firebase Analytics and Crashlytics under legitimate interest', () => {

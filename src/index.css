@@ -27332,6 +27332,64 @@ nav.onboarding-steps {
   border-radius: var(--radius-brand);
 }
 
+/* Deletion-path action cards (e.g. AccountDeletion — in-app vs. e-mail path) */
+.legal-action-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+
+.legal-action-card {
+  background: var(--brand-mist);
+  border: 1px solid var(--brand-divider);
+  border-radius: var(--radius-brand);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.legal-action-card--primary {
+  background: var(--md-surface);
+  border: 1px solid var(--brand-primary);
+  box-shadow: var(--shadow-brand-md);
+}
+
+.legal-action-card-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin: 0;
+}
+
+.legal-action-card-title {
+  font-family: var(--font-family-display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: var(--line-height-tight);
+  color: var(--brand-ink);
+  margin: 0;
+}
+
+.legal-action-card p {
+  font-size: 16px;
+  line-height: var(--line-height-relaxed);
+  color: var(--brand-ink);
+  margin: 0;
+}
+
+.legal-action-card .legal-contact-link {
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .legal-action-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* Footer */
 .legal-footer {
   background: var(--md-surface);
