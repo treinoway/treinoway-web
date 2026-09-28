@@ -5,6 +5,12 @@ import MyAnamneses from './MyAnamneses';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 vi.mock('../../contexts/ToastContext', () => ({
   useToast: vi.fn(),
 }));
@@ -106,6 +112,7 @@ function setupApiMocks({ linksData = mockLinks, responseStatus = 404 } = {}) {
 describe('MyAnamneses', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
+    mockNavigate.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockReset();
     api.post.mockReset();
@@ -226,7 +233,7 @@ describe('MyAnamneses', () => {
     });
   });
 
-  it('shows response form when "Responder" is clicked', async () => {
+  it('navigates to the answer wizard when "Responder" is clicked', async () => {
     const user = userEvent.setup();
     setupApiMocks({ linksData: [mockLinks[0]] });
     renderWithRouter(<MyAnamneses />);
@@ -234,199 +241,98 @@ describe('MyAnamneses', () => {
       expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
     });
     await user.click(screen.getByRole('button', { name: 'Responder' }));
-    expect(screen.getByText(/Você tem alguma doença\?/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Enviar resposta' })).toBeInTheDocument();
+    expect(mockNavigate).toHaveBeenCalledWith('/my/anamneses/anamnesis-1/answer');
   });
 
-  it('pre-fills form when existing response is loaded', async () => {
-    setupApiMocks({ linksData: [mockLinks[0]], responseStatus: 200 });
+  it('does not open an inline form or submit anything on "Responder"', async () => {
     const user = userEvent.setup();
+    setupApiMocks({ linksData: [mockLinks[0]] });
+    renderWithRouter(<MyAnamneses />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: 'Responder' }));
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /enviar resposta/i })).not.toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('shows "Atualizar resposta" and the submitted date when a response exists, and navigates to the wizard', async () => {
+    const user = userEvent.setup();
+    setupApiMocks({ linksData: [mockLinks[0]], responseStatus: 200 });
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Atualizar resposta' })).toBeInTheDocument();
     });
+    expect(screen.getByText(/Respondido em 01\/03\/2026/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Atualizar resposta' }));
-    // q1 is dichotomous, answer is 'yes' — should have "Sim" radio checked
-    const simRadio = screen.getByRole('radio', { name: 'Sim' });
-    expect(simRadio).toBeChecked();
+    expect(mockNavigate).toHaveBeenCalledWith('/my/anamneses/anamnesis-1/answer');
   });
 
-  it('submits response and shows success toast', async () => {
-    const user = userEvent.setup();
+  it('does not show "Respondido em" when there is no response yet', async () => {
     setupApiMocks({ linksData: [mockLinks[0]] });
-    api.post.mockResolvedValue({ data: mockResponse });
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
     });
-    await user.click(screen.getByRole('button', { name: 'Responder' }));
-    // Click "Sim" radio
-    await user.click(screen.getByRole('radio', { name: 'Sim' }));
-    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
-    await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/my/anamneses/anamnesis-1/response', {
-        answers: [{ questionId: 'q1', value: 'yes' }],
-      });
-      expect(mockShowToast).toHaveBeenCalledWith('Resposta enviada com sucesso!', 'success');
-    });
+    expect(screen.queryByText(/Respondido em/)).not.toBeInTheDocument();
   });
 
-  it('shows "Respondido em" date after successful submission', async () => {
-    const user = userEvent.setup();
-    setupApiMocks({ linksData: [mockLinks[0]] });
-    api.post.mockResolvedValue({ data: mockResponse });
+  it('toasts when loading the response fails with a non-404 error', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/my/anamneses') return Promise.resolve({ data: [mockLinks[0]] });
+      return Promise.reject({ userMessage: 'Erro ao carregar resposta', response: { status: 500 } });
+    });
     renderWithRouter(<MyAnamneses />);
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Responder' }));
-    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
-    await waitFor(() => {
-      expect(screen.getByText(/Respondido em/)).toBeInTheDocument();
+      expect(mockShowToast).toHaveBeenCalledWith('Erro ao carregar resposta', 'error');
     });
   });
 
-  // ── Conditional questions ─────────────────────────────────
-
-  describe('conditional questions', () => {
-    const conditionalLink = {
-      id: 'link-c',
-      anamnesisId: 'anamnesis-c',
-      studentId: 'student-1',
-      trainerId: 'trainer-1',
-      createdAt: '2026-04-20T08:00:00.000Z',
+  describe('question preview', () => {
+    const previewLink = {
+      ...mockLinks[0],
       anamnesis: {
-        id: 'anamnesis-c',
-        title: 'Anamnese Condicional',
-        description: null,
-        isGeneral: false,
+        ...mockLinks[0].anamnesis,
         sections: [
           {
-            id: 'sec-1',
-            title: 'Treino',
+            id: 'sec-preview',
+            title: 'Preview',
             order: 0,
             questions: [
-              {
-                id: 'parent-dich',
-                text: 'Você treina atualmente?',
-                type: 'dichotomous',
-                required: true,
-                order: 0,
-                options: [],
-                parentQuestionId: null,
-                condition: null,
-              },
-              {
-                id: 'child-numeric',
-                text: 'Há quantos anos você treina?',
-                type: 'numeric',
-                required: true,
-                order: 1,
-                options: [],
-                parentQuestionId: 'parent-dich',
-                condition: { operator: 'equals', value: 'yes' },
-              },
+              { id: 'p2', text: 'Quanto pesa?', type: 'numeric', required: false, order: 1, options: [], config: { min: '30', max: '', unit: 'kg' } },
+              { id: 'p1', text: 'Qual turno?', type: 'single_choice', required: true, order: 0, options: [{ id: 'o1', text: 'Manhã' }, { id: 'o2', text: 'Noite' }] },
             ],
           },
         ],
       },
-      trainer: { id: 'trainer-1', user: { firstName: 'João', lastName: 'Silva', avatarUrl: null } },
     };
 
-    it('does not render a conditional child until parent answer matches', async () => {
+    it('lists questions in order with type, required badge and hints', async () => {
       const user = userEvent.setup();
-      setupApiMocks({ linksData: [conditionalLink] });
+      setupApiMocks({ linksData: [previewLink] });
       renderWithRouter(<MyAnamneses />);
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: 'Responder' }));
-
-      // Child not visible initially (parent unanswered)
-      expect(screen.queryByText(/Há quantos anos você treina\?/)).not.toBeInTheDocument();
-
-      // Answer parent "Sim" → child appears
-      await user.click(screen.getByRole('radio', { name: 'Sim' }));
-      expect(screen.getByText(/Há quantos anos você treina\?/)).toBeInTheDocument();
-
-      // Flip to "Não" → child hidden
-      await user.click(screen.getByRole('radio', { name: 'Não' }));
-      expect(screen.queryByText(/Há quantos anos você treina\?/)).not.toBeInTheDocument();
+      await user.click(await screen.findByRole('button', { name: /ver perguntas/i }));
+      await user.click(screen.getByRole('button', { name: /seção preview/i }));
+      const first = screen.getByText(/1\. Qual turno\?/);
+      const second = screen.getByText(/2\. Quanto pesa\?/);
+      expect(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(screen.getByText('Obrigatória')).toBeInTheDocument();
+      expect(screen.getByText('Manhã')).toBeInTheDocument();
+      expect(screen.getByText('Mín: 30 · Unidade: kg')).toBeInTheDocument();
     });
 
-    it('clears stale child value when parent flips so it is not submitted', async () => {
+    it('collapses a section again', async () => {
       const user = userEvent.setup();
-      setupApiMocks({ linksData: [conditionalLink] });
-      api.post.mockResolvedValue({ data: { id: 'r-1', answers: [] } });
+      setupApiMocks({ linksData: [previewLink] });
       renderWithRouter(<MyAnamneses />);
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: 'Responder' }));
-
-      // Parent = Sim, fill child = 5
-      await user.click(screen.getByRole('radio', { name: 'Sim' }));
-      const numeric = screen.getByPlaceholderText(/valor numérico/i);
-      await user.type(numeric, '5');
-
-      // Flip parent to Não → child is hidden and its value is cleared
-      await user.click(screen.getByRole('radio', { name: 'Não' }));
-
-      // Submit → payload must NOT contain the stale child value
-      await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
-      await waitFor(() => {
-        expect(api.post).toHaveBeenCalled();
-      });
-      const payload = api.post.mock.calls[0][1];
-      const childAnswer = payload.answers.find((a) => a.questionId === 'child-numeric');
-      expect(childAnswer).toBeUndefined();
-      // Parent answer is submitted
-      const parentAnswer = payload.answers.find((a) => a.questionId === 'parent-dich');
-      expect(parentAnswer).toEqual({ questionId: 'parent-dich', value: 'no' });
-    });
-
-    it('required-field validation skips hidden children (no 400 needed locally)', async () => {
-      const user = userEvent.setup();
-      setupApiMocks({ linksData: [conditionalLink] });
-      api.post.mockResolvedValue({ data: { id: 'r-ok', answers: [] } });
-      renderWithRouter(<MyAnamneses />);
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
-      });
-      await user.click(screen.getByRole('button', { name: 'Responder' }));
-      // Parent = Não — child is hidden but still marked required at the data level
-      await user.click(screen.getByRole('radio', { name: 'Não' }));
-      await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
-      await waitFor(() => {
-        expect(api.post).toHaveBeenCalled();
-      });
-      // Confirm only the parent answer is sent
-      const payload = api.post.mock.calls[0][1];
-      expect(payload.answers).toEqual([{ questionId: 'parent-dich', value: 'no' }]);
-    });
-  });
-
-  it('shows per-question validation errors on 400 response', async () => {
-    const user = userEvent.setup();
-    setupApiMocks({ linksData: [mockLinks[0]] });
-    const validationError = {
-      response: {
-        status: 400,
-        data: {
-          error: 'VALIDATION_ERROR',
-          details: [{ questionId: 'q1', message: 'Este campo é obrigatório.' }],
-        },
-      },
-    };
-    api.post.mockRejectedValue(validationError);
-    renderWithRouter(<MyAnamneses />);
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Responder' })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: 'Responder' }));
-    await user.click(screen.getByRole('button', { name: 'Enviar resposta' }));
-    await waitFor(() => {
-      expect(screen.getByText('Este campo é obrigatório.')).toBeInTheDocument();
+      await user.click(await screen.findByRole('button', { name: /ver perguntas/i }));
+      const toggle = screen.getByRole('button', { name: /seção preview/i });
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByText(/Qual turno\?/)).not.toBeInTheDocument();
     });
   });
 });

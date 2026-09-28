@@ -68,6 +68,7 @@ import MyDietProtocol from './pages/my/MyDietProtocol';
 
 import MyProtocols from './pages/my/MyProtocols';
 import MyAnamneses from './pages/my/MyAnamneses';
+import AnamnesisWizard from './pages/my/AnamnesisWizard';
 import MyProtocolDetail from './pages/my/MyProtocolDetail';
 import WorkoutSessions from './pages/my/WorkoutSessions';
 import WorkoutSession from './pages/my/WorkoutSession';
@@ -539,6 +540,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <MyAnamneses />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my/anamneses/:anamnesisId/answer"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <AnamnesisWizard />
                 </Layout>
               </ProtectedRoute>
             }

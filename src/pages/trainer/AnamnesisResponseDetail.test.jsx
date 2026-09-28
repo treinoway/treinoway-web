@@ -55,24 +55,48 @@ const mockAnamnesis = {
           text: 'Turno preferido?',
           type: 'single_choice',
           order: 3,
-          config: { options: ['Manhã', 'Tarde', 'Noite'] },
+          config: null,
+          options: [
+            { id: 'o-s1', text: 'Manhã', order: 0 },
+            { id: 'o-s2', text: 'Tarde', order: 1 },
+            { id: 'o-s3', text: 'Noite', order: 2 },
+          ],
         },
         {
           id: 'q-multi',
           text: 'Atividades praticadas?',
           type: 'multiple_choice',
           order: 4,
-          config: { options: ['Musculação', 'Corrida', 'Natação'] },
+          config: null,
+          options: [
+            { id: 'o-m1', text: 'Musculação', order: 0 },
+            { id: 'o-m2', text: 'Corrida', order: 1 },
+            { id: 'o-m3', text: 'Natação', order: 2 },
+            { id: 'o-m4', text: 'Yoga', order: 3 },
+          ],
         },
         {
           id: 'q-matrix',
-          text: 'Disponibilidade semanal?',
+          text: 'Nível de disponibilidade?',
           type: 'matrix',
           order: 5,
-          config: {
-            rows: ['Manhã', 'Tarde'],
-            cols: ['Seg', 'Ter'],
-          },
+          config: { rows: ['Manhã', 'Tarde'], columns: ['Seg', 'Ter'] },
+          options: [
+            { id: 'o-x1', text: 'Baixa', order: 0 },
+            { id: 'o-x2', text: 'Média', order: 1 },
+            { id: 'o-x3', text: 'Alta', order: 2 },
+          ],
+        },
+        {
+          id: 'q-orphan',
+          text: 'Local de treino?',
+          type: 'single_choice',
+          order: 6,
+          config: null,
+          options: [
+            { id: 'o-o1', text: 'Academia', order: 0 },
+            { id: 'o-o2', text: 'Casa', order: 1 },
+          ],
         },
       ],
     },
@@ -87,11 +111,8 @@ const mockResponse = {
     { id: 'a3', questionId: 'q-bool', value: 'true' },
     { id: 'a4', questionId: 'q-single', value: 'Manhã' },
     { id: 'a5', questionId: 'q-multi', value: ['Musculação', 'Corrida'] },
-    {
-      id: 'a6',
-      questionId: 'q-matrix',
-      value: { Manhã: { Seg: true }, Tarde: { Ter: true } },
-    },
+    { id: 'a6', questionId: 'q-matrix', value: 'Média' },
+    { id: 'a7', questionId: 'q-orphan', value: 'Parque' },
   ],
 };
 
@@ -202,42 +223,75 @@ describe('AnamnesisResponseDetail', () => {
     await waitFor(() => expect(screen.getByText('Sim')).toBeInTheDocument());
   });
 
-  it('renders SINGLE_CHOICE answer as selected chip', async () => {
+  it('renders SINGLE_CHOICE with all options and only the answer selected', async () => {
     setupApi();
     renderPage();
-    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
-    // Find the selected chip among all elements with the class
-    const selectedChips = document.querySelectorAll('.qa-answer-chip--selected');
-    const manhãChip = Array.from(selectedChips).find((el) => el.textContent === 'Manhã');
-    expect(manhãChip).toBeTruthy();
+    await waitFor(() => expect(screen.getByText('Turno preferido?')).toBeInTheDocument());
+    expect(screen.getByText('Manhã')).toHaveClass('qa-answer-chip--selected');
+    expect(screen.getByText('Tarde')).not.toHaveClass('qa-answer-chip--selected');
+    expect(screen.getByText('Noite')).not.toHaveClass('qa-answer-chip--selected');
   });
 
-  it('renders MULTIPLE_CHOICE with selected and unselected chips', async () => {
+  it('renders MULTIPLE_CHOICE with all options, 2 of 4 selected', async () => {
     setupApi();
     renderPage();
     await waitFor(() => expect(screen.getByText('Musculação')).toBeInTheDocument());
-    const selected = screen.getByText('Musculação');
-    expect(selected).toHaveClass('qa-answer-chip--selected');
-    const unselected = screen.getByText('Natação');
-    expect(unselected).not.toHaveClass('qa-answer-chip--selected');
+    expect(screen.getByText('Musculação')).toHaveClass('qa-answer-chip--selected');
+    expect(screen.getByText('Corrida')).toHaveClass('qa-answer-chip--selected');
+    expect(screen.getByText('Natação')).not.toHaveClass('qa-answer-chip--selected');
+    expect(screen.getByText('Yoga')).not.toHaveClass('qa-answer-chip--selected');
   });
 
-  it('renders MATRIX answer as a table', async () => {
+  it('shows a value outside the current options as an extra labelled chip', async () => {
     setupApi();
     renderPage();
-    await waitFor(() => expect(screen.getByText('Disponibilidade semanal?')).toBeInTheDocument());
-    // Table must exist inside the qa-answer-matrix container
-    const matrix = document.querySelector('.qa-answer-matrix');
-    expect(matrix).not.toBeNull();
-    expect(matrix.querySelector('table')).not.toBeNull();
-    // Column headers are in <th>
-    const ths = Array.from(matrix.querySelectorAll('th'));
-    expect(ths.some((th) => th.textContent === 'Seg')).toBe(true);
-    expect(ths.some((th) => th.textContent === 'Ter')).toBe(true);
-    // Row label cells
-    const labelCells = Array.from(matrix.querySelectorAll('td.qa-answer-matrix-label'));
-    expect(labelCells.some((td) => td.textContent === 'Manhã')).toBe(true);
-    expect(labelCells.some((td) => td.textContent === 'Tarde')).toBe(true);
+    await waitFor(() => expect(screen.getByText('Local de treino?')).toBeInTheDocument());
+    const orphan = screen.getByText('Parque (fora das opções atuais)');
+    expect(orphan).toHaveClass('qa-answer-chip--selected');
+    expect(screen.getByText('Academia')).not.toHaveClass('qa-answer-chip--selected');
+    expect(screen.getByText('Casa')).not.toHaveClass('qa-answer-chip--selected');
+  });
+
+  it('treats a lone string on a MULTIPLE_CHOICE as an array of one', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students/student-1') return Promise.resolve({ data: mockStudent });
+      if (url === '/trainer/anamneses/anamnesis-1') return Promise.resolve({ data: mockAnamnesis });
+      return Promise.resolve({
+        data: {
+          ...mockResponse,
+          answers: [{ id: 'a5', questionId: 'q-multi', value: 'Yoga' }],
+        },
+      });
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Yoga')).toBeInTheDocument());
+    expect(screen.getByText('Yoga')).toHaveClass('qa-answer-chip--selected');
+    expect(screen.getByText('Musculação')).not.toHaveClass('qa-answer-chip--selected');
+  });
+
+  it('renders MATRIX with a string value like a single choice', async () => {
+    setupApi();
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Nível de disponibilidade?')).toBeInTheDocument());
+    expect(screen.getByText('Média')).toHaveClass('qa-answer-chip--selected');
+    expect(screen.getByText('Baixa')).not.toHaveClass('qa-answer-chip--selected');
+    expect(screen.getByText('Alta')).not.toHaveClass('qa-answer-chip--selected');
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('shows "Sem resposta" for an empty multiple choice array', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students/student-1') return Promise.resolve({ data: mockStudent });
+      if (url === '/trainer/anamneses/anamnesis-1') return Promise.resolve({ data: mockAnamnesis });
+      return Promise.resolve({
+        data: { ...mockResponse, answers: [{ id: 'a5', questionId: 'q-multi', value: [] }] },
+      });
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Atividades praticadas?')).toBeInTheDocument());
+    expect(screen.queryByText('Musculação')).not.toBeInTheDocument();
+    // all 7 questions of the fixture are unanswered
+    expect(screen.getAllByText('Sem resposta')).toHaveLength(7);
   });
 
   it('shows submitted date in meta bar when response exists', async () => {
