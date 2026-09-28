@@ -20,9 +20,9 @@ jobs:
           ref: ${{ inputs.branch }}
 
       - name: Install Railway CLI
-        run: npm install -g @railway/cli
+        run: npm install -g @railway/cli@5.63.1
 
       - name: Deploy to Railway staging
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING_TOKEN }}
-        run: railway up --service treinoway-web
+        run: railway up --service treinoway-web-staging
