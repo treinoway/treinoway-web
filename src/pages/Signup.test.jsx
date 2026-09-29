@@ -1,11 +1,16 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter } from '../test/test-utils';
 import Signup from './Signup';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../api/axios';
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
+}));
+
+vi.mock('../api/axios', () => ({
+  default: { get: vi.fn() },
 }));
 
 const mockNavigate = vi.fn();
@@ -27,6 +32,9 @@ describe('Signup', () => {
     mockSignup.mockReset();
     mockLoginWithGoogle.mockReset();
     mockNavigate.mockReset();
+    // Default: invite preview unavailable (network) → graceful fallback form.
+    vi.mocked(api.get).mockReset();
+    vi.mocked(api.get).mockRejectedValue({ userMessage: 'Sem conexão.' });
   });
 
   it('renders logo, heading, subtitle, email field, password field, and submit button', () => {
@@ -291,7 +299,7 @@ describe('Signup', () => {
 
     renderWithRouter(<Signup />, { route: '/signup?code=TF-8F3K-2Q7M-04' });
 
-    await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
+    await user.type(await screen.findByLabelText(/e-mail/i), 'user@example.com');
     await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
     await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
 
@@ -377,15 +385,213 @@ describe('Signup', () => {
     );
   });
 
-  it('shows the email hint when a code is present', () => {
+  it('shows the email hint when a code is present and the preview is unavailable', async () => {
     renderWithRouter(<Signup />, { route: '/signup?code=TF-8F3K-2Q7M-04' });
 
-    expect(screen.getByText(/use o e-mail em que você recebeu o convite/i)).toBeInTheDocument();
+    expect(await screen.findByText(/use o e-mail em que você recebeu o convite/i)).toBeInTheDocument();
   });
 
   it('does not show the email hint when no code is present', () => {
     renderWithRouter(<Signup />, { route: '/signup' });
 
     expect(screen.queryByText(/use o e-mail em que você recebeu o convite/i)).not.toBeInTheDocument();
+  });
+  it('does not request an invite preview when no code is present', () => {
+    renderWithRouter(<Signup />, { route: '/signup' });
+
+    expect(api.get).not.toHaveBeenCalled();
+    expect(screen.queryByText(/beta fechado/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: /etapas do convite/i })).not.toBeInTheDocument();
+  });
+
+  describe('invite flow (?code=)', () => {
+    const ROUTE = '/signup?code=tf-7bca-yazs-bd';
+    const PREVIEW = {
+      email: 'convidado@teufit.com.br',
+      invitedByName: 'Carolina',
+      expiresAt: '2026-10-15T00:00:00.000Z',
+      accountExists: false,
+    };
+    const rejectWith = (status, messageCode) => {
+      vi.mocked(api.get).mockRejectedValue({
+        response: { status, data: { messageCode } },
+        errorInfo: { status, messageCode },
+        userMessage: 'Convite inválido.',
+      });
+    };
+
+    it('replaces the generic subtitle with the invite context (always the impersonal title)', async () => {
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      // The title is always impersonal, even though the preview payload
+      // includes an invitedByName — the frontend no longer reads that field.
+      expect(
+        await screen.findByRole('heading', { name: /você foi convidado\(a\) para o teste fechado/i })
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/alunos, treinos e resultados/i)).not.toBeInTheDocument();
+      expect(screen.getByText('Beta fechado')).toBeInTheDocument();
+      expect(screen.getByText('TF-7BCA-YAZS-BD')).toBeInTheDocument();
+      expect(api.get).toHaveBeenCalledWith(
+        '/invite/preview',
+        expect.objectContaining({ params: { code: 'TF-7BCA-YAZS-BD' } })
+      );
+    });
+
+    it('renders the 2-step indicator with "Criar conta" as the current step', async () => {
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      const steps = await screen.findByRole('list', { name: /etapas do convite/i });
+      const [first, second] = within(steps).getAllByRole('listitem');
+      expect(first).toHaveTextContent(/criar conta/i);
+      expect(first).toHaveAttribute('aria-current', 'step');
+      expect(second).toHaveTextContent(/acesso liberado/i);
+      expect(second).not.toHaveAttribute('aria-current');
+    });
+
+    it('shows a loading placeholder instead of the form while the preview loads', () => {
+      vi.mocked(api.get).mockReturnValue(new Promise(() => {}));
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      expect(screen.getByRole('status')).toHaveTextContent(/verificando seu convite/i);
+      expect(screen.queryByLabelText(/e-mail/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /criar conta/i })).not.toBeInTheDocument();
+    });
+
+    it('prefills and locks the invited email and uses the invite CTA', async () => {
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      const emailInput = await screen.findByLabelText(/e-mail/i);
+      expect(emailInput).toHaveValue('convidado@teufit.com.br');
+      expect(emailInput).toHaveAttribute('readonly');
+      expect(emailInput).toHaveAccessibleDescription(/e-mail do convite/i);
+      expect(screen.getByRole('button', { name: /criar conta e ativar convite/i })).toBeInTheDocument();
+      expect(screen.queryByText(/use o e-mail em que você recebeu o convite/i)).not.toBeInTheDocument();
+    });
+
+    it('signs up with the locked invited email and routes to /invite with the code', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+      mockSignup.mockResolvedValue({ success: true });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      await user.type(await screen.findByLabelText(/^senha$/i), 'pass1234');
+      await user.click(screen.getByRole('button', { name: /criar conta e ativar convite/i }));
+
+      await waitFor(() => {
+        expect(mockSignup).toHaveBeenCalledWith('convidado@teufit.com.br', 'pass1234');
+      });
+      expect(mockNavigate).toHaveBeenCalledWith('/invite?code=tf-7bca-yazs-bd', { replace: true });
+    });
+
+    it('passes the invited email as Google login_hint', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+      mockLoginWithGoogle.mockResolvedValue({ success: true });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      await user.click(await screen.findByRole('button', { name: /cadastrar com google/i }));
+
+      await waitFor(() => {
+        expect(mockLoginWithGoogle).toHaveBeenCalledWith({ loginHint: 'convidado@teufit.com.br' });
+      });
+    });
+
+    it('hides the form and points to login when an account already exists', async () => {
+      vi.mocked(api.get).mockResolvedValue({ data: { ...PREVIEW, accountExists: true } });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      expect(
+        await screen.findByText(/você já tem uma conta com/i)
+      ).toHaveTextContent('Você já tem uma conta com convidado@teufit.com.br. Entre para ativar seu convite.');
+      expect(screen.getByRole('link', { name: /entrar e ativar convite/i })).toHaveAttribute(
+        'href',
+        '/login?code=tf-7bca-yazs-bd'
+      );
+      expect(screen.queryByLabelText(/^senha$/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /cadastrar com google/i })).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['invite.expired', 403, /este convite expirou/i],
+      ['invite.revoked', 403, /este convite não é mais válido/i],
+      ['invite.alreadyAccepted', 409, /este convite já foi utilizado/i],
+      ['invite.notFound', 404, /convite não encontrado/i],
+    ])('replaces the form with a state card on %s', async (messageCode, status, title) => {
+      rejectWith(status, messageCode);
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument();
+      expect(screen.queryByLabelText(/e-mail/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /criar conta/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /cadastrar com google/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /suporte@teufit.com.br/i })).toHaveAttribute(
+        'href',
+        'mailto:suporte@teufit.com.br'
+      );
+      expect(screen.getByRole('link', { name: /tenho outro código/i })).toHaveAttribute('href', '/login');
+      expect(screen.queryByRole('list', { name: /etapas do convite/i })).not.toBeInTheDocument();
+    });
+
+    it('mentions a newer invite on invite.revoked', async () => {
+      rejectWith(403, 'invite.revoked');
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      expect(await screen.findByText(/convite mais recente/i)).toBeInTheDocument();
+    });
+
+    it('offers an "Entrar" CTA (without the dead code) on invite.alreadyAccepted', async () => {
+      rejectWith(409, 'invite.alreadyAccepted');
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      await screen.findByRole('heading', { name: /este convite já foi utilizado/i });
+      expect(screen.getByRole('link', { name: /^entrar$/i })).toHaveAttribute('href', '/login');
+    });
+
+    it('keeps the invite framing with an editable email when the preview is unavailable', async () => {
+      const user = userEvent.setup();
+      mockSignup.mockResolvedValue({ success: true });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      expect(
+        await screen.findByRole('heading', { name: /você foi convidado\(a\) para o teste fechado/i })
+      ).toBeInTheDocument();
+      const emailInput = await screen.findByLabelText(/e-mail/i);
+      expect(emailInput).not.toHaveAttribute('readonly');
+      expect(screen.getByText(/use o e-mail em que você recebeu o convite/i)).toBeInTheDocument();
+
+      await user.type(emailInput, 'outro@teufit.com.br');
+      await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
+      await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
+
+      await waitFor(() => {
+        expect(mockSignup).toHaveBeenCalledWith('outro@teufit.com.br', 'pass1234');
+      });
+      expect(mockLoginWithGoogle).not.toHaveBeenCalled();
+    });
+
+    it('calls Google without a hint when the preview is unavailable', async () => {
+      const user = userEvent.setup();
+      mockLoginWithGoogle.mockResolvedValue({ success: true });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+
+      await user.click(await screen.findByRole('button', { name: /cadastrar com google/i }));
+
+      await waitFor(() => expect(mockLoginWithGoogle).toHaveBeenCalledWith());
+    });
   });
 });
