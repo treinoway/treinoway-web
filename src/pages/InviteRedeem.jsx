@@ -1,46 +1,95 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Sparkles, LogOut, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
+import { normalizeInviteCode } from '../utils/inviteCode';
 
 const SUPPORT_EMAIL = 'suporte@teufit.com.br';
 const SUCCESS_REDIRECT_MS = 900;
-const MAX_CODE_ALNUM = 12;
-const CROCKFORD_MAP = { O: '0', I: '1', L: '1' };
 const ACCOUNT_MISMATCH = 'invite.emailMismatch';
 const ALREADY_ACCEPTED = 'invite.alreadyAccepted';
+// Auto-redeem is effect-driven and can resolve in well under 200ms against a
+// fast/local API. Without a floor, the loading card flashes and reads as a
+// glitch rather than a state. This is a minimum *display* time, not an
+// artificial request delay — it only pads the gap between a fast response
+// and the next card, never adds to a genuinely slow one.
+const MIN_AUTO_REDEEM_LOADING_MS = 600;
 
-// Normalizes toward TF-XXXX-XXXX-XX: uppercase, Crockford (O→0, I/L→1),
-// strip anything outside [0-9A-Z], then insert hyphens at fixed group boundaries.
-const normalizeInviteCode = (raw) => {
-  const cleaned = raw
-    .toUpperCase()
-    .replace(/[OIL]/g, (char) => CROCKFORD_MAP[char])
-    .replace(/[^0-9A-Z]/g, '')
-    .slice(0, MAX_CODE_ALNUM);
-
-  return [
-    cleaned.slice(0, 2),
-    cleaned.slice(2, 6),
-    cleaned.slice(6, 10),
-    cleaned.slice(10, 12),
-  ].filter(Boolean).join('-');
-};
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const InviteRedeem = () => {
-  const { user, isAuthenticated, updateTokens, refreshUser, logout } = useAuth();
+  const { user, isAuthenticated, updateTokens, refreshUser, updateUser, logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const prefilledCode = normalizeInviteCode(searchParams.get('code') || '');
+  // Arriving from an invite link (usually straight after signup/login) there
+  // is nothing left to decide — redeem once, without a second click.
+  const shouldAutoRedeem = isAuthenticated && user?.betaAccess !== true && prefilledCode.length > 0;
+  const autoRedeemStartedRef = useRef(false);
   const [code, setCode] = useState(prefilledCode);
   const [fieldError, setFieldError] = useState('');
   const [serverError, setServerError] = useState('');
   const [errorCode, setErrorCode] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(shouldAutoRedeem);
   const [succeeded, setSucceeded] = useState(false);
+  // Tracks specifically "the automatic, effect-driven redeem is in flight" —
+  // distinct from `loading`, which also covers a manual submit. Only this
+  // state hides the form in favor of the minimal loading card; a manual
+  // retry after an auto-redeem failure must still show the form with its
+  // normal inline button spinner, never the full-card swap.
+  const [autoRedeeming, setAutoRedeeming] = useState(shouldAutoRedeem);
+
+  // Setters only run in promise callbacks (never synchronously), so this is
+  // safe to start from an effect. Callers reset form state beforehand; the
+  // auto path starts already clean with loading=true.
+  //
+  // `minDurationMs` is only ever passed by the auto-redeem effect below — a
+  // manual submit (handleSubmit) always resolves as fast as the API allows,
+  // matching the pre-existing inline-spinner behavior on that path.
+  const redeem = useCallback((codeToRedeem, { minDurationMs = 0 } = {}) => {
+    const startedAt = Date.now();
+
+    return api.post('/invite/redeem', { code: codeToRedeem })
+      .then(async (response) => {
+        const newAccessToken = response.data.token?.accessToken || response.data.accessToken;
+        updateTokens(newAccessToken, response.data.refreshToken);
+
+        // A 200 from /invite/redeem is itself authoritative proof that
+        // betaAccess is now true — refreshUser() exists to sync the rest of
+        // the profile (name, roles, etc.), not to re-decide whether the
+        // redemption worked. If the backend's read path (this /me call) is
+        // even briefly behind its own write (or refreshUser fails outright),
+        // trusting its betaAccess verbatim would silently bounce the user
+        // from the success screen back to a bare, empty /invite form once
+        // the redirect below fires — exactly the bug this guards against.
+        const refreshedUser = await refreshUser();
+        updateUser({ ...(refreshedUser || user), betaAccess: true });
+
+        const elapsed = Date.now() - startedAt;
+        if (elapsed < minDurationMs) {
+          await wait(minDurationMs - elapsed);
+        }
+
+        setAutoRedeeming(false);
+        setSucceeded(true);
+      })
+      .catch((error) => {
+        setAutoRedeeming(false);
+        setErrorCode(error.errorInfo?.messageCode || null);
+        setServerError(error.userMessage || translateError(error));
+        setLoading(false);
+      });
+  }, [updateTokens, refreshUser, updateUser, user]);
+
+  // Ref guard: StrictMode double-invokes effects; the redeem must POST once.
+  useEffect(() => {
+    if (!shouldAutoRedeem || autoRedeemStartedRef.current) return;
+    autoRedeemStartedRef.current = true;
+    redeem(prefilledCode, { minDurationMs: MIN_AUTO_REDEEM_LOADING_MS });
+  }, [shouldAutoRedeem, prefilledCode, redeem]);
 
   // Brief success confirmation before routing into the app.
   useEffect(() => {
@@ -57,10 +106,64 @@ const InviteRedeem = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // A user who already has access never sits on /invite — but let the success
-  // micro-state render even after refreshUser() flips betaAccess to true.
-  if (user?.betaAccess === true && !succeeded) {
+  // A user who already has access never sits on /invite — but let the
+  // auto-redeem loading card finish its minimum duration and the success
+  // micro-state render, even after updateUser() flips betaAccess to true
+  // partway through that sequence (see redeem() above: betaAccess is set
+  // true before the minimum-duration wait so the rest of the app is never
+  // stale, but that means this guard would otherwise fire mid-sequence and
+  // skip straight to "/", defeating the whole point of the loading/success
+  // cards).
+  if (user?.betaAccess === true && !succeeded && !autoRedeeming) {
     return <Navigate to="/" replace />;
+  }
+
+  // Auto-redeem in flight: a minimal card, nothing resembling the
+  // manual-entry UI. The form must never render here — there is nothing for
+  // the user to do, and briefly showing it (pre-filled code, disabled
+  // inputs, "Verificando…") is exactly the flash this guards against. Same
+  // .auth-page/.auth-card wrapper shape as the success and form branches
+  // below, so React reconciles it as the same element rather than
+  // remounting (see the success branch for the full note on why that
+  // matters for the entrance animation).
+  if (autoRedeeming) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <img src="/img/teufit-lockup.png" alt="TeuFit" className="auth-logo" />
+          <Loader2 size={24} strokeWidth={2} className="invite-spin invite-spin--standalone" aria-hidden="true" />
+          <h1 className="invite-title">Ativando seu convite…</h1>
+          <p className="auth-subtitle" role="status">Só um instante enquanto liberamos seu acesso.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Success micro-state. Renders through the *same* .auth-page > .auth-card
+  // wrapper (same element type, same tree position, no key) as the
+  // auto-redeeming and form branches, so React reconciles this in place
+  // instead of unmounting/remounting .auth-card — the auth-enter CSS
+  // animation on .auth-card therefore plays once, on the initial /invite
+  // mount, not again on this transition. Verified by reading React's
+  // reconciliation rules (same type + position + no key ⇒ same fiber, DOM
+  // node preserved); not visually confirmed in a browser.
+  if (succeeded) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <img src="/img/teufit-lockup.png" alt="TeuFit" className="auth-logo" />
+          <div className="invite-success__check" aria-hidden="true">
+            <Check size={32} strokeWidth={2} />
+          </div>
+          <h1 className="invite-title">Acesso liberado!</h1>
+          <p className="auth-subtitle" role="status">Estamos entrando na sua conta…</p>
+          <button type="button" className="btn-primary-full" disabled>
+            <Loader2 size={16} strokeWidth={2} className="invite-spin" aria-hidden="true" />
+            Abrindo seu painel…
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const handleCodeChange = (value) => {
@@ -92,20 +195,7 @@ const InviteRedeem = () => {
     setServerError('');
     setErrorCode(null);
     setLoading(true);
-
-    try {
-      const response = await api.post('/invite/redeem', { code });
-      const newAccessToken = response.data.token?.accessToken || response.data.accessToken;
-      const newRefreshToken = response.data.refreshToken;
-
-      updateTokens(newAccessToken, newRefreshToken);
-      await refreshUser();
-      setSucceeded(true);
-    } catch (error) {
-      setErrorCode(error.errorInfo?.messageCode || null);
-      setServerError(error.userMessage || translateError(error));
-      setLoading(false);
-    }
+    await redeem(code);
   };
 
   const avatarInitial = (user?.firstName || user?.email || '?').charAt(0).toUpperCase();
@@ -116,7 +206,7 @@ const InviteRedeem = () => {
   let title = 'O TeuFit está em beta fechado';
   let subtitle = 'O acesso é só por convite no momento. Se você recebeu um código, insira abaixo para liberar sua conta de treinador.';
   if (loading) {
-    title = 'Verificando seu convite…';
+    title = 'Ativando seu convite…';
     subtitle = 'Só um instante enquanto liberamos seu acesso.';
   } else if (errorCode === ALREADY_ACCEPTED) {
     title = 'Este convite já foi utilizado';
@@ -156,25 +246,6 @@ const InviteRedeem = () => {
       )}
     </div>
   );
-
-  if (succeeded) {
-    return (
-      <div className="auth-page">
-        <div className="auth-card">
-          <img src="/img/teufit-lockup.png" alt="TeuFit" className="auth-logo" />
-          <div className="invite-success__check" aria-hidden="true">
-            <Check size={32} strokeWidth={2} />
-          </div>
-          <h1 className="invite-title">Acesso liberado!</h1>
-          <p className="auth-subtitle" role="status">Estamos entrando na sua conta…</p>
-          <button type="button" className="btn-primary-full" disabled>
-            <Loader2 size={16} strokeWidth={2} className="invite-spin" aria-hidden="true" />
-            Abrindo seu painel…
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="auth-page">

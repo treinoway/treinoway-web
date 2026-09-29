@@ -3,9 +3,19 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isBetaGateEnabled } from '../hooks/useBetaGate';
+import useInviteAuthFlow from '../hooks/useInviteAuthFlow';
 import GoogleIcon from '../components/GoogleIcon';
+import AuthEmailField from '../components/AuthEmailField';
+import InviteContext from '../components/InviteContext';
+import InviteStatusCard from '../components/InviteStatusCard';
+import InviteFormSkeleton from '../components/InviteFormSkeleton';
 
 const GOOGLE_CREDENTIAL_CONFLICT = 'auth/account-exists-with-different-credential';
+
+const getSubmitLabel = (loading, isValidInvite) => {
+  if (loading) return 'Entrando...';
+  return isValidInvite ? 'Entrar e ativar convite' : 'Entrar';
+};
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -14,11 +24,13 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login, loginWithGoogle, isAuthenticated } = useAuth();
+  const { login, loginWithGoogle, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const inviteCode = searchParams.get('code') || '';
+  // Skip the preview request when we're about to redirect an authenticated user.
+  const invite = useInviteAuthFlow(isAuthenticated ? '' : inviteCode);
   const signupLink = inviteCode ? `/signup?code=${encodeURIComponent(inviteCode)}` : '/signup';
 
   // Route the freshly-authenticated user straight to their destination so a
@@ -33,8 +45,12 @@ const Login = () => {
     return '/';
   };
 
+  // Route through resolveDestination (not a hardcoded "/") so this guard
+  // agrees with the explicit navigate(resolveDestination(...)) call in
+  // handleSubmit/handleGoogleLogin below — see Signup.jsx for the full
+  // rationale (same race, same fix).
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={resolveDestination(user)} replace />;
   }
 
   const handleSubmit = async (e) => {
@@ -43,7 +59,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const result = await login(email, password);
+      const result = await login(invite.lockedEmail ?? email, password);
 
       if (result.success) {
         navigate(resolveDestination(result.user), { replace: true });
@@ -62,7 +78,9 @@ const Login = () => {
     setGoogleLoading(true);
 
     try {
-      const result = await loginWithGoogle();
+      const result = invite.lockedEmail
+        ? await loginWithGoogle({ loginHint: invite.lockedEmail })
+        : await loginWithGoogle();
 
       if (result.success) {
         navigate(resolveDestination(result.user), { replace: true });
@@ -81,83 +99,111 @@ const Login = () => {
     }
   };
 
+  const isBusy = loading || googleLoading;
+  const showSignupNudge = invite.isValid && !invite.accountExists;
+  const showFooter = !invite.isInvalid && !showSignupNudge;
+
+  const header = invite.isInviteFlow ? (
+    <InviteContext
+      code={invite.code}
+      firstStepLabel="Entrar"
+      showSteps={!invite.isInvalid}
+    />
+  ) : (
+    <p className="auth-subtitle">Bem-vindo de volta.</p>
+  );
+
+  const loginForm = (
+    <>
+      {showSignupNudge && (
+        <p className="auth-info">
+          Ainda não tem conta?{' '}
+          <Link to={signupLink} className="auth-info-link">Criar conta</Link>
+        </p>
+      )}
+
+      {error && <p className="auth-error">{error}</p>}
+
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        disabled={isBusy}
+        className="btn-google"
+      >
+        <GoogleIcon />
+        {googleLoading ? 'Conectando...' : 'Continuar com Google'}
+      </button>
+
+      <div className="auth-divider"><span>ou</span></div>
+
+      <form onSubmit={handleSubmit} className="auth-form">
+        <AuthEmailField
+          value={email}
+          onChange={setEmail}
+          disabled={isBusy}
+          lockedEmail={invite.lockedEmail}
+        />
+
+        <div className="form-group">
+          <label htmlFor="password" className="form-label">Senha</label>
+          <div className="password-input-wrapper">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="form-input"
+              placeholder="••••••••"
+              autoComplete="current-password"
+              disabled={isBusy}
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+        </div>
+
+        <Link to="/forgot-password" className="auth-forgot-link">Esqueceu a senha?</Link>
+
+        <button
+          type="submit"
+          disabled={isBusy}
+          className="btn-primary-full"
+        >
+          {getSubmitLabel(loading, invite.isValid)}
+        </button>
+      </form>
+    </>
+  );
+
+  let body = loginForm;
+  if (invite.isLoading) {
+    body = <InviteFormSkeleton />;
+  } else if (invite.isInvalid) {
+    body = <InviteStatusCard messageCode={invite.errorCode} />;
+  }
+
   return (
     <div className="auth-page">
       <div className="auth-card">
         <img src="/img/teufit-lockup.png" alt="TeuFit" className="auth-logo" />
         <h1 className="visually-hidden">Entrar</h1>
-        <p className="auth-subtitle">Bem-vindo de volta.</p>
+        {header}
 
-        {error && <p className="auth-error">{error}</p>}
+        {body}
 
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          disabled={googleLoading || loading}
-          className="btn-google"
-        >
-          <GoogleIcon />
-          {googleLoading ? 'Conectando...' : 'Continuar com Google'}
-        </button>
-
-        <div className="auth-divider"><span>ou</span></div>
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">E-mail</label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="form-input"
-              placeholder="voce@exemplo.com"
-              autoComplete="email"
-              disabled={loading || googleLoading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">Senha</label>
-            <div className="password-input-wrapper">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="form-input"
-                placeholder="••••••••"
-                autoComplete="current-password"
-                disabled={loading || googleLoading}
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
-
-          <Link to="/forgot-password" className="auth-forgot-link">Esqueceu a senha?</Link>
-
-          <button
-            type="submit"
-            disabled={loading || googleLoading}
-            className="btn-primary-full"
-          >
-            {loading ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
-
-        <p className="auth-footer">
-          Novo por aqui?{' '}
-          <Link to={signupLink} className="link">Criar conta</Link>
-        </p>
+        {showFooter && (
+          <p className="auth-footer">
+            Novo por aqui?{' '}
+            <Link to={signupLink} className="link">Criar conta</Link>
+          </p>
+        )}
       </div>
 
       <footer className="auth-legal">
