@@ -51,6 +51,31 @@ describe('ScrollToTop', () => {
     expect(window.scrollTo).not.toHaveBeenCalled();
   });
 
+  it('scrolls on every navigation, including a bare synchronous act() flush', () => {
+    // Regression coverage for the useEffect -> useLayoutEffect fix (the
+    // component now uses useLayoutEffect so the scroll reset lands before
+    // the browser paints the new route, avoiding a one-frame flicker on a
+    // long page reached from a scrolled-down position).
+    //
+    // NOTE: jsdom never paints, so "before paint" itself is not observable
+    // here — a bare act() in this test environment flushes both layout and
+    // passive effects synchronously, so this assertion would pass with
+    // either hook. It is kept as a behavioral regression check (the effect
+    // still fires and still targets .main-content), not as proof of paint
+    // timing; the timing guarantee is a property of useLayoutEffect itself,
+    // verifiable only in a real browser (e.g. Playwright + a paint/CLS
+    // measurement), which was out of scope here.
+    let navigate;
+    renderHarness((nav) => { navigate = nav; });
+    mainContent.scrollTo.mockClear();
+
+    act(() => {
+      navigate('/page-b');
+    });
+
+    expect(mainContent.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
+  });
+
   it('does not scroll when only the hash changes', async () => {
     let navigate;
     renderHarness((nav) => { navigate = nav; });
