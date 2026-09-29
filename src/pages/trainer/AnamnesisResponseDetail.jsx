@@ -7,6 +7,7 @@ import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import { ANAMNESIS_QUESTION_TYPE } from '../../constants/anamnesis';
 import { formatDateForDisplay } from '../../utils/dateFormat';
+import { isAnswerEmpty, isOptionSelected, toValueList } from '../../utils/anamnesisAnswers';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -44,117 +45,68 @@ const computeBmi = (weight, height) => {
 
 const AnswerEmpty = () => <p className="qa-answer-empty">Sem resposta</p>;
 
+const BooleanAnswer = ({ value }) => {
+  const isYes = value === true || value === 'true' || value === 'sim' || value === 'yes';
+  return (
+    <span className={`qa-answer-bool ${isYes ? 'qa-answer-bool--yes' : 'qa-answer-bool--no'}`}>
+      {isYes ? 'Sim' : 'Não'}
+    </span>
+  );
+};
+
+const NumericAnswer = ({ value, unit }) => (
+  <div className="qa-answer-numeric">
+    <span className="qa-answer-numeric-value">{value}</span>
+    {unit && <span className="qa-answer-numeric-unit">{unit}</span>}
+  </div>
+);
+
+const formatOrphanValue = (value) => (typeof value === 'string' ? value : JSON.stringify(value));
+
+// Answers are stored as option text; single/multiple/matrix all render over the
+// question's current options. A value matching none of them is still shown.
+const ChoiceAnswer = ({ question, value }) => {
+  const options = question.options ?? [];
+  const orphanValues = toValueList(value).filter(
+    (item) => !options.some((option) => isOptionSelected(option, item)),
+  );
+
+  return (
+    <div className="qa-answer-chips">
+      {options.map((option) => (
+        <span
+          key={option.id ?? option.text}
+          className={`qa-answer-chip${isOptionSelected(option, value) ? ' qa-answer-chip--selected' : ''}`}
+        >
+          {option.text}
+        </span>
+      ))}
+      {orphanValues.map((item, index) => (
+        <span key={`orphan-${index}`} className="qa-answer-chip qa-answer-chip--selected qa-answer-chip--orphan">
+          {`${formatOrphanValue(item)} (fora das opções atuais)`}
+        </span>
+      ))}
+    </div>
+  );
+};
+
 const renderAnswer = (question, answer) => {
-  if (!answer || answer.value === null || answer.value === undefined || answer.value === '') {
-    return <AnswerEmpty />;
-  }
+  if (!answer || isAnswerEmpty(answer.value)) return <AnswerEmpty />;
 
   const { type, config } = question;
-  const value = answer.value;
+  const { value } = answer;
 
   switch (type) {
     case ANAMNESIS_QUESTION_TYPE.FREE_TEXT:
       return <blockquote className="qa-answer-text">{value}</blockquote>;
-
-    case ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS: {
-      const isYes = value === true || value === 'true' || value === 'sim' || value === 'yes';
-      return (
-        <span className={`qa-answer-bool ${isYes ? 'qa-answer-bool--yes' : 'qa-answer-bool--no'}`}>
-          {isYes ? 'Sim' : 'Não'}
-        </span>
-      );
-    }
-
-    case ANAMNESIS_QUESTION_TYPE.NUMERIC: {
-      const unit = config?.unit ?? '';
-      return (
-        <div className="qa-answer-numeric">
-          <span className="qa-answer-numeric-value">{value}</span>
-          {unit && <span className="qa-answer-numeric-unit">{unit}</span>}
-        </div>
-      );
-    }
-
+    case ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS:
+      return <BooleanAnswer value={value} />;
+    case ANAMNESIS_QUESTION_TYPE.NUMERIC:
+      return <NumericAnswer value={value} unit={config?.unit ?? ''} />;
     case ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE:
-      return (
-        <div className="qa-answer-chips">
-          <span className="qa-answer-chip qa-answer-chip--selected">{value}</span>
-        </div>
-      );
-
-    case ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE: {
-      const options = config?.options ?? [];
-      const selected = Array.isArray(value) ? value : [value];
-      if (options.length === 0) {
-        return (
-          <div className="qa-answer-chips">
-            {selected.map((v, i) => (
-              <span key={i} className="qa-answer-chip qa-answer-chip--selected">{v}</span>
-            ))}
-          </div>
-        );
-      }
-      return (
-        <div className="qa-answer-chips">
-          {options.map((opt, i) => {
-            const optLabel = typeof opt === 'object' ? opt.label ?? opt.value : opt;
-            const optValue = typeof opt === 'object' ? opt.value ?? opt.label : opt;
-            const isSelected = selected.includes(optValue) || selected.includes(optLabel);
-            return (
-              <span key={i} className={`qa-answer-chip${isSelected ? ' qa-answer-chip--selected' : ''}`}>
-                {optLabel}
-              </span>
-            );
-          })}
-        </div>
-      );
-    }
-
-    case ANAMNESIS_QUESTION_TYPE.MATRIX: {
-      const rows = config?.rows ?? [];
-      const cols = config?.cols ?? [];
-      const matrixValue = typeof value === 'object' && !Array.isArray(value) ? value : {};
-
-      if (rows.length === 0 || cols.length === 0) {
-        return <p className="qa-answer-empty">{typeof value === 'string' ? value : JSON.stringify(value)}</p>;
-      }
-
-      return (
-        <div className="qa-answer-matrix">
-          <table>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left' }}>—</th>
-                {cols.map((col, i) => (
-                  <th key={i}>{typeof col === 'object' ? col.label : col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, ri) => {
-                const rowKey = typeof row === 'object' ? row.value ?? row.label : row;
-                const rowLabel = typeof row === 'object' ? row.label : row;
-                return (
-                  <tr key={ri}>
-                    <td className="qa-answer-matrix-label">{rowLabel}</td>
-                    {cols.map((col, ci) => {
-                      const colKey = typeof col === 'object' ? col.value ?? col.label : col;
-                      const filled = matrixValue[rowKey]?.[colKey] || matrixValue[rowKey] === colKey;
-                      return (
-                        <td key={ci} className={filled ? 'qa-answer-matrix-cell--filled' : ''}>
-                          {filled ? '✓' : '—'}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-
+    case ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE:
+    case ANAMNESIS_QUESTION_TYPE.MATRIX:
+      return <ChoiceAnswer question={question} value={value} />;
     default:
       return <p className="qa-answer-empty">{String(value)}</p>;
   }
@@ -191,6 +143,22 @@ const DossierSection = ({ section, answerMap, sectionRef }) => {
       })}
     </div>
   );
+};
+
+BooleanAnswer.propTypes = {
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
+};
+
+NumericAnswer.propTypes = {
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  unit: PropTypes.string,
+};
+
+ChoiceAnswer.propTypes = {
+  question: PropTypes.shape({
+    options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
+  }).isRequired,
+  value: PropTypes.any,
 };
 
 HeroStat.propTypes = {
