@@ -5,14 +5,22 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { getOnboardingDismissKey } from '../hooks/useOnboardingStatus';
 
 // Mock firebase before importing anything that uses it
+const { mockSharedGoogleProvider, mockSetCustomParameters } = vi.hoisted(() => ({
+  mockSharedGoogleProvider: { shared: true },
+  mockSetCustomParameters: vi.fn(),
+}));
+
 vi.mock('../firebase', () => ({
   auth: {},
-  googleProvider: {},
+  googleProvider: mockSharedGoogleProvider,
 }));
 
 vi.mock('firebase/auth', () => ({
   signInWithPopup: vi.fn(),
   signOut: vi.fn(),
+  GoogleAuthProvider: vi.fn(function GoogleAuthProvider() {
+    this.setCustomParameters = mockSetCustomParameters;
+  }),
 }));
 
 vi.mock('../api/axios', () => ({
@@ -28,7 +36,7 @@ vi.mock('../i18n', () => ({
 }));
 
 import api from '../api/axios';
-import { signInWithPopup, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 
 const TRAINER_USER = {
   id: 'user-1',
@@ -80,6 +88,12 @@ const TestConsumer = () => {
       </button>
       <button onClick={() => loginWithGoogle()} aria-label="Google Login">
         Google Login
+      </button>
+      <button
+        onClick={() => loginWithGoogle({ loginHint: 'convidado@teufit.com.br' })}
+        aria-label="Google Login With Hint"
+      >
+        Google Login With Hint
       </button>
       <button onClick={logout} aria-label="Logout">
         Logout
@@ -405,6 +419,45 @@ describe('AuthContext', () => {
       });
 
       expect(localStorage.getItem('accessToken')).toBe('access-token-123');
+    });
+
+    it('uses the shared provider untouched when no loginHint is given', async () => {
+      signInWithPopup.mockResolvedValue({
+        user: { getIdToken: vi.fn().mockResolvedValue('firebase-id-token') },
+      });
+      signOut.mockResolvedValue(undefined);
+      api.post.mockResolvedValue(AUTH_RESPONSE);
+      api.get.mockResolvedValue({ data: REGULAR_USER });
+
+      renderProvider();
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Google Login' }).click();
+      });
+
+      await waitFor(() => expect(signInWithPopup).toHaveBeenCalled());
+      expect(signInWithPopup.mock.calls[0][1]).toBe(mockSharedGoogleProvider);
+      expect(GoogleAuthProvider).not.toHaveBeenCalled();
+      expect(mockSetCustomParameters).not.toHaveBeenCalled();
+    });
+
+    it('passes loginHint to a dedicated provider as the login_hint custom parameter', async () => {
+      signInWithPopup.mockResolvedValue({
+        user: { getIdToken: vi.fn().mockResolvedValue('firebase-id-token') },
+      });
+      signOut.mockResolvedValue(undefined);
+      api.post.mockResolvedValue(AUTH_RESPONSE);
+      api.get.mockResolvedValue({ data: REGULAR_USER });
+
+      renderProvider();
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Google Login With Hint' }).click();
+      });
+
+      await waitFor(() => expect(signInWithPopup).toHaveBeenCalled());
+      expect(mockSetCustomParameters).toHaveBeenCalledWith({ login_hint: 'convidado@teufit.com.br' });
+      expect(signInWithPopup.mock.calls[0][1]).not.toBe(mockSharedGoogleProvider);
     });
 
     it('returns { success: false, error: null } when popup is closed by user', async () => {

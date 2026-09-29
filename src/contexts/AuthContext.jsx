@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { signInWithPopup, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import api from '../api/axios';
 import API_BASE_URL from '../api/baseUrl';
@@ -9,6 +9,15 @@ import { setSentryUser } from '../lib/sentry';
 import { clearOnboardingSessionState } from '../hooks/useOnboardingStatus';
 
 const AuthContext = createContext(null);
+
+// The shared provider is a module singleton — never mutate it with a
+// per-call hint, or the hint would leak into later unrelated sign-ins.
+const buildGoogleProvider = (loginHint) => {
+  if (!loginHint) return googleProvider;
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ login_hint: loginHint });
+  return provider;
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -146,9 +155,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async ({ loginHint } = {}) => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, buildGoogleProvider(loginHint));
       const idToken = await result.user.getIdToken();
 
       // Firebase session is not needed — backend manages auth via JWT

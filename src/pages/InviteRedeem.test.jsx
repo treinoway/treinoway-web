@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route, useSearchParams } from 'react-router-dom';
@@ -27,6 +28,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 
 const mockUpdateTokens = vi.fn();
 const mockRefreshUser = vi.fn();
+const mockUpdateUser = vi.fn();
 const mockLogout = vi.fn();
 
 const setAuth = (overrides = {}) => {
@@ -35,6 +37,7 @@ const setAuth = (overrides = {}) => {
     isAuthenticated: true,
     updateTokens: mockUpdateTokens,
     refreshUser: mockRefreshUser,
+    updateUser: mockUpdateUser,
     logout: mockLogout,
     ...overrides,
   });
@@ -89,16 +92,64 @@ describe('InviteRedeem', () => {
     expect(screen.getByTestId('redirected')).toBeInTheDocument();
   });
 
-  it('prefills and normalizes the code from the ?code query param', () => {
+  it('prefills and normalizes the code from the ?code query param once the form appears', async () => {
+    // With an authenticated, not-yet-granted user and a code present,
+    // auto-redeem always intercepts first (see the minimal-card test below)
+    // — the form only becomes visible again if that attempt fails. This is
+    // now the only realistic path to observe the prefilled/normalized value
+    // in the form's code input.
+    api.post.mockRejectedValue({
+      errorInfo: { messageCode: 'invite.notFound' },
+      userMessage: 'Não reconhecemos esse código. Confira se digitou certo.',
+    });
+
     renderWithRouter(<InviteRedeem />, { route: '/invite?code=tf-8f3k-2q7m-04' });
 
-    expect(screen.getByLabelText(/código do convite/i)).toHaveValue('TF-8F3K-2Q7M-04');
-    expect(screen.getByRole('heading', { name: /seu convite está pronto/i })).toBeInTheDocument();
-    expect(screen.getByText(/código preenchido pelo seu convite/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText(/código do convite/i)).toHaveValue('TF-8F3K-2Q7M-04');
+    });
   });
 
-  it('does not auto-submit a prefilled code (conscious confirm)', () => {
-    renderWithRouter(<InviteRedeem />, { route: '/invite?code=TF-8F3K-2Q7M-04' });
+  it('auto-redeems the normalized prefilled code exactly once, showing a minimal activating card with no form', async () => {
+    api.post.mockImplementation(() => new Promise(() => {}));
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={['/invite?code=tf-8f3k-2q7m-04']}>
+          <InviteRedeem />
+        </MemoryRouter>
+      </StrictMode>
+    );
+
+    expect(screen.getByRole('img', { name: /teufit/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /ativando seu convite/i })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/só um instante enquanto liberamos seu acesso/i);
+
+    // The structural fix: auto-redeem must never render the manual-entry
+    // form — no code input, no account chip, no submit button. Previously
+    // the full form rendered underneath with a "Verificando…" button, which
+    // was the actual source of the reported flicker.
+    expect(screen.queryByLabelText(/código do convite/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Beta fechado')).not.toBeInTheDocument();
+    expect(screen.queryByText('carolina@teufit.com.br')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+    expect(api.post).toHaveBeenCalledWith('/invite/redeem', { code: 'TF-8F3K-2Q7M-04' });
+  });
+
+  it('does not auto-redeem when there is no code in the URL', async () => {
+    renderWithRouter(<InviteRedeem />, { route: '/invite' });
+
+    await Promise.resolve();
+    expect(api.post).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /desbloquear acesso/i })).toBeEnabled();
+  });
+
+  it('does not auto-redeem when the user is not authenticated', () => {
+    setAuth({ isAuthenticated: false, user: null });
+
+    renderWithRoute(<InviteRedeem />, { route: '/invite?code=TF-8F3K-2Q7M-04', path: '/invite' });
 
     expect(api.post).not.toHaveBeenCalled();
   });
@@ -124,13 +175,10 @@ describe('InviteRedeem', () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('redeems the code, rotates tokens, refreshes the user, then navigates home', async () => {
-    const user = userEvent.setup();
+  it('auto-redeems the code, rotates tokens, refreshes the user, then navigates home', async () => {
     api.post.mockResolvedValue({ data: { token: { accessToken: 'acc' }, refreshToken: 'ref' } });
 
     renderWithRouter(<InviteRedeem />, { route: '/invite?code=TF-8F3K-2Q7M-04' });
-
-    await user.click(screen.getByRole('button', { name: /desbloquear acesso/i }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/invite/redeem', { code: 'TF-8F3K-2Q7M-04' });
@@ -138,14 +186,40 @@ describe('InviteRedeem', () => {
     expect(mockUpdateTokens).toHaveBeenCalledWith('acc', 'ref');
     expect(mockRefreshUser).toHaveBeenCalled();
 
-    await screen.findByRole('heading', { name: /acesso liberado/i });
+    // Generous timeout: the success card only appears after the minimum
+    // loading-card display duration (~600ms) pads out the otherwise-instant
+    // mocked response.
+    await screen.findByRole('heading', { name: /acesso liberado/i }, { timeout: 2000 });
     await waitFor(
       () => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }),
       { timeout: 2000 }
     );
   });
 
-  it('shows the server message and a retry CTA on invite.notFound, keeping the code', async () => {
+  it('keeps the minimal loading card visible for a minimum duration even when the API resolves instantly', async () => {
+    api.post.mockResolvedValue({ data: { token: { accessToken: 'acc' }, refreshToken: 'ref' } });
+    mockRefreshUser.mockResolvedValue({ betaAccess: true });
+
+    renderWithRouter(<InviteRedeem />, { route: '/invite?code=TF-8F3K-2Q7M-04' });
+
+    expect(screen.getByRole('heading', { name: /ativando seu convite/i })).toBeInTheDocument();
+
+    // By the time refreshUser has resolved, the redeem POST + refresh round
+    // trip is effectively done (both mocked, near-instant) — but the success
+    // card must not have replaced the loading card yet, because the minimum
+    // display duration is still padding the transition.
+    await waitFor(() => {
+      expect(mockRefreshUser).toHaveBeenCalled();
+    });
+    expect(screen.getByRole('heading', { name: /ativando seu convite/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /acesso liberado/i })).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /acesso liberado/i })).toBeInTheDocument();
+    }, { timeout: 2000 });
+  });
+
+  it('after a failed auto-redeem keeps the code and allows a manual retry', async () => {
     const user = userEvent.setup();
     api.post.mockRejectedValue({
       errorInfo: { messageCode: 'invite.notFound' },
@@ -154,13 +228,46 @@ describe('InviteRedeem', () => {
 
     renderWithRouter(<InviteRedeem />, { route: '/invite?code=TF-8F3K-2Q7M-99' });
 
-    await user.click(screen.getByRole('button', { name: /desbloquear acesso/i }));
-
     await waitFor(() => {
       expect(screen.getByText(/não reconhecemos esse código/i)).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: /tentar novamente/i })).toBeInTheDocument();
+    const retryButton = screen.getByRole('button', { name: /tentar novamente/i });
+    expect(retryButton).toBeEnabled();
     expect(screen.getByLabelText(/código do convite/i)).toHaveValue('TF-8F3K-2Q7M-99');
+    expect(api.post).toHaveBeenCalledTimes(1);
+
+    await user.click(retryButton);
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
+  });
+
+  it('a manual retry after a failed auto-redeem shows the form with an inline spinner, not the full-card loading swap', async () => {
+    // Guards the `autoRedeeming` state machine: once the automatic attempt
+    // has settled (even by failing), a subsequent user-initiated submit must
+    // behave exactly like the pre-existing manual path — the form stays put
+    // with its inline button spinner — never re-triggering the minimal
+    // full-card loading state meant only for the effect-driven first
+    // attempt.
+    const user = userEvent.setup();
+    api.post
+      .mockRejectedValueOnce({
+        errorInfo: { messageCode: 'invite.notFound' },
+        userMessage: 'Não reconhecemos esse código. Confira se digitou certo.',
+      })
+      .mockImplementationOnce(() => new Promise(() => {}));
+
+    renderWithRouter(<InviteRedeem />, { route: '/invite?code=TF-8F3K-2Q7M-99' });
+
+    const retryButton = await screen.findByRole('button', { name: /tentar novamente/i });
+    await user.click(retryButton);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /verificando/i })).toBeDisabled();
+    });
+    // Still the form — code input, account chip — not the minimal card.
+    expect(screen.getByLabelText(/código do convite/i)).toBeInTheDocument();
+    expect(screen.getByText('carolina@teufit.com.br')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('on invite.alreadyAccepted shows "Ir para o início" which refreshes and routes home', async () => {
@@ -171,8 +278,6 @@ describe('InviteRedeem', () => {
     });
 
     renderWithRouter(<InviteRedeem />, { route: '/invite?code=TF-8F3K-2Q7M-04' });
-
-    await user.click(screen.getByRole('button', { name: /desbloquear acesso/i }));
 
     const homeButton = await screen.findByRole('button', { name: /ir para o início/i });
     expect(screen.queryByLabelText(/código do convite/i)).not.toBeInTheDocument();
@@ -190,8 +295,6 @@ describe('InviteRedeem', () => {
     });
 
     renderWithRouter(<InviteRedeem />, { route: '/invite?code=TF-8F3K-2Q7M-04' });
-
-    await user.click(screen.getByRole('button', { name: /desbloquear acesso/i }));
 
     const switchButton = await screen.findByRole('button', { name: /entrar com outra conta/i });
     await user.click(switchButton);
@@ -214,13 +317,15 @@ describe('InviteRedeem', () => {
     const user = userEvent.setup();
     api.post.mockImplementation(() => new Promise(() => {}));
 
-    renderWithRouter(<InviteRedeem />, { route: '/invite?code=TF-8F3K-2Q7M-04' });
+    renderWithRouter(<InviteRedeem />, { route: '/invite' });
 
+    await user.type(screen.getByLabelText(/código do convite/i), 'TF8F3K2Q7M04');
     await user.click(screen.getByRole('button', { name: /desbloquear acesso/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /verificando/i })).toBeDisabled();
     });
+    expect(api.post).toHaveBeenCalledWith('/invite/redeem', { code: 'TF-8F3K-2Q7M-04' });
     expect(screen.getByLabelText(/código do convite/i)).toBeDisabled();
   });
 });
