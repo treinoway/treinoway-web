@@ -2996,6 +2996,37 @@ button.auth-forgot-link:disabled {
   margin-top: 1px;
 }
 
+.info-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.info-banner-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  /* Cancel the banner padding so the 44px target does not grow the banner. */
+  margin: calc(-1 * var(--spacing-sm)) calc(-1 * var(--spacing-md)) calc(-1 * var(--spacing-sm)) 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-brand);
+  color: inherit;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-brand);
+}
+
+.info-banner-dismiss:hover {
+  background: var(--md-surface-container-high);
+}
+
+.info-banner-dismiss:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
 /* ============================================
    Badges
    ============================================ */
@@ -15592,6 +15623,12 @@ nav.onboarding-steps {
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-sm);
 }
+.anamnesis-link-card-side {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
 .anamnesis-link-card-title {
   font-family: var(--font-family-display);
   font-size: 15px;
@@ -16009,6 +16046,19 @@ nav.onboarding-steps {
   .anamnesis-wizard-actions .btn-group--equal > .btn-secondary {
     flex: 0 0 auto;
   }
+}
+
+/* Answer wizard — autosave indicator */
+.anamnesis-save-status {
+  min-height: calc(var(--font-body-small-size) * var(--line-height-normal));
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-body-small-size);
+  color: var(--brand-steel);
+  font-variant-numeric: tabular-nums;
+}
+
+.anamnesis-save-status--error {
+  color: var(--md-error);
 }
 
 /* Answer wizard — trainer fills on the student's behalf */
@@ -24649,6 +24699,13 @@ nav.onboarding-steps {
 
 .cockpit-anamnese-card-text {
   min-width: 0;
+}
+
+.cockpit-anamnese-card-side {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
 }
 
 .cockpit-anamnese-card-title {

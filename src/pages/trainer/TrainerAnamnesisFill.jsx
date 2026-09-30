@@ -5,6 +5,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import useAnamnesisWizard from '../../hooks/useAnamnesisWizard';
+import useAnamnesisDraft from '../../hooks/useAnamnesisDraft';
 import useAnamnesisSubmit from '../../hooks/useAnamnesisSubmit';
 import useAnamnesisResponseSource, { ANAMNESIS_SOURCE_MODE } from '../../hooks/useAnamnesisResponseSource';
 import AnamnesisMessage from '../../components/anamnesis/AnamnesisMessage';
@@ -73,8 +74,18 @@ const FillWizard = ({ student, anamnesis, previousResponse, source, dossierPath,
   const { showToast } = useToast();
   const firstName = getStudentFirstName(student);
   const wizard = useAnamnesisWizard({ anamnesis, previousResponse });
+  // A draft conflict reloads into the read-only state (the response was submitted meanwhile).
+  const draft = useAnamnesisDraft({
+    enabled: source.canAutosave,
+    answers: wizard.answers,
+    stepIndex: wizard.stepIndex,
+    hasChanges: wizard.hasChanges,
+    save: source.saveDraft,
+    onConflict: source.reload,
+  });
   const { submitting, handleSubmit } = useAnamnesisSubmit({
     wizard,
+    draft,
     submit: source.submit,
     onSubmitted: () => {
       showToast(`Anamnese registrada. ${firstName} vai confirmar pelo app.`, 'success');
@@ -106,6 +117,7 @@ const FillWizard = ({ student, anamnesis, previousResponse, source, dossierPath,
       headerExtra={<p className="anamnesis-wizard-byline">Preenchendo por {getStudentFullName(student)}</p>}
       banner={notice && <InfoBanner text={notice} />}
       reviewHint={REVIEW_HINT}
+      saveState={draft.enabled ? draft.saveState : undefined}
     />
   );
 };
@@ -156,6 +168,7 @@ const FillFlow = ({ student, source, dossierPath, listPath }) => {
 
   return (
     <FillWizard
+      key={source.version}
       student={student}
       anamnesis={source.anamnesis}
       previousResponse={source.previousResponse}
@@ -212,7 +225,9 @@ FillWizard.propTypes = {
   anamnesis: PropTypes.object.isRequired,
   previousResponse: PropTypes.object,
   source: PropTypes.shape({
+    canAutosave: PropTypes.bool.isRequired,
     submit: PropTypes.func.isRequired,
+    saveDraft: PropTypes.func.isRequired,
     reload: PropTypes.func.isRequired,
   }).isRequired,
   dossierPath: PropTypes.string.isRequired,
@@ -224,6 +239,7 @@ FillFlow.propTypes = {
   source: PropTypes.shape({
     status: PropTypes.string.isRequired,
     canFinalize: PropTypes.bool.isRequired,
+    version: PropTypes.number.isRequired,
     anamnesis: PropTypes.object,
     previousResponse: PropTypes.object,
   }).isRequired,
