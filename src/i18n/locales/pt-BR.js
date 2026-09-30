@@ -45,6 +45,10 @@ const ptBR = {
       "Esta anamnese não está vinculada ao seu perfil.",
     ANAMNESIS_RESPONSE_NOT_FOUND:
       "Nenhuma resposta encontrada para esta anamnese.",
+    ANAMNESIS_RESPONSE_SUBMITTED_BY_STUDENT: "O aluno já enviou esta anamnese.",
+    ANAMNESIS_RESPONSE_FILLED_BY_ANOTHER_TRAINER:
+      "Esta anamnese foi preenchida por outro professor.",
+    ANAMNESIS_RESPONSE_ALREADY_SUBMITTED: "Esta anamnese já foi enviada.",
     ANAMNESIS_NOT_FOUND: "Anamnese não encontrada.",
     ANAMNESIS_SECTION_NOT_FOUND: "Seção da anamnese não encontrada.",
     ANAMNESIS_QUESTION_NOT_FOUND: "Pergunta da anamnese não encontrada.",
@@ -150,6 +154,10 @@ const ptBR = {
       "Nenhuma resposta encontrada para esta anamnese.",
     "anamnesis.notLinkedToStudent":
       "Esta anamnese não está vinculada ao seu perfil.",
+    "anamnesis.response.submittedByStudent": "O aluno já enviou esta anamnese.",
+    "anamnesis.response.filledByAnotherTrainer":
+      "Esta anamnese foi preenchida por outro professor.",
+    "anamnesis.response.alreadySubmitted": "Esta anamnese já foi enviada.",
     "anamnesis.invalidCondition":
       "Condição inválida para o tipo da pergunta pai.",
     "anamnesis.parentNotEligible":

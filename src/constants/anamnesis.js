@@ -11,6 +11,25 @@ export const ANAMNESIS_QUESTION_TYPE = {
 };
 
 /**
+ * Anamnesis response lifecycle and authorship — mirrors the backend values.
+ */
+export const ANAMNESIS_RESPONSE_STATUS = {
+  DRAFT: 'draft',
+  AWAITING_CONFIRMATION: 'awaiting_confirmation',
+  SUBMITTED: 'submitted',
+};
+
+export const ANAMNESIS_FILLED_BY = {
+  STUDENT: 'student',
+  TRAINER: 'trainer',
+};
+
+export const ANAMNESIS_FILL_TOAST_DURATION_MS = 8000;
+
+export const getAnamnesisFillPath = (studentId, anamnesisId) =>
+  `/trainer/students/${studentId}/anamneses/${anamnesisId}/fill`;
+
+/**
  * Returns a pt-BR label for an anamnesis question type.
  * @param {string} type
  * @returns {string}

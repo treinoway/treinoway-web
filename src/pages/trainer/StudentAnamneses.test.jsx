@@ -106,20 +106,42 @@ describe('StudentAnamneses', () => {
     );
   });
 
-  it('renders "Ver respostas" and "Abrir template" buttons for each linked anamnesis', async () => {
-    setup({ anamneses: mockLinkedAnamneses });
+  const openRowMenu = async (user) => {
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Ver respostas' })).toBeInTheDocument(),
+      expect(screen.getByRole('button', { name: 'Opções da anamnese Anamnese de Saúde' })).toBeInTheDocument(),
     );
+    await user.click(screen.getByRole('button', { name: 'Opções da anamnese Anamnese de Saúde' }));
+  };
+
+  it('groups the row actions in a menu instead of visible buttons', async () => {
+    const user = userEvent.setup();
+    setup({ anamneses: mockLinkedAnamneses });
+    await openRowMenu(user);
+    expect(screen.getByRole('button', { name: 'Preencher com o aluno' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver respostas' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Abrir template' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Desvincular' })).toBeInTheDocument();
+  });
+
+  it('does not show the row actions before the menu is opened', async () => {
+    setup({ anamneses: mockLinkedAnamneses });
+    await waitFor(() => expect(screen.getByText('Anamnese de Saúde')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Preencher com o aluno' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver respostas' })).not.toBeInTheDocument();
+  });
+
+  it('"Preencher com o aluno" navigates to the fill route', async () => {
+    const user = userEvent.setup();
+    setup({ anamneses: mockLinkedAnamneses });
+    await openRowMenu(user);
+    await user.click(screen.getByRole('button', { name: 'Preencher com o aluno' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/anamneses/anam-1/fill');
   });
 
   it('"Ver respostas" navigates to the response detail route', async () => {
     const user = userEvent.setup();
     setup({ anamneses: mockLinkedAnamneses });
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Ver respostas' })).toBeInTheDocument(),
-    );
+    await openRowMenu(user);
     await user.click(screen.getByRole('button', { name: 'Ver respostas' }));
     expect(mockNavigate).toHaveBeenCalledWith(
       '/trainer/students/student-1/anamneses/anam-1/response',
@@ -129,9 +151,7 @@ describe('StudentAnamneses', () => {
   it('"Abrir template" navigates to the anamnesis detail route', async () => {
     const user = userEvent.setup();
     setup({ anamneses: mockLinkedAnamneses });
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Abrir template' })).toBeInTheDocument(),
-    );
+    await openRowMenu(user);
     await user.click(screen.getByRole('button', { name: 'Abrir template' }));
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/anamneses/anam-1');
   });
@@ -139,9 +159,7 @@ describe('StudentAnamneses', () => {
   it('"Desvincular" opens confirm dialog', async () => {
     const user = userEvent.setup();
     setup({ anamneses: mockLinkedAnamneses });
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Desvincular' })).toBeInTheDocument(),
-    );
+    await openRowMenu(user);
     await user.click(screen.getByRole('button', { name: 'Desvincular' }));
     expect(
       screen.getByText(/desvincular a anamnese "anamnese de saúde"/i),
@@ -152,9 +170,7 @@ describe('StudentAnamneses', () => {
     const user = userEvent.setup();
     api.delete.mockResolvedValue({});
     setup({ anamneses: mockLinkedAnamneses });
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Desvincular' })).toBeInTheDocument(),
-    );
+    await openRowMenu(user);
     await user.click(screen.getByRole('button', { name: 'Desvincular' }));
     const desvincularBtns = screen.getAllByRole('button', { name: /desvincular/i });
     await user.click(desvincularBtns[desvincularBtns.length - 1]);
@@ -204,8 +220,26 @@ describe('StudentAnamneses', () => {
       expect(mockShowToast).toHaveBeenCalledWith(
         'Anamnese vinculada com sucesso!',
         'success',
+        expect.objectContaining({ actionLabel: 'Preencher agora' }),
       );
     });
+  });
+
+  it('the success toast offers "Preencher agora", which opens the fill route', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: {} });
+    setup({
+      allAnamneses: [{ id: 'anam-1', title: 'Anamnese de Saúde', isGeneral: false }],
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /\+ vincular anamnese/i })).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole('button', { name: /\+ vincular anamnese/i }));
+    await selectOption(user, await screen.findByLabelText('Selecionar anamnese'), 'anam-1');
+    await user.click(screen.getByRole('button', { name: 'Vincular' }));
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalled());
+    mockShowToast.mock.calls[0][2].onAction();
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/anamneses/anam-1/fill');
   });
 
   it('cancel button closes link form without calling api.post', async () => {

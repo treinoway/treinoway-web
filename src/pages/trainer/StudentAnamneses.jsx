@@ -5,6 +5,8 @@ import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import Select from '../../components/Select';
+import RowMenu from '../../components/RowMenu';
+import { ANAMNESIS_FILL_TOAST_DURATION_MS, getAnamnesisFillPath } from '../../constants/anamnesis';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 
 const StudentAnamneses = () => {
@@ -59,7 +61,11 @@ const StudentAnamneses = () => {
     setLinking(true);
     try {
       await api.post(`/trainer/students/${id}/anamneses`, { anamnesisId: selectedAnamnesisId });
-      showToast('Anamnese vinculada com sucesso!', 'success');
+      showToast('Anamnese vinculada com sucesso!', 'success', {
+        actionLabel: 'Preencher agora',
+        onAction: () => navigate(getAnamnesisFillPath(id, selectedAnamnesisId)),
+        duration: ANAMNESIS_FILL_TOAST_DURATION_MS,
+      });
       setShowLinkForm(false);
       setSelectedAnamnesisId('');
       fetchLinkedAnamneses();
@@ -147,37 +153,23 @@ const StudentAnamneses = () => {
                       <span className="badge badge-blue">Geral</span>
                     )}
                   </div>
+                  <RowMenu
+                    ariaLabel={`Opções da anamnese ${link.anamnesis.title}`}
+                    extraItems={[
+                      { label: 'Preencher com o aluno', onClick: () => navigate(getAnamnesisFillPath(id, link.anamnesis.id)) },
+                      {
+                        label: 'Ver respostas',
+                        onClick: () => navigate(`/trainer/students/${id}/anamneses/${link.anamnesis.id}/response`),
+                      },
+                      { label: 'Abrir template', onClick: () => navigate(`/trainer/anamneses/${link.anamnesis.id}`) },
+                    ]}
+                    onDelete={() => handleUnlink(link)}
+                    deleteLabel="Desvincular"
+                  />
                 </div>
                 {linkedAt && (
                   <p className="anamnesis-link-card-meta">Vinculada em {linkedAt}</p>
                 )}
-                <div className="anamnesis-link-card-actions">
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={() =>
-                      navigate(
-                        `/trainer/students/${id}/anamneses/${link.anamnesis.id}/response`,
-                      )
-                    }
-                  >
-                    Ver respostas
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={() => navigate(`/trainer/anamneses/${link.anamnesis.id}`)}
-                  >
-                    Abrir template
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={() => handleUnlink(link)}
-                  >
-                    Desvincular
-                  </button>
-                </div>
               </div>
             );
           })}
