@@ -7,6 +7,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAiChat } from '../../contexts/AiChatContext';
 import api from '../../api/axios';
+import { buildAnamnesisLink, linkResponses } from '../../test/anamnesisLinkFixtures';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -105,11 +106,12 @@ const mockProtocols = [
 ];
 
 const mockLinkedAnamneses = [
-  {
-    id: 'link-1',
-    createdAt: '2026-01-15',
-    anamnesis: { id: 'anam-1', title: 'Anamnese de Saúde', isGeneral: false },
-  },
+  buildAnamnesisLink({
+    id: 'anam-1',
+    title: 'Anamnese de Saúde',
+    response: linkResponses.submitted,
+    canFill: true,
+  }),
 ];
 
 const mockShowToast = vi.fn();
@@ -333,6 +335,97 @@ describe('StudentDetail (cockpit)', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       '/trainer/students/student-1/anamneses/anam-1/response',
     );
+  });
+
+  describe('anamnesis summary status', () => {
+    const cardMenu = (title) => `Opções da anamnese ${title}`;
+
+    it('shows a status badge per anamnesis for the four states', async () => {
+      setupMocks({
+        anamneses: [
+          buildAnamnesisLink({ id: 'a1', title: 'Pendente A', response: null, canFill: true }),
+          buildAnamnesisLink({ id: 'a2', title: 'Rascunho B', response: linkResponses.draft, canFill: true }),
+        ],
+      });
+      renderDetail();
+      expect(await screen.findByText('Pendente')).toBeInTheDocument();
+      expect(screen.getByText('Em preenchimento')).toBeInTheDocument();
+      expect(screen.getByText('4 respostas')).toBeInTheDocument();
+    });
+
+    it('shows the awaiting confirmation label with the trainer hint and the submitted date', async () => {
+      setupMocks({
+        anamneses: [
+          buildAnamnesisLink({ id: 'a1', title: 'A', response: linkResponses.awaitingByTrainer, canFill: false }),
+          buildAnamnesisLink({ id: 'a2', title: 'B', response: linkResponses.submitted, canFill: false }),
+        ],
+      });
+      renderDetail();
+      expect(await screen.findByText('Aguardando confirmação')).toBeInTheDocument();
+      expect(screen.getByText('Preenchida por você')).toBeInTheDocument();
+      expect(screen.getByText('Respondida')).toBeInTheDocument();
+      expect(
+        screen.getByText(new Date(linkResponses.submitted.submittedAt).toLocaleDateString('pt-BR')),
+      ).toBeInTheDocument();
+    });
+
+    it('lists pending first, then draft, awaiting and submitted, keeping the two first', async () => {
+      setupMocks({
+        anamneses: [
+          buildAnamnesisLink({ id: 'a1', title: 'Enviada', response: linkResponses.submitted, canFill: false }),
+          buildAnamnesisLink({ id: 'a2', title: 'Aguardando', response: linkResponses.awaitingByTrainer, canFill: false }),
+          buildAnamnesisLink({ id: 'a3', title: 'Rascunho', response: linkResponses.draft, canFill: true }),
+          buildAnamnesisLink({ id: 'a4', title: 'Pendente', response: null, canFill: true }),
+        ],
+      });
+      renderDetail();
+      await screen.findByText('Pendente', { selector: '.cockpit-anamnese-card-title' });
+      const titles = [...document.querySelectorAll('.cockpit-anamnese-card-title')].map((node) => node.textContent);
+      expect(titles).toEqual(['Pendente', 'Rascunho']);
+    });
+
+    it('keeps the original order inside the same status', async () => {
+      setupMocks({
+        anamneses: [
+          buildAnamnesisLink({ id: 'a1', title: 'Primeira', response: null, canFill: true }),
+          buildAnamnesisLink({ id: 'a2', title: 'Segunda', response: null, canFill: true }),
+        ],
+      });
+      renderDetail();
+      await screen.findByText('Primeira');
+      const titles = [...document.querySelectorAll('.cockpit-anamnese-card-title')].map((node) => node.textContent);
+      expect(titles).toEqual(['Primeira', 'Segunda']);
+    });
+
+    it('shows no row menu when there is nothing to fill or view', async () => {
+      setupMocks({
+        anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Rascunho', response: linkResponses.draft, canFill: false })],
+      });
+      renderDetail();
+      await screen.findByText('Em preenchimento');
+      expect(screen.queryByRole('button', { name: cardMenu('Rascunho') })).not.toBeInTheDocument();
+    });
+
+    it('offers only "Ver respostas" for a submitted response that cannot be filled', async () => {
+      const user = userEvent.setup();
+      setupMocks({
+        anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Enviada', response: linkResponses.submitted, canFill: false })],
+      });
+      renderDetail();
+      await user.click(await screen.findByRole('button', { name: cardMenu('Enviada') }));
+      expect(screen.getByRole('button', { name: 'Ver respostas' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Preencher com o aluno' })).not.toBeInTheDocument();
+    });
+
+    it('treats links without response/canFill (older backend) as pending and fillable', async () => {
+      const user = userEvent.setup();
+      setupMocks({ anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Legado' })] });
+      renderDetail();
+      expect(await screen.findByText('Pendente')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: cardMenu('Legado') }));
+      expect(screen.getByRole('button', { name: 'Preencher com o aluno' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Ver respostas' })).toBeInTheDocument();
+    });
   });
 
   it('cancel button closes link modal without calling api.post', async () => {

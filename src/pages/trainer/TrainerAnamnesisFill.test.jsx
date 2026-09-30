@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRoute } from '../../test/test-utils';
 import TrainerAnamnesisFill from './TrainerAnamnesisFill';
@@ -17,7 +17,7 @@ vi.mock('../../contexts/ToastContext', () => ({
 }));
 
 vi.mock('../../api/axios', () => ({
-  default: { get: vi.fn(), post: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
@@ -25,6 +25,8 @@ const mockShowToast = vi.fn();
 
 const ROUTE_PATH = '/trainer/students/:studentId/anamneses/:anamnesisId/fill';
 const FILL_URL = '/trainer/students/student-1/anamneses/anamnesis-1/fill';
+const DRAFT_URL = '/trainer/students/student-1/anamneses/anamnesis-1/response/draft';
+const SAVED_TEXT = /^Rascunho salvo às \d{2}:\d{2}$/;
 const POST_URL = '/trainer/students/student-1/anamneses/anamnesis-1/response';
 const DOSSIER_PATH = '/trainer/students/student-1/anamneses/anamnesis-1/response';
 const LIST_PATH = '/trainer/students/student-1/anamneses';
@@ -99,6 +101,8 @@ describe('TrainerAnamnesisFill', () => {
     vi.clearAllMocks();
     api.get.mockReset();
     api.post.mockReset();
+    api.patch.mockReset();
+    api.patch.mockResolvedValue({ data: { updatedAt: new Date().toISOString() } });
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
   });
 
@@ -246,10 +250,14 @@ describe('TrainerAnamnesisFill', () => {
 
     it('pre-fills the student draft and tells how many questions were answered', async () => {
       setupApi({ fill: { anamnesis: wizardAnamnesis, response: studentDraft, canFinalize: true } });
-      await startFilling();
+      const user = await startFilling();
       expect(
         await screen.findByText('Maria já respondeu 2 perguntas pelo app. Vamos continuar a partir delas.'),
       ).toBeInTheDocument();
+      // Resumes at the first step with a required question left ("Objetivos"); the earlier answers are kept.
+      expect(stepHeading('Objetivos')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Voltar' }));
+      await user.click(screen.getByRole('button', { name: 'Voltar' }));
       expect(screen.getByRole('radio', { name: 'Não' })).toBeChecked();
     });
 
@@ -449,6 +457,128 @@ describe('TrainerAnamnesisFill', () => {
       await waitFor(() =>
         expect(mockShowToast).toHaveBeenCalledWith('O aluno já enviou esta anamnese.', 'error'),
       );
+    });
+  });
+
+  describe('autosave', () => {
+    it('does not save anything before the presence is confirmed', async () => {
+      setupApi();
+      renderPage();
+      await screen.findByText('Maria Silva');
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+      expect(api.patch).not.toHaveBeenCalled();
+    });
+
+    it('saves the dirty answers on the trainer draft route when moving to the next step', async () => {
+      setupApi();
+      const user = await startFilling();
+      await screen.findByText('Preenchendo por Maria Silva');
+      await user.click(screen.getByRole('radio', { name: 'Não' }));
+      await clickContinue(user);
+      await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(1));
+      expect(api.patch).toHaveBeenCalledWith(DRAFT_URL, { answers: [{ questionId: 'q-train', value: 'no' }] });
+      expect(await screen.findByText(SAVED_TEXT)).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('shows the retry message when the draft cannot be saved', async () => {
+      setupApi();
+      api.patch.mockRejectedValue(Object.assign(httpError(500), { userMessage: 'Erro' }));
+      const user = await startFilling();
+      await screen.findByText('Preenchendo por Maria Silva');
+      await user.click(screen.getByRole('radio', { name: 'Não' }));
+      await clickContinue(user);
+      expect(await screen.findByText('Não foi possível salvar — tentando de novo')).toBeInTheDocument();
+      expect(stepHeading('Rotina')).toBeInTheDocument();
+    });
+
+    it('keeps autosave off when the response was already registered by the trainer', async () => {
+      setupApi({ fill: { anamnesis: wizardAnamnesis, response: trainerSubmission, canFinalize: true } });
+      const user = await startFilling('/trainer/students/student-1/anamneses/anamnesis-1/fill?step=1');
+      await screen.findByText('Preenchendo por Maria Silva');
+      await user.click(screen.getByRole('radio', { name: 'Não' }));
+      await clickContinue(user);
+      expect(api.patch).not.toHaveBeenCalled();
+      expect(document.querySelector('[aria-live="polite"]')).not.toBeInTheDocument();
+    });
+
+    it('does not autosave in the read-only state', async () => {
+      setupApi({ fill: { anamnesis: wizardAnamnesis, response: trainerSubmission, canFinalize: false } });
+      await startFilling();
+      await screen.findByText('Esta anamnese foi preenchida por outro professor.');
+      expect(api.patch).not.toHaveBeenCalled();
+    });
+
+    it('on 409 toasts the API message and reloads into the read-only state', async () => {
+      let submitted = false;
+      api.get.mockImplementation((url) => {
+        if (url === '/trainer/students/student-1') return Promise.resolve({ data: student });
+        return Promise.resolve({
+          data: submitted
+            ? { anamnesis: wizardAnamnesis, response: { ...studentDraft, status: 'submitted', submittedAt: '2026-03-01T10:00:00.000Z' }, canFinalize: false }
+            : { anamnesis: wizardAnamnesis, response: null, canFinalize: true },
+        });
+      });
+      api.patch.mockImplementation(() => {
+        submitted = true;
+        return Promise.reject(Object.assign(httpError(409), { userMessage: 'A anamnese já foi enviada.' }));
+      });
+      const user = await startFilling();
+      await screen.findByText('Preenchendo por Maria Silva');
+      await user.click(screen.getByRole('radio', { name: 'Não' }));
+      await clickContinue(user);
+
+      expect(await screen.findByText('Maria já enviou esta anamnese pelo app.')).toBeInTheDocument();
+      expect(mockShowToast).toHaveBeenCalledWith('A anamnese já foi enviada.', 'error');
+      expect(api.patch).toHaveBeenCalledTimes(1);
+    });
+
+    it('flushes drafts before saving and never patches after the POST starts', async () => {
+      setupApi();
+      api.post.mockResolvedValue({ data: {} });
+      const user = await startFilling();
+      await screen.findByText('Preenchendo por Maria Silva');
+      await fillAllSteps(user);
+      await user.click(screen.getByRole('button', { name: 'Salvar respostas' }));
+      await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+
+      const postOrder = api.post.mock.invocationCallOrder[0];
+      expect(api.patch.mock.invocationCallOrder.every((order) => order < postOrder)).toBe(true);
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+      expect(api.patch.mock.invocationCallOrder.every((order) => order < postOrder)).toBe(true);
+    });
+
+    it('stops warning before unload once the draft was saved', async () => {
+      setupApi();
+      const user = await startFilling();
+      await screen.findByText('Preenchendo por Maria Silva');
+      await user.click(screen.getByRole('radio', { name: 'Não' }));
+      await clickContinue(user);
+      await screen.findByText(SAVED_TEXT);
+      const event = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+    });
+  });
+
+  describe('resuming a draft', () => {
+    it('opens at the first step with a required question left and keeps the existing banner only', async () => {
+      setupApi({ fill: { anamnesis: wizardAnamnesis, response: studentDraft, canFinalize: true } });
+      await startFilling();
+      expect(await screen.findByRole('heading', { level: 2, name: 'Objetivos' })).toBeInTheDocument();
+      expect(screen.getAllByRole('note')).toHaveLength(1);
+      expect(screen.queryByText('Continuando de onde você parou.')).not.toBeInTheDocument();
+    });
+
+    it('respects an explicit ?step= in the URL', async () => {
+      setupApi({ fill: { anamnesis: wizardAnamnesis, response: studentDraft, canFinalize: true } });
+      await startFilling('/trainer/students/student-1/anamneses/anamnesis-1/fill?step=1');
+      expect(await screen.findByRole('heading', { level: 2, name: 'Saúde' })).toBeInTheDocument();
+    });
+
+    it('starts at the first step without a response', async () => {
+      setupApi();
+      await startFilling();
+      expect(await screen.findByRole('heading', { level: 2, name: 'Saúde' })).toBeInTheDocument();
     });
   });
 });

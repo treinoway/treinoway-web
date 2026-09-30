@@ -28,3 +28,16 @@ export const formatDateTimeForDisplay = (dateValue) => {
 
   return parsedDate.toLocaleDateString('pt-BR');
 };
+
+/**
+ * Formats a DateTime as HH:mm in the viewer's local timezone; "-" when missing
+ * or invalid.
+ */
+export const formatTimeForDisplay = (dateValue) => {
+  if (!dateValue) return '-';
+
+  const parsedDate = new Date(dateValue);
+  if (Number.isNaN(parsedDate.getTime())) return '-';
+
+  return parsedDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+};

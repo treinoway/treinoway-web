@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import useUnsavedChangesWarning from './useUnsavedChangesWarning';
 import {
   buildAnswersFromResponse,
   buildSubmitPayload,
@@ -8,6 +7,7 @@ import {
   getVisibleQuestionIds,
   getVisibleSectionQuestions,
   getWizardSections,
+  isAnswerEmpty,
   summarizeSection,
   validateSection,
 } from '../utils/anamnesisAnswers';
@@ -24,10 +24,11 @@ const omitKeys = (object, keys) => {
 };
 
 // Step lives in the URL (1-based) so browser back/forward moves between steps.
-const useWizardStep = (lastIndex) => {
+// Without a valid `?step=` the wizard opens at `defaultIndex`.
+const useWizardStep = (lastIndex, defaultIndex) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const parsed = parseInt(searchParams.get(STEP_PARAM), 10);
-  const stepIndex = Number.isFinite(parsed) ? Math.min(Math.max(parsed - 1, 0), lastIndex) : 0;
+  const stepIndex = Number.isFinite(parsed) ? Math.min(Math.max(parsed - 1, 0), lastIndex) : defaultIndex;
   const goToStep = (index) => setSearchParams({ [STEP_PARAM]: String(index + 1) });
   return { stepIndex, goToStep };
 };
@@ -47,6 +48,17 @@ const useWizardAnswers = (getInitialAnswers) => {
     setErrors((prev) => ({ ...omitKeys(prev, questionIds), ...nextErrors }));
 
   return { answers, errors, hasChanges, setAnswer, replaceErrors };
+};
+
+// A draft resumes at the first section with something left to fix, else at the review.
+const getResumeState = (previousResponse, sections, answers, allQuestions) => {
+  const hasAnswers = Object.values(answers).some((value) => !isAnswerEmpty(value));
+  const isDraft = Boolean(previousResponse) && !previousResponse.submittedAt && hasAnswers;
+  if (!isDraft) return { isDraft: false, stepIndex: 0 };
+  const firstPending = sections.findIndex(
+    (section) => summarizeSection(section, answers, allQuestions).pending > 0,
+  );
+  return { isDraft: true, stepIndex: firstPending === -1 ? sections.length : firstPending };
 };
 
 const buildSteps = (sections) => [
@@ -78,13 +90,13 @@ const findSectionIndex = (sections, questionId) =>
 const useAnamnesisWizard = ({ anamnesis, previousResponse }) => {
   const sections = getWizardSections(anamnesis);
   const allQuestions = flattenQuestions(sections);
-  const { stepIndex, goToStep } = useWizardStep(sections.length);
   const { answers, errors, hasChanges, setAnswer, replaceErrors } = useWizardAnswers(() =>
     buildAnswersFromResponse(previousResponse, allQuestions),
   );
+  const [resume] = useState(() => getResumeState(previousResponse, sections, answers, allQuestions));
+  const { stepIndex, goToStep } = useWizardStep(sections.length, resume.stepIndex);
   const [focusQuestionId, setFocusQuestionId] = useState(null);
   const clearFocusRequest = useCallback(() => setFocusQuestionId(null), []);
-  useUnsavedChangesWarning(hasChanges);
 
   const currentSection = sections[stepIndex] ?? null;
   const visibleIds = getVisibleQuestionIds(allQuestions, answers);
@@ -129,6 +141,8 @@ const useAnamnesisWizard = ({ anamnesis, previousResponse }) => {
     summaries,
     hasPending: summaries.some((summary) => summary.pending > 0),
     hasPreviousResponse: Boolean(previousResponse),
+    isResumingDraft: resume.isDraft,
+    hasChanges,
     focusQuestionId,
     setAnswer,
     goNext,

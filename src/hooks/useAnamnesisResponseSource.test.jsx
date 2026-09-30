@@ -4,7 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import api from '../api/axios';
 
 vi.mock('../contexts/ToastContext', () => ({ useToast: vi.fn() }));
-vi.mock('../api/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
+vi.mock('../api/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }));
 
 const mockShowToast = vi.fn();
 const anamnesis = { id: 'a-1', title: 'Saúde', sections: [] };
@@ -18,6 +18,7 @@ describe('useAnamnesisResponseSource', () => {
     vi.clearAllMocks();
     api.get.mockReset();
     api.post.mockReset();
+    api.patch.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
   });
 
@@ -48,6 +49,16 @@ describe('useAnamnesisResponseSource', () => {
       await waitFor(() => expect(result.current.status).toBe('ready'));
       expect(result.current.previousResponse).toBeNull();
       expect(result.current.canFinalize).toBe(true);
+    });
+
+    it('bumps the version with every completed load so callers can remount on fresh data', async () => {
+      api.get.mockResolvedValue({ data: { anamnesis, response: null, canFinalize: true } });
+      const { result } = renderHook(() => useAnamnesisResponseSource(trainerParams));
+      await waitFor(() => expect(result.current.status).toBe('ready'));
+      const firstVersion = result.current.version;
+      act(() => result.current.reload());
+      await waitFor(() => expect(result.current.version).toBe(firstVersion + 1));
+      expect(result.current.status).toBe('ready');
     });
 
     it('reports notFound on 404 without a toast', async () => {
@@ -86,6 +97,39 @@ describe('useAnamnesisResponseSource', () => {
     });
   });
 
+  describe('trainer mode drafts', () => {
+    const load = async (data) => {
+      api.get.mockResolvedValue({ data: { anamnesis, canFinalize: true, ...data } });
+      const hook = renderHook(() => useAnamnesisResponseSource(trainerParams));
+      await waitFor(() => expect(hook.result.current.status).toBe('ready'));
+      return hook;
+    };
+
+    it('patches the trainer draft route with only the given answers', async () => {
+      api.patch.mockResolvedValue({ data: { updatedAt: 'now' } });
+      const { result } = await load({ response: null });
+      const answers = [{ questionId: 'q', value: 'x' }, { questionId: 'r', value: null }];
+      await expect(result.current.saveDraft(answers)).resolves.toEqual({ data: { updatedAt: 'now' } });
+      expect(api.patch).toHaveBeenCalledWith('/trainer/students/s-1/anamneses/a-1/response/draft', { answers });
+    });
+
+    it('allows autosave for a blank or draft response the trainer can finalize', async () => {
+      expect((await load({ response: null })).result.current.canAutosave).toBe(true);
+      const draft = await load({ response: { id: 'r-1', submittedAt: null, answers: [] } });
+      expect(draft.result.current.canAutosave).toBe(true);
+    });
+
+    it('disables autosave when the response was already submitted', async () => {
+      const { result } = await load({ response: { id: 'r-1', submittedAt: '2026-03-01T10:00:00.000Z', answers: [] } });
+      expect(result.current.canAutosave).toBe(false);
+    });
+
+    it('disables autosave when the trainer cannot finalize', async () => {
+      const { result } = await load({ response: { id: 'r-1', submittedAt: null, answers: [] }, canFinalize: false });
+      expect(result.current.canAutosave).toBe(false);
+    });
+  });
+
   describe('student mode', () => {
     it('finds the linked anamnesis and treats a 404 response as blank', async () => {
       api.get.mockImplementation((url) =>
@@ -115,6 +159,32 @@ describe('useAnamnesisResponseSource', () => {
       await waitFor(() => expect(result.current.status).not.toBe('loading'));
       await result.current.submit({ answers: [] });
       expect(api.post).toHaveBeenCalledWith('/my/anamneses/a-1/response', { answers: [] });
+    });
+
+    it('patches the student draft route with only the given answers', async () => {
+      api.get.mockResolvedValue({ data: [] });
+      api.patch.mockResolvedValue({ data: {} });
+      const { result } = renderHook(() => useAnamnesisResponseSource(studentParams));
+      await waitFor(() => expect(result.current.status).not.toBe('loading'));
+      await result.current.saveDraft([{ questionId: 'q', value: 'x' }]);
+      expect(api.patch).toHaveBeenCalledWith('/my/anamneses/a-1/response/draft', {
+        answers: [{ questionId: 'q', value: 'x' }],
+      });
+    });
+
+    it('allows autosave for a draft and blocks it once the response was submitted', async () => {
+      const loadWith = async (response) => {
+        api.get.mockImplementation((url) =>
+          url === '/my/anamneses'
+            ? Promise.resolve({ data: [{ anamnesisId: 'a-1', anamnesis }] })
+            : Promise.resolve({ data: response }),
+        );
+        const hook = renderHook(() => useAnamnesisResponseSource(studentParams));
+        await waitFor(() => expect(hook.result.current.status).toBe('ready'));
+        return hook.result.current;
+      };
+      expect((await loadWith({ id: 'r-1', submittedAt: null, answers: [] })).canAutosave).toBe(true);
+      expect((await loadWith({ id: 'r-1', submittedAt: '2026-03-01T10:00:00.000Z', answers: [] })).canAutosave).toBe(false);
     });
   });
 });

@@ -24,6 +24,11 @@ export const ANAMNESIS_FILLED_BY = {
   TRAINER: 'trainer',
 };
 
+/**
+ * Autosave indicator states of the answer wizard.
+ */
+export const DRAFT_SAVE_STATUS = { IDLE: 'idle', SAVING: 'saving', SAVED: 'saved', ERROR: 'error' };
+
 export const ANAMNESIS_FILL_TOAST_DURATION_MS = 8000;
 
 export const getAnamnesisFillPath = (studentId, anamnesisId) =>

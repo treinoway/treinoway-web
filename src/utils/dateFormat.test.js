@@ -1,4 +1,4 @@
-import { formatDateForDisplay, formatDateTimeForDisplay } from './dateFormat';
+import { formatDateForDisplay, formatDateTimeForDisplay, formatTimeForDisplay } from './dateFormat';
 
 describe('formatDateForDisplay', () => {
   it('formats date-only strings without any timezone shift', () => {
@@ -45,5 +45,32 @@ describe('formatDateTimeForDisplay', () => {
     expect(formatDateTimeForDisplay(undefined)).toBe('-');
     expect(formatDateTimeForDisplay('')).toBe('-');
     expect(formatDateTimeForDisplay('not-a-date')).toBe('-');
+  });
+});
+
+describe('formatTimeForDisplay', () => {
+  const originalTimezone = process.env.TZ;
+
+  afterEach(() => {
+    if (originalTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimezone;
+  });
+
+  it('renders HH:mm in the viewer timezone', () => {
+    process.env.TZ = 'America/Sao_Paulo';
+    expect(formatTimeForDisplay('2026-09-30T17:32:00.000Z')).toBe('14:32');
+    process.env.TZ = 'UTC';
+    expect(formatTimeForDisplay('2026-09-30T17:32:00.000Z')).toBe('17:32');
+  });
+
+  it('accepts Date instances', () => {
+    process.env.TZ = 'UTC';
+    expect(formatTimeForDisplay(new Date('2026-09-30T09:05:00.000Z'))).toBe('09:05');
+  });
+
+  it('falls back to "-" for missing and invalid values', () => {
+    expect(formatTimeForDisplay(null)).toBe('-');
+    expect(formatTimeForDisplay('')).toBe('-');
+    expect(formatTimeForDisplay('not-a-date')).toBe('-');
   });
 });

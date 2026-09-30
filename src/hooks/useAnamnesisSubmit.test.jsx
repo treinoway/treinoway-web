@@ -9,10 +9,10 @@ const mockShowToast = vi.fn();
 const httpError = (status, data, extra = {}) =>
   Object.assign(new Error(`HTTP ${status}`), { response: { status, data }, ...extra });
 
-const setup = ({ submit, applyServerErrors = vi.fn(() => false), onConflict } = {}) => {
+const setup = ({ submit, applyServerErrors = vi.fn(() => false), onConflict, draft } = {}) => {
   const wizard = { buildPayload: () => ({ answers: [] }), applyServerErrors };
   const onSubmitted = vi.fn();
-  const hook = renderHook(() => useAnamnesisSubmit({ wizard, submit, onSubmitted, onConflict }));
+  const hook = renderHook(() => useAnamnesisSubmit({ wizard, submit, onSubmitted, onConflict, draft }));
   return { ...hook, onSubmitted, applyServerErrors };
 };
 
@@ -62,5 +62,51 @@ describe('useAnamnesisSubmit', () => {
     const { result } = setup({ submit, onConflict });
     await act(() => result.current.handleSubmit());
     expect(onConflict).not.toHaveBeenCalled();
+  });
+
+  describe('with autosave', () => {
+    const buildDraft = (prepared = true) => ({
+      prepareForSubmit: vi.fn().mockResolvedValue(prepared),
+      resume: vi.fn(),
+    });
+
+    it('flushes the draft before posting and keeps autosave paused after a success', async () => {
+      const order = [];
+      const draft = buildDraft();
+      draft.prepareForSubmit.mockImplementation(async () => { order.push('flush'); return true; });
+      const submit = vi.fn(async () => { order.push('post'); });
+      const { result, onSubmitted } = setup({ submit, draft });
+      await act(() => result.current.handleSubmit());
+      expect(order).toEqual(['flush', 'post']);
+      expect(onSubmitted).toHaveBeenCalledTimes(1);
+      expect(draft.resume).not.toHaveBeenCalled();
+    });
+
+    it('does not post when the draft flush reported a conflict', async () => {
+      const draft = buildDraft(false);
+      const submit = vi.fn();
+      const { result, onSubmitted } = setup({ submit, draft });
+      await act(() => result.current.handleSubmit());
+      expect(submit).not.toHaveBeenCalled();
+      expect(onSubmitted).not.toHaveBeenCalled();
+      expect(result.current.submitting).toBe(false);
+    });
+
+    it('resumes autosave when the submit fails', async () => {
+      const draft = buildDraft();
+      const submit = vi.fn().mockRejectedValue(httpError(500, {}, { userMessage: 'Erro' }));
+      const { result } = setup({ submit, draft });
+      await act(() => result.current.handleSubmit());
+      expect(draft.resume).toHaveBeenCalledTimes(1);
+      expect(mockShowToast).toHaveBeenCalledWith('Erro', 'error');
+    });
+
+    it('resumes autosave when a 400 is mapped onto the fields', async () => {
+      const draft = buildDraft();
+      const submit = vi.fn().mockRejectedValue(httpError(400, { details: [{ questionId: 'q1' }] }));
+      const { result } = setup({ submit, draft, applyServerErrors: vi.fn(() => true) });
+      await act(() => result.current.handleSubmit());
+      expect(draft.resume).toHaveBeenCalledTimes(1);
+    });
   });
 });
