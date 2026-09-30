@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRoute } from '../../test/test-utils';
 import AnamnesisWizard from './AnamnesisWizard';
@@ -22,7 +22,7 @@ vi.mock('../../contexts/ToastContext', () => ({
 }));
 
 vi.mock('../../api/axios', () => ({
-  default: { get: vi.fn(), post: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
   onNetworkError: vi.fn(() => vi.fn()),
 }));
 
@@ -63,6 +63,16 @@ const renderLoaded = async (route) => {
 const stepHeading = (name) => screen.getByRole('heading', { level: 2, name });
 const clickContinue = (user) => user.click(screen.getByRole('button', { name: 'Continuar' }));
 
+const SAVED_TEXT = /^Rascunho salvo às \d{2}:\d{2}$/;
+const DRAFT_URL = '/my/anamneses/anamnesis-1/response/draft';
+
+const draftResponse = (...answers) => ({
+  id: 'response-1',
+  status: 'draft',
+  submittedAt: null,
+  answers: answers.map(([questionId, value]) => ({ questionId, value })),
+});
+
 const fillHealthStep = async (user) => {
   await user.click(screen.getByRole('radio', { name: 'Não' }));
   await clickContinue(user);
@@ -85,6 +95,8 @@ describe('AnamnesisWizard', () => {
     vi.clearAllMocks();
     api.get.mockReset();
     api.post.mockReset();
+    api.patch.mockReset();
+    api.patch.mockResolvedValue({ data: { updatedAt: new Date().toISOString() } });
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
   });
 
@@ -400,6 +412,166 @@ describe('AnamnesisWizard', () => {
       expect(screen.getByRole('radio', { name: 'Noite' })).not.toBeChecked();
       await clickContinue(user);
       expect(screen.getByRole('alert')).toHaveTextContent('Esta pergunta é obrigatória.');
+    });
+  });
+
+  describe('autosave', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('saves only the dirty answers when the student moves to the next step and shows the time', async () => {
+      setupApi();
+      const user = await renderLoaded();
+      expect(screen.queryByText(SAVED_TEXT)).not.toBeInTheDocument();
+      await fillHealthStep(user);
+      await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(1));
+      expect(api.patch).toHaveBeenCalledWith(DRAFT_URL, { answers: [{ questionId: 'q-train', value: 'no' }] });
+      expect(await screen.findByText(SAVED_TEXT)).toBeInTheDocument();
+    });
+
+    it('saves 1.5 s after an answer change without leaving the step', async () => {
+      setupApi();
+      const user = await renderLoaded();
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      await user.click(screen.getByRole('radio', { name: 'Sim' }));
+      expect(api.patch).not.toHaveBeenCalled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(1500); });
+      expect(api.patch).toHaveBeenCalledWith(DRAFT_URL, { answers: [{ questionId: 'q-train', value: 'yes' }] });
+    });
+
+    it('shows "Salvando..." while the request is in flight', async () => {
+      setupApi();
+      api.patch.mockReturnValue(new Promise(() => {}));
+      const user = await renderLoaded();
+      await fillHealthStep(user);
+      expect(await screen.findByText('Salvando...')).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('shows the retry message when saving fails and keeps the wizard usable', async () => {
+      setupApi();
+      api.patch.mockRejectedValue({ userMessage: 'Erro', response: { status: 500 } });
+      const user = await renderLoaded();
+      await fillHealthStep(user);
+      expect(await screen.findByText('Não foi possível salvar — tentando de novo')).toBeInTheDocument();
+      expect(stepHeading('Rotina')).toBeInTheDocument();
+      expect(mockShowToast).not.toHaveBeenCalled();
+      await clickContinue(user);
+      expect(screen.getByRole('alert')).toHaveTextContent('Esta pergunta é obrigatória.');
+    });
+
+    it('does not autosave an already submitted response and shows no indicator', async () => {
+      setupApi({ response: wizardResponse });
+      const user = await renderLoaded();
+      await user.click(screen.getByRole('radio', { name: 'Não' }));
+      await clickContinue(user);
+      expect(api.patch).not.toHaveBeenCalled();
+      expect(document.querySelector('[aria-live="polite"]')).not.toBeInTheDocument();
+      const dirty = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(dirty);
+      expect(dirty.defaultPrevented).toBe(true);
+    });
+
+    it('stops autosaving on 409, toasts the API message and reloads into the submitted state', async () => {
+      let submitted = false;
+      api.get.mockImplementation((url) => {
+        if (url === '/my/anamneses') return Promise.resolve({ data: [wizardLink] });
+        return submitted ? Promise.resolve({ data: wizardResponse }) : Promise.reject(notFoundError());
+      });
+      api.patch.mockImplementation(() => {
+        submitted = true;
+        return Promise.reject({ userMessage: 'Esta anamnese já foi enviada.', response: { status: 409 } });
+      });
+      const user = await renderLoaded();
+      await fillHealthStep(user);
+
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Esta anamnese já foi enviada.', 'error'));
+      await waitFor(() => expect(api.get).toHaveBeenCalledWith('/my/anamneses/anamnesis-1/response'));
+      await waitFor(() => expect(api.get.mock.calls.filter(([url]) => url.endsWith('/response'))).toHaveLength(2));
+      await waitFor(() => expect(screen.getByRole('radio', { name: 'Noite' })).toBeChecked());
+      expect(document.querySelector('[aria-live="polite"]')).not.toBeInTheDocument();
+      expect(api.patch).toHaveBeenCalledTimes(1);
+    });
+
+    it('flushes drafts before submitting and never patches after the POST starts', async () => {
+      setupApi();
+      api.post.mockResolvedValue({ data: { id: 'r-1' } });
+      const user = await renderLoaded();
+      await fillHealthStep(user);
+      await fillRoutineStep(user);
+      await fillGoalStep(user);
+      await user.click(screen.getByRole('button', { name: 'Enviar respostas' }));
+      await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+
+      const lastPatchOrder = Math.max(...api.patch.mock.invocationCallOrder);
+      expect(lastPatchOrder).toBeLessThan(api.post.mock.invocationCallOrder[0]);
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+      expect(api.patch.mock.invocationCallOrder.every((order) => order < api.post.mock.invocationCallOrder[0])).toBe(true);
+    });
+
+    it('resumes autosave after a failed submit', async () => {
+      setupApi({ response: draftResponse(['q-train', 'no'], ['q-shift', 'Noite'], ['q-goal', 'Emagrecer']) });
+      api.post.mockRejectedValue({ userMessage: 'Erro ao enviar', response: { status: 500 } });
+      const user = await renderLoaded('/my/anamneses/anamnesis-1/answer?step=4');
+      await user.click(screen.getByRole('button', { name: 'Atualizar respostas' }));
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Erro ao enviar', 'error'));
+      await user.click(screen.getByRole('button', { name: 'Editar Objetivos' }));
+      await user.type(screen.getByRole('textbox', { name: /Qual seu objetivo\?/ }), '!');
+      await clickContinue(user);
+      await waitFor(() => expect(api.patch).toHaveBeenCalledWith(DRAFT_URL, {
+        answers: [{ questionId: 'q-goal', value: 'Emagrecer!' }],
+      }));
+    });
+  });
+
+  describe('resuming a draft', () => {
+    const partialDraft = draftResponse(['q-train', 'no'], ['q-shift', 'Noite']);
+
+    it('opens at the first step with a required question still empty and shows a dismissible banner', async () => {
+      setupApi({ response: partialDraft });
+      const user = await renderLoaded();
+      expect(stepHeading('Objetivos')).toBeInTheDocument();
+      expect(screen.getByRole('note')).toHaveTextContent('Continuando de onde você parou.');
+      await user.click(screen.getByRole('button', { name: 'Dispensar aviso' }));
+      expect(screen.queryByRole('note')).not.toBeInTheDocument();
+    });
+
+    it('opens the review when nothing required is pending', async () => {
+      setupApi({ response: draftResponse(['q-train', 'no'], ['q-shift', 'Noite'], ['q-goal', 'Emagrecer']) });
+      await renderLoaded();
+      expect(stepHeading('Revisão')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Atualizar respostas' })).toBeEnabled();
+    });
+
+    it('respects an explicit ?step= in the URL', async () => {
+      setupApi({ response: partialDraft });
+      await renderLoaded('/my/anamneses/anamnesis-1/answer?step=1');
+      expect(stepHeading('Saúde')).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'Não' })).toBeChecked();
+    });
+
+    it('does not resume or show the banner for a submitted response', async () => {
+      setupApi({ response: wizardResponse });
+      await renderLoaded();
+      expect(stepHeading('Saúde')).toBeInTheDocument();
+      expect(screen.queryByRole('note')).not.toBeInTheDocument();
+    });
+
+    it('does not resume or show the banner without a response', async () => {
+      setupApi();
+      await renderLoaded();
+      expect(stepHeading('Saúde')).toBeInTheDocument();
+      expect(screen.queryByRole('note')).not.toBeInTheDocument();
+    });
+
+    it('keeps autosaving from the resume step', async () => {
+      setupApi({ response: partialDraft });
+      const user = await renderLoaded();
+      await user.type(screen.getByRole('textbox', { name: /Qual seu objetivo\?/ }), 'Emagrecer');
+      await clickContinue(user);
+      await waitFor(() => expect(api.patch).toHaveBeenCalledWith(DRAFT_URL, {
+        answers: [{ questionId: 'q-goal', value: 'Emagrecer' }],
+      }));
     });
   });
 });

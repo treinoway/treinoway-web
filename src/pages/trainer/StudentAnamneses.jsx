@@ -8,6 +8,7 @@ import Select from '../../components/Select';
 import RowMenu from '../../components/RowMenu';
 import { ANAMNESIS_FILL_TOAST_DURATION_MS, getAnamnesisFillPath } from '../../constants/anamnesis';
 import { formatDateForDisplay } from '../../utils/dateFormat';
+import { canFillLink, canViewLinkResponses, getLinkStatusInfo } from '../../utils/anamnesisLinkStatus';
 
 const StudentAnamneses = () => {
   const { id } = useParams();
@@ -92,6 +93,19 @@ const StudentAnamneses = () => {
     });
   };
 
+  const buildMenuItems = (link) => [
+    ...(canFillLink(link)
+      ? [{ label: 'Preencher com o aluno', onClick: () => navigate(getAnamnesisFillPath(id, link.anamnesis.id)) }]
+      : []),
+    ...(canViewLinkResponses(link)
+      ? [{
+          label: 'Ver respostas',
+          onClick: () => navigate(`/trainer/students/${id}/anamneses/${link.anamnesis.id}/response`),
+        }]
+      : []),
+    { label: 'Abrir template', onClick: () => navigate(`/trainer/anamneses/${link.anamnesis.id}`) },
+  ];
+
   const formatLinkedAt = (link) => {
     const raw = link.createdAt ?? link.linkedAt ?? null;
     if (!raw) return null;
@@ -142,6 +156,7 @@ const StudentAnamneses = () => {
         <div>
           {linkedAnamneses.map((link) => {
             const linkedAt = formatLinkedAt(link);
+            const status = getLinkStatusInfo(link);
             return (
               <div key={link.id} className="anamnesis-link-card">
                 <div className="anamnesis-link-card-header">
@@ -153,20 +168,19 @@ const StudentAnamneses = () => {
                       <span className="badge badge-blue">Geral</span>
                     )}
                   </div>
-                  <RowMenu
-                    ariaLabel={`Opções da anamnese ${link.anamnesis.title}`}
-                    extraItems={[
-                      { label: 'Preencher com o aluno', onClick: () => navigate(getAnamnesisFillPath(id, link.anamnesis.id)) },
-                      {
-                        label: 'Ver respostas',
-                        onClick: () => navigate(`/trainer/students/${id}/anamneses/${link.anamnesis.id}/response`),
-                      },
-                      { label: 'Abrir template', onClick: () => navigate(`/trainer/anamneses/${link.anamnesis.id}`) },
-                    ]}
-                    onDelete={() => handleUnlink(link)}
-                    deleteLabel="Desvincular"
-                  />
+                  <div className="anamnesis-link-card-side">
+                    <span className={`badge ${status.badgeClass}`}>{status.label}</span>
+                    <RowMenu
+                      ariaLabel={`Opções da anamnese ${link.anamnesis.title}`}
+                      extraItems={buildMenuItems(link)}
+                      onDelete={() => handleUnlink(link)}
+                      deleteLabel="Desvincular"
+                    />
+                  </div>
                 </div>
+                {status.detail && (
+                  <p className="anamnesis-link-card-meta">{status.detail}</p>
+                )}
                 {linkedAt && (
                   <p className="anamnesis-link-card-meta">Vinculada em {linkedAt}</p>
                 )}

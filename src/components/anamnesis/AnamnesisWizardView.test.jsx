@@ -85,4 +85,46 @@ describe('AnamnesisWizardView', () => {
     expect(screen.getByRole('button', { name: 'Carregando...' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Voltar' })).toBeDisabled();
   });
+
+  describe('autosave indicator', () => {
+    it('renders nothing when autosave is not active', () => {
+      renderView();
+      expect(screen.queryByText(/Rascunho salvo/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Salvando...')).not.toBeInTheDocument();
+      expect(document.querySelector('[aria-live="polite"]')).not.toBeInTheDocument();
+    });
+
+    it('keeps an empty polite live region while idle', () => {
+      renderView({}, { saveState: { status: 'idle', savedAt: null } });
+      const region = document.querySelector('[aria-live="polite"]');
+      expect(region).toBeInTheDocument();
+      expect(region).toBeEmptyDOMElement();
+    });
+
+    it('announces "Salvando..." while saving', () => {
+      renderView({}, { saveState: { status: 'saving', savedAt: null } });
+      expect(screen.getByText('Salvando...')).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('shows the local time of the last save', () => {
+      const savedAt = new Date(2026, 8, 30, 14, 32);
+      renderView({}, { saveState: { status: 'saved', savedAt } });
+      expect(screen.getByText('Rascunho salvo às 14:32')).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('shows the retry message on error', () => {
+      renderView({}, { saveState: { status: 'error', savedAt: null } });
+      expect(screen.getByText('Não foi possível salvar — tentando de novo')).toBeInTheDocument();
+    });
+
+    it('updates the same live region when the state changes', () => {
+      const wizard = buildWizard();
+      const props = { title: 'Anamnese', submitLabel: 'Salvar', submitting: false, onSubmit: vi.fn(), onExit: vi.fn() };
+      const { rerender } = render(<AnamnesisWizardView wizard={wizard} {...props} saveState={{ status: 'saving', savedAt: null }} />);
+      const region = document.querySelector('[aria-live="polite"]');
+      rerender(<AnamnesisWizardView wizard={wizard} {...props} saveState={{ status: 'saved', savedAt: new Date(2026, 8, 30, 9, 5) }} />);
+      expect(document.querySelector('[aria-live="polite"]')).toBe(region);
+      expect(region).toHaveTextContent('Rascunho salvo às 09:05');
+    });
+  });
 });

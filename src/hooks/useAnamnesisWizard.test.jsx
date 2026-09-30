@@ -175,4 +175,89 @@ describe('useAnamnesisWizard', () => {
     expect(result.current.wizard.isReview).toBe(true);
     expect(result.current.wizard.buildPayload()).toEqual({ answers: [] });
   });
+
+  describe('resuming a draft', () => {
+    const draft = (...answers) => ({
+      id: 'r-draft',
+      status: 'draft',
+      submittedAt: null,
+      answers: answers.map(([questionId, value]) => ({ questionId, value })),
+    });
+
+    it('opens at the first section with a required visible question still empty', () => {
+      const { result } = renderWizard({
+        previousResponse: draft(['q-train', 'no'], ['q-shift', 'Noite']),
+      });
+      expect(result.current.wizard.stepIndex).toBe(2);
+      expect(result.current.wizard.currentSection.id).toBe('sec-3');
+      expect(result.current.wizard.isResumingDraft).toBe(true);
+    });
+
+    it('stops at an earlier section when a visible child is still empty', () => {
+      const { result } = renderWizard({ previousResponse: draft(['q-train', 'yes'], ['q-shift', 'Noite']) });
+      expect(result.current.wizard.stepIndex).toBe(0);
+    });
+
+    it('ignores empty answers and hidden children when looking for the step', () => {
+      const { result } = renderWizard({
+        previousResponse: draft(['q-train', 'no'], ['q-years', ''], ['q-shift', 'Manhã'], ['q-goal', '  ']),
+      });
+      expect(result.current.wizard.stepIndex).toBe(2);
+    });
+
+    it('opens the review step when nothing required is pending', () => {
+      const { result } = renderWizard({
+        previousResponse: draft(['q-train', 'no'], ['q-shift', 'Noite'], ['q-goal', 'Emagrecer']),
+      });
+      expect(result.current.wizard.isReview).toBe(true);
+      expect(result.current.wizard.stepIndex).toBe(3);
+    });
+
+    it('respects an explicit ?step= in the URL', () => {
+      const { result } = renderWizard({
+        route: '/answer?step=1',
+        previousResponse: draft(['q-train', 'no'], ['q-shift', 'Noite']),
+      });
+      expect(result.current.wizard.stepIndex).toBe(0);
+      expect(result.current.wizard.isResumingDraft).toBe(true);
+    });
+
+    it('falls back to the resume step when ?step= is not a number', () => {
+      const { result } = renderWizard({
+        route: '/answer?step=abc',
+        previousResponse: draft(['q-train', 'no'], ['q-shift', 'Noite']),
+      });
+      expect(result.current.wizard.stepIndex).toBe(2);
+    });
+
+    it('keeps navigating normally from the resume step', () => {
+      const { result } = renderWizard({ previousResponse: draft(['q-train', 'no'], ['q-shift', 'Noite']) });
+      answer(result, 'q-goal', 'Emagrecer');
+      act(() => { result.current.wizard.goNext(); });
+      expect(result.current.wizard.stepIndex).toBe(3);
+      act(() => { result.current.wizard.goBack(); });
+      expect(result.current.wizard.stepIndex).toBe(2);
+    });
+
+    it('does not resume a submitted response', () => {
+      const { result } = renderWizard({ previousResponse: wizardResponse });
+      expect(result.current.wizard.stepIndex).toBe(0);
+      expect(result.current.wizard.isResumingDraft).toBe(false);
+    });
+
+    it('does not resume a draft without answers or a blank response', () => {
+      expect(renderWizard({ previousResponse: draft() }).result.current.wizard.isResumingDraft).toBe(false);
+      const blank = renderWizard({ previousResponse: draft(['q-train', '']) });
+      expect(blank.result.current.wizard.isResumingDraft).toBe(false);
+      expect(blank.result.current.wizard.stepIndex).toBe(0);
+      expect(renderWizard().result.current.wizard.isResumingDraft).toBe(false);
+    });
+  });
+
+  it('exposes whether an answer changed', () => {
+    const { result } = renderWizard();
+    expect(result.current.wizard.hasChanges).toBe(false);
+    answer(result, 'q-train', 'no');
+    expect(result.current.wizard.hasChanges).toBe(true);
+  });
 });

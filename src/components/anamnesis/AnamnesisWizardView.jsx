@@ -5,6 +5,8 @@ import AnswerField from './AnswerField';
 import WizardStepper from './WizardStepper';
 import WizardReview from './WizardReview';
 import { getQuestionDomId } from '../../utils/anamnesisAnswers';
+import { formatTimeForDisplay } from '../../utils/dateFormat';
+import { DRAFT_SAVE_STATUS } from '../../constants/anamnesis';
 
 const STEPPER_MIN_STEPS = 3;
 
@@ -27,6 +29,23 @@ const useWizardFocus = ({ stepIndex, focusQuestionId, clearFocusRequest }, headi
     target.focus();
     clearFocusRequest();
   }, [focusQuestionId, stepIndex, clearFocusRequest]);
+};
+
+const getSaveStatusText = ({ status, savedAt }) => {
+  if (status === DRAFT_SAVE_STATUS.SAVING) return 'Salvando...';
+  if (status === DRAFT_SAVE_STATUS.SAVED) return `Rascunho salvo às ${formatTimeForDisplay(savedAt)}`;
+  if (status === DRAFT_SAVE_STATUS.ERROR) return 'Não foi possível salvar — tentando de novo';
+  return '';
+};
+
+// The live region stays mounted so screen readers announce each text change.
+const DraftSaveStatus = ({ saveState }) => {
+  const isError = saveState.status === DRAFT_SAVE_STATUS.ERROR;
+  return (
+    <p className={`anamnesis-save-status${isError ? ' anamnesis-save-status--error' : ''}`} aria-live="polite">
+      {getSaveStatusText(saveState)}
+    </p>
+  );
 };
 
 const StepQuestions = ({ questions, answers, errors, onChange }) => {
@@ -107,6 +126,7 @@ const AnamnesisWizardView = ({
   headerExtra,
   banner,
   reviewHint,
+  saveState,
 }) => {
   const headingRef = useRef(null);
   useWizardFocus(wizard, headingRef);
@@ -124,6 +144,7 @@ const AnamnesisWizardView = ({
       {wizard.steps.length >= STEPPER_MIN_STEPS && (
         <WizardStepper steps={wizard.steps} currentIndex={wizard.stepIndex} onSelect={wizard.goToStep} />
       )}
+      {saveState && <DraftSaveStatus saveState={saveState} />}
       <WizardStep wizard={wizard} headingRef={headingRef} reviewHint={reviewHint} />
       <WizardActionBar
         wizard={wizard}
@@ -134,6 +155,13 @@ const AnamnesisWizardView = ({
       />
     </div>
   );
+};
+
+DraftSaveStatus.propTypes = {
+  saveState: PropTypes.shape({
+    status: PropTypes.string.isRequired,
+    savedAt: PropTypes.instanceOf(Date),
+  }).isRequired,
 };
 
 StepQuestions.propTypes = {
@@ -188,6 +216,10 @@ AnamnesisWizardView.propTypes = {
   headerExtra: PropTypes.node,
   banner: PropTypes.node,
   reviewHint: PropTypes.string,
+  saveState: PropTypes.shape({
+    status: PropTypes.string.isRequired,
+    savedAt: PropTypes.instanceOf(Date),
+  }),
 };
 
 export default AnamnesisWizardView;

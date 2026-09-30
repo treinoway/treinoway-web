@@ -5,6 +5,7 @@ import { renderWithRoute } from '../../test/test-utils';
 import StudentAnamneses from './StudentAnamneses';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
+import { buildAnamnesisLink, linkResponses } from '../../test/anamnesisLinkFixtures';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -26,11 +27,12 @@ const mockStudent = {
 };
 
 const mockLinkedAnamneses = [
-  {
-    id: 'link-1',
-    createdAt: '2026-01-15',
-    anamnesis: { id: 'anam-1', title: 'Anamnese de Saúde', isGeneral: false },
-  },
+  buildAnamnesisLink({
+    id: 'anam-1',
+    title: 'Anamnese de Saúde',
+    response: linkResponses.submitted,
+    canFill: true,
+  }),
 ];
 
 const mockShowToast = vi.fn();
@@ -255,5 +257,96 @@ describe('StudentAnamneses', () => {
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(screen.queryByLabelText('Selecionar anamnese')).not.toBeInTheDocument();
     expect(api.post).not.toHaveBeenCalled();
+  });
+
+  describe('response status', () => {
+    const rowMenuName = (title) => `Opções da anamnese ${title}`;
+    const openMenuOf = async (user, title) => {
+      await user.click(await screen.findByRole('button', { name: rowMenuName(title) }));
+    };
+    const menuButton = (name) => screen.queryByRole('button', { name });
+
+    it('shows "Pendente" when the student has not started', async () => {
+      setup({ anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Saúde', response: null, canFill: true })] });
+      const badge = await screen.findByText('Pendente');
+      expect(badge).toHaveClass('badge');
+    });
+
+    it('shows "Em preenchimento" with the answer count for a draft, never a percentage', async () => {
+      setup({ anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Saúde', response: linkResponses.draft, canFill: true })] });
+      expect(await screen.findByText('Em preenchimento')).toBeInTheDocument();
+      expect(screen.getByText('4 respostas')).toBeInTheDocument();
+      expect(screen.queryByText(/%/)).not.toBeInTheDocument();
+    });
+
+    it('uses the singular for a single answer', async () => {
+      const draft = { ...linkResponses.draft, answeredCount: 1 };
+      setup({ anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Saúde', response: draft, canFill: true })] });
+      expect(await screen.findByText('1 resposta')).toBeInTheDocument();
+    });
+
+    it('shows the API label and a hint when the trainer filled it and awaits confirmation', async () => {
+      setup({ anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Saúde', response: linkResponses.awaitingByTrainer, canFill: true })] });
+      expect(await screen.findByText('Aguardando confirmação')).toBeInTheDocument();
+      expect(screen.getByText('Preenchida por você')).toBeInTheDocument();
+    });
+
+    it('does not show the "por você" hint when the student filled it', async () => {
+      const awaiting = { ...linkResponses.awaitingByTrainer, filledBy: 'student' };
+      setup({ anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Saúde', response: awaiting, canFill: true })] });
+      await screen.findByText('Aguardando confirmação');
+      expect(screen.queryByText('Preenchida por você')).not.toBeInTheDocument();
+    });
+
+    it('shows "Respondida" with the local submission date', async () => {
+      setup({ anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Saúde', response: linkResponses.submitted, canFill: false })] });
+      expect(await screen.findByText('Respondida')).toBeInTheDocument();
+      expect(screen.getByText(new Date(linkResponses.submitted.submittedAt).toLocaleDateString('pt-BR'))).toBeInTheDocument();
+    });
+
+    it('offers "Preencher com o aluno" only when canFill is true', async () => {
+      const user = userEvent.setup();
+      setup({
+        anamneses: [
+          buildAnamnesisLink({ id: 'a1', title: 'Fillable', response: null, canFill: true }),
+          buildAnamnesisLink({ id: 'a2', title: 'Locked', response: linkResponses.draft, canFill: false }),
+        ],
+      });
+      await openMenuOf(user, 'Fillable');
+      expect(menuButton('Preencher com o aluno')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: rowMenuName('Fillable') }));
+      await openMenuOf(user, 'Locked');
+      expect(menuButton('Preencher com o aluno')).not.toBeInTheDocument();
+      expect(menuButton('Abrir template')).toBeInTheDocument();
+      expect(menuButton('Desvincular')).toBeInTheDocument();
+    });
+
+    it('offers "Ver respostas" only when the response was submitted', async () => {
+      const user = userEvent.setup();
+      setup({
+        anamneses: [
+          buildAnamnesisLink({ id: 'a1', title: 'Draft', response: linkResponses.draft, canFill: true }),
+          buildAnamnesisLink({ id: 'a2', title: 'Pending', response: null, canFill: true }),
+          buildAnamnesisLink({ id: 'a3', title: 'Awaiting', response: linkResponses.awaitingByTrainer, canFill: false }),
+        ],
+      });
+      await openMenuOf(user, 'Draft');
+      expect(menuButton('Ver respostas')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: rowMenuName('Draft') }));
+      await openMenuOf(user, 'Pending');
+      expect(menuButton('Ver respostas')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: rowMenuName('Pending') }));
+      await openMenuOf(user, 'Awaiting');
+      expect(menuButton('Ver respostas')).toBeInTheDocument();
+    });
+
+    it('treats a link without response/canFill (older backend) as pending, fillable and with responses available', async () => {
+      const user = userEvent.setup();
+      setup({ anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Legacy' })] });
+      expect(await screen.findByText('Pendente')).toBeInTheDocument();
+      await openMenuOf(user, 'Legacy');
+      expect(menuButton('Preencher com o aluno')).toBeInTheDocument();
+      expect(menuButton('Ver respostas')).toBeInTheDocument();
+    });
   });
 });

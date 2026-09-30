@@ -39,6 +39,7 @@ import {
 } from '../../utils/computeDailyActivityViz';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { ANAMNESIS_FILL_TOAST_DURATION_MS, getAnamnesisFillPath } from '../../constants/anamnesis';
+import { canFillLink, canViewLinkResponses, getLinkStatusInfo, sortLinksByResponseStatus } from '../../utils/anamnesisLinkStatus';
 import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
 
 const COMPLETION_WARN_THRESHOLD = 0.5;
@@ -597,12 +598,47 @@ const RoutineHistorySection = ({ protocols, loading, studentId, onCreateProtocol
 };
 
 // --- Anamnese summary section ---
+const AnamneseSummaryCard = ({ link, studentId }) => {
+  const navigate = useNavigate();
+  const status = getLinkStatusInfo(link);
+  const meta = [link.anamnesis.isGeneral ? 'Geral' : null, status.detail].filter(Boolean).join(' · ');
+  const menuItems = [
+    ...(canFillLink(link)
+      ? [{
+          label: 'Preencher com o aluno',
+          onClick: () => navigate(getAnamnesisFillPath(studentId, link.anamnesis.id)),
+        }]
+      : []),
+    ...(canViewLinkResponses(link)
+      ? [{
+          label: 'Ver respostas',
+          onClick: () => navigate(`/trainer/students/${studentId}/anamneses/${link.anamnesis.id}/response`),
+        }]
+      : []),
+  ];
+
+  return (
+    <div className="cockpit-anamnese-card">
+      <div className="cockpit-anamnese-card-text">
+        <div className="cockpit-anamnese-card-title">{link.anamnesis.title}</div>
+        {meta && <div className="cockpit-anamnese-card-meta">{meta}</div>}
+      </div>
+      <div className="cockpit-anamnese-card-side">
+        <span className={`badge ${status.badgeClass}`}>{status.label}</span>
+        {menuItems.length > 0 && (
+          <RowMenu ariaLabel={`Opções da anamnese ${link.anamnesis.title}`} extraItems={menuItems} />
+        )}
+      </div>
+    </div>
+  );
+};
+
 const AnamneseSummarySection = ({ anamneses, loading, studentId, onLinkAnamnesis }) => {
   const navigate = useNavigate();
 
   if (loading) return null;
 
-  const preview = anamneses.slice(0, 2);
+  const preview = sortLinksByResponseStatus(anamneses).slice(0, 2);
   const total = anamneses.length;
 
   return (
@@ -638,32 +674,7 @@ const AnamneseSummarySection = ({ anamneses, loading, studentId, onLinkAnamnesis
           </button>
         </div>
       ) : (
-        preview.map((link) => (
-          <div key={link.id} className="cockpit-anamnese-card">
-            <div className="cockpit-anamnese-card-text">
-              <div className="cockpit-anamnese-card-title">
-                {link.anamnesis.title}
-              </div>
-              {link.anamnesis.isGeneral && (
-                <div className="cockpit-anamnese-card-meta">Geral</div>
-              )}
-            </div>
-            <RowMenu
-              ariaLabel={`Opções da anamnese ${link.anamnesis.title}`}
-              extraItems={[
-                {
-                  label: 'Preencher com o aluno',
-                  onClick: () => navigate(getAnamnesisFillPath(studentId, link.anamnesis.id)),
-                },
-                {
-                  label: 'Ver respostas',
-                  onClick: () =>
-                    navigate(`/trainer/students/${studentId}/anamneses/${link.anamnesis.id}/response`),
-                },
-              ]}
-            />
-          </div>
-        ))
+        preview.map((link) => <AnamneseSummaryCard key={link.id} link={link} studentId={studentId} />)
       )}
     </div>
   );
@@ -674,6 +685,11 @@ RoutineHistorySection.propTypes = {
   loading: PropTypes.bool,
   studentId: PropTypes.string.isRequired,
   onCreateProtocol: PropTypes.func.isRequired,
+};
+
+AnamneseSummaryCard.propTypes = {
+  link: PropTypes.object.isRequired,
+  studentId: PropTypes.string.isRequired,
 };
 
 AnamneseSummarySection.propTypes = {
