@@ -124,7 +124,7 @@ const renderPage = () =>
     path: '/trainer/students/:studentId/anamneses/:anamnesisId/response',
   });
 
-const setupApi = ({ responseStatus = 200 } = {}) => {
+const setupApi = ({ responseStatus = 200, responseOverrides = {} } = {}) => {
   api.get.mockImplementation((url) => {
     if (url === '/trainer/students/student-1') return Promise.resolve({ data: mockStudent });
     if (url === '/trainer/anamneses/anamnesis-1') return Promise.resolve({ data: mockAnamnesis });
@@ -134,7 +134,7 @@ const setupApi = ({ responseStatus = 200 } = {}) => {
         err.response = { status: 404 };
         return Promise.reject(err);
       }
-      return Promise.resolve({ data: mockResponse });
+      return Promise.resolve({ data: { ...mockResponse, ...responseOverrides } });
     }
     return Promise.reject(new Error(`Unexpected URL: ${url}`));
   });
@@ -149,6 +149,17 @@ beforeEach(() => {
 });
 
 describe('AnamnesisResponseDetail', () => {
+  const originalTimezone = process.env.TZ;
+
+  beforeEach(() => {
+    process.env.TZ = 'America/Sao_Paulo';
+  });
+
+  afterEach(() => {
+    if (originalTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimezone;
+  });
+
   it('shows loading screen initially', () => {
     setupApi();
     // Make API hang to catch the loading state
@@ -354,5 +365,87 @@ describe('AnamnesisResponseDetail', () => {
     await user.click(screen.getByRole('button', { name: /exportar pdf/i }));
     expect(printMock).toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  describe('authorship badge', () => {
+    const trainerFilled = {
+      status: 'awaiting_confirmation',
+      statusLabel: 'Aguardando confirmação',
+      filledBy: 'trainer',
+      filledByLabel: 'Professor',
+      trainerAttestedAt: '2026-09-29T12:10:00.000Z',
+      studentConfirmedAt: null,
+    };
+
+    it('shows the awaiting confirmation badge for a trainer-filled response', async () => {
+      setupApi({ responseOverrides: trainerFilled });
+      renderPage();
+      expect(
+        await screen.findByText('Preenchida pelo professor · Aguardando confirmação'),
+      ).toBeInTheDocument();
+    });
+
+    it('shows the confirmation date once the student confirmed', async () => {
+      setupApi({
+        responseOverrides: {
+          ...trainerFilled,
+          status: 'submitted',
+          statusLabel: 'Enviada',
+          studentConfirmedAt: '2026-09-30T12:00:00.000Z',
+        },
+      });
+      renderPage();
+      expect(
+        await screen.findByText('Preenchida pelo professor · Confirmada pelo aluno em 30/09/2026'),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the confirmation day in the local timezone, not UTC', async () => {
+      setupApi({
+        responseOverrides: {
+          ...trainerFilled,
+          status: 'submitted',
+          statusLabel: 'Enviada',
+          studentConfirmedAt: '2026-09-30T01:30:00.000Z',
+        },
+      });
+      renderPage();
+      expect(
+        await screen.findByText('Preenchida pelo professor · Confirmada pelo aluno em 29/09/2026'),
+      ).toBeInTheDocument();
+    });
+
+    it('renders the "Respondida em" day in the local timezone, not UTC', async () => {
+      setupApi({ responseOverrides: { submittedAt: '2026-09-30T01:30:00.000Z' } });
+      renderPage();
+      expect(await screen.findByText(/Respondida em 29\/09\/2026/)).toBeInTheDocument();
+    });
+
+    it('never renders "Invalid Date" when the confirmation date is missing', async () => {
+      setupApi({
+        responseOverrides: { ...trainerFilled, status: 'submitted', statusLabel: 'Enviada', studentConfirmedAt: null },
+      });
+      renderPage();
+      expect(
+        await screen.findByText('Preenchida pelo professor · Confirmada pelo aluno em -'),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+    });
+
+    it('shows no badge for a student-filled response', async () => {
+      setupApi({
+        responseOverrides: { status: 'submitted', statusLabel: 'Enviada', filledBy: 'student', filledByLabel: 'Aluno' },
+      });
+      renderPage();
+      await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+      expect(screen.queryByText(/Preenchida pelo/)).not.toBeInTheDocument();
+    });
+
+    it('shows no badge when the response carries no authorship (legacy payload)', async () => {
+      setupApi();
+      renderPage();
+      await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+      expect(screen.queryByText(/Preenchida pelo/)).not.toBeInTheDocument();
+    });
   });
 });

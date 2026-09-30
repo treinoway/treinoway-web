@@ -305,8 +305,34 @@ describe('StudentDetail (cockpit)', () => {
         '/trainer/students/student-1/anamneses',
         { anamnesisId: 'anam-1' },
       );
-      expect(mockShowToast).toHaveBeenCalledWith('Anamnese vinculada com sucesso!', 'success');
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'Anamnese vinculada com sucesso!',
+        'success',
+        expect.objectContaining({ actionLabel: 'Preencher agora' }),
+      );
     });
+    mockShowToast.mock.calls[0][2].onAction();
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/anamneses/anam-1/fill');
+  });
+
+  it('offers "Preencher com o aluno" and "Ver respostas" in the anamnesis card menu', async () => {
+    const user = userEvent.setup();
+    setupMocks({ anamneses: mockLinkedAnamneses });
+    renderDetail();
+    await user.click(await screen.findByRole('button', { name: 'Opções da anamnese Anamnese de Saúde' }));
+    await user.click(screen.getByRole('button', { name: 'Preencher com o aluno' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/anamneses/anam-1/fill');
+  });
+
+  it('opens the responses from the anamnesis card menu', async () => {
+    const user = userEvent.setup();
+    setupMocks({ anamneses: mockLinkedAnamneses });
+    renderDetail();
+    await user.click(await screen.findByRole('button', { name: 'Opções da anamnese Anamnese de Saúde' }));
+    await user.click(screen.getByRole('button', { name: 'Ver respostas' }));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/trainer/students/student-1/anamneses/anam-1/response',
+    );
   });
 
   it('cancel button closes link modal without calling api.post', async () => {
