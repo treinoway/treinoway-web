@@ -15603,11 +15603,6 @@ nav.onboarding-steps {
   color: var(--brand-steel);
   margin-bottom: var(--spacing-sm);
 }
-.anamnesis-link-card-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
-}
 
 /* =============================================
    DOSSIER — AnamnesisResponseDetail
@@ -16014,6 +16009,35 @@ nav.onboarding-steps {
   .anamnesis-wizard-actions .btn-group--equal > .btn-secondary {
     flex: 0 0 auto;
   }
+}
+
+/* Answer wizard — trainer fills on the student's behalf */
+.anamnesis-wizard-byline {
+  margin: 0 0 var(--spacing-md);
+  font-size: var(--font-body-small-size);
+  color: var(--brand-steel);
+}
+
+.anamnesis-fill-gate {
+  max-width: 36rem;
+}
+
+.anamnesis-fill-gate-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.anamnesis-fill-gate-student {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.anamnesis-fill-avatar {
+  width: 56px;
+  height: 56px;
+  font-size: var(--font-h3-size);
 }
 
 /* Answer wizard — stepper */

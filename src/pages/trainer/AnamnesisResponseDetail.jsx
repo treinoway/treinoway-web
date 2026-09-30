@@ -5,8 +5,12 @@ import { ArrowLeft, Printer, FileText } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import { ANAMNESIS_QUESTION_TYPE } from '../../constants/anamnesis';
-import { formatDateForDisplay } from '../../utils/dateFormat';
+import {
+  ANAMNESIS_FILLED_BY,
+  ANAMNESIS_QUESTION_TYPE,
+  ANAMNESIS_RESPONSE_STATUS,
+} from '../../constants/anamnesis';
+import { formatDateTimeForDisplay } from '../../utils/dateFormat';
 import { isAnswerEmpty, isOptionSelected, toValueList } from '../../utils/anamnesisAnswers';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -39,6 +43,25 @@ const computeBmi = (weight, height) => {
   const heightM = height > 10 ? height / 100 : height;
   const bmi = weight / (heightM * heightM);
   return isNaN(bmi) || !isFinite(bmi) ? null : bmi.toFixed(1);
+};
+
+// Only trainer-filled responses carry authorship info; student-filled ones keep the plain header.
+const getAuthorshipBadge = (response) => {
+  if (response?.filledBy !== ANAMNESIS_FILLED_BY.TRAINER) return null;
+  const filledBy = `Preenchida pelo ${(response.filledByLabel || 'Professor').toLowerCase()}`;
+  if (response.status === ANAMNESIS_RESPONSE_STATUS.AWAITING_CONFIRMATION) {
+    return {
+      className: 'badge badge-blue',
+      text: `${filledBy} · ${response.statusLabel || 'Aguardando confirmação'}`,
+    };
+  }
+  if (response.status === ANAMNESIS_RESPONSE_STATUS.SUBMITTED) {
+    return {
+      className: 'badge badge-green',
+      text: `${filledBy} · Confirmada pelo aluno em ${formatDateTimeForDisplay(response.studentConfirmedAt)}`,
+    };
+  }
+  return null;
 };
 
 // ─── Answer renderers ────────────────────────────────────────────────────────
@@ -190,6 +213,7 @@ const AnamnesisResponseDetail = () => {
   const [answerMap, setAnswerMap] = useState({});
   const [responseNotFound, setResponseNotFound] = useState(false);
   const [submittedAt, setSubmittedAt] = useState(null);
+  const [authorshipBadge, setAuthorshipBadge] = useState(null);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
 
   const sectionRefs = useRef({});
@@ -215,6 +239,7 @@ const AnamnesisResponseDetail = () => {
           answers.forEach((a) => { map[a.questionId] = a; });
           setAnswerMap(map);
           setSubmittedAt(responseRes.data?.submittedAt ?? null);
+          setAuthorshipBadge(getAuthorshipBadge(responseRes.data));
         } catch (err) {
           if (err.response?.status === 404) {
             setResponseNotFound(true);
@@ -264,7 +289,7 @@ const AnamnesisResponseDetail = () => {
   const metaText = responseNotFound
     ? 'Aguardando resposta'
     : submittedAt
-      ? `Respondida em ${formatDateForDisplay(submittedAt)} · V${anamnesis?.version ?? 1} do Template`
+      ? `Respondida em ${formatDateTimeForDisplay(submittedAt)} · V${anamnesis?.version ?? 1} do Template`
       : `V${anamnesis?.version ?? 1} do Template`;
 
   return (
@@ -289,6 +314,7 @@ const AnamnesisResponseDetail = () => {
         </div>
         <div className="dossier-meta-bar">
           <span className="dossier-meta-text">{metaText}</span>
+          {authorshipBadge && <span className={authorshipBadge.className}>{authorshipBadge.text}</span>}
         </div>
       </div>
 

@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import { AlertCircle } from 'lucide-react';
 
+const DEFAULT_HINT = 'Confira suas respostas antes de enviar.';
+
 const formatPending = (count) => (count === 1 ? '1 pendência' : `${count} pendências`);
 
 const ReviewItem = ({ item, onEdit }) => {
@@ -29,9 +31,9 @@ const ReviewItem = ({ item, onEdit }) => {
   );
 };
 
-const WizardReview = ({ summaries, onEdit }) => (
+const WizardReview = ({ summaries, onEdit, hint = DEFAULT_HINT }) => (
   <div className="anamnesis-review">
-    <p className="text-sm text-muted">Confira suas respostas antes de enviar.</p>
+    <p className="text-sm text-muted">{hint}</p>
     <ul className="anamnesis-review-list">
       {summaries.map((item) => (
         <ReviewItem key={item.id} item={item} onEdit={onEdit} />
@@ -57,6 +59,7 @@ ReviewItem.propTypes = {
 WizardReview.propTypes = {
   summaries: PropTypes.arrayOf(summaryShape).isRequired,
   onEdit: PropTypes.func.isRequired,
+  hint: PropTypes.string,
 };
 
 export default WizardReview;

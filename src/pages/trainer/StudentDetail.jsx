@@ -8,6 +8,7 @@ import { useAiChat } from '../../contexts/AiChatContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import Select from '../../components/Select';
+import RowMenu from '../../components/RowMenu';
 import StudentCockpitHero from '../../components/StudentCockpitHero';
 import RecentSessionsPanel from '../../components/RecentSessionsPanel';
 import ProgressionPanel from '../../components/ProgressionPanel';
@@ -37,6 +38,7 @@ import {
   computeHeatmapWeeks,
 } from '../../utils/computeDailyActivityViz';
 import { formatDateForDisplay } from '../../utils/dateFormat';
+import { ANAMNESIS_FILL_TOAST_DURATION_MS, getAnamnesisFillPath } from '../../constants/anamnesis';
 import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
 
 const COMPLETION_WARN_THRESHOLD = 0.5;
@@ -255,7 +257,11 @@ const StudentDetail = () => {
     setLinking(true);
     try {
       await api.post(`/trainer/students/${id}/anamneses`, { anamnesisId: selectedAnamnesisId });
-      showToast('Anamnese vinculada com sucesso!', 'success');
+      showToast('Anamnese vinculada com sucesso!', 'success', {
+        actionLabel: 'Preencher agora',
+        onAction: () => navigate(getAnamnesisFillPath(id, selectedAnamnesisId)),
+        duration: ANAMNESIS_FILL_TOAST_DURATION_MS,
+      });
       setShowLinkForm(false);
       setSelectedAnamnesisId('');
       fetchLinkedAnamneses();
@@ -642,17 +648,20 @@ const AnamneseSummarySection = ({ anamneses, loading, studentId, onLinkAnamnesis
                 <div className="cockpit-anamnese-card-meta">Geral</div>
               )}
             </div>
-            <button
-              type="button"
-              className="btn-secondary btn-sm"
-              onClick={() =>
-                navigate(
-                  `/trainer/students/${studentId}/anamneses/${link.anamnesis.id}/response`,
-                )
-              }
-            >
-              Ver respostas
-            </button>
+            <RowMenu
+              ariaLabel={`Opções da anamnese ${link.anamnesis.title}`}
+              extraItems={[
+                {
+                  label: 'Preencher com o aluno',
+                  onClick: () => navigate(getAnamnesisFillPath(studentId, link.anamnesis.id)),
+                },
+                {
+                  label: 'Ver respostas',
+                  onClick: () =>
+                    navigate(`/trainer/students/${studentId}/anamneses/${link.anamnesis.id}/response`),
+                },
+              ]}
+            />
           </div>
         ))
       )}

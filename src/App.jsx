@@ -36,6 +36,7 @@ import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
 import AnamnesisDetail from './pages/trainer/AnamnesisDetail';
 import AssignAnamnesis from './pages/trainer/AssignAnamnesis';
 import AnamnesisResponseDetail from './pages/trainer/AnamnesisResponseDetail';
+import TrainerAnamnesisFill from './pages/trainer/TrainerAnamnesisFill';
 import AiAssistant from './pages/trainer/AiAssistant';
 import TrainerBranding from './pages/trainer/TrainerBranding';
 import RoutineBuilder from './pages/trainer/RoutineBuilder';
@@ -341,6 +342,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <AnamnesisResponseDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/students/:studentId/anamneses/:anamnesisId/fill"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <TrainerAnamnesisFill />
                 </Layout>
               </ProtectedRoute>
             }

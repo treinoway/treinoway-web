@@ -14,3 +14,17 @@ export const formatDateForDisplay = (dateValue) => {
 
   return parsedDate.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 };
+
+/**
+ * Formats a DateTime (ISO timestamp / Date) as dd/mm/aaaa in the viewer's local
+ * timezone. Use for `createdAt`/`submittedAt`-style fields; date-only fields
+ * belong to `formatDateForDisplay`.
+ */
+export const formatDateTimeForDisplay = (dateValue) => {
+  if (!dateValue) return '-';
+
+  const parsedDate = new Date(dateValue);
+  if (Number.isNaN(parsedDate.getTime())) return '-';
+
+  return parsedDate.toLocaleDateString('pt-BR');
+};
