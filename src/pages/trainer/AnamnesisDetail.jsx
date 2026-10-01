@@ -13,7 +13,6 @@ import {
   List,
   CheckSquare,
   Hash,
-  Grid3x3,
   Eye,
   GitBranch,
 } from 'lucide-react';
@@ -24,6 +23,7 @@ import {
   ANAMNESIS_CONDITION_OPERATOR,
   ANAMNESIS_PARENT_ELIGIBLE_TYPES,
   ANAMNESIS_QUESTION_TYPE,
+  CREATABLE_QUESTION_TYPES,
   QUESTION_TYPES_WITH_OPTIONS,
   getQuestionTypeLabel,
   defaultSectionForm,
@@ -32,14 +32,17 @@ import AnamnesisPreviewModal from '../../components/AnamnesisPreviewModal';
 
 /* ── helpers ─────────────────────────────────────────────── */
 
-const LIBRARY_TILES = [
-  { type: ANAMNESIS_QUESTION_TYPE.FREE_TEXT,       icon: Type,       label: 'Texto Livre' },
-  { type: ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS,     icon: ToggleLeft, label: 'Sim / Não' },
-  { type: ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE,   icon: List,       label: 'Escolha Única' },
-  { type: ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE, icon: CheckSquare,label: 'Múltipla Escolha' },
-  { type: ANAMNESIS_QUESTION_TYPE.NUMERIC,         icon: Hash,       label: 'Numérico' },
-  { type: ANAMNESIS_QUESTION_TYPE.MATRIX,          icon: Grid3x3,    label: 'Matriz' },
-];
+const TILE_META = {
+  [ANAMNESIS_QUESTION_TYPE.FREE_TEXT]:       { icon: Type,        label: 'Texto Livre' },
+  [ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS]:     { icon: ToggleLeft,  label: 'Sim / Não' },
+  [ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE]:   { icon: List,        label: 'Escolha Única' },
+  [ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE]: { icon: CheckSquare, label: 'Múltipla Escolha' },
+  [ANAMNESIS_QUESTION_TYPE.NUMERIC]:         { icon: Hash,        label: 'Numérico' },
+};
+
+const LIBRARY_TILES = CREATABLE_QUESTION_TYPES.map((type) => ({ type, ...TILE_META[type] }));
+
+const LEGACY_MATRIX_LABEL = 'Matriz (descontinuado)';
 
 const PRESETS = [
   { text: 'Histórico familiar de diabetes', type: ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS },
@@ -48,7 +51,8 @@ const PRESETS = [
 ];
 
 const buildTypeEyebrow = (question) => {
-  const typeLabel = getQuestionTypeLabel(question.type).toUpperCase();
+  const isLegacyMatrix = question.type === ANAMNESIS_QUESTION_TYPE.MATRIX;
+  const typeLabel = (isLegacyMatrix ? LEGACY_MATRIX_LABEL : getQuestionTypeLabel(question.type)).toUpperCase();
   return question.required ? `${typeLabel} · OBRIGATÓRIA` : typeLabel;
 };
 
@@ -437,7 +441,7 @@ const CanvasQuestionCard = ({
         </div>
       )}
 
-      {hasOptions && question.type !== ANAMNESIS_QUESTION_TYPE.MATRIX && (
+      {hasOptions && (
         <div>
           <div className="options-list">
             {(question.options ?? []).map((opt, i) => (
@@ -518,28 +522,9 @@ const CanvasQuestionCard = ({
       )}
 
       {question.type === ANAMNESIS_QUESTION_TYPE.MATRIX && (
-        <div className="matrix-config">
-          <div>
-            <p className="matrix-config-col-title">Linhas</p>
-            <div className="options-list">
-              {(question.config?.rows ?? []).map((row, i) => (
-                <div key={i} className="options-list-item">
-                  <span className="options-list-item-text">{row}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="matrix-config-col-title">Colunas</p>
-            <div className="options-list">
-              {(question.config?.columns ?? []).map((col, i) => (
-                <div key={i} className="options-list-item">
-                  <span className="options-list-item-text">{col}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <p className="text-sm text-light">
+          Este tipo foi descontinuado e não pode mais ser criado. Você ainda pode editar o texto e a obrigatoriedade.
+        </p>
       )}
 
       {question.type === ANAMNESIS_QUESTION_TYPE.FREE_TEXT && (
@@ -573,7 +558,7 @@ CanvasQuestionCard.propTypes = {
     type: PropTypes.string,
     required: PropTypes.bool,
     options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
-    config: PropTypes.shape({ min: PropTypes.number, max: PropTypes.number, unit: PropTypes.string, rows: PropTypes.array, columns: PropTypes.array }),
+    config: PropTypes.shape({ min: PropTypes.number, max: PropTypes.number, unit: PropTypes.string }),
     parentQuestionId: PropTypes.string,
     condition: PropTypes.object,
   }).isRequired,

@@ -40,4 +40,38 @@ describe('WizardStepper', () => {
     render(<WizardStepper steps={steps} currentIndex={0} onSelect={vi.fn()} />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
+
+  describe('allowJumpAhead', () => {
+    it('makes every step a button, including future ones and the review', async () => {
+      const user = userEvent.setup();
+      const onSelect = vi.fn();
+      render(<WizardStepper steps={steps} currentIndex={0} onSelect={onSelect} allowJumpAhead />);
+      expect(screen.getAllByRole('button')).toHaveLength(3);
+      await user.click(screen.getByRole('button', { name: /Rotina/ }));
+      await user.click(screen.getByRole('button', { name: /Revisão/ }));
+      expect(onSelect).toHaveBeenNthCalledWith(1, 1);
+      expect(onSelect).toHaveBeenNthCalledWith(2, 2);
+    });
+
+    it('keeps aria-current on the active step only', () => {
+      render(<WizardStepper steps={steps} currentIndex={1} onSelect={vi.fn()} allowJumpAhead />);
+      const items = screen.getAllByRole('listitem');
+      expect(items[1]).toHaveAttribute('aria-current', 'step');
+      expect(items[0]).not.toHaveAttribute('aria-current');
+      expect(items[2]).not.toHaveAttribute('aria-current');
+    });
+
+    it('does not mark a passed step with pending answers as done', () => {
+      const withPending = [{ ...steps[0], pending: 2 }, { ...steps[1], pending: 0 }, steps[2]];
+      render(<WizardStepper steps={withPending} currentIndex={2} onSelect={vi.fn()} allowJumpAhead />);
+      const items = screen.getAllByRole('listitem');
+      expect(items[0]).not.toHaveClass('anamnesis-stepper-item--done');
+      expect(items[1]).toHaveClass('anamnesis-stepper-item--done');
+    });
+
+    it('is off by default, so future steps stay static', () => {
+      render(<WizardStepper steps={steps} currentIndex={0} onSelect={vi.fn()} />);
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+  });
 });

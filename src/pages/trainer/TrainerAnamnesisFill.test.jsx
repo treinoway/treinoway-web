@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRoute } from '../../test/test-utils';
 import TrainerAnamnesisFill from './TrainerAnamnesisFill';
@@ -284,12 +284,12 @@ describe('TrainerAnamnesisFill', () => {
       expect(screen.queryByRole('note')).not.toBeInTheDocument();
     });
 
-    it('warns that saving again replaces a previous trainer submission', async () => {
+    it('explains that editing a previous trainer submission reopens it as a draft', async () => {
       setupApi({ fill: { anamnesis: wizardAnamnesis, response: trainerSubmission, canFinalize: true } });
       await startFilling();
       expect(
         await screen.findByText(
-          'Você já registrou esta anamnese. Salvar de novo substitui as respostas e pede que Maria confirme novamente.',
+          'Você já registrou esta anamnese. Ao alterar alguma resposta, a anamnese volta para rascunho e só fica disponível para Maria confirmar depois que você clicar em Salvar respostas.',
         ),
       ).toBeInTheDocument();
       expect(screen.getByRole('radio', { name: 'Sim' })).toBeChecked();
@@ -491,14 +491,86 @@ describe('TrainerAnamnesisFill', () => {
       expect(stepHeading('Rotina')).toBeInTheDocument();
     });
 
-    it('keeps autosave off when the response was already registered by the trainer', async () => {
-      setupApi({ fill: { anamnesis: wizardAnamnesis, response: trainerSubmission, canFinalize: true } });
-      const user = await startFilling('/trainer/students/student-1/anamneses/anamnesis-1/fill?step=1');
-      await screen.findByText('Preenchendo por Maria Silva');
-      await user.click(screen.getByRole('radio', { name: 'Não' }));
-      await clickContinue(user);
-      expect(api.patch).not.toHaveBeenCalled();
-      expect(document.querySelector('[aria-live="polite"]')).not.toBeInTheDocument();
+    describe('editing a response the trainer already saved', () => {
+      const EDIT_ROUTE = '/trainer/students/student-1/anamneses/anamnesis-1/fill?step=1';
+      const REOPENED_NOTICE =
+        'Anamnese em rascunho. Ela só fica disponível para Maria confirmar depois que você clicar em Salvar respostas.';
+
+      it.each([
+        ['awaiting_confirmation', { ...trainerSubmission }],
+        ['submitted after the student confirmed', { ...trainerSubmission, status: 'submitted' }],
+      ])('opens at step 1, shows the autosave indicator and does not patch on review (%s)', async (_label, response) => {
+        setupApi({ fill: { anamnesis: wizardAnamnesis, response, canFinalize: true } });
+        await startFilling();
+        expect(await screen.findByRole('heading', { level: 2, name: 'Saúde' })).toBeInTheDocument();
+        expect(document.querySelector('[aria-live="polite"]')).toBeInTheDocument();
+        await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+        expect(api.patch).not.toHaveBeenCalled();
+      });
+
+      it('does not patch when only navigating through the steps', async () => {
+        setupApi({ fill: { anamnesis: wizardAnamnesis, response: trainerSubmission, canFinalize: true } });
+        const user = await startFilling(EDIT_ROUTE);
+        await screen.findByText('Preenchendo por Maria Silva');
+        await clickContinue(user);
+        await clickContinue(user);
+        expect(stepHeading('Objetivos')).toBeInTheDocument();
+        expect(api.patch).not.toHaveBeenCalled();
+      });
+
+      it('sends the first edit to the draft route and then shows the draft state', async () => {
+        setupApi({ fill: { anamnesis: wizardAnamnesis, response: trainerSubmission, canFinalize: true } });
+        const user = await startFilling(EDIT_ROUTE);
+        await screen.findByText('Preenchendo por Maria Silva');
+        await user.click(screen.getByRole('radio', { name: 'Não' }));
+        await clickContinue(user);
+        await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(1));
+        expect(api.patch).toHaveBeenCalledWith(DRAFT_URL, { answers: [{ questionId: 'q-train', value: 'no' }] });
+        expect(await screen.findByText(SAVED_TEXT)).toBeInTheDocument();
+        expect(await screen.findByText(REOPENED_NOTICE)).toBeInTheDocument();
+        expect(screen.queryByText(/Você já registrou esta anamnese/)).not.toBeInTheDocument();
+      });
+
+      it('still finalizes with "Salvar respostas" after the reopen', async () => {
+        setupApi({ fill: { anamnesis: wizardAnamnesis, response: trainerSubmission, canFinalize: true } });
+        api.post.mockResolvedValue({ data: {} });
+        const user = await startFilling(EDIT_ROUTE);
+        await screen.findByText('Preenchendo por Maria Silva');
+        await user.click(screen.getByRole('radio', { name: 'Não' }));
+        await clickContinue(user);
+        await screen.findByText(SAVED_TEXT);
+        await user.click(screen.getByRole('button', { name: /Revisão/ }));
+        await user.click(screen.getByRole('button', { name: 'Salvar respostas' }));
+        await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+        expect(api.post.mock.invocationCallOrder[0]).toBeGreaterThan(api.patch.mock.invocationCallOrder[0]);
+        expect(mockNavigate).toHaveBeenCalledWith(DOSSIER_PATH);
+      });
+
+      it('on 409 toasts and reloads into the read-only state', async () => {
+        let blocked = false;
+        api.get.mockImplementation((url) => {
+          if (url === '/trainer/students/student-1') return Promise.resolve({ data: student });
+          return Promise.resolve({
+            data: blocked
+              ? { anamnesis: wizardAnamnesis, response: { ...trainerSubmission, filledBy: 'student' }, canFinalize: false }
+              : { anamnesis: wizardAnamnesis, response: trainerSubmission, canFinalize: true },
+          });
+        });
+        api.patch.mockImplementation(() => {
+          blocked = true;
+          return Promise.reject(
+            Object.assign(httpError(409, { error: 'ANAMNESIS_RESPONSE_SUBMITTED_BY_STUDENT' }), {
+              userMessage: 'O aluno já enviou esta anamnese.',
+            }),
+          );
+        });
+        const user = await startFilling(EDIT_ROUTE);
+        await screen.findByText('Preenchendo por Maria Silva');
+        await user.click(screen.getByRole('radio', { name: 'Não' }));
+        await clickContinue(user);
+        expect(await screen.findByText('Maria já enviou esta anamnese pelo app.')).toBeInTheDocument();
+        expect(mockShowToast).toHaveBeenCalledWith('O aluno já enviou esta anamnese.', 'error');
+      });
     });
 
     it('does not autosave in the read-only state', async () => {
@@ -560,7 +632,44 @@ describe('TrainerAnamnesisFill', () => {
     });
   });
 
+  describe('jumping between steps', () => {
+    it('lets the trainer jump to a future step and to the review without validation', async () => {
+      setupApi();
+      const user = await startFilling();
+      await screen.findByText('Preenchendo por Maria Silva');
+      const nav = screen.getByRole('navigation', { name: 'Etapas da anamnese' });
+      expect(within(nav).getAllByRole('button')).toHaveLength(4);
+
+      await user.click(within(nav).getByRole('button', { name: /Objetivos/ }));
+      expect(stepHeading('Objetivos')).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+      await user.click(within(nav).getByRole('button', { name: /Revisão/ }));
+      expect(stepHeading('Revisão')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Salvar respostas' })).toBeDisabled();
+
+      await user.click(within(nav).getByRole('button', { name: /Saúde/ }));
+      expect(stepHeading('Saúde')).toBeInTheDocument();
+    });
+
+    it('keeps validating on "Continuar" after jumping', async () => {
+      setupApi();
+      const user = await startFilling();
+      await screen.findByText('Preenchendo por Maria Silva');
+      await user.click(screen.getByRole('button', { name: /Rotina/ }));
+      await clickContinue(user);
+      expect(screen.getByRole('alert')).toHaveTextContent('Esta pergunta é obrigatória.');
+      expect(stepHeading('Rotina')).toBeInTheDocument();
+    });
+  });
+
   describe('resuming a draft', () => {
+    it('opens a response the trainer already saved at the first step, not at the review', async () => {
+      setupApi({ fill: { anamnesis: wizardAnamnesis, response: trainerSubmission, canFinalize: true } });
+      await startFilling();
+      expect(await screen.findByRole('heading', { level: 2, name: 'Saúde' })).toBeInTheDocument();
+    });
+
     it('opens at the first step with a required question left and keeps the existing banner only', async () => {
       setupApi({ fill: { anamnesis: wizardAnamnesis, response: studentDraft, canFinalize: true } });
       await startFilling();

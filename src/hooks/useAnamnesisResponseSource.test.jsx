@@ -119,13 +119,22 @@ describe('useAnamnesisResponseSource', () => {
       expect(draft.result.current.canAutosave).toBe(true);
     });
 
-    it('disables autosave when the response was already submitted', async () => {
-      const { result } = await load({ response: { id: 'r-1', submittedAt: '2026-03-01T10:00:00.000Z', answers: [] } });
-      expect(result.current.canAutosave).toBe(false);
+    it('keeps autosave on for a response the trainer already saved (first edit reopens it)', async () => {
+      const awaiting = await load({
+        response: { id: 'r-1', status: 'awaiting_confirmation', submittedAt: '2026-03-01T10:00:00.000Z', answers: [] },
+      });
+      expect(awaiting.result.current.canAutosave).toBe(true);
+      const confirmed = await load({
+        response: { id: 'r-1', status: 'submitted', submittedAt: '2026-03-01T10:00:00.000Z', answers: [] },
+      });
+      expect(confirmed.result.current.canAutosave).toBe(true);
     });
 
-    it('disables autosave when the trainer cannot finalize', async () => {
-      const { result } = await load({ response: { id: 'r-1', submittedAt: null, answers: [] }, canFinalize: false });
+    it('disables autosave when the trainer cannot finalize, even for a saved response', async () => {
+      const { result } = await load({
+        response: { id: 'r-1', submittedAt: '2026-03-01T10:00:00.000Z', answers: [] },
+        canFinalize: false,
+      });
       expect(result.current.canAutosave).toBe(false);
     });
   });

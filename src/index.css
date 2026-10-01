@@ -14517,24 +14517,6 @@ nav.onboarding-steps {
   padding: 6px var(--spacing-sm);
 }
 
-/* Matrix config */
-.matrix-config {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-lg);
-  margin-top: var(--spacing-lg);
-}
-
-.matrix-config-col-title {
-  font-family: var(--font-family-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--brand-steel);
-  margin-bottom: var(--spacing-xs);
-}
-
 /* Canvas nav arrows */
 .canvas-nav {
   display: flex;
@@ -15328,6 +15310,35 @@ nav.onboarding-steps {
 .anamnesis-stepper-item--active .anamnesis-stepper-title {
   font-weight: 700;
   color: var(--brand-ink);
+}
+
+/* Jumpable stepper (trainer fill): every step is a button; on mobile the list scrolls horizontally. */
+.anamnesis-stepper--jump .anamnesis-stepper-list {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--spacing-xs) var(--spacing-md);
+  padding: var(--spacing-xs);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.anamnesis-stepper--jump .anamnesis-stepper-item {
+  flex: none;
+}
+
+.anamnesis-stepper--jump .anamnesis-stepper-button {
+  min-height: 44px;
+  padding: 0 var(--spacing-xs);
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .anamnesis-stepper--jump .anamnesis-stepper-list {
+    flex-wrap: wrap;
+    padding: 0;
+    overflow-x: visible;
+  }
 }
 
 /* Answer wizard — review step */

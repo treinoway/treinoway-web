@@ -48,6 +48,27 @@ describe('AnamnesisWizardView', () => {
     expect(screen.getByText('Conte sobre sua saúde.')).toBeInTheDocument();
   });
 
+  it('shows the stepper for a short wizard when jumping is allowed', async () => {
+    const { wizard, user } = renderView({}, { allowJumpAhead: true });
+    await user.click(screen.getByRole('button', { name: /Revisão/ }));
+    expect(wizard.goToStep).toHaveBeenCalledWith(1);
+  });
+
+  it('does not render the stepper for two steps in the student flow', () => {
+    renderView();
+    expect(screen.queryByRole('navigation', { name: 'Etapas da anamnese' })).not.toBeInTheDocument();
+  });
+
+  it('keeps future steps unclickable in the student flow', () => {
+    const steps = [
+      { id: 's1', title: 'Saúde' },
+      { id: 's2', title: 'Rotina' },
+      { id: 'review', title: 'Revisão' },
+    ];
+    renderView({ steps });
+    expect(screen.queryByRole('button', { name: /Rotina/ })).not.toBeInTheDocument();
+  });
+
   it('exits from "Voltar" on the first step and goes back otherwise', async () => {
     const first = renderView();
     await first.user.click(screen.getByRole('button', { name: 'Voltar' }));
