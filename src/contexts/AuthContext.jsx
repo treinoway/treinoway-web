@@ -98,10 +98,12 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(loadStoredUser);
   const [accessToken, setAccessToken] = useState(loadStoredToken);
 
-  // Shared post-authentication sequence used by login, signup, loginWithGoogle,
+  // Shared post-authentication sequence used by login, verifySignup, loginWithGoogle,
   // and resetPassword: persist tokens, clear stale per-user session state,
   // fetch the current user, then batch the state updates into one render.
-  const establishSession = async (responseData) => {
+  // `userPatch` lets a caller force fields the auth response itself proves
+  // (e.g. betaAccess after an invite signup) in the same render as the token.
+  const establishSession = async (responseData, userPatch = null) => {
     const { token, refresh } = extractAuthData(responseData);
 
     if (!token) {
@@ -118,7 +120,7 @@ export const AuthProvider = ({ children }) => {
 
     // Fetch user data from /me
     const meResponse = await api.get('/me?include=address,socials');
-    const userData = meResponse.data;
+    const userData = userPatch ? { ...meResponse.data, ...userPatch } : meResponse.data;
 
     localStorage.setItem('user', JSON.stringify(userData));
     // Batch setUser and setAccessToken together so React renders once with
@@ -143,14 +145,62 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Signup never authenticates: the backend always answers 202 (anti-enumeration)
+  // and the account is only created by verifySignup once the code is confirmed.
   const signup = async (email, password) => {
     try {
-      const response = await api.post('/auth/signup', { email, password });
-      return await establishSession(response.data);
+      await api.post('/auth/signup', { email, password });
+      return { success: true };
     } catch (error) {
       return {
         success: false,
         error: translateError(error, 'Não foi possível criar a conta. Verifique os dados e tente novamente.'),
+      };
+    }
+  };
+
+  // The password travels again here because the backend does not keep it on the
+  // pending signup — whoever proves the inbox chooses the account password.
+  const verifySignup = async (email, code, password) => {
+    try {
+      const response = await api.post('/auth/signup/verify', { email, code, password });
+      const session = await establishSession(response.data);
+      return { ...session, linkedTrainers: response.data?.linkedTrainers ?? 0 };
+    } catch (error) {
+      return {
+        success: false,
+        error: translateError(error, 'Não foi possível confirmar o código. Tente novamente.'),
+        messageCode: error.errorInfo?.messageCode ?? null,
+      };
+    }
+  };
+
+  // One-step trainer signup from a beta invite: the email comes from the invite,
+  // so there is no verification code. A 201 already means the invite was
+  // accepted, so betaAccess is trusted locally instead of a possibly-stale /me.
+  const signupWithInvite = async (code, password) => {
+    try {
+      const response = await api.post('/auth/signup/invite', { code, password });
+      const session = await establishSession(response.data, { betaAccess: true });
+      return { ...session, linkedTrainers: response.data?.linkedTrainers ?? 0 };
+    } catch (error) {
+      return {
+        success: false,
+        error: translateError(error, 'Não foi possível criar a conta. Tente novamente.'),
+        messageCode: error.errorInfo?.messageCode ?? null,
+        details: error.errorInfo?.details ?? null,
+      };
+    }
+  };
+
+  const resendSignupCode = async (email) => {
+    try {
+      await api.post('/auth/signup/resend', { email });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: translateError(error, 'Não foi possível reenviar o código. Tente novamente.'),
       };
     }
   };
@@ -272,6 +322,9 @@ export const AuthProvider = ({ children }) => {
     login,
     loginWithGoogle,
     signup,
+    verifySignup,
+    signupWithInvite,
+    resendSignupCode,
     forgotPassword,
     resetPassword,
     logout,

@@ -4,6 +4,7 @@ import { renderWithRouter } from '../../test/test-utils';
 import Students from './Students';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
+import { markOnboardingStepOptimistic } from '../../hooks/useOnboardingStatus';
 
 vi.mock('../../contexts/ToastContext', () => ({
   useToast: vi.fn(),
@@ -76,6 +77,7 @@ describe('Students', () => {
   beforeEach(() => {
     showToast = vi.fn();
     vi.mocked(useToast).mockReturnValue({ showToast });
+    api.get.mockClear();
     api.get.mockImplementation((url) => {
       if (url === '/trainer/students') {
         return Promise.resolve({ data: mockStudents });
@@ -84,6 +86,7 @@ describe('Students', () => {
     });
     api.post.mockReset();
     api.delete.mockReset();
+    vi.mocked(markOnboardingStepOptimistic).mockClear();
   });
 
   // ── Loading & layout ──────────────────────────────────────────────────
@@ -513,22 +516,252 @@ describe('Students', () => {
     expect(screen.getByRole('button', { name: /^vincular$/i })).toBeDisabled();
   });
 
-  it('submits link form and calls api.post', async () => {
+  const submitLinkForm = async (user, email) => {
+    await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
+    await user.type(screen.getByLabelText(/e-mail do aluno/i), email);
+    await user.click(screen.getByRole('button', { name: /^vincular$/i }));
+  };
+
+  const linkedStudent = { id: 'new-1', firstName: 'Novo', lastName: 'Aluno', email: 'novo@example.com', avatarUrl: null };
+
+  const pendingInvite = {
+    id: 'inv-new',
+    email: 'convidado@example.com',
+    status: 'pending',
+    statusLabel: 'Pendente',
+    studentId: null,
+    expiresAt: '2026-10-29T12:00:00.000Z',
+    acceptedAt: null,
+    revokedAt: null,
+    lastSentAt: '2026-09-29T12:00:00.000Z',
+    sendCount: 1,
+    createdAt: '2026-09-29T12:00:00.000Z',
+    canResend: false,
+    resendAvailableAt: '2026-09-29T13:00:00.000Z',
+  };
+
+  it('explains in the link modal that unregistered students get a TeuFit invite by e-mail', async () => {
     const user = userEvent.setup();
-    const newStudent = { id: 'new-1', firstName: 'Novo', lastName: 'Aluno', email: 'novo@example.com', status: 'ativo' };
-    api.post.mockResolvedValue({ data: newStudent });
     renderWithRouter(<Students />);
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
-
     await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
+
+    const dialog = screen.getByRole('dialog', { name: /vincular aluno/i });
+    expect(within(dialog).getByText(/convite por e-mail com os links para baixar o app TeuFit/i)).toBeInTheDocument();
+  });
+
+  it('posts to /trainer/student-invites and appends the student when outcome is linked', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: { outcome: 'linked', student: linkedStudent } });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
+    await submitLinkForm(user, 'novo@example.com');
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/trainer/student-invites', { email: 'novo@example.com' });
+    });
+    expect(showToast).toHaveBeenCalledWith('Aluno vinculado com sucesso!', 'success');
+    expect(await screen.findByText('Novo Aluno')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /vincular aluno/i })).not.toBeInTheDocument();
+    // Not the first student → no onboarding step
+    expect(markOnboardingStepOptimistic).not.toHaveBeenCalled();
+  });
+
+  it('marks the first-student onboarding step when the first student is linked', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [] });
+    api.post.mockResolvedValue({ data: { outcome: 'linked', student: linkedStudent } });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Sem alunos ainda')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /vincular primeiro aluno/i }));
     await user.type(screen.getByLabelText(/e-mail do aluno/i), 'novo@example.com');
     await user.click(screen.getByRole('button', { name: /^vincular$/i }));
 
     await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/trainer/students', { email: 'novo@example.com' });
+      expect(markOnboardingStepOptimistic).toHaveBeenCalledWith('firstStudentLinked');
     });
-    expect(showToast).toHaveBeenCalledWith('Aluno vinculado com sucesso!', 'success');
+  });
+
+  it('shows the invite toast, does not append or trigger onboarding, and opens the Convites tab when outcome is invited', async () => {
+    const user = userEvent.setup();
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [] });
+      if (url === '/trainer/student-invites') {
+        return Promise.resolve({ data: { items: [pendingInvite], total: 1, page: 1, pageSize: 20 } });
+      }
+      return Promise.resolve({ data: [] });
+    });
+    api.post.mockResolvedValue({ data: { outcome: 'invited', invite: pendingInvite } });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Sem alunos ainda')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /vincular primeiro aluno/i }));
+    await user.type(screen.getByLabelText(/e-mail do aluno/i), 'convidado@example.com');
+    await user.click(screen.getByRole('button', { name: /^vincular$/i }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith('Convite enviado para convidado@example.com.', 'success');
+    });
+    expect(markOnboardingStepOptimistic).not.toHaveBeenCalled();
+    expect(screen.getByRole('tab', { name: 'Convites' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByText('convidado@example.com')).toBeInTheDocument();
+    expect(screen.getByText('Pendente')).toBeInTheDocument();
+
+    // Student roster is untouched: back on Alunos the empty state is still there
+    await user.click(screen.getByRole('tab', { name: 'Alunos' }));
+    expect(screen.getByText('Sem alunos ainda')).toBeInTheDocument();
+  });
+
+  it('treats an existing but unverified account as invited: no roster append, no onboarding, no linked toast', async () => {
+    const user = userEvent.setup();
+    const unverifiedInvite = { ...pendingInvite, id: 'inv-unverified', email: 'naoverificado@example.com' };
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students') return Promise.resolve({ data: [] });
+      if (url === '/trainer/student-invites') {
+        return Promise.resolve({ data: { items: [unverifiedInvite], total: 1, page: 1, pageSize: 20 } });
+      }
+      return Promise.resolve({ data: [] });
+    });
+    // Backend answers 'invited' (not 'linked') when the account exists but its e-mail is unverified.
+    api.post.mockResolvedValue({ data: { outcome: 'invited', invite: unverifiedInvite } });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Sem alunos ainda')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /vincular primeiro aluno/i }));
+    await user.type(screen.getByLabelText(/e-mail do aluno/i), 'naoverificado@example.com');
+    await user.click(screen.getByRole('button', { name: /^vincular$/i }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith('Convite enviado para naoverificado@example.com.', 'success');
+    });
+    expect(showToast).not.toHaveBeenCalledWith('Aluno vinculado com sucesso!', 'success');
+    expect(markOnboardingStepOptimistic).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('tab', { name: 'Alunos' }));
+    expect(screen.getByText('Sem alunos ainda')).toBeInTheDocument();
+  });
+
+  it('shows the daily invite limit with the wait time from retryAfterSeconds and keeps the modal open', async () => {
+    const user = userEvent.setup();
+    const err = new Error('Too Many Requests');
+    err.response = {
+      status: 429,
+      data: {
+        error: 'STUDENT_INVITE_DAILY_LIMIT',
+        messageCode: 'studentInvite.dailyLimit',
+        message: 'x',
+        details: { retryAfterSeconds: 8100 },
+      },
+    };
+    err.userMessage = 'Você atingiu o limite diário de convites. Tente novamente mais tarde.';
+    api.post.mockRejectedValue(err);
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
+    await submitLinkForm(user, 'limite@example.com');
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(
+        'Você atingiu o limite diário de convites. Tente novamente em 2 h 15 min.',
+        'error'
+      );
+    });
+    expect(screen.getByRole('dialog', { name: /vincular aluno/i })).toBeInTheDocument();
+  });
+
+  it('falls back to the generic daily limit message when retryAfterSeconds is missing', async () => {
+    const user = userEvent.setup();
+    const err = new Error('Too Many Requests');
+    err.response = {
+      status: 429,
+      data: { error: 'STUDENT_INVITE_DAILY_LIMIT', messageCode: 'studentInvite.dailyLimit', message: 'x' },
+    };
+    api.post.mockRejectedValue(err);
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
+    await submitLinkForm(user, 'limite@example.com');
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(
+        'Você atingiu o limite diário de convites. Tente novamente mais tarde.',
+        'error'
+      );
+    });
+  });
+
+  it('points to the Convites tab when an invite is already pending for the e-mail', async () => {
+    const user = userEvent.setup();
+    const err = new Error('Conflict');
+    err.response = {
+      status: 409,
+      data: { error: 'STUDENT_INVITE_ALREADY_PENDING', messageCode: 'studentInvite.alreadyPending', message: 'x' },
+    };
+    err.userMessage = 'Já existe um convite pendente para este e-mail. Você pode reenviá-lo na aba Convites.';
+    api.post.mockRejectedValue(err);
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
+    await submitLinkForm(user, 'pendente@example.com');
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(err.userMessage, 'error');
+    });
+    expect(screen.queryByRole('dialog', { name: /vincular aluno/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Convites' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('keeps the modal open on other link errors', async () => {
+    const user = userEvent.setup();
+    const err = new Error('Forbidden');
+    err.response = {
+      status: 403,
+      data: { error: 'STUDENT_CAP_EXCEEDED', messageCode: 'platformPlan.studentCapExceeded', message: 'x' },
+    };
+    api.post.mockRejectedValue(err);
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
+    await submitLinkForm(user, 'cap@example.com');
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(
+        'Você atingiu o limite de alunos do seu plano. Faça upgrade para adicionar mais alunos.',
+        'error'
+      );
+    });
+    expect(screen.getByRole('dialog', { name: /vincular aluno/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Alunos' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  // ── Page tabs ─────────────────────────────────────────────────────────
+
+  it('renders Alunos and Convites tabs with Alunos selected by default', async () => {
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
+    expect(screen.getByRole('tab', { name: 'Alunos' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Convites' })).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('does not fetch invites until the Convites tab is opened', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
+    expect(api.get).not.toHaveBeenCalledWith('/trainer/student-invites', expect.anything());
+
+    await user.click(screen.getByRole('tab', { name: 'Convites' }));
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/trainer/student-invites', {
+        params: { page: 1, pageSize: 20 },
+      });
+    });
+    expect(screen.queryByText('Aluno Exemplo')).not.toBeInTheDocument();
   });
 
   it('shows error toast when link api.post fails', async () => {

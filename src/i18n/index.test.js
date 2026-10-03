@@ -114,6 +114,14 @@ describe('translateError', () => {
     expect(result).toBe('Muitas tentativas. Aguarde um momento e tente novamente.');
   });
 
+  it('translates trainerInvite.accountExists from the invite signup (409)', () => {
+    const error = makeAxiosError({
+      status: 409,
+      data: { error: 'INVITE_ACCOUNT_EXISTS', messageCode: 'trainerInvite.accountExists', message: 'Account exists' },
+    });
+    expect(translateError(error)).toBe('Já existe uma conta com este e-mail. Entre para ativar seu convite.');
+  });
+
   it('translates messageCodes added in PR1 (internal.serverError)', () => {
     const error = makeAxiosError({
       status: 500,
@@ -130,6 +138,20 @@ describe('translateError', () => {
     });
     const result = translateError(error);
     expect(result).toBe('Este registro já existe.');
+  });
+
+  it.each([
+    [429, 'STUDENT_INVITE_DAILY_LIMIT', 'studentInvite.dailyLimit',
+      'Você atingiu o limite diário de convites. Tente novamente mais tarde.'],
+    [502, 'STUDENT_INVITE_EMAIL_SEND_FAILED', 'studentInvite.emailSendFailed',
+      'Não foi possível enviar o e-mail do convite. Tente novamente.'],
+    [429, 'EMAIL_VERIFICATION_DAILY_LIMIT', 'emailVerification.dailyLimit',
+      'Você solicitou códigos demais hoje. Tente novamente mais tarde.'],
+    [502, 'EMAIL_VERIFICATION_SEND_FAILED', 'emailVerification.sendFailed',
+      'Não foi possível enviar o e-mail de verificação. Tente novamente.'],
+  ])('translates %i %s via messageCode %s', (status, errorCode, messageCode, expected) => {
+    const error = makeAxiosError({ status, data: { error: errorCode, messageCode, message: 'x' } });
+    expect(translateError(error)).toBe(expected);
   });
 });
 
