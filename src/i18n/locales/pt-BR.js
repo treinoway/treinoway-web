@@ -117,6 +117,8 @@ const ptBR = {
     "invite.emailMismatch":
       "Este convite foi enviado para outro endereço. Entre com a conta que recebeu o convite.",
     "invite.required": "Informe o código do convite.",
+    "trainerInvite.accountExists":
+      "Já existe uma conta com este e-mail. Entre para ativar seu convite.",
     "auth.unauthorized": "Sessão expirada. Faça login novamente.",
     "auth.forbidden": "Você não tem permissão para esta ação.",
     "resource.notFound": "Recurso não encontrado.",
@@ -266,6 +268,33 @@ const ptBR = {
       "Um ou mais modelos de exercício não pertencem ao seu perfil.",
     "platformPlan.studentBlockedOnPlan":
       "Este aluno está bloqueado pelo seu plano atual. Faça upgrade para continuar.",
+    "platformPlan.studentCapExceeded":
+      "Você atingiu o limite de alunos do seu plano. Faça upgrade para adicionar mais alunos.",
+    "student.accountDeactivated": "A conta deste aluno está desativada.",
+    "studentInvite.notFound": "Convite não encontrado.",
+    "studentInvite.notPending": "Este convite não está mais pendente.",
+    "studentInvite.resendCooldown":
+      "Aguarde um pouco antes de reenviar este convite.",
+    "studentInvite.resendLimit":
+      "Você atingiu o limite de reenvios deste convite.",
+    "studentInvite.alreadyPending":
+      "Já existe um convite pendente para este e-mail. Você pode reenviá-lo na aba Convites.",
+    "emailVerification.invalidCode":
+      "Código inválido. Confira o código e tente novamente.",
+    "emailVerification.codeExpired": "Código expirado. Solicite um novo código.",
+    "emailVerification.tooManyAttempts":
+      "Muitas tentativas incorretas. Solicite um novo código.",
+    "emailVerification.alreadyVerified": "Seu e-mail já está verificado.",
+    "emailVerification.resendCooldown":
+      "Aguarde um pouco antes de solicitar um novo código.",
+    "studentInvite.dailyLimit":
+      "Você atingiu o limite diário de convites. Tente novamente mais tarde.",
+    "studentInvite.emailSendFailed":
+      "Não foi possível enviar o e-mail do convite. Tente novamente.",
+    "emailVerification.dailyLimit":
+      "Você solicitou códigos demais hoje. Tente novamente mais tarde.",
+    "emailVerification.sendFailed":
+      "Não foi possível enviar o e-mail de verificação. Tente novamente.",
   },
 
   httpStatus: {
@@ -1124,6 +1153,61 @@ const ptBR = {
       },
     },
   },
+  studentInvites: {
+    tabsAria: "Seções de alunos",
+    tabStudents: "Alunos",
+    tabInvites: "Convites",
+    linkHint:
+      "Se o aluno já tem conta no TeuFit, ele é vinculado na hora. Se ainda não tem, enviamos um convite por e-mail com os links para baixar o app TeuFit.",
+    linkedToast: "Aluno vinculado com sucesso!",
+    invitedToast: "Convite enviado para {email}.",
+    filterAria: "Filtrar convites por status",
+    filter_all: "Todos",
+    filter_pending: "Pendentes",
+    filter_accepted: "Aceitos",
+    filter_expired: "Expirados",
+    filter_revoked: "Revogados",
+    status_pending: "Pendente",
+    status_accepted: "Aceito",
+    status_expired: "Expirado",
+    status_revoked: "Revogado",
+    loading: "Carregando...",
+    colEmail: "E-mail",
+    colStatus: "Status",
+    colLastSent: "Último envio",
+    colExpires: "Expira em",
+    colSends: "Envios",
+    colActions: "Ações",
+    sendsOne: "1 envio",
+    sendsOther: "{count} envios",
+    mobileMeta: "Expira em {date} · {sends}",
+    rowActions: "Ações do convite {email}",
+    resend: "Reenviar",
+    resendIn: "Reenviar em {minutes} min",
+    resendLimitReached: "Limite de reenvios atingido",
+    resendSuccess: "Convite reenviado para {email}.",
+    resendCooldown: "Você poderá reenviar este convite em {minutes} min.",
+    dailyLimit:
+      "Você atingiu o limite diário de convites. Tente novamente em {duration}.",
+    durationHoursMinutes: "{hours} h {minutes} min",
+    durationHours: "{hours} h",
+    durationMinutes: "{minutes} min",
+    revoke: "Cancelar convite",
+    revokeConfirm:
+      "Cancelar o convite de {email}? Se o aluno criar a conta depois, ele não será vinculado a você.",
+    revokeConfirmAction: "Cancelar convite",
+    revokeDismiss: "Voltar",
+    revokeSuccess: "Convite cancelado.",
+    emptyTitle: "Sem convites ainda",
+    emptyDescription:
+      "Vincule um aluno pelo e-mail. Se ele ainda não tiver conta no TeuFit, o convite aparece aqui.",
+    emptyFiltered: "Nenhum convite com este status.",
+    errorTitle: "Não foi possível carregar os convites",
+    retry: "Tentar novamente",
+    prev: "Anterior",
+    next: "Próxima",
+    pageStatus: "Página {page} de {total}",
+  },
   adminInvites: {
     title: "Convites de treinadores",
     emailLabel: "E-mail do treinador",
@@ -1165,6 +1249,25 @@ const ptBR = {
     emptyTitle: "Nenhum convite enviado",
     emptyDescription: "Envie o primeiro convite de acesso beta para um treinador.",
     emptyFiltered: "Nenhum convite encontrado para os filtros aplicados.",
+  },
+  signupVerification: {
+    title: "Confirme seu e-mail",
+    sentNotice:
+      "Se {email} ainda não tiver conta, enviamos um código de 6 dígitos. Se já tiver, enviamos as instruções para entrar.",
+    codeLabel: "Código de verificação",
+    codeRequired: "Informe o código de 6 dígitos.",
+    submit: "Confirmar código",
+    submitting: "Confirmando...",
+    resend: "Reenviar código",
+    resending: "Reenviando...",
+    resendRequestNew: "Enviar novo código",
+    resent: "Novo código solicitado. Confira sua caixa de entrada.",
+    changeEmail: "Trocar e-mail",
+    backToForm: "Voltar",
+  },
+  inviteSignup: {
+    submit: "Criar conta e ativar convite",
+    submitting: "Criando conta...",
   },
 };
 

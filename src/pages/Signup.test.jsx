@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter } from '../test/test-utils';
 import Signup from './Signup';
@@ -20,16 +20,48 @@ vi.mock('react-router-dom', async (importOriginal) => {
 });
 
 const mockSignup = vi.fn();
+const mockVerifySignup = vi.fn();
+const mockSignupWithInvite = vi.fn();
+const mockResendSignupCode = vi.fn();
 const mockLoginWithGoogle = vi.fn();
+
+const CODE_LABEL = /código de verificação/i;
+
+const authValue = (overrides = {}) => ({
+  isAuthenticated: false,
+  signup: mockSignup,
+  verifySignup: mockVerifySignup,
+  signupWithInvite: mockSignupWithInvite,
+  resendSignupCode: mockResendSignupCode,
+  loginWithGoogle: mockLoginWithGoogle,
+  ...overrides,
+});
+
+const submitSignupForm = async (user, { email = 'user@example.com', password = 'pass1234' } = {}) => {
+  await user.type(await screen.findByLabelText(/e-mail/i), email);
+  await user.type(screen.getByLabelText(/^senha$/i), password);
+  await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
+};
+
+const enterCode = async (user, code = '123456') => {
+  await user.type(await screen.findByLabelText(CODE_LABEL), code);
+};
 
 describe('Signup', () => {
   beforeEach(() => {
-    vi.mocked(useAuth).mockReturnValue({
-      isAuthenticated: false,
-      signup: mockSignup,
-      loginWithGoogle: mockLoginWithGoogle,
-    });
+    vi.mocked(useAuth).mockReturnValue(authValue());
     mockSignup.mockReset();
+    mockSignup.mockResolvedValue({ success: true });
+    mockVerifySignup.mockReset();
+    mockVerifySignup.mockResolvedValue({ success: true, user: { id: 'user-1' } });
+    mockResendSignupCode.mockReset();
+    mockResendSignupCode.mockResolvedValue({ success: true });
+    mockSignupWithInvite.mockReset();
+    mockSignupWithInvite.mockResolvedValue({
+      success: true,
+      user: { id: 'user-1', betaAccess: true },
+      linkedTrainers: 0,
+    });
     mockLoginWithGoogle.mockReset();
     mockNavigate.mockReset();
     // Default: invite preview unavailable (network) → graceful fallback form.
@@ -89,11 +121,7 @@ describe('Signup', () => {
   });
 
   it('redirects to dashboard when already authenticated', () => {
-    vi.mocked(useAuth).mockReturnValue({
-      isAuthenticated: true,
-      signup: mockSignup,
-      loginWithGoogle: mockLoginWithGoogle,
-    });
+    vi.mocked(useAuth).mockReturnValue(authValue({ isAuthenticated: true }));
 
     renderWithRouter(<Signup />, { route: '/signup' });
 
@@ -139,7 +167,6 @@ describe('Signup', () => {
 
   it('calls signup with email and password when form is valid', async () => {
     const user = userEvent.setup();
-    mockSignup.mockResolvedValue({ success: true });
 
     renderWithRouter(<Signup />);
 
@@ -152,19 +179,17 @@ describe('Signup', () => {
     });
   });
 
-  it('shows API error message when signup fails', async () => {
+  it('shows the API error and stays on the form when signup fails (validation / rate limit)', async () => {
     const user = userEvent.setup();
-    mockSignup.mockResolvedValue({ success: false, error: 'E-mail já cadastrado.' });
+    mockSignup.mockResolvedValue({ success: false, error: 'Informe um e-mail válido.' });
 
     renderWithRouter(<Signup />);
 
-    await user.type(screen.getByLabelText(/e-mail/i), 'existing@example.com');
-    await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
-    await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
+    await submitSignupForm(user);
 
-    await waitFor(() => {
-      expect(screen.getByText('E-mail já cadastrado.')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Informe um e-mail válido.')).toBeInTheDocument();
+    expect(screen.queryByLabelText(CODE_LABEL)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^criar conta$/i })).toBeEnabled();
   });
 
   it('disables submit button while signup is in progress', async () => {
@@ -177,7 +202,7 @@ describe('Signup', () => {
     await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
     await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
 
-    expect(screen.getByRole('button', { name: /criando conta/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /enviando código/i })).toBeDisabled();
   });
 
   it('disables the Google button while email signup is in progress', async () => {
@@ -263,45 +288,247 @@ describe('Signup', () => {
     });
   });
 
-  it('calls signup and completes on successful signup', async () => {
-    const user = userEvent.setup();
-    mockSignup.mockResolvedValue({ success: true });
+  describe('code step', () => {
+    it('replaces the form with the code step and the uniform notice after signup', async () => {
+      const user = userEvent.setup();
 
-    renderWithRouter(<Signup />, { route: '/signup' });
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
 
-    await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
-    await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
-    await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
+      const codeInput = await screen.findByLabelText(CODE_LABEL);
+      expect(codeInput).toHaveAttribute('autocomplete', 'one-time-code');
+      expect(codeInput).toHaveAttribute('inputmode', 'numeric');
+      expect(screen.getByRole('heading', { name: /confirme seu e-mail/i })).toBeInTheDocument();
+      expect(screen.getByText(/ainda não tiver conta/i)).toHaveTextContent(
+        'Se user@example.com ainda não tiver conta, enviamos um código de 6 dígitos. Se já tiver, enviamos as instruções para entrar.'
+      );
+      expect(screen.queryByLabelText(/^senha$/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /cadastrar com google/i })).not.toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
 
-    await waitFor(() => {
-      expect(mockSignup).toHaveBeenCalledWith('user@example.com', 'pass1234');
+    it('auto-submits the 6-digit code with the in-memory password and navigates home', async () => {
+      const user = userEvent.setup();
+
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
+      await enterCode(user);
+
+      await waitFor(() => {
+        expect(mockVerifySignup).toHaveBeenCalledWith('user@example.com', '123456', 'pass1234');
+      });
+      expect(mockVerifySignup).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
+    });
+
+    it('accepts a pasted code with separators and keeps only the 6 digits', async () => {
+      const user = userEvent.setup();
+
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
+      await user.click(await screen.findByLabelText(CODE_LABEL));
+      await user.paste('Código: 123 456');
+
+      await waitFor(() => {
+        expect(mockVerifySignup).toHaveBeenCalledWith('user@example.com', '123456', 'pass1234');
+      });
+    });
+
+    it('ignores non-digits typed into the code field', async () => {
+      const user = userEvent.setup();
+
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
+      await enterCode(user, '12ab3');
+
+      expect(screen.getByLabelText(CODE_LABEL)).toHaveValue('123');
+      expect(mockVerifySignup).not.toHaveBeenCalled();
+    });
+
+    it('asks for the full code when confirming an incomplete one', async () => {
+      const user = userEvent.setup();
+
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
+      await enterCode(user, '123');
+      await user.click(screen.getByRole('button', { name: /confirmar código/i }));
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Informe o código de 6 dígitos.');
+      expect(mockVerifySignup).not.toHaveBeenCalled();
+    });
+
+    it('disables the code field and shows loading while verifying', async () => {
+      const user = userEvent.setup();
+      mockVerifySignup.mockReturnValue(new Promise(() => {}));
+
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
+      await enterCode(user);
+
+      expect(await screen.findByRole('button', { name: /confirmando/i })).toBeDisabled();
+      expect(screen.getByLabelText(CODE_LABEL)).toBeDisabled();
+    });
+
+    it('shows the invalid-code error and lets the user retry with the confirm button', async () => {
+      const user = userEvent.setup();
+      mockVerifySignup
+        .mockResolvedValueOnce({
+          success: false,
+          error: 'Código inválido. Confira o código e tente novamente.',
+          messageCode: 'emailVerification.invalidCode',
+        })
+        .mockResolvedValueOnce({ success: true, user: { id: 'user-1' } });
+
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
+      await enterCode(user);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/código inválido/i);
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: /reenviar código/i })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /confirmar código/i }));
+
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }));
+      expect(mockVerifySignup).toHaveBeenCalledTimes(2);
+    });
+
+    it('shows a rate-limit error without asking for a new code', async () => {
+      const user = userEvent.setup();
+      mockVerifySignup.mockResolvedValue({
+        success: false,
+        error: 'Muitas tentativas. Aguarde um momento e tente novamente.',
+        messageCode: 'request.rateLimitExceeded',
+      });
+
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
+      await enterCode(user);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/muitas tentativas/i);
+      expect(screen.getByRole('button', { name: /confirmar código/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /enviar novo código/i })).not.toBeInTheDocument();
+    });
+
+    it('returns to the form keeping the email when "Trocar e-mail" is clicked', async () => {
+      const user = userEvent.setup();
+
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
+      await user.click(await screen.findByRole('button', { name: /trocar e-mail/i }));
+
+      expect(screen.queryByLabelText(CODE_LABEL)).not.toBeInTheDocument();
+      expect(screen.getByLabelText(/e-mail/i)).toHaveValue('user@example.com');
+      expect(screen.getByRole('button', { name: /^criar conta$/i })).toBeInTheDocument();
+    });
+
+    it('verifies with the newly submitted email after changing it', async () => {
+      const user = userEvent.setup();
+
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user, { email: 'typo@example.com' });
+      await user.click(await screen.findByRole('button', { name: /trocar e-mail/i }));
+      await user.clear(screen.getByLabelText(/e-mail/i));
+      await user.type(screen.getByLabelText(/e-mail/i), 'right@example.com');
+      await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
+      await enterCode(user);
+
+      await waitFor(() => {
+        expect(mockVerifySignup).toHaveBeenCalledWith('right@example.com', '123456', 'pass1234');
+      });
     });
   });
 
-  it('navigates to dashboard on successful signup without a code', async () => {
-    const user = userEvent.setup();
-    mockSignup.mockResolvedValue({ success: true });
+  describe('code step — resend', () => {
+    let user;
 
-    renderWithRouter(<Signup />, { route: '/signup' });
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    });
 
-    await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
-    await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
-    await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
-    await waitFor(() => {
+    // The countdown chains one 1s timeout per render, so tick second by second.
+    const waitCooldown = async () => {
+      await screen.findByLabelText(CODE_LABEL);
+      for (let second = 0; second < 60; second += 1) {
+        await act(async () => {
+          vi.advanceTimersByTime(1000);
+        });
+      }
+    };
+
+    it('starts with a 60s local countdown and resends to the same email afterwards', async () => {
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
+
+      expect(await screen.findByRole('button', { name: /reenviar código \(\d+s\)/i })).toBeDisabled();
+
+      await waitCooldown();
+      const resendButton = screen.getByRole('button', { name: /^reenviar código$/i });
+      expect(resendButton).toBeEnabled();
+
+      await user.click(resendButton);
+
+      expect(mockResendSignupCode).toHaveBeenCalledWith('user@example.com');
+      expect(await screen.findByRole('status')).toHaveTextContent(/novo código solicitado/i);
+      expect(screen.getByRole('button', { name: /reenviar código \(\d+s\)/i })).toBeDisabled();
+    });
+
+    it('shows the error when the resend request fails', async () => {
+      mockResendSignupCode.mockResolvedValue({ success: false, error: 'Sem conexão com a internet.' });
+
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
+      await waitCooldown();
+      await user.click(screen.getByRole('button', { name: /^reenviar código$/i }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Sem conexão com a internet.');
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['emailVerification.codeExpired', 'Código expirado. Solicite um novo código.'],
+      ['emailVerification.tooManyAttempts', 'Muitas tentativas incorretas. Solicite um novo código.'],
+    ])('highlights the resend action on %s and restores the confirm step after a new code', async (messageCode, message) => {
+      mockVerifySignup
+        .mockResolvedValueOnce({ success: false, error: message, messageCode })
+        .mockResolvedValueOnce({ success: true, user: { id: 'user-1' } });
+
+      renderWithRouter(<Signup />, { route: '/signup' });
+      await submitSignupForm(user);
+      await enterCode(user);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(message);
+      expect(screen.queryByRole('button', { name: /confirmar código/i })).not.toBeInTheDocument();
+
+      await waitCooldown();
+      await user.click(screen.getByRole('button', { name: /^enviar novo código$/i }));
+
+      expect(mockResendSignupCode).toHaveBeenCalledWith('user@example.com');
+      expect(await screen.findByRole('button', { name: /confirmar código/i })).toBeInTheDocument();
+      expect(screen.getByLabelText(CODE_LABEL)).toHaveValue('');
+      expect(screen.queryByText(message)).not.toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText(CODE_LABEL), { target: { value: '654321' } });
+
+      await waitFor(() => {
+        expect(mockVerifySignup).toHaveBeenLastCalledWith('user@example.com', '654321', 'pass1234');
+      });
       expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
     });
   });
 
-  it('navigates to /invite carrying the code on successful signup when a code is present', async () => {
+  it('navigates to /invite carrying the code after verifying when a code is present', async () => {
     const user = userEvent.setup();
-    mockSignup.mockResolvedValue({ success: true });
 
     renderWithRouter(<Signup />, { route: '/signup?code=TF-8F3K-2Q7M-04' });
 
-    await user.type(await screen.findByLabelText(/e-mail/i), 'user@example.com');
-    await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
-    await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
+    await submitSignupForm(user);
+    await enterCode(user);
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/invite?code=TF-8F3K-2Q7M-04', { replace: true });
@@ -313,51 +540,22 @@ describe('Signup', () => {
       vi.unstubAllEnvs();
     });
 
-    it('navigates straight to /invite when gate is on and the fresh user is not granted', async () => {
-      vi.stubEnv('VITE_BETA_GATE_ENABLED', 'true');
+    it.each([
+      ['true', false, '/invite'],
+      ['true', true, '/'],
+      ['false', false, '/'],
+    ])('with gate=%s and betaAccess=%s, navigates to %s after verifying', async (gate, betaAccess, destination) => {
+      vi.stubEnv('VITE_BETA_GATE_ENABLED', gate);
       const user = userEvent.setup();
-      mockSignup.mockResolvedValue({ success: true, user: { betaAccess: false } });
+      mockVerifySignup.mockResolvedValue({ success: true, user: { betaAccess } });
 
       renderWithRouter(<Signup />, { route: '/signup' });
 
-      await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
-      await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
-      await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
+      await submitSignupForm(user);
+      await enterCode(user);
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/invite', { replace: true });
-      });
-    });
-
-    it('navigates to dashboard when gate is on but the fresh user is granted', async () => {
-      vi.stubEnv('VITE_BETA_GATE_ENABLED', 'true');
-      const user = userEvent.setup();
-      mockSignup.mockResolvedValue({ success: true, user: { betaAccess: true } });
-
-      renderWithRouter(<Signup />, { route: '/signup' });
-
-      await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
-      await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
-      await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
-
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
-      });
-    });
-
-    it('navigates to dashboard when the gate is disabled even if the user is not granted', async () => {
-      vi.stubEnv('VITE_BETA_GATE_ENABLED', 'false');
-      const user = userEvent.setup();
-      mockSignup.mockResolvedValue({ success: true, user: { betaAccess: false } });
-
-      renderWithRouter(<Signup />, { route: '/signup' });
-
-      await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
-      await user.type(screen.getByLabelText(/^senha$/i), 'pass1234');
-      await user.click(screen.getByRole('button', { name: /^criar conta$/i }));
-
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
+        expect(mockNavigate).toHaveBeenCalledWith(destination, { replace: true });
       });
     });
 
@@ -475,20 +673,154 @@ describe('Signup', () => {
       expect(screen.queryByText(/use o e-mail em que você recebeu o convite/i)).not.toBeInTheDocument();
     });
 
-    it('signs up with the locked invited email and routes to /invite with the code', async () => {
+    const submitInviteSignup = async (user, password = 'pass1234') => {
+      await user.type(await screen.findByLabelText(/^senha$/i), password);
+      await user.click(screen.getByRole('button', { name: /criar conta e ativar convite/i }));
+    };
+
+    const failInviteSignupWith = (messageCode, extra = {}) => {
+      mockSignupWithInvite.mockResolvedValue({
+        success: false,
+        error: 'Mensagem do servidor.',
+        messageCode,
+        details: null,
+        ...extra,
+      });
+    };
+
+    it('creates the account in one step with the invite code and goes home', async () => {
       const user = userEvent.setup();
       vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
-      mockSignup.mockResolvedValue({ success: true });
 
       renderWithRouter(<Signup />, { route: ROUTE });
-
-      await user.type(await screen.findByLabelText(/^senha$/i), 'pass1234');
-      await user.click(screen.getByRole('button', { name: /criar conta e ativar convite/i }));
+      await submitInviteSignup(user);
 
       await waitFor(() => {
-        expect(mockSignup).toHaveBeenCalledWith('convidado@teufit.com.br', 'pass1234');
+        expect(mockSignupWithInvite).toHaveBeenCalledWith('TF-7BCA-YAZS-BD', 'pass1234');
       });
-      expect(mockNavigate).toHaveBeenCalledWith('/invite?code=tf-7bca-yazs-bd', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
+      expect(mockSignup).not.toHaveBeenCalled();
+      expect(mockVerifySignup).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText(CODE_LABEL)).not.toBeInTheDocument();
+    });
+
+    it('still detours through /invite with the code if the session comes back gated', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+      mockSignupWithInvite.mockResolvedValue({ success: true, user: { id: 'user-1', betaAccess: false } });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+      await submitInviteSignup(user);
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/invite?code=tf-7bca-yazs-bd', { replace: true });
+      });
+    });
+
+    it('disables the form and shows "Criando conta..." while the invite signup is pending', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+      mockSignupWithInvite.mockReturnValue(new Promise(() => {}));
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+      await submitInviteSignup(user);
+
+      const pendingButton = await screen.findByRole('button', { name: /criando conta/i });
+      expect(pendingButton).toBeDisabled();
+      expect(screen.getByLabelText(/^senha$/i)).toBeDisabled();
+      expect(screen.getByRole('button', { name: /cadastrar com google/i })).toBeDisabled();
+    });
+
+    it('never sends a second request on a double submit', async () => {
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+      mockSignupWithInvite.mockReturnValue(new Promise(() => {}));
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+      const passwordInput = await screen.findByLabelText(/^senha$/i);
+      fireEvent.change(passwordInput, { target: { value: 'pass1234' } });
+      const form = passwordInput.closest('form');
+      fireEvent.submit(form);
+      fireEvent.submit(form);
+
+      await waitFor(() => expect(mockSignupWithInvite).toHaveBeenCalledTimes(1));
+    });
+
+    it('does not call the invite endpoint for a password under 8 characters', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+      await submitInviteSignup(user, 'short1');
+
+      expect(await screen.findByText(/a senha deve ter pelo menos 8 caracteres/i)).toBeInTheDocument();
+      expect(mockSignupWithInvite).not.toHaveBeenCalled();
+    });
+
+    it('shows a server-side weak password error inline under the password field', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+      failInviteSignupWith('validation.failed', {
+        error: 'A senha deve ter no mínimo 8 caracteres.',
+        details: [{ field: 'password', messageCode: 'validation.password.minLength' }],
+      });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+      await submitInviteSignup(user);
+
+      expect(await screen.findByText('A senha deve ter no mínimo 8 caracteres.')).toHaveClass('form-error');
+      expect(screen.getByLabelText(/^senha$/i)).toBeEnabled();
+      expect(screen.getByRole('button', { name: /criar conta e ativar convite/i })).toBeEnabled();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('shows the rate limit message and lets the user retry', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+      failInviteSignupWith('request.rateLimitExceeded', {
+        error: 'Muitas tentativas. Aguarde um momento e tente novamente.',
+      });
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+      await submitInviteSignup(user);
+
+      expect(await screen.findByText(/muitas tentativas/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /criar conta e ativar convite/i })).toBeEnabled();
+    });
+
+    it('points to sign in (keeping the code) when the account was created after the preview', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+      failInviteSignupWith('trainerInvite.accountExists');
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+      await submitInviteSignup(user);
+
+      expect(await screen.findByText(/você já tem uma conta com/i)).toHaveTextContent('convidado@teufit.com.br');
+      expect(screen.getByRole('link', { name: /entrar e ativar convite/i })).toHaveAttribute(
+        'href',
+        '/login?code=tf-7bca-yazs-bd'
+      );
+      expect(screen.queryByLabelText(/^senha$/i)).not.toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['invite.expired', /este convite expirou/i],
+      ['invite.revoked', /este convite não é mais válido/i],
+      ['invite.alreadyAccepted', /este convite já foi utilizado/i],
+      ['invite.notFound', /convite não encontrado/i],
+    ])('replaces the form with a state card when the invite signup fails with %s', async (messageCode, title) => {
+      const user = userEvent.setup();
+      vi.mocked(api.get).mockResolvedValue({ data: PREVIEW });
+      failInviteSignupWith(messageCode);
+
+      renderWithRouter(<Signup />, { route: ROUTE });
+      await submitInviteSignup(user);
+
+      expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument();
+      expect(screen.queryByLabelText(/^senha$/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('list', { name: /etapas do convite/i })).not.toBeInTheDocument();
+      expect(screen.queryByText(/já tem uma conta\?/i)).not.toBeInTheDocument();
     });
 
     it('passes the invited email as Google login_hint', async () => {
@@ -562,7 +894,6 @@ describe('Signup', () => {
 
     it('keeps the invite framing with an editable email when the preview is unavailable', async () => {
       const user = userEvent.setup();
-      mockSignup.mockResolvedValue({ success: true });
 
       renderWithRouter(<Signup />, { route: ROUTE });
 

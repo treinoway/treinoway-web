@@ -218,4 +218,19 @@ describe('RowMenu', () => {
     expect(onDelete).toHaveBeenCalledOnce();
     expect(parentClick).not.toHaveBeenCalled();
   });
+
+  it('renders a disabled extra item that cannot be triggered', async () => {
+    const user = userEvent.setup();
+    const onResend = vi.fn();
+    const extraItems = [{ label: 'Reenviar em 30 min', onClick: onResend, disabled: true }];
+
+    render(<RowMenu ariaLabel="Ações" extraItems={extraItems} />);
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+    const item = screen.getByRole('button', { name: 'Reenviar em 30 min' });
+    expect(item).toBeDisabled();
+    await user.click(item);
+
+    expect(onResend).not.toHaveBeenCalled();
+  });
 });

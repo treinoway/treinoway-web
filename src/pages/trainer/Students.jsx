@@ -22,8 +22,12 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
-import { t, translateError } from '../../i18n';
+import { t, translateError, extractErrorInfo } from '../../i18n';
 import api from '../../api/axios';
+import { inviteStudent } from '../../api/studentInvites';
+import { StudentInviteOutcome, StudentInviteMessageCode } from '../../constants/studentInvite';
+import StudentInvitesPanel from './StudentInvitesPanel';
+import { formatRetryAfterDuration } from '../../utils/studentInvite';
 import { markOnboardingStepOptimistic } from '../../hooks/useOnboardingStatus';
 import formatRelativeTime from '../../utils/relativeTime';
 import noStudentsSvg from '../../assets/illustrations/no-students.svg';
@@ -516,6 +520,15 @@ StepIndicator.propTypes = {
 
 /* ─── LinkStudentModal ──────────────────────────────────────────────────── */
 
+// Daily invite limit (429) gets a wait time from details.retryAfterSeconds; everything else uses the translated message.
+const getLinkErrorMessage = (error) => {
+  const { messageCode, details } = extractErrorInfo(error);
+  if (messageCode === StudentInviteMessageCode.DAILY_LIMIT && details?.retryAfterSeconds) {
+    return t('studentInvites.dailyLimit').replace('{duration}', formatRetryAfterDuration(details.retryAfterSeconds));
+  }
+  return error.userMessage || translateError(error);
+};
+
 const LinkStudentModal = ({ onClose, onSubmit, linking }) => {
   const [email, setEmail] = useState('');
 
@@ -564,7 +577,7 @@ const LinkStudentModal = ({ onClose, onSubmit, linking }) => {
                 autoFocus
                 disabled={linking}
               />
-              <span className="form-hint">O aluno receberá um convite por e-mail.</span>
+              <span className="form-hint">{t('studentInvites.linkHint')}</span>
             </div>
             <div className="btn-group btn-group--equal mt-lg">
               <button
@@ -881,6 +894,40 @@ ImportStudentsModal.defaultProps = {
   importData: null,
 };
 
+/* ─── StudentsTabs ──────────────────────────────────────────────────────── */
+
+const STUDENTS_TAB = 'students';
+const INVITES_TAB = 'invites';
+
+const STUDENTS_PAGE_TABS = [
+  { id: STUDENTS_TAB, labelKey: 'studentInvites.tabStudents' },
+  { id: INVITES_TAB, labelKey: 'studentInvites.tabInvites' },
+];
+
+const StudentsTabs = ({ activeTab, onChange }) => (
+  <div className="tabs-container students-tabs" role="tablist" aria-label={t('studentInvites.tabsAria')}>
+    {STUDENTS_PAGE_TABS.map((tab) => (
+      <button
+        key={tab.id}
+        type="button"
+        id={`students-tab-${tab.id}`}
+        role="tab"
+        aria-selected={activeTab === tab.id}
+        aria-controls={`students-tabpanel-${tab.id}`}
+        className={`tab-button${activeTab === tab.id ? ' tab-button--active' : ''}`}
+        onClick={() => onChange(tab.id)}
+      >
+        {t(tab.labelKey)}
+      </button>
+    ))}
+  </div>
+);
+
+StudentsTabs.propTypes = {
+  activeTab: PropTypes.oneOf([STUDENTS_TAB, INVITES_TAB]).isRequired,
+  onChange: PropTypes.func.isRequired,
+};
+
 /* ─── Students (page) ───────────────────────────────────────────────────── */
 
 const getStudentName = (student) => {
@@ -910,6 +957,9 @@ const Students = () => {
 
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linking, setLinking] = useState(false);
+
+  const [activeTab, setActiveTab] = useState(STUDENTS_TAB);
+  const [invitesRefreshKey, setInvitesRefreshKey] = useState(0);
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [importStep, setImportStep] = useState('platform');
@@ -973,20 +1023,46 @@ const Students = () => {
 
   /* ── handlers — link ──────────────────────────────────────────────────── */
 
+  const showInvitesTab = () => {
+    setActiveTab(INVITES_TAB);
+    setInvitesRefreshKey((key) => key + 1);
+  };
+
+  const handleStudentLinked = (student, wasFirstStudent) => {
+    setStudents((prev) => [...prev, student]);
+    showToast(t('studentInvites.linkedToast'), 'success');
+    if (!wasFirstStudent) return;
+    markOnboardingStepOptimistic('firstStudentLinked');
+    navigate('/', { state: { justCompleted: 'firstStudent' } });
+  };
+
+  // Invited students are not in the roster yet: no append, no first-student onboarding.
+  const handleInviteSent = (invite, emailValue) => {
+    const email = invite?.email ?? emailValue;
+    showToast(t('studentInvites.invitedToast').replace('{email}', email), 'success');
+    showInvitesTab();
+  };
+
+  const handleLinkError = (error) => {
+    showToast(getLinkErrorMessage(error), 'error');
+    if (extractErrorInfo(error).messageCode !== StudentInviteMessageCode.ALREADY_PENDING) return;
+    setShowLinkModal(false);
+    showInvitesTab();
+  };
+
   const handleLinkSubmit = async (emailValue) => {
     setLinking(true);
     const wasFirstStudent = students.length === 0;
     try {
-      const response = await api.post('/trainer/students', { email: emailValue });
-      setStudents((prev) => [...prev, response.data]);
-      showToast('Aluno vinculado com sucesso!', 'success');
+      const result = await inviteStudent(emailValue);
       setShowLinkModal(false);
-      if (wasFirstStudent) {
-        markOnboardingStepOptimistic('firstStudentLinked');
-        navigate('/', { state: { justCompleted: 'firstStudent' } });
+      if (result.outcome === StudentInviteOutcome.INVITED) {
+        handleInviteSent(result.invite, emailValue);
+      } else {
+        handleStudentLinked(result.student, wasFirstStudent);
       }
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      handleLinkError(error);
     } finally {
       setLinking(false);
     }
@@ -1111,39 +1187,49 @@ const Students = () => {
         </div>
       </div>
 
-      {/* Stats hero — only when students exist */}
-      {students.length > 0 && <StudentsStatsHero students={students} />}
+      <StudentsTabs activeTab={activeTab} onChange={setActiveTab} />
 
-      {/* Quota banner — surfaces the seat-quota problem once, at list level */}
-      {blockedByQuotaCount > 0 && (
-        <QuotaBanner count={blockedByQuotaCount} onUpgrade={() => navigate('/profile')} />
-      )}
-
-      {/* Empty state */}
-      {students.length === 0 ? (
-        <StudentsEmptyState onLink={() => setShowLinkModal(true)} />
+      {activeTab === INVITES_TAB ? (
+        <div id={`students-tabpanel-${INVITES_TAB}`} role="tabpanel" aria-labelledby={`students-tab-${INVITES_TAB}`}>
+          <StudentInvitesPanel refreshKey={invitesRefreshKey} />
+        </div>
       ) : (
-        <>
-          <Toolbar
-            search={search}
-            onSearch={setSearch}
-            statusFilter={statusFilter}
-            onStatusFilter={setStatusFilter}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            counts={counts}
-          />
+        <div id={`students-tabpanel-${STUDENTS_TAB}`} role="tabpanel" aria-labelledby={`students-tab-${STUDENTS_TAB}`}>
+          {/* Stats hero — only when students exist */}
+          {students.length > 0 && <StudentsStatsHero students={students} />}
 
-          {filtered.length === 0 ? (
-            <NoResultsState />
-          ) : (
-            <StudentsStatsFirst
-              students={filtered}
-              onUnlink={handleUnlinkStudent}
-              navigate={navigate}
-            />
+          {/* Quota banner — surfaces the seat-quota problem once, at list level */}
+          {blockedByQuotaCount > 0 && (
+            <QuotaBanner count={blockedByQuotaCount} onUpgrade={() => navigate('/profile')} />
           )}
-        </>
+
+          {/* Empty state */}
+          {students.length === 0 ? (
+            <StudentsEmptyState onLink={() => setShowLinkModal(true)} />
+          ) : (
+            <>
+              <Toolbar
+                search={search}
+                onSearch={setSearch}
+                statusFilter={statusFilter}
+                onStatusFilter={setStatusFilter}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                counts={counts}
+              />
+
+              {filtered.length === 0 ? (
+                <NoResultsState />
+              ) : (
+                <StudentsStatsFirst
+                  students={filtered}
+                  onUnlink={handleUnlinkStudent}
+                  navigate={navigate}
+                />
+              )}
+            </>
+          )}
+        </div>
       )}
 
       {/* Confirm dialog — unlink */}
