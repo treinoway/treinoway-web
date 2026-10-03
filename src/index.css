@@ -465,6 +465,25 @@ button.auth-forgot-link:disabled {
   width: 100%;
 }
 
+/* Neutral confirmation after a resend (signup code step) */
+.auth-status {
+  font-size: var(--font-body-small-size);
+  color: var(--md-success);
+  text-align: center;
+  width: 100%;
+  margin: 0;
+}
+
+/* 6-digit one-time code field (signup code step) */
+.auth-code-input {
+  text-align: center;
+  font-family: var(--font-family-stat);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-body-large-size);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wider);
+}
+
 .auth-footer {
   font-size: var(--font-body-small-size);
   color: var(--color-on-surface-variant);
@@ -12319,6 +12338,28 @@ button.auth-forgot-link:disabled {
 
 .students-filter-btn.active .students-filter-count {
   color: var(--brand-primary);
+}
+
+/* ---------- Students page tabs (Alunos / Convites) ---------- */
+.students-tabs .tab-button {
+  min-height: 44px;
+}
+
+/* ---------- Student invites (Convites tab) ---------- */
+/* Five status chips overflow 375px: scroll horizontally instead of wrapping. */
+.students-filter-group--scrollable {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.students-filter-group--scrollable .students-filter-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.student-invites-sends {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Sort select ---------- */

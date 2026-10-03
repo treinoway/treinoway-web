@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,15 +9,32 @@ import AuthEmailField from '../components/AuthEmailField';
 import InviteContext from '../components/InviteContext';
 import InviteStatusCard from '../components/InviteStatusCard';
 import InviteFormSkeleton from '../components/InviteFormSkeleton';
+import SignupCodeStep from '../components/SignupCodeStep';
+import { t } from '../i18n';
 
 const GOOGLE_CREDENTIAL_CONFLICT = 'auth/account-exists-with-different-credential';
 const MIN_PASSWORD_LENGTH = 8;
 const INVITE_EMAIL_HINT = 'Use o e-mail em que você recebeu o convite.';
+const PASSWORD_TOO_SHORT = 'A senha deve ter pelo menos 8 caracteres.';
+const ACCOUNT_EXISTS_CODE = 'trainerInvite.accountExists';
+const VALIDATION_FAILED_CODE = 'validation.failed';
+// Invite errors from POST /auth/signup/invite that make the code unusable:
+// rendered as the same terminal card as a dead preview.
+const TERMINAL_INVITE_CODES = new Set([
+  'invite.notFound',
+  'invite.revoked',
+  'invite.expired',
+  'invite.alreadyAccepted',
+]);
 
-const getSubmitLabel = (loading, isValidInvite) => {
-  if (loading) return 'Criando conta...';
-  return isValidInvite ? 'Criar conta e ativar convite' : 'Criar conta';
+const getSubmitLabel = ({ loading, usesInviteSignup, isValidInvite }) => {
+  if (loading) return usesInviteSignup ? t('inviteSignup.submitting') : 'Enviando código...';
+  return isValidInvite ? t('inviteSignup.submit') : 'Criar conta';
 };
+
+const isPasswordValidationError = (result) => result.messageCode === VALIDATION_FAILED_CODE
+  && Array.isArray(result.details)
+  && result.details.some((detail) => detail?.field === 'password');
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -27,7 +44,18 @@ const Signup = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { signup, loginWithGoogle, isAuthenticated, user } = useAuth();
+  // The password stays only in memory until the code is verified: the backend
+  // does not keep it on the pending signup, so verify must resend it.
+  const [pendingEmail, setPendingEmail] = useState(null);
+  // messageCode of an invite signup failure that replaces the form
+  // (terminal invite error or an account created after the preview).
+  const [inviteOutcome, setInviteOutcome] = useState(null);
+  // Synchronous guard: the disabled button covers clicks, this covers a
+  // second submit dispatched before React re-renders.
+  const submittingRef = useRef(false);
+  const {
+    signup, verifySignup, signupWithInvite, resendSignupCode, loginWithGoogle, isAuthenticated, user,
+  } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -35,11 +63,16 @@ const Signup = () => {
   // Skip the preview request when we're about to redirect an authenticated user.
   const invite = useInviteAuthFlow(isAuthenticated ? '' : inviteCode);
   const loginLink = inviteCode ? `/login?code=${encodeURIComponent(inviteCode)}` : '/login';
+  // A previewed invite for a new email signs up in one step via the invite
+  // endpoint; without a usable preview the regular code-verified signup runs.
+  const usesInviteSignup = Boolean(invite.lockedEmail) && !invite.accountExists;
 
   // Route the freshly-authenticated user straight to their destination so a
   // gated user never bounces through `/` → beta-gate redirect (white flash).
+  // An invite signup already grants access, so only a still-gated user
+  // detours through /invite to redeem.
   const resolveDestination = (user) => {
-    if (inviteCode) {
+    if (inviteCode && user?.betaAccess !== true) {
       return `/invite?code=${encodeURIComponent(inviteCode)}`;
     }
     if (isBetaGateEnabled() && user?.betaAccess === false) {
@@ -64,7 +97,7 @@ const Signup = () => {
     const errors = {};
 
     if (password.length > 0 && password.length < MIN_PASSWORD_LENGTH) {
-      errors.password = 'A senha deve ter pelo menos 8 caracteres.';
+      errors.password = PASSWORD_TOO_SHORT;
     }
 
     return errors;
@@ -83,13 +116,58 @@ const Signup = () => {
     if (password.length > 0 && password.length < MIN_PASSWORD_LENGTH) {
       setFieldErrors((prev) => ({
         ...prev,
-        password: 'A senha deve ter pelo menos 8 caracteres.',
+        password: PASSWORD_TOO_SHORT,
       }));
+    }
+  };
+
+  const applyInviteSignupError = (result) => {
+    if (result.messageCode === ACCOUNT_EXISTS_CODE || TERMINAL_INVITE_CODES.has(result.messageCode)) {
+      setInviteOutcome(result.messageCode);
+      return;
+    }
+    if (isPasswordValidationError(result)) {
+      setFieldErrors({ password: result.error });
+      return;
+    }
+    setError(result.error);
+  };
+
+  // One step: the invite carries the (verified) email, so no code screen.
+  // Loading stays on after success — the page is about to unmount.
+  const submitInviteSignup = async () => {
+    const result = await signupWithInvite(invite.code, password);
+    if (result.success) {
+      navigate(resolveDestination(result.user), { replace: true });
+      return;
+    }
+    submittingRef.current = false;
+    setLoading(false);
+    applyInviteSignupError(result);
+  };
+
+  const submitPendingSignup = async () => {
+    const signupEmail = invite.lockedEmail ?? email;
+
+    try {
+      const result = await signup(signupEmail, password);
+
+      if (result.success) {
+        setPendingEmail(signupEmail);
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError('Ocorreu um erro inesperado.');
+    } finally {
+      submittingRef.current = false;
+      setLoading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError('');
     setFieldErrors({});
 
@@ -100,25 +178,32 @@ const Signup = () => {
     }
 
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setFieldErrors({ password: 'A senha deve ter pelo menos 8 caracteres.' });
+      setFieldErrors({ password: PASSWORD_TOO_SHORT });
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
-
-    try {
-      const result = await signup(invite.lockedEmail ?? email, password);
-
-      if (result.success) {
-        navigate(resolveDestination(result.user), { replace: true });
-      } else {
-        setError(result.error);
-        setLoading(false);
-      }
-    } catch {
-      setError('Ocorreu um erro inesperado.');
-      setLoading(false);
+    if (usesInviteSignup) {
+      await submitInviteSignup();
+      return;
     }
+    await submitPendingSignup();
+  };
+
+  const handleVerifyCode = async (code) => {
+    const result = await verifySignup(pendingEmail, code, password);
+    if (result.success) {
+      navigate(resolveDestination(result.user), { replace: true });
+    }
+    return result;
+  };
+
+  const handleResendCode = () => resendSignupCode(pendingEmail);
+
+  const handleChangeEmail = () => {
+    setError('');
+    setPendingEmail(null);
   };
 
   const handleGoogleSignup = async () => {
@@ -149,13 +234,16 @@ const Signup = () => {
 
   const isBusy = loading || googleLoading;
   const emailHint = invite.isInviteFlow ? INVITE_EMAIL_HINT : '';
-  const showFooter = !invite.isInvalid && !invite.accountExists;
+  const accountExists = invite.accountExists || inviteOutcome === ACCOUNT_EXISTS_CODE;
+  const terminalInviteCode = TERMINAL_INVITE_CODES.has(inviteOutcome) ? inviteOutcome : null;
+  const isInviteDead = invite.isInvalid || Boolean(terminalInviteCode);
+  const showFooter = !isInviteDead && !accountExists;
 
   const header = invite.isInviteFlow ? (
     <InviteContext
       code={invite.code}
       firstStepLabel="Criar conta"
-      showSteps={!invite.isInvalid}
+      showSteps={!isInviteDead}
     />
   ) : (
     <p className="auth-subtitle">Alunos, treinos e resultados.</p>
@@ -221,7 +309,7 @@ const Signup = () => {
           disabled={isBusy}
           className="btn-primary-full"
         >
-          {getSubmitLabel(loading, invite.isValid)}
+          {getSubmitLabel({ loading, usesInviteSignup, isValidInvite: invite.isValid })}
         </button>
       </form>
     </>
@@ -236,12 +324,22 @@ const Signup = () => {
     </>
   );
 
-  let body = signupForm;
+  const codeStep = pendingEmail && (
+    <SignupCodeStep
+      email={pendingEmail}
+      onVerify={handleVerifyCode}
+      onResend={handleResendCode}
+      onChangeEmail={handleChangeEmail}
+      changeEmailLabel={invite.lockedEmail ? t('signupVerification.backToForm') : t('signupVerification.changeEmail')}
+    />
+  );
+
+  let body = codeStep || signupForm;
   if (invite.isLoading) {
     body = <InviteFormSkeleton />;
-  } else if (invite.isInvalid) {
-    body = <InviteStatusCard messageCode={invite.errorCode} />;
-  } else if (invite.accountExists) {
+  } else if (isInviteDead) {
+    body = <InviteStatusCard messageCode={terminalInviteCode ?? invite.errorCode} />;
+  } else if (accountExists) {
     body = accountExistsNotice;
   }
 

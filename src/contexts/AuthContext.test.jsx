@@ -69,9 +69,15 @@ const AUTH_RESPONSE = {
   },
 };
 
+// Last value resolved by a context action triggered through TestConsumer.
+let lastResult;
+
 // Consumer component that exposes all context values for assertions
 const TestConsumer = () => {
-  const { user, isAuthenticated, hasRole, isAdmin, login, signup, loginWithGoogle, logout } = useAuth();
+  const {
+    user, isAuthenticated, hasRole, isAdmin, login, signup, verifySignup, signupWithInvite,
+    resendSignupCode, loginWithGoogle, logout,
+  } = useAuth();
 
   return (
     <div>
@@ -83,8 +89,29 @@ const TestConsumer = () => {
       <button onClick={() => login('trainer@example.com', 'pass123')} aria-label="Login">
         Login
       </button>
-      <button onClick={() => signup('new@example.com', 'pass123')} aria-label="Signup">
+      <button
+        onClick={async () => { lastResult = await signup('new@example.com', 'pass1234'); }}
+        aria-label="Signup"
+      >
         Signup
+      </button>
+      <button
+        onClick={async () => { lastResult = await verifySignup('new@example.com', '123456', 'pass1234'); }}
+        aria-label="Verify Signup"
+      >
+        Verify Signup
+      </button>
+      <button
+        onClick={async () => { lastResult = await signupWithInvite('TF-7BCA-YAZS-BD', 'pass1234'); }}
+        aria-label="Signup With Invite"
+      >
+        Signup With Invite
+      </button>
+      <button
+        onClick={async () => { lastResult = await resendSignupCode('new@example.com'); }}
+        aria-label="Resend Signup Code"
+      >
+        Resend Signup Code
       </button>
       <button onClick={() => loginWithGoogle()} aria-label="Google Login">
         Google Login
@@ -330,51 +357,166 @@ describe('AuthContext', () => {
   });
 
   describe('signup', () => {
-    it('isAuthenticated and hasRole are both true in the same render after signup', async () => {
-      api.post.mockResolvedValue(AUTH_RESPONSE);
+    const click = (name) => act(async () => {
+      screen.getByRole('button', { name }).click();
+    });
+
+    beforeEach(() => {
+      lastResult = undefined;
+    });
+
+    it('posts the credentials and never authenticates (202 pending_verification)', async () => {
+      api.post.mockResolvedValue({ status: 202, data: { status: 'pending_verification' } });
+
+      renderProvider();
+      await click('Signup');
+
+      await waitFor(() => expect(lastResult).toEqual({ success: true }));
+      expect(api.post).toHaveBeenCalledWith('/auth/signup', { email: 'new@example.com', password: 'pass1234' });
+      expect(api.get).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('isAuthenticated').textContent).toBe('false');
+      expect(localStorage.getItem('accessToken')).toBeNull();
+    });
+
+    it('returns the translated error when signup fails', async () => {
+      api.post.mockRejectedValue({ userMessage: 'Informe um e-mail válido.' });
+
+      renderProvider();
+      await click('Signup');
+
+      await waitFor(() => {
+        expect(lastResult).toEqual({ success: false, error: 'Informe um e-mail válido.' });
+      });
+      expect(screen.getByLabelText('isAuthenticated').textContent).toBe('false');
+    });
+
+    it('verifySignup sends email, code and password and establishes the session', async () => {
+      api.post.mockResolvedValue({ status: 201, data: { ...AUTH_RESPONSE.data, user: { id: 'user-1' }, linkedTrainers: 2 } });
       api.get.mockResolvedValue({ data: TRAINER_USER });
 
       renderProvider();
-
-      await act(async () => {
-        screen.getByRole('button', { name: 'Signup' }).click();
-      });
+      await click('Verify Signup');
 
       await waitFor(() => {
         expect(screen.getByLabelText('isAuthenticated').textContent).toBe('true');
         expect(screen.getByLabelText('hasTrainerRole').textContent).toBe('true');
       });
+      expect(api.post).toHaveBeenCalledWith('/auth/signup/verify', {
+        email: 'new@example.com',
+        code: '123456',
+        password: 'pass1234',
+      });
+      expect(localStorage.getItem('accessToken')).toBe('access-token-123');
+      expect(localStorage.getItem('refreshToken')).toBe('refresh-token-abc');
+      expect(lastResult).toEqual({ success: true, user: TRAINER_USER, linkedTrainers: 2 });
     });
 
-    it('persists user and tokens to localStorage after signup', async () => {
-      api.post.mockResolvedValue(AUTH_RESPONSE);
+    it('verifySignup never persists the password', async () => {
+      api.post.mockResolvedValue({ data: AUTH_RESPONSE.data });
       api.get.mockResolvedValue({ data: REGULAR_USER });
 
       renderProvider();
+      await click('Verify Signup');
 
-      await act(async () => {
-        screen.getByRole('button', { name: 'Signup' }).click();
+      await waitFor(() => expect(lastResult?.success).toBe(true));
+      const stored = [
+        ...Object.keys(localStorage).map((key) => localStorage.getItem(key)),
+        ...Object.keys(sessionStorage).map((key) => sessionStorage.getItem(key)),
+      ].join('|');
+      expect(stored).not.toContain('pass1234');
+    });
+
+    it('verifySignup returns the error and its messageCode without authenticating', async () => {
+      api.post.mockRejectedValue({
+        userMessage: 'Código expirado. Solicite um novo código.',
+        errorInfo: { messageCode: 'emailVerification.codeExpired', status: 400 },
       });
+
+      renderProvider();
+      await click('Verify Signup');
+
+      await waitFor(() => {
+        expect(lastResult).toEqual({
+          success: false,
+          error: 'Código expirado. Solicite um novo código.',
+          messageCode: 'emailVerification.codeExpired',
+        });
+      });
+      expect(screen.getByLabelText('isAuthenticated').textContent).toBe('false');
+      expect(api.get).not.toHaveBeenCalled();
+    });
+
+    it('signupWithInvite posts code + password, persists tokens and forces betaAccess true', async () => {
+      api.post.mockResolvedValue({
+        status: 201,
+        data: {
+          ...AUTH_RESPONSE.data,
+          user: { id: 'user-1' },
+          linkedTrainers: 1,
+          betaAccess: true,
+          activeProfile: 'trainer',
+        },
+      });
+      api.get.mockResolvedValue({ data: { ...TRAINER_USER, betaAccess: false } });
+
+      renderProvider();
+      await click('Signup With Invite');
 
       await waitFor(() => {
         expect(screen.getByLabelText('isAuthenticated').textContent).toBe('true');
       });
-
+      expect(api.post).toHaveBeenCalledWith('/auth/signup/invite', { code: 'TF-7BCA-YAZS-BD', password: 'pass1234' });
       expect(localStorage.getItem('accessToken')).toBe('access-token-123');
-      expect(JSON.parse(localStorage.getItem('user'))).toMatchObject({ email: REGULAR_USER.email });
+      expect(localStorage.getItem('refreshToken')).toBe('refresh-token-abc');
+      expect(JSON.parse(localStorage.getItem('user')).betaAccess).toBe(true);
+      expect(lastResult).toEqual({
+        success: true,
+        user: { ...TRAINER_USER, betaAccess: true },
+        linkedTrainers: 1,
+      });
     });
 
-    it('does not authenticate when signup API fails', async () => {
-      api.post.mockRejectedValue(new Error('Email in use'));
-
-      renderProvider();
-
-      await act(async () => {
-        screen.getByRole('button', { name: 'Signup' }).click();
+    it('signupWithInvite returns error, messageCode and details without authenticating', async () => {
+      const details = [{ field: 'password', messageCode: 'validation.password.minLength' }];
+      api.post.mockRejectedValue({
+        userMessage: 'A senha deve ter no mínimo 8 caracteres.',
+        errorInfo: { messageCode: 'validation.failed', status: 400, details },
       });
 
+      renderProvider();
+      await click('Signup With Invite');
+
       await waitFor(() => {
-        expect(screen.getByLabelText('isAuthenticated').textContent).toBe('false');
+        expect(lastResult).toEqual({
+          success: false,
+          error: 'A senha deve ter no mínimo 8 caracteres.',
+          messageCode: 'validation.failed',
+          details,
+        });
+      });
+      expect(screen.getByLabelText('isAuthenticated').textContent).toBe('false');
+      expect(localStorage.getItem('accessToken')).toBeNull();
+      expect(api.get).not.toHaveBeenCalled();
+    });
+
+    it('resendSignupCode posts the email and resolves success (202 sent)', async () => {
+      api.post.mockResolvedValue({ status: 202, data: { sent: true } });
+
+      renderProvider();
+      await click('Resend Signup Code');
+
+      await waitFor(() => expect(lastResult).toEqual({ success: true }));
+      expect(api.post).toHaveBeenCalledWith('/auth/signup/resend', { email: 'new@example.com' });
+    });
+
+    it('resendSignupCode returns the translated error on failure', async () => {
+      api.post.mockRejectedValue({ userMessage: 'Muitas tentativas.' });
+
+      renderProvider();
+      await click('Resend Signup Code');
+
+      await waitFor(() => {
+        expect(lastResult).toEqual({ success: false, error: 'Muitas tentativas.' });
       });
     });
   });
