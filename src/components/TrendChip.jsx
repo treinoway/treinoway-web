@@ -5,8 +5,7 @@ const formatPercent = (value) => {
   if (value === null || value === undefined || Number.isNaN(value)) return null;
   const sign = value > 0 ? '+' : '';
   // Server is already pre-rounded to 2 decimals; trim trailing zeros for display.
-  const fixed = Number(value.toFixed(2));
-  return `${sign}${fixed}%`;
+  return `${sign}${value.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
 };
 
 /**
@@ -17,10 +16,14 @@ const formatPercent = (value) => {
  * single-session anchor or unavailable baseline per backend contract.
  * `0` renders a flat Minus icon with "0%" (zero change, data present).
  */
+const BADGE_TONE = { up: 'success', down: 'error', neutral: 'neutral' };
+
+const chipClass = (direction) => `badge badge--tag badge--${BADGE_TONE[direction]} trend-chip trend-chip--${direction}`;
+
 const TrendChip = ({ deltaPct, ariaLabel }) => {
   if (deltaPct === null || deltaPct === undefined) {
     return (
-      <span className="trend-chip trend-chip--neutral" aria-label={ariaLabel ?? 'Sem comparativo'}>
+      <span className={chipClass('neutral')} aria-label={ariaLabel ?? 'Sem comparativo'}>
         <span>—</span>
       </span>
     );
@@ -31,7 +34,7 @@ const TrendChip = ({ deltaPct, ariaLabel }) => {
   const text = formatPercent(deltaPct);
 
   return (
-    <span className={`trend-chip trend-chip--${direction}`} aria-label={ariaLabel ?? text}>
+    <span className={chipClass(direction)} aria-label={ariaLabel ?? text}>
       <Icon size={12} strokeWidth={2} aria-hidden="true" />
       <span>{text}</span>
     </span>

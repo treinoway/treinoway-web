@@ -41,13 +41,13 @@ const ProgressionRow = ({ entry, onOpen }) => {
         onKeyDown={handleKeyDown}
       >
         <div className="progression-row-main">
-          <span className="progression-row-name">{entry.exerciseName ?? '—'}</span>
-          <span className="progression-row-trail">Sem carga registrada</span>
+          <span className="progression-row-name type-body-strong">{entry.exerciseName ?? '—'}</span>
+          <span className="progression-row-trail type-caption">Sem carga registrada</span>
         </div>
         <ProgressionSparkline hidden />
         <TrendChip deltaPct={null} />
         <span className="progression-row-side">
-          <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+          <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
         </span>
       </li>
     );
@@ -80,8 +80,8 @@ const ProgressionRow = ({ entry, onOpen }) => {
       onKeyDown={handleKeyDown}
     >
       <div className="progression-row-main">
-        <span className="progression-row-name">{entry.exerciseName ?? '—'}</span>
-        <span className="progression-row-trail">
+        <span className="progression-row-name type-body-strong">{entry.exerciseName ?? '—'}</span>
+        <span className="progression-row-trail type-caption">
           {startLoad !== null && (
             <span className="progression-row-trail-arrow">
               {startLoad}
@@ -104,7 +104,7 @@ const ProgressionRow = ({ entry, onOpen }) => {
       />
 
       <span className="progression-row-side">
-        <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+        <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
       </span>
     </li>
   );
