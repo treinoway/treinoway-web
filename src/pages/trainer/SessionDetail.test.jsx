@@ -138,6 +138,27 @@ describe('SessionDetail', () => {
     expect(screen.getByText('Remada Curvada')).toBeInTheDocument();
   });
 
+  it('renders the exercises section heading', async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Exercícios da sessão' })).toBeInTheDocument();
+    });
+  });
+
+  it('does not render the exercises section when the session has no exercise logs', async () => {
+    api.get.mockImplementation((url) => {
+      if (url.includes('workout-sessions/session-1')) {
+        return Promise.resolve({ data: makeSession({ exerciseLogs: [] }) });
+      }
+      return Promise.resolve({ data: makeStudentList() });
+    });
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('session-hero')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('heading', { name: 'Exercícios da sessão' })).not.toBeInTheDocument();
+  });
+
   it('renders back button', async () => {
     renderPage();
     await waitFor(() => {
@@ -167,6 +188,19 @@ describe('SessionDetail', () => {
       expect(screen.getByText('Sessão não encontrada')).toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: /voltar para o aluno/i })).toBeInTheDocument();
+  });
+
+  it('navigates back to the student from the not-found state', async () => {
+    const user = userEvent.setup();
+    api.get.mockImplementation((url) => {
+      if (url.includes('workout-sessions')) {
+        return Promise.reject({ response: { status: 404 } });
+      }
+      return Promise.resolve({ data: makeStudentList() });
+    });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /voltar para o aluno/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1');
   });
 
   it('shows toast on unexpected API error', async () => {

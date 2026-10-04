@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, SearchX } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useAiChat } from '../../contexts/AiChatContext';
 import { translateError } from '../../i18n';
@@ -8,6 +8,7 @@ import api from '../../api/axios';
 import SessionDetailHero from '../../components/SessionDetailHero';
 import SessionNotesGrid from '../../components/SessionNotesGrid';
 import SessionExerciseCard from '../../components/SessionExerciseCard';
+import EmptyBlock from '../../components/ds/EmptyBlock';
 import IArnoldFAB from '../../components/IArnoldFAB';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -102,16 +103,13 @@ const SessionDetail = () => {
   // ── Not found ──
   if (notFound || !session) {
     return (
-      <div className="empty-state">
-        <p className="empty-state-title">Sessão não encontrada</p>
-        <p className="text-muted text-sm">
-          A sessão pode ter sido excluída ou não pertence a este aluno.
-        </p>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={handleBack}
-        >
+      <div className="session-detail__not-found">
+        <EmptyBlock
+          icon={SearchX}
+          title="Sessão não encontrada"
+          description="A sessão pode ter sido excluída ou não pertence a este aluno."
+        />
+        <button type="button" className="btn btn--secondary" onClick={handleBack}>
           Voltar para o aluno
         </button>
       </div>
@@ -122,11 +120,10 @@ const SessionDetail = () => {
   const studentName = getStudentName(student);
 
   return (
-    <div>
-      {/* Back navigation */}
+    <div className="session-detail">
       <button
         type="button"
-        className="btn-back"
+        className="btn btn--ghost session-detail__back"
         onClick={handleBack}
         aria-label="Voltar para o perfil do aluno"
       >
@@ -134,36 +131,28 @@ const SessionDetail = () => {
         {studentName ? `${studentName} · Sessões` : 'Voltar'}
       </button>
 
-      {/* Stadium hero */}
       <SessionDetailHero session={session} />
 
-      {/* Notes: student + trainer stub */}
       <SessionNotesGrid
         studentNote={session.notes ?? null}
-        studentName={studentName}
         finishedAt={session.finishedAt ?? null}
       />
 
-      {/* Exercise logs */}
       {exerciseLogs.length > 0 && (
-        <section className="cockpit-section" aria-labelledby="session-exercises-heading">
-          <header className="cockpit-section-header">
-            <h2 id="session-exercises-heading" className="cockpit-section-eyebrow">
-              Exercícios
-              <span className="cockpit-section-eyebrow-suffix">
-                · {exerciseLogs.length} exercício{exerciseLogs.length !== 1 ? 's' : ''}
-              </span>
-            </h2>
-          </header>
-
-          {exerciseLogs.map((log, idx) => (
-            <SessionExerciseCard
-              key={log.id}
-              index={idx + 1}
-              exerciseLog={log}
-              defaultOpen={idx === 0}
-            />
-          ))}
+        <section className="section-card" aria-labelledby="session-exercises-heading">
+          <h2 id="session-exercises-heading" className="type-h2 session-detail__section-title">
+            Exercícios da sessão
+          </h2>
+          <div className="session-exercises">
+            {exerciseLogs.map((log, idx) => (
+              <SessionExerciseCard
+                key={log.id}
+                index={idx + 1}
+                exerciseLog={log}
+                defaultOpen={idx === 0}
+              />
+            ))}
+          </div>
         </section>
       )}
 

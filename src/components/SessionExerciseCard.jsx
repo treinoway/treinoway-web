@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import PropTypes from 'prop-types';
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+import Badge from './ds/Badge';
 import SessionSetsTable from './SessionSetsTable';
 import { formatRepetitions } from '../utils/exerciseMeta';
 
@@ -29,8 +30,18 @@ const isExerciseSkipped = (exerciseLog) => {
   return sets.length > 0 && sets.every((s) => !s.completed);
 };
 
+const buildMetaText = (exercise, skipped) => {
+  const sets = exercise.sets ?? null;
+  const repsLabel = formatRepetitions(exercise.repetitions);
+  const setsLabel = sets != null ? `${sets} ${skipped ? 'séries planejadas' : 'séries'}` : null;
+  const repsText = repsLabel ? `${repsLabel} reps` : null;
+  const prescription = [setsLabel, repsText].filter(Boolean).join(' × ');
+  const rest = exercise.restInterval != null ? `desc. ${exercise.restInterval}s` : null;
+  return [prescription, rest].filter(Boolean).join(' · ');
+};
+
 /**
- * Collapsible exercise card shown inside SessionDetail.
+ * Collapsible exercise row (Accordion, DS §4.13) shown inside SessionDetail.
  *
  * @param {object}  props
  * @param {number}  props.index        - 1-based display index
@@ -39,79 +50,50 @@ const isExerciseSkipped = (exerciseLog) => {
  */
 const SessionExerciseCard = ({ index, exerciseLog, defaultOpen }) => {
   const [open, setOpen] = useState(defaultOpen ?? false);
+  const bodyId = useId();
 
   const exercise = exerciseLog.exercise ?? {};
   const setLogs = exerciseLog.setLogs ?? [];
   const skipped = isExerciseSkipped(exerciseLog);
   const volume = skipped ? 0 : computeVolume(setLogs);
-
-  const sets = exercise.sets ?? null;
-  const repsLabel = formatRepetitions(exercise.repetitions);
-  const rest = exercise.restInterval ?? null;
-
-  const metaParts = [];
-  if (sets != null) {
-    const label = skipped ? `${sets} séries planejadas` : `${sets} séries`;
-    metaParts.push(label);
-  }
-  if (repsLabel) metaParts.push(`${repsLabel} reps`);
-  const metaText = metaParts.join(' · ');
-  const restText = rest != null ? `desc. ${rest}s` : null;
-
+  const metaText = buildMetaText(exercise, skipped);
   const skipNote = exerciseLog.notes ?? null;
 
   return (
-    <div className={`exercise-card${open ? ' exercise-card--open' : ''}${skipped ? ' exercise-card--skipped' : ''}`}>
+    <div className="accordion session-exercise">
       <button
         type="button"
-        className="exercise-card-header"
+        className="accordion-header"
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
+        aria-controls={bodyId}
         aria-label={`${open ? 'Recolher' : 'Expandir'} exercício ${exercise.name ?? index}`}
       >
-        <span className="exercise-card-index" aria-hidden="true">{index}</span>
+        <span className="accordion-index type-caption-strong" aria-hidden="true">{index}</span>
 
-        <div className="exercise-card-body">
-          <div className="exercise-card-name">{exercise.name ?? '—'}</div>
-          <div className="exercise-card-meta">
-            {metaText}
-            {restText && (
-              <>
-                <span className="exercise-card-meta-sep" aria-hidden="true">·</span>
-                {restText}
-              </>
-            )}
-          </div>
-        </div>
+        <span className="accordion-heading session-exercise__heading">
+          <span className="accordion-title type-body-lg">{exercise.name ?? '-'}</span>
+          {metaText && <span className="accordion-meta type-caption">{metaText}</span>}
+        </span>
 
         {skipped ? (
-          <span className="exercise-card-status">
-            <X size={12} strokeWidth={2} aria-hidden="true" />
-            Pulado
-          </span>
+          <Badge tone="neutral" variant="tag">Pulado</Badge>
         ) : (
-          <div className="exercise-card-stat">
-            <span className="exercise-card-stat-label">Volume</span>
-            <span className="exercise-card-stat-value">
-              {volume.toLocaleString('pt-BR')}
-              <span className="exercise-card-stat-unit">kg</span>
-            </span>
-          </div>
+          <span className="type-body-lg session-exercise__volume">
+            {volume.toLocaleString('pt-BR')} kg
+          </span>
         )}
 
-        <ChevronDown
-          size={18}
-          strokeWidth={2}
-          className="exercise-card-chevron"
-          aria-hidden="true"
-        />
+        <ChevronDown size={20} strokeWidth={2} className="accordion-chevron" aria-hidden="true" />
       </button>
 
       {open && (
-        <div className="exercise-card-body-detail">
+        <div id={bodyId} className="accordion-body">
           {skipped ? (
-            <div className="exercise-card-skip-note">
-              <span className="exercise-card-skip-note-label">Motivo · anotação do aluno</span>
+            <div className="session-exercise__skip-note type-body">
+              <span className="type-caption-strong session-exercise__skip-label">
+                Motivo · anotação do aluno
+              </span>
               {skipNote ?? 'Exercício pulado sem motivo registrado.'}
             </div>
           ) : (
