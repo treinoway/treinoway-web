@@ -34,11 +34,11 @@ export const STUDENT_INVITE_STATUS_FILTERS = Object.freeze([
   StudentInviteStatus.REVOKED,
 ]);
 
-export const STUDENT_INVITE_BADGE_CLASS = Object.freeze({
-  [StudentInviteStatus.PENDING]: 'badge-blue',
-  [StudentInviteStatus.ACCEPTED]: 'badge-green',
-  [StudentInviteStatus.EXPIRED]: 'badge-gray',
-  [StudentInviteStatus.REVOKED]: 'badge-red',
+export const STUDENT_INVITE_BADGE_TONE = Object.freeze({
+  [StudentInviteStatus.PENDING]: 'warning',
+  [StudentInviteStatus.ACCEPTED]: 'success',
+  [StudentInviteStatus.EXPIRED]: 'neutral',
+  [StudentInviteStatus.REVOKED]: 'error',
 });
 
 // How often the invites list re-renders while a resend cooldown countdown is visible.
