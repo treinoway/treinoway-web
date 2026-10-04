@@ -1,84 +1,68 @@
 import PropTypes from 'prop-types';
-import { User, MessageCircle, Pencil } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
 /**
- * Two-panel grid: student note (orange stripe) + trainer note (blue stripe).
+ * Format an ISO timestamp → "18 Ago 2025, 07h15".
+ */
+const formatNoteTimestamp = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  const day = d.getDate();
+  const monthRaw = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+  const month = monthRaw.charAt(0).toUpperCase() + monthRaw.slice(1);
+  const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
+  return `${day} ${month} ${d.getFullYear()}, ${time}`;
+};
+
+/**
+ * Two equal-height section cards: student note + trainer note (stub).
  *
  * The trainer note is a stub — backend has no dedicated field yet.
  * TODO: add `trainerNote` column to WorkoutSession + migration, then wire
- * the Edit button to a real editor instead of the "Em breve" toast.
+ * the Editar button to a real editor instead of the "Em breve" toast.
  *
  * @param {object}      props
  * @param {string|null} props.studentNote - session.notes from the API (student's note)
- * @param {string}      props.studentName - Full name of the student
  * @param {string|null} props.finishedAt  - ISO timestamp when session ended
  */
-const SessionNotesGrid = ({ studentNote, studentName, finishedAt }) => {
+const SessionNotesGrid = ({ studentNote, finishedAt }) => {
   const { showToast } = useToast();
-
-  const formattedDate = (() => {
-    if (!finishedAt) return null;
-    const d = new Date(finishedAt);
-    if (isNaN(d.getTime())) return null;
-    return d.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  })();
+  const timestamp = formatNoteTimestamp(finishedAt);
 
   const handleEditTrainerNote = () => {
-    // TODO: open trainer-note editor once backend column + migration is in place
     showToast('Em breve', 'info');
   };
 
   return (
-    <div className="notes-grid">
-      {/* Student note */}
-      <section className="note-panel note-panel--student" aria-label="Anotação do aluno">
-        <div className="note-panel-content">
-          <span className="note-panel-eyebrow">
-            <User size={14} strokeWidth={2} aria-hidden="true" />
-            Anotação do aluno
-          </span>
-          {studentNote ? (
-            <p className="note-panel-text">{studentNote}</p>
-          ) : (
-            <p className="note-panel-text note-panel-text--empty">
-              Nenhuma anotação registrada.
-            </p>
-          )}
-          {formattedDate && (
-            <p className="note-panel-author">
-              {studentName ?? 'Aluno'} · ao finalizar · {formattedDate}
-            </p>
-          )}
-        </div>
+    <div className="session-notes">
+      <section className="section-card session-notes__card" aria-labelledby="session-note-student">
+        <header className="session-notes__header">
+          <h2 id="session-note-student" className="type-body-lg-strong">Anotação do aluno</h2>
+          {timestamp && <span className="type-caption session-notes__timestamp">{timestamp}</span>}
+        </header>
+        {studentNote ? (
+          <p className="type-body session-notes__text">{studentNote}</p>
+        ) : (
+          <p className="type-body session-notes__text session-notes__text--empty">
+            Nenhuma anotação registrada
+          </p>
+        )}
       </section>
 
-      {/* Trainer note (stub) */}
-      <section className="note-panel note-panel--trainer" aria-label="Anotação do treinador">
-        <div className="note-panel-content">
-          <span className="note-panel-eyebrow">
-            <MessageCircle size={14} strokeWidth={2} aria-hidden="true" />
-            Anotação do treinador
-          </span>
-          <p className="note-panel-text note-panel-text--empty">
-            Recurso em breve — adicione sua avaliação desta sessão.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          onClick={handleEditTrainerNote}
-          aria-label="Editar anotação do treinador"
-        >
-          <Pencil size={14} strokeWidth={2} aria-hidden="true" />
-          Editar
-        </button>
+      <section className="section-card session-notes__card" aria-labelledby="session-note-trainer">
+        <header className="session-notes__header">
+          <h2 id="session-note-trainer" className="type-body-lg-strong">Anotação do treinador</h2>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={handleEditTrainerNote}
+            aria-label="Editar anotação do treinador"
+          >
+            Editar
+          </button>
+        </header>
+        <p className="type-body session-notes__text session-notes__text--empty">Recurso em breve</p>
       </section>
     </div>
   );
@@ -86,7 +70,6 @@ const SessionNotesGrid = ({ studentNote, studentName, finishedAt }) => {
 
 SessionNotesGrid.propTypes = {
   studentNote: PropTypes.string,
-  studentName: PropTypes.string,
   finishedAt: PropTypes.string,
 };
 

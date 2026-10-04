@@ -1,23 +1,18 @@
 import PropTypes from 'prop-types';
+import Badge from './ds/Badge';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /**
- * Format durationSeconds → "58 min" or "1h 12min".
+ * Format durationSeconds → "58min" or "1h 29min".
  */
 const formatDuration = (seconds) => {
   if (seconds == null) return null;
-  const m = Math.round(seconds / 60);
-  if (m < 60) return `${m}`;
-  const h = Math.floor(m / 60);
-  const rem = m % 60;
-  return rem > 0 ? `${h}h ${rem}` : `${h}h`;
-};
-
-const formatDurationUnit = (seconds) => {
-  if (seconds == null) return null;
-  const m = Math.round(seconds / 60);
-  return m < 60 ? 'min' : 'min';
+  const totalMinutes = Math.round(seconds / 60);
+  if (totalMinutes < 60) return `${totalMinutes}min`;
+  const hours = Math.floor(totalMinutes / 60);
+  const rest = totalMinutes % 60;
+  return rest > 0 ? `${hours}h ${rest}min` : `${hours}h`;
 };
 
 /**
@@ -31,17 +26,20 @@ const formatTime = (iso) => {
 };
 
 /**
- * Format an ISO timestamp → "Quinta · 13 Maio 2026 · 18h32".
+ * Format the session date line → "Segunda-feira, 18 de agosto de 2025 · 05h46 — 07h15".
  */
-const formatHeroDate = (iso) => {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return '—';
+const formatHeroDate = (startedAt, finishedAt) => {
+  if (!startedAt) return '-';
+  const d = new Date(startedAt);
+  if (isNaN(d.getTime())) return '-';
   const dow = d.toLocaleDateString('pt-BR', { weekday: 'long' });
   const dowCapital = dow.charAt(0).toUpperCase() + dow.slice(1);
   const day = d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
-  const time = formatTime(iso);
-  return time ? `${dowCapital} · ${day} · ${time}` : `${dowCapital} · ${day}`;
+  const start = formatTime(startedAt);
+  const end = formatTime(finishedAt);
+  const range = [start, end].filter(Boolean).join(' — ');
+  const date = `${dowCapital}, ${day}`;
+  return range ? `${date} · ${range}` : date;
 };
 
 /**
@@ -103,133 +101,96 @@ const resolveStatus = (session) => {
 };
 
 const STATUS_CONFIG = {
-  completed: {
-    dotClass: 'session-hero-status-dot',
-    labelClass: 'session-hero-status-label--ok',
-    label: 'Concluído',
-  },
-  partial: {
-    dotClass: 'session-hero-status-dot',
-    labelClass: 'session-hero-status-label--ok',
-    label: 'Parcial',
-  },
-  abandoned: {
-    dotClass: 'session-hero-status-dot session-hero-status-dot--abandoned',
-    labelClass: 'session-hero-status-label--abandoned',
-    label: 'Abandonado',
-  },
+  completed: { tone: 'success', label: 'Concluído' },
+  partial: { tone: 'warning', label: 'Parcial' },
+  abandoned: { tone: 'error', label: 'Abandonado' },
+};
+
+const KpiBlock = ({ label, value, support, muted }) => (
+  <div className="kpi">
+    <span className="kpi-label type-overline">{label}</span>
+    <span className={`kpi-value session-hero__kpi-value type-h2${muted ? ' kpi-value--muted' : ''}`}>
+      {value}
+    </span>
+    <span className="kpi-support type-caption">{support}</span>
+  </div>
+);
+
+KpiBlock.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
+  support: PropTypes.string.isRequired,
+  muted: PropTypes.bool,
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
- * Stadium hero for the Session Detail page.
+ * Hero section card for the Session Detail page: status, date, title, meta and KPIs.
  *
- * @param {object}   props
- * @param {object}   props.session         - Full session object from API
+ * @param {object} props
+ * @param {object} props.session - Full session object from API
  */
 const SessionDetailHero = ({ session }) => {
   const training = session.training ?? {};
   const exerciseLogs = session.exerciseLogs ?? [];
 
-  const displayStatus = resolveStatus(session);
-  const statusConfig = STATUS_CONFIG[displayStatus];
-
+  const statusConfig = STATUS_CONFIG[resolveStatus(session)];
   const { totalVolume, completedSets, totalSets, avgRpe } = computeKpis(exerciseLogs);
 
-  const heroDateLabel = formatHeroDate(session.startedAt);
-  const durationValue = formatDuration(session.durationSeconds);
-  const durationUnit = formatDurationUnit(session.durationSeconds);
   const startTime = formatTime(session.startedAt);
   const endTime = formatTime(session.finishedAt);
-
-  const durationTrend =
-    startTime && endTime ? `início ${startTime} · fim ${endTime}` : null;
-
-  const seriesTrend =
-    totalSets > 0
-      ? `${Math.round((completedSets / totalSets) * 100)}% completas`
-      : null;
+  const durationValue = formatDuration(session.durationSeconds);
+  const durationSupport = startTime && endTime ? `Início ${startTime} · Fim ${endTime}` : 'Duração da sessão';
+  const seriesSupport =
+    totalSets > 0 ? `${Math.round((completedSets / totalSets) * 100)}% completas` : 'Séries registradas';
 
   const exerciseCount = exerciseLogs.length;
-  const setCountLabel = `${totalSets} séries`;
+  const metaLabel = `${exerciseCount} exercício${exerciseCount !== 1 ? 's' : ''} · ${totalSets} séries`;
 
   return (
-    <section className="theme-stadium session-hero" aria-label="Resumo da sessão">
-      {/* Eyebrow: status dot + label + date */}
-      <div className="session-hero-eyebrow">
-        <span className={statusConfig.dotClass} aria-hidden="true" />
-        <span className={statusConfig.labelClass}>{statusConfig.label}</span>
-        <span className="session-hero-eyebrow-sep" aria-hidden="true">·</span>
-        <span>{heroDateLabel}</span>
+    <section className="section-card session-hero" aria-label="Resumo da sessão">
+      <div className="session-hero__eyebrow">
+        <Badge tone={statusConfig.tone}>{statusConfig.label}</Badge>
+        <span className="type-body session-hero__date">
+          {formatHeroDate(session.startedAt, session.finishedAt)}
+        </span>
       </div>
 
-      {/* Title */}
-      <h1 className="session-hero-title">{training.name ?? '—'}</h1>
+      <h1 className="type-h1 session-hero__title">{training.name ?? '-'}</h1>
 
-      {/* Subtitle */}
-      <div className="session-hero-subtitle">
-        {training.category ?? null}
-        {exerciseCount > 0 && (
-          <>
-            <span className="session-hero-subtitle-sep" aria-hidden="true">·</span>
-            {exerciseCount} exercício{exerciseCount !== 1 ? 's' : ''}
-            <span className="session-hero-subtitle-sep" aria-hidden="true">·</span>
-            {setCountLabel}
-          </>
+      <div className="session-hero__meta">
+        {training.category && (
+          <Badge tone="neutral" variant="tag">{training.category}</Badge>
         )}
+        {exerciseCount > 0 && <span className="type-body session-hero__meta-text">{metaLabel}</span>}
       </div>
 
-      {/* KPI grid */}
-      <div className="session-hero-stats" aria-label="Indicadores da sessão">
-        {/* Duração */}
-        <div className="session-hero-stat-display">
-          <span className="session-hero-stat-label">Duração</span>
-          <span className="session-hero-stat-value">
-            {durationValue ?? '—'}
-            {durationUnit && durationValue && (
-              <span className="session-hero-stat-unit">{durationUnit}</span>
-            )}
-          </span>
-          {durationTrend && (
-            <span className="session-hero-stat-trend">{durationTrend}</span>
-          )}
-        </div>
-
-        {/* Volume */}
-        <div className="session-hero-stat-display">
-          <span className="session-hero-stat-label">Volume total</span>
-          <span className="session-hero-stat-value">
-            {totalVolume > 0 ? totalVolume.toLocaleString('pt-BR') : '—'}
-            {totalVolume > 0 && (
-              <span className="session-hero-stat-unit">kg</span>
-            )}
-          </span>
-        </div>
-
-        {/* Séries */}
-        <div className="session-hero-stat-display">
-          <span className="session-hero-stat-label">Séries</span>
-          <span className="session-hero-stat-value">
-            {completedSets}
-            {totalSets > 0 && (
-              <span className="session-hero-stat-unit">/{totalSets}</span>
-            )}
-          </span>
-          {seriesTrend && (
-            <span className="session-hero-stat-trend">{seriesTrend}</span>
-          )}
-        </div>
-
-        {/* RPE médio */}
-        <div className="session-hero-stat-display">
-          <span className="session-hero-stat-label">RPE médio</span>
-          <span className="session-hero-stat-value">
-            {avgRpe ?? '—'}
-          </span>
-        </div>
+      <div className="session-hero__kpis" role="group" aria-label="Indicadores da sessão">
+        <KpiBlock
+          label="Duração"
+          value={durationValue ?? '—'}
+          support={durationSupport}
+          muted={!durationValue}
+        />
+        <KpiBlock
+          label="Volume total"
+          value={totalVolume > 0 ? `${totalVolume.toLocaleString('pt-BR')} kg` : '—'}
+          support="Soma total de carga"
+          muted={totalVolume <= 0}
+        />
+        <KpiBlock
+          label="Séries"
+          value={totalSets > 0 ? `${completedSets}/${totalSets}` : String(completedSets)}
+          support={seriesSupport}
+        />
+        <KpiBlock
+          label="RPE médio"
+          value={avgRpe ?? '—'}
+          support={avgRpe ? 'Média das séries completas' : 'Nenhum RPE registrado'}
+          muted={!avgRpe}
+        />
       </div>
-
     </section>
   );
 };

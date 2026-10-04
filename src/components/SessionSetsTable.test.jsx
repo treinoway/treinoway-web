@@ -25,13 +25,32 @@ describe('SessionSetsTable', () => {
     expect(screen.getByText('70 kg')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument();
-    expect(screen.getByText(/Completa/i)).toBeInTheDocument();
+    expect(screen.getByText('Completo')).toBeInTheDocument();
+  });
+
+  it('renders the RPE both as column value and as mobile inline text', () => {
+    render(<SessionSetsTable setLogs={[makeSetLog({ rpe: 8.5 })]} />);
+    expect(screen.getByText('8.5')).toBeInTheDocument();
+    expect(screen.getByText('RPE 8.5')).toBeInTheDocument();
+  });
+
+  it('renders em dash when RPE is not registered', () => {
+    render(<SessionSetsTable setLogs={[makeSetLog({ rpe: null })]} />);
+    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.queryByText(/^RPE \d/)).not.toBeInTheDocument();
+  });
+
+  it('renders the column headers', () => {
+    render(<SessionSetsTable setLogs={[makeSetLog()]} />);
+    for (const name of ['Série', 'Carga', 'Reps', 'RPE', 'Status']) {
+      expect(screen.getByRole('columnheader', { name })).toBeInTheDocument();
+    }
   });
 
   it('renders a skipped set row with dashes and skipped status', () => {
     const skipped = makeSetLog({ id: 'set-2', completed: false, load: null, repetitions: null, rpe: null });
     render(<SessionSetsTable setLogs={[skipped]} />);
-    expect(screen.getByText(/Pulada/i)).toBeInTheDocument();
+    expect(screen.getByText('Pulado')).toBeInTheDocument();
   });
 
   it('shows note trigger button when set has notes', () => {
