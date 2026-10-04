@@ -7,9 +7,6 @@ const en = {
     EXERCISE_TEMPLATE_NOT_OWNED: 'One or more exercise templates do not belong to your profile.',
     EMAIL_REQUIRED: 'Enter your e-mail.',
     FORGOT_PASSWORD_FAILED: 'Could not send the code. Please try again later.',
-    RESET_TOKEN_REQUIRED: 'Enter the verification code.',
-    INVALID_RESET_TOKEN: 'Invalid code. Check the code and try again.',
-    RESET_TOKEN_EXPIRED: 'Code expired. Request a new code.',
     WEAK_PASSWORD: 'Password must be at least 8 characters long.',
     USER_DELETED: 'This account has been deactivated. Contact support.',
   },
@@ -85,6 +82,7 @@ const en = {
     'studentInvite.emailSendFailed': 'Could not send the invite email. Please try again.',
     'emailVerification.dailyLimit': 'You requested too many codes today. Try again later.',
     'emailVerification.sendFailed': 'Could not send the verification email. Please try again.',
+    'passwordReset.invalidCode': 'Invalid or expired code. Request a new one.',
   },
   platformPlan: {
     tier: {
