@@ -24,14 +24,12 @@ vi.mock('../../hooks/useOnboardingStatus', () => ({
   markOnboardingStepOptimistic: vi.fn(),
 }));
 
-// SVG import is mocked by Vitest asset transforms
-vi.mock('../../assets/illustrations/no-students.svg', () => ({
-  default: '/mocked-no-students.svg',
-}));
+const daysAgoIso = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-vi.mock('../../utils/relativeTime', () => ({
-  default: (iso) => (iso ? 'há 2d' : null),
-}));
+const openUnlinkConfirm = async (user, name) => {
+  await user.click(screen.getByRole('button', { name: new RegExp(`ações de ${name}`, 'i') }));
+  await user.click(screen.getByRole('button', { name: /^desvincular$/i }));
+};
 
 const mockStudents = [
   { id: 'student-1', firstName: 'Aluno', lastName: 'Exemplo', email: 'aluno@example.com', status: 'ativo' },
@@ -99,7 +97,7 @@ describe('Students', () => {
 
   it('renders page title and both header action buttons when students exist', async () => {
     renderWithRouter(<Students />);
-    await waitFor(() => expect(screen.getByText('Meus Alunos')).toBeInTheDocument());
+    expect(await screen.findByRole('heading', { level: 1, name: 'Meus alunos' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /importar alunos/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^vincular aluno$/i })).toBeInTheDocument();
   });
@@ -115,8 +113,7 @@ describe('Students', () => {
     });
 
     expect(screen.getByRole('button', { name: /vincular primeiro aluno/i })).toBeInTheDocument();
-    // SVG illustration is rendered as a presentational img (no accessible role)
-    expect(document.querySelector('.students-empty-state img')).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'Sem alunos ainda' })).toBeInTheDocument();
     // Header "Vincular aluno" button is hidden when no students exist — CTA is in the empty state only
     expect(screen.queryByRole('button', { name: /^vincular aluno$/i })).not.toBeInTheDocument();
     // "Importar alunos" remains visible in the header regardless of student count
@@ -171,14 +168,14 @@ describe('Students', () => {
         adherenceCompleted: 11,
         adherenceExpected: 13,
         adherenceMonth: '2026-05-01',
-        lastWorkoutAt: '2026-05-16T10:00:00.000Z',
+        lastWorkoutAt: daysAgoIso(2),
       }],
     });
     renderWithRouter(<Students />);
 
     await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
     expect(screen.getByText('85%')).toBeInTheDocument();
-    expect(screen.getByText('há 2d')).toBeInTheDocument();
+    expect(screen.getByText('Há 2 dias')).toBeInTheDocument();
     expect(screen.getByText('Aderência')).toBeInTheDocument();
     expect(screen.getByText('Último treino')).toBeInTheDocument();
   });
@@ -224,7 +221,7 @@ describe('Students', () => {
     expect(screen.queryByText(/\/.* treinos/)).not.toBeInTheDocument();
   });
 
-  it('shows em-dash placeholders when adherence and lastWorkoutAt are null', async () => {
+  it('shows fallbacks when adherence and lastWorkoutAt are null', async () => {
     api.get.mockResolvedValue({
       data: [{
         id: 's1',
@@ -241,45 +238,8 @@ describe('Students', () => {
     renderWithRouter(<Students />);
 
     await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
-    const dashes = screen.getAllByText('—');
-    expect(dashes.length).toBe(2);
-  });
-
-  it('shows danger alert when adherence below 60%', async () => {
-    api.get.mockResolvedValue({
-      data: [{
-        id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com',
-        status: 'ativo', adherence: 45, lastWorkoutAt: null,
-      }],
-    });
-    renderWithRouter(<Students />);
-    await waitFor(() => expect(screen.getByText('45%')).toBeInTheDocument());
-    expect(screen.getByTitle('Aderência crítica')).toBeInTheDocument();
-  });
-
-  it('shows warn alert when adherence between 60% and 79%', async () => {
-    api.get.mockResolvedValue({
-      data: [{
-        id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com',
-        status: 'ativo', adherence: 70, lastWorkoutAt: null,
-      }],
-    });
-    renderWithRouter(<Students />);
-    await waitFor(() => expect(screen.getByText('70%')).toBeInTheDocument());
-    expect(screen.getByTitle('Aderência abaixo do ideal')).toBeInTheDocument();
-  });
-
-  it('shows danger alert when last workout older than 14 days', async () => {
-    const old = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
-    api.get.mockResolvedValue({
-      data: [{
-        id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com',
-        status: 'ativo', adherence: 90, lastWorkoutAt: old,
-      }],
-    });
-    renderWithRouter(<Students />);
-    await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
-    expect(screen.getByTitle('Sem treino há mais de 14 dias')).toBeInTheDocument();
+    expect(screen.getByText('–')).toBeInTheDocument();
+    expect(screen.getByText('Nunca')).toBeInTheDocument();
   });
 
   it('does not render PR stat', async () => {
@@ -412,13 +372,13 @@ describe('Students', () => {
 
   // ── Unlink flow ───────────────────────────────────────────────────────
 
-  it('clicking trash button opens the confirm dialog directly', async () => {
+  it('opening the row menu and choosing Desvincular opens the confirm dialog', async () => {
     const user = userEvent.setup();
     renderWithRouter(<Students />);
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
+    await openUnlinkConfirm(user, 'aluno exemplo');
 
     expect(screen.getByText(/desvincular aluno exemplo\? esta ação não pode ser desfeita/i)).toBeInTheDocument();
   });
@@ -430,7 +390,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
+    await openUnlinkConfirm(user, 'aluno exemplo');
     await user.click(screen.getByRole('button', { name: /^desvincular$/i }));
 
     await waitFor(() => {
@@ -445,7 +405,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
+    await openUnlinkConfirm(user, 'aluno exemplo');
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
     expect(api.delete).not.toHaveBeenCalled();
@@ -461,7 +421,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
+    await openUnlinkConfirm(user, 'aluno exemplo');
     await user.click(screen.getByRole('button', { name: /^desvincular$/i }));
 
     await waitFor(() => {
@@ -501,7 +461,7 @@ describe('Students', () => {
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
-    await user.click(screen.getByRole('button', { name: /fechar modal/i }));
+    await user.click(screen.getByRole('button', { name: /^fechar$/i }));
 
     expect(screen.queryByRole('dialog', { name: /vincular aluno/i })).not.toBeInTheDocument();
   });
@@ -811,7 +771,7 @@ describe('Students', () => {
     await user.click(screen.getByRole('button', { name: /importar alunos/i }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /fechar modal/i }));
+    await user.click(screen.getByRole('button', { name: /^fechar$/i }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -1083,7 +1043,7 @@ describe('Students', () => {
       expect(screen.getByRole('dialog', { name: /alunos do primecoaching/i })).toBeInTheDocument()
     );
 
-    await user.click(screen.getByRole('button', { name: /fechar modal/i }));
+    await user.click(screen.getByRole('button', { name: /^fechar$/i }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Re-open — should start at platform step
@@ -1125,6 +1085,42 @@ describe('Students', () => {
     });
   });
 
+  it('renders the metric cards and the status segmented control with counts', async () => {
+    api.get.mockResolvedValue({ data: mockMultipleStudents });
+    renderWithRouter(<Students />);
+
+    const summary = await screen.findByLabelText('Resumo de alunos');
+    expect(within(summary).getByText('Total')).toBeInTheDocument();
+    expect(within(summary).getByText('planos vencidos')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Todos (3)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Pendentes (1)' })).toBeInTheDocument();
+  });
+
+  it('closes the link modal with Escape', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog', { name: /vincular aluno/i })).not.toBeInTheDocument();
+  });
+
+  it('shows an error state with a retry action when the initial fetch fails', async () => {
+    const user = userEvent.setup();
+    const err = new Error('Network error');
+    err.userMessage = 'Erro ao carregar alunos.';
+    api.get.mockRejectedValueOnce(err);
+    renderWithRouter(<Students />);
+
+    expect(await screen.findByRole('heading', { name: 'Não foi possível carregar os alunos' })).toBeInTheDocument();
+    expect(screen.queryByText('Sem alunos ainda')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    expect(await screen.findByText('Aluno Exemplo')).toBeInTheDocument();
+  });
+
   // ── Readiness indicators ───────────────────────────────────────────────
 
   const mockStudentsWithReadiness = (list) => {
@@ -1156,7 +1152,7 @@ describe('Students', () => {
 
     const row = await screen.findByRole('button', { name: 'Rafael Souza — Sem rotina ativa. Ver perfil.' });
     expect(row).toBeInTheDocument();
-    expect(within(row).getByText('Sem rotina ativa')).toBeInTheDocument();
+    expect(screen.getByText('Sem rotina ativa')).toBeInTheDocument();
   });
 
   it('renders multiple blocker chips in backend order and lists them in the aria-label', async () => {
@@ -1165,9 +1161,9 @@ describe('Students', () => {
     ]);
     renderWithRouter(<Students />);
 
-    const row = await screen.findByRole('button', { name: 'Bruno Carvalho — Sem rotina ativa, Pagamento em atraso. Ver perfil.' });
-    expect(within(row).getByText('Sem rotina ativa')).toBeInTheDocument();
-    expect(within(row).getByText('Pagamento em atraso')).toBeInTheDocument();
+    await screen.findByRole('button', { name: 'Bruno Carvalho — Sem rotina ativa, Pagamento em atraso. Ver perfil.' });
+    expect(screen.getByText('Sem rotina ativa')).toBeInTheDocument();
+    expect(screen.getByText('Pagamento em atraso')).toBeInTheDocument();
   });
 
   it('shows the platform chip and the list-level quota banner for blocked_on_plan', async () => {
@@ -1176,8 +1172,8 @@ describe('Students', () => {
     ]);
     renderWithRouter(<Students />);
 
-    const row = await screen.findByRole('button', { name: 'Camila Nunes — Bloqueado pela sua cota. Ver perfil.' });
-    expect(within(row).getByText('Bloqueado pela sua cota')).toBeInTheDocument();
+    await screen.findByRole('button', { name: 'Camila Nunes — Bloqueado pela sua cota. Ver perfil.' });
+    expect(screen.getByText('Bloqueado pela sua cota')).toBeInTheDocument();
     // Quota banner surfaces once with the upgrade CTA
     expect(screen.getByText('Você atingiu o limite de alunos da sua cota')).toBeInTheDocument();
     expect(screen.getByText(/1 aluno está bloqueado pela sua cota/i)).toBeInTheDocument();
@@ -1201,9 +1197,9 @@ describe('Students', () => {
     ]);
     renderWithRouter(<Students />);
 
-    const row = await screen.findByRole('button', { name: 'Lucas Pereira — Sem rotina ativa, Bloqueado pela sua cota. Ver perfil.' });
-    expect(within(row).getByText('Sem rotina ativa')).toBeInTheDocument();
-    expect(within(row).getByText('Bloqueado pela sua cota')).toBeInTheDocument();
+    await screen.findByRole('button', { name: 'Lucas Pereira — Sem rotina ativa, Bloqueado pela sua cota. Ver perfil.' });
+    expect(screen.getByText('Sem rotina ativa')).toBeInTheDocument();
+    expect(screen.getByText('Bloqueado pela sua cota')).toBeInTheDocument();
   });
 
   it('degrades gracefully when readiness fields are absent (search shape)', async () => {
@@ -1215,5 +1211,69 @@ describe('Students', () => {
     const row = await screen.findByRole('button', { name: 'Ver perfil de Diego Martins.' });
     expect(row).toBeInTheDocument();
     expect(screen.queryByText(/limite de alunos da sua cota/i)).not.toBeInTheDocument();
+  });
+
+  // ── Incremental reveal ("Ver mais") ────────────────────────────────────
+
+  const buildStudents = (count, status = 'ativo') =>
+    Array.from({ length: count }, (_, i) => ({
+      id: `p${status}${i}`,
+      firstName: `${status === 'ativo' ? 'Aluno' : 'Pendente'}${String(i).padStart(2, '0')}`,
+      lastName: 'Teste',
+      email: `${status}${i}@example.com`,
+      status,
+    }));
+
+  it('shows the first page, reveals more on "Ver mais" and hides the button when all are shown', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: buildStudents(25) });
+    renderWithRouter(<Students />);
+
+    expect(await screen.findByText('Mostrando 20 de 25 alunos')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^ver perfil de/i })).toHaveLength(20);
+
+    await user.click(screen.getByRole('button', { name: 'Ver mais' }));
+
+    expect(screen.getByText('Mostrando 25 de 25 alunos')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^ver perfil de/i })).toHaveLength(25);
+    expect(screen.queryByRole('button', { name: 'Ver mais' })).not.toBeInTheDocument();
+  });
+
+  it('does not render "Ver mais" when the list fits in one page', async () => {
+    api.get.mockResolvedValue({ data: buildStudents(3) });
+    renderWithRouter(<Students />);
+
+    expect(await screen.findByText('Mostrando 3 de 3 alunos')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver mais' })).not.toBeInTheDocument();
+  });
+
+  it('resets the reveal and counts the filtered total when the filter or search changes', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [...buildStudents(25), ...buildStudents(22, 'pendente')] });
+    renderWithRouter(<Students />);
+
+    await screen.findByText('Mostrando 20 de 47 alunos');
+    await user.click(screen.getByRole('button', { name: 'Ver mais' }));
+    expect(screen.getByText('Mostrando 40 de 47 alunos')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Pendentes (22)' }));
+    expect(screen.getByText('Mostrando 20 de 22 alunos')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Ver mais' }));
+    await user.type(screen.getByRole('textbox', { name: 'Buscar alunos' }), 'Pendente0');
+    expect(screen.getByText('Mostrando 10 de 10 alunos')).toBeInTheDocument();
+  });
+
+  it('colors the adherence and last workout values by threshold', async () => {
+    api.get.mockResolvedValue({
+      data: [{
+        id: 't1', firstName: 'Lucas', lastName: 'Ferreira', email: 'l@example.com', status: 'ativo',
+        adherence: 45, adherenceCompleted: 2, adherenceExpected: 4, lastWorkoutAt: daysAgoIso(10),
+      }],
+    });
+    renderWithRouter(<Students />);
+
+    expect(await screen.findByText('45%')).toHaveClass('kpi-value--error');
+    expect(screen.getByText('Há 10 dias')).toHaveClass('kpi-value--warning');
   });
 });
