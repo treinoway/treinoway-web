@@ -22,7 +22,6 @@ import {
   ArrowLeft,
   CheckSquare,
   ChevronDown,
-  Cloud,
   Dumbbell,
   Edit3,
   FileDown,
@@ -33,7 +32,6 @@ import {
   Save,
   Square,
   Trash2,
-  User,
   X,
 } from 'lucide-react';
 import RoutineSummarySheet from '../../components/RoutineSummarySheet';
@@ -54,6 +52,11 @@ import SubstituteComposerSheet from '../../components/SubstituteComposerSheet';
 import SubstitutesInline from '../../components/SubstitutesInline';
 import IntensityBadge from '../../components/IntensityBadge';
 import SelectionActionBar, { SelectionInstructionStrip } from '../../components/SelectionActionBar';
+import Badge from '../../components/ds/Badge';
+import MetricCard from '../../components/ds/MetricCard';
+import EmptyBlock from '../../components/ds/EmptyBlock';
+import ConfirmDialog from '../../components/ds/ConfirmDialog';
+import Modal from '../../components/ds/Modal';
 import api from '../../api/axios';
 import { t, translateError } from '../../i18n';
 import { WEEK_DAY_OPTIONS_SHORT } from '../../constants/weekDays';
@@ -465,10 +468,10 @@ const DescriptionChipEditor = ({ value, onSave }) => {
 
       {expanded && (
         <div className="identity-description-expander">
-          <span className="identity-description-expander-label">Descrição da rotina</span>
+          <span className="identity-description-expander-label type-caption-strong">Descrição da rotina</span>
           <textarea
             ref={textareaRef}
-            className="identity-description-textarea"
+            className="input identity-description-textarea"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Descreva o objetivo e perfil da rotina…"
@@ -477,14 +480,14 @@ const DescriptionChipEditor = ({ value, onSave }) => {
           <div className="identity-description-actions">
             <button
               type="button"
-              className="btn-secondary btn-sm"
+              className="btn btn--secondary"
               onClick={handleCancel}
             >
               Cancelar
             </button>
             <button
               type="button"
-              className="btn-primary btn-sm"
+              className="btn btn--primary"
               onClick={handleSave}
             >
               Salvar
@@ -807,7 +810,7 @@ const InlineMenu = ({ ariaLabel, items, onOpen }) => {
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <MoreVertical size={16} strokeWidth={2} />
+        <MoreVertical size={20} strokeWidth={2} aria-hidden="true" />
       </button>
       {dropdown}
     </div>
@@ -911,11 +914,12 @@ const ExerciseRow = ({
       return (
         <button
           type="button"
-          className="exercise-row-delete-btn"
+          className="icon-button"
           aria-label={`Excluir ${name}`}
+          title={`Excluir ${name}`}
           onClick={handleDelete}
         >
-          <Trash2 size={18} strokeWidth={2} />
+          <Trash2 size={20} strokeWidth={2} aria-hidden="true" />
         </button>
       );
     }
@@ -953,14 +957,14 @@ const ExerciseRow = ({
           )}
         </button>
       )}
-      <span className="exercise-row-index" aria-hidden="true">{index + 1}</span>
+      <span className="exercise-row-index type-caption-strong" aria-hidden="true">{index + 1}</span>
       <div className="exercise-row-wide-body">
         <span className="exercise-row-wide-name-row">
-          <span className="exercise-row-wide-name">{name}</span>
+          <span className="exercise-row-wide-name type-body-strong">{name}</span>
           <IntensityBadge intensity={intensity} label={intensityLabel} />
         </span>
         {meta && (
-          <span className="exercise-row-wide-meta">
+          <span className="exercise-row-wide-meta type-caption">
             {meta}
             {restMutedLabel && (
               <>
@@ -973,7 +977,7 @@ const ExerciseRow = ({
           </span>
         )}
         {selectionMode && selectionDisabled && selectionDisabledReason && (
-          <span className="exercise-selection-row-caption">{selectionDisabledReason}</span>
+          <span className="exercise-selection-row-caption type-caption">{selectionDisabledReason}</span>
         )}
       </div>
       {renderRowMenu()}
@@ -1156,11 +1160,11 @@ const ExerciseRowWithSubstitutes = ({
                   {!readOnly && onDeleteSubstitute && (
                     <button
                       type="button"
-                      className="substitute-row-delete-btn"
+                      className="icon-button"
                       aria-label={(t('substitute.deleteAria') || 'Excluir substituto {name}').replace('{name}', sub.name || '')}
                       onClick={() => onDeleteSubstitute(sub, ex.id)}
                     >
-                      <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
+                      <Trash2 size={20} strokeWidth={2} aria-hidden="true" />
                     </button>
                   )}
                 </div>
@@ -1314,11 +1318,11 @@ const BisetGroupBlock = ({
                         {!readOnly && onDeleteSubstitute && (
                           <button
                             type="button"
-                            className="substitute-row-delete-btn"
+                            className="icon-button"
                             aria-label={(t('substitute.deleteAria') || 'Excluir substituto {name}').replace('{name}', sub.name || '')}
                             onClick={() => onDeleteSubstitute(sub, member.id)}
                           >
-                            <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
+                            <Trash2 size={20} strokeWidth={2} aria-hidden="true" />
                           </button>
                         )}
                       </div>
@@ -1482,6 +1486,13 @@ SortableExerciseEntry.defaultProps = {
   disabled: false,
 };
 
+// Status of a training card: empty / partial (< 3 exercises) / ready. Shown as a Tag badge.
+const getTrainingReadiness = (exerciseCount) => {
+  if (exerciseCount === 0) return { tone: 'neutral', label: 'Vazio' };
+  if (exerciseCount < 3) return { tone: 'warning', label: 'Parcial' };
+  return { tone: 'success', label: 'Pronto' };
+};
+
 const TrainingItem = ({
   training,
   index,
@@ -1561,11 +1572,7 @@ const TrainingItem = ({
 
   const biset = useBisetCreate({ endpointBuilder });
 
-  const readinessClass = useMemo(() => {
-    if (exercises.length === 0) return '';
-    if (exercises.length < 3) return 'training-item--partial';
-    return 'training-item--ready';
-  }, [exercises.length]);
+  const readiness = getTrainingReadiness(exercises.length);
 
   const exitSelectionMode = useCallback(() => {
     setSelectionMode(false);
@@ -1618,6 +1625,7 @@ const TrainingItem = ({
     const name = ex.name || ex.exerciseTemplate?.name || 'exercício';
     setConfirmDialog({
       message: `Excluir "${name}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
       onConfirm: async () => {
         setConfirmDialog(null);
         setComposerState(null);
@@ -1629,6 +1637,7 @@ const TrainingItem = ({
   const handleRequestDeleteTraining = () => {
     setConfirmDialog({
       message: `Excluir treino "${training.name}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
       onConfirm: () => {
         setConfirmDialog(null);
         onDeleteTraining();
@@ -1694,6 +1703,7 @@ const TrainingItem = ({
       setConfirmDialog({
         message: t('exerciseGroup.confirmDissolve')
           || 'Desfazer bi-set? Os exercícios serão mantidos como individuais.',
+        confirmLabel: 'Desfazer bi-set',
         onConfirm: async () => {
           setConfirmDialog(null);
           setBisetSheetGroupId(null);
@@ -1755,6 +1765,7 @@ const TrainingItem = ({
         .replace('{name}', name);
       setConfirmDialog({
         message,
+        confirmLabel: 'Excluir',
         onConfirm: async () => {
           setConfirmDialog(null);
           try {
@@ -1788,15 +1799,16 @@ const TrainingItem = ({
   return (
     <>
       <div
-        className={`training-item${readinessClass ? ` ${readinessClass}` : ''}${expanded ? ' training-item--expanded' : ''}`}
+        className={`training-item accordion${expanded ? ' training-item--expanded' : ''}`}
         data-training-id={training.id}
       >
         {/* ── Head ── */}
         <div
-          className="training-item-head"
+          className="training-item-head accordion-header"
           onClick={onToggleExpand}
           role="button"
           aria-expanded={expanded}
+          aria-controls={`training-body-${training.id}`}
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -1805,16 +1817,16 @@ const TrainingItem = ({
             }
           }}
         >
-          <span className="training-item-letter" aria-hidden="true">
+          <span className="accordion-index type-caption-strong" aria-hidden="true">
             {letter}
           </span>
 
-          <div className="training-item-main">
+          <div className="training-item-main accordion-heading">
             <div className="training-item-title-row">
-              <span className="training-item-title">{training.name || '—'}</span>
+              <span className="accordion-title type-body-lg-strong">{training.name || '—'}</span>
             </div>
 
-            <div className="training-item-meta">
+            <div className="training-item-meta accordion-meta type-caption">
               <WeekdayChip
                 value={training.weekDay}
                 onChange={onChangeWeekDay}
@@ -1830,6 +1842,7 @@ const TrainingItem = ({
                 variant="inline"
                 className="training-item-meta-duration"
               />
+              <Badge variant="tag" tone={readiness.tone}>{readiness.label}</Badge>
             </div>
           </div>
 
@@ -1845,21 +1858,21 @@ const TrainingItem = ({
             )}
             <button
               type="button"
-              className={`training-item-chevron${expanded ? ' training-item-chevron--open' : ''}`}
+              className="icon-button"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleExpand();
               }}
               aria-label={expanded ? 'Recolher treino' : 'Expandir treino'}
             >
-              <ChevronDown size={16} strokeWidth={2} />
+              <ChevronDown size={20} strokeWidth={2} className="accordion-chevron" aria-hidden="true" />
             </button>
           </div>
         </div>
 
         {/* ── Body ── */}
         {expanded && (
-          <div className="training-item-body">
+          <div className="training-item-body accordion-body" id={`training-body-${training.id}`}>
             {selectionMode && (
               <>
                 <SelectionActionBar
@@ -2005,33 +2018,17 @@ const TrainingItem = ({
               </DndContext>
             ) : (
               composerState === null && (
-                <div className="training-empty-hero">
-                  <div className="training-empty-hero-icon" aria-hidden="true">
-                    <Dumbbell size={20} strokeWidth={2} />
-                  </div>
-                  <p className="training-empty-hero-title">Nenhum exercício</p>
-                  {readOnly ? (
-                    <p className="training-empty-hero-desc">
-                      Este treino ainda não tem exercícios.
-                    </p>
-                  ) : (
-                    <>
-                      <p className="training-empty-hero-desc">
-                        Adicione exercícios a este treino para começar.
-                      </p>
-                      <div className="training-empty-hero-actions">
-                        <button
-                          type="button"
-                          className="btn-primary btn-sm"
-                          onClick={() => setComposerState('create')}
-                        >
-                          <Plus size={14} strokeWidth={2} aria-hidden="true" />
-                          Adicionar exercício
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                <EmptyBlock
+                  icon={Dumbbell}
+                  title="Nenhum exercício"
+                  description={
+                    readOnly
+                      ? 'Este treino ainda não tem exercícios.'
+                      : 'Adicione exercícios a este treino para começar.'
+                  }
+                  actionLabel={readOnly ? undefined : 'Adicionar exercício'}
+                  onAction={() => setComposerState('create')}
+                />
               )
             )}
 
@@ -2049,10 +2046,10 @@ const TrainingItem = ({
             ) : !readOnly && !composerEditing && exercises.length > 0 && (
               <button
                 type="button"
-                className="inline-add-btn-wide"
+                className="btn btn--secondary btn--block"
                 onClick={() => setComposerState('create')}
               >
-                <Plus size={14} strokeWidth={2} aria-hidden="true" />
+                <Plus size={16} strokeWidth={2} aria-hidden="true" />
                 Adicionar exercício
               </button>
             )}
@@ -2060,29 +2057,13 @@ const TrainingItem = ({
         )}
       </div>
 
-      {/* Confirm dialog */}
       {confirmDialog && (
-        <div className="overlay" onClick={() => setConfirmDialog(null)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-dialog-message">{confirmDialog.message}</p>
-            <div className="confirm-dialog-actions">
-              <button
-                type="button"
-                className="btn-danger"
-                onClick={confirmDialog.onConfirm}
-              >
-                Confirmar
-              </button>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setConfirmDialog(null)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel || 'Confirmar'}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
 
       {/* Bi-set action sheet (per-group dissolve / order edit) */}
@@ -2103,36 +2084,21 @@ const TrainingItem = ({
         />
       )}
 
-      {/* Non-adjacent confirmation */}
       {pendingNonAdjacentConfirm && (
-        <div className="overlay" onClick={() => setPendingNonAdjacentConfirm(null)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-dialog-message">
-              {t('exerciseGroup.nonAdjacentConfirmBody')
-                || 'Os exercícios serão reorganizados em sequência.'}
-            </p>
-            <div className="confirm-dialog-actions">
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => {
-                  const memberIds = pendingNonAdjacentConfirm.memberIds;
-                  setPendingNonAdjacentConfirm(null);
-                  handleConfirmBisetCreate(memberIds);
-                }}
-              >
-                {t('exerciseGroup.confirmGroupAndReorder') || 'Agrupar e reordenar'}
-              </button>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setPendingNonAdjacentConfirm(null)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          message={
+            t('exerciseGroup.nonAdjacentConfirmBody')
+            || 'Os exercícios serão reorganizados em sequência.'
+          }
+          confirmLabel={t('exerciseGroup.confirmGroupAndReorder') || 'Agrupar e reordenar'}
+          confirmTone="primary"
+          onConfirm={() => {
+            const memberIds = pendingNonAdjacentConfirm.memberIds;
+            setPendingNonAdjacentConfirm(null);
+            handleConfirmBisetCreate(memberIds);
+          }}
+          onCancel={() => setPendingNonAdjacentConfirm(null)}
+        />
       )}
     </>
   );
@@ -2221,23 +2187,26 @@ const BuilderTopbar = ({
     return studentName ? `Rotina de ${studentName}` : 'Nova rotina';
   })();
 
+  const saveButtonLabel = (() => {
+    if (saving) return 'Salvando…';
+    return editProtocolId ? 'Concluir' : 'Salvar rotina';
+  })();
+  const statusTone = saveStatusLabel.startsWith('Rascunho salvo') ? 'success' : 'neutral';
+
   return (
     <div className={`builder-topbar${scrolled ? ' builder-topbar--scrolled' : ''}`}>
       <button
-        className="builder-topbar-back"
+        type="button"
+        className="icon-button builder-topbar-back"
         onClick={onBack}
         aria-label={isProtocol ? 'Voltar para o aluno' : 'Voltar para rotinas'}
+        title={isProtocol ? 'Voltar para o aluno' : 'Voltar para rotinas'}
       >
-        <ArrowLeft size={20} strokeWidth={2} />
+        <ArrowLeft size={20} strokeWidth={2} aria-hidden="true" />
       </button>
 
       <div className="builder-title-wrap">
-        <div className="builder-eyebrow">
-          {isProtocol && studentName && (
-            <User size={11} strokeWidth={2} aria-hidden="true" className="builder-eyebrow-icon" />
-          )}
-          {eyebrow}
-        </div>
+        <div className="builder-eyebrow type-caption">{eyebrow}</div>
 
         {readOnly ? (
           <div className="builder-title-input-wrap builder-title-input-wrap--readonly">
@@ -2269,7 +2238,7 @@ const BuilderTopbar = ({
             )}
             {!isEditing && (
               <Edit3
-                size={14}
+                size={16}
                 strokeWidth={2}
                 className="builder-title-edit-icon"
                 aria-hidden="true"
@@ -2283,7 +2252,7 @@ const BuilderTopbar = ({
       {isProtocol && onImportTemplate && !readOnly && (
         <button
           type="button"
-          className="builder-topbar-import-mobile"
+          className="btn btn--ghost builder-topbar-import-mobile"
           onClick={onImportTemplate}
           aria-label="Importar"
         >
@@ -2296,11 +2265,12 @@ const BuilderTopbar = ({
       {onOpenSummary && (
         <button
           type="button"
-          className="routine-summary-trigger"
+          className="icon-button routine-summary-trigger"
           onClick={onOpenSummary}
           aria-label="Ver resumo"
+          title="Ver resumo"
         >
-          <AlignLeft size={18} strokeWidth={2} aria-hidden="true" />
+          <AlignLeft size={20} strokeWidth={2} aria-hidden="true" />
         </button>
       )}
 
@@ -2308,36 +2278,23 @@ const BuilderTopbar = ({
       <div className="builder-topbar-actions builder-topbar-actions--responsive">
         {readOnly ? (
           <>
-            <span className="builder-save-status">
-              <User size={12} strokeWidth={2} aria-hidden="true" />
-              Visualizando rotina
-            </span>
-            <button className="btn-primary" onClick={onEdit}>
-              <Pencil size={16} strokeWidth={2} aria-hidden="true" />
-              Editar
-            </button>
-            <button className="btn-secondary" onClick={onBack}>
+            <Badge variant="tag" tone="neutral">Visualizando rotina</Badge>
+            <button type="button" className="btn btn--secondary" onClick={onBack}>
               <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
               Voltar
+            </button>
+            <button type="button" className="btn btn--primary" onClick={onEdit}>
+              <Pencil size={16} strokeWidth={2} aria-hidden="true" />
+              Editar
             </button>
           </>
         ) : (
           <>
-            {isProtocol ? (
-              <span className="builder-save-status">
-                <User size={12} strokeWidth={2} aria-hidden="true" />
-                {saveStatusLabel}
-              </span>
-            ) : (
-              <span className="builder-save-status">
-                <Cloud size={12} strokeWidth={2} aria-hidden="true" />
-                {saveStatusLabel}
-              </span>
-            )}
+            <Badge variant="tag" tone={statusTone}>{saveStatusLabel}</Badge>
             {isProtocol && onImportTemplate && (
               <button
                 type="button"
-                className="btn-secondary"
+                className="btn btn--secondary"
                 onClick={onImportTemplate}
                 aria-label="Importar de template"
               >
@@ -2345,23 +2302,24 @@ const BuilderTopbar = ({
                 Importar de template
               </button>
             )}
-            <button className="btn-secondary" onClick={onCancel}>
+            <button type="button" className="btn btn--secondary" onClick={onCancel}>
               <X size={16} strokeWidth={2} aria-hidden="true" />
               Cancelar
             </button>
             <div className="builder-topbar-save-group">
               <button
-                className="btn-primary"
+                type="button"
+                className="btn btn--primary"
                 onClick={onSave}
                 disabled={!canSave || saving}
                 aria-disabled={!canSave}
                 aria-describedby={saveHintText ? 'builder-save-hint-desktop' : undefined}
               >
                 <Save size={16} strokeWidth={2} aria-hidden="true" />
-                {saving ? 'Salvando…' : editProtocolId ? 'Concluir' : 'Salvar rotina'}
+                {saveButtonLabel}
               </button>
               {saveHintText && (
-                <span id="builder-save-hint-desktop" className="builder-save-hint" role="note">
+                <span id="builder-save-hint-desktop" className="builder-save-hint type-caption" role="note">
                   {saveHintText}
                 </span>
               )}
@@ -2611,25 +2569,20 @@ const BuilderStatsRow = ({ trainings }) => {
   };
 
   return (
-    <div className="builder-stats-row">
-      <div className={`builder-stat-card${trainingCount > 0 ? ' builder-stat-card--accent' : ''}`}>
-        <span className="builder-stat-card-label">Treinos</span>
-        <span className="builder-stat-card-value">{trainingCount}</span>
-        <span className="builder-stat-card-sub">na rotina</span>
-      </div>
-      <div className="builder-stat-card">
-        <span className="builder-stat-card-label">Exercícios</span>
-        <span className="builder-stat-card-value">{exerciseCount}</span>
-        <span className="builder-stat-card-sub">Total</span>
-      </div>
-      <div className={`builder-stat-card${unassignedCount > 0 ? ' builder-stat-card--warn' : ''}`}>
-        <span className="builder-stat-card-label">Dias atribuídos</span>
-        <span className="builder-stat-card-value">
-          {coveredDays}
-          <span className="builder-stat-card-value-unit">/{trainingCount || '—'}</span>
-        </span>
-        <span className="builder-stat-card-sub">{assignedSub()}</span>
-      </div>
+    <div className="metric-grid metric-grid--3 builder-stats-row">
+      <MetricCard
+        label="Treinos"
+        value={trainingCount}
+        support="na rotina"
+        tone={trainingCount > 0 ? 'brand' : 'neutral'}
+      />
+      <MetricCard label="Exercícios" value={exerciseCount} support="Total" />
+      <MetricCard
+        label="Dias atribuídos"
+        value={`${coveredDays}/${trainingCount || '—'}`}
+        support={assignedSub()}
+        tone={unassignedCount > 0 ? 'warning' : 'neutral'}
+      />
     </div>
   );
 };
@@ -2669,58 +2622,20 @@ WeekOverview.propTypes = {
 };
 
 const FirstTrainingHero = ({ onAddTraining }) => (
-  <div className="first-training-hero">
-    <div className="first-training-hero-icon">
-      <Dumbbell size={26} strokeWidth={2} aria-hidden="true" />
-    </div>
-    {/* Mobile title — hidden on desktop via CSS */}
-    <div className="first-training-hero-title first-training-hero-title--mobile">
-      Comece pelo treino
-    </div>
-    {/* Desktop title — hidden on mobile via CSS */}
-    <div className="first-training-hero-title first-training-hero-title--desktop-only">
-      Comece pelo treino — não pelo dia
-    </div>
-    <div className="first-training-hero-description">
-      Crie <strong>Treino A, B, C</strong>… adicione exercícios e, quando quiser, atribua
-      dias da semana a cada um. A distribuição acima mostra a semana em tempo real.
-    </div>
-    <button
-      className="btn-primary first-training-hero-cta"
-      onClick={onAddTraining}
-    >
-      <Plus size={16} strokeWidth={2} aria-hidden="true" />
-      {/* Mobile label */}
-      <span className="first-training-hero-cta-label--mobile">Adicionar treino</span>
-      {/* Desktop label */}
-      <span className="first-training-hero-cta-label--desktop">
-        Adicionar primeiro treino
-      </span>
-    </button>
+  <div className="section-card">
+    <EmptyBlock
+      icon={Dumbbell}
+      title="Comece pelo treino"
+      description="Crie Treino A, B, C… adicione exercícios e, quando quiser, atribua dias da semana a cada um. A distribuição acima mostra a semana em tempo real."
+      actionLabel="Adicionar primeiro treino"
+      onAction={onAddTraining}
+    />
   </div>
 );
 
 FirstTrainingHero.propTypes = {
   onAddTraining: PropTypes.func.isRequired,
 };
-
-const ReadinessLegend = () => (
-  <span className="readiness-legend-inline" aria-hidden="true">
-    <span>Borda do card:</span>
-    <span className="readiness-legend-inline-item">
-      <span className="readiness-legend-inline-bar readiness-legend-inline-bar--empty" />
-      Vazio
-    </span>
-    <span className="readiness-legend-inline-item">
-      <span className="readiness-legend-inline-bar readiness-legend-inline-bar--partial" />
-      Parcial
-    </span>
-    <span className="readiness-legend-inline-item">
-      <span className="readiness-legend-inline-bar readiness-legend-inline-bar--ready" />
-      Pronto
-    </span>
-  </span>
-);
 
 // ─── ImportTemplateSheet ──────────────────────────────────────────────────────
 
@@ -2731,55 +2646,32 @@ const ImportTemplateSheet = ({ open, protocolTemplates, loading, onSelect, onClo
   if (!open) return null;
 
   return createPortal(
-    <div className="overlay" onClick={onClose}>
-      <div
-        className="bottom-sheet"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Importar de template"
-      >
-        <div className="bottom-sheet-header">
-          <h2 className="bottom-sheet-title">Importar de template</h2>
-          <button
-            type="button"
-            className="bottom-sheet-close"
-            onClick={onClose}
-            aria-label="Fechar"
-          >
-            <X size={18} strokeWidth={2} />
-          </button>
+    <Modal title="Importar de template" onClose={onClose}>
+      {loading && <p className="builder-template-sheet-empty type-body">Carregando templates…</p>}
+      {!loading && protocolTemplates.length === 0 && (
+        <p className="builder-template-sheet-empty type-body">Nenhum template disponível.</p>
+      )}
+      {!loading && protocolTemplates.length > 0 && (
+        <div className="builder-template-sheet-list" role="list">
+          {protocolTemplates.map((tmpl) => (
+            <button
+              key={tmpl.id}
+              type="button"
+              className="builder-template-sheet-item"
+              role="listitem"
+              onClick={() => onSelect(tmpl.id)}
+            >
+              <span className="type-body-strong">{tmpl.name}</span>
+              {tmpl.type && (
+                <span className="type-caption builder-template-sheet-item-meta">
+                  {getProtocolTypeLabel(tmpl.type)}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
-        <div className="bottom-sheet-body">
-          {loading && (
-            <p className="builder-template-sheet-empty">Carregando templates…</p>
-          )}
-          {!loading && protocolTemplates.length === 0 && (
-            <p className="builder-template-sheet-empty">Nenhum template disponível.</p>
-          )}
-          {!loading && protocolTemplates.length > 0 && (
-            <div className="builder-template-sheet-list" role="list">
-              {protocolTemplates.map((tmpl) => (
-                <button
-                  key={tmpl.id}
-                  type="button"
-                  className="builder-template-sheet-item"
-                  role="listitem"
-                  onClick={() => onSelect(tmpl.id)}
-                >
-                  <span className="builder-template-sheet-item-name">{tmpl.name}</span>
-                  {tmpl.type && (
-                    <span className="builder-template-sheet-item-meta">
-                      {getProtocolTypeLabel(tmpl.type)}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>,
+      )}
+    </Modal>,
     document.body
   );
 };
@@ -3235,7 +3127,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
     return (
       <div className="builder-shell">
         <div className="loading-screen">
-          <span className="loading-text">Carregando...</span>
+          <span className="loading-text type-body">Carregando...</span>
         </div>
       </div>
     );
@@ -3295,13 +3187,13 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
 
         {/* Week overview section */}
         <div className="canvas-section-header">
-          <span className="canvas-section-title">
+          <span className="canvas-section-title type-h4">
             Distribuição semanal{' '}
             <span className="canvas-section-title-count">
               {trainings.filter((t) => t.weekDay).length} / 7
             </span>
           </span>
-          <span className="canvas-section-hint">
+          <span className="canvas-section-hint type-caption">
             O dia é opcional. Você pode criar toda a rotina sem atribuir.
           </span>
         </div>
@@ -3310,11 +3202,10 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
 
         {/* Training list section */}
         <div className="canvas-section-header builder-canvas-trainings-header">
-          <span className="canvas-section-title">
+          <span className="canvas-section-title type-h4">
             Treinos da rotina{' '}
             <span className="canvas-section-title-count">{trainings.length}</span>
           </span>
-          <ReadinessLegend />
         </div>
 
         {trainings.length === 0 && !readOnly && (
@@ -3322,16 +3213,12 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         )}
 
         {trainings.length === 0 && readOnly && (
-          <div className="first-training-hero">
-            <div className="first-training-hero-icon">
-              <Dumbbell size={26} strokeWidth={2} aria-hidden="true" />
-            </div>
-            <div className="first-training-hero-title first-training-hero-title--mobile">
-              Sem treinos
-            </div>
-            <div className="first-training-hero-description">
-              Esta rotina ainda não tem treinos cadastrados.
-            </div>
+          <div className="section-card">
+            <EmptyBlock
+              icon={Dumbbell}
+              title="Sem treinos"
+              description="Esta rotina ainda não tem treinos cadastrados."
+            />
           </div>
         )}
 
@@ -3387,7 +3274,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
 
               {showUnassignedHeader && (
                 <div className="training-group-header">
-                  <span className="training-group-title training-group-title--unassigned">
+                  <span className="training-group-title type-caption-strong">
                     Sem dia atribuído
                   </span>
                   <span className="canvas-section-title-count">
@@ -3406,7 +3293,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         {trainings.length > 0 && !readOnly && (
           <button
             type="button"
-            className="add-training-cta"
+            className="btn btn--secondary btn--block"
             onClick={() => setAddTrainingSheetOpen(true)}
           >
             <Plus size={16} strokeWidth={2} aria-hidden="true" />
@@ -3452,12 +3339,13 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
       {/* Read-only: FAB-extended pill — mobile only (desktop hidden via CSS) */}
       {readOnly && (
         <button
-          className="builder-edit-fab"
+          type="button"
+          className="btn btn--primary builder-edit-fab"
           onClick={handleEdit}
           aria-label="Editar rotina"
         >
           <Pencil size={16} strokeWidth={2} aria-hidden="true" />
-          EDITAR
+          Editar
         </button>
       )}
 
@@ -3465,7 +3353,8 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
       {!readOnly && (
         <>
           <button
-            className="builder-edit-fab"
+            type="button"
+            className="btn btn--primary builder-edit-fab"
             onClick={handleSave}
             disabled={!canSave || routine.saving}
             aria-disabled={!canSave}
@@ -3473,12 +3362,12 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
             aria-label={routine.saving ? 'Salvando' : editProtocolId ? 'Concluir edição' : 'Salvar rotina'}
           >
             <Save size={16} strokeWidth={2} aria-hidden="true" />
-            {routine.saving ? 'SALVANDO…' : editProtocolId ? 'CONCLUIR' : 'SALVAR'}
+            {routine.saving ? 'Salvando…' : editProtocolId ? 'Concluir' : 'Salvar'}
           </button>
           {saveHintText && (
             <span
               id="builder-save-hint-mobile"
-              className="builder-save-hint builder-save-hint--fab"
+              className="builder-save-hint builder-save-hint--fab type-caption"
               role="note"
             >
               {saveHintText}
@@ -3489,13 +3378,12 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
 
       {/* Resumo FAB — desktop only (≥768px via CSS); mobile uses topbar trigger */}
       <button
-        className="routine-summary-fab"
+        type="button"
+        className="btn btn--secondary routine-summary-fab"
         onClick={() => setSummarySheetOpen(true)}
         aria-label="Ver resumo de exercícios"
       >
-        <span className="routine-summary-fab-icon" aria-hidden="true">
-          <AlignLeft size={16} strokeWidth={2} />
-        </span>
+        <AlignLeft size={16} strokeWidth={2} aria-hidden="true" />
         <span className="routine-summary-fab-label">Resumo</span>
         <span className="routine-summary-fab-count">{totalExerciseCount} ex</span>
       </button>

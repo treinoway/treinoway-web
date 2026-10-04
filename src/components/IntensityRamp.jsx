@@ -82,11 +82,11 @@ const IntensityRamp = ({
   return (
     <div className="intensity-field">
       <div className="intensity-label-row">
-        <span className="form-label intensity-field-label" id={labelId}>
+        <span className="field-label type-caption-strong intensity-field-label" id={labelId}>
           Intensidade
         </span>
-        <span className="intensity-acsm-tag">
-          <Info size={12} strokeWidth={2} aria-hidden="true" /> Escala ACSM
+        <span className="intensity-acsm-tag type-caption">
+          <Info size={16} strokeWidth={2} aria-hidden="true" /> Escala ACSM
         </span>
       </div>
 
@@ -115,21 +115,20 @@ const IntensityRamp = ({
               onClick={() => selectIndex(index)}
               onKeyDown={(event) => handleKeyDown(event, index)}
             >
-              <span className="intensity-step-bar" aria-hidden="true" />
-              <span className="intensity-step-name">{label}</span>
+              <span className="intensity-step-name type-body-strong">{label}</span>
             </button>
           );
         })}
       </div>
 
       {value && !disabled && (
-        <button type="button" className="intensity-clear" onClick={onClear}>
-          <X size={14} strokeWidth={2} aria-hidden="true" />
+        <button type="button" className="btn btn--ghost intensity-clear" onClick={onClear}>
+          <X size={16} strokeWidth={2} aria-hidden="true" />
           Sem intensidade definida
         </button>
       )}
 
-      <p className="form-hint" aria-live="polite">
+      <p className="field-hint type-caption" aria-live="polite">
         {selectedLabel ? (
           <>
             <span className="sr-only">Intensidade selecionada: </span>

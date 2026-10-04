@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
-import { Check, Loader, Search, X } from 'lucide-react';
+import { Check, Loader, Search } from 'lucide-react';
+import Modal from './ds/Modal';
+import Segmented from './ds/Segmented';
 import api from '../api/axios';
 import { useToast } from '../contexts/ToastContext';
 import { t } from '../i18n';
@@ -105,10 +107,10 @@ const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
 
   return (
     <div className="library-panel">
-      <div className="library-search">
-        <Search size={14} strokeWidth={2} aria-hidden="true" />
+      <div className="input--search-wrap">
+        <Search size={16} strokeWidth={2} aria-hidden="true" />
         <input
-          className="library-search-input"
+          className="input input--search"
           type="text"
           placeholder="Buscar exercício na biblioteca…"
           value={query}
@@ -116,14 +118,14 @@ const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
           aria-label="Buscar exercício na biblioteca"
         />
         {showSpinner && (
-          <Loader size={14} strokeWidth={2} aria-hidden="true" className="library-refetch-spinner" />
+          <Loader size={16} strokeWidth={2} aria-hidden="true" className="library-refetch-spinner" />
         )}
       </div>
 
       {showSpinner && displayList.length === 0 ? (
-        <div className="library-empty">Buscando…</div>
+        <div className="library-empty type-body">Buscando…</div>
       ) : displayList.length === 0 ? (
-        <div className="library-empty">{emptyMessage}</div>
+        <div className="library-empty type-body">{emptyMessage}</div>
       ) : (
         <div className="library-list" role="list">
           {displayList.map((tmpl) => {
@@ -142,9 +144,9 @@ const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
                   {selected && <Check size={12} strokeWidth={2} />}
                 </span>
                 <span className="library-item-body">
-                  <span className="library-item-name">{tmpl.name}</span>
+                  <span className="library-item-name type-body-strong">{tmpl.name}</span>
                   {meta && (
-                    <span className="library-item-meta">
+                    <span className="library-item-meta type-caption">
                       {tmpl.type && (
                         <span className="library-item-cat">{tmpl.type}</span>
                       )}
@@ -158,7 +160,7 @@ const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
         </div>
       )}
 
-      <div className="library-selection-bar">
+      <div className="library-selection-bar type-caption">
         <span>
           <span className="library-selection-count">{selectedIds.length}</span>
           {' '}selecionado{selectedIds.length !== 1 ? 's' : ''}
@@ -299,225 +301,141 @@ const SubstituteComposerSheet = ({
     );
   })();
 
+  const renderNumberField = (id, label, field, extra = {}) => (
+    <div className="field">
+      <label className="field-label type-caption-strong" htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        type="number"
+        className="input"
+        value={form[field]}
+        onChange={(e) => handleField(field, e.target.value)}
+        disabled={saving}
+        {...extra}
+      />
+    </div>
+  );
+
+  const renderCreateFields = () => (
+    <>
+      <div className="field">
+        <label className="field-label type-caption-strong" htmlFor="substitute-name">
+          Nome <span aria-hidden="true">*</span>
+        </label>
+        <input
+          id="substitute-name"
+          className={`input${nameError ? ' input--error' : ''}`}
+          value={form.name}
+          onChange={(e) => handleField('name', e.target.value)}
+          placeholder={t('substitute.composerNamePlaceholder') || 'Nome do exercício'}
+          required
+          disabled={saving}
+          autoFocus
+        />
+        {nameError && <span className="field-error type-caption" role="alert">{nameError}</span>}
+      </div>
+
+      <div className="field">
+        <label className="field-label type-caption-strong" htmlFor="substitute-type">Tipo</label>
+        <select
+          id="substitute-type"
+          className="input"
+          value={form.type}
+          onChange={(e) => handleField('type', e.target.value)}
+          disabled={saving}
+        >
+          <option value="">—</option>
+          {EXERCISE_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {renderNumberField('substitute-sets', 'Séries', 'sets', { min: '1' })}
+      {renderNumberField('substitute-reps-min', 'Reps (mín)', 'repetitionsMin', { min: '1' })}
+      {renderNumberField('substitute-reps-max', 'Reps (máx)', 'repetitionsMax', { min: '1' })}
+
+      <div className="substitute-form__load">
+        <span className="type-body" id="substitute-load-label">Carga</span>
+        <button
+          type="button"
+          role="switch"
+          className="toggle"
+          aria-labelledby="substitute-load-label"
+          aria-checked={form.hasLoad}
+          onClick={() => handleField('hasLoad', !form.hasLoad)}
+          disabled={saving}
+        />
+      </div>
+
+      {form.hasLoad &&
+        renderNumberField('substitute-load', 'Carga sugerida (kg)', 'suggestedLoad', { min: '0', step: '0.5' })}
+
+      {renderNumberField('substitute-rest', 'Descanso (s)', 'restInterval', { min: '0' })}
+    </>
+  );
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
+  const handleRequestClose = () => {
+    if (!saving) onClose();
+  };
+
+  const footer =
+    tab === 'create' ? (
+      <>
+        <button type="button" className="btn btn--secondary" onClick={onClose} disabled={saving}>
+          Cancelar
+        </button>
+        <button type="submit" form="substitute-create-form" className="btn btn--primary" disabled={saving}>
+          {saving ? 'Carregando...' : 'Salvar'}
+        </button>
+      </>
+    ) : (
+      <>
+        <button type="button" className="btn btn--secondary" onClick={onClose} disabled={saving}>
+          Cancelar
+        </button>
+        <button
+          type="button"
+          className="btn btn--primary"
+          onClick={handleImportFromLibrary}
+          disabled={saving || selectedTemplateIds.length === 0}
+        >
+          {importLabel}
+        </button>
+      </>
+    );
+
   return createPortal(
-    <div className="overlay" onClick={() => !saving && onClose()}>
-      <div
-        className="bottom-sheet"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-      >
-        <div className="bottom-sheet-header">
-          <h2 className="bottom-sheet-title">{title}</h2>
-          <button
-            type="button"
-            className="bottom-sheet-close"
-            onClick={onClose}
-            disabled={saving}
-            aria-label="Fechar"
-          >
-            <X size={20} strokeWidth={2} />
-          </button>
-        </div>
+    <Modal title={title} onClose={handleRequestClose} closeDisabled={saving} footer={footer}>
+      <div className="substitute-sheet">
+        <Segmented
+          ariaLabel="Modo de adição de substituto"
+          items={[
+            { id: 'create', label: t('substitute.tabCreate') || 'Criar substituto' },
+            { id: 'library', label: t('substitute.tabLibrary') || 'Da biblioteca' },
+          ]}
+          value={tab}
+          onChange={setTab}
+          disabled={saving}
+        />
 
-        <div className="bottom-sheet-body">
-          {/* Segmented toggle */}
-          <div
-            className="segmented-toggle"
-            role="tablist"
-            aria-label="Modo de adição de substituto"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === 'create'}
-              className={`segmented-toggle-btn${tab === 'create' ? ' segmented-toggle-btn--active' : ''}`}
-              onClick={() => setTab('create')}
-              disabled={saving}
-            >
-              {t('substitute.tabCreate') || 'Criar substituto'}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === 'library'}
-              className={`segmented-toggle-btn${tab === 'library' ? ' segmented-toggle-btn--active' : ''}`}
-              onClick={() => setTab('library')}
-              disabled={saving}
-            >
-              {t('substitute.tabLibrary') || 'Da biblioteca'}
-            </button>
-          </div>
+        {tab === 'create' && (
+          <form id="substitute-create-form" className="substitute-form" onSubmit={handleSubmitCreate} noValidate>
+            {renderCreateFields()}
+          </form>
+        )}
 
-          {/* Tab: Create */}
-          {tab === 'create' && (
-            <form className="form" onSubmit={handleSubmitCreate} noValidate>
-              <div className="form-group">
-                <label className="form-label" htmlFor="substitute-name">
-                  Nome <span aria-hidden="true">*</span>
-                </label>
-                <input
-                  id="substitute-name"
-                  className={`form-input${nameError ? ' form-input--error' : ''}`}
-                  value={form.name}
-                  onChange={(e) => handleField('name', e.target.value)}
-                  placeholder={t('substitute.composerNamePlaceholder') || 'Nome do exercício'}
-                  required
-                  disabled={saving}
-                  autoFocus
-                />
-                {nameError && (
-                  <span className="form-error" role="alert">{nameError}</span>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="substitute-type">Tipo</label>
-                <select
-                  id="substitute-type"
-                  className="form-select"
-                  value={form.type}
-                  onChange={(e) => handleField('type', e.target.value)}
-                  disabled={saving}
-                >
-                  <option value="">—</option>
-                  {EXERCISE_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="substitute-sets">Séries</label>
-                <input
-                  id="substitute-sets"
-                  type="number"
-                  className="form-input"
-                  value={form.sets}
-                  onChange={(e) => handleField('sets', e.target.value)}
-                  min="1"
-                  disabled={saving}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="substitute-reps-min">Reps (mín)</label>
-                <input
-                  id="substitute-reps-min"
-                  type="number"
-                  className="form-input"
-                  value={form.repetitionsMin}
-                  onChange={(e) => handleField('repetitionsMin', e.target.value)}
-                  min="1"
-                  disabled={saving}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="substitute-reps-max">Reps (máx)</label>
-                <input
-                  id="substitute-reps-max"
-                  type="number"
-                  className="form-input"
-                  value={form.repetitionsMax}
-                  onChange={(e) => handleField('repetitionsMax', e.target.value)}
-                  min="1"
-                  disabled={saving}
-                />
-              </div>
-
-              <div className="form-group checkbox-row">
-                <input
-                  id="substitute-has-load"
-                  type="checkbox"
-                  checked={form.hasLoad}
-                  onChange={(e) => handleField('hasLoad', e.target.checked)}
-                  disabled={saving}
-                />
-                <label className="form-label" htmlFor="substitute-has-load">Carga</label>
-              </div>
-
-              {form.hasLoad && (
-                <div className="form-group">
-                  <label className="form-label" htmlFor="substitute-load">
-                    Carga sugerida (kg)
-                  </label>
-                  <input
-                    id="substitute-load"
-                    type="number"
-                    className="form-input"
-                    value={form.suggestedLoad}
-                    onChange={(e) => handleField('suggestedLoad', e.target.value)}
-                    min="0"
-                    step="0.5"
-                    disabled={saving}
-                  />
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="substitute-rest">Descanso (s)</label>
-                <input
-                  id="substitute-rest"
-                  type="number"
-                  className="form-input"
-                  value={form.restInterval}
-                  onChange={(e) => handleField('restInterval', e.target.value)}
-                  min="0"
-                  disabled={saving}
-                />
-              </div>
-
-              <div className="btn-group">
-                <button type="submit" className="btn-primary" disabled={saving}>
-                  {saving ? 'Carregando...' : 'Salvar'}
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={onClose}
-                  disabled={saving}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Tab: Library */}
-          {tab === 'library' && (
-            <>
-              <LibraryPanel
-                initialTemplates={exerciseTemplates}
-                selectedIds={selectedTemplateIds}
-                onToggle={handleToggleTemplate}
-              />
-              <div className="btn-group">
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={handleImportFromLibrary}
-                  disabled={saving || selectedTemplateIds.length === 0}
-                >
-                  {importLabel}
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={onClose}
-                  disabled={saving}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        {tab === 'library' && (
+          <LibraryPanel
+            initialTemplates={exerciseTemplates}
+            selectedIds={selectedTemplateIds}
+            onToggle={handleToggleTemplate}
+          />
+        )}
       </div>
-    </div>,
+    </Modal>,
     document.body
   );
 };

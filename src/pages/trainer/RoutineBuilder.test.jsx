@@ -1202,7 +1202,7 @@ describe('RoutineBuilder — exercise row actions', () => {
     await clickRowMenuItem(user, 'Supino reto', /Remover/i);
 
     expect(await screen.findByText(/Excluir "Supino reto"/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Confirmar/i })).toBeInTheDocument();
+    expect(within(screen.getByRole('alertdialog')).getByRole('button', { name: /^Excluir$/ })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /Cancelar/i }).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -1218,7 +1218,7 @@ describe('RoutineBuilder — exercise row actions', () => {
     await expandTraining(user);
 
     await clickRowMenuItem(user, 'Supino reto', /Remover/i);
-    await user.click(await screen.findByRole('button', { name: /Confirmar/i }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /^Excluir$/ }));
 
     await waitFor(() => {
       expect(deleteExercise).toHaveBeenCalledWith('training-1', 'ex-1');
@@ -1349,7 +1349,7 @@ describe('RoutineBuilder — composer footer delete action', () => {
     await user.click(screen.getByRole('button', { name: /Excluir/i }));
 
     expect(await screen.findByText(/Excluir "Supino reto"/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Confirmar/i })).toBeInTheDocument();
+    expect(within(screen.getByRole('alertdialog')).getByRole('button', { name: /^Excluir$/ })).toBeInTheDocument();
   });
 
   it('confirming the composer footer delete calls deleteExercise and closes the composer', async () => {
@@ -1364,7 +1364,7 @@ describe('RoutineBuilder — composer footer delete action', () => {
     await openEditComposer(user);
 
     await user.click(screen.getByRole('button', { name: /Excluir/i }));
-    await user.click(await screen.findByRole('button', { name: /Confirmar/i }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /^Excluir$/ }));
 
     await waitFor(() => {
       expect(deleteExercise).toHaveBeenCalledWith('training-1', 'ex-1');
@@ -1683,20 +1683,20 @@ describe('RoutineBuilder — stats row shows correct totals', () => {
     expect(screen.getByText('Dias atribuídos')).toBeInTheDocument();
   });
 
-  it('card "Treinos" gets --accent modifier when trainings > 0', () => {
+  it('card "Treinos" uses the brand tone when trainings > 0', () => {
     useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
     renderNew();
 
     const label = screen.getByText('Treinos');
-    expect(label.closest('.builder-stat-card')).toHaveClass('builder-stat-card--accent');
+    expect(label.closest('.metric-card')).toHaveClass('metric-card--brand');
   });
 
-  it('card "Treinos" has no --accent modifier in empty state', () => {
+  it('card "Treinos" uses the neutral tone in empty state', () => {
     useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
     renderNew();
 
     const label = screen.getByText('Treinos');
-    expect(label.closest('.builder-stat-card')).not.toHaveClass('builder-stat-card--accent');
+    expect(label.closest('.metric-card')).toHaveClass('metric-card--neutral');
   });
 
   it('card "Dias atribuídos" shows "X sem dia" when some trainings lack weekDay', () => {
@@ -1740,11 +1740,11 @@ describe('RoutineBuilder — stats row shows correct totals', () => {
 
     // The sub text inside the Dias atribuídos card
     const label = screen.getByText('Dias atribuídos');
-    const card = label.closest('.builder-stat-card');
-    expect(card.querySelector('.builder-stat-card-sub')).toHaveTextContent('—');
+    const card = label.closest('.metric-card');
+    expect(card.querySelector('.metric-card-support')).toHaveTextContent('—');
   });
 
-  it('card "Dias atribuídos" gets --warn modifier when unassigned trainings exist', () => {
+  it('card "Dias atribuídos" uses the warning tone when unassigned trainings exist', () => {
     useRoutineBuilder.mockReturnValue({
       ...EMPTY_HOOK_STATE,
       data: {
@@ -1758,7 +1758,7 @@ describe('RoutineBuilder — stats row shows correct totals', () => {
     renderNew();
 
     const label = screen.getByText('Dias atribuídos');
-    expect(label.closest('.builder-stat-card')).toHaveClass('builder-stat-card--warn');
+    expect(label.closest('.metric-card')).toHaveClass('metric-card--warning');
   });
 
 });
@@ -1839,7 +1839,7 @@ describe('RoutineBuilder — training item menu', () => {
       screen.getByRole('button', { name: /Opções do treino Peito & Tríceps/i })
     );
     await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
-    await user.click(await screen.findByRole('button', { name: /Confirmar/i }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /^Excluir$/ }));
 
     expect(deleteTraining).toHaveBeenCalledWith('training-1');
   });
@@ -3843,7 +3843,7 @@ describe('RoutineBuilder — bi-set rendering and dissolve', () => {
 
     await user.click(screen.getByRole('button', { name: /ações do bi-set/i }));
     await user.click(await screen.findByRole('button', { name: /Desfazer bi-set/i }));
-    await user.click(await screen.findByRole('button', { name: /Confirmar/i }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /Desfazer bi-set/i }));
 
     await waitFor(() => {
       expect(dissolveBiset).toHaveBeenCalledTimes(1);
@@ -4028,7 +4028,7 @@ describe('RoutineBuilder — substitute delete (protocol mode)', () => {
       screen.getByRole('button', { name: /Excluir substituto Crucifixo/i })
     );
 
-    await user.click(screen.getByRole('button', { name: /Confirmar/i }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /^Excluir$/ }));
 
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/exercises/sub-1');
@@ -4049,7 +4049,8 @@ describe('RoutineBuilder — substitute delete (protocol mode)', () => {
     );
 
     const dialog = await screen.findByText(/Excluir "Crucifixo"/i);
-    const dialogContainer = dialog.closest('.confirm-dialog');
+    expect(dialog).toBeInTheDocument();
+    const dialogContainer = screen.getByRole('alertdialog');
     await user.click(within(dialogContainer).getByRole('button', { name: /Cancelar/i }));
 
     expect(api.delete).not.toHaveBeenCalled();
@@ -4080,5 +4081,48 @@ describe('RoutineBuilder — substitute delete (protocol mode)', () => {
     expect(
       screen.queryByRole('button', { name: /Excluir substituto/i })
     ).not.toBeInTheDocument();
+  });
+});
+
+// ─── Tests — TeuFit DS: status as Badge, sentence-case buttons ───────────────
+
+describe('RoutineBuilder — design system status and labels', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows the training readiness as a Tag badge (no side stripe legend)', () => {
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+    renderNew();
+
+    const readiness = screen.getByText(/^(Vazio|Parcial|Pronto)$/);
+    expect(readiness).toHaveClass('badge', 'badge--tag');
+    expect(screen.queryByText(/Borda do card/i)).not.toBeInTheDocument();
+  });
+
+  it('shows "Vazio" with the neutral tone for a training without exercises', () => {
+    useRoutineBuilder.mockReturnValue({
+      ...EMPTY_HOOK_STATE,
+      data: { ...EMPTY_HOOK_STATE.data, name: 'Rotina', trainings: [{ id: 't1', name: 'Treino A', weekDay: null, exercises: [] }] },
+    });
+    renderNew();
+
+    expect(screen.getByText('Vazio')).toHaveClass('badge--neutral');
+  });
+
+  it('exposes the training accordion header as an expandable control', () => {
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+    renderNew();
+
+    const [header] = screen.getAllByRole('button', { expanded: false, name: /Peito & Tríceps/ });
+    expect(header).toHaveAttribute('aria-controls');
+  });
+
+  it('labels the mobile save button in sentence case', () => {
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+    renderNew();
+
+    const fab = screen.getAllByRole('button', { name: 'Salvar rotina' }).find((el) => el.textContent === 'Salvar');
+    expect(fab).toBeDefined();
   });
 });
