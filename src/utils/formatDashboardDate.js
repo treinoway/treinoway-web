@@ -51,7 +51,10 @@ export const formatPeriodRangeShort = (from, to) => {
  */
 export const formatDayMonthShort = (value) => {
   if (!value) return '';
-  const date = value instanceof Date ? value : new Date(value);
+  const dateOnly = typeof value === 'string' ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value) : null;
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : (value instanceof Date ? value : new Date(value));
   if (Number.isNaN(date.getTime())) return '';
   return `${date.getDate()} de ${MONTHS_PT_BR_SHORT[date.getMonth()]}`;
 };

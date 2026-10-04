@@ -16,12 +16,12 @@ describe('TrendChip', () => {
 
   it('formats positive deltas with + prefix', () => {
     render(<TrendChip deltaPct={10.34} />);
-    expect(screen.getByText('+10.34%')).toBeInTheDocument();
+    expect(screen.getByText('+10,34%')).toBeInTheDocument();
   });
 
   it('formats negative deltas without + prefix', () => {
     render(<TrendChip deltaPct={-5.5} />);
-    expect(screen.getByText('-5.5%')).toBeInTheDocument();
+    expect(screen.getByText('-5,5%')).toBeInTheDocument();
   });
 
   it('renders neutral chip when delta is zero', () => {

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { screen, waitFor } from '@testing-library/react';
-import { renderWithRoute } from '../../test/test-utils';
+import { screen, waitFor, renderWithRoute } from '../../test/test-utils';
 import ExerciseProgressionDetail from './ExerciseProgressionDetail';
 import api from '../../api/axios';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,6 +20,33 @@ vi.mock('../../api/axios', () => ({
   default: { get: vi.fn() },
   onNetworkError: vi.fn(() => vi.fn()),
 }));
+
+const PROGRESSION_URL = /dashboard\/exercise-progression/;
+
+const mockApi = (progression) => {
+  api.get.mockImplementation((url) => {
+    if (url === '/trainer/students') {
+      return Promise.resolve({ data: [{ id: 's-1', firstName: 'Adeildo', lastName: 'Neto' }] });
+    }
+    return typeof progression === 'function' ? progression(url) : Promise.resolve({ data: progression });
+  });
+};
+
+const progressionCalls = () => api.get.mock.calls.filter(([url]) => PROGRESSION_URL.test(url));
+
+const sessionOf = (overrides) => ({
+  sessionId: 's-x',
+  date: '2026-04-10',
+  status: 'completed',
+  maxLoad: 80,
+  avgLoad: 80,
+  totalVolume: 640,
+  completedSets: 1,
+  totalReps: 8,
+  avgRpe: 8,
+  sets: [{ setNumber: 1, repetitions: 8, load: 80, rpe: 8, completed: true }],
+  ...overrides,
+});
 
 const buildResponse = ({ sessions } = {}) => ({
   exercise: {
@@ -86,6 +112,10 @@ const renderDetail = () => renderWithRoute(<ExerciseProgressionDetail />, {
   path: '/trainer/students/:studentId/exercises/:exerciseId/progression',
 });
 
+const waitForTitle = () => screen.findByRole('heading', { level: 1, name: 'Agachamento livre' });
+
+const kpiValue = (label) => screen.getByText(label).nextElementSibling;
+
 describe('ExerciseProgressionDetail', () => {
   beforeEach(() => {
     api.get.mockReset();
@@ -100,365 +130,258 @@ describe('ExerciseProgressionDetail', () => {
     expect(screen.getByText('Carregando...')).toBeInTheDocument();
   });
 
-  it('renders the exercise title in the stadium hero', async () => {
-    api.get.mockResolvedValue({ data: buildResponse() });
+  it('renders the exercise title and the training overline', async () => {
+    mockApi(buildResponse());
     renderDetail();
 
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
-    });
+    await waitForTitle();
+    expect(screen.getByText('Treino A — Pernas')).toBeInTheDocument();
   });
 
-  it('renders the training name eyebrow', async () => {
-    api.get.mockResolvedValue({ data: buildResponse() });
+  it('renders the back link with the student name and navigates to the student', async () => {
+    const user = userEvent.setup();
+    mockApi(buildResponse());
     renderDetail();
 
-    await waitFor(() => {
-      expect(screen.getByText('Treino A — Pernas')).toBeInTheDocument();
-    });
+    const back = await screen.findByRole('button', { name: 'Voltar para o perfil do aluno' });
+    await waitFor(() => expect(back).toHaveTextContent('Adeildo Neto · Progressão de carga'));
+    await user.click(back);
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/s-1');
   });
 
-  it('renders the KPI stat tiles: session count, peak load, variation, total reps', async () => {
-    api.get.mockResolvedValue({ data: buildResponse() });
+  it('falls back to a generic back label when the student cannot be loaded', async () => {
+    api.get.mockImplementation((url) => (url === '/trainer/students'
+      ? Promise.reject(new Error('x'))
+      : Promise.resolve({ data: buildResponse() })));
     renderDetail();
 
-    await waitFor(() => {
-      // session count
-      expect(screen.getByText('Sessões no período')).toBeInTheDocument();
-      // peak load label
-      expect(screen.getByText('Pico de carga')).toBeInTheDocument();
-      // variation label
-      expect(screen.getByText('Variação')).toBeInTheDocument();
-      // total reps label
-      expect(screen.getByText('Total de reps')).toBeInTheDocument();
-    });
-
-    // 3 sessions — each with 32 reps = 96 total reps
-    expect(screen.getByText('96')).toBeInTheDocument();
-    // peak load = 77.5 kg
-    expect(screen.getByText('77.5')).toBeInTheDocument();
+    const back = await screen.findByRole('button', { name: 'Voltar para o perfil do aluno' });
+    expect(back).toHaveTextContent('Progressão de carga');
+    expect(back).not.toHaveTextContent('·');
   });
 
-  it('renders the Evolução callout with load range when 2+ sessions exist', async () => {
-    api.get.mockResolvedValue({ data: buildResponse() });
+  it('renders the four KPI values', async () => {
+    mockApi(buildResponse());
     renderDetail();
+    await waitForTitle();
 
-    await waitFor(() => {
-      expect(screen.getByText('Evolução')).toBeInTheDocument();
-    });
-    // load range: earliest session startLoad=70, latest endLoad=77.5
-    expect(screen.getByText(/70 → 77\.5 kg/)).toBeInTheDocument();
+    expect(kpiValue('Sessões no período')).toHaveTextContent('3');
+    expect(kpiValue('Pico de carga')).toHaveTextContent('77,5 kg');
+    expect(kpiValue('Variação')).toHaveTextContent('+10,71%');
+    expect(kpiValue('Total de reps')).toHaveTextContent('96');
+  });
+
+  it('renders the Evolução box with load range and caption', async () => {
+    mockApi(buildResponse());
+    renderDetail();
+    await waitForTitle();
+
+    expect(screen.getByText('Evolução')).toBeInTheDocument();
+    expect(screen.getByText(/70 → 77,5 kg/)).toBeInTheDocument();
+    expect(screen.getByText(/Comparado à 1ª sessão \(5 de abr\)/)).toBeInTheDocument();
+  });
+
+  it('uses the success badge tone when load went up', async () => {
+    mockApi(buildResponse());
+    renderDetail();
+    await waitForTitle();
+
+    expect(screen.getByLabelText('Variação +10,71%')).toHaveClass('badge--success');
+  });
+
+  it('uses the error badge tone when load went down', async () => {
+    mockApi(buildResponse({
+      sessions: [
+        sessionOf({ sessionId: 'a', date: '2026-04-05', maxLoad: 80 }),
+        sessionOf({ sessionId: 'b', date: '2026-04-20', maxLoad: 60 }),
+      ],
+    }));
+    renderDetail();
+    await waitForTitle();
+
+    expect(screen.getByLabelText('Variação -25%')).toHaveClass('badge--error');
+    expect(kpiValue('Variação')).toHaveTextContent('-25%');
+  });
+
+  it('uses the neutral badge tone when load is flat', async () => {
+    mockApi(buildResponse({
+      sessions: [
+        sessionOf({ sessionId: 'a', date: '2026-04-05', maxLoad: 80 }),
+        sessionOf({ sessionId: 'b', date: '2026-04-20', maxLoad: 80 }),
+      ],
+    }));
+    renderDetail();
+    await waitForTitle();
+
+    expect(screen.getByLabelText('Variação 0%')).toHaveClass('badge--neutral');
   });
 
   it('renders the Evolução empty state with helper text when only 1 session', async () => {
-    api.get.mockResolvedValue({
-      data: buildResponse({
-        sessions: [
-          {
-            sessionId: 's-solo',
-            date: '2026-04-10',
-            status: 'completed',
-            maxLoad: 80,
-            avgLoad: 80,
-            totalVolume: 800,
-            completedSets: 3,
-            totalReps: 24,
-            avgRpe: 7,
-            sets: [{ setNumber: 1, repetitions: 8, load: 80, rpe: 7, completed: true }],
-          },
-        ],
-      }),
-    });
+    mockApi(buildResponse({ sessions: [sessionOf({ sessionId: 's-solo' })] }));
     renderDetail();
+    await waitForTitle();
 
-    await waitFor(() => {
-      expect(screen.getByText('Evolução')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Evolução')).toBeInTheDocument();
     expect(screen.getByText('Precisa de pelo menos 2 sessões para comparar')).toBeInTheDocument();
+    expect(kpiValue('Variação')).toHaveTextContent('—');
   });
 
-  it('expands the first AND last session by default', async () => {
-    api.get.mockResolvedValue({ data: buildResponse() });
-    renderDetail();
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      const expandedHeaders = screen.getAllByRole('button', { expanded: true });
-      expect(expandedHeaders.length).toBeGreaterThanOrEqual(2);
-    });
-  });
-
-  it('collapses an expanded session card when clicked', async () => {
+  it('opens the period picker from the period button', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: buildResponse() });
+    mockApi(buildResponse());
     renderDetail();
+    await waitForTitle();
+
+    const periodButton = screen.getByRole('button', { name: /Alterar período/ });
+    expect(periodButton).toHaveAttribute('aria-expanded', 'false');
+    await user.click(periodButton);
+    expect(periodButton).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('expands the first AND last session by default and collapses the middle one', async () => {
+    mockApi(buildResponse());
+    renderDetail();
+    await waitForTitle();
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sessão de 05 abr/ })).toHaveAttribute('aria-expanded', 'true');
     });
+    expect(screen.getByRole('button', { name: /sessão de 01 mai/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: /sessão de 22 abr/ })).toHaveAttribute('aria-expanded', 'false');
+  });
 
-    await waitFor(() => {
-      const expanded = screen.getAllByRole('button', { expanded: true })
-        .filter((btn) => btn.className.includes('exercise-session-card-header'));
-      expect(expanded.length).toBeGreaterThan(0);
-    });
+  it('collapses an expanded session and expands a collapsed one when clicked', async () => {
+    const user = userEvent.setup();
+    mockApi(buildResponse());
+    renderDetail();
+    await waitForTitle();
 
-    const expandedHeader = screen.getAllByRole('button', { expanded: true })
-      .find((btn) => btn.className.includes('exercise-session-card-header'));
-    expect(expandedHeader).toBeTruthy();
+    const expanded = await screen.findByRole('button', { name: /Recolher sessão de 01 mai/ });
+    await user.click(expanded);
+    expect(expanded).toHaveAttribute('aria-expanded', 'false');
 
-    await user.click(expandedHeader);
-
-    await waitFor(() => {
-      expect(expandedHeader).toHaveAttribute('aria-expanded', 'false');
-    });
+    const collapsed = screen.getByRole('button', { name: /Expandir sessão de 22 abr/ });
+    await user.click(collapsed);
+    expect(collapsed).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('renders an empty state when no sessions are returned', async () => {
-    api.get.mockResolvedValue({ data: buildResponse({ sessions: [] }) });
+    mockApi(buildResponse({ sessions: [] }));
     renderDetail();
 
-    await waitFor(() => {
-      expect(screen.getByText('Aluno ainda não treinou nesse período')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Aluno ainda não treinou nesse período')).toBeInTheDocument();
+    expect(kpiValue('Pico de carga')).toHaveTextContent('—');
   });
 
-  it('shows an error block when the request fails', async () => {
-    api.get.mockRejectedValue({ response: { status: 500 }, userMessage: 'Erro' });
-    renderDetail();
-
-    await waitFor(() => {
-      expect(screen.getByText('Falha ao carregar')).toBeInTheDocument();
-    });
-    expect(screen.getByRole('button', { name: 'Tentar novamente' })).toBeInTheDocument();
-  });
-
-  it('navigates back to student detail when back button is clicked', async () => {
+  it('shows an error block with retry and back when the request fails', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: buildResponse() });
+    mockApi(() => Promise.reject({ response: { status: 500 }, userMessage: 'Erro' }));
     renderDetail();
 
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Falha ao carregar')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Voltar para aluno/ }));
+    const callsBefore = progressionCalls().length;
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    await waitFor(() => expect(progressionCalls().length).toBeGreaterThan(callsBefore));
+
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/s-1');
   });
 
   it('uses URL params for the initial period (overriding persisted preset)', async () => {
-    api.get.mockResolvedValue({ data: buildResponse() });
+    mockApi(buildResponse());
     renderDetail();
 
-    await waitFor(() => expect(api.get).toHaveBeenCalled());
-    const call = api.get.mock.calls[0];
-    expect(call[1].params.dateFrom).toBe('2026-04-02T00:00:00.000Z');
-    expect(call[1].params.dateTo).toBe('2026-05-02T00:00:00.000Z');
+    await waitFor(() => expect(progressionCalls().length).toBeGreaterThan(0));
+    const [, config] = progressionCalls()[0];
+    expect(config.params.dateFrom).toBe('2026-04-02T00:00:00.000Z');
+    expect(config.params.dateTo).toBe('2026-05-02T00:00:00.000Z');
   });
 
-  it('toggle defaults to unchecked and API is called without includeAbandoned=true', async () => {
-    api.get.mockResolvedValue({ data: buildResponse() });
+  it('abandoned toggle starts off and the API is called without includeAbandoned', async () => {
+    mockApi(buildResponse());
     renderDetail();
+    await waitForTitle();
 
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
-    });
-
-    const toggle = screen.getByRole('checkbox', { name: /Incluir sessões abandonadas/ });
-    expect(toggle).not.toBeChecked();
-
-    const firstCallParams = api.get.mock.calls[0][1].params;
-    expect(firstCallParams.includeAbandoned).toBeUndefined();
+    const toggle = screen.getByRole('switch', { name: 'Incluir sessões abandonadas' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(progressionCalls()[0][1].params.includeAbandoned).toBeUndefined();
   });
 
-  it('toggling the checkbox triggers a refetch with includeAbandoned: true', async () => {
+  it('turning the toggle on refetches with includeAbandoned and turning it off drops the flag', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: buildResponse() });
+    mockApi(buildResponse());
     renderDetail();
+    await waitForTitle();
 
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
-    });
-
-    const callsBefore = api.get.mock.calls.length;
-    const toggle = screen.getByRole('checkbox', { name: /Incluir sessões abandonadas/ });
+    const toggle = screen.getByRole('switch', { name: 'Incluir sessões abandonadas' });
+    const callsBefore = progressionCalls().length;
     await user.click(toggle);
 
-    await waitFor(() => {
-      expect(api.get.mock.calls.length).toBeGreaterThan(callsBefore);
-    });
+    await waitFor(() => expect(progressionCalls().length).toBeGreaterThan(callsBefore));
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    const calls = progressionCalls();
+    expect(calls[calls.length - 1][1].params.includeAbandoned).toBe(true);
 
-    const lastCall = api.get.mock.calls[api.get.mock.calls.length - 1];
-    expect(lastCall[1].params.includeAbandoned).toBe(true);
+    const callsAfterOn = calls.length;
+    await user.click(toggle);
+    await waitFor(() => expect(progressionCalls().length).toBeGreaterThan(callsAfterOn));
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    const latest = progressionCalls();
+    expect(latest[latest.length - 1][1].params.includeAbandoned).toBeUndefined();
   });
 
-  it('renders "Abandonada" badge on a session with status abandoned', async () => {
-    api.get.mockResolvedValue({
-      data: buildResponse({
-        sessions: [
-          {
-            sessionId: 's-ab',
-            date: '2026-04-10',
-            status: 'abandoned',
-            maxLoad: 60,
-            avgLoad: 60,
-            totalVolume: 300,
-            completedSets: 1,
-            totalReps: 8,
-            avgRpe: 6,
-            sets: [{ setNumber: 1, repetitions: 8, load: 60, rpe: 6, completed: true }],
-          },
-        ],
-      }),
-    });
+  it('renders the "Abandonada" badge only on abandoned sessions', async () => {
+    mockApi(buildResponse({ sessions: [sessionOf({ sessionId: 's-ab', status: 'abandoned' })] }));
     renderDetail();
 
-    await waitFor(() => {
-      expect(screen.getByText('Abandonada')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Abandonada')).toBeInTheDocument();
   });
 
-  it('does not render "Abandonada" badge on a session with status completed', async () => {
-    api.get.mockResolvedValue({
-      data: buildResponse({
-        sessions: [
-          {
-            sessionId: 's-ok',
-            date: '2026-04-15',
-            status: 'completed',
-            maxLoad: 70,
-            avgLoad: 68,
-            totalVolume: 1000,
-            completedSets: 4,
-            totalReps: 32,
-            avgRpe: 7,
-            sets: [{ setNumber: 1, repetitions: 8, load: 68, rpe: 7, completed: true }],
-          },
-        ],
-      }),
-    });
+  it('does not render "Abandonada" on completed sessions', async () => {
+    mockApi(buildResponse({ sessions: [sessionOf({ sessionId: 's-ok' })] }));
     renderDetail();
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
-    });
+    await waitForTitle();
 
     expect(screen.queryByText('Abandonada')).not.toBeInTheDocument();
   });
 
-  it('renders Check icon for completed sets and Minus icon for skipped sets', async () => {
-    api.get.mockResolvedValue({
-      data: buildResponse({
-        sessions: [
-          {
-            sessionId: 's-mixed',
-            date: '2026-04-10',
-            status: 'completed',
-            maxLoad: 70,
-            avgLoad: 70,
-            totalVolume: 560,
-            completedSets: 1,
-            totalReps: 8,
-            avgRpe: 7,
-            sets: [
-              { setNumber: 1, repetitions: 8, load: 70, rpe: 7, completed: true },
-              { setNumber: 2, repetitions: 0, load: null, rpe: null, completed: false },
-            ],
-          },
-        ],
-      }),
-    });
+  it('renders set rows with reps, load, RPE and completion marks', async () => {
+    mockApi(buildResponse({
+      sessions: [
+        sessionOf({
+          sets: [
+            { setNumber: 1, repetitions: 8, load: 70, rpe: 7, completed: true },
+            { setNumber: 2, repetitions: 0, load: null, rpe: null, completed: false },
+          ],
+        }),
+      ],
+    }));
     renderDetail();
 
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
-    });
-
-    // The session is expanded by default (only one session = both first+last)
-    await waitFor(() => {
-      expect(screen.getByLabelText('Concluída')).toBeInTheDocument();
-      expect(screen.getByLabelText('Não concluída')).toBeInTheDocument();
-    });
-  });
-
-  it('keeps the check/minus mark in the last column when set has no load and no rpe', async () => {
-    api.get.mockResolvedValue({
-      data: buildResponse({
-        sessions: [
-          {
-            sessionId: 's-noload',
-            date: '2026-04-10',
-            status: 'completed',
-            maxLoad: null,
-            avgLoad: null,
-            totalVolume: 0,
-            completedSets: 1,
-            totalReps: 10,
-            avgRpe: null,
-            sets: [
-              { setNumber: 1, repetitions: 10, load: null, rpe: null, completed: true },
-            ],
-          },
-        ],
-      }),
-    });
-    renderDetail();
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
-    });
-
-    // Mark must still be present and correctly labelled regardless of missing load/rpe
-    await waitFor(() => {
-      expect(screen.getByLabelText('Concluída')).toBeInTheDocument();
-    });
-
-    // The set label and reps are present
-    expect(screen.getByText('Set 1')).toBeInTheDocument();
-    expect(screen.getByText('10 reps')).toBeInTheDocument();
-
-    // The load and rpe text must NOT appear (slots are empty placeholders)
-    expect(screen.queryByText(/kg/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/RPE/)).not.toBeInTheDocument();
-  });
-
-  it('renders load and rpe values when both are present', async () => {
-    api.get.mockResolvedValue({
-      data: buildResponse({
-        sessions: [
-          {
-            sessionId: 's-full',
-            date: '2026-04-15',
-            status: 'completed',
-            maxLoad: 80,
-            avgLoad: 80,
-            totalVolume: 640,
-            completedSets: 1,
-            totalReps: 8,
-            avgRpe: 8,
-            sets: [
-              { setNumber: 1, repetitions: 8, load: 80, rpe: 8, completed: true },
-            ],
-          },
-        ],
-      }),
-    });
-    renderDetail();
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1, name: 'Agachamento livre' })).toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('Set 1')).toBeInTheDocument();
-    });
-
+    expect(await screen.findByText('Série 1')).toBeInTheDocument();
     expect(screen.getByText('8 reps')).toBeInTheDocument();
-    expect(screen.getByText('80 kg')).toBeInTheDocument();
-    expect(screen.getByText('RPE 8')).toBeInTheDocument();
-    expect(screen.getByLabelText('Concluída')).toBeInTheDocument();
+    expect(screen.getByText('70 kg')).toBeInTheDocument();
+    expect(screen.getByText('RPE 7')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Concluída' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Não concluída' })).toBeInTheDocument();
+  });
+
+  it('omits load and RPE when absent', async () => {
+    mockApi(buildResponse({
+      sessions: [
+        sessionOf({
+          maxLoad: null,
+          sets: [{ setNumber: 1, repetitions: 10, load: null, rpe: null, completed: true }],
+        }),
+      ],
+    }));
+    renderDetail();
+
+    expect(await screen.findByText('Série 1')).toBeInTheDocument();
+    expect(screen.getByText('10 reps')).toBeInTheDocument();
+    expect(screen.queryByText(/RPE/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ kg/)).not.toBeInTheDocument();
   });
 });

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Minus } from 'lucide-react';
+import { ArrowLeft, CalendarDays, CalendarX, TriangleAlert } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translateError } from '../../i18n';
+import api from '../../api/axios';
 import useExerciseProgressionDetail from '../../hooks/useExerciseProgressionDetail';
 import usePeriodPersistence from '../../hooks/usePeriodPersistence';
 import {
@@ -16,12 +17,8 @@ import {
 } from '../../utils/formatDashboardDate';
 import PeriodPickerSheet from '../../components/PeriodPickerSheet';
 import TrendChip from '../../components/TrendChip';
-import EmptyDataMessage from '../../components/EmptyDataMessage';
-import StatDisplay from '../../components/StatDisplay';
-
-const SESSION_PAGE_SIZE = 10;
-
-const formatLoad = (value) => (value === null || value === undefined ? '—' : `${value} kg`);
+import ProgressionSessionAccordion from '../../components/ProgressionSessionAccordion';
+import EmptyBlock from '../../components/ds/EmptyBlock';
 
 const computeTrend = (sessions) => {
   if (!Array.isArray(sessions) || sessions.length < 2) {
@@ -50,13 +47,62 @@ const computeKpis = (sessions) => {
   return { peakLoad, totalReps };
 };
 
-const formatDateHeader = (dateStr) => {
-  if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return '-';
-  const day = String(date.getDate()).padStart(2, '0');
-  const MONTHS = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
-  return `${day} ${MONTHS[date.getMonth()]}`;
+const formatNumber = (value) => value.toLocaleString('pt-BR');
+
+const getStudentName = (student) => {
+  if (!student) return null;
+  const fullName = [student.firstName, student.lastName].filter(Boolean).join(' ');
+  return fullName || student.email || null;
+};
+
+const formatDeltaPct = (deltaPct) => {
+  if (deltaPct === null) return '—';
+  const sign = deltaPct > 0 ? '+' : '';
+  return `${sign}${deltaPct.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
+};
+
+const Kpi = ({ label, value }) => (
+  <div className="kpi">
+    <span className="kpi-label type-overline">{label}</span>
+    <span className="kpi-value progression-hero__kpi-value type-h2">{value}</span>
+  </div>
+);
+
+Kpi.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
+};
+
+const EvolutionBox = ({ hasTrendData, trend }) => (
+  <div className="progression-hero__evolution">
+    <div className="progression-hero__evolution-text">
+      <span className="progression-hero__evolution-label type-overline">Evolução</span>
+      {hasTrendData ? (
+        <span className="progression-hero__evolution-value type-body-strong">
+          {formatNumber(trend.startLoad)} → {formatNumber(trend.endLoad)} kg
+        </span>
+      ) : (
+        <span className="progression-hero__evolution-hint type-caption">
+          Precisa de pelo menos 2 sessões para comparar
+        </span>
+      )}
+    </div>
+    {hasTrendData && (
+      <TrendChip
+        deltaPct={trend.deltaPct}
+        ariaLabel={trend.deltaPct !== null ? `Variação ${formatDeltaPct(trend.deltaPct)}` : 'Sem comparativo'}
+      />
+    )}
+  </div>
+);
+
+EvolutionBox.propTypes = {
+  hasTrendData: PropTypes.bool.isRequired,
+  trend: PropTypes.shape({
+    startLoad: PropTypes.number,
+    endLoad: PropTypes.number,
+    deltaPct: PropTypes.number,
+  }).isRequired,
 };
 
 const ExerciseProgressionDetail = () => {
@@ -73,6 +119,7 @@ const ExerciseProgressionDetail = () => {
   const [period, setPeriod] = usePeriodPersistence(user?.id, { initialOverride });
   const [pickerOpen, setPickerOpen] = useState(false);
   const [includeAbandoned, setIncludeAbandoned] = useState(false);
+  const [studentName, setStudentName] = useState(null);
 
   const { data, loading, error, refetch } = useExerciseProgressionDetail(studentId, exerciseId, period, includeAbandoned);
 
@@ -82,6 +129,18 @@ const ExerciseProgressionDetail = () => {
 
   const sessionsKey = sessions.length ? sessions.map((s) => s.sessionId).join('|') : '';
   const [expandedSessionIds, setExpandedSessionIds] = useState(() => new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/trainer/students')
+      .then((response) => {
+        if (cancelled || !Array.isArray(response?.data)) return;
+        const found = response.data.find((student) => String(student.id) === String(studentId));
+        setStudentName(getStudentName(found));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [studentId]);
 
   useEffect(() => {
     if (!sessions.length) return;
@@ -132,13 +191,16 @@ const ExerciseProgressionDetail = () => {
 
   if (error && !data) {
     return (
-      <div className="dashboard-not-found" role="alert">
-        <p className="empty-state-title">Falha ao carregar</p>
-        <p className="text-muted text-sm">{translateError(error)}</p>
-        <div className="btn-group">
-          <button type="button" className="btn-secondary" onClick={handleBack}>Voltar</button>
-          <button type="button" className="btn-primary" onClick={refetch}>Tentar novamente</button>
-        </div>
+      <div className="progression-detail__state">
+        <EmptyBlock
+          icon={TriangleAlert}
+          role="alert"
+          title="Falha ao carregar"
+          description={translateError(error)}
+          actionLabel="Tentar novamente"
+          onAction={refetch}
+        />
+        <button type="button" className="btn btn--secondary" onClick={handleBack}>Voltar</button>
       </div>
     );
   }
@@ -147,135 +209,93 @@ const ExerciseProgressionDetail = () => {
     return null;
   }
 
-  const sessionCount = sessions.length;
-  const trendDelta = trend.deltaPct;
   const hasTrendData = sessions.length >= 2;
-  const firstSessionDate = responseWindow?.from ? formatDayMonthShort(responseWindow.from) : null;
-  const earliestSessionInWindow = sessions.length
-    ? formatDayMonthShort([...sessions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0].date)
+  const earliestSession = sessions.length
+    ? [...sessions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
     : null;
-  const anchorDate = earliestSessionInWindow ?? firstSessionDate;
-
-  const deltaPctDisplay = trendDelta !== null
-    ? (trendDelta > 0 ? `+${trendDelta}%` : `${trendDelta}%`)
-    : '—';
-  const deltaPctDirection = trendDelta === null ? 'neutral' : trendDelta > 0 ? 'up' : trendDelta < 0 ? 'down' : 'neutral';
+  const anchorDate = earliestSession
+    ? formatDayMonthShort(earliestSession.date)
+    : formatDayMonthShort(responseWindow?.from);
+  const peakLoadLabel = kpis.peakLoad !== null ? `${formatNumber(kpis.peakLoad)} kg` : '—';
 
   return (
-    <div className="exercise-progression-detail">
+    <div className="progression-detail">
+      <button
+        type="button"
+        className="btn btn--ghost progression-detail__back"
+        onClick={handleBack}
+        aria-label="Voltar para o perfil do aluno"
+      >
+        <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
+        {studentName ? `${studentName} · Progressão de carga` : 'Progressão de carga'}
+      </button>
 
-      {/* ── Stadium hero ── */}
-      <section className="theme-stadium epd-hero">
-        <div className="epd-hero-nav">
+      <section className="section-card progression-hero" aria-label="Resumo da progressão">
+        <div className="progression-hero__header">
+          <div className="progression-hero__heading">
+            {exercise.trainingName && (
+              <span className="progression-hero__overline type-overline">{exercise.trainingName}</span>
+            )}
+            <h1 className="type-h1 progression-hero__title">{exercise.name}</h1>
+          </div>
           <button
             type="button"
-            className="epd-back-btn"
-            onClick={handleBack}
-            aria-label="Voltar para aluno"
-          >
-            <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
-            Aluno
-          </button>
-          <button
-            type="button"
-            className="activity-period-chip"
+            className="btn btn--secondary progression-hero__period"
             aria-haspopup="dialog"
             aria-expanded={pickerOpen}
             aria-label={`Alterar período. Atual: ${periodLabel}`}
             onClick={() => setPickerOpen(true)}
           >
-            <span className="activity-period-chip-label">{periodLabel}</span>
-            <ChevronDown size={14} strokeWidth={2} aria-hidden="true" />
+            {periodLabel}
+            <CalendarDays size={16} strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
 
-        {exercise.trainingName && (
-          <span className="epd-hero-eyebrow">{exercise.trainingName}</span>
-        )}
-        <h1 className="epd-hero-title">{exercise.name}</h1>
-
-        <div className="epd-hero-stats">
-          <StatDisplay
-            value={sessionCount}
-            label="Sessões no período"
-          />
-          <StatDisplay
-            value={kpis.peakLoad !== null ? kpis.peakLoad : '—'}
-            unit={kpis.peakLoad !== null ? 'kg' : undefined}
-            label="Pico de carga"
-          />
-          <StatDisplay
-            value={deltaPctDisplay}
-            label="Variação"
-            trendDirection={deltaPctDisplay !== '—' ? deltaPctDirection : undefined}
-          />
-          <StatDisplay
-            value={kpis.totalReps}
-            label="Total de reps"
-          />
+        <div className="progression-hero__kpis" role="group" aria-label="Indicadores da progressão">
+          <Kpi label="Sessões no período" value={String(sessions.length)} />
+          <Kpi label="Pico de carga" value={peakLoadLabel} />
+          <Kpi label="Variação" value={formatDeltaPct(trend.deltaPct)} />
+          <Kpi label="Total de reps" value={formatNumber(kpis.totalReps)} />
         </div>
 
-        {/* Evolução callout */}
-        {hasTrendData ? (
-          <div className="epd-evolucao">
-            <span className="epd-evolucao-label">Evolução</span>
-            <span className="epd-evolucao-range">
-              {trend.startLoad} → {trend.endLoad} kg
-            </span>
-            <TrendChip
-              deltaPct={trendDelta}
-              ariaLabel={trendDelta !== null ? `Variação ${trendDelta}%` : 'Sem comparativo'}
-            />
-          </div>
-        ) : (
-          <div className="epd-evolucao epd-evolucao--empty">
-            <span className="epd-evolucao-label">Evolução</span>
-            <span className="epd-evolucao-dash">—</span>
-            <span className="epd-evolucao-hint">Precisa de pelo menos 2 sessões para comparar</span>
-          </div>
-        )}
+        <EvolutionBox hasTrendData={hasTrendData} trend={trend} />
 
         {anchorDate && (
-          <p className="epd-hero-anchor">
+          <p className="progression-hero__caption type-caption">
             Comparado à 1ª sessão ({anchorDate})
           </p>
         )}
       </section>
 
-      {/* ── Filter row ── */}
-      <div className="exercise-progression-filter">
-        <label className="toggle-row" htmlFor="include-abandoned-toggle">
-          <div className="toggle-row-content">
-            <span className="toggle-row-title">Incluir sessões abandonadas</span>
-          </div>
-          <div className="switch">
-            <input
-              id="include-abandoned-toggle"
-              type="checkbox"
-              checked={includeAbandoned}
-              onChange={(e) => setIncludeAbandoned(e.target.checked)}
-            />
-            <span className="switch-slider" />
-          </div>
-        </label>
+      <div className="section-card progression-filter">
+        <span id="include-abandoned-label" className="progression-filter__label type-body-strong">
+          Incluir sessões abandonadas
+        </span>
+        <button
+          type="button"
+          role="switch"
+          className="toggle"
+          aria-checked={includeAbandoned}
+          aria-labelledby="include-abandoned-label"
+          onClick={() => setIncludeAbandoned((prev) => !prev)}
+        />
       </div>
 
-      {/* ── Session list ── */}
       {sessions.length === 0 ? (
-        <EmptyDataMessage
+        <EmptyBlock
+          icon={CalendarX}
           title="Aluno ainda não treinou nesse período"
           description="Tente ampliar a janela de datas."
         />
       ) : (
-        <ul className="exercise-progression-sessions">
+        <ul className="progression-sessions">
           {sessions.map((session) => (
-            <ExerciseSessionCard
+            <ProgressionSessionAccordion
               key={session.sessionId}
               session={session}
               expanded={expandedSessionIds.has(session.sessionId)}
               onToggle={() => handleToggleSession(session.sessionId)}
               hasLoad={exercise.hasLoad}
-              status={session.status}
             />
           ))}
         </ul>
@@ -289,103 +309,6 @@ const ExerciseProgressionDetail = () => {
       />
     </div>
   );
-};
-
-const ExerciseSessionCard = ({ session, expanded, onToggle, hasLoad, status }) => {
-  const sets = Array.isArray(session.sets) ? session.sets : [];
-  const dateLabel = formatDateHeader(session.date);
-  const setCount = session.completedSets ?? 0;
-  const totalReps = session.totalReps ?? 0;
-  const repSummary = `${setCount} ${setCount === 1 ? 'série' : 'séries'} · ${totalReps} reps`;
-  const isAbandoned = status === 'abandoned';
-
-  return (
-    <li className="exercise-session-card">
-      <button
-        type="button"
-        className="exercise-session-card-header"
-        aria-expanded={expanded}
-        onClick={onToggle}
-      >
-        <div className="exercise-session-card-date-block">
-          <span className="exercise-session-card-date">{dateLabel}</span>
-          <span className="exercise-session-card-summary">{repSummary}</span>
-        </div>
-        <div className="exercise-session-card-badges">
-          {isAbandoned && (
-            <span className="badge badge-gray">Abandonada</span>
-          )}
-          {expanded
-            ? <ChevronUp size={16} strokeWidth={2} aria-hidden="true" />
-            : <ChevronDown size={16} strokeWidth={2} aria-hidden="true" />}
-        </div>
-      </button>
-      {expanded && (
-        <ul className="exercise-session-set-list">
-          {sets.length === 0 && (
-            <li className="exercise-session-set-empty text-sm text-muted">Sem séries registradas</li>
-          )}
-          {sets.map((set) => (
-            <SetRow key={`${session.sessionId}-${set.setNumber}`} set={set} hasLoad={hasLoad} />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-};
-
-const SetRow = ({ set, hasLoad }) => {
-  const reps = set.repetitions ?? 0;
-  const loadValue = hasLoad && set.load !== null && set.load !== undefined ? formatLoad(set.load) : null;
-  const rpeValue = set.rpe !== null && set.rpe !== undefined ? `RPE ${set.rpe}` : null;
-
-  return (
-    <li className={`exercise-session-set-row${set.completed ? '' : ' exercise-session-set-row--skipped'}`}>
-      <span className="exercise-session-set-label">Set {set.setNumber}</span>
-      <span className="exercise-session-set-reps">{reps} reps</span>
-      {/* Always render the load slot so the grid stays stable */}
-      <span className={loadValue ? 'exercise-session-set-load' : 'exercise-session-set-slot-empty'} aria-hidden={loadValue ? undefined : 'true'}>
-        {loadValue ?? ''}
-      </span>
-      {/* Always render the rpe slot so the grid stays stable */}
-      <span className={rpeValue ? 'exercise-session-set-rpe' : 'exercise-session-set-slot-empty'} aria-hidden={rpeValue ? undefined : 'true'}>
-        {rpeValue ?? ''}
-      </span>
-      <span
-        className="exercise-session-set-mark"
-        aria-label={set.completed ? 'Concluída' : 'Não concluída'}
-      >
-        {set.completed
-          ? <Check size={14} strokeWidth={2} aria-hidden="true" />
-          : <Minus size={14} strokeWidth={2} aria-hidden="true" />}
-      </span>
-    </li>
-  );
-};
-
-ExerciseSessionCard.propTypes = {
-  session: PropTypes.shape({
-    sessionId: PropTypes.string.isRequired,
-    date: PropTypes.string,
-    completedSets: PropTypes.number,
-    totalReps: PropTypes.number,
-    sets: PropTypes.array,
-  }).isRequired,
-  expanded: PropTypes.bool.isRequired,
-  onToggle: PropTypes.func.isRequired,
-  hasLoad: PropTypes.bool,
-  status: PropTypes.string,
-};
-
-SetRow.propTypes = {
-  set: PropTypes.shape({
-    setNumber: PropTypes.number.isRequired,
-    repetitions: PropTypes.number,
-    load: PropTypes.number,
-    rpe: PropTypes.number,
-    completed: PropTypes.bool,
-  }).isRequired,
-  hasLoad: PropTypes.bool,
 };
 
 export default ExerciseProgressionDetail;
