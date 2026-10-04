@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 const RESEND_COOLDOWN_SECONDS = 60;
 const CODE_PATTERN = /^[0-9]{6}$/;
 const MIN_PASSWORD_LENGTH = 8;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ForgotPassword = () => {
   const [step, setStep] = useState('email');
@@ -38,6 +39,9 @@ const ForgotPassword = () => {
   const validateResetFields = () => {
     const errors = {};
 
+    if (!EMAIL_PATTERN.test(email.trim())) {
+      errors.email = 'Informe o e-mail usado para solicitar o código.';
+    }
     if (!CODE_PATTERN.test(code)) {
       errors.code = 'Informe o código de 6 dígitos recebido por e-mail.';
     }
@@ -49,6 +53,11 @@ const ForgotPassword = () => {
     }
 
     return errors;
+  };
+
+  const handleResetEmailChange = (value) => {
+    setEmail(value);
+    setFieldErrors((prev) => ({ ...prev, email: undefined }));
   };
 
   const handleCodeChange = (value) => {
@@ -106,7 +115,7 @@ const ForgotPassword = () => {
     setResendLoading(true);
 
     try {
-      const result = await forgotPassword(email);
+      const result = await forgotPassword(email.trim());
 
       if (result.success) {
         setResendCooldown(RESEND_COOLDOWN_SECONDS);
@@ -134,7 +143,12 @@ const ForgotPassword = () => {
     setResetLoading(true);
 
     try {
-      const result = await resetPassword(code, password, confirmPassword);
+      const result = await resetPassword({
+        email: email.trim(),
+        code,
+        password,
+        passwordConfirmation: confirmPassword,
+      });
 
       if (result.success) {
         navigate('/', { replace: true });
@@ -147,6 +161,9 @@ const ForgotPassword = () => {
       setResetLoading(false);
     }
   };
+
+  const hasEmail = email.trim() !== '';
+  const showResetEmailField = !arrivedViaSubmit;
 
   return (
     <div className="auth-page">
@@ -213,6 +230,26 @@ const ForgotPassword = () => {
             {error && <p className="auth-error" role="alert">{error}</p>}
 
             <form onSubmit={handleResetSubmit} className="auth-form">
+              {showResetEmailField && (
+                <div className="form-group">
+                  <label htmlFor="resetEmail" className="form-label">E-mail</label>
+                  <input
+                    type="email"
+                    id="resetEmail"
+                    value={email}
+                    onChange={(e) => handleResetEmailChange(e.target.value)}
+                    required
+                    className={`form-input${fieldErrors.email ? ' form-input--error' : ''}`}
+                    placeholder="voce@exemplo.com"
+                    autoComplete="email"
+                    disabled={resetLoading}
+                  />
+                  {fieldErrors.email && (
+                    <span className="form-error" role="alert">{fieldErrors.email}</span>
+                  )}
+                </div>
+              )}
+
               <div className="form-group">
                 <label htmlFor="code" className="form-label">Código</label>
                 <input
@@ -299,7 +336,7 @@ const ForgotPassword = () => {
               </button>
             </form>
 
-            {email ? (
+            {hasEmail ? (
               <button
                 type="button"
                 onClick={handleResend}

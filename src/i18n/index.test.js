@@ -149,6 +149,8 @@ describe('translateError', () => {
       'Você solicitou códigos demais hoje. Tente novamente mais tarde.'],
     [502, 'EMAIL_VERIFICATION_SEND_FAILED', 'emailVerification.sendFailed',
       'Não foi possível enviar o e-mail de verificação. Tente novamente.'],
+    [400, 'PASSWORD_RESET_INVALID_CODE', 'passwordReset.invalidCode',
+      'Código inválido ou expirado. Solicite um novo.'],
   ])('translates %i %s via messageCode %s', (status, errorCode, messageCode, expected) => {
     const error = makeAxiosError({ status, data: { error: errorCode, messageCode, message: 'x' } });
     expect(translateError(error)).toBe(expected);
