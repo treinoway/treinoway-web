@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isBetaGateEnabled } from '../hooks/useBetaGate';
+import useGoogleAuth from '../hooks/useGoogleAuth';
 import useInviteAuthFlow from '../hooks/useInviteAuthFlow';
 import GoogleIcon from '../components/GoogleIcon';
 import AuthEmailField from '../components/AuthEmailField';
@@ -12,7 +13,6 @@ import InviteFormSkeleton from '../components/InviteFormSkeleton';
 import SignupCodeStep from '../components/SignupCodeStep';
 import { t } from '../i18n';
 
-const GOOGLE_CREDENTIAL_CONFLICT = 'auth/account-exists-with-different-credential';
 const MIN_PASSWORD_LENGTH = 8;
 const INVITE_EMAIL_HINT = 'Use o e-mail em que você recebeu o convite.';
 const PASSWORD_TOO_SHORT = 'A senha deve ter pelo menos 8 caracteres.';
@@ -43,7 +43,6 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   // The password stays only in memory until the code is verified: the backend
   // does not keep it on the pending signup, so verify must resend it.
   const [pendingEmail, setPendingEmail] = useState(null);
@@ -80,6 +79,13 @@ const Signup = () => {
     }
     return '/';
   };
+
+  const { startGoogleAuth, isExchanging } = useGoogleAuth({
+    loginWithGoogle,
+    loginHint: invite.lockedEmail,
+    onSuccess: (authenticatedUser) => navigate(resolveDestination(authenticatedUser), { replace: true }),
+    onError: setError,
+  });
 
   // Route through resolveDestination (not a hardcoded "/") so this guard
   // agrees with the explicit navigate(resolveDestination(...)) call in
@@ -206,33 +212,12 @@ const Signup = () => {
     setPendingEmail(null);
   };
 
-  const handleGoogleSignup = async () => {
+  const handleGoogleSignup = () => {
     setError('');
-    setGoogleLoading(true);
-
-    try {
-      const result = invite.lockedEmail
-        ? await loginWithGoogle({ loginHint: invite.lockedEmail })
-        : await loginWithGoogle();
-
-      if (result.success) {
-        navigate(resolveDestination(result.user), { replace: true });
-      } else if (result.error) {
-        const message = String(result.error).includes(GOOGLE_CREDENTIAL_CONFLICT)
-          ? 'Esse e-mail já está cadastrado com senha. Entre com e-mail e senha.'
-          : result.error;
-        setError(message);
-        setGoogleLoading(false);
-      } else {
-        setGoogleLoading(false);
-      }
-    } catch {
-      setError('Ocorreu um erro inesperado.');
-      setGoogleLoading(false);
-    }
+    startGoogleAuth();
   };
 
-  const isBusy = loading || googleLoading;
+  const isBusy = loading || isExchanging;
   const emailHint = invite.isInviteFlow ? INVITE_EMAIL_HINT : '';
   const accountExists = invite.accountExists || inviteOutcome === ACCOUNT_EXISTS_CODE;
   const terminalInviteCode = TERMINAL_INVITE_CODES.has(inviteOutcome) ? inviteOutcome : null;
@@ -260,7 +245,7 @@ const Signup = () => {
         className="btn-google"
       >
         <GoogleIcon />
-        {googleLoading ? 'Cadastrando...' : 'Cadastrar com Google'}
+        {isExchanging ? 'Cadastrando...' : 'Cadastrar com Google'}
       </button>
 
       <div className="auth-divider"><span>ou</span></div>
