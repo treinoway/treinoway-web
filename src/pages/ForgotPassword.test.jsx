@@ -11,6 +11,19 @@ vi.mock('../contexts/AuthContext', () => ({
 const mockForgotPassword = vi.fn();
 const mockResetPassword = vi.fn();
 
+const INVALID_CODE_MESSAGE = 'Código inválido ou expirado. Solicite um novo.';
+
+const fillResetFields = async (user) => {
+  await user.type(screen.getByLabelText(/^código$/i), '123456');
+  await user.type(screen.getByLabelText(/^nova senha$/i), 'newpass123');
+  await user.type(screen.getByLabelText(/^confirmar nova senha$/i), 'newpass123');
+};
+
+const goToResetStepViaShortcut = async (user) => {
+  renderWithRouter(<ForgotPassword />);
+  await user.click(screen.getByRole('button', { name: /já recebeu um código/i }));
+};
+
 const goToResetStepViaSubmit = async (user) => {
   mockForgotPassword.mockResolvedValue({ success: true });
   renderWithRouter(<ForgotPassword />);
@@ -168,19 +181,100 @@ describe('ForgotPassword', () => {
     expect(screen.getByText(/as senhas não conferem/i)).toBeInTheDocument();
   });
 
-  it('calls resetPassword with the code, password and confirmation on valid submit', async () => {
+  it('carries the step 1 email into step 2 and sends email, code, password and confirmation', async () => {
     const user = userEvent.setup();
     await goToResetStepViaSubmit(user);
     mockResetPassword.mockResolvedValue({ success: true });
 
-    await user.type(screen.getByLabelText(/^código$/i), '123456');
-    await user.type(screen.getByLabelText(/^nova senha$/i), 'newpass123');
-    await user.type(screen.getByLabelText(/^confirmar nova senha$/i), 'newpass123');
+    expect(screen.queryByLabelText(/^e-mail$/i)).not.toBeInTheDocument();
+
+    await fillResetFields(user);
     await user.click(screen.getByRole('button', { name: /^redefinir senha$/i }));
 
     await waitFor(() => {
-      expect(mockResetPassword).toHaveBeenCalledWith('123456', 'newpass123', 'newpass123');
+      expect(mockResetPassword).toHaveBeenCalledWith({
+        email: 'user@example.com',
+        code: '123456',
+        password: 'newpass123',
+        passwordConfirmation: 'newpass123',
+      });
     });
+  });
+
+  it('shows an editable email field on step 2 when the email is unknown (shortcut)', async () => {
+    const user = userEvent.setup();
+    mockResetPassword.mockResolvedValue({ success: true });
+    await goToResetStepViaShortcut(user);
+
+    const emailInput = screen.getByLabelText(/^e-mail$/i);
+    expect(emailInput).toHaveValue('');
+
+    await user.type(emailInput, '  typed@example.com ');
+    await fillResetFields(user);
+    await user.click(screen.getByRole('button', { name: /^redefinir senha$/i }));
+
+    await waitFor(() => {
+      expect(mockResetPassword).toHaveBeenCalledWith({
+        email: 'typed@example.com',
+        code: '123456',
+        password: 'newpass123',
+        passwordConfirmation: 'newpass123',
+      });
+    });
+  });
+
+  it('blocks step 2 submit with an inline error when the email is invalid', async () => {
+    const user = userEvent.setup();
+    await goToResetStepViaShortcut(user);
+
+    await user.type(screen.getByLabelText(/^e-mail$/i), 'user@localhost');
+    await fillResetFields(user);
+    await user.click(screen.getByRole('button', { name: /^redefinir senha$/i }));
+
+    expect(mockResetPassword).not.toHaveBeenCalled();
+    expect(screen.getByText(/informe o e-mail usado para solicitar o código/i)).toBeInTheDocument();
+  });
+
+  it('prefills the step 2 email field with an email typed on step 1 before using the shortcut', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<ForgotPassword />);
+
+    await user.type(screen.getByLabelText(/e-mail/i), 'user@example.com');
+    await user.click(screen.getByRole('button', { name: /já recebeu um código/i }));
+
+    expect(screen.getByLabelText(/^e-mail$/i)).toHaveValue('user@example.com');
+  });
+
+  it('shows the invalid-code error and resends the code for the same email', async () => {
+    const user = userEvent.setup();
+    mockResetPassword.mockResolvedValue({ success: false, error: INVALID_CODE_MESSAGE });
+    mockForgotPassword.mockResolvedValue({ success: true });
+    await goToResetStepViaShortcut(user);
+
+    await user.type(screen.getByLabelText(/^e-mail$/i), 'user@example.com');
+    await fillResetFields(user);
+    await user.click(screen.getByRole('button', { name: /^redefinir senha$/i }));
+
+    expect(await screen.findByText(INVALID_CODE_MESSAGE)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^reenviar código$/i }));
+
+    await waitFor(() => {
+      expect(mockForgotPassword).toHaveBeenCalledWith('user@example.com');
+    });
+    expect(screen.queryByText(INVALID_CODE_MESSAGE)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reenviar código \(60s\)/i })).toBeDisabled();
+  });
+
+  it('offers to request a new code instead of resending when no email is known', async () => {
+    const user = userEvent.setup();
+    await goToResetStepViaShortcut(user);
+
+    expect(screen.queryByRole('button', { name: /reenviar código/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /solicitar novo código/i }));
+
+    expect(screen.getByRole('button', { name: /^enviar código$/i })).toBeInTheDocument();
   });
 
   it('shows the error and re-enables the form when step 2 API call fails', async () => {

@@ -690,7 +690,12 @@ describe('AuthContext', () => {
             <span aria-label="email">{user?.email ?? ''}</span>
             <button
               onClick={async () => {
-                const result = await resetPassword('123456', 'newpass123', 'newpass123');
+                const result = await resetPassword({
+                  email: 'user@example.com',
+                  code: '123456',
+                  password: 'newpass123',
+                  passwordConfirmation: 'newpass123',
+                });
                 onResult(result);
               }}
               aria-label="Reset Password"
@@ -724,7 +729,8 @@ describe('AuthContext', () => {
       });
 
       expect(api.post).toHaveBeenCalledWith('/auth/reset-password', {
-        token: '123456',
+        email: 'user@example.com',
+        code: '123456',
         password: 'newpass123',
         passwordConfirmation: 'newpass123',
       });
@@ -736,8 +742,17 @@ describe('AuthContext', () => {
     });
 
     it('stores nothing and leaves the user unauthenticated when the API call fails', async () => {
-      const apiError = new Error('Invalid token');
-      apiError.userMessage = 'Código inválido. Verifique o código e tente novamente.';
+      const apiError = new Error('Request failed with status code 400');
+      apiError.response = {
+        status: 400,
+        data: {
+          error: 'PASSWORD_RESET_INVALID_CODE',
+          messageCode: 'passwordReset.invalidCode',
+          message: 'Invalid or expired code. Request a new one.',
+          details: {},
+        },
+      };
+      apiError.userMessage = 'Código inválido ou expirado. Solicite um novo.';
       api.post.mockRejectedValue(apiError);
 
       let result;
@@ -751,7 +766,7 @@ describe('AuthContext', () => {
         expect(result?.success).toBe(false);
       });
 
-      expect(result.error).toBe('Código inválido. Verifique o código e tente novamente.');
+      expect(result.error).toBe('Código inválido ou expirado. Solicite um novo.');
       expect(screen.getByLabelText('isAuthenticated').textContent).toBe('false');
       expect(localStorage.getItem('accessToken')).toBeNull();
       expect(localStorage.getItem('refreshToken')).toBeNull();

@@ -239,10 +239,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const resetPassword = async (token, password, passwordConfirmation) => {
+  const resetPassword = async ({ email, code, password, passwordConfirmation }) => {
     try {
       const response = await api.post('/auth/reset-password', {
-        token,
+        email,
+        code,
         password,
         passwordConfirmation,
       });
