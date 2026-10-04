@@ -102,9 +102,7 @@ describe('RoutineSummarySheet', () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
     render(<RoutineSummarySheet {...defaultProps} onClose={onClose} />);
-    // The overlay is the element with class routine-summary-overlay
-    const overlay = document.querySelector('.routine-summary-overlay');
-    await user.click(overlay);
+    await user.click(screen.getByRole('dialog').parentElement);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

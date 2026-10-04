@@ -45,17 +45,17 @@ const IntensityField = ({
           onClear={onClear}
           error
         />
-        <div className="form-error" role="alert">
-          <AlertCircle size={14} strokeWidth={2} aria-hidden="true" />
+        <div className="field-error type-caption intensity-error" role="alert">
+          <AlertCircle size={16} strokeWidth={2} aria-hidden="true" />
           <div className="intensity-warning-body">
             <span>{errorMessage}</span>
             <div className="intensity-warning-actions">
               <button
                 type="button"
-                className="intensity-inline-action intensity-inline-action--ghost"
+                className="btn btn--ghost"
                 onClick={onClear}
               >
-                <X size={13} strokeWidth={2} aria-hidden="true" />
+                <X size={16} strokeWidth={2} aria-hidden="true" />
                 Remover intensidade
               </button>
             </div>
@@ -71,9 +71,9 @@ const IntensityField = ({
     const tier = getIntensityTier(intensity);
     return (
       <div className="intensity-field">
-        <div className="intensity-warning" role="status">
-          <AlertTriangle size={16} strokeWidth={2} aria-hidden="true" />
-          <div className="intensity-warning-body">
+        <div className="ds-banner ds-banner--warning" role="status">
+          <AlertTriangle size={20} strokeWidth={2} aria-hidden="true" />
+          <div className="intensity-warning-body type-body">
             <div>
               Intensidade é exclusiva de cardio.{' '}
               <strong>&quot;{retainedLabel}&quot;</strong> ficará guardada e não
@@ -83,18 +83,18 @@ const IntensityField = ({
             <div className="intensity-warning-actions">
               <button
                 type="button"
-                className="intensity-inline-action intensity-inline-action--primary"
+                className="btn btn--secondary"
                 onClick={onKeepCardio}
               >
-                <HeartPulse size={13} strokeWidth={2} aria-hidden="true" />
+                <HeartPulse size={16} strokeWidth={2} aria-hidden="true" />
                 Manter Cardio
               </button>
               <button
                 type="button"
-                className="intensity-inline-action intensity-inline-action--ghost"
+                className="btn btn--ghost"
                 onClick={onClear}
               >
-                <X size={13} strokeWidth={2} aria-hidden="true" />
+                <X size={16} strokeWidth={2} aria-hidden="true" />
                 Remover intensidade
               </button>
             </div>
@@ -103,11 +103,11 @@ const IntensityField = ({
 
         <div className="intensity-field intensity-field--retained">
           <div className="intensity-label-row">
-            <span className="form-label intensity-field-label" id={`${idPrefix}-retained-label`}>
+            <span className="field-label type-caption-strong intensity-field-label" id={`${idPrefix}-retained-label`}>
               Intensidade (guardada)
             </span>
-            <span className="intensity-acsm-tag">
-              <Archive size={12} strokeWidth={2} aria-hidden="true" /> Não enviada
+            <span className="intensity-acsm-tag type-caption">
+              <Archive size={16} strokeWidth={2} aria-hidden="true" /> Não enviada
             </span>
           </div>
           <div
@@ -123,8 +123,7 @@ const IntensityField = ({
               tabIndex={-1}
               data-tier={tier}
             >
-              <span className="intensity-step-bar" aria-hidden="true" />
-              <span className="intensity-step-name">{retainedLabel}</span>
+              <span className="intensity-step-name type-body-strong">{retainedLabel}</span>
             </div>
           </div>
         </div>

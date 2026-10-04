@@ -26,13 +26,13 @@ const SubstitutesInline = ({ substitutes = [], expanded = false, onToggle }) => 
       aria-expanded={expanded}
       aria-label={`${prefix.trim()} ${firstName}${extraCount > 0 ? ` e mais ${extraCount}` : ''}`}
     >
-      <span className="substitutes-inline-prefix">{prefix}</span>
-      <span className="substitutes-inline-name">{firstName}</span>
+      <span className="substitutes-inline-prefix type-caption">{prefix}</span>
+      <span className="substitutes-inline-name type-caption-strong">{firstName}</span>
       {extraCount > 0 && (
-        <span className="substitutes-inline-extra">+{extraCount}</span>
+        <span className="substitutes-inline-extra type-caption-strong">+{extraCount}</span>
       )}
       <ChevronDown
-        size={14}
+        size={16}
         strokeWidth={2}
         className="substitutes-inline-chevron"
         aria-hidden="true"

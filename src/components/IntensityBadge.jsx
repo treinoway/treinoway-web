@@ -4,10 +4,11 @@ import {
   getIntensityFallbackLabel,
 } from '../constants/exerciseIntensity';
 
+const TONE_BY_TIER = { 1: 'success', 2: 'success', 3: 'brand', 4: 'warning', 5: 'error' };
+
 /**
- * Read-only intensity badge built on the canonical `.badge` primitive.
- * Renders nothing when there is no intensity key. Color comes from the
- * governed `--effort-tier-*` scale via `data-tier`.
+ * Read-only intensity badge (DS Tag badge). Renders nothing when there is no
+ * intensity key. Tone follows the effort tier (feedback bg + text pairs).
  *
  * Prefer the API-provided `label` (`intensityLabel`); falls back to the
  * pt-BR static label only when the payload omits it.
@@ -19,8 +20,7 @@ const IntensityBadge = ({ intensity, label }) => {
   const text = label || getIntensityFallbackLabel(intensity);
 
   return (
-    <span className="badge intensity-badge" data-tier={tier}>
-      <span className="badge-dot" aria-hidden="true" />
+    <span className={`badge badge--tag badge--${TONE_BY_TIER[tier] || 'neutral'} intensity-badge`} data-tier={tier}>
       {text}
     </span>
   );

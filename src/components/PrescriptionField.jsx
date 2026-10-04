@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Repeat, Timer } from 'lucide-react';
 import { t } from '../i18n';
+import Segmented from './ds/Segmented';
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 const LONG_DURATION_THRESHOLD_SECONDS = 600;
@@ -118,53 +119,36 @@ const PrescriptionField = ({
   return (
     <div className="prescription-field">
       {/* Mode toggle with label */}
-      <div className="form-group">
-        <span className="composer-label">{t('exercise.prescriptionMode.label')}</span>
-        <div
-          className="segmented-toggle segmented-toggle--inline segmented-toggle--compact"
-          role="tablist"
-          aria-label="Tipo de prescrição"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={!isDurationMode}
-            className={`segmented-toggle-btn${!isDurationMode ? ' segmented-toggle-btn--active' : ''}`}
-            onClick={() => handleModeSwitch('reps')}
-          >
-            <Repeat size={14} strokeWidth={2} className="toggle-icon" aria-hidden="true" />
-            Repetições
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={isDurationMode}
-            className={`segmented-toggle-btn${isDurationMode ? ' segmented-toggle-btn--active' : ''}`}
-            onClick={() => handleModeSwitch('duration')}
-          >
-            <Timer size={14} strokeWidth={2} className="toggle-icon" aria-hidden="true" />
-            Tempo
-          </button>
-        </div>
+      <div className="field">
+        <span className="field-label type-caption-strong">{t('exercise.prescriptionMode.label')}</span>
+        <Segmented
+          ariaLabel="Tipo de prescrição"
+          items={[
+            { id: 'reps', label: 'Repetições', icon: Repeat },
+            { id: 'duration', label: 'Tempo', icon: Timer },
+          ]}
+          value={isDurationMode ? 'duration' : 'reps'}
+          onChange={handleModeSwitch}
+        />
       </div>
 
       {/* 2-col grid: Séries + Reps|Duração */}
       <div className="prescription-row">
         <div>
-          <label className="form-label" htmlFor={setsId}>Séries</label>
+          <label className="field-label type-caption-strong" htmlFor={setsId}>Séries</label>
           <input
             id={setsId}
             type="number"
             min="1"
             value={formData.sets}
             onChange={(e) => handleSetsChange(e.target.value)}
-            className="form-input"
+            className="input"
           />
         </div>
 
         {isDurationMode ? (
           <div>
-            <label className="form-label" htmlFor={durationId}>Duração</label>
+            <label className="field-label type-caption-strong" htmlFor={durationId}>Duração</label>
             <div className="form-input-with-suffix">
               <input
                 ref={durationInputRef}
@@ -174,26 +158,26 @@ const PrescriptionField = ({
                 max={MAX_DURATION_SECONDS}
                 value={formData.duration}
                 onChange={(e) => handleDurationInputChange(e.target.value)}
-                className={`form-input${durationError ? ' form-input--error' : ''}`}
+                className={`input${durationError ? ' input--error' : ''}`}
                 placeholder="ex: 45"
                 aria-describedby={durationError ? `${durationId}-error` : undefined}
               />
               <span className="form-input-suffix" aria-hidden="true">s</span>
             </div>
             {durationError && (
-              <span id={`${durationId}-error`} className="form-error" role="alert">
+              <span id={`${durationId}-error`} className="field-error type-caption" role="alert">
                 {durationError}
               </span>
             )}
             {showLongDurationHint && !durationError && (
-              <span className="form-hint">
+              <span className="field-hint type-caption">
                 Mais de 10 minutos. Confirme se é o pretendido.
               </span>
             )}
           </div>
         ) : (
           <div>
-            <span className="form-label">Repetições</span>
+            <span className="field-label type-caption-strong">Repetições</span>
             <div className="prescription-reps-row">
               <input
                 ref={repsMinInputRef}
@@ -203,7 +187,7 @@ const PrescriptionField = ({
                 max={MAX_REPS}
                 value={formData.repetitionsMin}
                 onChange={(e) => handleRepsMinChange(e.target.value)}
-                className={`form-input${repsError ? ' form-input--error' : ''}`}
+                className={`input${repsError ? ' input--error' : ''}`}
                 aria-label="Repetições mínimas"
                 placeholder="Mín"
                 aria-describedby={repsError ? `${repsMinId}-error` : undefined}
@@ -215,13 +199,13 @@ const PrescriptionField = ({
                 max={MAX_REPS}
                 value={formData.repetitionsMax}
                 onChange={(e) => handleRepsMaxChange(e.target.value)}
-                className={`form-input${repsError ? ' form-input--error' : ''}`}
+                className={`input${repsError ? ' input--error' : ''}`}
                 aria-label="Repetições máximas"
                 placeholder="Máx"
               />
             </div>
             {repsError && (
-              <span id={`${repsMinId}-error`} className="form-error" role="alert">
+              <span id={`${repsMinId}-error`} className="field-error type-caption" role="alert">
                 {repsError}
               </span>
             )}
@@ -232,7 +216,7 @@ const PrescriptionField = ({
       {/* Duration preset chips — only in duration mode */}
       {isDurationMode && (
         <div
-          className="prescription-chips"
+          className="chip-group"
           role="group"
           aria-label="Atalhos de duração"
         >
@@ -242,7 +226,7 @@ const PrescriptionField = ({
               <button
                 key={seconds}
                 type="button"
-                className={`prescription-chip${isActive ? ' prescription-chip--active' : ''}`}
+                className={`chip${isActive ? ' chip--active' : ''}`}
                 onClick={() => handleDurationChipClick(seconds)}
                 aria-pressed={isActive}
               >

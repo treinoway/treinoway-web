@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import useExerciseTemplateSearch from '../hooks/useExerciseTemplateSearch';
 import PrescriptionField from './PrescriptionField';
+import Segmented from './ds/Segmented';
+import ConfirmDialog from './ds/ConfirmDialog';
 import IntensityField from './IntensityField';
 import VideoField from './VideoField';
 import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel, getLoadDefault } from '../constants/exerciseTypes';
@@ -130,10 +132,10 @@ const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
 
   return (
     <div className="library-panel">
-      <div className="library-search">
-        <Search size={14} strokeWidth={2} aria-hidden="true" />
+      <div className="input--search-wrap">
+        <Search size={16} strokeWidth={2} aria-hidden="true" />
         <input
-          className="library-search-input"
+          className="input input--search"
           type="text"
           placeholder="Buscar exercício na biblioteca…"
           value={query}
@@ -141,14 +143,14 @@ const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
           aria-label="Buscar exercício na biblioteca"
         />
         {showSpinner && (
-          <Loader size={14} strokeWidth={2} aria-hidden="true" className="library-refetch-spinner" />
+          <Loader size={16} strokeWidth={2} aria-hidden="true" className="library-refetch-spinner" />
         )}
       </div>
 
       {showSpinner && displayList.length === 0 ? (
-        <div className="library-empty">Buscando…</div>
+        <div className="library-empty type-body">Buscando…</div>
       ) : displayList.length === 0 ? (
-        <div className="library-empty">{emptyMessage}</div>
+        <div className="library-empty type-body">{emptyMessage}</div>
       ) : (
         <div className="library-list" role="list">
           {displayList.map((tmpl) => {
@@ -167,9 +169,9 @@ const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
                   {selected && <Check size={12} strokeWidth={2} />}
                 </span>
                 <span className="library-item-body">
-                  <span className="library-item-name">{tmpl.name}</span>
+                  <span className="library-item-name type-body-strong">{tmpl.name}</span>
                   {typeLabel && (
-                    <span className="library-item-meta">
+                    <span className="library-item-meta type-caption">
                       <span className="library-item-cat">{typeLabel}</span>
                     </span>
                   )}
@@ -180,7 +182,7 @@ const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
         </div>
       )}
 
-      <div className="library-selection-bar">
+      <div className="library-selection-bar type-caption">
         <span>
           <span className="library-selection-count">{selectedIds.length}</span>
           {' '}selecionado{selectedIds.length !== 1 ? 's' : ''}
@@ -364,16 +366,16 @@ const ExerciseComposer = ({
 
       {/* ── Band 1: O ESSENCIAL ── */}
       <div className="composer-band">
-        <span className="composer-band-label">O Essencial</span>
+        <span className="composer-band-label type-body-strong">O essencial</span>
 
         <div className="composer-name-type-row">
           <div>
-            <label className="composer-label" htmlFor="composer-name">
+            <label className="field-label type-caption-strong" htmlFor="composer-name">
               Nome <span aria-hidden="true">*</span>
             </label>
             <input
               id="composer-name"
-              className="composer-input"
+              className="input"
               type="text"
               value={form.name}
               onChange={(e) => handleFieldChange('name', e.target.value)}
@@ -382,16 +384,16 @@ const ExerciseComposer = ({
               autoFocus={!isEditMode}
             />
             {errors.name && (
-              <span className="form-error" role="alert">{errors.name}</span>
+              <span className="field-error type-caption" role="alert">{errors.name}</span>
             )}
           </div>
           <div>
-            <label className="composer-label" htmlFor="composer-type">
+            <label className="field-label type-caption-strong" htmlFor="composer-type">
               Tipo <span aria-hidden="true">*</span>
             </label>
             <select
               id="composer-type"
-              className="composer-select"
+              className="input"
               value={form.type}
               onChange={(e) => handleFieldChange('type', e.target.value)}
               required
@@ -401,7 +403,7 @@ const ExerciseComposer = ({
               ))}
             </select>
             {errors.type && (
-              <span className="form-error" role="alert">{errors.type}</span>
+              <span className="field-error type-caption" role="alert">{errors.type}</span>
             )}
           </div>
         </div>
@@ -419,7 +421,7 @@ const ExerciseComposer = ({
 
       {/* ── Band 2: PRESCRIÇÃO ── */}
       <div className="composer-band">
-        <span className="composer-band-label">Prescrição</span>
+        <span className="composer-band-label type-body-strong">Prescrição</span>
 
         <PrescriptionField
           idPrefix="composer"
@@ -431,9 +433,9 @@ const ExerciseComposer = ({
         <div className="composer-carga-rest-row">
           {/* Descanso — chips + suffix input */}
           <div className="composer-rest-group">
-            <label className="composer-label" htmlFor="composer-rest">Descanso</label>
+            <label className="field-label type-caption-strong" htmlFor="composer-rest">Descanso</label>
             <div
-              className="prescription-chips"
+              className="chip-group"
               role="group"
               aria-label="Atalhos de descanso"
             >
@@ -441,7 +443,7 @@ const ExerciseComposer = ({
                 <button
                   key={seconds}
                   type="button"
-                  className={`prescription-chip${activeRestChip === seconds ? ' prescription-chip--active' : ''}`}
+                  className={`chip${activeRestChip === seconds ? ' chip--active' : ''}`}
                   onClick={() => handleRestChipClick(seconds)}
                   aria-pressed={activeRestChip === seconds}
                 >
@@ -452,7 +454,7 @@ const ExerciseComposer = ({
             <div className="form-input-with-suffix">
               <input
                 id="composer-rest"
-                className="composer-input"
+                className="input"
                 type="number"
                 min="0"
                 value={form.restInterval}
@@ -467,31 +469,29 @@ const ExerciseComposer = ({
           {/* Carga — toggle + optional kg reveal */}
           <div className="composer-load-col">
             <div className="composer-load-toggle-row">
-              <span className="composer-load-toggle-label" id="composer-load-label">
+              <span className="composer-load-toggle-label type-body" id="composer-load-label">
                 Exercício com carga
               </span>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  role="switch"
-                  aria-labelledby="composer-load-label"
-                  checked={form.hasLoad}
-                  onChange={(e) => handleLoadToggle(e.target.checked)}
-                />
-                <span className="switch-slider" />
-              </label>
+              <button
+                type="button"
+                role="switch"
+                className="toggle"
+                aria-labelledby="composer-load-label"
+                aria-checked={form.hasLoad}
+                onClick={() => handleLoadToggle(!form.hasLoad)}
+              />
             </div>
 
             {/* Carga kg input — reveals only when hasLoad */}
             {form.hasLoad && (
               <div className="composer-load-reveal">
-                <label className="composer-label" htmlFor="composer-load">
+                <label className="field-label type-caption-strong" htmlFor="composer-load">
                   Carga sugerida
                 </label>
                 <div className="form-input-with-suffix">
                   <input
                     id="composer-load"
-                    className="composer-input"
+                    className="input"
                     type="number"
                     min="0"
                     step="0.5"
@@ -509,7 +509,7 @@ const ExerciseComposer = ({
 
       {/* ── Band 3: DETALHES ── */}
       <div className="composer-band">
-        <span className="composer-band-label">Detalhes</span>
+        <span className="composer-band-label type-body-strong">Detalhes</span>
 
         {/* Vídeo — library picker + YouTube URL fallback */}
         <VideoField
@@ -520,10 +520,10 @@ const ExerciseComposer = ({
 
         {/* Observações — uncapped */}
         <div>
-          <label className="composer-label" htmlFor="composer-notes">Observações</label>
+          <label className="field-label type-caption-strong" htmlFor="composer-notes">Observações</label>
           <textarea
             id="composer-notes"
-            className="composer-textarea"
+            className="input"
             value={form.notes}
             onChange={(e) => handleFieldChange('notes', e.target.value)}
             placeholder="Dica de execução, postura, foco muscular…"
@@ -535,9 +535,20 @@ const ExerciseComposer = ({
 
       {/* ── Footer ── */}
       <div className="composer-actions">
+        {isEditMode && onRequestDelete && (
+          <button
+            type="button"
+            className="btn btn--secondary composer-actions-delete"
+            onClick={onRequestDelete}
+            disabled={saving}
+          >
+            <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
+            Excluir
+          </button>
+        )}
         <button
           type="button"
-          className="btn-secondary btn-sm"
+          className="btn btn--secondary"
           onClick={onCancel}
           disabled={saving}
         >
@@ -545,22 +556,11 @@ const ExerciseComposer = ({
         </button>
         <button
           type="submit"
-          className="btn-primary btn-sm"
+          className="btn btn--primary"
           disabled={saving}
         >
           {saving ? 'Salvando…' : submitLabel}
         </button>
-        {isEditMode && onRequestDelete && (
-          <button
-            type="button"
-            className="btn-danger btn-sm composer-actions-delete"
-            onClick={onRequestDelete}
-            disabled={saving}
-          >
-            <Trash2 size={14} strokeWidth={2} aria-hidden="true" />
-            Excluir
-          </button>
-        )}
       </div>
     </form>
   );
@@ -569,40 +569,24 @@ const ExerciseComposer = ({
 
   return (
     <div className="inline-composer-wide">
-      <div className="inline-composer-title">
+      <div className="inline-composer-title type-h4">
         {isEditMode || tab === 'create'
-          ? <Plus size={12} strokeWidth={2} aria-hidden="true" />
-          : <Library size={12} strokeWidth={2} aria-hidden="true" />
+          ? <Plus size={16} strokeWidth={2} aria-hidden="true" />
+          : <Library size={16} strokeWidth={2} aria-hidden="true" />
         }
         {isEditMode ? 'Editar exercício' : 'Adicionar exercício'}
       </div>
 
-      {/* Segmented toggle — only in create mode */}
       {!isEditMode && (
-        <div
-          className="segmented-toggle segmented-toggle--compact"
-          role="tablist"
-          aria-label="Modo de adição"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'library'}
-            className={`segmented-toggle-btn${tab === 'library' ? ' segmented-toggle-btn--active' : ''}`}
-            onClick={() => setTab('library')}
-          >
-            Da biblioteca
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'create'}
-            className={`segmented-toggle-btn${tab === 'create' ? ' segmented-toggle-btn--active' : ''}`}
-            onClick={() => setTab('create')}
-          >
-            Criar novo
-          </button>
-        </div>
+        <Segmented
+          ariaLabel="Modo de adição"
+          items={[
+            { id: 'library', label: 'Da biblioteca' },
+            { id: 'create', label: 'Criar novo' },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
       )}
 
       {/* Content by mode */}
@@ -620,18 +604,18 @@ const ExerciseComposer = ({
           <div className="composer-actions">
             <button
               type="button"
-              className="btn-secondary btn-sm"
+              className="btn btn--secondary"
               onClick={onCancel}
             >
               Cancelar
             </button>
             <button
               type="button"
-              className="btn-primary btn-sm"
+              className="btn btn--primary"
               onClick={handleImport}
               disabled={saving || selectedTemplateIds.length === 0}
             >
-              <Plus size={14} strokeWidth={2} aria-hidden="true" />
+              <Plus size={16} strokeWidth={2} aria-hidden="true" />
               {saving
                 ? 'Adicionando…'
                 : selectedTemplateIds.length === 0
@@ -643,30 +627,16 @@ const ExerciseComposer = ({
       )}
 
       {confirmDialog && createPortal(
-        <div className="overlay" onClick={() => setConfirmDialog(null)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-dialog-message">{confirmDialog.message}</p>
-            <div className="confirm-dialog-actions">
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={confirmDialog.onConfirm}
-              >
-                {t('exercise.prescriptionWarn.confirm')}
-              </button>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setConfirmDialog(null)}
-              >
-                {t('exercise.prescriptionWarn.cancel')}
-              </button>
-            </div>
-          </div>
-        </div>,
+        <ConfirmDialog
+          message={confirmDialog.message}
+          confirmLabel={t('exercise.prescriptionWarn.confirm')}
+          cancelLabel={t('exercise.prescriptionWarn.cancel')}
+          confirmTone="primary"
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />,
         document.body
       )}
-
     </div>
   );
 };
