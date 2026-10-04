@@ -27,6 +27,13 @@ export function t(path) {
   return path.split('.').reduce((obj, key) => obj?.[key], translations);
 }
 
+/** `t()` with `{placeholder}` interpolation: tf('a.b', { name: 'X' }). */
+export function tf(path, params = {}) {
+  const template = t(path);
+  if (typeof template !== 'string') return template;
+  return template.replace(/\{(\w+)\}/g, (match, key) => (key in params ? String(params[key]) : match));
+}
+
 /**
  * Translates a backend error response into a user-friendly message.
  *

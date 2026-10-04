@@ -100,7 +100,7 @@ const WorkoutSessions = () => {
         </div>
       ) : sessions.length === 0 ? (
         <div className="empty-state">
-          <Dumbbell size={40} strokeWidth={1.4} style={{ marginBottom: 'var(--spacing-md)', color: 'var(--color-outline)' }} />
+          <Dumbbell size={40} strokeWidth={1.4} style={{ marginBottom: 'var(--spacing-lg)', color: 'var(--color-outline)' }} />
           <p className="empty-state-title">Nenhuma sessão encontrada</p>
           <p>Inicie um treino para começar a registrar seu histórico.</p>
         </div>

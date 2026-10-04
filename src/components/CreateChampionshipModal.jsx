@@ -272,7 +272,7 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
                         <ScoringCards ptsValues={currentPts} />
                         <div
                           className="form-group"
-                          style={{ marginTop: 'var(--spacing-md)' }}
+                          style={{ marginTop: 'var(--spacing-lg)' }}
                           onClick={(e) => e.stopPropagation()}
                         >
                           <label className="form-label" htmlFor="championship-name">

@@ -183,7 +183,7 @@ const AssignAnamnesis = () => {
 
       <div className="assign-students-list">
         {filteredStudents.length === 0 && (
-          <p style={{ padding: 'var(--spacing-md)', fontSize: 13, color: 'var(--brand-steel)' }}>
+          <p style={{ padding: 'var(--spacing-lg)', fontSize: 13, color: 'var(--brand-steel)' }}>
             Nenhum aluno encontrado.
           </p>
         )}
@@ -249,7 +249,7 @@ const AssignAnamnesis = () => {
   return (
     <div>
       {/* breadcrumb + back */}
-      <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
+      <div className="page-header" style={{ marginBottom: 'var(--spacing-lg)' }}>
         <button
           type="button"
           className="btn-back"

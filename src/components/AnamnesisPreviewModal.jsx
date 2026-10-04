@@ -19,7 +19,7 @@ const PreviewFreeText = () => (
  * and see conditional children appear / disappear.
  */
 const PreviewDichotomous = ({ questionId, value, onChange }) => (
-  <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
+  <div style={{ display: 'flex', gap: 'var(--spacing-lg)' }}>
     <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', cursor: 'pointer', color: 'var(--brand-ink)' }}>
       <input
         type="radio"
@@ -269,7 +269,7 @@ const AnamnesisPreviewModal = ({ anamnesis, open, onClose }) => {
         </div>
 
         <div className="preview-modal-body">
-          <p style={{ fontSize: 12, color: 'var(--brand-steel)', marginBottom: 'var(--spacing-lg)' }}>
+          <p style={{ fontSize: 12, color: 'var(--brand-steel)', marginBottom: 'var(--spacing-xl)' }}>
             Visualização de como o aluno verá esta anamnese. Experimente responder para ver perguntas condicionais aparecerem.
           </p>
 

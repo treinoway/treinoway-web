@@ -67,7 +67,7 @@ const StudentPoints = () => {
 
   return (
     <div>
-      <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
+      <div className="page-header" style={{ marginBottom: 'var(--spacing-lg)' }}>
         <button
           type="button"
           onClick={() => navigate(`/trainer/students/${studentId}`)}
@@ -78,7 +78,7 @@ const StudentPoints = () => {
         </button>
       </div>
 
-      <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
+      <div className="page-header" style={{ marginBottom: 'var(--spacing-lg)' }}>
         <h1 className="page-title" style={{ marginBottom: 0 }}>Pontos do aluno</h1>
         <button
           type="button"
@@ -115,7 +115,7 @@ const StudentPoints = () => {
           </ul>
 
           {pageCount > 1 && (
-            <div className="btn-group" style={{ marginTop: 'var(--spacing-md)' }}>
+            <div className="btn-group" style={{ marginTop: 'var(--spacing-lg)' }}>
               <button
                 type="button"
                 className="btn-secondary"

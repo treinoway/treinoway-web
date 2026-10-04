@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { translateError, extractErrorInfo, setLocale } from './index';
+import { translateError, extractErrorInfo, setLocale, tf } from './index';
 
 // Helper to build a fake Axios error with a response body
 function makeAxiosError({ status, data, code, message } = {}) {
@@ -187,5 +187,19 @@ describe('extractErrorInfo', () => {
     });
     const info = extractErrorInfo(error);
     expect(info.details).toBeNull();
+  });
+});
+
+describe('tf', () => {
+  it('interpolates named placeholders', () => {
+    expect(tf('studentDetail.routines.openAria', { name: 'Protocolo 03' })).toBe('Abrir rotina Protocolo 03');
+  });
+
+  it('keeps placeholders without a value', () => {
+    expect(tf('studentDetail.metrics.workoutsCount', { completed: 3 })).toBe('3/{expected} treinos');
+  });
+
+  it('returns undefined for a missing key', () => {
+    expect(tf('studentDetail.missing.key')).toBeUndefined();
   });
 });

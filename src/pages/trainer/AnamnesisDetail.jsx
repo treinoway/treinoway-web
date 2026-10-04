@@ -1372,7 +1372,7 @@ const AnamnesisDetail = () => {
   return (
     <div>
       {/* Back button */}
-      <div style={{ marginBottom: 'var(--spacing-md)' }}>
+      <div style={{ marginBottom: 'var(--spacing-lg)' }}>
         <button
           onClick={() => navigate('/trainer/anamneses')}
           className="btn-back"

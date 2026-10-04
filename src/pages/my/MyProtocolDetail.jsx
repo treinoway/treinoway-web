@@ -162,7 +162,7 @@ const MyProtocolDetail = () => {
         </div>
       </div>
 
-      <h2 className="card-title" style={{ marginBottom: 'var(--spacing-md)' }}>
+      <h2 className="card-title" style={{ marginBottom: 'var(--spacing-lg)' }}>
         Treinos
       </h2>
 

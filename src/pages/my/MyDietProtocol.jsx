@@ -143,7 +143,7 @@ const MyDietProtocol = () => {
       </div>
 
       {/* Summary */}
-      <div className="diet-summary-card" style={{ marginBottom: 'var(--spacing-lg)' }}>
+      <div className="diet-summary-card" style={{ marginBottom: 'var(--spacing-xl)' }}>
         <div className="diet-summary-kcal">
           <span className="diet-summary-kcal-value">{Math.round(macros.kcal)}</span>
           <span className="diet-summary-kcal-unit">kcal total</span>
