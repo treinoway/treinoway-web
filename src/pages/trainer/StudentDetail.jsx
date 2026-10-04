@@ -1,61 +1,182 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Calendar, ClipboardList, FileText, X } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronDown, UserX } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAiChat } from '../../contexts/AiChatContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import Select from '../../components/Select';
-import RowMenu from '../../components/RowMenu';
+import Modal from '../../components/ds/Modal';
+import ConfirmDialog from '../../components/ds/ConfirmDialog';
+import EmptyBlock from '../../components/ds/EmptyBlock';
 import StudentCockpitHero from '../../components/StudentCockpitHero';
+import StudentRelationshipMetrics from '../../components/students/StudentRelationshipMetrics';
+import StudentRoutinesCard from '../../components/students/StudentRoutinesCard';
+import StudentAnamnesesCard from '../../components/students/StudentAnamnesesCard';
+import StudentVolumeCard from '../../components/students/StudentVolumeCard';
+import StudentLatestNoteCard from '../../components/students/StudentLatestNoteCard';
 import RecentSessionsPanel from '../../components/RecentSessionsPanel';
 import ProgressionPanel from '../../components/ProgressionPanel';
 import PeriodPickerSheet from '../../components/PeriodPickerSheet';
 import IArnoldFAB from '../../components/IArnoldFAB';
-import SubscriptionCard from '../../components/SubscriptionCard';
 import AssignPlanSheet from '../../components/AssignPlanSheet';
-import {
-  getActiveSubscriptionForStudent,
-  listPaymentsForSubscription,
-  listSubscriptionPlans,
-  assignPlanToStudent,
-  cancelSubscription,
-  createSubscriptionPlan,
-} from '../../api/subscriptions';
-import { deriveEffectivePaymentStatus, PAYMENT_STATUS } from '../../utils/subscriptionHelpers';
 import useStudentDashboard from '../../hooks/useStudentDashboard';
+import useStudentSubscription from '../../hooks/useStudentSubscription';
+import useLinkedStudent from '../../hooks/useLinkedStudent';
 import usePeriodPersistence from '../../hooks/usePeriodPersistence';
-import {
-  DASHBOARD_PERIOD_PRESETS,
-  getPeriodPresetLabel,
-} from '../../constants/dashboardPeriod';
+import { DASHBOARD_PERIOD_PRESETS, getPeriodPresetLabel } from '../../constants/dashboardPeriod';
 import { pickViz } from '../../constants/dashboardViz';
 import { formatPeriodRangeShort } from '../../utils/formatDashboardDate';
-import {
-  computeWaveformBars,
-  computeHeatmapWeeks,
-} from '../../utils/computeDailyActivityViz';
-import { formatDateForDisplay } from '../../utils/dateFormat';
+import { computeVolumeTimeline, computeHeatmapWeeks } from '../../utils/computeDailyActivityViz';
+import { getStudentDisplayName } from '../../utils/studentRow';
+import { findLatestNoteSession, sortProtocolsForDisplay, td } from '../../utils/studentCockpit';
 import { ANAMNESIS_FILL_TOAST_DURATION_MS, getAnamnesisFillPath } from '../../constants/anamnesis';
-import { canFillLink, canViewLinkResponses, getLinkStatusInfo, sortLinksByResponseStatus } from '../../utils/anamnesisLinkStatus';
-import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
 
 const COMPLETION_WARN_THRESHOLD = 0.5;
-
-const getStudentName = (student) => {
-  if (!student) return null;
-  if (student.firstName || student.lastName) {
-    return [student.firstName, student.lastName].filter(Boolean).join(' ');
-  }
-  return null;
-};
+const LINK_FORM_ID = 'link-anamnesis-form';
 
 const computePeriodDays = (period) => {
   if (!period?.from || !period?.to) return 30;
   const ms = new Date(period.to).getTime() - new Date(period.from).getTime();
   return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
+};
+
+const buildVizData = (rawDays, period) => {
+  const type = pickViz(computePeriodDays(period));
+  if (!rawDays) return { type, days: [] };
+  if (type === 'heatmap') return { type, ...computeHeatmapWeeks(rawDays) };
+  return { type, ...computeVolumeTimeline(rawDays, period) };
+};
+
+const getPeriodLabel = (period) => (period.presetKey === DASHBOARD_PERIOD_PRESETS.CUSTOM
+  ? formatPeriodRangeShort(period.from, period.to) || td('customPeriod')
+  : getPeriodPresetLabel(period.presetKey));
+
+const buildPeriodQuery = (period) => {
+  const params = new URLSearchParams();
+  if (period.from) params.set('from', period.from);
+  if (period.to) params.set('to', period.to);
+  return params.toString();
+};
+
+const LinkAnamnesisModal = ({ anamneses, selectedId, linking, onSelect, onSubmit, onClose }) => (
+  <Modal
+    title={td('linkAnamnesis.title')}
+    onClose={onClose}
+    closeDisabled={linking}
+    footer={(
+      <>
+        <button type="button" className="btn btn--secondary" onClick={onClose} disabled={linking}>
+          {td('linkAnamnesis.cancel')}
+        </button>
+        <button type="submit" form={LINK_FORM_ID} className="btn btn--primary" disabled={linking || !selectedId}>
+          {linking ? td('linkAnamnesis.loading') : td('linkAnamnesis.submit')}
+        </button>
+      </>
+    )}
+  >
+    <form id={LINK_FORM_ID} onSubmit={onSubmit} className="field">
+      <label className="field-label type-caption-strong" htmlFor="anamnesis-select">{td('linkAnamnesis.label')}</label>
+      <Select
+        id="anamnesis-select"
+        value={selectedId}
+        onChange={(e) => onSelect(e.target.value)}
+        required
+        disabled={linking}
+      >
+        <option value="">{td('linkAnamnesis.placeholder')}</option>
+        {anamneses.map((anamnesis) => (
+          <option key={anamnesis.id} value={anamnesis.id}>
+            {anamnesis.title}{anamnesis.isGeneral ? td('linkAnamnesis.generalSuffix') : ''}
+          </option>
+        ))}
+      </Select>
+    </form>
+  </Modal>
+);
+
+LinkAnamnesisModal.propTypes = {
+  anamneses: PropTypes.array.isRequired,
+  selectedId: PropTypes.string.isRequired,
+  linking: PropTypes.bool.isRequired,
+  onSelect: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+};
+
+const PeriodButton = ({ label, onClick }) => (
+  <button
+    type="button"
+    className="btn btn--secondary"
+    onClick={onClick}
+    aria-haspopup="dialog"
+    aria-label={td('periodAria', { period: label })}
+  >
+    <Calendar size={16} strokeWidth={2} aria-hidden="true" />
+    {label}
+    <ChevronDown size={16} strokeWidth={2} aria-hidden="true" />
+  </button>
+);
+
+PeriodButton.propTypes = { label: PropTypes.string.isRequired, onClick: PropTypes.func.isRequired };
+
+const StudentNotFound = ({ onBack }) => (
+  <EmptyBlock icon={UserX} title={td('notFound')} actionLabel={td('backToStudents')} onAction={onBack} />
+);
+
+StudentNotFound.propTypes = { onBack: PropTypes.func.isRequired };
+
+const EMPTY_LIST = [];
+
+const requestProtocols = (studentId) => api.get('/trainer/protocols', { params: { assigneeId: studentId } });
+const requestAnamneses = (studentId) => api.get(`/trainer/students/${studentId}/anamneses`);
+
+/**
+ * One list owned by the student of the route. Data is keyed by id: until the current id has
+ * answered it reads as loading/empty, and a late response (or error) for a previous id is ignored.
+ * A refetch keeps showing the current list until the new one arrives.
+ */
+const useStudentResource = (id, request, showToast) => {
+  const [state, setState] = useState({ id: null, data: EMPTY_LIST });
+  const currentIdRef = useRef(id);
+
+  useEffect(() => {
+    currentIdRef.current = id;
+  }, [id]);
+
+  const fetchResource = useCallback(() => {
+    const isStale = () => currentIdRef.current !== id;
+    return request(id)
+      .then((response) => {
+        if (!isStale()) setState({ id, data: response.data });
+      })
+      .catch((err) => {
+        if (isStale()) return;
+        setState({ id, data: EMPTY_LIST });
+        showToast(err.userMessage || translateError(err), 'error');
+      });
+  }, [id, request, showToast]);
+
+  useEffect(() => {
+    fetchResource();
+  }, [fetchResource]);
+
+  const isCurrent = state.id === id;
+  return { data: isCurrent ? state.data : EMPTY_LIST, loading: !isCurrent, refetch: fetchResource };
+};
+
+const useStudentRecords = (id, showToast) => {
+  const protocols = useStudentResource(id, requestProtocols, showToast);
+  const anamneses = useStudentResource(id, requestAnamneses, showToast);
+  return {
+    protocols: protocols.data,
+    protocolsLoading: protocols.loading,
+    anamneses: anamneses.data,
+    anamnesesLoading: anamneses.loading,
+    fetchAnamneses: anamneses.refetch,
+  };
 };
 
 const StudentDetail = () => {
@@ -66,191 +187,53 @@ const StudentDetail = () => {
   const { user } = useAuth();
   const { sendMessage } = useAiChat();
 
-  // Student profile
-  const stateStudent = location.state?.student ?? null;
-  const [student, setStudent] = useState(stateStudent);
-
-  // Period + dashboard
   const [period, setPeriod] = usePeriodPersistence(user?.id);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerError, setPickerError] = useState(null);
-
-  // Anamneses link modal
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [allAnamneses, setAllAnamneses] = useState([]);
   const [selectedAnamnesisId, setSelectedAnamnesisId] = useState('');
   const [linking, setLinking] = useState(false);
-
-  // Protocols (summary section)
-  const [protocols, setProtocols] = useState([]);
-  const [protocolsLoading, setProtocolsLoading] = useState(true);
-
-  // Anamneses (summary section)
-  const [linkedAnamneses, setLinkedAnamneses] = useState([]);
-  const [anamnesisLoading, setAnamnesisLoading] = useState(true);
-
-  // iArnold
   const [iArnoldSubmitting, setIArnoldSubmitting] = useState(false);
-
-  // Subscription
-  const [activeSubscription, setActiveSubscription] = useState(null);
-  const [nextPayment, setNextPayment] = useState(null);
-  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
-  const [availablePlans, setAvailablePlans] = useState([]);
   const [assignSheet, setAssignSheet] = useState({ open: false, mode: 'assign' });
   const [cancelConfirm, setCancelConfirm] = useState(false);
 
+  const { student, notFound: studentNotLinked } = useLinkedStudent(id, location.state?.student ?? null, showToast);
   const dashboard = useStudentDashboard(id, period);
+  const subscription = useStudentSubscription(id, showToast);
+  const records = useStudentRecords(id, showToast);
 
   const summary = dashboard.summary.data;
-  const previousSummary = dashboard.previousSummary.data;
-  const recentSessionsData = dashboard.recentSessions.data;
-  const progressionData = dashboard.progression.data;
-  const dailyActivityData = dashboard.dailyActivity.data;
-
-  const summaryLoading = dashboard.summary.loading;
-  const recentSessionsLoading = dashboard.recentSessions.loading;
-  const recentSessionsError = dashboard.recentSessions.error;
-  const progressionLoading = dashboard.progression.loading;
-  const progressionError = dashboard.progression.error;
-
-  const recentSessions = recentSessionsData?.data ?? [];
-  const progressionEntries = useMemo(
-    () => progressionData?.data ?? [],
-    [progressionData],
-  );
-
-  const periodLabel =
-    period.presetKey === DASHBOARD_PERIOD_PRESETS.CUSTOM
-      ? formatPeriodRangeShort(period.from, period.to) || 'Período personalizado'
-      : getPeriodPresetLabel(period.presetKey);
-
-  const vizData = useMemo(() => {
-    const raw = dailyActivityData?.data ?? null;
-    const periodDays = computePeriodDays(period);
-    const vizType = pickViz(periodDays);
-    if (!raw) return { type: vizType, bars: [] };
-    if (vizType === 'heatmap') {
-      const { weeks, maxVolumeKg, dowLabels } = computeHeatmapWeeks(raw);
-      return { type: 'heatmap', weeks, maxVolumeKg, dowLabels };
-    }
-    const { bars } = computeWaveformBars(raw);
-    return { type: 'waveform', bars };
-  }, [dailyActivityData, period]);
-
+  const recentSessions = dashboard.recentSessions.data?.data ?? [];
+  const progressionEntries = useMemo(() => dashboard.progression.data?.data ?? [], [dashboard.progression.data]);
+  const dailyActivityRaw = dashboard.dailyActivity.data?.data ?? null;
+  const vizData = useMemo(() => buildVizData(dailyActivityRaw, period), [dailyActivityRaw, period]);
+  const sortedProtocols = useMemo(() => sortProtocolsForDisplay(records.protocols), [records.protocols]);
+  const activeProtocol = sortedProtocols.find((protocol) => protocol.status === 'active') ?? null;
+  const latestNoteSession = findLatestNoteSession(recentSessions);
+  const studentName = student ? getStudentDisplayName(student) : null;
+  const trainerName = user ? getStudentDisplayName(user) || null : null;
+  const periodLabel = getPeriodLabel(period);
   const completionRate = summary?.completionRate ?? null;
 
-  // Load student profile if not in router state
-  useEffect(() => {
-    if (stateStudent) return;
-    api.get('/trainer/students')
-      .then((r) => setStudent(r.data.find((s) => String(s.id) === String(id)) ?? null))
-      .catch((err) => showToast(err.userMessage || translateError(err), 'error'));
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchProtocols = useCallback(async () => {
-    setProtocolsLoading(true);
-    try {
-      const r = await api.get('/trainer/protocols', { params: { assigneeId: id } });
-      setProtocols(r.data);
-    } catch (err) {
-      showToast(err.userMessage || translateError(err), 'error');
-    } finally {
-      setProtocolsLoading(false);
-    }
-  }, [id, showToast]);
-
-  const fetchLinkedAnamneses = useCallback(async () => {
-    setAnamnesisLoading(true);
-    try {
-      const r = await api.get(`/trainer/students/${id}/anamneses`);
-      setLinkedAnamneses(r.data);
-    } catch (err) {
-      showToast(err.userMessage || translateError(err), 'error');
-    } finally {
-      setAnamnesisLoading(false);
-    }
-  }, [id, showToast]);
-
-  const fetchSubscription = useCallback(async () => {
-    setSubscriptionLoading(true);
-    try {
-      const subscription = await getActiveSubscriptionForStudent(id);
-      setActiveSubscription(subscription);
-      if (subscription) {
-        const payments = await listPaymentsForSubscription(subscription.id);
-        // pick the most recent pending/overdue, fallback to most recent.
-        const sorted = [...payments].sort((a, b) => (b.cycleStartDate || '').localeCompare(a.cycleStartDate || ''));
-        const pendingOrOverdue = sorted.find((p) => {
-          const status = deriveEffectivePaymentStatus(p);
-          return status === PAYMENT_STATUS.PENDING || status === PAYMENT_STATUS.OVERDUE;
-        });
-        setNextPayment(pendingOrOverdue || sorted[0] || null);
-      } else {
-        setNextPayment(null);
-      }
-    } catch (err) {
-      showToast(err.userMessage || translateError(err), 'error');
-    } finally {
-      setSubscriptionLoading(false);
-    }
-  }, [id, showToast]);
-
-  const fetchAvailablePlans = useCallback(async () => {
-    try {
-      const data = await listSubscriptionPlans();
-      setAvailablePlans(data);
-    } catch (err) {
-      showToast(err.userMessage || translateError(err), 'error');
-    }
-  }, [showToast]);
-
-  useEffect(() => {
-    fetchProtocols();
-    fetchLinkedAnamneses();
-    fetchSubscription();
-    fetchAvailablePlans();
-  }, [fetchProtocols, fetchLinkedAnamneses, fetchSubscription, fetchAvailablePlans]);
-
   const handleApplyPeriod = (next) => {
-    setPickerError(null);
     setPeriod(next);
     setPickerOpen(false);
-  };
-
-  const handleViewAllSessions = () => {
-    const params = new URLSearchParams();
-    if (period.from) params.set('from', period.from);
-    if (period.to) params.set('to', period.to);
-    navigate(`/trainer/students/${id}/sessions?${params.toString()}`);
-  };
-
-  const handleOpenSession = (session) => {
-    navigate(`/trainer/students/${id}/sessions/${session.id}`);
-  };
-
-  const handleOpenProgression = (entry) => {
-    const params = new URLSearchParams();
-    if (period.from) params.set('from', period.from);
-    if (period.to) params.set('to', period.to);
-    navigate(
-      `/trainer/students/${id}/exercises/${entry.exerciseId}/progression?${params.toString()}`,
-    );
-  };
-
-  const handleCreateProtocol = () => {
-    navigate(`/trainer/protocols/new?studentId=${id}`);
   };
 
   const handleOpenLinkForm = useCallback(async () => {
     setShowLinkForm(true);
     try {
-      const r = await api.get('/trainer/anamneses');
-      setAllAnamneses(r.data);
+      const response = await api.get('/trainer/anamneses');
+      setAllAnamneses(response.data);
     } catch (err) {
       showToast(err.userMessage || translateError(err), 'error');
     }
   }, [showToast]);
+
+  const handleCloseLinkForm = () => {
+    setShowLinkForm(false);
+    setSelectedAnamnesisId('');
+  };
 
   const handleLink = async (e) => {
     e.preventDefault();
@@ -258,14 +241,13 @@ const StudentDetail = () => {
     setLinking(true);
     try {
       await api.post(`/trainer/students/${id}/anamneses`, { anamnesisId: selectedAnamnesisId });
-      showToast('Anamnese vinculada com sucesso!', 'success', {
-        actionLabel: 'Preencher agora',
+      showToast(td('linkAnamnesis.success'), 'success', {
+        actionLabel: td('linkAnamnesis.fillNow'),
         onAction: () => navigate(getAnamnesisFillPath(id, selectedAnamnesisId)),
         duration: ANAMNESIS_FILL_TOAST_DURATION_MS,
       });
-      setShowLinkForm(false);
-      setSelectedAnamnesisId('');
-      fetchLinkedAnamneses();
+      handleCloseLinkForm();
+      records.fetchAnamneses();
     } catch (err) {
       showToast(err.userMessage || translateError(err), 'error');
     } finally {
@@ -273,159 +255,130 @@ const StudentDetail = () => {
     }
   };
 
-  const handleAssignPlan = async (payload) => {
-    const created = await assignPlanToStudent(id, payload);
-    showToast('Plano atribuído.', 'success');
-    setAssignSheet({ open: false, mode: 'assign' });
-    setActiveSubscription(created);
-    setNextPayment(created?.firstPayment || null);
+  const closeAssignSheet = () => setAssignSheet({ open: false, mode: 'assign' });
+
+  const withSheetClose = (action) => async (payload) => {
+    await action(payload);
+    closeAssignSheet();
   };
 
-  const handleReplacePlan = async (payload) => {
-    if (activeSubscription) {
-      await cancelSubscription(activeSubscription.id);
-    }
-    await handleAssignPlan(payload);
-  };
-
-  const handleQuickCreateAndAssign = async ({ planPayload, assignPayload }) => {
-    const createdPlan = await createSubscriptionPlan(planPayload);
-    setAvailablePlans((prev) => [...prev, createdPlan]);
-    await handleAssignPlan({ ...assignPayload, planId: createdPlan.id });
-  };
-
-  const handleCancelSubscription = async () => {
+  const handleConfirmCancelSubscription = async () => {
     setCancelConfirm(false);
-    try {
-      if (activeSubscription) await cancelSubscription(activeSubscription.id);
-      showToast('Assinatura cancelada.', 'success');
-      setActiveSubscription(null);
-      setNextPayment(null);
-    } catch (err) {
-      showToast(err.userMessage || translateError(err), 'error');
-    }
+    await subscription.cancel();
   };
 
-  const handleViewSubscriptionHistory = () => {
-    navigate(`/trainer/students/${id}/subscription-history`);
-  };
-
-  const handleAskIArnold = useCallback(async () => {
+  const handleAskIArnold = async () => {
     if (iArnoldSubmitting) return;
     setIArnoldSubmitting(true);
-    const target = getStudentName(student) ?? 'esse aluno';
     try {
       navigate('/trainer/ai-assistant');
-      await sendMessage(`Como posso ajudar com ${target}?`);
+      await sendMessage(td('iArnoldPrompt', { name: studentName || td('iArnoldFallbackName') }));
     } catch (err) {
       console.error('[Cockpit] iArnold prefill failed', translateError(err));
     } finally {
       setIArnoldSubmitting(false);
     }
-  }, [iArnoldSubmitting, navigate, sendMessage, student]);
+  };
 
-  const allProtocols = useMemo(() => {
-    const sorted = [...protocols].sort((a, b) => {
-      if (a.status === 'active' && b.status !== 'active') return -1;
-      if (b.status === 'active' && a.status !== 'active') return 1;
-      return new Date(b.startDate) - new Date(a.startDate);
-    });
-    return sorted;
-  }, [protocols]);
+  const subscriptionActions = {
+    onAssignPlan: () => setAssignSheet({ open: true, mode: 'assign' }),
+    onReplacePlan: () => setAssignSheet({ open: true, mode: 'replace' }),
+    onViewHistory: () => navigate(`/trainer/students/${id}/subscription-history`),
+    onCancelSubscription: () => setCancelConfirm(true),
+  };
 
-  if (dashboard.studentNotFound) {
-    return (
-      <div className="empty-state">
-        <p className="empty-state-title">Aluno não encontrado</p>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => navigate('/trainer/students')}
-        >
-          Voltar para alunos
-        </button>
-      </div>
-    );
-  }
+  const handleCreateProtocol = () => navigate(`/trainer/protocols/new?studentId=${id}`);
+  const handleBack = () => navigate('/trainer/students');
+
+  if (dashboard.studentNotFound || studentNotLinked) return <StudentNotFound onBack={handleBack} />;
 
   return (
-    <div>
-      <button
-        type="button"
-        className="btn-back"
-        onClick={() => navigate('/trainer/students')}
-        aria-label="Voltar para alunos"
-      >
+    <div className="student-detail">
+      <button type="button" className="btn btn--ghost student-detail__back" onClick={handleBack} aria-label={td('backAria')}>
         <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
-        Alunos
+        {td('back')}
       </button>
 
       <StudentCockpitHero
         student={student}
+        routineName={activeProtocol?.name}
+        planName={subscription.planName ?? undefined}
+        trainerName={trainerName ?? undefined}
+      />
+
+      <StudentRelationshipMetrics
         summary={summary}
-        previousSummary={previousSummary}
-        summaryLoading={summaryLoading}
-        period={period}
-        periodLabel={periodLabel}
-        vizData={vizData}
-        onPeriodClick={() => setPickerOpen(true)}
-        onCreateProtocol={handleCreateProtocol}
-        onLinkAnamnesis={handleOpenLinkForm}
+        summaryLoading={dashboard.summary.loading && !summary}
+        subscription={subscription.subscription}
+        nextPayment={subscription.nextPayment}
+        planName={subscription.planName ?? undefined}
+        subscriptionLoading={subscription.loading}
+        lastWorkoutAt={student?.lastWorkoutAt ?? undefined}
+        subscriptionActions={subscriptionActions}
       />
 
-      <div className="cockpit-grid-2col">
-        <RecentSessionsPanel
-          sessions={recentSessions}
-          loading={recentSessionsLoading}
-          error={recentSessionsError}
-          onViewAll={handleViewAllSessions}
-          onRetry={() => dashboard.retryBlock('recentSessions')}
-          onOpen={handleOpenSession}
-        />
-        <ProgressionPanel
-          entries={progressionEntries}
-          loading={progressionLoading}
-          error={progressionError}
-          onRetry={() => dashboard.retryBlock('progression')}
-          onOpenEntry={handleOpenProgression}
-        />
-      </div>
+      <section className="student-detail__section" aria-labelledby="student-diagnosis-heading">
+        <h2 id="student-diagnosis-heading" className="student-detail__section-title type-body-lg-strong">
+          {td('sections.diagnosis')}
+        </h2>
+        <div className="student-detail__grid">
+          <StudentRoutinesCard
+            protocols={sortedProtocols}
+            loading={records.protocolsLoading}
+            onOpen={(protocol) => navigate(`/trainer/protocols/${protocol.id}`)}
+            onCreate={handleCreateProtocol}
+            onViewAll={() => navigate(`/trainer/students/${id}/protocols`)}
+          />
+          <StudentAnamnesesCard
+            anamneses={records.anamneses}
+            loading={records.anamnesesLoading}
+            onViewAll={() => navigate(`/trainer/students/${id}/anamneses`)}
+            onLink={handleOpenLinkForm}
+            onFill={(link) => navigate(getAnamnesisFillPath(id, link.anamnesis.id))}
+            onViewResponses={(link) => navigate(`/trainer/students/${id}/anamneses/${link.anamnesis.id}/response`)}
+          />
+        </div>
+      </section>
 
-      <div className="cockpit-section">
-        <header className="cockpit-section-header">
-          <h2 className="cockpit-section-eyebrow">Assinatura</h2>
-        </header>
-        <SubscriptionCard
-          subscription={activeSubscription ? {
-            ...activeSubscription,
-            planName: availablePlans.find((p) => p.id === activeSubscription.planId)?.name,
-          } : null}
-          nextPayment={nextPayment}
-          loading={subscriptionLoading}
-          onAssign={() => setAssignSheet({ open: true, mode: 'assign' })}
-          onReplace={() => setAssignSheet({ open: true, mode: 'replace' })}
-          onCancel={() => setCancelConfirm(true)}
-          onViewHistory={handleViewSubscriptionHistory}
-        />
-      </div>
-
-      <RoutineHistorySection
-        protocols={allProtocols}
-        loading={protocolsLoading}
-        studentId={id}
-        onCreateProtocol={handleCreateProtocol}
-      />
-
-      <AnamneseSummarySection
-        anamneses={linkedAnamneses}
-        loading={anamnesisLoading}
-        studentId={id}
-        onLinkAnamnesis={handleOpenLinkForm}
-      />
+      <section className="student-detail__section" aria-labelledby="student-training-heading">
+        <div className="student-detail__section-header">
+          <h2 id="student-training-heading" className="student-detail__section-title type-body-lg-strong">
+            {td('sections.training')}
+          </h2>
+          <PeriodButton label={periodLabel} onClick={() => setPickerOpen(true)} />
+        </div>
+        <div className={`student-detail__grid student-detail__grid--chart${latestNoteSession ? '' : ' student-detail__grid--single'}`}>
+          <StudentVolumeCard
+            vizData={vizData}
+            periodLabel={periodLabel}
+            loading={dashboard.dailyActivity.loading && !dailyActivityRaw}
+            error={dashboard.dailyActivity.error}
+            onRetry={() => dashboard.retryBlock('dailyActivity')}
+          />
+          <StudentLatestNoteCard session={latestNoteSession} studentName={studentName ?? undefined} />
+        </div>
+        <div className="student-detail__grid">
+          <RecentSessionsPanel
+            sessions={recentSessions}
+            loading={dashboard.recentSessions.loading}
+            error={dashboard.recentSessions.error}
+            onViewAll={() => navigate(`/trainer/students/${id}/sessions?${buildPeriodQuery(period)}`)}
+            onRetry={() => dashboard.retryBlock('recentSessions')}
+            onOpen={(session) => navigate(`/trainer/students/${id}/sessions/${session.id}`)}
+          />
+          <ProgressionPanel
+            entries={progressionEntries}
+            loading={dashboard.progression.loading}
+            error={dashboard.progression.error}
+            onRetry={() => dashboard.retryBlock('progression')}
+            onOpenEntry={(entry) => navigate(`/trainer/students/${id}/exercises/${entry.exerciseId}/progression?${buildPeriodQuery(period)}`)}
+          />
+        </div>
+      </section>
 
       <IArnoldFAB
         emphasized={completionRate !== null && completionRate < COMPLETION_WARN_THRESHOLD}
-        label="Perguntar ao iArnold"
+        label={td('askIArnold')}
         onClick={handleAskIArnold}
         disabled={iArnoldSubmitting}
       />
@@ -434,269 +387,40 @@ const StudentDetail = () => {
         open={pickerOpen}
         currentPeriod={period}
         onApply={handleApplyPeriod}
-        onCancel={() => { setPickerError(null); setPickerOpen(false); }}
-        errorMessage={pickerError}
+        onCancel={() => setPickerOpen(false)}
       />
 
       <AssignPlanSheet
         open={assignSheet.open}
         mode={assignSheet.mode}
-        plans={availablePlans.filter((p) => !p.isArchived)}
-        onClose={() => setAssignSheet({ open: false, mode: 'assign' })}
-        onAssign={assignSheet.mode === 'replace' ? handleReplacePlan : handleAssignPlan}
-        onCreatePlanAndAssign={handleQuickCreateAndAssign}
+        plans={subscription.activePlans}
+        onClose={closeAssignSheet}
+        onAssign={withSheetClose(assignSheet.mode === 'replace' ? subscription.replacePlan : subscription.assignPlan)}
+        onCreatePlanAndAssign={withSheetClose(subscription.createPlanAndAssign)}
       />
 
       {cancelConfirm && (
-        <div className="overlay" onClick={() => setCancelConfirm(false)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-dialog-message">
-              Cancelar a assinatura deste aluno? Ciclos futuros não serão gerados. O histórico será preservado.
-            </p>
-            <div className="btn-group confirm-dialog-actions">
-              <button type="button" className="btn-danger" onClick={handleCancelSubscription}>
-                Cancelar assinatura
-              </button>
-              <button type="button" className="btn-secondary" onClick={() => setCancelConfirm(false)}>
-                Voltar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          message={td('cancelSubscription.message')}
+          confirmLabel={td('cancelSubscription.confirm')}
+          cancelLabel={td('cancelSubscription.dismiss')}
+          onConfirm={handleConfirmCancelSubscription}
+          onCancel={() => setCancelConfirm(false)}
+        />
       )}
 
       {showLinkForm && (
-        <div className="overlay" onClick={() => setShowLinkForm(false)}>
-          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="bottom-sheet-header">
-              <h2 className="bottom-sheet-title">Vincular Anamnese</h2>
-              <button
-                type="button"
-                onClick={() => setShowLinkForm(false)}
-                className="bottom-sheet-close"
-                aria-label="Fechar"
-              >
-                <X size={20} strokeWidth={2} />
-              </button>
-            </div>
-            <div className="bottom-sheet-body">
-              <form onSubmit={handleLink} className="form">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="anamnesis-select">
-                    Selecionar anamnese
-                  </label>
-                  <Select
-                    id="anamnesis-select"
-                    value={selectedAnamnesisId}
-                    onChange={(e) => setSelectedAnamnesisId(e.target.value)}
-                    required
-                    disabled={linking}
-                  >
-                    <option value="">Selecione uma anamnese...</option>
-                    {allAnamneses.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.title}{a.isGeneral ? ' (Geral)' : ''}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="btn-group btn-group--equal">
-                  <button
-                    type="submit"
-                    disabled={linking || !selectedAnamnesisId}
-                    className="btn-primary"
-                  >
-                    {linking ? 'Vinculando...' : 'Vincular'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowLinkForm(false)}
-                    className="btn-secondary"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
+        <LinkAnamnesisModal
+          anamneses={allAnamneses}
+          selectedId={selectedAnamnesisId}
+          linking={linking}
+          onSelect={setSelectedAnamnesisId}
+          onSubmit={handleLink}
+          onClose={handleCloseLinkForm}
+        />
       )}
     </div>
   );
-};
-
-// --- Routine history section ---
-const RoutineHistorySection = ({ protocols, loading, studentId, onCreateProtocol }) => {
-  const navigate = useNavigate();
-
-  if (loading) return null;
-
-  return (
-    <div className="cockpit-section">
-      <header className="cockpit-section-header">
-        <h2 className="cockpit-section-eyebrow">Rotinas</h2>
-        <button
-          type="button"
-          className="cockpit-section-link"
-          onClick={() => navigate(`/trainer/students/${studentId}/protocols`)}
-          aria-label="Ver todas as rotinas"
-        >
-          Ver todas
-          <ArrowRight size={12} strokeWidth={2} aria-hidden="true" />
-        </button>
-      </header>
-
-      {protocols.length === 0 ? (
-        <div className="cockpit-empty-inline">
-          <div className="cockpit-empty-inline-icon" aria-hidden="true">
-            <FileText size={20} strokeWidth={2} />
-          </div>
-          <div className="cockpit-empty-inline-text">
-            <p className="cockpit-empty-inline-title">Sem rotinas ainda</p>
-            <p className="cockpit-empty-inline-desc">Crie a primeira para este aluno.</p>
-          </div>
-          <button
-            type="button"
-            className="btn-primary btn-sm"
-            onClick={onCreateProtocol}
-          >
-            Nova rotina
-          </button>
-        </div>
-      ) : (
-        protocols.slice(0, 4).map((protocol) => (
-          <div
-            key={protocol.id}
-            className={`cockpit-routine-card${protocol.status === 'active' ? ' cockpit-routine-card--active' : ''}`}
-            role="link"
-            tabIndex={0}
-            onClick={() => navigate(`/trainer/protocols/${protocol.id}`)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                navigate(`/trainer/protocols/${protocol.id}`);
-              }
-            }}
-          >
-            <div className="cockpit-routine-card-body">
-              <div className="cockpit-routine-card-name">{protocol.name}</div>
-              <div className="cockpit-routine-card-meta">
-                <Calendar size={12} strokeWidth={2} aria-hidden="true" />
-                {formatDateForDisplay(protocol.startDate)}
-                {' – '}
-                {formatDateForDisplay(protocol.expirationDate)}
-              </div>
-            </div>
-            <span className={getStatusBadgeClass(protocol.status)}>
-              {getStatusLabel(protocol.status)}
-            </span>
-          </div>
-        ))
-      )}
-    </div>
-  );
-};
-
-// --- Anamnese summary section ---
-const AnamneseSummaryCard = ({ link, studentId }) => {
-  const navigate = useNavigate();
-  const status = getLinkStatusInfo(link);
-  const meta = [link.anamnesis.isGeneral ? 'Geral' : null, status.detail].filter(Boolean).join(' · ');
-  const menuItems = [
-    ...(canFillLink(link)
-      ? [{
-          label: 'Preencher com o aluno',
-          onClick: () => navigate(getAnamnesisFillPath(studentId, link.anamnesis.id)),
-        }]
-      : []),
-    ...(canViewLinkResponses(link)
-      ? [{
-          label: 'Ver respostas',
-          onClick: () => navigate(`/trainer/students/${studentId}/anamneses/${link.anamnesis.id}/response`),
-        }]
-      : []),
-  ];
-
-  return (
-    <div className="cockpit-anamnese-card">
-      <div className="cockpit-anamnese-card-text">
-        <div className="cockpit-anamnese-card-title">{link.anamnesis.title}</div>
-        {meta && <div className="cockpit-anamnese-card-meta">{meta}</div>}
-      </div>
-      <div className="cockpit-anamnese-card-side">
-        <span className={`badge ${status.badgeClass}`}>{status.label}</span>
-        {menuItems.length > 0 && (
-          <RowMenu ariaLabel={`Opções da anamnese ${link.anamnesis.title}`} extraItems={menuItems} />
-        )}
-      </div>
-    </div>
-  );
-};
-
-const AnamneseSummarySection = ({ anamneses, loading, studentId, onLinkAnamnesis }) => {
-  const navigate = useNavigate();
-
-  if (loading) return null;
-
-  const preview = sortLinksByResponseStatus(anamneses).slice(0, 2);
-  const total = anamneses.length;
-
-  return (
-    <div className="cockpit-section">
-      <header className="cockpit-section-header">
-        <h2 className="cockpit-section-eyebrow">Anamneses</h2>
-        <button
-          type="button"
-          className="cockpit-section-link"
-          onClick={() => navigate(`/trainer/students/${studentId}/anamneses`)}
-          aria-label={`Ver todas as ${total} anamneses`}
-        >
-          Ver todas ({total})
-          <ArrowRight size={12} strokeWidth={2} aria-hidden="true" />
-        </button>
-      </header>
-
-      {preview.length === 0 ? (
-        <div className="cockpit-empty-inline">
-          <div className="cockpit-empty-inline-icon" aria-hidden="true">
-            <ClipboardList size={20} strokeWidth={2} />
-          </div>
-          <div className="cockpit-empty-inline-text">
-            <p className="cockpit-empty-inline-title">Sem anamneses vinculadas</p>
-            <p className="cockpit-empty-inline-desc">Vincule um questionário para o aluno responder.</p>
-          </div>
-          <button
-            type="button"
-            className="btn-primary btn-sm"
-            onClick={onLinkAnamnesis}
-          >
-            Vincular anamnese
-          </button>
-        </div>
-      ) : (
-        preview.map((link) => <AnamneseSummaryCard key={link.id} link={link} studentId={studentId} />)
-      )}
-    </div>
-  );
-};
-
-RoutineHistorySection.propTypes = {
-  protocols: PropTypes.array.isRequired,
-  loading: PropTypes.bool,
-  studentId: PropTypes.string.isRequired,
-  onCreateProtocol: PropTypes.func.isRequired,
-};
-
-AnamneseSummaryCard.propTypes = {
-  link: PropTypes.object.isRequired,
-  studentId: PropTypes.string.isRequired,
-};
-
-AnamneseSummarySection.propTypes = {
-  anamneses: PropTypes.array.isRequired,
-  loading: PropTypes.bool,
-  studentId: PropTypes.string.isRequired,
-  onLinkAnamnesis: PropTypes.func.isRequired,
 };
 
 export default StudentDetail;

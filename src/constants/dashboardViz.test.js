@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   WAVEFORM_THRESHOLD_DAYS,
   pickViz,
-  statusToFillModifier,
+  statusToChartModifier,
   statusLabel,
   volumeToIntensityStep,
 } from './dashboardViz';
@@ -51,43 +51,26 @@ describe('pickViz', () => {
   });
 });
 
-describe('statusToFillModifier', () => {
-  it('maps completed → success', () => {
-    expect(statusToFillModifier('completed')).toBe('success');
-  });
-
-  it('maps partial → partial', () => {
-    expect(statusToFillModifier('partial')).toBe('partial');
-  });
-
-  it('maps abandoned → danger', () => {
-    expect(statusToFillModifier('abandoned')).toBe('danger');
-  });
-
-  it('maps empty → empty', () => {
-    expect(statusToFillModifier('empty')).toBe('empty');
-  });
-
-  it('maps unknown → empty (fallback)', () => {
-    expect(statusToFillModifier('unknown')).toBe('empty');
+describe('statusToChartModifier', () => {
+  it.each([
+    ['completed', 'full'],
+    ['partial', 'cut'],
+    ['abandoned', 'abandoned'],
+    ['empty', 'empty'],
+    ['unknown', 'empty'],
+  ])('maps %s → %s', (status, modifier) => {
+    expect(statusToChartModifier(status)).toBe(modifier);
   });
 });
 
 describe('statusLabel', () => {
-  it('returns Concluído for completed', () => {
-    expect(statusLabel('completed')).toBe('Concluído');
-  });
-
-  it('returns Parcial for partial', () => {
-    expect(statusLabel('partial')).toBe('Parcial');
-  });
-
-  it('returns Abandonado for abandoned', () => {
-    expect(statusLabel('abandoned')).toBe('Abandonado');
-  });
-
-  it('returns Sem treino for empty', () => {
-    expect(statusLabel('empty')).toBe('Sem treino');
+  it.each([
+    ['completed', 'Treino completo'],
+    ['partial', 'Treino parcial'],
+    ['abandoned', 'Treino abandonado'],
+    ['empty', 'Sem treino'],
+  ])('labels %s as %s', (status, label) => {
+    expect(statusLabel(status)).toBe(label);
   });
 });
 

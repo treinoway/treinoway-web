@@ -1,150 +1,173 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { screen } from '@testing-library/react';
-import { renderWithRoute } from '../test/test-utils';
+import { renderWithRoute, screen, within } from '../test/test-utils';
 import PulseWaveform from './PulseWaveform';
 
-const makeBar = (overrides = {}) => ({
-  date: '2026-04-30',
+const makeSession = (overrides = {}) => ({
   status: 'completed',
-  volumeKg: 1200,
+  volumeKg: 2540,
+  hasLoad: true,
   pct: 80,
-  trainingName: 'Treino A',
-  completedSets: 4,
-  totalSets: 4,
-  isToday: false,
+  sessionCount: 1,
+  trainingName: null,
+  completedSets: 6,
+  totalSets: 6,
   ...overrides,
 });
 
-const makeBars = (count = 30) =>
-  Array.from({ length: count }, (_, i) => makeBar({
-    date: `2026-04-${String(i + 1).padStart(2, '0')}`,
-    isToday: i === 29,
+/** A September timeline of `length` days with sessions at the given day indices. */
+const makeDays = (sessionsByIndex, length = 30) =>
+  Array.from({ length }, (_, index) => ({
+    date: `2026-09-${String(index + 1).padStart(2, '0')}`,
+    session: sessionsByIndex[index] ? makeSession(sessionsByIndex[index]) : null,
   }));
 
+const getPlot = () => screen.getByRole('group', { name: 'Volume por sessão' });
+const getBar = (name) => within(getPlot()).getByRole('button', { name });
+
 describe('PulseWaveform', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  it('renders nothing without sessions', () => {
+    const { container } = renderWithRoute(<PulseWaveform days={makeDays({})} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders 30 ghost bars when bars prop is empty', () => {
-    const { container } = renderWithRoute(<PulseWaveform bars={[]} />);
-    const bars = container.querySelectorAll('.pulse-bar');
-    expect(bars).toHaveLength(30);
+  it('places each session on its calendar day and keeps rest days as empty slots', () => {
+    renderWithRoute(<PulseWaveform days={makeDays({ 0: {}, 4: {}, 29: {} }, 30)} />);
+    const plot = getPlot();
+    expect(plot.children).toHaveLength(30);
+    expect(within(plot).getAllByRole('button')).toHaveLength(3);
+    expect(within(plot.children[4]).getByRole('button', { name: /5 de set/ })).toBeInTheDocument();
+    expect(plot.children[1]).toBeEmptyDOMElement();
   });
 
-  it('renders the provided bars', () => {
-    const { container } = renderWithRoute(<PulseWaveform bars={makeBars(30)} />);
-    const bars = container.querySelectorAll('.pulse-bar');
-    expect(bars).toHaveLength(30);
+  it('labels each bar with date, status and volume', () => {
+    renderWithRoute(<PulseWaveform days={makeDays({ 2: { status: 'partial', volumeKg: 1700 } })} />);
+    expect(getBar('Qui, 3 de set: Treino parcial, 1.700 kg')).toBeInTheDocument();
   });
 
-  it('marks the today bar with pulse-bar--today class', () => {
-    const bars = makeBars(30);
-    // Make only bar at index 15 "today"; clear the factory-set today at index 29
-    bars[15] = { ...bars[15], isToday: true };
-    bars[29] = { ...bars[29], isToday: false };
-    const { container } = renderWithRoute(<PulseWaveform bars={bars} />);
-    const todayBars = container.querySelectorAll('.pulse-bar--today');
-    expect(todayBars).toHaveLength(1);
+  it('encodes the status by shape: solid, light + border, dashed outline with ×', () => {
+    renderWithRoute(
+      <PulseWaveform days={makeDays({ 0: { status: 'completed' }, 10: { status: 'partial' }, 20: { status: 'abandoned' } })} />,
+    );
+    const completed = getBar(/Treino completo/);
+    const partial = getBar(/Treino parcial/);
+    const abandoned = getBar(/Treino abandonado/);
+    expect(completed).toHaveClass('volume-chart__slot--full');
+    expect(partial).toHaveClass('volume-chart__slot--cut');
+    expect(abandoned).toHaveClass('volume-chart__slot--abandoned');
+    expect(abandoned.querySelector('svg')).toBeInTheDocument();
+    expect(completed.querySelector('svg')).not.toBeInTheDocument();
+    expect(partial.querySelector('svg')).not.toBeInTheDocument();
   });
 
-  it('renders waveform legend', () => {
-    renderWithRoute(<PulseWaveform bars={makeBars(30)} />);
-    expect(screen.getByText('Concluído')).toBeInTheDocument();
-    expect(screen.getByText('Parcial')).toBeInTheDocument();
-    expect(screen.getByText('Abandonado')).toBeInTheDocument();
+  it('shows direct value labels only on the max and the latest bars', () => {
+    renderWithRoute(
+      <PulseWaveform days={makeDays({
+        1: { volumeKg: 5900 },
+        8: { volumeKg: 14784 },
+        15: { volumeKg: 4560 },
+        28: { volumeKg: 10029 },
+      })}
+      />,
+    );
+    expect(within(getPlot()).getByText('14.784')).toBeInTheDocument();
+    expect(within(getPlot()).getByText('10.029')).toBeInTheDocument();
+    expect(within(getPlot()).queryByText('5.900')).not.toBeInTheDocument();
+    expect(within(getPlot()).queryByText('4.560')).not.toBeInTheDocument();
   });
 
-  it('applies correct fill modifier for each status', () => {
-    const bars = [
-      makeBar({ date: '2026-04-01', status: 'completed', pct: 80 }),
-      makeBar({ date: '2026-04-02', status: 'partial', pct: 50 }),
-      makeBar({ date: '2026-04-03', status: 'abandoned', pct: 30 }),
-      makeBar({ date: '2026-04-04', status: 'empty', pct: 0 }),
-    ];
-    const { container } = renderWithRoute(<PulseWaveform bars={bars} />);
-    expect(container.querySelector('.pulse-bar-fill--success')).toBeInTheDocument();
-    expect(container.querySelector('.pulse-bar-fill--partial')).toBeInTheDocument();
-    expect(container.querySelector('.pulse-bar-fill--danger')).toBeInTheDocument();
-    expect(container.querySelector('.pulse-bar-fill--empty')).toBeInTheDocument();
-  });
-
-  it('shows tooltip on hover for a non-empty bar', async () => {
+  it('renders a session without load as a low marker with "Sem carga registrada"', async () => {
     const user = userEvent.setup();
-    const bars = [makeBar({ date: '2026-04-30', status: 'completed', pct: 80 })];
-    renderWithRoute(<PulseWaveform bars={bars} />);
+    renderWithRoute(<PulseWaveform days={makeDays({ 3: { hasLoad: false, volumeKg: null, pct: 0 } })} />);
+    const marker = getBar(/Sem carga registrada/);
+    expect(marker).toHaveClass('volume-chart__slot--no-load');
 
-    const bar = screen.getByRole('button', { name: /2026-04-30/i });
-    await user.hover(bar);
-    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    await user.hover(marker);
+    expect(within(screen.getByRole('tooltip')).getByText('Sem carga registrada')).toBeInTheDocument();
   });
 
-  it('hides tooltip after mouse leave', async () => {
-    const user = userEvent.setup();
-    const bars = [makeBar({ date: '2026-04-30', status: 'completed', pct: 80 })];
-    renderWithRoute(<PulseWaveform bars={bars} />);
+  it('renders weekly axis ticks ending on the period end', () => {
+    renderWithRoute(<PulseWaveform days={makeDays({ 0: {} }, 30)} />);
+    ['2 set', '9 set', '16 set', '23 set', '30 set'].forEach((tick) => {
+      expect(screen.getByText(tick)).toBeInTheDocument();
+    });
+    expect(screen.queryByText('1 set')).not.toBeInTheDocument();
+  });
 
-    const bar = screen.getByRole('button', { name: /2026-04-30/i });
+  it('renders the shape legend and the unit', () => {
+    renderWithRoute(<PulseWaveform days={makeDays({ 0: {} })} />);
+    const legend = screen.getByRole('list', { name: 'Legenda' });
+    expect(within(legend).getByText('Treino completo')).toBeInTheDocument();
+    expect(within(legend).getByText('Treino parcial')).toBeInTheDocument();
+    expect(within(legend).getByText('Treino abandonado')).toBeInTheDocument();
+    expect(screen.getByText('volume em kg')).toBeInTheDocument();
+  });
+
+  it('includes an accessible data table with date, status, volume and sets', () => {
+    renderWithRoute(
+      <PulseWaveform days={makeDays({ 2: { volumeKg: 1700, completedSets: 5, totalSets: 6 }, 6: { status: 'abandoned', hasLoad: false, volumeKg: null } })} />,
+    );
+    const table = screen.getByRole('table', { name: 'Volume por dia de treino' });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(3);
+    expect(within(rows[1]).getByRole('rowheader', { name: 'Qui, 3 de set' })).toBeInTheDocument();
+    expect(within(rows[1]).getByText('1.700 kg')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('5/6')).toBeInTheDocument();
+    expect(within(rows[2]).getByText('Treino abandonado')).toBeInTheDocument();
+    expect(within(rows[2]).getByText('Sem carga registrada')).toBeInTheDocument();
+  });
+
+  it('opens the tooltip on hover and closes it on mouse leave', async () => {
+    const user = userEvent.setup();
+    renderWithRoute(<PulseWaveform days={makeDays({ 2: {} })} />);
+    const bar = getBar(/3 de set/);
+
     await user.hover(bar);
-    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    const tooltip = screen.getByRole('tooltip');
+    expect(within(tooltip).getByText('6/6')).toBeInTheDocument();
+    expect(bar).toHaveAccessibleDescription(/Treino completo/);
+
     await user.unhover(bar);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
-  it('opens tooltip on Enter key', async () => {
+  it('has a single tab stop on the latest session and moves across sessions with arrow keys', async () => {
     const user = userEvent.setup();
-    const bars = [makeBar({ date: '2026-04-30', status: 'completed', pct: 80 })];
-    renderWithRoute(<PulseWaveform bars={bars} />);
+    renderWithRoute(<PulseWaveform days={makeDays({ 2: {}, 9: {}, 20: {} })} />);
 
-    // Tab to focus the bar (fires React onFocus → tooltip opens)
     await user.tab();
-    expect(screen.getByRole('tooltip')).toBeInTheDocument();
-    // Press Enter while tooltip is open — tooltip stays open
-    await user.keyboard('{Enter}');
-    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    expect(getBar(/21 de set/)).toHaveFocus();
+    expect(within(screen.getByRole('tooltip')).getByText('Seg, 21 de set')).toBeInTheDocument();
+
+    await user.keyboard('{ArrowLeft}');
+    expect(getBar(/10 de set/)).toHaveFocus();
+    await user.keyboard('{Home}');
+    expect(getBar(/3 de set/)).toHaveFocus();
+    await user.keyboard('{End}');
+    expect(getBar(/21 de set/)).toHaveFocus();
+
+    await user.tab();
+    expect(document.body).toHaveFocus();
   });
 
-  it('closes tooltip on Escape key', async () => {
+  it('remembers the last focused session as the tab stop', async () => {
     const user = userEvent.setup();
-    const bars = [makeBar({ date: '2026-04-30', status: 'completed', pct: 80 })];
-    renderWithRoute(<PulseWaveform bars={bars} />);
+    renderWithRoute(<PulseWaveform days={makeDays({ 2: {}, 9: {} })} />);
+    await user.tab();
+    await user.keyboard('{ArrowLeft}');
+    await user.tab();
+    await user.tab({ shift: true });
+    expect(getBar(/3 de set/)).toHaveFocus();
+  });
 
-    // Tab to focus the bar (fires React onFocus → tooltip opens)
+  it('closes the tooltip with Escape and toggles it with Enter', async () => {
+    const user = userEvent.setup();
+    renderWithRoute(<PulseWaveform days={makeDays({ 2: {} })} />);
+
     await user.tab();
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-  });
-
-  it('uses left-anchored tooltip for bar at index 0', async () => {
-    const user = userEvent.setup();
-    // 4 bars; index 0 should get left anchor
-    const bars = Array.from({ length: 4 }, (_, i) =>
-      makeBar({ date: `2026-04-0${i + 1}`, pct: 50 }),
-    );
-    renderWithRoute(<PulseWaveform bars={bars} />);
-
-    const allBars = screen.getAllByRole('button');
-    await user.hover(allBars[0]);
+    await user.keyboard('{Enter}');
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
-  });
-
-  it('uses right-anchored tooltip for bar at index 29', async () => {
-    const user = userEvent.setup();
-    const bars = makeBars(30);
-    renderWithRoute(<PulseWaveform bars={bars} />);
-
-    const allBars = screen.getAllByRole('button');
-    await user.hover(allBars[29]);
-    const tooltip = screen.getByRole('tooltip');
-    expect(tooltip).toBeInTheDocument();
-  });
-
-  it('does not render tooltip for empty bars', () => {
-    const bars = [makeBar({ date: '2026-04-01', status: 'empty', pct: 0 })];
-    renderWithRoute(<PulseWaveform bars={bars} />);
-    // Empty bars should not be focusable buttons
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });
