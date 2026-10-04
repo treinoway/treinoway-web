@@ -153,7 +153,7 @@ const QuantityStep = ({ food, onConfirm, onBack, loading: submitting }) => {
         </div>
       </div>
 
-      <div className="btn-group" style={{ marginTop: 'var(--spacing-lg)' }}>
+      <div className="btn-group" style={{ marginTop: 'var(--spacing-xl)' }}>
         <button
           type="submit"
           className="btn-primary"

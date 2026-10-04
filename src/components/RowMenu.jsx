@@ -40,10 +40,11 @@ const RowMenu = ({
         type="button"
         className="row-menu-trigger"
         aria-label={ariaLabel}
+        title={ariaLabel}
         aria-expanded={open}
         onClick={handleTriggerClick}
       >
-        <MoreVertical size={18} strokeWidth={1.6} />
+        <MoreVertical size={20} strokeWidth={2} aria-hidden="true" />
       </button>
       {open && (
         <div className="row-menu-dropdown">

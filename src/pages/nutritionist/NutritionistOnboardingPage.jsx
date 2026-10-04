@@ -183,7 +183,7 @@ const NutritionistOnboardingPage = () => {
 
       <form onSubmit={handleSubmit} className="form">
         {/* Section: Dados pessoais */}
-        <div className="card" style={{ marginBottom: 'var(--spacing-lg)' }}>
+        <div className="card" style={{ marginBottom: 'var(--spacing-xl)' }}>
           <div className="card-header">
             <h2 className="card-title">Dados pessoais</h2>
           </div>
@@ -240,7 +240,7 @@ const NutritionistOnboardingPage = () => {
         </div>
 
         {/* Section: Endereço */}
-        <div className="card" style={{ marginBottom: 'var(--spacing-lg)' }}>
+        <div className="card" style={{ marginBottom: 'var(--spacing-xl)' }}>
           <div className="card-header">
             <h2 className="card-title">Endereço</h2>
           </div>
@@ -320,7 +320,7 @@ const NutritionistOnboardingPage = () => {
         </div>
 
         {/* Section: Dados profissionais */}
-        <div className="card" style={{ marginBottom: 'var(--spacing-xl)' }}>
+        <div className="card" style={{ marginBottom: 'var(--spacing-2xl)' }}>
           <div className="card-header">
             <h2 className="card-title">Dados profissionais</h2>
           </div>

@@ -100,7 +100,7 @@ const MyChallenges = () => {
           <Trophy size={24} className="page-header-title-icon" />
           <h1 className="page-title">Campeonatos</h1>
         </div>
-        <div className="skeleton skeleton-card" style={{ marginBottom: 'var(--spacing-md)' }} />
+        <div className="skeleton skeleton-card" style={{ marginBottom: 'var(--spacing-lg)' }} />
         <SkeletonCards />
       </div>
     );

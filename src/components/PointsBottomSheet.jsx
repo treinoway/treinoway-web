@@ -172,7 +172,7 @@ const PointsBottomSheet = ({
           </div>
 
           {isEditable && (
-            <div className="btn-group" style={{ marginTop: 'var(--spacing-md)' }}>
+            <div className="btn-group" style={{ marginTop: 'var(--spacing-lg)' }}>
               <button
                 type="button"
                 className="btn-secondary"

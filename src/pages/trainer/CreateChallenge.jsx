@@ -223,7 +223,7 @@ const CreateChallenge = () => {
 
   return (
     <div>
-      <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
+      <div className="page-header" style={{ marginBottom: 'var(--spacing-lg)' }}>
         <button
           type="button"
           onClick={() => navigate('/trainer/challenges')}
