@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
-import { computePreviousPeriod, getPeriodCacheKey } from '../constants/dashboardPeriod';
+import { getPeriodCacheKey } from '../constants/dashboardPeriod';
 
 const buildBlock = () => ({ data: null, loading: true, error: null });
 
 const initialState = () => ({
   summary: buildBlock(),
-  previousSummary: buildBlock(),
   recentSessions: buildBlock(),
   progression: buildBlock(),
   dailyActivity: buildBlock(),
@@ -21,8 +20,8 @@ const isCancelledError = (error) =>
   || error?.name === 'AbortError';
 
 /**
- * Fetches the three dashboard endpoints (summary, recent sessions, exercise progression)
- * and the previous-period summary used for the "vs período anterior" delta.
+ * Fetches the four dashboard endpoints (summary, recent sessions, exercise progression,
+ * daily activity).
  *
  * - Each block is independent: errors in one don't block the others (Promise.allSettled).
  * - Period changes cancel any in-flight requests via AbortController.
@@ -69,7 +68,6 @@ const useStudentDashboard = (studentId, period) => {
     setState((prev) => ({
       ...prev,
       summary: { ...prev.summary, loading: true, error: null },
-      previousSummary: { ...prev.previousSummary, loading: true, error: null },
       recentSessions: { ...prev.recentSessions, loading: true, error: null },
       progression: { ...prev.progression, loading: true, error: null },
       dailyActivity: { ...prev.dailyActivity, loading: true, error: null },
@@ -81,31 +79,23 @@ const useStudentDashboard = (studentId, period) => {
     const progressionParams = { dateFrom: period.from, dateTo: period.to, limit: 20, includeDurationOnly: false };
     const dailyActivityParams = { dateFrom: period.from, dateTo: period.to };
 
-    const previousPeriod = computePreviousPeriod(period);
-    const previousParams = previousPeriod
-      ? { dateFrom: previousPeriod.from, dateTo: previousPeriod.to }
-      : null;
-
     const requests = [
       fetchBlock({ url: `/trainer/students/${studentId}/dashboard/summary`, params: summaryParams }, controller.signal),
-      previousParams
-        ? fetchBlock({ url: `/trainer/students/${studentId}/dashboard/summary`, params: previousParams }, controller.signal)
-        : Promise.resolve({ data: null, error: null }),
       fetchBlock({ url: `/trainer/students/${studentId}/dashboard/recent-sessions`, params: recentParams }, controller.signal),
       fetchBlock({ url: `/trainer/students/${studentId}/dashboard/exercise-progression`, params: progressionParams }, controller.signal),
       fetchBlock({ url: `/trainer/students/${studentId}/dashboard/daily-activity`, params: dailyActivityParams }, controller.signal),
     ];
 
-    const [summaryResult, previousResult, recentResult, progressionResult, dailyActivityResult] = await Promise.all(requests);
+    const results = await Promise.all(requests);
+    const [summaryResult, recentResult, progressionResult, dailyActivityResult] = results;
 
     if (controller.signal.aborted) return;
-    if ([summaryResult, previousResult, recentResult, progressionResult, dailyActivityResult].some((r) => r?.cancelled)) return;
+    if (results.some((r) => r?.cancelled)) return;
 
     const studentNotFound = isStudentNotFoundError(summaryResult.error);
 
     const next = {
       summary: { data: summaryResult.data, loading: false, error: studentNotFound ? null : summaryResult.error },
-      previousSummary: { data: previousResult.data, loading: false, error: previousResult.error },
       recentSessions: { data: recentResult.data, loading: false, error: recentResult.error },
       progression: { data: progressionResult.data, loading: false, error: progressionResult.error },
       dailyActivity: { data: dailyActivityResult.data, loading: false, error: dailyActivityResult.error },

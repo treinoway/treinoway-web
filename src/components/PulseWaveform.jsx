@@ -1,183 +1,256 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
+import { X } from 'lucide-react';
 import PulseTooltip from './PulseTooltip';
-import { statusToFillModifier } from '../constants/dashboardViz';
+import { statusLabel, statusToChartModifier } from '../constants/dashboardViz';
+import {
+  buildSessionAriaLabel,
+  buildTickIndices,
+  computeTooltipAnchor,
+  computeValueLabelAlign,
+  findKeyboardTarget,
+  formatKg,
+  formatLongDate,
+  formatSessionVolume,
+  formatSets,
+  formatShortDate,
+  listSessionIndices,
+  pickValueLabelIndices,
+} from '../utils/volumeChart';
+import { td } from '../utils/studentCockpit';
 
-const TOTAL_BARS = 30;
-// Bars at index < LEFT_THRESHOLD get left-anchored tooltip (tooltip grows right)
-const LEFT_THRESHOLD = 4;
-// Bars at index >= RIGHT_THRESHOLD get right-anchored tooltip (tooltip grows left)
-const RIGHT_THRESHOLD = 26;
+const LEGEND = [
+  { modifier: 'full', status: 'completed' },
+  { modifier: 'cut', status: 'partial' },
+  { modifier: 'abandoned', status: 'abandoned' },
+];
 
-const computeAnchorDir = (barIndex) => {
-  if (barIndex < LEFT_THRESHOLD) return 'left';
-  if (barIndex >= RIGHT_THRESHOLD) return 'right';
-  return 'center';
+const AbandonedMark = () => (
+  <X className="volume-chart__abandoned-icon" size={12} strokeWidth={2} aria-hidden="true" />
+);
+
+/** The bar itself: height is the only inline (computed) style. */
+const SessionBar = ({ session }) => {
+  const heightStyle = session.hasLoad ? { height: `${session.pct}%` } : undefined;
+  return (
+    <span className="volume-chart__bar" style={heightStyle}>
+      {session.status === 'abandoned' && <AbandonedMark />}
+    </span>
+  );
 };
 
-const formatAxisDate = (dateStr) => {
-  if (!dateStr) return '';
-  const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-  const [, month, day] = dateStr.split('-').map(Number);
-  if (!month || !day) return '';
-  return `${day} ${months[month - 1]}`;
+SessionBar.propTypes = { session: PropTypes.object.isRequired };
+
+const buildSlotClassName = (session, active) => [
+  'volume-chart__slot',
+  `volume-chart__slot--${statusToChartModifier(session.status)}`,
+  session.hasLoad ? '' : 'volume-chart__slot--no-load',
+  active ? 'volume-chart__slot--active' : '',
+].filter(Boolean).join(' ');
+
+const SessionDay = ({ day, index, total, tooltipId, showValue, tabbable, open, slotRef, handlers }) => {
+  const { session } = day;
+  const valueAlign = computeValueLabelAlign(index, total);
+  return (
+    <div className="volume-chart__day" onMouseEnter={() => handlers.onOpen(index)} onMouseLeave={handlers.onClose}>
+      <button
+        ref={slotRef}
+        type="button"
+        className={buildSlotClassName(session, open)}
+        tabIndex={tabbable ? 0 : -1}
+        aria-label={buildSessionAriaLabel(day.date, session)}
+        aria-describedby={open ? tooltipId : undefined}
+        onFocus={() => handlers.onFocus(index)}
+        onBlur={handlers.onClose}
+        onKeyDown={(event) => handlers.onKeyDown(event, index)}
+      >
+        {showValue && (
+          <span className={`volume-chart__value volume-chart__value--${valueAlign} type-caption`}>
+            {formatKg(session.volumeKg)}
+          </span>
+        )}
+        <SessionBar session={session} />
+      </button>
+      {open && <PulseTooltip id={tooltipId} date={day.date} session={session} anchorDir={computeTooltipAnchor(index, total)} />}
+    </div>
+  );
+};
+
+SessionDay.propTypes = {
+  day: PropTypes.object.isRequired,
+  index: PropTypes.number.isRequired,
+  total: PropTypes.number.isRequired,
+  tooltipId: PropTypes.string.isRequired,
+  showValue: PropTypes.bool.isRequired,
+  tabbable: PropTypes.bool.isRequired,
+  open: PropTypes.bool.isRequired,
+  slotRef: PropTypes.func.isRequired,
+  handlers: PropTypes.object.isRequired,
+};
+
+const VolumeAxis = ({ days }) => {
+  const ticks = buildTickIndices(days.length);
+  return (
+    <div className="volume-chart__axis type-caption" aria-hidden="true">
+      {days.map((day, index) => (
+        <span key={day.date} className={`volume-chart__tick volume-chart__tick--${computeValueLabelAlign(index, days.length)}`}>
+          {ticks.has(index) ? formatShortDate(day.date) : ''}
+        </span>
+      ))}
+    </div>
+  );
+};
+
+VolumeAxis.propTypes = { days: PropTypes.array.isRequired };
+
+const VolumeLegend = () => (
+  <div className="volume-chart__legend">
+    <ul className="volume-chart__legend-list" aria-label={td('volume.legendAria')}>
+      {LEGEND.map((item) => (
+        <li key={item.modifier} className="volume-chart__legend-item type-caption">
+          <span className={`volume-chart__swatch volume-chart__swatch--${item.modifier}`} aria-hidden="true">
+            {item.status === 'abandoned' && <AbandonedMark />}
+          </span>
+          {statusLabel(item.status)}
+        </li>
+      ))}
+    </ul>
+    <span className="volume-chart__unit type-caption">{td('volume.unit')}</span>
+  </div>
+);
+
+/**
+ * Screen-reader twin of the chart: every value without hovering. Wrapped in a
+ * div because tables ignore the 1px box of `.visually-hidden` and would
+ * overflow the page.
+ */
+const VolumeTable = ({ days }) => (
+  <div className="visually-hidden">
+    <table>
+      <caption>{td('volume.tableCaption')}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{td('volume.table.date')}</th>
+          <th scope="col">{td('volume.table.status')}</th>
+          <th scope="col">{td('volume.table.volume')}</th>
+          <th scope="col">{td('volume.table.sets')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {days.filter((day) => day.session).map(({ date, session }) => (
+          <tr key={date}>
+            <th scope="row">{formatLongDate(date)}</th>
+            <td>{statusLabel(session.status)}</td>
+            <td>{formatSessionVolume(session)}</td>
+            <td>{formatSets(session.completedSets, session.totalSets)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+VolumeTable.propTypes = { days: PropTypes.array.isRequired };
+
+/** Tooltip + roving-focus state: one tab stop, arrows move across sessions, Escape closes. */
+const useSessionFocus = (sessionIndices) => {
+  const [openIndex, setOpenIndex] = useState(null);
+  const [focusIndex, setFocusIndex] = useState(null);
+  const slotRefs = useRef(new Map());
+
+  useEffect(() => {
+    if (openIndex === null) return undefined;
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setOpenIndex(null);
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [openIndex]);
+
+  const handleKeyDown = (event, index) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setOpenIndex((current) => (current === index ? null : index));
+      return;
+    }
+    const target = findKeyboardTarget(event.key, index, sessionIndices);
+    if (target === null || target === undefined) return;
+    event.preventDefault();
+    slotRefs.current.get(target)?.focus();
+  };
+
+  const handlers = {
+    onOpen: setOpenIndex,
+    onClose: () => setOpenIndex(null),
+    onFocus: (index) => { setFocusIndex(index); setOpenIndex(index); },
+    onKeyDown: handleKeyDown,
+  };
+  const registerSlot = (index) => (node) => {
+    if (node) slotRefs.current.set(index, node);
+    else slotRefs.current.delete(index);
+  };
+  const tabbableIndex = sessionIndices.includes(focusIndex) ? focusIndex : sessionIndices.at(-1);
+  return { openIndex, tabbableIndex, handlers, registerSlot };
 };
 
 /**
- * 30-bar pulse waveform. Bar height encodes effort (volume); bar colour + cap glyph
- * encodes session status. Today marker = vertical hairline + "HOJE" tag.
- * Tooltip on hover/focus with keyboard navigation.
- *
- * @param {object}   props
- * @param {object[]} props.bars         - From computeWaveformBars()
- * @param {boolean}  props.loading      - Show skeleton shimmer
+ * Volume per session on a real day axis: one slot per calendar day of the
+ * period (rest days stay empty with a baseline tick). Height encodes volume;
+ * the outcome is encoded by shape, not hue: solid (completo), light fill +
+ * border (parcial), dashed outline + × (abandonado).
  */
-const PulseWaveform = ({ bars, loading }) => {
-  const [focusedIndex, setFocusedIndex] = useState(null);
+const PulseWaveform = ({ days }) => {
+  const idPrefix = useId();
+  const sessionIndices = listSessionIndices(days ?? []);
+  const { openIndex, tabbableIndex, handlers, registerSlot } = useSessionFocus(sessionIndices);
 
-  // Close tooltip when Escape is pressed
-  useEffect(() => {
-    if (focusedIndex === null) return;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setFocusedIndex(null);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [focusedIndex]);
+  if (sessionIndices.length === 0) return null;
 
-  const handleBarKeyDown = useCallback((e, index) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      setFocusedIndex(index);
-    }
-  }, []);
-
-  // Render ghost bars when loading or no data
-  const displayBars = bars && bars.length > 0 ? bars : Array.from({ length: TOTAL_BARS }, () => ({
-    date: null,
-    status: 'empty',
-    volumeKg: null,
-    pct: 0,
-    trainingName: null,
-    completedSets: 0,
-    totalSets: 0,
-    isToday: false,
-    _ghost: true,
-  }));
-
-  const firstBar = displayBars[0];
-  const lastBar = displayBars[displayBars.length - 1];
+  const labelled = pickValueLabelIndices(days);
+  const hintId = `${idPrefix}-hint`;
 
   return (
-    <div className={`pulse-wave${loading ? '' : ''}`}>
-      <div className="pulse-wave-axis" aria-hidden="true">
-        <span>{formatAxisDate(firstBar?.date)}</span>
-        <span>{formatAxisDate(lastBar?.date)}</span>
+    <div className="volume-chart">
+      <p id={hintId} className="visually-hidden">{td('volume.keyboardHint')}</p>
+      <div className="volume-chart__plot" role="group" aria-label={td('volume.chartAria')} aria-describedby={hintId}>
+        {days.map((day, index) => (day.session ? (
+          <SessionDay
+            key={day.date}
+            day={day}
+            index={index}
+            total={days.length}
+            tooltipId={`${idPrefix}-tooltip-${index}`}
+            showValue={labelled.has(index)}
+            tabbable={tabbableIndex === index}
+            open={openIndex === index}
+            slotRef={registerSlot(index)}
+            handlers={handlers}
+          />
+        ) : <div key={day.date} className="volume-chart__day volume-chart__day--rest" />))}
       </div>
-
-      <div
-        className={`pulse-wave-bars${loading ? '' : ''}`}
-        role="group"
-        aria-label="Atividade dos últimos 30 dias"
-      >
-        {displayBars.map((bar, index) => {
-          const fillModifier = bar._ghost ? 'ghost' : statusToFillModifier(bar.status);
-          const isToday = bar.isToday;
-          const isFocused = focusedIndex === index;
-          const anchorDir = computeAnchorDir(index);
-          const isEmpty = bar.status === 'empty' || bar._ghost;
-
-          const barClassNames = [
-            'pulse-bar',
-            isToday ? 'pulse-bar--today' : '',
-            isFocused ? 'pulse-bar--focus' : '',
-          ].filter(Boolean).join(' ');
-
-          const fillClassNames = [
-            'pulse-bar-fill',
-            `pulse-bar-fill--${fillModifier}`,
-          ].join(' ');
-
-          const heightStyle = isEmpty
-            ? undefined
-            : { height: `${bar.pct}%` };
-
-          return (
-            <div
-              key={bar.date ?? index}
-              className={barClassNames}
-              tabIndex={isEmpty ? -1 : 0}
-              role={isEmpty ? undefined : 'button'}
-              aria-label={
-                isEmpty
-                  ? undefined
-                  : `${bar.date}: ${bar.status}${bar.trainingName ? `, ${bar.trainingName}` : ''}`
-              }
-              aria-expanded={isFocused || undefined}
-              onMouseEnter={() => !isEmpty && setFocusedIndex(index)}
-              onMouseLeave={() => setFocusedIndex(null)}
-              onFocus={() => !isEmpty && setFocusedIndex(index)}
-              onBlur={() => setFocusedIndex(null)}
-              onKeyDown={(e) => !isEmpty && handleBarKeyDown(e, index)}
-            >
-              <div
-                className={fillClassNames}
-                style={heightStyle}
-              />
-              {isFocused && bar.date && (
-                <PulseTooltip
-                  date={bar.date}
-                  status={bar.status}
-                  trainingName={bar.trainingName}
-                  volumeKg={bar.volumeKg}
-                  completedSets={bar.completedSets}
-                  totalSets={bar.totalSets}
-                  anchorDir={anchorDir}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="pulse-wave-key" aria-hidden="true">
-        <span className="pulse-wave-key-item">
-          <span className="pulse-wave-key-swatch pulse-wave-key-swatch--success" />
-          Concluído
-        </span>
-        <span className="pulse-wave-key-item">
-          <span className="pulse-wave-key-swatch pulse-wave-key-swatch--partial" />
-          Parcial
-        </span>
-        <span className="pulse-wave-key-item">
-          <span className="pulse-wave-key-swatch pulse-wave-key-swatch--danger" />
-          Abandonado
-        </span>
-        <span className="pulse-wave-key-meta">altura = volume</span>
-      </div>
+      <VolumeAxis days={days} />
+      <VolumeLegend />
+      <VolumeTable days={days} />
     </div>
   );
 };
 
 PulseWaveform.propTypes = {
-  bars: PropTypes.arrayOf(
+  days: PropTypes.arrayOf(
     PropTypes.shape({
-      date: PropTypes.string,
-      status: PropTypes.oneOf(['completed', 'partial', 'abandoned', 'empty']),
-      volumeKg: PropTypes.number,
-      pct: PropTypes.number,
-      trainingName: PropTypes.string,
-      completedSets: PropTypes.number,
-      totalSets: PropTypes.number,
-      isToday: PropTypes.bool,
+      date: PropTypes.string.isRequired,
+      session: PropTypes.shape({
+        status: PropTypes.oneOf(['completed', 'partial', 'abandoned']).isRequired,
+        volumeKg: PropTypes.number,
+        hasLoad: PropTypes.bool.isRequired,
+        pct: PropTypes.number.isRequired,
+        sessionCount: PropTypes.number,
+        trainingName: PropTypes.string,
+        completedSets: PropTypes.number,
+        totalSets: PropTypes.number,
+      }),
     }),
   ),
-  loading: PropTypes.bool,
-};
-
-PulseWaveform.defaultProps = {
-  bars: [],
-  loading: false,
 };
 
 export default PulseWaveform;

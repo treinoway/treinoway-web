@@ -40,7 +40,7 @@ describe('useStudentDashboard', () => {
     expect(api.get).not.toHaveBeenCalled();
   });
 
-  it('fetches summary, recent sessions, exercise progression, daily-activity, and previous summary', async () => {
+  it('fetches summary, recent sessions, exercise progression and daily-activity once each', async () => {
     api.get.mockImplementation((url) => {
       if (url.endsWith('/dashboard/summary')) return Promise.resolve({ data: buildSummary() });
       if (url.endsWith('/dashboard/recent-sessions')) return Promise.resolve({ data: { data: [] } });
@@ -55,9 +55,10 @@ describe('useStudentDashboard', () => {
       expect(result.current.summary.loading).toBe(false);
     });
 
-    // 5 calls: summary, previous-summary (delta), recent-sessions, exercise-progression, daily-activity
+    // 4 calls: summary, recent-sessions, exercise-progression, daily-activity (no previous-period summary)
+    expect(api.get).toHaveBeenCalledTimes(4);
     const calls = api.get.mock.calls.map(([url]) => url);
-    expect(calls.filter((u) => u.endsWith('/dashboard/summary'))).toHaveLength(2);
+    expect(calls.filter((u) => u.endsWith('/dashboard/summary'))).toHaveLength(1);
     expect(calls.filter((u) => u.endsWith('/dashboard/recent-sessions'))).toHaveLength(1);
     expect(calls.filter((u) => u.endsWith('/dashboard/exercise-progression'))).toHaveLength(1);
     expect(calls.filter((u) => u.endsWith('/dashboard/daily-activity'))).toHaveLength(1);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeWaveformBars, computeHeatmapWeeks } from './computeDailyActivityViz';
+import { computeVolumeTimeline, computeHeatmapWeeks } from './computeDailyActivityViz';
 
 const makeDay = (date, overrides = {}) => ({
   date,
@@ -16,109 +16,102 @@ const makeDay = (date, overrides = {}) => ({
 // Fixed "today" injected into all tests: 2026-04-30 (Thursday)
 const NOW = new Date('2026-04-30T12:00:00');
 
-describe('computeWaveformBars', () => {
-  it('returns empty bars for null input', () => {
-    const { bars } = computeWaveformBars(null, NOW);
-    expect(bars).toEqual([]);
+// 2026-04-24 → 2026-04-30: a 7-day period in local day keys.
+const WEEK = { from: '2026-04-24', to: '2026-04-30' };
+
+const sessionOn = (days, date) => days.find((day) => day.date === date)?.session;
+
+describe('computeVolumeTimeline', () => {
+  it('returns no days for null or empty input', () => {
+    expect(computeVolumeTimeline(null, WEEK)).toEqual({ days: [], maxVolumeKg: 0 });
+    expect(computeVolumeTimeline([], WEEK)).toEqual({ days: [], maxVolumeKg: 0 });
   });
 
-  it('returns empty bars for empty array', () => {
-    const { bars, maxVolumeKg } = computeWaveformBars([], NOW);
-    expect(bars).toEqual([]);
-    expect(maxVolumeKg).toBe(0);
+  it('creates one slot per calendar day of the period, including rest days', () => {
+    const { days } = computeVolumeTimeline([makeDay('2026-04-26'), makeDay('2026-04-29')], WEEK);
+    expect(days.map((day) => day.date)).toEqual([
+      '2026-04-24', '2026-04-25', '2026-04-26', '2026-04-27', '2026-04-28', '2026-04-29', '2026-04-30',
+    ]);
+    expect(days.filter((day) => day.session).map((day) => day.date)).toEqual(['2026-04-26', '2026-04-29']);
+    expect(days[0].session).toBeNull();
   });
 
-  it('slices to last 30 bars when more than 30 days given', () => {
-    const days = Array.from({ length: 45 }, (_, i) => {
-      const date = new Date('2026-03-17T00:00:00');
-      date.setDate(date.getDate() + i);
-      const d = date.toISOString().slice(0, 10);
-      return makeDay(d, { volumeKg: 500 + i * 10 });
-    });
-    const { bars } = computeWaveformBars(days, NOW);
-    expect(bars).toHaveLength(30);
+  it('accepts ISO timestamps as period bounds (preset periods)', () => {
+    const period = { from: new Date(2026, 3, 1, 9).toISOString(), to: new Date(2026, 3, 30, 21).toISOString() };
+    const { days } = computeVolumeTimeline([makeDay('2026-04-10')], period);
+    expect(days).toHaveLength(30);
+    expect(days[0].date).toBe('2026-04-01');
+    expect(days.at(-1).date).toBe('2026-04-30');
   });
 
-  it('marks today bar with isToday=true', () => {
-    const days = [
-      makeDay('2026-04-29', { volumeKg: 800 }),
-      makeDay('2026-04-30', { volumeKg: 1000 }), // today
-    ];
-    const { bars } = computeWaveformBars(days, NOW);
-    expect(bars.find((b) => b.date === '2026-04-30')?.isToday).toBe(true);
-    expect(bars.find((b) => b.date === '2026-04-29')?.isToday).toBe(false);
+  it('crosses month boundaries', () => {
+    const { days } = computeVolumeTimeline([makeDay('2026-10-01')], { from: '2026-09-29', to: '2026-10-02' });
+    expect(days.map((day) => day.date)).toEqual(['2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02']);
   });
 
-  it('computes pct relative to maxVolumeKg', () => {
-    const days = [
-      makeDay('2026-04-28', { volumeKg: 500 }),
-      makeDay('2026-04-29', { volumeKg: 1000 }),
-    ];
-    const { bars, maxVolumeKg } = computeWaveformBars(days, NOW);
+  it('falls back to the data range when the period has no bounds', () => {
+    const { days } = computeVolumeTimeline([makeDay('2026-04-27'), makeDay('2026-04-29')], {});
+    expect(days.map((day) => day.date)).toEqual(['2026-04-27', '2026-04-28', '2026-04-29']);
+  });
+
+  it('ignores rows outside the period', () => {
+    const { days, maxVolumeKg } = computeVolumeTimeline(
+      [makeDay('2026-04-20', { volumeKg: 9000 }), makeDay('2026-04-25', { volumeKg: 500 })],
+      WEEK,
+    );
+    expect(days).toHaveLength(7);
+    expect(maxVolumeKg).toBe(500);
+  });
+
+  it('computes pct relative to the max volume with a visible minimum', () => {
+    const { days, maxVolumeKg } = computeVolumeTimeline([
+      makeDay('2026-04-24', { volumeKg: 500 }),
+      makeDay('2026-04-25', { volumeKg: 1000 }),
+      makeDay('2026-04-26', { volumeKg: 1 }),
+    ], WEEK);
     expect(maxVolumeKg).toBe(1000);
-    expect(bars[0].pct).toBe(50);
-    expect(bars[1].pct).toBe(100);
+    expect(sessionOn(days, '2026-04-24').pct).toBe(50);
+    expect(sessionOn(days, '2026-04-25').pct).toBe(100);
+    expect(sessionOn(days, '2026-04-26').pct).toBe(4);
   });
 
-  it('clamps pct to minimum 5 for non-empty days with small volume', () => {
-    const days = [
-      makeDay('2026-04-28', { volumeKg: 1 }),
-      makeDay('2026-04-29', { volumeKg: 10000 }),
-    ];
-    const { bars } = computeWaveformBars(days, NOW);
-    expect(bars[0].pct).toBeGreaterThanOrEqual(5);
+  it('flags sessions without load (zero or null volume)', () => {
+    const { days } = computeVolumeTimeline([
+      makeDay('2026-04-24', { volumeKg: 0 }),
+      makeDay('2026-04-25', { volumeKg: null }),
+    ], WEEK);
+    expect(sessionOn(days, '2026-04-24')).toMatchObject({ hasLoad: false, volumeKg: null, pct: 0 });
+    expect(sessionOn(days, '2026-04-25')).toMatchObject({ hasLoad: false, volumeKg: null, pct: 0 });
   });
 
-  it('gives pct=0 for empty-status days', () => {
-    const days = [
-      makeDay('2026-04-28', { status: 'empty', volumeKg: null }),
-    ];
-    const { bars } = computeWaveformBars(days, NOW);
-    expect(bars[0].pct).toBe(0);
+  it('keeps the day aggregate: status, sets and session count', () => {
+    const { days } = computeVolumeTimeline([
+      makeDay('2026-04-24', { status: 'abandoned', sessionCount: 2, completedSets: 3, totalSets: 8 }),
+      makeDay('2026-04-25', { status: 'partial' }),
+    ], WEEK);
+    expect(sessionOn(days, '2026-04-24')).toMatchObject({ status: 'abandoned', sessionCount: 2, completedSets: 3, totalSets: 8 });
+    expect(sessionOn(days, '2026-04-25')).toMatchObject({ status: 'partial', sessionCount: 1 });
   });
 
-  it('preserves status on each bar', () => {
-    const days = [
-      makeDay('2026-04-28', { status: 'abandoned', volumeKg: 400 }),
-      makeDay('2026-04-29', { status: 'partial', volumeKg: 700 }),
-      makeDay('2026-04-30', { status: 'completed', volumeKg: 1000 }),
-    ];
-    const { bars } = computeWaveformBars(days, NOW);
-    expect(bars[0].status).toBe('abandoned');
-    expect(bars[1].status).toBe('partial');
-    expect(bars[2].status).toBe('completed');
+  it('treats rows with status "empty" as rest days', () => {
+    const { days } = computeVolumeTimeline([makeDay('2026-04-24', { status: 'empty', volumeKg: null })], WEEK);
+    expect(days).toEqual([]);
   });
 });
 
 describe('backward-compatibility — volumeKg / totalVolumeKg / status coercion', () => {
-  it('derives bars correctly when input uses canonical volumeKg', () => {
-    const days = [
-      makeDay('2026-04-28', { volumeKg: 500 }),
-      makeDay('2026-04-29', { volumeKg: 1000 }),
-    ];
-    const { bars, maxVolumeKg } = computeWaveformBars(days, NOW);
+  it('derives volume from legacy totalVolumeKg', () => {
+    const { days, maxVolumeKg } = computeVolumeTimeline([
+      { date: '2026-04-28', status: 'completed', totalVolumeKg: 500, completedSets: 4, totalSets: 4 },
+      { date: '2026-04-29', status: 'completed', totalVolumeKg: 1000, completedSets: 4, totalSets: 4 },
+    ], WEEK);
     expect(maxVolumeKg).toBe(1000);
-    expect(bars[0].volumeKg).toBe(500);
-    expect(bars[1].volumeKg).toBe(1000);
+    expect(sessionOn(days, '2026-04-28')).toMatchObject({ volumeKg: 500, pct: 50 });
   });
 
-  it('derives bars correctly when input uses legacy totalVolumeKg', () => {
-    const days = [
-      { date: '2026-04-28', status: 'completed', totalVolumeKg: 500, trainingName: 'A', completedSets: 4, totalSets: 4 },
-      { date: '2026-04-29', status: 'completed', totalVolumeKg: 1000, trainingName: 'A', completedSets: 4, totalSets: 4 },
-    ];
-    const { bars, maxVolumeKg } = computeWaveformBars(days, NOW);
-    expect(maxVolumeKg).toBe(1000);
-    expect(bars[0].volumeKg).toBe(500);
-    expect(bars[1].volumeKg).toBe(1000);
-    expect(bars[0].pct).toBe(50);
-    expect(bars[1].pct).toBe(100);
-  });
-
-  it('coerces legacy status "done" to "completed" in waveform bars', () => {
-    const days = [makeDay('2026-04-28', { status: 'done' })];
-    const { bars } = computeWaveformBars(days, NOW);
-    expect(bars[0].status).toBe('completed');
+  it('coerces legacy status "done" to "completed" in the timeline', () => {
+    const { days } = computeVolumeTimeline([makeDay('2026-04-28', { status: 'done' })], WEEK);
+    expect(sessionOn(days, '2026-04-28').status).toBe('completed');
   });
 
   it('coerces legacy status "done" to "completed" in heatmap cells', () => {

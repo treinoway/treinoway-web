@@ -3,9 +3,11 @@
  * Controls waveform vs heatmap threshold and status palette.
  */
 
+import { td } from '../utils/studentCockpit';
+
 /**
  * Period length (in days) above which the waveform collapses to a heatmap.
- * Rationale: at 320px wide, 30 bars ≈ 10px each. Beyond 60 bars each bar
+ * Rationale: at 320px wide, 30 day slots ≈ 10px each. Beyond 60 slots each bar
  * drops below 5px and the height-encodes-effort idea becomes noise.
  */
 export const WAVEFORM_THRESHOLD_DAYS = 60;
@@ -21,32 +23,30 @@ export const pickViz = (periodDays) => {
 };
 
 /**
- * Maps a daily-activity status to its CSS fill modifier.
+ * Maps a daily-activity status to its volume-chart modifier (bar/swatch shape:
+ * full = solid, cut = light fill + border, abandoned = dashed outline + ×).
  * @param {'completed' | 'partial' | 'abandoned' | 'empty'} status
- * @returns {'success' | 'partial' | 'danger' | 'empty'}
+ * @returns {'full' | 'cut' | 'abandoned' | 'empty'}
  */
-export const statusToFillModifier = (status) => {
+export const statusToChartModifier = (status) => {
   switch (status) {
-    case 'completed': return 'success';
-    case 'partial': return 'partial';
-    case 'abandoned': return 'danger';
+    case 'completed': return 'full';
+    case 'partial': return 'cut';
+    case 'abandoned': return 'abandoned';
     default: return 'empty';
   }
 };
 
+const STATUS_LABEL_KEYS = ['completed', 'partial', 'abandoned'];
+
 /**
- * Maps a daily-activity status to a human-readable label (pt-BR).
+ * Maps a daily-activity status to its label (`studentDetail.volume.status.*`):
+ * completed = every planned set done, partial = finished with sets missing.
  * @param {'completed' | 'partial' | 'abandoned' | 'empty'} status
  * @returns {string}
  */
-export const statusLabel = (status) => {
-  switch (status) {
-    case 'completed': return 'Concluído';
-    case 'partial': return 'Parcial';
-    case 'abandoned': return 'Abandonado';
-    default: return 'Sem treino';
-  }
-};
+export const statusLabel = (status) =>
+  td(`volume.status.${STATUS_LABEL_KEYS.includes(status) ? status : 'empty'}`);
 
 /**
  * Heatmap intensity: maps relative volume to a step class (s1–s4) for completed sessions.
