@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { CircleAlert, Plus, Wallet } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { t, tf } from '../../i18n';
@@ -115,7 +115,6 @@ ChargesTabBody.propTypes = {
 };
 
 const Financeiro = () => {
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const maxMonth = currentYearMonth();
@@ -138,12 +137,6 @@ const Financeiro = () => {
     if (next.month !== maxMonth) params.set('month', next.month);
     if (next.status !== URL_DEFAULTS.status) params.set('status', next.status);
     setSearchParams(params, { replace: true });
-  };
-
-  const handleViewHistory = (payment) => {
-    navigate(`/trainer/students/${payment.student.id}/subscription-history`, {
-      state: { studentName: payment.student.name || t('finance.unnamedStudent') },
-    });
   };
 
   const handleCreatePlanFromEmpty = () => {
@@ -174,7 +167,6 @@ const Financeiro = () => {
     searchQuery,
     mutatingId: paymentActions.mutatingId,
     rowHandlers: paymentActions.rowHandlers,
-    onViewHistory: handleViewHistory,
   };
 
   return (

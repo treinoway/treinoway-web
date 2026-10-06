@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { Link } from 'react-router-dom';
 import Avatar from '../ds/Avatar';
 import RowMenu from '../RowMenu';
 import PaymentStatusBadge from './PaymentStatusBadge';
@@ -40,22 +41,18 @@ const buildPlanText = (payment) => {
     : planName;
 };
 
-const buildMenuItems = (payment, isOverview, handlers) => {
-  const viewHistory = isOverview && handlers.onViewHistory
-    ? [{ label: t('finance.menu.viewHistory'), onClick: () => handlers.onViewHistory(payment) }]
-    : [];
+const buildMenuItems = (payment, handlers) => {
   const edit = { label: t('finance.menu.edit'), onClick: () => handlers.onEdit(payment) };
 
   switch (payment.effectiveStatus) {
     case PAYMENT_STATUS.PAID:
-      return [edit, { label: t('finance.menu.revert'), onClick: () => handlers.onRevert(payment) }, ...viewHistory];
+      return [edit, { label: t('finance.menu.revert'), onClick: () => handlers.onRevert(payment) }];
     case PAYMENT_STATUS.CANCELLED:
       return [{ label: t('finance.menu.registerPayment'), onClick: () => handlers.onMarkPaidOnDate(payment) }];
     default:
       return [
         { label: t('finance.menu.markPaidOnDate'), onClick: () => handlers.onMarkPaidOnDate(payment) },
         edit,
-        ...viewHistory,
         { label: t('finance.menu.void'), onClick: () => handlers.onVoid(payment), danger: true },
       ];
   }
@@ -68,6 +65,7 @@ const buildLabels = (payment, isOverview, today) => {
     const name = payment.student?.name || t('finance.unnamedStudent');
     return {
       title: name,
+      studentLinkAria: tf('finance.row.studentLinkAria', { name }),
       markPaidAria: tf('finance.row.markPaidAria', { name, amount }),
       menuAria: tf('finance.row.menuAria', { name, date: dueShort }),
     };
@@ -81,15 +79,43 @@ const buildLabels = (payment, isOverview, today) => {
 
 const buildRowClass = (payment, isOverview) => [
   'charge-row',
-  isOverview ? '' : 'charge-row--history',
+  isOverview ? 'charge-row--overview' : '',
   payment.effectiveStatus === PAYMENT_STATUS.CANCELLED ? 'charge-row--void' : '',
 ].filter(Boolean).join(' ');
 
 /**
+ * Overview identity (avatar + name) as a single link to the student's billing
+ * history. Only the identity is a link — the row also holds "Marcar pago" and
+ * the ⋮ menu, so making the whole row clickable would nest interactive elements.
+ */
+const StudentIdentityLink = ({ student, title, ariaLabel }) => {
+  const avatar = <Avatar name={student?.name || ''} src={student?.avatarUrl ?? undefined} />;
+  const name = <span className="charge-row__title type-h4" title={title}>{title}</span>;
+  if (!student?.id) return <div className="charge-row__student">{avatar}{name}</div>;
+  return (
+    <Link
+      to={`/trainer/students/${student.id}/subscription-history`}
+      state={{ studentName: title }}
+      className="charge-row__student charge-row__student--link"
+      aria-label={ariaLabel}
+    >
+      {avatar}
+      {name}
+    </Link>
+  );
+};
+
+StudentIdentityLink.propTypes = {
+  student: PropTypes.shape({ id: PropTypes.string, name: PropTypes.string, avatarUrl: PropTypes.string }),
+  title: PropTypes.string.isRequired,
+  ariaLabel: PropTypes.string.isRequired,
+};
+
+/**
  * One charge row (Linha de aluno anatomy, SKILL §4.12), shared by the Financeiro
- * overview (student identity) and the history/StudentDetail lists (cycle
- * identity). Status comes from the API and is shown as a Badge — never a stripe.
- * One visible action ("Marcar pago" on open charges) + the ⋮ menu.
+ * overview (student identity, linked to the history) and the history/StudentDetail
+ * lists (cycle identity). Status comes from the API and is shown as a Badge — never
+ * a stripe. One visible action ("Marcar pago" on open charges) + the ⋮ menu.
  */
 const PaymentRow = ({
   payment,
@@ -100,20 +126,21 @@ const PaymentRow = ({
   onEdit,
   onRevert,
   onVoid,
-  onViewHistory,
 }) => {
   const today = todayDateString();
   const isOverview = variant === PAYMENT_ROW_VARIANT.OVERVIEW;
   const isOpen = OPEN_STATUSES.includes(payment.effectiveStatus);
   const labels = buildLabels(payment, isOverview, today);
-  const menuItems = buildMenuItems(payment, isOverview, { onMarkPaidOnDate, onEdit, onRevert, onVoid, onViewHistory });
+  const menuItems = buildMenuItems(payment, { onMarkPaidOnDate, onEdit, onRevert, onVoid });
   const showNotes = !isOverview && Boolean(payment.notes);
 
   return (
     <article className={buildRowClass(payment, isOverview)} aria-busy={isMutating || undefined}>
-      {isOverview && <Avatar name={payment.student?.name || ''} src={payment.student?.avatarUrl ?? undefined} />}
+      {isOverview && (
+        <StudentIdentityLink student={payment.student} title={labels.title} ariaLabel={labels.studentLinkAria} />
+      )}
       <div className="charge-row__identity">
-        <p className="charge-row__title type-h4" title={labels.title}>{labels.title}</p>
+        {!isOverview && <p className="charge-row__title type-h4" title={labels.title}>{labels.title}</p>}
         <div className="charge-row__meta">
           <PaymentStatusBadge status={payment.effectiveStatus} daysOverdue={payment.daysOverdue} />
           <span className="charge-row__plan type-caption">{buildPlanText(payment)}</span>
@@ -160,7 +187,7 @@ PaymentRow.propTypes = {
     paidAt: PropTypes.string,
     notes: PropTypes.string,
     subscriptionStatus: PropTypes.string,
-    student: PropTypes.shape({ name: PropTypes.string, avatarUrl: PropTypes.string }),
+    student: PropTypes.shape({ id: PropTypes.string, name: PropTypes.string, avatarUrl: PropTypes.string }),
     plan: PropTypes.shape({ name: PropTypes.string }),
   }).isRequired,
   variant: PropTypes.oneOf(Object.values(PAYMENT_ROW_VARIANT)),
@@ -170,7 +197,6 @@ PaymentRow.propTypes = {
   onEdit: PropTypes.func.isRequired,
   onRevert: PropTypes.func.isRequired,
   onVoid: PropTypes.func.isRequired,
-  onViewHistory: PropTypes.func,
 };
 
 export default PaymentRow;

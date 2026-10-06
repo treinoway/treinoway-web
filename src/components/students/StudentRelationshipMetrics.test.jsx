@@ -14,12 +14,7 @@ const summary = {
 };
 
 const renderMetrics = (props = {}) => {
-  const subscriptionActions = {
-    onAssignPlan: vi.fn(),
-    onReplacePlan: vi.fn(),
-    onViewHistory: vi.fn(),
-    onCancelSubscription: vi.fn(),
-  };
+  const onAssignPlan = vi.fn();
   render(
     <StudentRelationshipMetrics
       summary={summary}
@@ -29,11 +24,11 @@ const renderMetrics = (props = {}) => {
       planName="Plano trimestral"
       subscriptionLoading={false}
       lastWorkoutAt="2026-09-25T12:00:00"
-      subscriptionActions={subscriptionActions}
+      onAssignPlan={onAssignPlan}
       {...props}
     />,
   );
-  return subscriptionActions;
+  return { onAssignPlan };
 };
 
 describe('StudentRelationshipMetrics', () => {
@@ -79,20 +74,16 @@ describe('StudentRelationshipMetrics', () => {
     expect(screen.queryByText('Venceu há')).not.toBeInTheDocument();
   });
 
-  it('offers the subscription actions in a row menu', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const actions = renderMetrics();
-    await user.click(screen.getByRole('button', { name: 'Ações da assinatura' }));
-    await user.click(screen.getByRole('button', { name: 'Trocar plano' }));
-    expect(actions.onReplacePlan).toHaveBeenCalledTimes(1);
+  it('has no subscription menu (replace/cancel/history live in the Assinatura block)', () => {
+    renderMetrics();
+    expect(screen.getByText('Renova em')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ações da assinatura' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
 
-    await user.click(screen.getByRole('button', { name: 'Ações da assinatura' }));
-    await user.click(screen.getByRole('button', { name: 'Ver histórico' }));
-    expect(actions.onViewHistory).toHaveBeenCalledTimes(1);
-
-    await user.click(screen.getByRole('button', { name: 'Ações da assinatura' }));
-    await user.click(screen.getByRole('button', { name: 'Cancelar assinatura' }));
-    expect(actions.onCancelSubscription).toHaveBeenCalledTimes(1);
+  it('has no subscription menu when the subscription has no payment cycle', () => {
+    renderMetrics({ nextPayment: null });
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('offers to assign a plan when there is no subscription', async () => {

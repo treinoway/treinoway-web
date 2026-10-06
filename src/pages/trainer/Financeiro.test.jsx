@@ -16,12 +16,6 @@ import {
   pinFinanceClock,
 } from '../../test/financeFixtures';
 
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return { ...actual, useNavigate: () => mockNavigate };
-});
-
 vi.mock('../../contexts/ToastContext', () => ({ useToast: vi.fn() }));
 
 vi.mock('../../api/axios', () => ({
@@ -61,10 +55,19 @@ const LocationProbe = () => {
   return <output aria-label="location">{`${location.pathname}${location.search}`}</output>;
 };
 
+const HistoryProbe = () => {
+  const location = useLocation();
+  return <output aria-label="history state">{location.state?.studentName}</output>;
+};
+
 const renderPage = (route = '/trainer/financeiro') => render(
   <MemoryRouter initialEntries={[route]}>
     <Routes>
       <Route path="/trainer/financeiro" element={<><Financeiro /><LocationProbe /></>} />
+      <Route
+        path="/trainer/students/:studentId/subscription-history"
+        element={<><LocationProbe /><HistoryProbe /></>}
+      />
     </Routes>
   </MemoryRouter>,
 );
@@ -266,16 +269,27 @@ describe('Financeiro', () => {
     expect(screen.queryByRole('dialog', { name: 'Registrar pagamento' })).not.toBeInTheDocument();
   });
 
-  it('navigates to the student history with the name in router state', async () => {
+  it('links the student identity to their history, passing the name in router state', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForRows();
+
+    const link = screen.getByRole('link', { name: 'Ver histórico de Maria Silva' });
+    expect(link).toHaveAttribute('href', '/trainer/students/student-1/subscription-history');
+    await user.click(link);
+
+    expect(screen.getByLabelText('location')).toHaveTextContent('/trainer/students/student-1/subscription-history');
+    expect(screen.getByLabelText('history state')).toHaveTextContent('Maria Silva');
+  });
+
+  it('no longer offers "Ver histórico" in the charge row menu', async () => {
     const user = userEvent.setup();
     renderPage();
     await waitForRows();
 
     await user.click(screen.getByRole('button', { name: 'Ações da cobrança de Maria Silva, vencimento 01/10' }));
-    await user.click(screen.getByRole('button', { name: 'Ver histórico do aluno' }));
-    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/subscription-history', {
-      state: { studentName: 'Maria Silva' },
-    });
+    expect(screen.getByRole('button', { name: 'Editar cobrança' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Ver histórico/ })).not.toBeInTheDocument();
   });
 
   it('broadcasts the overdue count and patches the dashboard cache', async () => {

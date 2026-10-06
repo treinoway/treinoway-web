@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, within } from '../../test/test-utils';
 import PaymentRow from './PaymentRow';
 import {
@@ -16,13 +17,11 @@ const handlers = () => ({
   onEdit: vi.fn(),
   onRevert: vi.fn(),
   onVoid: vi.fn(),
-  onViewHistory: vi.fn(),
 });
 
 const ALL_MENU_ITEMS = [
   'Marcar pago em outra data…',
   'Editar cobrança',
-  'Ver histórico do aluno',
   'Anular cobrança',
   'Voltar para pendente',
   'Registrar pagamento…',
@@ -35,6 +34,9 @@ const menuItemNames = () => ALL_MENU_ITEMS
   .sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
   .map((button) => button.textContent);
 
+/** The overview row links to the history, so it needs a router (kept across rerenders). */
+const renderRow = (ui) => render(ui, { wrapper: MemoryRouter });
+
 const openMenu = async (user) => {
   await user.click(screen.getByRole('button', { name: /^Ações da cobrança/ }));
 };
@@ -45,7 +47,7 @@ describe('PaymentRow', () => {
 
   describe('overview variant', () => {
     it('shows student, plan, overdue badge with days and the amount', () => {
-      render(<PaymentRow payment={overduePayment()} {...handlers()} />);
+      renderRow(<PaymentRow payment={overduePayment()} {...handlers()} />);
 
       const row = screen.getByRole('article');
       expect(within(row).getByText('Maria Silva')).toBeInTheDocument();
@@ -56,7 +58,7 @@ describe('PaymentRow', () => {
     });
 
     it('uses "Vence" for a future pending charge and "Venceu" inside the grace window, both PENDENTE', () => {
-      const { rerender } = render(<PaymentRow payment={makePayment({ dueDate: '2026-10-10' })} {...handlers()} />);
+      const { rerender } = renderRow(<PaymentRow payment={makePayment({ dueDate: '2026-10-10' })} {...handlers()} />);
       expect(screen.getByText('Vence 10/10')).toBeInTheDocument();
       expect(screen.getByText('Pendente')).toBeInTheDocument();
 
@@ -66,18 +68,18 @@ describe('PaymentRow', () => {
     });
 
     it('formats paidAt in São Paulo time (B5): 23:30 BRT on 03/10 stays 03/10', () => {
-      render(<PaymentRow payment={paidPayment({ paidAt: '2026-10-04T02:30:00.000Z' })} {...handlers()} />);
+      renderRow(<PaymentRow payment={paidPayment({ paidAt: '2026-10-04T02:30:00.000Z' })} {...handlers()} />);
       expect(screen.getByText('Paga em 03/10')).toBeInTheDocument();
       expect(screen.getByText('Paga')).toBeInTheDocument();
     });
 
     it('flags debt from a cancelled plan', () => {
-      render(<PaymentRow payment={overduePayment({ subscriptionStatus: 'cancelled' })} {...handlers()} />);
+      renderRow(<PaymentRow payment={overduePayment({ subscriptionStatus: 'cancelled' })} {...handlers()} />);
       expect(screen.getByText('Consultoria Mensal · plano cancelado')).toBeInTheDocument();
     });
 
     it('falls back to "Aluno sem nome" when the API name is empty', () => {
-      render(<PaymentRow payment={makePayment({ student: { id: 's', name: '', avatarUrl: null } })} {...handlers()} />);
+      renderRow(<PaymentRow payment={makePayment({ student: { id: 's', name: '', avatarUrl: null } })} {...handlers()} />);
       expect(screen.getByRole('button', { name: /Marcar pago: Aluno sem nome/ })).toBeInTheDocument();
     });
 
@@ -85,31 +87,62 @@ describe('PaymentRow', () => {
       const user = userEvent.setup();
       const props = handlers();
       const payment = overduePayment();
-      render(<PaymentRow payment={payment} {...props} />);
+      renderRow(<PaymentRow payment={payment} {...props} />);
 
       await user.click(screen.getByRole('button', { name: /Marcar pago: Maria Silva, R\$\s?99,90/ }));
       expect(props.onMarkPaid).toHaveBeenCalledWith(payment);
     });
 
     it('shows "Carregando..." and disables the button and menu while mutating', () => {
-      render(<PaymentRow payment={overduePayment()} isMutating {...handlers()} />);
+      renderRow(<PaymentRow payment={overduePayment()} isMutating {...handlers()} />);
       expect(screen.getByRole('button', { name: 'Carregando...' })).toBeDisabled();
       expect(screen.getByRole('button', { name: /^Ações da cobrança/ })).toBeDisabled();
       expect(screen.getByRole('article')).toHaveAttribute('aria-busy', 'true');
     });
 
-    it('menu for open charges: date, edit, history, void (last)', async () => {
+    it('links the avatar + name to the student history with an accessible name', () => {
+      renderRow(<PaymentRow payment={overduePayment()} {...handlers()} />);
+
+      const link = screen.getByRole('link', { name: 'Ver histórico de Maria Silva' });
+      expect(link).toHaveAttribute('href', '/trainer/students/student-1/subscription-history');
+      expect(within(link).getByText('Maria Silva')).toBeInTheDocument();
+      expect(within(link).getByText('MS')).toBeInTheDocument();
+      expect(within(link).queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    it('keeps "Marcar pago" and the menu outside the link (the row itself is not clickable)', () => {
+      renderRow(<PaymentRow payment={overduePayment()} {...handlers()} />);
+
+      const link = screen.getByRole('link', { name: 'Ver histórico de Maria Silva' });
+      expect(link).not.toContainElement(screen.getByRole('button', { name: /Marcar pago: Maria Silva/ }));
+      expect(link).not.toContainElement(screen.getByRole('button', { name: /^Ações da cobrança/ }));
+      expect(screen.getAllByRole('link')).toHaveLength(1);
+    });
+
+    it('uses the fallback name in the link label when the API name is empty', () => {
+      renderRow(<PaymentRow payment={makePayment({ student: { id: 's', name: '', avatarUrl: null } })} {...handlers()} />);
+      expect(screen.getByRole('link', { name: 'Ver histórico de Aluno sem nome' }))
+        .toHaveAttribute('href', '/trainer/students/s/subscription-history');
+    });
+
+    it('renders the identity without a link when the student id is missing', () => {
+      renderRow(<PaymentRow payment={makePayment({ student: { name: 'Sem Id', avatarUrl: null } })} {...handlers()} />);
+      expect(screen.getByText('Sem Id')).toBeInTheDocument();
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
+
+    it('menu for open charges: date, edit, void (last) — no "Ver histórico"', async () => {
       const user = userEvent.setup();
       const props = handlers();
-      render(<PaymentRow payment={overduePayment()} {...props} />);
+      renderRow(<PaymentRow payment={overduePayment()} {...props} />);
       await openMenu(user);
 
       expect(menuItemNames()).toEqual([
         'Marcar pago em outra data…',
         'Editar cobrança',
-        'Ver histórico do aluno',
         'Anular cobrança',
       ]);
+      expect(screen.queryByRole('button', { name: /Ver histórico/ })).not.toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'Anular cobrança' }));
       expect(props.onVoid).toHaveBeenCalled();
     });
@@ -118,7 +151,7 @@ describe('PaymentRow', () => {
       const user = userEvent.setup();
       const props = handlers();
       const lastPayment = overduePayment({ id: 'pay-last', student: { id: 's2', name: 'João Lima', avatarUrl: null } });
-      render(
+      renderRow(
         <>
           <PaymentRow payment={overduePayment()} {...handlers()} />
           <PaymentRow payment={lastPayment} {...props} />
@@ -138,20 +171,21 @@ describe('PaymentRow', () => {
     it('paid rows have no inline action and never offer "Anular"', async () => {
       const user = userEvent.setup();
       const props = handlers();
-      render(<PaymentRow payment={paidPayment()} {...props} />);
+      renderRow(<PaymentRow payment={paidPayment()} {...props} />);
       expect(screen.queryByRole('button', { name: /Marcar pago:/ })).not.toBeInTheDocument();
 
       await openMenu(user);
-      expect(menuItemNames()).toEqual(['Editar cobrança', 'Voltar para pendente', 'Ver histórico do aluno']);
+      expect(menuItemNames()).toEqual(['Editar cobrança', 'Voltar para pendente']);
+      expect(screen.queryByRole('button', { name: /Ver histórico/ })).not.toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'Voltar para pendente' }));
       expect(props.onRevert).toHaveBeenCalled();
     });
   });
 
   describe('history variant', () => {
-    it('uses the cycle period as title, shows notes and hides "Ver histórico"', async () => {
+    it('uses the cycle period as title, shows notes, has no student link and no "Ver histórico"', async () => {
       const user = userEvent.setup();
-      render(
+      renderRow(
         <PaymentRow
           payment={overduePayment({ notes: 'Pix combinado' })}
           variant="history"
@@ -163,14 +197,16 @@ describe('PaymentRow', () => {
       expect(screen.getByText('Obs.: Pix combinado')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Marcar pago: cobrança de 01/10' })).toBeInTheDocument();
 
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+
       await user.click(screen.getByRole('button', { name: 'Ações da cobrança de 01/10' }));
-      expect(menuItemNames()).not.toContain('Ver histórico do aluno');
+      expect(screen.queryByRole('button', { name: /Ver histórico/ })).not.toBeInTheDocument();
     });
 
     it('anulada rows only offer "Registrar pagamento…"', async () => {
       const user = userEvent.setup();
       const props = handlers();
-      render(<PaymentRow payment={voidPayment()} variant="history" {...props} />);
+      renderRow(<PaymentRow payment={voidPayment()} variant="history" {...props} />);
 
       expect(screen.getByText('Anulada')).toBeInTheDocument();
       expect(screen.getByText('Venc. 01/10')).toBeInTheDocument();

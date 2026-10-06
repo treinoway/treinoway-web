@@ -21653,10 +21653,10 @@ select.input { cursor: pointer; }
 .charge-row {
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
-    'avatar identity menu'
-    'avatar figures figures';
+    'identity menu'
+    'figures figures';
   align-items: start;
   gap: var(--spacing-sm) var(--spacing-md);
   padding: var(--spacing-lg);
@@ -21666,14 +21666,48 @@ select.input { cursor: pointer; }
 
 .charge-row:has(.row-menu-dropdown) { z-index: var(--z-dropdown); }
 
-.charge-row--history {
-  grid-template-columns: minmax(0, 1fr) auto;
+/* Overview: avatar + name on line 1 (one link to the history); meta and
+   figures start at the title column (the first column is the avatar width). */
+.charge-row--overview {
+  grid-template-columns: var(--size-avatar-md) minmax(0, 1fr) auto;
   grid-template-areas:
-    'identity menu'
-    'figures figures';
+    'student student menu'
+    '. identity identity'
+    '. figures figures';
+  align-items: center;
 }
 
-.charge-row > .avatar { grid-area: avatar; }
+.charge-row__student {
+  grid-area: student;
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  max-width: 100%;
+  min-width: 0;
+  min-height: var(--size-control-touch);
+  color: var(--text-primary);
+}
+
+.charge-row__student .charge-row__title { min-width: 0; }
+
+.charge-row__student--link {
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+
+.charge-row__student--link .charge-row__title { transition: color var(--duration-fast) var(--ease-standard); }
+
+.charge-row__student--link:hover .charge-row__title {
+  color: var(--text-link);
+  text-decoration: underline;
+}
+
+.charge-row__student--link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .charge-row__identity { grid-area: identity; display: flex; flex-direction: column; gap: var(--spacing-xs); min-width: 0; }
 .charge-row__menu { grid-area: menu; }
 
@@ -21712,15 +21746,20 @@ select.input { cursor: pointer; }
 
 @media (min-width: 1024px) {
   .charge-row {
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
-    grid-template-areas: 'avatar identity figures menu';
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: 'identity figures menu';
     align-items: center;
   }
 
-  .charge-row--history {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    grid-template-areas: 'identity figures menu';
+  .charge-row--overview {
+    grid-template-columns: var(--size-avatar-md) minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'student student figures menu'
+      '. identity figures menu';
+    row-gap: 0;
   }
+
+  .charge-row__student { min-height: var(--size-control); }
 
   .charge-row__figures { flex-wrap: nowrap; justify-content: flex-end; gap: var(--spacing-lg); }
 

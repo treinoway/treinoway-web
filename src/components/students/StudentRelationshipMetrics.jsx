@@ -1,16 +1,8 @@
 import PropTypes from 'prop-types';
 import MetricCard from '../ds/MetricCard';
-import RowMenu from '../RowMenu';
 import { formatAdherence, formatLastWorkout } from '../../utils/studentRow';
 import { formatAdherenceDelta, getRenewalInfo, td } from '../../utils/studentCockpit';
 import { formatDateTimeForDisplay } from '../../utils/dateFormat';
-
-const subscriptionActionsShape = PropTypes.shape({
-  onAssignPlan: PropTypes.func.isRequired,
-  onReplacePlan: PropTypes.func.isRequired,
-  onViewHistory: PropTypes.func.isRequired,
-  onCancelSubscription: PropTypes.func.isRequired,
-});
 
 const MetricSkeleton = () => <div className="row-skeleton metric-skeleton" aria-hidden="true" />;
 
@@ -33,29 +25,16 @@ const AdherenceMetric = ({ summary, loading }) => {
 
 AdherenceMetric.propTypes = { summary: PropTypes.object, loading: PropTypes.bool };
 
-const SubscriptionMenu = ({ onReplacePlan, onViewHistory, onCancelSubscription }) => (
-  <RowMenu
-    ariaLabel={td('metrics.subscriptionActions')}
-    extraItems={[
-      { label: td('metrics.replacePlan'), onClick: onReplacePlan },
-      { label: td('metrics.viewHistory'), onClick: onViewHistory },
-    ]}
-    onDelete={onCancelSubscription}
-    deleteLabel={td('metrics.cancelSubscription')}
-  />
-);
-
-SubscriptionMenu.propTypes = {
-  onReplacePlan: PropTypes.func.isRequired,
-  onViewHistory: PropTypes.func.isRequired,
-  onCancelSubscription: PropTypes.func.isRequired,
-};
-
-const RenewalMetric = ({ subscription, nextPayment, planName, loading, actions }) => {
+/**
+ * Read-only renewal figure. Replace/cancel/history live in the "Assinatura" block
+ * below (single place for subscription actions); only the no-plan state keeps the
+ * "Atribuir plano" shortcut.
+ */
+const RenewalMetric = ({ subscription, nextPayment, planName, loading, onAssignPlan }) => {
   if (loading) return <MetricSkeleton />;
   if (!subscription) {
     const assignAction = (
-      <button type="button" className="btn btn--ghost metric-card-action" onClick={actions.onAssignPlan}>
+      <button type="button" className="btn btn--ghost metric-card-action" onClick={onAssignPlan}>
         {td('metrics.assignPlan')}
       </button>
     );
@@ -63,11 +42,10 @@ const RenewalMetric = ({ subscription, nextPayment, planName, loading, actions }
       <MetricCard label={td('metrics.plan')} value={td('metrics.noPlan')} support={td('metrics.noSubscription')} action={assignAction} />
     );
   }
-  const menu = <SubscriptionMenu {...actions} />;
   const renewal = getRenewalInfo(nextPayment);
   if (!renewal) {
     return (
-      <MetricCard label={td('metrics.plan')} value={planName || td('metrics.activePlan')} support={td('metrics.noCycle')} action={menu} />
+      <MetricCard label={td('metrics.plan')} value={planName || td('metrics.activePlan')} support={td('metrics.noCycle')} />
     );
   }
   const support = [renewal.date, planName].filter(Boolean).join(' · ');
@@ -77,7 +55,6 @@ const RenewalMetric = ({ subscription, nextPayment, planName, loading, actions }
       value={renewal.value}
       support={support}
       tone={renewal.overdue ? 'error' : 'neutral'}
-      action={menu}
     />
   );
 };
@@ -87,7 +64,7 @@ RenewalMetric.propTypes = {
   nextPayment: PropTypes.object,
   planName: PropTypes.string,
   loading: PropTypes.bool,
-  actions: subscriptionActionsShape.isRequired,
+  onAssignPlan: PropTypes.func.isRequired,
 };
 
 const LastSessionMetric = ({ lastWorkoutAt }) => {
@@ -112,7 +89,7 @@ const StudentRelationshipMetrics = ({
   planName,
   subscriptionLoading,
   lastWorkoutAt,
-  subscriptionActions,
+  onAssignPlan,
 }) => (
   <section className="student-detail__section" aria-labelledby="student-relationship-heading">
     <h2 id="student-relationship-heading" className="student-detail__section-title type-body-lg-strong">
@@ -125,7 +102,7 @@ const StudentRelationshipMetrics = ({
         nextPayment={nextPayment}
         planName={planName}
         loading={subscriptionLoading}
-        actions={subscriptionActions}
+        onAssignPlan={onAssignPlan}
       />
       <LastSessionMetric lastWorkoutAt={lastWorkoutAt} />
     </div>
@@ -140,7 +117,7 @@ StudentRelationshipMetrics.propTypes = {
   planName: PropTypes.string,
   subscriptionLoading: PropTypes.bool,
   lastWorkoutAt: PropTypes.string,
-  subscriptionActions: subscriptionActionsShape.isRequired,
+  onAssignPlan: PropTypes.func.isRequired,
 };
 
 export default StudentRelationshipMetrics;
