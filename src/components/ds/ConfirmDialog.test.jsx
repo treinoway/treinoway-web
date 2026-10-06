@@ -36,3 +36,16 @@ describe('ConfirmDialog tone', () => {
     expect(screen.getByRole('button', { name: 'Agrupar' })).toHaveClass('btn--primary');
   });
 });
+
+describe('ConfirmDialog busy', () => {
+  it('disables both actions, shows the loading label and ignores Escape while busy', async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    render(<ConfirmDialog message="Anular?" confirmLabel="Anular cobrança" busy onConfirm={vi.fn()} onCancel={onCancel} />);
+
+    expect(screen.getByRole('button', { name: 'Carregando...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
+    await user.keyboard('{Escape}');
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+});

@@ -53,6 +53,18 @@ const writeCache = (data) => {
 };
 
 /**
+ * Patches `finance.overdueCount/overdueAmount` of the cached dashboard payload
+ * so the sidebar badge and the Dashboard agree with what Financeiro just
+ * loaded (overview overdue is "as of today" for any month). No-op without a
+ * valid cache entry.
+ */
+export const patchTrainerDashboardFinanceCache = ({ overdueCount, overdueAmount }) => {
+  const cached = readCache();
+  if (!cached) return;
+  writeCache({ ...cached, finance: { ...cached.finance, overdueCount, overdueAmount } });
+};
+
+/**
  * Reads the last-known "Tua semana em foco" panel data from localStorage
  * synchronously so the ControlTower can paint real numbers instantly, then
  * refreshes from the network in the background. Mirrors useTrainerRoster's

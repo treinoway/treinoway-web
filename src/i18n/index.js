@@ -35,6 +35,15 @@ export function tf(path, params = {}) {
 }
 
 /**
+ * Pluralized translation for keys shaped `{ one, other }` with an `{n}`
+ * placeholder (pt-BR: 1 → one, everything else → other).
+ */
+export function tCount(path, count, params = {}) {
+  const form = count === 1 ? 'one' : 'other';
+  return tf(`${path}.${form}`, { ...params, n: count });
+}
+
+/**
  * Translates a backend error response into a user-friendly message.
  *
  * Resolution order:

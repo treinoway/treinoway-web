@@ -9,7 +9,6 @@ import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import Select from '../../components/Select';
 import Modal from '../../components/ds/Modal';
-import ConfirmDialog from '../../components/ds/ConfirmDialog';
 import EmptyBlock from '../../components/ds/EmptyBlock';
 import StudentCockpitHero from '../../components/StudentCockpitHero';
 import StudentRelationshipMetrics from '../../components/students/StudentRelationshipMetrics';
@@ -21,9 +20,9 @@ import RecentSessionsPanel from '../../components/RecentSessionsPanel';
 import ProgressionPanel from '../../components/ProgressionPanel';
 import PeriodPickerSheet from '../../components/PeriodPickerSheet';
 import IArnoldFAB from '../../components/IArnoldFAB';
-import AssignPlanSheet from '../../components/AssignPlanSheet';
+import StudentSubscriptionSection from '../../components/finance/StudentSubscriptionSection';
 import useStudentDashboard from '../../hooks/useStudentDashboard';
-import useStudentSubscription from '../../hooks/useStudentSubscription';
+import useStudentSubscriptionManager from '../../hooks/useStudentSubscriptionManager';
 import useLinkedStudent from '../../hooks/useLinkedStudent';
 import usePeriodPersistence from '../../hooks/usePeriodPersistence';
 import { DASHBOARD_PERIOD_PRESETS, getPeriodPresetLabel } from '../../constants/dashboardPeriod';
@@ -194,12 +193,11 @@ const StudentDetail = () => {
   const [selectedAnamnesisId, setSelectedAnamnesisId] = useState('');
   const [linking, setLinking] = useState(false);
   const [iArnoldSubmitting, setIArnoldSubmitting] = useState(false);
-  const [assignSheet, setAssignSheet] = useState({ open: false, mode: 'assign' });
-  const [cancelConfirm, setCancelConfirm] = useState(false);
 
   const { student, notFound: studentNotLinked } = useLinkedStudent(id, location.state?.student ?? null, showToast);
+  const studentName = student ? getStudentDisplayName(student) : null;
   const dashboard = useStudentDashboard(id, period);
-  const subscription = useStudentSubscription(id, showToast);
+  const subscription = useStudentSubscriptionManager(id, studentName);
   const records = useStudentRecords(id, showToast);
 
   const summary = dashboard.summary.data;
@@ -210,7 +208,6 @@ const StudentDetail = () => {
   const sortedProtocols = useMemo(() => sortProtocolsForDisplay(records.protocols), [records.protocols]);
   const activeProtocol = sortedProtocols.find((protocol) => protocol.status === 'active') ?? null;
   const latestNoteSession = findLatestNoteSession(recentSessions);
-  const studentName = student ? getStudentDisplayName(student) : null;
   const trainerName = user ? getStudentDisplayName(user) || null : null;
   const periodLabel = getPeriodLabel(period);
   const completionRate = summary?.completionRate ?? null;
@@ -255,18 +252,6 @@ const StudentDetail = () => {
     }
   };
 
-  const closeAssignSheet = () => setAssignSheet({ open: false, mode: 'assign' });
-
-  const withSheetClose = (action) => async (payload) => {
-    await action(payload);
-    closeAssignSheet();
-  };
-
-  const handleConfirmCancelSubscription = async () => {
-    setCancelConfirm(false);
-    await subscription.cancel();
-  };
-
   const handleAskIArnold = async () => {
     if (iArnoldSubmitting) return;
     setIArnoldSubmitting(true);
@@ -280,11 +265,16 @@ const StudentDetail = () => {
     }
   };
 
+  const handleViewSubscriptionHistory = () => {
+    navigate(`/trainer/students/${id}/subscription-history`, { state: { studentName } });
+  };
+
+  const activePlanName = subscription.subscription ? subscription.planName : undefined;
   const subscriptionActions = {
-    onAssignPlan: () => setAssignSheet({ open: true, mode: 'assign' }),
-    onReplacePlan: () => setAssignSheet({ open: true, mode: 'replace' }),
-    onViewHistory: () => navigate(`/trainer/students/${id}/subscription-history`),
-    onCancelSubscription: () => setCancelConfirm(true),
+    onAssignPlan: subscription.openAssign,
+    onReplacePlan: subscription.openReplace,
+    onViewHistory: handleViewSubscriptionHistory,
+    onCancelSubscription: subscription.requestCancel,
   };
 
   const handleCreateProtocol = () => navigate(`/trainer/protocols/new?studentId=${id}`);
@@ -302,7 +292,7 @@ const StudentDetail = () => {
       <StudentCockpitHero
         student={student}
         routineName={activeProtocol?.name}
-        planName={subscription.planName ?? undefined}
+        planName={activePlanName}
         trainerName={trainerName ?? undefined}
       />
 
@@ -310,12 +300,14 @@ const StudentDetail = () => {
         summary={summary}
         summaryLoading={dashboard.summary.loading && !summary}
         subscription={subscription.subscription}
-        nextPayment={subscription.nextPayment}
-        planName={subscription.planName ?? undefined}
+        nextPayment={subscription.currentCharge}
+        planName={activePlanName}
         subscriptionLoading={subscription.loading}
         lastWorkoutAt={student?.lastWorkoutAt ?? undefined}
         subscriptionActions={subscriptionActions}
       />
+
+      <StudentSubscriptionSection manager={subscription} onViewHistory={handleViewSubscriptionHistory} />
 
       <section className="student-detail__section" aria-labelledby="student-diagnosis-heading">
         <h2 id="student-diagnosis-heading" className="student-detail__section-title type-body-lg-strong">
@@ -389,25 +381,6 @@ const StudentDetail = () => {
         onApply={handleApplyPeriod}
         onCancel={() => setPickerOpen(false)}
       />
-
-      <AssignPlanSheet
-        open={assignSheet.open}
-        mode={assignSheet.mode}
-        plans={subscription.activePlans}
-        onClose={closeAssignSheet}
-        onAssign={withSheetClose(assignSheet.mode === 'replace' ? subscription.replacePlan : subscription.assignPlan)}
-        onCreatePlanAndAssign={withSheetClose(subscription.createPlanAndAssign)}
-      />
-
-      {cancelConfirm && (
-        <ConfirmDialog
-          message={td('cancelSubscription.message')}
-          confirmLabel={td('cancelSubscription.confirm')}
-          cancelLabel={td('cancelSubscription.dismiss')}
-          onConfirm={handleConfirmCancelSubscription}
-          onCancel={() => setCancelConfirm(false)}
-        />
-      )}
 
       {showLinkForm && (
         <LinkAnamnesisModal

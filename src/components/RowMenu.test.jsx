@@ -234,3 +234,18 @@ describe('RowMenu', () => {
     expect(onResend).not.toHaveBeenCalled();
   });
 });
+
+describe('RowMenu triggerDisabled', () => {
+  it('disables the trigger while the row is busy', () => {
+    render(<RowMenu ariaLabel="Ações" extraItems={[{ label: 'Item', onClick: vi.fn() }]} triggerDisabled />);
+    expect(screen.getByRole('button', { name: 'Ações' })).toBeDisabled();
+  });
+
+  it('returns focus to the trigger when an item is chosen', async () => {
+    const user = userEvent.setup();
+    render(<RowMenu ariaLabel="Ações" extraItems={[{ label: 'Item', onClick: vi.fn() }]} />);
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+    await user.click(screen.getByRole('button', { name: 'Item' }));
+    expect(screen.getByRole('button', { name: 'Ações' })).toHaveFocus();
+  });
+});

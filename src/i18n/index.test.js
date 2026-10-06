@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { translateError, extractErrorInfo, setLocale, tf } from './index';
+import { translateError, extractErrorInfo, setLocale, tf, tCount } from './index';
 
 // Helper to build a fake Axios error with a response body
 function makeAxiosError({ status, data, code, message } = {}) {
@@ -201,5 +201,13 @@ describe('tf', () => {
 
   it('returns undefined for a missing key', () => {
     expect(tf('studentDetail.missing.key')).toBeUndefined();
+  });
+});
+
+describe('tCount', () => {
+  it('pluralizes with one/other', () => {
+    expect(tCount('finance.count.payment', 1)).toBe('1 pagamento');
+    expect(tCount('finance.count.payment', 0)).toBe('0 pagamentos');
+    expect(tCount('finance.count.payment', 12)).toBe('12 pagamentos');
   });
 });

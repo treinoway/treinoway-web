@@ -109,20 +109,34 @@ describe('ControlTower', () => {
   });
 
   describe('Financeiro band', () => {
-    it('formats Recebido no mês and Acumulado total as pt-BR currency, both non-clickable', () => {
+    it('formats Recebido no mês and Acumulado total as pt-BR currency; only Recebido links', () => {
       renderWithRouter(<ControlTower data={buildData()} loading={false} error={false} onRetry={vi.fn()} />);
 
       expect(screen.getByText(/R\$\s?2\.500,00/)).toBeInTheDocument();
       expect(screen.getByText(/R\$\s?12\.000,00/)).toBeInTheDocument();
-      expect(screen.queryByRole('link', { name: /recebido/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('link', { name: /acumulado/i })).not.toBeInTheDocument();
     });
 
-    it('links "Pagamentos em atraso" to /trainer/financeiro when overdueCount > 0 and data is fresh', () => {
+    it('always links "Recebido no mês" to /trainer/financeiro (the mobile entry point)', () => {
+      const data = buildData({ finance: { monthReceived: '2500.00', totalReceived: '12000.00', overdueCount: 0, overdueAmount: '0.00' } });
+      renderWithRouter(<ControlTower data={data} loading={false} error={false} onRetry={vi.fn()} />);
+
+      expect(screen.getByRole('link', { name: /Recebido no mês: R\$\s?2\.500,00\. Abrir Financeiro/ }))
+        .toHaveAttribute('href', '/trainer/financeiro');
+    });
+
+    it('keeps "Recebido no mês" linked even when the cache is stale', () => {
+      const staleGeneratedAt = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+      renderWithRouter(<ControlTower data={buildData({ generatedAt: staleGeneratedAt })} loading={false} error={false} onRetry={vi.fn()} />);
+
+      expect(screen.getByRole('link', { name: /Recebido no mês/ })).toHaveAttribute('href', '/trainer/financeiro');
+    });
+
+    it('links "Pagamentos em atraso" to the overdue filter when overdueCount > 0 and data is fresh', () => {
       renderWithRouter(<ControlTower data={buildData()} loading={false} error={false} onRetry={vi.fn()} />);
 
       expect(screen.getByRole('link', { name: '3 pagamentos em atraso, ver detalhes' }))
-        .toHaveAttribute('href', '/trainer/financeiro');
+        .toHaveAttribute('href', '/trainer/financeiro?status=overdue');
       expect(screen.getByText(/R\$\s?450,00 em atraso/)).toBeInTheDocument();
     });
 

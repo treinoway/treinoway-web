@@ -62,6 +62,15 @@ const en = {
     'subscription.notFound': 'Subscription not found.',
     'subscription.cannotEditCancelled': 'This subscription has already been cancelled.',
     'subscription.paymentNotFound': 'Payment not found.',
+    'subscription.paymentAlreadyPaid': 'This charge is already paid. Revert it to pending before changing or voiding it.',
+    'subscription.paymentCancelled': 'This charge was voided and cannot be changed.',
+    'subscription.cancelled': 'This subscription is cancelled.',
+    'subscription.alreadyActive': 'This student already has an active subscription.',
+    'subscription.cycleNotDue': 'The next cycle is not available for billing yet.',
+    'subscription.cycleAlreadyExists': 'This billing cycle already exists.',
+    'subscription.invalidAmount': 'Invalid amount. Use at most two decimals and at most 99,999,999.99.',
+    'subscription.invalidPaidAt': 'Invalid payment date: it cannot be in the future or more than one year before the subscription start.',
+    'subscription.paymentConflict': 'The payment was changed by another operation. Refresh and try again.',
     'protocol.trainingTemplateNotOwned': 'One or more training templates do not belong to your profile.',
     'protocol.exerciseTemplateNotOwned': 'One or more exercise templates do not belong to your profile.',
     'platformPlan.studentBlockedOnPlan': 'This student is blocked by your current plan. Upgrade to continue.',
@@ -423,15 +432,6 @@ const en = {
       diagnosis: 'Assessment and prescription',
       training: 'Training in the period',
     },
-    subscriptionToasts: {
-      assigned: 'Plan assigned.',
-      cancelled: 'Subscription cancelled.',
-    },
-    cancelSubscription: {
-      message: 'Cancel this student’s subscription? Future cycles will not be generated. History is kept.',
-      confirm: 'Cancel subscription',
-      dismiss: 'Back',
-    },
     linkAnamnesis: {
       title: 'Link anamnesis',
       label: 'Select anamnesis',
@@ -586,6 +586,7 @@ const en = {
     finance: {
       label: 'Finance',
       monthReceived: 'Received this month',
+      monthReceivedAriaLabel: 'Received this month: {amount}. Open Finance',
       totalReceived: 'Total received',
       overdue: {
         label: 'Overdue payments',
