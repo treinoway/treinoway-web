@@ -69,7 +69,6 @@ const ChargeSection = ({ status, rows, rowProps }) => (
           payment={payment}
           variant={PAYMENT_ROW_VARIANT.OVERVIEW}
           isMutating={rowProps.mutatingId === payment.id}
-          onViewHistory={rowProps.onViewHistory}
           {...rowProps.handlers}
         />
       ))}
@@ -119,11 +118,10 @@ const ChargesPanel = ({
   searchQuery,
   mutatingId,
   rowHandlers,
-  onViewHistory,
 }) => {
   const counts = countChargesByFilter(groupChargesByStatus(payments));
   const matching = filterChargesByStudent(payments, searchQuery);
-  const rowProps = { mutatingId, handlers: rowHandlers, onViewHistory };
+  const rowProps = { mutatingId, handlers: rowHandlers };
   const noSearchResults = searchQuery.trim() !== '' && matching.length === 0;
 
   return (
@@ -151,7 +149,6 @@ ChargesPanel.propTypes = {
   searchQuery: PropTypes.string.isRequired,
   mutatingId: PropTypes.string,
   rowHandlers: PropTypes.object.isRequired,
-  onViewHistory: PropTypes.func.isRequired,
 };
 
 export default ChargesPanel;

@@ -245,21 +245,6 @@ describe('StudentDetail (cockpit)', () => {
       expect(await within(section).findByText('Hoje')).toBeInTheDocument();
     });
 
-    it('replaces the plan with a single assignment, without cancelling first', async () => {
-      const user = userEvent.setup();
-      setupMocks({ subscription: mockSubscription });
-      api.post.mockResolvedValue({ data: { id: 'sub-2', planId: 'plan-1', firstPayment: null } });
-      await renderDetail();
-      await user.click(await screen.findByRole('button', { name: 'Ações da assinatura' }));
-      const section = screen.getByRole('region', { name: 'Aderência e relacionamento' });
-      await user.click(within(section).getByRole('button', { name: 'Trocar plano' }));
-      await user.click(within(screen.getByRole('dialog', { name: 'Plano (replace)' })).getByRole('button', { name: 'Confirmar plano' }));
-      await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Plano trocado. Primeira cobrança: —.', 'success'));
-      expect(api.post).toHaveBeenCalledTimes(1);
-      expect(api.post).toHaveBeenCalledWith('/trainer/students/student-1/subscriptions', { planId: 'plan-1', startDate: '2026-10-04' });
-      expect(api.post).not.toHaveBeenCalledWith('/trainer/subscriptions/sub-1/cancel', expect.anything());
-    });
-
     it('assigns a plan when the student has none', async () => {
       const user = userEvent.setup();
       api.post.mockResolvedValue({ data: { ...mockSubscription, firstPayment: null } });
@@ -275,12 +260,46 @@ describe('StudentDetail (cockpit)', () => {
       await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Plano (assign)' })).not.toBeInTheDocument());
     });
 
-    it('cancels the subscription after confirmation', async () => {
+    it('has no subscription menu on the renewal metric (actions live in the Assinatura block)', async () => {
+      setupMocks({ subscription: mockSubscription, payments: [] });
+      await renderDetail();
+      await screen.findByRole('button', { name: 'Trocar plano' });
+      const section = screen.getByRole('region', { name: 'Aderência e relacionamento' });
+      expect(within(section).queryByRole('button', { name: 'Ações da assinatura' })).not.toBeInTheDocument();
+      expect(within(section).queryByRole('button', { name: /Ver histórico/ })).not.toBeInTheDocument();
+      expect(within(section).queryByRole('button', { name: 'Trocar plano' })).not.toBeInTheDocument();
+      expect(within(section).queryByRole('button', { name: 'Cancelar assinatura' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Assinatura', () => {
+    const overdueCharge = {
+      id: 'pay-late', subscriptionId: 'sub-1', cycleStartDate: '2026-09-01', cycleEndDate: '2026-09-30',
+      dueDate: '2026-09-01', amount: '99.90', status: 'pending', effectiveStatus: 'overdue', daysOverdue: 5,
+      paidAt: null, voidedAt: null, notes: null, subscriptionStatus: 'active',
+      plan: { id: 'plan-1', name: 'Plano trimestral', recurrence: 'quarterly' },
+    };
+
+    it('replaces the plan from the block with a single assignment, without cancelling first', async () => {
+      const user = userEvent.setup();
+      setupMocks({ subscription: mockSubscription });
+      api.post.mockResolvedValue({ data: { id: 'sub-2', planId: 'plan-1', firstPayment: null } });
+      await renderDetail();
+      const block = await screen.findByRole('region', { name: 'Assinatura' });
+      await user.click(await within(block).findByRole('button', { name: 'Trocar plano' }));
+      await user.click(within(screen.getByRole('dialog', { name: 'Plano (replace)' })).getByRole('button', { name: 'Confirmar plano' }));
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Plano trocado. Primeira cobrança: —.', 'success'));
+      expect(api.post).toHaveBeenCalledTimes(1);
+      expect(api.post).toHaveBeenCalledWith('/trainer/students/student-1/subscriptions', { planId: 'plan-1', startDate: '2026-10-04' });
+      expect(api.post).not.toHaveBeenCalledWith('/trainer/subscriptions/sub-1/cancel', expect.anything());
+    });
+
+    it('cancels the subscription from the block after confirmation', async () => {
       const user = userEvent.setup();
       setupMocks({ subscription: mockSubscription });
       api.post.mockResolvedValue({ data: {} });
       await renderDetail();
-      await user.click(await screen.findByRole('button', { name: 'Ações da assinatura' }));
+      await user.click(await screen.findByRole('button', { name: 'Mais ações da assinatura' }));
       await user.click(screen.getByRole('button', { name: 'Cancelar assinatura' }));
       const dialog = screen.getByRole('alertdialog');
       await user.click(within(dialog).getByRole('button', { name: 'Cancelar assinatura' }));
@@ -292,32 +311,24 @@ describe('StudentDetail (cockpit)', () => {
       const user = userEvent.setup();
       setupMocks({ subscription: mockSubscription });
       await renderDetail();
-      await user.click(await screen.findByRole('button', { name: 'Ações da assinatura' }));
+      await user.click(await screen.findByRole('button', { name: 'Mais ações da assinatura' }));
       await user.click(screen.getByRole('button', { name: 'Cancelar assinatura' }));
       await user.click(screen.getByRole('button', { name: 'Voltar' }));
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
       expect(api.post).not.toHaveBeenCalled();
     });
 
-    it('opens the subscription history', async () => {
+    it('opens the subscription history from the block', async () => {
       const user = userEvent.setup();
-      setupMocks({ subscription: mockSubscription });
+      setupMocks({ subscription: mockSubscription, payments: [overdueCharge] });
       await renderDetail();
-      await user.click(await screen.findByRole('button', { name: 'Ações da assinatura' }));
-      await user.click(screen.getByRole('button', { name: 'Ver histórico' }));
+      const block = await screen.findByRole('region', { name: 'Assinatura' });
+      await user.click(await within(block).findByRole('button', { name: 'Ver histórico' }));
       expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/subscription-history', {
         state: { studentName: 'Aluno Exemplo' },
       });
+      expect(screen.getAllByRole('button', { name: 'Ver histórico' })).toHaveLength(1);
     });
-  });
-
-  describe('Assinatura', () => {
-    const overdueCharge = {
-      id: 'pay-late', subscriptionId: 'sub-1', cycleStartDate: '2026-09-01', cycleEndDate: '2026-09-30',
-      dueDate: '2026-09-01', amount: '99.90', status: 'pending', effectiveStatus: 'overdue', daysOverdue: 5,
-      paidAt: null, voidedAt: null, notes: null, subscriptionStatus: 'active',
-      plan: { id: 'plan-1', name: 'Plano trimestral', recurrence: 'quarterly' },
-    };
 
     it('loads the subscription and every student payment, never the per-subscription endpoint', async () => {
       setupMocks({ subscription: mockSubscription, payments: [overdueCharge] });
@@ -598,7 +609,6 @@ describe('StudentDetail (cockpit)', () => {
       expect(screen.queryByRole('heading', { level: 1, name: 'Ana Lima' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Abrir rotina Rotina da Ana' })).not.toBeInTheDocument();
       expect(within(relationship()).getByRole('button', { name: 'Atribuir plano' })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Ações da assinatura' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Trocar plano' })).not.toBeInTheDocument();
     });
 
@@ -611,13 +621,13 @@ describe('StudentDetail (cockpit)', () => {
       const router = await renderAtStudentA();
       expect(await screen.findByRole('heading', { level: 1, name: 'Ana Lima' })).toBeInTheDocument();
       expect(await screen.findByRole('button', { name: 'Abrir rotina Rotina da Ana' })).toBeInTheDocument();
-      expect(await screen.findByRole('button', { name: 'Ações da assinatura' })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Trocar plano' })).toBeInTheDocument();
 
       await act(async () => { await router.navigate('/trainer/students/student-b'); });
 
       expect(screen.queryByRole('heading', { level: 1, name: 'Ana Lima' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Abrir rotina Rotina da Ana' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Ações da assinatura' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Trocar plano' })).not.toBeInTheDocument();
       expect(api.get).toHaveBeenCalledWith('/trainer/students/student-b');
       expect(api.get).toHaveBeenCalledWith('/trainer/protocols', { params: { assigneeId: 'student-b' } });
       expect(api.get).toHaveBeenCalledWith('/trainer/students/student-b/anamneses');

@@ -270,12 +270,6 @@ const StudentDetail = () => {
   };
 
   const activePlanName = subscription.subscription ? subscription.planName : undefined;
-  const subscriptionActions = {
-    onAssignPlan: subscription.openAssign,
-    onReplacePlan: subscription.openReplace,
-    onViewHistory: handleViewSubscriptionHistory,
-    onCancelSubscription: subscription.requestCancel,
-  };
 
   const handleCreateProtocol = () => navigate(`/trainer/protocols/new?studentId=${id}`);
   const handleBack = () => navigate('/trainer/students');
@@ -304,7 +298,7 @@ const StudentDetail = () => {
         planName={activePlanName}
         subscriptionLoading={subscription.loading}
         lastWorkoutAt={student?.lastWorkoutAt ?? undefined}
-        subscriptionActions={subscriptionActions}
+        onAssignPlan={subscription.openAssign}
       />
 
       <StudentSubscriptionSection manager={subscription} onViewHistory={handleViewSubscriptionHistory} />
