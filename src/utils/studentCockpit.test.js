@@ -81,9 +81,15 @@ describe('getRenewalInfo', () => {
     });
   });
 
-  it('flags an overdue cycle', () => {
-    expect(getRenewalInfo({ cycleEndDate: '2026-10-03' }, TODAY)).toEqual({
-      label: 'Venceu há', value: '1 dia', date: '03/10/2026', overdue: true,
+  it('flags overdue only when the API says so, with the API days overdue', () => {
+    expect(getRenewalInfo({ effectiveStatus: 'overdue', daysOverdue: 4, dueDate: '2026-09-30', cycleEndDate: '2026-10-29' }, TODAY)).toEqual({
+      label: 'Venceu há', value: '4 dias', date: '30/09/2026', overdue: true,
+    });
+  });
+
+  it('never derives overdue from a past cycle end (grace window stays pending)', () => {
+    expect(getRenewalInfo({ effectiveStatus: 'pending', cycleEndDate: '2026-10-03', dueDate: '2026-10-02' }, TODAY)).toEqual({
+      label: 'Renova', value: 'Hoje', date: '03/10/2026', overdue: false,
     });
   });
 

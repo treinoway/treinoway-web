@@ -68,10 +68,15 @@ describe('StudentRelationshipMetrics', () => {
     expect(screen.getByText('15/11/2026 · Plano trimestral')).toBeInTheDocument();
   });
 
-  it('flags an overdue cycle', () => {
-    renderMetrics({ nextPayment: { cycleEndDate: '2026-10-01', status: 'pending' } });
+  it('flags an overdue charge with the API days overdue', () => {
+    renderMetrics({ nextPayment: { cycleEndDate: '2026-10-30', dueDate: '2026-10-01', effectiveStatus: 'overdue', daysOverdue: 3 } });
     expect(screen.getByText('Venceu há')).toBeInTheDocument();
     expect(screen.getByText('3 dias')).toBeInTheDocument();
+  });
+
+  it('does not flag a charge inside the grace window (API still says pending)', () => {
+    renderMetrics({ nextPayment: { cycleEndDate: '2026-10-01', dueDate: '2026-10-01', effectiveStatus: 'pending', daysOverdue: 0 } });
+    expect(screen.queryByText('Venceu há')).not.toBeInTheDocument();
   });
 
   it('offers the subscription actions in a row menu', async () => {

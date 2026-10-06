@@ -1,5 +1,5 @@
 import { tf } from '../i18n';
-import { todayDateString } from './subscriptionHelpers';
+import { PAYMENT_STATUS, todayDateString } from './subscriptionHelpers';
 import { formatDateForDisplay } from './dateFormat';
 
 /** Copy of the trainer's student detail page (`studentDetail.*` in the locale files). */
@@ -57,16 +57,22 @@ export const formatExpiryHint = (expirationDate, today) => {
 };
 
 /**
- * Renewal metric for the subscription's current payment cycle. The cycle end
- * (or due date) is when the next charge happens; past it, the cycle is overdue.
+ * Renewal metric for the subscription's current charge. Whether it is overdue
+ * (and for how many days) comes from the API (`effectiveStatus`, `daysOverdue`,
+ * 3-day grace) — never from the dates. Otherwise the cycle end (or due date) is
+ * when the next charge happens.
  */
 export const getRenewalInfo = (payment, today) => {
-  const reference = payment?.cycleEndDate || payment?.dueDate;
+  if (!payment) return null;
+  if (payment.effectiveStatus === PAYMENT_STATUS.OVERDUE) {
+    const date = formatDateForDisplay(payment.dueDate);
+    return { label: td('metrics.overdueSince'), value: pluralizeDays(payment.daysOverdue || 0), date, overdue: true };
+  }
+  const reference = payment.cycleEndDate || payment.dueDate;
   const days = daysUntil(reference, today);
   if (days === null) return null;
   const date = formatDateForDisplay(reference);
-  if (days < 0) return { label: td('metrics.overdueSince'), value: pluralizeDays(Math.abs(days)), date, overdue: true };
-  if (days === 0) return { label: td('metrics.renews'), value: td('metrics.today'), date, overdue: false };
+  if (days <= 0) return { label: td('metrics.renews'), value: td('metrics.today'), date, overdue: false };
   return { label: td('metrics.renewsIn'), value: pluralizeDays(days), date, overdue: false };
 };
 

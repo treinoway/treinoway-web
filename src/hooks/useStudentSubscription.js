@@ -1,127 +1,64 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { translateError } from '../i18n';
 import {
   getActiveSubscriptionForStudent,
-  listPaymentsForSubscription,
+  listStudentPayments,
   listSubscriptionPlans,
-  assignPlanToStudent,
-  cancelSubscription,
-  createSubscriptionPlan,
 } from '../api/subscriptions';
-import { deriveEffectivePaymentStatus, PAYMENT_STATUS } from '../utils/subscriptionHelpers';
-import { td } from '../utils/studentCockpit';
+import { getErrorMessage } from '../utils/financeErrors';
 
-/** The most recent pending/overdue cycle, falling back to the most recent cycle. */
-const pickCurrentPayment = (payments) => {
-  const sorted = [...payments].sort((a, b) => (b.cycleStartDate || '').localeCompare(a.cycleStartDate || ''));
-  const open = sorted.find((payment) => {
-    const status = deriveEffectivePaymentStatus(payment);
-    return status === PAYMENT_STATUS.PENDING || status === PAYMENT_STATUS.OVERDUE;
-  });
-  return open || sorted[0] || null;
-};
+const EMPTY_STATE = { subscription: null, payments: [], loading: true, error: null };
 
 /**
- * Active subscription of a student, its current payment cycle, the trainer's plans
- * and the assign / replace / quick-create / cancel actions.
+ * Data for the StudentDetail "Assinatura" block: the active subscription and
+ * every payment of the student (incl. debt of cancelled subscriptions), in
+ * parallel — statuses come from the API. Plans (assign sheet + name fallback)
+ * load separately so a plans failure never hides the block.
  *
- * When `studentId` changes the subscription state resets, and any response that
- * arrives later for the previous student is ignored.
+ * When `studentId` changes the state resets and late responses for the
+ * previous student are ignored. `reload()` keeps the content on screen.
  */
-const useStudentSubscription = (studentId, showToast) => {
-  const [subscription, setSubscription] = useState(null);
-  const [nextPayment, setNextPayment] = useState(null);
-  const [loading, setLoading] = useState(true);
+const useStudentSubscription = (studentId) => {
+  const [state, setState] = useState(EMPTY_STATE);
   const [plans, setPlans] = useState([]);
-  const currentStudentIdRef = useRef(studentId);
+  const currentIdRef = useRef(studentId);
+  const loadedRef = useRef(false);
 
-  useEffect(() => {
-    currentStudentIdRef.current = studentId;
+  const load = useCallback(async () => {
+    const isStale = () => currentIdRef.current !== studentId;
+    if (!loadedRef.current) setState((prev) => ({ ...prev, loading: true, error: null }));
+    try {
+      const [active, history] = await Promise.all([
+        getActiveSubscriptionForStudent(studentId),
+        listStudentPayments(studentId),
+      ]);
+      if (isStale()) return;
+      loadedRef.current = true;
+      setState({ subscription: active || null, payments: history?.payments || [], loading: false, error: null });
+    } catch (err) {
+      if (!isStale()) setState((prev) => ({ ...prev, loading: false, error: getErrorMessage(err) }));
+    }
   }, [studentId]);
 
-  const isStale = useCallback(() => currentStudentIdRef.current !== studentId, [studentId]);
-
-  const notifyError = useCallback(
-    (err) => showToast(err.userMessage || translateError(err), 'error'),
-    [showToast],
-  );
-
-  const applySubscription = useCallback((active, payment) => {
-    setSubscription(active);
-    setNextPayment(payment);
-  }, []);
-
-  const fetchSubscription = useCallback(async () => {
-    applySubscription(null, null);
-    setLoading(true);
-    try {
-      const active = await getActiveSubscriptionForStudent(studentId);
-      if (isStale()) return;
-      const payment = active ? pickCurrentPayment(await listPaymentsForSubscription(active.id)) : null;
-      if (!isStale()) applySubscription(active || null, payment);
-    } catch (err) {
-      if (!isStale()) notifyError(err);
-    } finally {
-      if (!isStale()) setLoading(false);
-    }
-  }, [studentId, isStale, applySubscription, notifyError]);
-
-  const fetchPlans = useCallback(async () => {
+  const loadPlans = useCallback(async () => {
     try {
       setPlans(await listSubscriptionPlans());
-    } catch (err) {
-      notifyError(err);
+    } catch {
+      setPlans([]);
     }
-  }, [notifyError]);
+  }, []);
 
   useEffect(() => {
-    fetchSubscription();
-  }, [fetchSubscription]);
+    currentIdRef.current = studentId;
+    loadedRef.current = false;
+    setState(EMPTY_STATE);
+    load();
+  }, [studentId, load]);
 
   useEffect(() => {
-    fetchPlans();
-  }, [fetchPlans]);
+    loadPlans();
+  }, [loadPlans]);
 
-  const assignPlan = async (payload) => {
-    const created = await assignPlanToStudent(studentId, payload);
-    showToast(td('subscriptionToasts.assigned'), 'success');
-    if (!isStale()) applySubscription(created, created?.firstPayment || null);
-  };
-
-  // The assign endpoint cancels the current active subscription and creates the new one in a
-  // single transaction, so a failed assignment never leaves the student without a plan.
-  const replacePlan = assignPlan;
-
-  const createPlanAndAssign = async ({ planPayload, assignPayload }) => {
-    const createdPlan = await createSubscriptionPlan(planPayload);
-    setPlans((prev) => [...prev, createdPlan]);
-    await assignPlan({ ...assignPayload, planId: createdPlan.id });
-  };
-
-  const cancel = async () => {
-    try {
-      if (subscription) await cancelSubscription(subscription.id);
-      showToast(td('subscriptionToasts.cancelled'), 'success');
-      if (!isStale()) applySubscription(null, null);
-    } catch (err) {
-      notifyError(err);
-    }
-  };
-
-  const planName = subscription ? plans.find((plan) => plan.id === subscription.planId)?.name ?? null : null;
-  const activePlans = plans.filter((plan) => !plan.isArchived);
-
-  return {
-    subscription,
-    nextPayment,
-    loading,
-    planName,
-    activePlans,
-    assignPlan,
-    replacePlan,
-    createPlanAndAssign,
-    cancel,
-  };
+  return { ...state, plans, reload: load, reloadPlans: loadPlans };
 };
 
 export default useStudentSubscription;

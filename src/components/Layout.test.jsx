@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter } from '../test/test-utils';
 import Layout from './Layout';
@@ -654,17 +654,101 @@ describe('Layout', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Financeiro sidebar entry (badge = overdue count from the dashboard cache)
+  // ---------------------------------------------------------------------------
+
+  describe('Financeiro sidebar link', () => {
+    const DASHBOARD_CACHE_KEY = 'treinoway.trainerDashboardData';
+    const seedDashboardCache = (overdueCount) => {
+      localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
+        plans: { expiredCount: 0, renewingSoonCount: 0 },
+        routines: { expiredCount: 0, expiringSoonCount: 0 },
+        finance: { monthReceived: '0.00', totalReceived: '0.00', overdueCount, overdueAmount: '10.00' },
+        engagement: { inactiveStudentsCount: 0, adherenceMonthPct: '0', adherenceDeltaPp: null, weekPrCount: 0 },
+        generatedAt: new Date().toISOString(),
+      }));
+    };
+
+    afterEach(() => localStorage.removeItem(DASHBOARD_CACHE_KEY));
+
+    it('renders Financeiro between iArnold and Biblioteca, linking to /trainer/financeiro', () => {
+      setupTrainerWithAi();
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+      const sidebar = screen.getByRole('complementary');
+
+      const link = within(sidebar).getByRole('link', { name: 'Financeiro' });
+      expect(link).toHaveAttribute('href', '/trainer/financeiro');
+      const iArnold = within(sidebar).getByRole('link', { name: 'iArnold' });
+      const biblioteca = within(sidebar).getByRole('button', { name: 'Biblioteca' });
+      expect(iArnold.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(link.compareDocumentPosition(biblioteca) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('does not render it for non-trainers', () => {
+      setupAuth({ isTrainer: false });
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+      expect(screen.queryByRole('link', { name: /^Financeiro/ })).not.toBeInTheDocument();
+    });
+
+    it('is active on /trainer/financeiro but not on the student history page', () => {
+      setupAuth({ isTrainer: true });
+      const { unmount } = renderWithRouter(<Layout><span>Content</span></Layout>, { route: '/trainer/financeiro' });
+      expect(screen.getByRole('link', { name: 'Financeiro' })).toHaveClass('sidebar-link--active');
+      unmount();
+      renderWithRouter(<Layout><span>Content</span></Layout>, { route: '/trainer/students/s1/subscription-history' });
+      expect(screen.getByRole('link', { name: 'Financeiro' })).not.toHaveClass('sidebar-link--active');
+    });
+
+    it('hides the badge when nothing is overdue', () => {
+      seedDashboardCache(0);
+      setupAuth({ isTrainer: true });
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+      expect(screen.getByRole('link', { name: 'Financeiro' })).toBeInTheDocument();
+    });
+
+    it('shows the overdue count in the badge and in the accessible name', () => {
+      seedDashboardCache(3);
+      setupAuth({ isTrainer: true });
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+      const link = screen.getByRole('link', { name: 'Financeiro, 3 cobranças em atraso' });
+      expect(within(link).getByText('3')).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('uses singular for one overdue charge and caps at 99+', () => {
+      seedDashboardCache(1);
+      setupAuth({ isTrainer: true });
+      const { unmount } = renderWithRouter(<Layout><span>Content</span></Layout>);
+      expect(screen.getByRole('link', { name: 'Financeiro, 1 cobrança em atraso' })).toBeInTheDocument();
+      unmount();
+
+      seedDashboardCache(150);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+      expect(within(screen.getByRole('link', { name: 'Financeiro, 150 cobranças em atraso' })).getByText('99+')).toBeInTheDocument();
+    });
+
+    it('updates live from the Financeiro broadcast without any request', () => {
+      setupAuth({ isTrainer: true });
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+      expect(screen.getByRole('link', { name: 'Financeiro' })).toBeInTheDocument();
+
+      act(() => {
+        window.dispatchEvent(new CustomEvent('treinoway:finance-overdue-changed', { detail: { overdueCount: 2, overdueAmount: '20.00' } }));
+      });
+      expect(screen.getByRole('link', { name: 'Financeiro, 2 cobranças em atraso' })).toBeInTheDocument();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Hidden navigation items — features not yet available to users
-  // (Campeonatos, Financeiro, Sua Marca, Nutricionista section + mode switcher)
+  // (Campeonatos, Sua Marca, Nutricionista section + mode switcher)
   // ---------------------------------------------------------------------------
 
   describe('hidden navigation items', () => {
-    it('does not render Campeonatos, Financeiro or Sua Marca in the sidebar for trainers', () => {
+    it('does not render Campeonatos or Sua Marca in the sidebar for trainers', () => {
       setupAuth({ isTrainer: true });
       renderWithRouter(<Layout><span>Content</span></Layout>);
 
       expect(screen.queryByText('Campeonatos')).not.toBeInTheDocument();
-      expect(screen.queryByText('Financeiro')).not.toBeInTheDocument();
       expect(screen.queryByText('Sua Marca')).not.toBeInTheDocument();
     });
 

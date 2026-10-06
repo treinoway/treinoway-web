@@ -2,6 +2,7 @@ import api from './axios';
 
 // ─── Plans ──────────────────────────────────────────────────────────────────
 
+/** Plans list; each plan carries `activeSubscriptionCount`. */
 export const listSubscriptionPlans = async ({ includeArchived = false } = {}) => {
   const response = await api.get('/trainer/subscription-plans', {
     params: { includeArchived },
@@ -29,26 +30,17 @@ export const unarchiveSubscriptionPlan = async (planId) => {
   return response.data;
 };
 
-// ─── Subscriptions (trainer-wide and per student) ───────────────────────────
-
-export const listAllSubscriptions = async ({ status, planId } = {}) => {
-  const params = {};
-  if (status) params.status = status;
-  if (planId) params.planId = planId;
-  const response = await api.get('/trainer/subscriptions', { params });
-  return response.data;
-};
+// ─── Subscriptions (per student) ────────────────────────────────────────────
 
 export const getActiveSubscriptionForStudent = async (studentId) => {
   const response = await api.get(`/trainer/students/${studentId}/subscriptions/active`);
   return response.data;
 };
 
-export const listSubscriptionsForStudent = async (studentId) => {
-  const response = await api.get(`/trainer/students/${studentId}/subscriptions`);
-  return response.data;
-};
-
+/**
+ * Assign — or replace, when the student already has an active subscription.
+ * The backend performs the replace atomically; never cancel first.
+ */
 export const assignPlanToStudent = async (studentId, payload) => {
   const response = await api.post(`/trainer/students/${studentId}/subscriptions`, payload);
   return response.data;
@@ -59,25 +51,21 @@ export const cancelSubscription = async (subscriptionId, { reason } = {}) => {
   return response.data;
 };
 
-// ─── Payments ───────────────────────────────────────────────────────────────
+// ─── Finance overview & payments ────────────────────────────────────────────
 
-export const listPaymentsForSubscription = async (subscriptionId) => {
-  const response = await api.get(`/trainer/subscriptions/${subscriptionId}/payments`);
+export const getFinanceOverview = async (month, { signal } = {}) => {
+  const response = await api.get('/trainer/finance/overview', { params: { month }, signal });
   return response.data;
 };
 
-export const createPaymentCycle = async (subscriptionId, payload) => {
-  const response = await api.post(`/trainer/subscriptions/${subscriptionId}/payments`, payload);
+/** Every payment of a student (all subscriptions, voided included) + summary + student. */
+export const listStudentPayments = async (studentId) => {
+  const response = await api.get(`/trainer/students/${studentId}/payments`);
   return response.data;
 };
 
-export const updatePaymentCycle = async (paymentId, payload) => {
-  const response = await api.patch(`/trainer/payments/${paymentId}`, payload);
-  return response.data;
-};
-
-export const markPaymentAsPaid = async (paymentId) => {
-  const response = await api.post(`/trainer/payments/${paymentId}/mark-paid`);
+export const markPaymentAsPaid = async (paymentId, { paidAt } = {}) => {
+  const response = await api.post(`/trainer/payments/${paymentId}/mark-paid`, paidAt ? { paidAt } : {});
   return response.data;
 };
 
@@ -86,6 +74,12 @@ export const markPaymentAsPending = async (paymentId) => {
   return response.data;
 };
 
-export const deletePaymentCycle = async (paymentId) => {
-  await api.delete(`/trainer/payments/${paymentId}`);
+export const voidPayment = async (paymentId) => {
+  const response = await api.post(`/trainer/payments/${paymentId}/void`);
+  return response.data;
+};
+
+export const updatePayment = async (paymentId, patch) => {
+  const response = await api.patch(`/trainer/payments/${paymentId}`, patch);
+  return response.data;
 };
