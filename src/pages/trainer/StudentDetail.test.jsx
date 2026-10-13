@@ -263,7 +263,7 @@ describe('StudentDetail (cockpit)', () => {
     it('has no subscription menu on the renewal metric (actions live in the Assinatura block)', async () => {
       setupMocks({ subscription: mockSubscription, payments: [] });
       await renderDetail();
-      await screen.findByRole('button', { name: 'Trocar plano' });
+      await screen.findByRole('button', { name: 'Ações da assinatura' });
       const section = screen.getByRole('region', { name: 'Aderência e relacionamento' });
       expect(within(section).queryByRole('button', { name: 'Ações da assinatura' })).not.toBeInTheDocument();
       expect(within(section).queryByRole('button', { name: /Ver histórico/ })).not.toBeInTheDocument();
@@ -286,7 +286,8 @@ describe('StudentDetail (cockpit)', () => {
       api.post.mockResolvedValue({ data: { id: 'sub-2', planId: 'plan-1', firstPayment: null } });
       await renderDetail();
       const block = await screen.findByRole('region', { name: 'Assinatura' });
-      await user.click(await within(block).findByRole('button', { name: 'Trocar plano' }));
+      await user.click(await within(block).findByRole('button', { name: 'Ações da assinatura' }));
+      await user.click(within(block).getByRole('button', { name: 'Trocar plano' }));
       await user.click(within(screen.getByRole('dialog', { name: 'Plano (replace)' })).getByRole('button', { name: 'Confirmar plano' }));
       await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Plano trocado. Primeira cobrança: —.', 'success'));
       expect(api.post).toHaveBeenCalledTimes(1);
@@ -299,7 +300,7 @@ describe('StudentDetail (cockpit)', () => {
       setupMocks({ subscription: mockSubscription });
       api.post.mockResolvedValue({ data: {} });
       await renderDetail();
-      await user.click(await screen.findByRole('button', { name: 'Mais ações da assinatura' }));
+      await user.click(await screen.findByRole('button', { name: 'Ações da assinatura' }));
       await user.click(screen.getByRole('button', { name: 'Cancelar assinatura' }));
       const dialog = screen.getByRole('alertdialog');
       await user.click(within(dialog).getByRole('button', { name: 'Cancelar assinatura' }));
@@ -311,7 +312,7 @@ describe('StudentDetail (cockpit)', () => {
       const user = userEvent.setup();
       setupMocks({ subscription: mockSubscription });
       await renderDetail();
-      await user.click(await screen.findByRole('button', { name: 'Mais ações da assinatura' }));
+      await user.click(await screen.findByRole('button', { name: 'Ações da assinatura' }));
       await user.click(screen.getByRole('button', { name: 'Cancelar assinatura' }));
       await user.click(screen.getByRole('button', { name: 'Voltar' }));
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
@@ -323,11 +324,12 @@ describe('StudentDetail (cockpit)', () => {
       setupMocks({ subscription: mockSubscription, payments: [overdueCharge] });
       await renderDetail();
       const block = await screen.findByRole('region', { name: 'Assinatura' });
-      await user.click(await within(block).findByRole('button', { name: 'Ver histórico' }));
+      await user.click(await within(block).findByRole('button', { name: 'Ações da assinatura' }));
+      await user.click(within(block).getByRole('button', { name: 'Ver histórico' }));
       expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/subscription-history', {
         state: { studentName: 'Aluno Exemplo' },
       });
-      expect(screen.getAllByRole('button', { name: 'Ver histórico' })).toHaveLength(1);
+      expect(screen.queryByRole('button', { name: 'Ver histórico' })).not.toBeInTheDocument();
     });
 
     it('loads the subscription and every student payment, never the per-subscription endpoint', async () => {
@@ -609,7 +611,7 @@ describe('StudentDetail (cockpit)', () => {
       expect(screen.queryByRole('heading', { level: 1, name: 'Ana Lima' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Abrir rotina Rotina da Ana' })).not.toBeInTheDocument();
       expect(within(relationship()).getByRole('button', { name: 'Atribuir plano' })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Trocar plano' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Ações da assinatura' })).not.toBeInTheDocument();
     });
 
     it('drops student A data as soon as the route points to student B', async () => {
@@ -621,13 +623,13 @@ describe('StudentDetail (cockpit)', () => {
       const router = await renderAtStudentA();
       expect(await screen.findByRole('heading', { level: 1, name: 'Ana Lima' })).toBeInTheDocument();
       expect(await screen.findByRole('button', { name: 'Abrir rotina Rotina da Ana' })).toBeInTheDocument();
-      expect(await screen.findByRole('button', { name: 'Trocar plano' })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Ações da assinatura' })).toBeInTheDocument();
 
       await act(async () => { await router.navigate('/trainer/students/student-b'); });
 
       expect(screen.queryByRole('heading', { level: 1, name: 'Ana Lima' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Abrir rotina Rotina da Ana' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Trocar plano' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Ações da assinatura' })).not.toBeInTheDocument();
       expect(api.get).toHaveBeenCalledWith('/trainer/students/student-b');
       expect(api.get).toHaveBeenCalledWith('/trainer/protocols', { params: { assigneeId: 'student-b' } });
       expect(api.get).toHaveBeenCalledWith('/trainer/students/student-b/anamneses');

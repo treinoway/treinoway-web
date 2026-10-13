@@ -59,29 +59,32 @@ OpenChargesList.propTypes = {
   onViewHistory: PropTypes.func.isRequired,
 };
 
-/** State A: active subscription — plan, status badge, net price, open charges, replace/cancel. */
+/** State A: active subscription — plan, status badge + actions menu (replace/history/cancel), net price, open charges. */
 const ActiveSubscriptionCard = ({ subscription, planName, openCharges, totalOpen, rowProps, onReplace, onCancel, onViewHistory }) => {
   const badge = buildActiveBadge(subscription, hasOverdueCharge(openCharges), todayDateString());
   const recurrenceLabel = subscription.recurrenceLabel || RECURRENCE_LABEL[subscription.recurrence] || '';
 
   return (
     <article className="section-card cockpit-card subscription-card">
-      <header className="cockpit-card__header">
-        <h3 className="cockpit-card__title type-h3">{planName}</h3>
-        <Badge tone={badge.tone}>{badge.label}</Badge>
+      <header className="cockpit-card__header subscription-card__header">
+        <h3 className="cockpit-card__title subscription-card__title type-h3">{planName}</h3>
+        <div className="subscription-card__header-actions">
+          <Badge tone={badge.tone}>{badge.label}</Badge>
+          <RowMenu
+            ariaLabel={t('finance.block.actionsAria')}
+            extraItems={[
+              { label: t('finance.block.replacePlan'), onClick: onReplace },
+              { label: t('finance.block.viewHistory'), onClick: onViewHistory },
+              { label: t('finance.block.cancelSubscription'), onClick: onCancel, danger: true },
+            ]}
+          />
+        </div>
       </header>
       <p className="subscription-card__text type-caption">
         {tf('finance.block.sinceMeta', { recurrence: recurrenceLabel, date: formatFullDate(subscription.startDate) })}
       </p>
       <PlanPrice entity={subscription} />
       <OpenChargesList charges={openCharges} totalCount={totalOpen} rowProps={rowProps} onViewHistory={onViewHistory} />
-      <div className="cockpit-card__actions">
-        <button type="button" className="btn btn--secondary" onClick={onReplace}>{t('finance.block.replacePlan')}</button>
-        <RowMenu
-          ariaLabel={t('finance.block.moreActionsAria')}
-          extraItems={[{ label: t('finance.block.cancelSubscription'), onClick: onCancel, danger: true }]}
-        />
-      </div>
     </article>
   );
 };
@@ -180,7 +183,8 @@ const SubscriptionBlock = ({ payments, mutatingId, rowHandlers, ...props }) => {
         <h2 id="student-subscription-heading" className="student-detail__section-title type-body-lg-strong">
           {t('finance.block.title')}
         </h2>
-        {payments.length > 0 && (
+        {/* With an active plan, history lives in the card's actions menu. */}
+        {payments.length > 0 && !props.subscription && (
           <button type="button" className="btn btn--ghost" onClick={props.onViewHistory}>{t('finance.block.viewHistory')}</button>
         )}
       </div>
