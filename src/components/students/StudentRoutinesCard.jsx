@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { Calendar, ChevronRight, FileText, Plus } from 'lucide-react';
 import Badge from '../ds/Badge';
+import SkeletonRows from '../ds/SkeletonRows';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { formatExpiryHint, td } from '../../utils/studentCockpit';
 import { getStatusLabel } from '../../constants/protocolStatus';
@@ -116,7 +117,7 @@ const StudentRoutinesCard = ({ protocols, loading, onOpen, onCreate, onViewAll }
       </div>
     </header>
     {loading
-      ? <div className="row-skeleton" aria-hidden="true" />
+      ? <SkeletonRows label={td('loading.routines')} count={2} />
       : <RoutinesBody protocols={protocols} onOpen={onOpen} onCreate={onCreate} onViewAll={onViewAll} />}
   </section>
 );

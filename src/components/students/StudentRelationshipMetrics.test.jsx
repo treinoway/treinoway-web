@@ -17,12 +17,11 @@ const renderMetrics = (props = {}) => {
   const onAssignPlan = vi.fn();
   render(
     <StudentRelationshipMetrics
+      loading={false}
       summary={summary}
-      summaryLoading={false}
       subscription={{ id: 'sub-1', planId: 'plan-1' }}
       nextPayment={{ cycleEndDate: '2026-11-15', status: 'pending' }}
       planName="Plano trimestral"
-      subscriptionLoading={false}
       lastWorkoutAt="2026-09-25T12:00:00"
       onAssignPlan={onAssignPlan}
       {...props}
@@ -112,10 +111,22 @@ describe('StudentRelationshipMetrics', () => {
     expect(screen.getByText('Nenhuma sessão registrada')).toBeInTheDocument();
   });
 
-  it('hides adherence and renewal values while loading', () => {
-    renderMetrics({ summaryLoading: true, subscriptionLoading: true });
+  it('shows one skeleton for the whole row while loading — no figure appears on its own', () => {
+    renderMetrics({ loading: true });
+    expect(screen.getByRole('heading', { name: 'Aderência e relacionamento' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Carregando indicadores' })).toBeInTheDocument();
     expect(screen.queryByText('Aderência do mês')).not.toBeInTheDocument();
     expect(screen.queryByText('Renova em')).not.toBeInTheDocument();
+    expect(screen.queryByText('Última sessão')).not.toBeInTheDocument();
+    expect(screen.queryByText('Nunca')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Atribuir plano' })).not.toBeInTheDocument();
+  });
+
+  it('shows the three figures together once loaded', () => {
+    renderMetrics();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByText('Aderência do mês')).toBeInTheDocument();
+    expect(screen.getByText('Renova em')).toBeInTheDocument();
     expect(screen.getByText('Última sessão')).toBeInTheDocument();
   });
 });

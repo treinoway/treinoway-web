@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { ClipboardList, Plus } from 'lucide-react';
 import Badge from '../ds/Badge';
+import SkeletonRows from '../ds/SkeletonRows';
 import RowMenu from '../RowMenu';
 import { canFillLink, canViewLinkResponses, getLinkStatusInfo, sortLinksByResponseStatus } from '../../utils/anamnesisLinkStatus';
 import { formatDateTimeForDisplay } from '../../utils/dateFormat';
@@ -111,7 +112,7 @@ const StudentAnamnesesCard = ({ anamneses, loading, onViewAll, onLink, onFill, o
           )}
         </div>
       </header>
-      {loading && <div className="row-skeleton" aria-hidden="true" />}
+      {loading && <SkeletonRows label={td('loading.anamneses')} count={2} />}
       {!loading && !hasLinks && <AnamnesesEmpty onLink={onLink} />}
       {!loading && hasLinks && (
         <ul className="cockpit-card__list">

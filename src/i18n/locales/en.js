@@ -421,6 +421,19 @@ const en = {
     notFound: 'Student not found',
     backToStudents: 'Back to students',
     trainerInCharge: 'Trainer in charge',
+    hero: {
+      noRoutine: 'No active routine',
+    },
+    loading: {
+      student: 'Loading student',
+      metrics: 'Loading metrics',
+      routines: 'Loading routines',
+      anamneses: 'Loading anamneses',
+      activity: 'Loading activity',
+      note: 'Loading note',
+      sessions: 'Loading sessions',
+      progression: 'Loading progression',
+    },
     periodAria: 'Change period. Current: {period}',
     customPeriod: 'Custom period',
     retry: 'Try again',
@@ -526,6 +539,7 @@ const en = {
     },
     note: {
       title: 'Latest note from the student',
+      empty: 'No notes in recent sessions.',
     },
     sessions: {
       title: 'Recent sessions',

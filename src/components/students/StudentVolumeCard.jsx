@@ -11,7 +11,7 @@ const hasActivity = (vizData) =>
     : (vizData.days ?? []).some((day) => day.session);
 
 const VolumeBody = ({ vizData, loading, error, onRetry }) => {
-  if (loading) return <div className="row-skeleton volume-card__skeleton" aria-hidden="true" />;
+  if (loading) return <div className="row-skeleton volume-card__skeleton" role="status" aria-label={td('loading.activity')} />;
   if (error) {
     return (
       <div className="cockpit-card__error" role="alert">

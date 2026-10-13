@@ -19655,8 +19655,37 @@ textarea.input {
   50% { opacity: 0.5; }
 }
 
+/* Stacked list placeholder (SkeletonRows): rows sit at the list's own rhythm. */
+.skeleton-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* One text line placeholder (SkeletonText): height comes from the type-* class it carries. */
+.skeleton-text-line {
+  display: block;
+  width: 60%;
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--background-surface-elevated);
+  color: transparent;
+  animation: ds-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.skeleton-text-line--short { width: 35%; }
+.skeleton-text-line--long { width: 85%; }
+
+/* Avatar placeholder: same box as `.avatar`, no initials. */
+.avatar.avatar--skeleton {
+  background: var(--background-surface-elevated);
+  animation: ds-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .row-skeleton { animation: none; }
+  .row-skeleton,
+  .skeleton-text-line,
+  .avatar.avatar--skeleton { animation: none; }
 }
 
 .ds-banner {
@@ -20720,6 +20749,16 @@ select.input { cursor: pointer; }
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-sm);
+  /* Reserve a button's height: a header action that appears after load must not push content. */
+  min-height: var(--size-control-touch);
+}
+
+/* Same reservation for a card header whose action only shows with data. */
+.cockpit-card__header--action-slot { min-height: var(--size-control-touch); }
+
+@media (min-width: 768px) {
+  .student-detail__section-header,
+  .cockpit-card__header--action-slot { min-height: var(--size-control); }
 }
 
 .student-detail__section-title { color: var(--text-primary); }
@@ -21140,7 +21179,6 @@ select.input { cursor: pointer; }
 
   .student-detail__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .student-detail__grid--chart { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
-  .student-detail__grid--single { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ── Session detail (trainer) ──────────────────────────────── */

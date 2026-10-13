@@ -70,6 +70,29 @@ describe('useStudentSubscription', () => {
     expect(result.current.payments).toEqual([]);
   });
 
+  it('flags plansLoaded once the plans list answers, even on failure', async () => {
+    subscriptionsApi.listSubscriptionPlans.mockRejectedValue(new Error('x'));
+    const { result } = renderHook(() => useStudentSubscription('student-1'));
+    expect(result.current.plansLoaded).toBe(false);
+    await waitFor(() => expect(result.current.plansLoaded).toBe(true));
+    expect(result.current.plans).toEqual([]);
+  });
+
+  it('shows loading again on a retry after an error', async () => {
+    subscriptionsApi.listStudentPayments.mockRejectedValueOnce({ userMessage: 'Erro ao carregar' });
+    const { result } = renderHook(() => useStudentSubscription('student-1'));
+    await waitFor(() => expect(result.current.error).toBe('Erro ao carregar'));
+
+    const next = deferred();
+    subscriptionsApi.listStudentPayments.mockReturnValue(next.promise);
+    act(() => { result.current.reload(); });
+    expect(result.current.loading).toBe(true);
+    expect(result.current.error).toBeNull();
+
+    await act(async () => { next.resolve({ payments: [] }); });
+    expect(result.current.loading).toBe(false);
+  });
+
   describe('when the student changes', () => {
     it('resets the state and ignores a late response for the previous student', async () => {
       const lateA = deferred();
@@ -97,7 +120,8 @@ describe('useStudentSubscription', () => {
 
       subscriptionsApi.getActiveSubscriptionForStudent.mockReturnValue(new Promise(() => {}));
       rerender({ studentId: 'student-b' });
-      await waitFor(() => expect(result.current.loading).toBe(true));
+      // Keyed by id: the very first render for the new student is already loading.
+      expect(result.current.loading).toBe(true);
       expect(result.current.subscription).toBeNull();
       expect(result.current.payments).toEqual([]);
     });

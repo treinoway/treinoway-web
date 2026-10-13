@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import { CreditCard } from 'lucide-react';
 import Badge from '../ds/Badge';
 import EmptyBlock from '../ds/EmptyBlock';
+import SkeletonRows from '../ds/SkeletonRows';
+import SkeletonText from '../ds/SkeletonText';
 import RowMenu from '../RowMenu';
 import PaymentRow from './PaymentRow';
 import PlanPrice from './PlanPrice';
@@ -128,8 +130,21 @@ DebtCard.propTypes = {
   onViewHistory: PropTypes.func.isRequired,
 };
 
+/**
+ * Placeholder shaped like the active-subscription card (title, meta, price, two charge
+ * rows) — the most common loaded state — so the sections below don't jump when it lands.
+ */
+const SubscriptionCardSkeleton = () => (
+  <div className="section-card cockpit-card subscription-card" aria-busy="true">
+    <SkeletonText typeClass="type-h3" width="short" />
+    <SkeletonText typeClass="type-caption" />
+    <SkeletonText typeClass="type-h2" width="short" />
+    <SkeletonRows label={t('finance.block.loading')} count={2} />
+  </div>
+);
+
 const BlockBody = ({ loading, error, subscription, openCharges, totalOpen, ...props }) => {
-  if (loading) return <div className="row-skeleton" aria-hidden="true" />;
+  if (loading) return <SubscriptionCardSkeleton />;
   if (error) {
     return (
       <div className="section-card cockpit-card subscription-card" role="alert">

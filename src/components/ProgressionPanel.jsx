@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { ChevronDown } from 'lucide-react';
 import ProgressionRow from './ProgressionRow';
+import SkeletonRows from './ds/SkeletonRows';
 import {
   groupProgressionByTraining,
   sliceVisibleGroups,
@@ -67,7 +68,7 @@ const ProgressionPanel = ({
   };
 
   if (loading && entries.length === 0 && !error) {
-    return <PanelShell><div className="row-skeleton" aria-hidden="true" /></PanelShell>;
+    return <PanelShell><SkeletonRows label={td('loading.progression')} count={3} /></PanelShell>;
   }
 
   if (error && entries.length === 0) {

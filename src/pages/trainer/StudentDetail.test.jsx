@@ -523,10 +523,11 @@ describe('StudentDetail (cockpit)', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/sessions/sess-1');
     });
 
-    it('hides the note card when no session has a note', async () => {
+    it('keeps the note card (empty line) when no session has a note, so the grid never reflows', async () => {
       mockDashboard = { ...emptyDashboard(), recentSessions: block({ data: [sessions[0]] }) };
       await renderDetail();
-      expect(screen.queryByRole('heading', { name: 'Última observação do aluno' })).not.toBeInTheDocument();
+      const card = screen.getByRole('region', { name: 'Última observação do aluno' });
+      expect(within(card).getByText('Nenhuma observação nas sessões recentes.')).toBeInTheDocument();
     });
 
     it('"Ver todas" sessions keeps the period in the URL', async () => {

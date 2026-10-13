@@ -16,7 +16,8 @@ const matchesId = (student, id) => Boolean(student) && String(student.id) === St
  * - Fetched fields override the initial ones, so a field the API doesn't return yet
  *   (e.g. `lastWorkoutAt` before the backend ships it) keeps the initial value.
  * - Results are keyed by id: a late response for a previous id is ignored and never shown.
- * - A 404 `student.notLinked` sets `notFound`; other errors are toasted.
+ * - A 404 `student.notLinked` sets `notFound`; other errors are toasted and fall back to `initialStudent`.
+ * - `loading` stays true until the current id has answered (success or error).
  */
 const useLinkedStudent = (id, initialStudent, showToast) => {
   const [result, setResult] = useState(EMPTY_RESULT);
@@ -33,6 +34,7 @@ const useLinkedStudent = (id, initialStudent, showToast) => {
           setResult({ id, student: null, notFound: true });
           return;
         }
+        setResult({ id, student: null, notFound: false });
         showToast(err.userMessage || translateError(err), 'error');
       });
     return () => { ignore = true; };
@@ -43,7 +45,7 @@ const useLinkedStudent = (id, initialStudent, showToast) => {
   const fetched = isCurrent ? result.student : null;
   const student = fetched ? { ...fromInitial, ...fetched } : fromInitial;
 
-  return { student, notFound: isCurrent && result.notFound };
+  return { student, notFound: isCurrent && result.notFound, loading: !isCurrent };
 };
 
 export default useLinkedStudent;

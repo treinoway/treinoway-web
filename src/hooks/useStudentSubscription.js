@@ -6,51 +6,51 @@ import {
 } from '../api/subscriptions';
 import { getErrorMessage } from '../utils/financeErrors';
 
-const EMPTY_STATE = { subscription: null, payments: [], loading: true, error: null };
+const EMPTY_STATE = { id: null, subscription: null, payments: [], loading: true, error: null };
 
 /**
  * Data for the StudentDetail "Assinatura" block: the active subscription and
  * every payment of the student (incl. debt of cancelled subscriptions), in
  * parallel — statuses come from the API. Plans (assign sheet + name fallback)
- * load separately so a plans failure never hides the block.
+ * load separately, also in parallel, so a plans failure never hides the block;
+ * `plansLoaded` tells when that fallback is usable.
  *
- * When `studentId` changes the state resets and late responses for the
- * previous student are ignored. `reload()` keeps the content on screen.
+ * State is keyed by student id: until the current id answers it reads as
+ * loading/empty, and late responses for a previous student are ignored.
+ * `reload()` keeps the content on screen.
  */
 const useStudentSubscription = (studentId) => {
   const [state, setState] = useState(EMPTY_STATE);
-  const [plans, setPlans] = useState([]);
+  const [plansState, setPlansState] = useState({ plans: [], loaded: false });
   const currentIdRef = useRef(studentId);
-  const loadedRef = useRef(false);
 
   const load = useCallback(async () => {
     const isStale = () => currentIdRef.current !== studentId;
-    if (!loadedRef.current) setState((prev) => ({ ...prev, loading: true, error: null }));
+    // A retry after an error shows the skeleton again; a reload of loaded content does not.
+    setState((prev) => (prev.id === studentId && prev.error ? { ...prev, loading: true, error: null } : prev));
     try {
       const [active, history] = await Promise.all([
         getActiveSubscriptionForStudent(studentId),
         listStudentPayments(studentId),
       ]);
       if (isStale()) return;
-      loadedRef.current = true;
-      setState({ subscription: active || null, payments: history?.payments || [], loading: false, error: null });
+      setState({ id: studentId, subscription: active || null, payments: history?.payments || [], loading: false, error: null });
     } catch (err) {
-      if (!isStale()) setState((prev) => ({ ...prev, loading: false, error: getErrorMessage(err) }));
+      if (isStale()) return;
+      setState((prev) => ({ ...(prev.id === studentId ? prev : EMPTY_STATE), id: studentId, loading: false, error: getErrorMessage(err) }));
     }
   }, [studentId]);
 
   const loadPlans = useCallback(async () => {
     try {
-      setPlans(await listSubscriptionPlans());
+      setPlansState({ plans: await listSubscriptionPlans(), loaded: true });
     } catch {
-      setPlans([]);
+      setPlansState({ plans: [], loaded: true });
     }
   }, []);
 
   useEffect(() => {
     currentIdRef.current = studentId;
-    loadedRef.current = false;
-    setState(EMPTY_STATE);
     load();
   }, [studentId, load]);
 
@@ -58,7 +58,17 @@ const useStudentSubscription = (studentId) => {
     loadPlans();
   }, [loadPlans]);
 
-  return { ...state, plans, reload: load, reloadPlans: loadPlans };
+  const current = state.id === studentId ? state : EMPTY_STATE;
+  return {
+    subscription: current.subscription,
+    payments: current.payments,
+    loading: current.loading,
+    error: current.error,
+    plans: plansState.plans,
+    plansLoaded: plansState.loaded,
+    reload: load,
+    reloadPlans: loadPlans,
+  };
 };
 
 export default useStudentSubscription;

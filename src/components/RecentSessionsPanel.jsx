@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { ChevronRight } from 'lucide-react';
 import Badge from './ds/Badge';
+import SkeletonRows from './ds/SkeletonRows';
 import formatRpe from '../utils/formatRpe';
 import { formatDuration } from '../utils/formatDuration';
 import { td } from '../utils/studentCockpit';
@@ -65,7 +66,7 @@ SessionItem.propTypes = {
 
 const SessionsBody = ({ sessions, loading, error, onRetry, onOpen }) => {
   if (loading && sessions.length === 0 && !error) {
-    return <div className="row-skeleton" aria-hidden="true" />;
+    return <SkeletonRows label={td('loading.sessions')} count={3} />;
   }
   if (error && sessions.length === 0) {
     return (
@@ -96,7 +97,7 @@ SessionsBody.propTypes = {
 /** "Sessões recentes": latest sessions in the period, from GET dashboard/recent-sessions. */
 const RecentSessionsPanel = ({ sessions, loading, error, onViewAll, onRetry, onOpen }) => (
   <section className="section-card cockpit-card" aria-labelledby="cockpit-recent-heading">
-    <header className="cockpit-card__header">
+    <header className="cockpit-card__header cockpit-card__header--action-slot">
       <h3 id="cockpit-recent-heading" className="cockpit-card__title type-h3">{td('sessions.title')}</h3>
       {sessions.length > 0 && (
         <button type="button" className="btn btn--ghost" onClick={onViewAll} aria-label={td('sessions.viewAllAria')}>
