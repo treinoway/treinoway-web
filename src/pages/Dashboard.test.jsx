@@ -2,13 +2,13 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter } from '../test/test-utils';
 import Dashboard from './Dashboard';
+import { TRAINER_ROSTER_CACHE_KEY as ROSTER_CACHE_KEY } from '../hooks/useTrainerRoster';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import api from '../api/axios';
 import getGreeting from '../utils/getGreeting';
 
 const ACTIVE_MODE_KEY = 'treinoway.activeMode';
-const ROSTER_CACHE_KEY = 'treinoway.trainerRosterCounts';
 const ME_URL = '/me?include=trainerOnboarding,address';
 
 vi.mock('../contexts/AuthContext', () => ({
@@ -55,9 +55,9 @@ const meAllDone = {
 };
 
 const buildStudents = ({ ativo = 0, pendente = 0, vencido = 0 } = {}) => [
-  ...Array.from({ length: ativo }, (_, i) => ({ id: `a${i}`, status: 'ativo' })),
-  ...Array.from({ length: pendente }, (_, i) => ({ id: `p${i}`, status: 'pendente' })),
-  ...Array.from({ length: vencido }, (_, i) => ({ id: `v${i}`, status: 'vencido' })),
+  ...Array.from({ length: ativo }, (_, i) => ({ id: `a${i}`, billingStatus: 'ok' })),
+  ...Array.from({ length: pendente }, (_, i) => ({ id: `p${i}`, billingStatus: 'due_soon' })),
+  ...Array.from({ length: vencido }, (_, i) => ({ id: `v${i}`, billingStatus: 'overdue' })),
 ];
 
 // Neutral zero-everywhere ControlTower payload — the default /trainer/dashboard
