@@ -62,14 +62,53 @@ describe('SubscriptionBlock', () => {
     expect(onViewHistory).toHaveBeenCalled();
   });
 
-  it('offers TROCAR PLANO and the cancel menu', async () => {
+  it('groups replace, history and cancel in the header actions menu, in that order', async () => {
     const user = userEvent.setup();
-    const { onReplace, onCancel } = renderBlock();
-    await user.click(screen.getByRole('button', { name: 'Trocar plano' }));
-    expect(onReplace).toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Mais ações da assinatura' }));
-    await user.click(screen.getByRole('button', { name: 'Cancelar assinatura' }));
-    expect(onCancel).toHaveBeenCalled();
+    renderBlock();
+    const trigger = screen.getByRole('button', { name: 'Ações da assinatura' });
+    expect(trigger.closest('header')).toHaveTextContent('Consultoria Mensal');
+    await user.click(trigger);
+    const items = screen.getAllByRole('button', { name: /^(Trocar plano|Ver histórico|Cancelar assinatura)$/ });
+    expect(items.map((item) => item.textContent)).toEqual(['Trocar plano', 'Ver histórico', 'Cancelar assinatura']);
+  });
+
+  it.each([
+    ['Trocar plano', 'onReplace'],
+    ['Ver histórico', 'onViewHistory'],
+    ['Cancelar assinatura', 'onCancel'],
+  ])('menu item "%s" calls %s and returns focus to the trigger', async (label, handler) => {
+    const user = userEvent.setup();
+    const callbacks = renderBlock();
+    const trigger = screen.getByRole('button', { name: 'Ações da assinatura' });
+    await user.click(trigger);
+    await user.click(screen.getByRole('button', { name: label }));
+    expect(callbacks[handler]).toHaveBeenCalledTimes(1);
+    expect(trigger).toHaveFocus();
+    expect(screen.queryByRole('button', { name: label })).not.toBeInTheDocument();
+  });
+
+  it('has no footer "Trocar plano" button and no separate history button with an active plan', () => {
+    renderBlock({ payments: [overduePayment()] });
+    expect(screen.queryByRole('button', { name: 'Trocar plano' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver histórico' })).not.toBeInTheDocument();
+  });
+
+  it('keeps "Atribuir plano" as a button and shows no actions menu without a plan', async () => {
+    const user = userEvent.setup();
+    const { onAssign } = renderBlock({ subscription: null });
+    expect(screen.queryByRole('button', { name: 'Ações da assinatura' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Atribuir plano' }));
+    expect(onAssign).toHaveBeenCalled();
+  });
+
+  it('keeps "Atribuir plano" and the section history link (no menu) when owing without a plan', async () => {
+    const user = userEvent.setup();
+    const { onAssign, onViewHistory } = renderBlock({ subscription: null, payments: [overduePayment()] });
+    expect(screen.queryByRole('button', { name: 'Ações da assinatura' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Atribuir plano' }));
+    expect(onAssign).toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Ver histórico' }));
+    expect(onViewHistory).toHaveBeenCalled();
   });
 
   it('retries after an error', async () => {

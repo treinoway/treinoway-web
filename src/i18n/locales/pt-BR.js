@@ -1256,7 +1256,7 @@ const ptBR = {
       viewAll: 'Ver todas ({n})',
       replacePlan: 'Trocar plano',
       assignPlan: 'Atribuir plano',
-      moreActionsAria: 'Mais ações da assinatura',
+      actionsAria: 'Ações da assinatura',
       cancelSubscription: 'Cancelar assinatura',
       noPlanTitle: 'Sem plano ativo',
       noPlanText: 'Atribua um plano para registrar as cobranças deste aluno.',
