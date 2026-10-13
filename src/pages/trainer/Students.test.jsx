@@ -32,13 +32,13 @@ const openUnlinkConfirm = async (user, name) => {
 };
 
 const mockStudents = [
-  { id: 'student-1', firstName: 'Aluno', lastName: 'Exemplo', email: 'aluno@example.com', status: 'ativo' },
+  { id: 'student-1', firstName: 'Aluno', lastName: 'Exemplo', email: 'aluno@example.com', billingStatus: 'ok' },
 ];
 
 const mockMultipleStudents = [
-  { id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com', status: 'ativo' },
-  { id: 's2', firstName: 'Bruno', lastName: 'Costa', email: 'bruno@example.com', status: 'pendente' },
-  { id: 's3', firstName: 'Carla', lastName: 'Lima', email: 'carla@example.com', status: 'vencido' },
+  { id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com', billingStatus: 'ok' },
+  { id: 's2', firstName: 'Bruno', lastName: 'Costa', email: 'bruno@example.com', billingStatus: 'due_soon' },
+  { id: 's3', firstName: 'Carla', lastName: 'Lima', email: 'carla@example.com', billingStatus: 'overdue' },
 ];
 
 const mockImportPreviewResponse = {
@@ -163,7 +163,7 @@ describe('Students', () => {
         firstName: 'Ana',
         lastName: 'Silva',
         email: 'ana@example.com',
-        status: 'ativo',
+        billingStatus: 'ok',
         adherence: 84.6,
         adherenceCompleted: 11,
         adherenceExpected: 13,
@@ -187,7 +187,7 @@ describe('Students', () => {
         firstName: 'Ana',
         lastName: 'Silva',
         email: 'ana@example.com',
-        status: 'ativo',
+        billingStatus: 'ok',
         adherence: 62,
         adherenceCompleted: 5,
         adherenceExpected: 8,
@@ -208,7 +208,7 @@ describe('Students', () => {
         firstName: 'Ana',
         lastName: 'Silva',
         email: 'ana@example.com',
-        status: 'ativo',
+        billingStatus: 'ok',
         adherence: null,
         adherenceCompleted: null,
         adherenceExpected: null,
@@ -228,7 +228,7 @@ describe('Students', () => {
         firstName: 'Ana',
         lastName: 'Silva',
         email: 'ana@example.com',
-        status: 'ativo',
+        billingStatus: 'ok',
         adherence: null,
         adherenceCompleted: null,
         adherenceExpected: null,
@@ -249,7 +249,7 @@ describe('Students', () => {
         firstName: 'Ana',
         lastName: 'Silva',
         email: 'ana@example.com',
-        status: 'ativo',
+        billingStatus: 'ok',
         currentPrLoad: 120,
       }],
     });
@@ -368,6 +368,70 @@ describe('Students', () => {
     expect(screen.getByText('Ana Silva')).toBeInTheDocument();
     expect(screen.getByText('Bruno Costa')).toBeInTheDocument();
     expect(screen.getByText('Carla Lima')).toBeInTheDocument();
+  });
+
+  // ── Status derived from billingStatus (matches dashboard plans tiles) ──
+
+  const buildBillingStudents = (billingStatus, total) =>
+    Array.from({ length: total }, (_, i) => ({
+      id: `${billingStatus}-${i}`,
+      firstName: `Aluno${i}`,
+      lastName: billingStatus,
+      email: `${billingStatus}${i}@example.com`,
+      billingStatus,
+    }));
+
+  const getKpiValue = (label) => {
+    const summary = screen.getByRole('region', { name: 'Resumo de alunos' });
+    return within(summary).getByText(label).nextElementSibling;
+  };
+
+  it('shows 5 overdue students under "Atenção" via ?status=vencido (dashboard deep-link) and in the KPI', async () => {
+    api.get.mockResolvedValue({
+      data: [...buildBillingStudents('overdue', 5), ...buildBillingStudents('ok', 2)],
+    });
+    renderWithRouter(<Students />, { route: '/trainer/students?status=vencido' });
+
+    await waitFor(() => expect(screen.getAllByText(/Aluno\d overdue/)).toHaveLength(5));
+    expect(screen.queryByText(/Aluno\d ok/)).not.toBeInTheDocument();
+    const attentionTab = screen.getByRole('tab', { name: /atenção/i });
+    expect(attentionTab).toHaveAttribute('aria-selected', 'true');
+    expect(attentionTab).toHaveTextContent('(5)');
+    expect(getKpiValue('Atenção')).toHaveTextContent('5');
+    expect(screen.getAllByText('Vencido')).toHaveLength(5);
+  });
+
+  it('classifies due_soon students as Pendentes', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({
+      data: [...buildBillingStudents('due_soon', 3), ...buildBillingStudents('none', 1)],
+    });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Aluno0 none')).toBeInTheDocument());
+    expect(screen.getByRole('tab', { name: /pendentes/i })).toHaveTextContent('(3)');
+    expect(getKpiValue('Pendentes')).toHaveTextContent('3');
+
+    await user.click(screen.getByRole('tab', { name: /pendentes/i }));
+    expect(screen.getAllByText(/Aluno\d due_soon/)).toHaveLength(3);
+    expect(screen.queryByText('Aluno0 none')).not.toBeInTheDocument();
+  });
+
+  it('treats ok, none and missing billingStatus as Ativos', async () => {
+    api.get.mockResolvedValue({
+      data: [
+        ...buildBillingStudents('ok', 1),
+        ...buildBillingStudents('none', 1),
+        { id: 'legacy', firstName: 'Legado', lastName: 'Cache', email: 'legado@example.com' },
+      ],
+    });
+    renderWithRouter(<Students />, { route: '/trainer/students?status=ativo' });
+
+    await waitFor(() => expect(screen.getByText('Legado Cache')).toBeInTheDocument());
+    expect(screen.getByText('Aluno0 ok')).toBeInTheDocument();
+    expect(screen.getByText('Aluno0 none')).toBeInTheDocument();
+    expect(getKpiValue('Ativos')).toHaveTextContent('3');
+    expect(getKpiValue('Atenção')).toHaveTextContent('0');
   });
 
   // ── Unlink flow ───────────────────────────────────────────────────────
@@ -1132,7 +1196,7 @@ describe('Students', () => {
 
   it('renders a clean row with no chips when a student is ready', async () => {
     mockStudentsWithReadiness([
-      { id: 'r1', firstName: 'Marina', lastName: 'Alves', email: 'marina@example.com', status: 'ativo', ready: true, blockers: [], blockersLabel: [] },
+      { id: 'r1', firstName: 'Marina', lastName: 'Alves', email: 'marina@example.com', billingStatus: 'ok', ready: true, blockers: [], blockersLabel: [] },
     ]);
     renderWithRouter(<Students />);
 
@@ -1146,7 +1210,7 @@ describe('Students', () => {
 
   it('renders a single blocker chip and folds it into the row aria-label', async () => {
     mockStudentsWithReadiness([
-      { id: 'r2', firstName: 'Rafael', lastName: 'Souza', email: 'rafael@example.com', status: 'pendente', ready: false, blockers: ['no_active_protocol'], blockersLabel: ['Sem rotina ativa'] },
+      { id: 'r2', firstName: 'Rafael', lastName: 'Souza', email: 'rafael@example.com', billingStatus: 'due_soon', ready: false, blockers: ['no_active_protocol'], blockersLabel: ['Sem rotina ativa'] },
     ]);
     renderWithRouter(<Students />);
 
@@ -1157,7 +1221,7 @@ describe('Students', () => {
 
   it('renders multiple blocker chips in backend order and lists them in the aria-label', async () => {
     mockStudentsWithReadiness([
-      { id: 'r3', firstName: 'Bruno', lastName: 'Carvalho', email: 'bruno@example.com', status: 'ativo', ready: false, blockers: ['no_active_protocol', 'subscription_overdue'], blockersLabel: ['Sem rotina ativa', 'Pagamento em atraso'] },
+      { id: 'r3', firstName: 'Bruno', lastName: 'Carvalho', email: 'bruno@example.com', billingStatus: 'ok', ready: false, blockers: ['no_active_protocol', 'subscription_overdue'], blockersLabel: ['Sem rotina ativa', 'Pagamento em atraso'] },
     ]);
     renderWithRouter(<Students />);
 
@@ -1168,7 +1232,7 @@ describe('Students', () => {
 
   it('shows the platform chip and the list-level quota banner for blocked_on_plan', async () => {
     mockStudentsWithReadiness([
-      { id: 'r4', firstName: 'Camila', lastName: 'Nunes', email: 'camila@example.com', status: 'ativo', ready: false, blockers: ['blocked_on_plan'], blockersLabel: ['Bloqueado pela sua cota'] },
+      { id: 'r4', firstName: 'Camila', lastName: 'Nunes', email: 'camila@example.com', billingStatus: 'ok', ready: false, blockers: ['blocked_on_plan'], blockersLabel: ['Bloqueado pela sua cota'] },
     ]);
     renderWithRouter(<Students />);
 
@@ -1182,8 +1246,8 @@ describe('Students', () => {
 
   it('pluralizes the quota banner body when multiple students are blocked by quota', async () => {
     mockStudentsWithReadiness([
-      { id: 'r5', firstName: 'Camila', lastName: 'Nunes', email: 'camila@example.com', status: 'ativo', ready: false, blockers: ['blocked_on_plan'], blockersLabel: ['Bloqueado pela sua cota'] },
-      { id: 'r6', firstName: 'Lucas', lastName: 'Pereira', email: 'lucas@example.com', status: 'pendente', ready: false, blockers: ['no_active_protocol', 'blocked_on_plan'], blockersLabel: ['Sem rotina ativa', 'Bloqueado pela sua cota'] },
+      { id: 'r5', firstName: 'Camila', lastName: 'Nunes', email: 'camila@example.com', billingStatus: 'ok', ready: false, blockers: ['blocked_on_plan'], blockersLabel: ['Bloqueado pela sua cota'] },
+      { id: 'r6', firstName: 'Lucas', lastName: 'Pereira', email: 'lucas@example.com', billingStatus: 'due_soon', ready: false, blockers: ['no_active_protocol', 'blocked_on_plan'], blockersLabel: ['Sem rotina ativa', 'Bloqueado pela sua cota'] },
     ]);
     renderWithRouter(<Students />);
 
@@ -1193,7 +1257,7 @@ describe('Students', () => {
 
   it('renders both chips for a combined student + platform block', async () => {
     mockStudentsWithReadiness([
-      { id: 'r7', firstName: 'Lucas', lastName: 'Pereira', email: 'lucas@example.com', status: 'pendente', ready: false, blockers: ['no_active_protocol', 'blocked_on_plan'], blockersLabel: ['Sem rotina ativa', 'Bloqueado pela sua cota'] },
+      { id: 'r7', firstName: 'Lucas', lastName: 'Pereira', email: 'lucas@example.com', billingStatus: 'due_soon', ready: false, blockers: ['no_active_protocol', 'blocked_on_plan'], blockersLabel: ['Sem rotina ativa', 'Bloqueado pela sua cota'] },
     ]);
     renderWithRouter(<Students />);
 
@@ -1204,7 +1268,7 @@ describe('Students', () => {
 
   it('degrades gracefully when readiness fields are absent (search shape)', async () => {
     mockStudentsWithReadiness([
-      { id: 'r8', firstName: 'Diego', lastName: 'Martins', email: 'diego@example.com', status: 'ativo' },
+      { id: 'r8', firstName: 'Diego', lastName: 'Martins', email: 'diego@example.com', billingStatus: 'ok' },
     ]);
     renderWithRouter(<Students />);
 
@@ -1215,13 +1279,13 @@ describe('Students', () => {
 
   // ── Incremental reveal ("Ver mais") ────────────────────────────────────
 
-  const buildStudents = (count, status = 'ativo') =>
+  const buildStudents = (count, billingStatus = 'ok') =>
     Array.from({ length: count }, (_, i) => ({
-      id: `p${status}${i}`,
-      firstName: `${status === 'ativo' ? 'Aluno' : 'Pendente'}${String(i).padStart(2, '0')}`,
+      id: `p${billingStatus}${i}`,
+      firstName: `${billingStatus === 'ok' ? 'Aluno' : 'Pendente'}${String(i).padStart(2, '0')}`,
       lastName: 'Teste',
-      email: `${status}${i}@example.com`,
-      status,
+      email: `${billingStatus}${i}@example.com`,
+      billingStatus,
     }));
 
   it('shows the first page, reveals more on "Ver mais" and hides the button when all are shown', async () => {
@@ -1249,7 +1313,7 @@ describe('Students', () => {
 
   it('resets the reveal and counts the filtered total when the filter or search changes', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: [...buildStudents(25), ...buildStudents(22, 'pendente')] });
+    api.get.mockResolvedValue({ data: [...buildStudents(25), ...buildStudents(22, 'due_soon')] });
     renderWithRouter(<Students />);
 
     await screen.findByText('Mostrando 20 de 47 alunos');
@@ -1267,7 +1331,7 @@ describe('Students', () => {
   it('colors the adherence and last workout values by threshold', async () => {
     api.get.mockResolvedValue({
       data: [{
-        id: 't1', firstName: 'Lucas', lastName: 'Ferreira', email: 'l@example.com', status: 'ativo',
+        id: 't1', firstName: 'Lucas', lastName: 'Ferreira', email: 'l@example.com', billingStatus: 'ok',
         adherence: 45, adherenceCompleted: 2, adherenceExpected: 4, lastWorkoutAt: daysAgoIso(10),
       }],
     });

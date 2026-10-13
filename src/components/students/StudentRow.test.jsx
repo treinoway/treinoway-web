@@ -7,7 +7,7 @@ const baseStudent = {
   firstName: 'Gabriel',
   lastName: 'Almeida',
   email: 'gabriel@example.com',
-  status: 'ativo',
+  billingStatus: 'ok',
   adherence: 75,
   adherenceCompleted: 3,
   adherenceExpected: 4,
@@ -29,14 +29,22 @@ describe('StudentRow', () => {
   });
 
   it('maps pending and overdue to warning and error badges', () => {
-    const { rerender } = renderRow({ ...baseStudent, status: 'pendente' });
+    const { rerender } = renderRow({ ...baseStudent, billingStatus: 'due_soon' });
     expect(screen.getByText('Pendente')).toHaveClass('badge--warning');
-    rerender(<StudentRow student={{ ...baseStudent, status: 'vencido' }} onOpen={vi.fn()} onUnlink={vi.fn()} />);
+    rerender(<StudentRow student={{ ...baseStudent, billingStatus: 'overdue' }} onOpen={vi.fn()} onUnlink={vi.fn()} />);
     expect(screen.getByText('Vencido')).toHaveClass('badge--error');
   });
 
+  it('shows Ativo for billingStatus none and for a missing billingStatus', () => {
+    const { rerender } = renderRow({ ...baseStudent, billingStatus: 'none' });
+    expect(screen.getByText('Ativo')).toHaveClass('badge--success');
+    const { billingStatus: _omit, ...withoutBilling } = baseStudent;
+    rerender(<StudentRow student={withoutBilling} onOpen={vi.fn()} onUnlink={vi.fn()} />);
+    expect(screen.getByText('Ativo')).toHaveClass('badge--success');
+  });
+
   it('falls back to the email as name and shows empty KPI values', () => {
-    renderRow({ id: 's2', email: 'sem.nome@example.com', status: 'ativo' });
+    renderRow({ id: 's2', email: 'sem.nome@example.com', billingStatus: 'ok' });
     expect(screen.getByRole('button', { name: 'Ver perfil de sem.nome@example.com.' })).toBeInTheDocument();
     expect(screen.getByText('–')).toBeInTheDocument();
     expect(screen.getByText('Nunca')).toHaveClass('kpi-value--error');

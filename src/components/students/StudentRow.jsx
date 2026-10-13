@@ -11,13 +11,14 @@ import {
   getStudentDisplayName,
   resolveAdherence,
 } from '../../utils/studentRow';
+import { StudentStatus, getStudentStatus } from '../../utils/studentStatus';
 
 export const PLATFORM_BLOCKER = 'blocked_on_plan';
 
 const STATUS_BADGE = {
-  ativo: { tone: 'success', label: 'Ativo' },
-  pendente: { tone: 'warning', label: 'Pendente' },
-  vencido: { tone: 'error', label: 'Vencido' },
+  [StudentStatus.ACTIVE]: { tone: 'success', label: 'Ativo' },
+  [StudentStatus.PENDING]: { tone: 'warning', label: 'Pendente' },
+  [StudentStatus.OVERDUE]: { tone: 'error', label: 'Vencido' },
 };
 
 const hasBlockers = (student) => Array.isArray(student.blockers) && student.blockers.length > 0;
@@ -91,7 +92,7 @@ LastWorkoutKpi.propTypes = { lastWorkoutAt: PropTypes.string };
 
 const StudentRow = ({ student, onOpen, onUnlink }) => {
   const fullName = getStudentDisplayName(student);
-  const status = STATUS_BADGE[student.status] || STATUS_BADGE.ativo;
+  const status = STATUS_BADGE[getStudentStatus(student)];
 
   return (
     <div className="student-row">
@@ -134,7 +135,7 @@ StudentRow.propTypes = {
     firstName: PropTypes.string,
     lastName: PropTypes.string,
     email: PropTypes.string,
-    status: PropTypes.string,
+    billingStatus: PropTypes.oneOf(['overdue', 'due_soon', 'ok', 'none']),
     adherence: PropTypes.number,
     adherenceCompleted: PropTypes.number,
     adherenceExpected: PropTypes.number,

@@ -11,6 +11,7 @@ import { StudentInviteOutcome, StudentInviteMessageCode } from '../../constants/
 import StudentInvitesPanel from './StudentInvitesPanel';
 import { formatRetryAfterDuration } from '../../utils/studentInvite';
 import { getStudentDisplayName } from '../../utils/studentRow';
+import { STUDENT_STATUSES, StudentStatus, countStudentsByStatus, getStudentStatus } from '../../utils/studentStatus';
 import { markOnboardingStepOptimistic } from '../../hooks/useOnboardingStatus';
 import useStudentImport from '../../hooks/useStudentImport';
 import Segmented from '../../components/ds/Segmented';
@@ -22,14 +23,17 @@ import ImportStudentsModal from '../../components/students/ImportStudentsModal';
 
 const STUDENTS_TAB = 'students';
 const INVITES_TAB = 'invites';
-const VALID_STATUS_FILTERS = ['ativo', 'pendente', 'vencido'];
-const STATUS_ORDER = { ativo: 0, pendente: 1, vencido: 2 };
+const STATUS_ORDER = {
+  [StudentStatus.ACTIVE]: 0,
+  [StudentStatus.PENDING]: 1,
+  [StudentStatus.OVERDUE]: 2,
+};
 
 const STATUS_FILTERS = [
   { id: 'all', label: 'Todos' },
-  { id: 'ativo', label: 'Ativos' },
-  { id: 'pendente', label: 'Pendentes' },
-  { id: 'vencido', label: 'Atenção' },
+  { id: StudentStatus.ACTIVE, label: 'Ativos' },
+  { id: StudentStatus.PENDING, label: 'Pendentes' },
+  { id: StudentStatus.OVERDUE, label: 'Atenção' },
 ];
 
 const PAGE_TABS = [
@@ -39,11 +43,11 @@ const PAGE_TABS = [
 
 const readInitialStatusFilter = (searchParams) => {
   const status = searchParams.get('status');
-  return VALID_STATUS_FILTERS.includes(status) ? status : 'all';
+  return STUDENT_STATUSES.includes(status) ? status : 'all';
 };
 
 const compareStudents = (sortBy) => (a, b) => {
-  if (sortBy === 'status') return (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
+  if (sortBy === 'status') return STATUS_ORDER[getStudentStatus(a)] - STATUS_ORDER[getStudentStatus(b)];
   return (a.firstName || a.email || '').localeCompare(b.firstName || b.email || '');
 };
 
@@ -106,8 +110,8 @@ const StudentsMetrics = ({ counts }) => (
   <section className="section-card students-metrics-card" aria-label="Resumo de alunos">
     <div className="students-metrics">
       <Kpi label="Total" value={counts.all} support={`${counts.ativo} ativos`} />
-      <Kpi label="Ativos" value={counts.ativo} support="com treinos vigentes" tone="brand" />
-      <Kpi label="Pendentes" value={counts.pendente} support="aguardando anamnese" tone="warning" />
+      <Kpi label="Ativos" value={counts.ativo} support="sem pendências" tone="brand" />
+      <Kpi label="Pendentes" value={counts.pendente} support="vencendo em breve" tone="warning" />
       <Kpi label="Atenção" value={counts.vencido} support="planos vencidos" tone="error" />
     </div>
   </section>
@@ -315,9 +319,7 @@ const Students = () => {
 
   const counts = useMemo(() => ({
     all: students.length,
-    ativo: students.filter((s) => s.status === 'ativo').length,
-    pendente: students.filter((s) => s.status === 'pendente').length,
-    vencido: students.filter((s) => s.status === 'vencido').length,
+    ...countStudentsByStatus(students),
   }), [students]);
 
   const blockedByQuotaCount = useMemo(
@@ -328,7 +330,7 @@ const Students = () => {
   const filtered = useMemo(() => {
     const query = search.toLowerCase().trim();
     const matches = (student) => {
-      if (statusFilter !== 'all' && student.status !== statusFilter) return false;
+      if (statusFilter !== 'all' && getStudentStatus(student) !== statusFilter) return false;
       if (!query) return true;
       const name = getStudentDisplayName(student).toLowerCase();
       return name.includes(query) || (student.email || '').toLowerCase().includes(query);
