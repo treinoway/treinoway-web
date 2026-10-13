@@ -21,8 +21,16 @@ describe('StudentLatestNoteCard', () => {
     expect(screen.getByText('Lucas Ferreira · há 3 dias · Upper')).toBeInTheDocument();
   });
 
-  it('renders nothing without a note', () => {
-    const { container } = render(<StudentLatestNoteCard session={null} studentName="Lucas" />);
-    expect(container).toBeEmptyDOMElement();
+  it('keeps the card with an empty line when there is no note', () => {
+    render(<StudentLatestNoteCard session={null} studentName="Lucas" />);
+    expect(screen.getByRole('region', { name: 'Última observação do aluno' })).toBeInTheDocument();
+    expect(screen.getByText('Nenhuma observação nas sessões recentes.')).toBeInTheDocument();
+  });
+
+  it('shows a skeleton while the sessions load — never the empty line', () => {
+    render(<StudentLatestNoteCard session={null} studentName="Lucas" loading />);
+    expect(screen.getByRole('region', { name: 'Última observação do aluno' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Carregando observação' })).toBeInTheDocument();
+    expect(screen.queryByText('Nenhuma observação nas sessões recentes.')).not.toBeInTheDocument();
   });
 });

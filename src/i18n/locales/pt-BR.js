@@ -1245,6 +1245,7 @@ const ptBR = {
     },
     block: {
       title: 'Assinatura',
+      loading: 'Carregando assinatura',
       viewHistory: 'Ver histórico',
       sinceMeta: '{recurrence} · desde {date}',
       badgeOverdue: 'Em atraso',
@@ -1333,6 +1334,19 @@ const ptBR = {
     notFound: "Aluno não encontrado",
     backToStudents: "Voltar para alunos",
     trainerInCharge: "Treinador responsável",
+    hero: {
+      noRoutine: "Sem rotina ativa",
+    },
+    loading: {
+      student: "Carregando aluno",
+      metrics: "Carregando indicadores",
+      routines: "Carregando rotinas",
+      anamneses: "Carregando anamneses",
+      activity: "Carregando atividade",
+      note: "Carregando observação",
+      sessions: "Carregando sessões",
+      progression: "Carregando progressão",
+    },
     periodAria: "Alterar período. Atual: {period}",
     customPeriod: "Período personalizado",
     retry: "Tentar novamente",
@@ -1438,6 +1452,7 @@ const ptBR = {
     },
     note: {
       title: "Última observação do aluno",
+      empty: "Nenhuma observação nas sessões recentes.",
     },
     sessions: {
       title: "Sessões recentes",

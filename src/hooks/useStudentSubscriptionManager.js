@@ -13,13 +13,19 @@ import { getErrorCode, getErrorMessage } from '../utils/financeErrors';
 import { pickCurrentCharge } from '../utils/financeCharges';
 import { formatShortDate } from '../utils/subscriptionHelpers';
 
+const findPlanNameInPayments = (subscription, payments) =>
+  payments.find((payment) => payment.subscriptionId === subscription.id)?.plan?.name;
+
 /** Name of the active plan: payments carry it (archived plans too), then the plans list. */
 const resolvePlanName = (subscription, payments, plans) => {
   if (!subscription) return '';
-  const fromPayments = payments.find((payment) => payment.subscriptionId === subscription.id)?.plan?.name;
   const fromPlans = plans.find((plan) => plan.id === subscription.planId)?.name;
-  return fromPayments || fromPlans || t('finance.block.fallbackPlanName');
+  return findPlanNameInPayments(subscription, payments) || fromPlans || t('finance.block.fallbackPlanName');
 };
+
+/** The name is final once payments carry it, or once the plans fallback has answered. */
+const isPlanNameSettled = ({ subscription, payments, plansLoaded }) =>
+  !subscription || Boolean(findPlanNameInPayments(subscription, payments)) || plansLoaded;
 
 const buildFirstPaymentPeriod = (created) => {
   const first = created?.firstPayment;
@@ -75,6 +81,8 @@ const useStudentSubscriptionManager = (studentId, studentName) => {
 
   return {
     ...data,
+    // Billing reads as loading until the plan name is final, so it never swaps from the fallback.
+    loading: data.loading || !isPlanNameSettled(data),
     planName: resolvePlanName(data.subscription, data.payments, data.plans),
     currentCharge: pickCurrentCharge(data.payments, data.subscription?.id),
     paymentActions,

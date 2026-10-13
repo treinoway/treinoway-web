@@ -178,6 +178,17 @@ const useStudentRecords = (id, showToast) => {
   };
 };
 
+/**
+ * Above the fold (hero context line + the three metrics) reads four sources: the student,
+ * the dashboard summary, billing (subscription + payments + plan name) and the routines.
+ * It stays on skeletons until all of them have answered, so nothing changes one by one.
+ */
+const isOverviewLoading = ({ studentLoading, dashboard, subscription, records }) =>
+  studentLoading
+  || (dashboard.summary.loading && !dashboard.summary.data)
+  || subscription.loading
+  || records.protocolsLoading;
+
 const StudentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -194,7 +205,7 @@ const StudentDetail = () => {
   const [linking, setLinking] = useState(false);
   const [iArnoldSubmitting, setIArnoldSubmitting] = useState(false);
 
-  const { student, notFound: studentNotLinked } = useLinkedStudent(id, location.state?.student ?? null, showToast);
+  const { student, notFound: studentNotLinked, loading: studentLoading } = useLinkedStudent(id, location.state?.student ?? null, showToast);
   const studentName = student ? getStudentDisplayName(student) : null;
   const dashboard = useStudentDashboard(id, period);
   const subscription = useStudentSubscriptionManager(id, studentName);
@@ -211,6 +222,8 @@ const StudentDetail = () => {
   const trainerName = user ? getStudentDisplayName(user) || null : null;
   const periodLabel = getPeriodLabel(period);
   const completionRate = summary?.completionRate ?? null;
+  const overviewLoading = isOverviewLoading({ studentLoading, dashboard, subscription, records });
+  const recentSessionsPending = dashboard.recentSessions.loading && !dashboard.recentSessions.data;
 
   const handleApplyPeriod = (next) => {
     setPeriod(next);
@@ -288,15 +301,15 @@ const StudentDetail = () => {
         routineName={activeProtocol?.name}
         planName={activePlanName}
         trainerName={trainerName ?? undefined}
+        loading={overviewLoading}
       />
 
       <StudentRelationshipMetrics
+        loading={overviewLoading}
         summary={summary}
-        summaryLoading={dashboard.summary.loading && !summary}
         subscription={subscription.subscription}
         nextPayment={subscription.currentCharge}
         planName={activePlanName}
-        subscriptionLoading={subscription.loading}
         lastWorkoutAt={student?.lastWorkoutAt ?? undefined}
         onAssignPlan={subscription.openAssign}
       />
@@ -333,7 +346,7 @@ const StudentDetail = () => {
           </h2>
           <PeriodButton label={periodLabel} onClick={() => setPickerOpen(true)} />
         </div>
-        <div className={`student-detail__grid student-detail__grid--chart${latestNoteSession ? '' : ' student-detail__grid--single'}`}>
+        <div className="student-detail__grid student-detail__grid--chart">
           <StudentVolumeCard
             vizData={vizData}
             periodLabel={periodLabel}
@@ -341,7 +354,11 @@ const StudentDetail = () => {
             error={dashboard.dailyActivity.error}
             onRetry={() => dashboard.retryBlock('dailyActivity')}
           />
-          <StudentLatestNoteCard session={latestNoteSession} studentName={studentName ?? undefined} />
+          <StudentLatestNoteCard
+            session={latestNoteSession}
+            studentName={studentName ?? undefined}
+            loading={recentSessionsPending}
+          />
         </div>
         <div className="student-detail__grid">
           <RecentSessionsPanel

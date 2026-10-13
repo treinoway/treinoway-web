@@ -49,6 +49,39 @@ describe('useStudentSubscriptionManager', () => {
     expect(result.current.cancelMessage).toContain('Cancelar a assinatura de Maria Silva?');
   });
 
+  describe('plan name readiness', () => {
+    const deferredPlans = () => {
+      let resolve;
+      subscriptionsApi.listSubscriptionPlans.mockReturnValue(new Promise((res) => { resolve = res; }));
+      return (plans) => act(async () => { resolve(plans); });
+    };
+
+    it('does not wait for the plans list when the payments carry the plan name', async () => {
+      deferredPlans();
+      const { result } = await setup();
+      expect(result.current.planName).toBe('Consultoria Mensal');
+    });
+
+    it('stays loading until the plans list answers when no payment carries the name', async () => {
+      subscriptionsApi.listStudentPayments.mockResolvedValue({ payments: [] });
+      const resolvePlans = deferredPlans();
+      const { result } = renderHook(() => useStudentSubscriptionManager('student-1', 'Maria Silva'));
+      await waitFor(() => expect(result.current.subscription).toEqual(subscription));
+      expect(result.current.loading).toBe(true);
+
+      await resolvePlans([{ id: 'plan-1', name: 'Nome da lista' }]);
+      expect(result.current.loading).toBe(false);
+      expect(result.current.planName).toBe('Nome da lista');
+    });
+
+    it('settles on the fallback name when the plans list fails', async () => {
+      subscriptionsApi.listStudentPayments.mockResolvedValue({ payments: [] });
+      subscriptionsApi.listSubscriptionPlans.mockRejectedValue(new Error('x'));
+      const { result } = await setup();
+      expect(result.current.planName).toBe('Plano');
+    });
+  });
+
   it('replaces with ONE assign request (B1) and toasts the first billed cycle', async () => {
     subscriptionsApi.assignPlanToStudent.mockResolvedValue({
       id: 'sub-2',

@@ -14,8 +14,7 @@ const buildAdherenceSupport = (summary) => {
   return [counts, delta].filter(Boolean).join(' · ') || undefined;
 };
 
-const AdherenceMetric = ({ summary, loading }) => {
-  if (loading) return <MetricSkeleton />;
+const AdherenceMetric = ({ summary }) => {
   const value = formatAdherence(summary?.adherence);
   if (!value) {
     return <MetricCard label={td('metrics.adherence')} value="–" support={td('metrics.adherenceEmpty')} />;
@@ -23,15 +22,14 @@ const AdherenceMetric = ({ summary, loading }) => {
   return <MetricCard label={td('metrics.adherence')} value={value} support={buildAdherenceSupport(summary)} />;
 };
 
-AdherenceMetric.propTypes = { summary: PropTypes.object, loading: PropTypes.bool };
+AdherenceMetric.propTypes = { summary: PropTypes.object };
 
 /**
  * Read-only renewal figure. Replace/cancel/history live in the "Assinatura" block
  * below (single place for subscription actions); only the no-plan state keeps the
  * "Atribuir plano" shortcut.
  */
-const RenewalMetric = ({ subscription, nextPayment, planName, loading, onAssignPlan }) => {
-  if (loading) return <MetricSkeleton />;
+const RenewalMetric = ({ subscription, nextPayment, planName, onAssignPlan }) => {
   if (!subscription) {
     const assignAction = (
       <button type="button" className="btn btn--ghost metric-card-action" onClick={onAssignPlan}>
@@ -63,7 +61,6 @@ RenewalMetric.propTypes = {
   subscription: PropTypes.object,
   nextPayment: PropTypes.object,
   planName: PropTypes.string,
-  loading: PropTypes.bool,
   onAssignPlan: PropTypes.func.isRequired,
 };
 
@@ -77,17 +74,27 @@ const LastSessionMetric = ({ lastWorkoutAt }) => {
 
 LastSessionMetric.propTypes = { lastWorkoutAt: PropTypes.string };
 
+const METRIC_COUNT = 3;
+
+const MetricsSkeleton = () => (
+  <div className="metric-grid metric-grid--3 student-detail__metrics" role="status" aria-label={td('loading.metrics')}>
+    {Array.from({ length: METRIC_COUNT }, (_, index) => <MetricSkeleton key={index} />)}
+  </div>
+);
+
 /**
  * "Aderência e relacionamento": month adherence (dashboard summary), renewal of the
  * active subscription (current payment cycle) and the last session ever (student row).
+ *
+ * One `loading` flag for the whole row: the three figures come from three sources, and
+ * they appear together once every source has answered — never one by one.
  */
 const StudentRelationshipMetrics = ({
+  loading,
   summary,
-  summaryLoading,
   subscription,
   nextPayment,
   planName,
-  subscriptionLoading,
   lastWorkoutAt,
   onAssignPlan,
 }) => (
@@ -95,27 +102,22 @@ const StudentRelationshipMetrics = ({
     <h2 id="student-relationship-heading" className="student-detail__section-title type-body-lg-strong">
       {td('sections.relationship')}
     </h2>
-    <div className="metric-grid metric-grid--3 student-detail__metrics">
-      <AdherenceMetric summary={summary} loading={summaryLoading} />
-      <RenewalMetric
-        subscription={subscription}
-        nextPayment={nextPayment}
-        planName={planName}
-        loading={subscriptionLoading}
-        onAssignPlan={onAssignPlan}
-      />
-      <LastSessionMetric lastWorkoutAt={lastWorkoutAt} />
-    </div>
+    {loading ? <MetricsSkeleton /> : (
+      <div className="metric-grid metric-grid--3 student-detail__metrics">
+        <AdherenceMetric summary={summary} />
+        <RenewalMetric subscription={subscription} nextPayment={nextPayment} planName={planName} onAssignPlan={onAssignPlan} />
+        <LastSessionMetric lastWorkoutAt={lastWorkoutAt} />
+      </div>
+    )}
   </section>
 );
 
 StudentRelationshipMetrics.propTypes = {
+  loading: PropTypes.bool,
   summary: PropTypes.object,
-  summaryLoading: PropTypes.bool,
   subscription: PropTypes.object,
   nextPayment: PropTypes.object,
   planName: PropTypes.string,
-  subscriptionLoading: PropTypes.bool,
   lastWorkoutAt: PropTypes.string,
   onAssignPlan: PropTypes.func.isRequired,
 };

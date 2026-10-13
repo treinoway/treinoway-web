@@ -51,9 +51,11 @@ describe('useLinkedStudent', () => {
     api.get.mockReturnValue(pending.promise);
     const { result } = renderLinkedStudent({ id: 'student-a', initialStudent: studentA });
     expect(result.current.student).toEqual(studentA);
+    expect(result.current.loading).toBe(true);
     expect(api.get).toHaveBeenCalledWith('/trainer/students/student-a');
 
     await act(async () => { pending.resolve({ data: { ...studentA, firstName: 'Ana Paula', lastWorkoutAt: null } }); });
+    expect(result.current.loading).toBe(false);
     expect(result.current.student.firstName).toBe('Ana Paula');
     expect(result.current.student.lastWorkoutAt).toBeNull();
   });
@@ -74,7 +76,10 @@ describe('useLinkedStudent', () => {
   it('flags notFound on 404 student.notLinked without a toast', async () => {
     api.get.mockRejectedValue(notLinkedError());
     const { result, showToast } = renderLinkedStudent({ id: 'student-a' });
+    expect(result.current.loading).toBe(true);
+    expect(result.current.notFound).toBe(false);
     await waitFor(() => expect(result.current.notFound).toBe(true));
+    expect(result.current.loading).toBe(false);
     expect(result.current.student).toBeNull();
     expect(showToast).not.toHaveBeenCalled();
   });
@@ -85,6 +90,7 @@ describe('useLinkedStudent', () => {
     await waitFor(() => expect(showToast).toHaveBeenCalledWith('Erro ao carregar aluno', 'error'));
     expect(result.current.student).toEqual(studentA);
     expect(result.current.notFound).toBe(false);
+    expect(result.current.loading).toBe(false);
   });
 
   describe('when the id changes', () => {
@@ -109,6 +115,7 @@ describe('useLinkedStudent', () => {
 
       rerender({ id: 'student-b' });
       expect(result.current.student).toBeNull();
+      expect(result.current.loading).toBe(true);
     });
 
     it('ignores a late not-linked error for the previous student', async () => {

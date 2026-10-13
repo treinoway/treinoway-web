@@ -28,6 +28,8 @@ const isCancelledError = (error) =>
  * - Results are cached in-memory by `studentId:period` so re-mounting doesn't refetch.
  * - When the GET to /summary returns STUDENT_NOT_FOUND, sets `studentNotFound: true`
  *   so the page can render the inline 404 (per refined design — no toast + auto-redirect).
+ * - State is keyed by student: after a student change every block reads as loading
+ *   (never the previous student's data) until the new student's results land.
  */
 const useStudentDashboard = (studentId, period) => {
   const [state, setState] = useState(initialState);
@@ -95,6 +97,7 @@ const useStudentDashboard = (studentId, period) => {
     const studentNotFound = isStudentNotFoundError(summaryResult.error);
 
     const next = {
+      studentId,
       summary: { data: summaryResult.data, loading: false, error: studentNotFound ? null : summaryResult.error },
       recentSessions: { data: recentResult.data, loading: false, error: recentResult.error },
       progression: { data: progressionResult.data, loading: false, error: progressionResult.error },
@@ -134,7 +137,8 @@ const useStudentDashboard = (studentId, period) => {
     runFetchRef.current();
   }, []);
 
-  return { ...state, refetch, retryBlock };
+  const current = state.studentId === studentId ? state : initialState();
+  return { ...current, refetch, retryBlock };
 };
 
 export default useStudentDashboard;

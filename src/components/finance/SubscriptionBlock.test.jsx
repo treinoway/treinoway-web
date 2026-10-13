@@ -32,7 +32,10 @@ describe('SubscriptionBlock', () => {
 
   it('shows a skeleton while loading (not an empty state)', () => {
     renderBlock({ loading: true, subscription: null });
+    expect(screen.getByRole('heading', { name: 'Assinatura' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Carregando assinatura' })).toBeInTheDocument();
     expect(screen.queryByText('Sem plano ativo')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver histórico' })).not.toBeInTheDocument();
   });
 
   it('is "Em dia" with no open charges', () => {

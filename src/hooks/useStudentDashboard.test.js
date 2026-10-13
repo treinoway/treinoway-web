@@ -165,4 +165,19 @@ describe('useStudentDashboard', () => {
     expect(summaryCall[1].params.dateFrom).toBe(period.from);
     expect(summaryCall[1].params.dateTo).toBe(period.to);
   });
+
+  it('never exposes the previous student\'s blocks after a student change', async () => {
+    api.get.mockImplementation((url) => (url.includes('/s-1/')
+      ? Promise.resolve({ data: url.endsWith('/dashboard/summary') ? buildSummary({ completionRate: 0.5 }) : { data: [] } })
+      : new Promise(() => {})));
+    const { result, rerender } = renderHook(({ studentId }) => useStudentDashboard(studentId, period), {
+      initialProps: { studentId: 's-1' },
+    });
+    await waitFor(() => expect(result.current.summary.data?.completionRate).toBe(0.5));
+
+    rerender({ studentId: 's-2' });
+    expect(result.current.summary.data).toBeNull();
+    expect(result.current.summary.loading).toBe(true);
+    expect(result.current.recentSessions.data).toBeNull();
+  });
 });
