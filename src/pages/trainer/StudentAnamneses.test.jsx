@@ -259,6 +259,60 @@ describe('StudentAnamneses', () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
+  describe('card navigation', () => {
+    const responsePath = '/trainer/students/student-1/anamneses/a1/response';
+    const submittedLink = buildAnamnesisLink({ id: 'a1', title: 'Saúde', response: linkResponses.submitted, canFill: true });
+
+    it('opens the responses when the card is clicked and they are viewable', async () => {
+      const user = userEvent.setup();
+      setup({ anamneses: [submittedLink] });
+      await user.click(await screen.findByRole('link', { name: 'Ver respostas da anamnese Saúde' }));
+      expect(mockNavigate).toHaveBeenCalledWith(responsePath);
+    });
+
+    it('opens the responses when Enter is pressed on the focused card', async () => {
+      const user = userEvent.setup();
+      setup({ anamneses: [submittedLink] });
+      const card = await screen.findByRole('link', { name: 'Ver respostas da anamnese Saúde' });
+      card.focus();
+      await user.keyboard('{Enter}');
+      expect(mockNavigate).toHaveBeenCalledWith(responsePath);
+    });
+
+    it('is not a link, and never opens the fill flow, when there are no responses to view', async () => {
+      const user = userEvent.setup();
+      setup({
+        anamneses: [
+          buildAnamnesisLink({ id: 'a1', title: 'Pendente X', response: null, canFill: true }),
+          buildAnamnesisLink({ id: 'a2', title: 'Rascunho X', response: linkResponses.draft, canFill: true }),
+        ],
+      });
+      await user.click(await screen.findByText('Pendente X'));
+      await user.click(screen.getByText('Rascunho X'));
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('does not navigate when the row menu is opened or used', async () => {
+      const user = userEvent.setup();
+      setup({ anamneses: [submittedLink] });
+      await user.click(await screen.findByRole('button', { name: 'Opções da anamnese Saúde' }));
+      expect(mockNavigate).not.toHaveBeenCalled();
+      await user.click(screen.getByRole('button', { name: 'Abrir template' }));
+      expect(mockNavigate).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith('/trainer/anamneses/a1');
+    });
+
+    it('does not navigate when Enter is pressed on the row menu trigger', async () => {
+      const user = userEvent.setup();
+      setup({ anamneses: [submittedLink] });
+      const trigger = await screen.findByRole('button', { name: 'Opções da anamnese Saúde' });
+      trigger.focus();
+      await user.keyboard('{Enter}');
+      expect(mockNavigate).not.toHaveBeenCalledWith(responsePath);
+    });
+  });
+
   describe('response status', () => {
     const rowMenuName = (title) => `Opções da anamnese ${title}`;
     const openMenuOf = async (user, title) => {
@@ -288,20 +342,24 @@ describe('StudentAnamneses', () => {
     it('shows the API label and a hint when the trainer filled it and awaits confirmation', async () => {
       setup({ anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Saúde', response: linkResponses.awaitingByTrainer, canFill: true })] });
       expect(await screen.findByText('Aguardando confirmação')).toBeInTheDocument();
-      expect(screen.getByText('Preenchida por você')).toBeInTheDocument();
+      const filledAt = new Date(linkResponses.awaitingByTrainer.submittedAt).toLocaleDateString('pt-BR');
+      expect(screen.getByText(`Preenchida por você em ${filledAt}`)).toBeInTheDocument();
     });
 
     it('does not show the "por você" hint when the student filled it', async () => {
       const awaiting = { ...linkResponses.awaitingByTrainer, filledBy: 'student' };
       setup({ anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Saúde', response: awaiting, canFill: true })] });
       await screen.findByText('Aguardando confirmação');
-      expect(screen.queryByText('Preenchida por você')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Preenchida por você/)).not.toBeInTheDocument();
     });
 
-    it('shows "Respondida" with the local submission date', async () => {
+    it('shows "Respondida" with a labelled local submission date next to the link date', async () => {
       setup({ anamneses: [buildAnamnesisLink({ id: 'a1', title: 'Saúde', response: linkResponses.submitted, canFill: false })] });
       expect(await screen.findByText('Respondida')).toBeInTheDocument();
-      expect(screen.getByText(new Date(linkResponses.submitted.submittedAt).toLocaleDateString('pt-BR'))).toBeInTheDocument();
+      const submittedAt = new Date(linkResponses.submitted.submittedAt).toLocaleDateString('pt-BR');
+      expect(screen.getByText(`Respondida em ${submittedAt}`)).toBeInTheDocument();
+      expect(screen.getByText('Vinculada em 15/01/2026')).toBeInTheDocument();
+      expect(screen.queryByText(submittedAt)).not.toBeInTheDocument();
     });
 
     it('offers "Preencher com o aluno" only when canFill is true', async () => {

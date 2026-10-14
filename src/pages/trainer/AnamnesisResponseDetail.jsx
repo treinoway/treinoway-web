@@ -51,13 +51,13 @@ const getAuthorshipBadge = (response) => {
   const filledBy = `Preenchida pelo ${(response.filledByLabel || 'Professor').toLowerCase()}`;
   if (response.status === ANAMNESIS_RESPONSE_STATUS.AWAITING_CONFIRMATION) {
     return {
-      className: 'badge badge-blue',
+      className: 'badge badge--tag badge--brand',
       text: `${filledBy} · ${response.statusLabel || 'Aguardando confirmação'}`,
     };
   }
   if (response.status === ANAMNESIS_RESPONSE_STATUS.SUBMITTED) {
     return {
-      className: 'badge badge-green',
+      className: 'badge badge--tag badge--success',
       text: `${filledBy} · Confirmada pelo aluno em ${formatDateTimeForDisplay(response.studentConfirmedAt)}`,
     };
   }
@@ -68,15 +68,6 @@ const getAuthorshipBadge = (response) => {
 
 const AnswerEmpty = () => <p className="qa-answer-empty">Sem resposta</p>;
 
-const BooleanAnswer = ({ value }) => {
-  const isYes = value === true || value === 'true' || value === 'sim' || value === 'yes';
-  return (
-    <span className={`qa-answer-bool ${isYes ? 'qa-answer-bool--yes' : 'qa-answer-bool--no'}`}>
-      {isYes ? 'Sim' : 'Não'}
-    </span>
-  );
-};
-
 const NumericAnswer = ({ value, unit }) => (
   <div className="qa-answer-numeric">
     <span className="qa-answer-numeric-value">{value}</span>
@@ -86,50 +77,73 @@ const NumericAnswer = ({ value, unit }) => (
 
 const formatOrphanValue = (value) => (typeof value === 'string' ? value : JSON.stringify(value));
 
-// Answers are stored as option text; single/multiple/matrix all render over the
-// question's current options. A value matching none of them is still shown.
-const ChoiceAnswer = ({ question, value }) => {
-  const options = question.options ?? [];
+const SelectedMarker = () => <span className="visually-hidden"> (resposta selecionada)</span>;
+
+// Every choice-like type (dichotomous included) shows all its options with the
+// chosen ones highlighted. Answers are stored as option text; a value matching
+// none of the current options is still shown.
+const ChoiceAnswer = ({ options, value, labelledBy }) => {
   const orphanValues = toValueList(value).filter(
     (item) => !options.some((option) => isOptionSelected(option, item)),
   );
 
   return (
-    <div className="qa-answer-chips">
-      {options.map((option) => (
-        <span
-          key={option.id ?? option.text}
-          className={`qa-answer-chip${isOptionSelected(option, value) ? ' qa-answer-chip--selected' : ''}`}
-        >
-          {option.text}
-        </span>
-      ))}
+    <ul className="qa-answer-chips" aria-labelledby={labelledBy}>
+      {options.map((option) => {
+        const selected = isOptionSelected(option, value);
+        return (
+          <li
+            key={option.id ?? option.text}
+            className={`qa-answer-chip${selected ? ' qa-answer-chip--selected' : ''}`}
+          >
+            {option.text}
+            {selected && <SelectedMarker />}
+          </li>
+        );
+      })}
       {orphanValues.map((item, index) => (
-        <span key={`orphan-${index}`} className="qa-answer-chip qa-answer-chip--selected qa-answer-chip--orphan">
+        <li key={`orphan-${index}`} className="qa-answer-chip qa-answer-chip--selected qa-answer-chip--orphan">
           {`${formatOrphanValue(item)} (fora das opções atuais)`}
-        </span>
+          <SelectedMarker />
+        </li>
       ))}
-    </div>
+    </ul>
   );
 };
+
+const DICHOTOMOUS_OPTIONS = [{ text: 'Sim' }, { text: 'Não' }];
+const DICHOTOMOUS_VALUES = {
+  Sim: [true, 'true', 'yes', 'sim'],
+  'Não': [false, 'false', 'no', 'nao', 'não'],
+};
+
+// Stored as 'yes'/'no' by the answer wizard; older data may hold booleans or pt-BR text.
+const toDichotomousText = (value) => {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : value;
+  const match = Object.entries(DICHOTOMOUS_VALUES).find(([, values]) => values.includes(normalized));
+  return match ? match[0] : value;
+};
+
+const getQuestionLabelId = (questionId) => `qa-question-${questionId}`;
 
 const renderAnswer = (question, answer) => {
   if (!answer || isAnswerEmpty(answer.value)) return <AnswerEmpty />;
 
   const { type, config } = question;
   const { value } = answer;
+  const labelledBy = getQuestionLabelId(question.id);
 
   switch (type) {
     case ANAMNESIS_QUESTION_TYPE.FREE_TEXT:
       return <blockquote className="qa-answer-text">{value}</blockquote>;
     case ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS:
-      return <BooleanAnswer value={value} />;
+      return <ChoiceAnswer options={DICHOTOMOUS_OPTIONS} value={toDichotomousText(value)} labelledBy={labelledBy} />;
     case ANAMNESIS_QUESTION_TYPE.NUMERIC:
       return <NumericAnswer value={value} unit={config?.unit ?? ''} />;
     case ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE:
     case ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE:
     case ANAMNESIS_QUESTION_TYPE.MATRIX:
-      return <ChoiceAnswer question={question} value={value} />;
+      return <ChoiceAnswer options={question.options ?? []} value={value} labelledBy={labelledBy} />;
     default:
       return <p className="qa-answer-empty">{String(value)}</p>;
   }
@@ -137,15 +151,15 @@ const renderAnswer = (question, answer) => {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-const HeroStat = ({ label, value, unit }) => {
+const StudentStat = ({ label, value, unit }) => {
   if (value === null || value === undefined) return null;
   return (
-    <div>
-      <div className="dossier-hero-stat-label">{label}</div>
-      <div className="dossier-hero-stat-value">
-        {value}
-        {unit && <span className="dossier-hero-stat-unit">{unit}</span>}
-      </div>
+    <div className="kpi">
+      <dt className="kpi-label type-overline">{label}</dt>
+      <dd className="kpi-line">
+        <span className="kpi-value type-h4">{value}</span>
+        {unit && <span className="kpi-support type-caption">{` ${unit}`}</span>}
+      </dd>
     </div>
   );
 };
@@ -154,12 +168,12 @@ const DossierSection = ({ section, answerMap, sectionRef }) => {
   const sortedQuestions = [...(section.questions ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   return (
     <div className="dossier-section" id={`section-${section.id}`} ref={sectionRef}>
-      <div className="dossier-section-title">{section.title}</div>
+      <h2 className="dossier-section-title">{section.title}</h2>
       {sortedQuestions.map((q) => {
         const answer = answerMap[q.id] ?? null;
         return (
           <div key={q.id} className="qa-block">
-            <p className="qa-question">{q.text}</p>
+            <p className="qa-question" id={getQuestionLabelId(q.id)}>{q.text}</p>
             {renderAnswer(q, answer)}
           </div>
         );
@@ -168,23 +182,18 @@ const DossierSection = ({ section, answerMap, sectionRef }) => {
   );
 };
 
-BooleanAnswer.propTypes = {
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
-};
-
 NumericAnswer.propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   unit: PropTypes.string,
 };
 
 ChoiceAnswer.propTypes = {
-  question: PropTypes.shape({
-    options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })),
-  }).isRequired,
+  options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, text: PropTypes.string })).isRequired,
   value: PropTypes.any,
+  labelledBy: PropTypes.string.isRequired,
 };
 
-HeroStat.propTypes = {
+StudentStat.propTypes = {
   label: PropTypes.string.isRequired,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   unit: PropTypes.string,
@@ -289,37 +298,56 @@ const AnamnesisResponseDetail = () => {
   const metaText = responseNotFound
     ? 'Aguardando resposta'
     : submittedAt
-      ? `Respondida em ${formatDateTimeForDisplay(submittedAt)} · V${anamnesis?.version ?? 1} do Template`
-      : `V${anamnesis?.version ?? 1} do Template`;
+      ? `Respondida em ${formatDateTimeForDisplay(submittedAt)} · v${anamnesis?.version ?? 1} do template`
+      : `v${anamnesis?.version ?? 1} do template`;
 
   return (
     <div>
-      {/* Hero */}
-      <div className="dossier-hero">
-        <div className="dossier-hero-main">
-          <div className="dossier-hero-avatar" aria-hidden="true">{initials}</div>
-          <div className="dossier-hero-identity">
-            <div className="dossier-hero-name">{studentName}</div>
-            <div className="dossier-hero-badges">
-              {age !== null && <span className="badge">{age} anos</span>}
-              {goal && <span className="badge">{goal}</span>}
-            </div>
-            <div className="dossier-hero-stats">
-              <HeroStat label="Peso" value={weight} unit="KG" />
-              <HeroStat label="Altura" value={heightRaw} unit="CM" />
-              <HeroStat label="IMC" value={bmi} unit="" />
-              <HeroStat label="Idade" value={age} unit="" />
-            </div>
-          </div>
+      <div className="page-header dossier-page-header">
+        <div className="page-header-title-row">
+          <button
+            type="button"
+            className="btn-back"
+            onClick={() => navigate(`/trainer/students/${studentId}/anamneses`)}
+            aria-label="Voltar para as anamneses do aluno"
+          >
+            <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
+            {student ? studentName : 'Aluno'}
+          </button>
         </div>
-        <div className="dossier-meta-bar">
-          <span className="dossier-meta-text">{metaText}</span>
-          {authorshipBadge && <span className={authorshipBadge.className}>{authorshipBadge.text}</span>}
+        <div className="page-header-actions">
+          <button type="button" className="btn-secondary" onClick={handlePrint}>
+            <Printer size={16} strokeWidth={2} aria-hidden="true" />
+            Exportar PDF
+          </button>
         </div>
       </div>
 
-      {/* Shell */}
-      <div className="dossier-shell mt-md">
+      <section className="section-card dossier-header" aria-label="Resumo da anamnese">
+        {anamnesis?.title && <h1 className="type-h2 dossier-header-title">{anamnesis.title}</h1>}
+        <div className="dossier-header-student">
+          <span className="avatar avatar--lg" aria-hidden="true">{initials}</span>
+          <div className="dossier-header-identity">
+            <p className="type-h4">{studentName}</p>
+            <div className="dossier-header-badges">
+              {age !== null && <span className="badge badge--tag badge--neutral">{age} anos</span>}
+              {goal && <span className="badge badge--tag badge--neutral">{goal}</span>}
+            </div>
+          </div>
+        </div>
+        <dl className="dossier-header-stats">
+          <StudentStat label="Peso" value={weight} unit="kg" />
+          <StudentStat label="Altura" value={heightRaw} unit="cm" />
+          <StudentStat label="IMC" value={bmi} unit="" />
+          <StudentStat label="Idade" value={age} unit="" />
+        </dl>
+        <div className="dossier-meta-bar">
+          <span className="type-caption dossier-meta-text">{metaText}</span>
+          {authorshipBadge && <span className={authorshipBadge.className}>{authorshipBadge.text}</span>}
+        </div>
+      </section>
+
+      <div className="dossier-shell">
         {/* Mobile stepper */}
         <nav className="dossier-stepper" aria-label="Seções da anamnese">
           {sortedSections.map((section, i) => (
@@ -339,7 +367,7 @@ const AnamnesisResponseDetail = () => {
         <div className="dossier-body">
           {/* Desktop sidebar */}
           <nav className="dossier-sidebar" aria-label="Navegação de seções">
-            <div className="eyebrow dossier-sidebar-heading">Seções</div>
+            <p className="type-overline dossier-sidebar-heading">Seções</p>
             {sortedSections.map((section, i) => (
               <button
                 key={section.id}
@@ -367,19 +395,6 @@ const AnamnesisResponseDetail = () => {
               <p className="qa-answer-empty">Nenhuma seção encontrada nesta anamnese.</p>
             )}
           </main>
-        </div>
-
-        {/* Action bar */}
-        <div className="dossier-actions">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={handlePrint}>
-            <Printer size={14} strokeWidth={2} aria-hidden="true" />
-            Exportar PDF
-          </button>
-          <div className="dossier-actions-spacer" />
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate(-1)}>
-            <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" />
-            Voltar
-          </button>
         </div>
       </div>
     </div>

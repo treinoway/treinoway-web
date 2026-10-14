@@ -2220,11 +2220,31 @@ button.auth-forgot-link:disabled {
   transform: translateY(0);
 }
 
+.card-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+}
+
+.card-title-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
 }
 
 .card-header-start {
@@ -14750,142 +14770,68 @@ nav.onboarding-steps {
 .assign-panel--active { display: flex; flex-direction: column; }
 @media (min-width: 1024px) { .assign-panel { display: flex; flex-direction: column; } }
 
-/* Anamnesis link cards in AnamnesisTab */
-.anamnesis-link-card {
-  background: var(--md-surface);
-  border-radius: var(--radius-brand);
-  box-shadow: var(--shadow-brand-sm);
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-lg);
-}
-.anamnesis-link-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
-}
-.anamnesis-link-card-side {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex-shrink: 0;
-}
-.anamnesis-link-card-title {
-  font-family: var(--font-family-display);
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--brand-ink);
-}
-.anamnesis-link-card-meta {
-  font-size: 12px;
-  color: var(--brand-steel);
-  margin-bottom: var(--spacing-sm);
-}
-
 /* =============================================
    DOSSIER — AnamnesisResponseDetail
    ============================================= */
 
-/* Hero (dark stadium variant) */
-.dossier-hero { background: var(--brand-slate); color: var(--stadium-text); padding: var(--spacing-xl); }
-.dossier-hero-main { display: flex; align-items: flex-start; gap: var(--spacing-lg); margin-bottom: var(--spacing-lg); flex-wrap: wrap; }
-.dossier-hero-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-full);
-  background: var(--brand-primary);
-  color: var(--stadium-text);
-  font-family: var(--font-family-display);
-  font-weight: 700;
-  font-size: 20px;
+/* Header: anamnesis title, student identity, stats and response meta (light, §3.3) */
+.dossier-header {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  text-transform: uppercase;
-}
-@media (min-width: 768px) {
-  .dossier-hero-avatar { width: 64px; height: 64px; font-size: 22px; }
-}
-.dossier-hero-identity { flex: 1; min-width: 0; }
-.dossier-hero-name {
-  font-family: var(--font-family-display);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--stadium-text);
-  line-height: 1.1;
-  margin-bottom: var(--spacing-xs);
-}
-@media (min-width: 768px) {
-  .dossier-hero-name { font-size: 22px; }
-}
-.dossier-hero-badges { display: flex; gap: var(--spacing-xs); flex-wrap: wrap; margin-bottom: var(--spacing-sm); }
-.dossier-hero-badges .badge { background: rgba(255, 255, 255, 0.15); color: var(--stadium-text); }
-.dossier-hero-stats { display: flex; gap: var(--spacing-lg); flex-wrap: wrap; }
-.dossier-hero-stat-label {
-  font-family: var(--font-family-display);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: var(--tracking-wider);
-  text-transform: uppercase;
-  color: var(--stadium-text-muted);
-  margin-bottom: 1px;
-}
-.dossier-hero-stat-value {
-  font-family: var(--font-family-stat);
-  font-size: 20px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--stadium-text);
-  line-height: 1;
-}
-.dossier-hero-stat-unit { font-size: 11px; margin-left: 2px; color: var(--stadium-text-muted); }
-.dossier-meta-bar {
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+.dossier-header-title { color: var(--text-primary); }
+.dossier-header-student { display: flex; align-items: center; gap: var(--spacing-md); }
+.dossier-header-identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  color: var(--text-primary);
+}
+.dossier-header-badges { display: flex; gap: var(--spacing-xs); flex-wrap: wrap; }
+.dossier-header-stats { display: flex; gap: var(--spacing-xl); flex-wrap: wrap; }
+.dossier-meta-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm) var(--spacing-lg);
   flex-wrap: wrap;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-subtle);
 }
-.dossier-meta-text {
-  font-family: var(--font-family-display);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--stadium-text-muted);
-}
+.dossier-meta-text { color: var(--text-secondary); }
 
 /* Dossier shell + body */
-.dossier-shell { background: var(--md-surface); border-radius: var(--radius-brand); box-shadow: var(--shadow-brand-sm); overflow: hidden; }
+.dossier-shell { background: var(--background-surface); border-radius: var(--radius-xl); overflow: hidden; }
 .dossier-body { display: flex; flex-direction: column; }
 @media (min-width: 1024px) { .dossier-body { flex-direction: row; } }
 .dossier-sidebar { padding: var(--spacing-lg); display: none; }
-@media (min-width: 1024px) { .dossier-sidebar { display: block; width: 220px; flex-shrink: 0; border-right: 1px solid var(--brand-divider); } }
+@media (min-width: 1024px) { .dossier-sidebar { display: block; width: 220px; flex-shrink: 0; border-right: 1px solid var(--border-subtle); } }
 .dossier-section-nav-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: 10px;
-  border-radius: var(--radius-brand);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
   cursor: pointer;
   background: none;
   border: none;
   width: 100%;
   text-align: left;
-  color: var(--brand-ink);
-  font-size: 13px;
-  font-weight: 500;
-  transition: background var(--duration-fast) var(--ease-brand);
-  margin-bottom: 4px;
+  color: var(--text-secondary);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-body);
+  font-weight: 600;
+  transition: background var(--duration-fast) var(--ease-standard);
+  margin-bottom: var(--spacing-xs);
 }
-.dossier-section-nav-item:hover { background: var(--brand-mist); }
+.dossier-section-nav-item:hover { background: var(--background-surface-elevated); }
+.dossier-section-nav-item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .dossier-section-nav-item--active {
-  background: var(--md-primary-container);
-  color: var(--md-on-primary-container);
-  font-weight: 700;
+  background: var(--background-brand-subtle);
+  color: var(--text-brand);
 }
 .dossier-main { flex: 1; padding: var(--spacing-lg); overflow-y: auto; }
 @media (min-width: 1024px) { .dossier-main { padding: var(--spacing-xl); } }
@@ -14895,9 +14841,9 @@ nav.onboarding-steps {
   display: flex;
   overflow-x: auto;
   padding: var(--spacing-sm) var(--spacing-lg);
-  gap: var(--spacing-sm);
-  border-bottom: 1px solid var(--brand-divider);
-  background: var(--color-surface);
+  gap: var(--spacing-md);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--background-surface);
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -14907,111 +14853,100 @@ nav.onboarding-steps {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
   flex-shrink: 0;
   cursor: pointer;
   background: none;
   border: none;
   padding: 0;
+  font-family: var(--font-family-brand);
 }
+.dossier-stepper-item:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-md); }
 .dossier-stepper-badge {
-  width: 28px;
-  height: 28px;
+  width: var(--size-index-chip);
+  height: var(--size-index-chip);
   border-radius: var(--radius-full);
-  background: var(--brand-divider);
-  color: var(--brand-steel);
+  background: var(--badge-neutral-bg);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-family-display);
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 700;
 }
-.dossier-stepper-item--active .dossier-stepper-badge { background: var(--brand-primary); color: var(--md-surface); }
+.dossier-stepper-item--active .dossier-stepper-badge { background: var(--background-brand); color: var(--text-inverse); }
 .dossier-stepper-label {
-  font-family: var(--font-family-display);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--brand-steel);
+  font-size: var(--font-size-12);
+  line-height: var(--line-height-caption);
+  font-weight: 600;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
-.dossier-stepper-item--active .dossier-stepper-label { color: var(--brand-primary); }
+.dossier-stepper-item--active .dossier-stepper-label { color: var(--text-brand); }
 
 /* Q&A blocks */
-.dossier-section { margin-bottom: var(--spacing-xl); scroll-margin-top: var(--spacing-xl); }
+.dossier-section { margin-bottom: var(--spacing-2xl); scroll-margin-top: var(--spacing-xl); }
 .dossier-section-title {
-  font-family: var(--font-family-display);
-  font-size: 14px;
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-tight);
   font-weight: 700;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--brand-steel);
+  color: var(--text-primary);
   margin-bottom: var(--spacing-lg);
-  padding-bottom: var(--spacing-sm);
-  border-bottom: 2px solid var(--brand-divider);
 }
 .qa-block {
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-lg);
-  border-bottom: 1px solid var(--brand-divider);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .qa-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-.qa-question { font-size: 13px; font-weight: 600; color: var(--brand-steel); margin-bottom: 6px; }
-.qa-answer-numeric { display: inline-flex; align-items: baseline; gap: 4px; }
+.qa-question {
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-body);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+.qa-answer-numeric { display: inline-flex; align-items: baseline; gap: var(--spacing-xs); }
 .qa-answer-numeric-value {
-  font-family: var(--font-family-stat);
-  font-size: 28px;
+  font-size: var(--font-size-24);
+  line-height: var(--line-height-tight);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--brand-ink);
+  color: var(--text-primary);
 }
 .qa-answer-numeric-unit {
-  font-family: var(--font-family-display);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--brand-steel);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-body);
+  color: var(--text-secondary);
 }
 .qa-answer-text {
-  border-left: 3px solid var(--brand-primary);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  background: var(--md-primary-container);
-  border-radius: 0 var(--radius-brand) var(--radius-brand) 0;
-  font-size: 14px;
-  color: var(--brand-ink);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--background-surface-elevated);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-body);
+  color: var(--text-primary);
   margin: 0;
 }
-.qa-answer-chips { display: flex; gap: var(--spacing-xs); flex-wrap: wrap; }
+.qa-answer-chips { display: flex; gap: var(--spacing-xs); flex-wrap: wrap; list-style: none; }
 .qa-answer-chip {
-  padding: 6px 12px;
+  padding: var(--spacing-xs) var(--spacing-md);
   border-radius: var(--radius-full);
-  border: 1px solid var(--brand-divider);
-  background: var(--brand-mist);
-  color: var(--brand-steel);
-  font-size: 13px;
+  border: 1px solid var(--border-default);
+  background: var(--background-surface);
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-body);
 }
 .qa-answer-chip--selected {
-  border: 2px solid var(--brand-primary);
-  background: var(--md-primary-container);
-  color: var(--md-on-primary-container);
-  font-weight: 600;
+  border-color: var(--text-brand);
+  background: var(--background-brand-subtle);
+  color: var(--text-brand);
+  font-weight: 700;
 }
 .qa-answer-chip--orphan { border-style: dashed; }
-.qa-answer-bool {
-  display: inline-block;
-  padding: 8px 16px;
-  border-radius: var(--radius-brand);
-  font-weight: 700;
-  border: 2px solid var(--brand-divider);
-  color: var(--brand-steel);
-  background: var(--md-surface);
-}
-.qa-answer-bool--yes { border-color: var(--brand-primary); color: var(--brand-primary); background: var(--md-primary-container); }
-.qa-answer-bool--no { border-color: var(--brand-steel); color: var(--brand-steel); }
-.qa-answer-empty { font-size: 13px; color: var(--brand-steel); font-style: italic; }
+.qa-answer-empty { font-size: var(--font-size-14); color: var(--text-secondary); font-style: italic; }
 
 /* ============================================
    Anamnesis — student answer flow
@@ -15479,35 +15414,52 @@ nav.onboarding-steps {
   padding-left: var(--spacing-lg);
 }
 
-/* Dossier action bar */
-.dossier-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
-  padding: var(--spacing-lg) var(--spacing-xl);
-  background: var(--md-surface);
-  border-top: 1px solid var(--brand-divider);
-}
-.dossier-actions-spacer { flex: 1; }
-.dossier-sidebar-heading { margin-bottom: var(--spacing-sm); }
+.dossier-sidebar-heading { margin-bottom: var(--spacing-sm); color: var(--text-secondary); }
 
-/* Print styles */
+/* Print ("Exportar PDF"): drop the app shell and on-screen navigation, and let
+   the scroll containers grow so a long anamnesis flows across pages. */
+@page {
+  size: A4;
+  margin: 16mm 14mm;
+}
 @media print {
+  .top-app-bar,
+  .sidebar,
+  .bottom-nav,
+  .toast-container,
+  .overlay,
+  .dossier-page-header,
   .dossier-sidebar,
-.dossier-stepper,
-.dossier-actions,
-.shell-topbar,
-.tab-bar { display: none !important; }
-  .dossier-hero { background: var(--md-surface) !important; color: var(--brand-ink) !important; }
-  .dossier-hero-name,
-.dossier-hero-stat-value { color: var(--brand-ink) !important; }
-  .dossier-hero-stat-label,
-.dossier-hero-stat-unit,
-.dossier-meta-text { color: var(--brand-steel) !important; }
-  .dossier-meta-bar { border-top-color: var(--brand-divider); }
-  .dossier-hero-badges .badge { background: var(--md-surface-container) !important; color: var(--brand-ink) !important; }
-  .dossier-main { overflow: visible; max-height: none; }
-  .qa-block { page-break-inside: avoid; }
+  .dossier-stepper { display: none !important; }
+
+  .app-layout,
+  .main-content,
+  .dossier-body {
+    display: block;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    background: none;
+  }
+  .main-content-inner,
+  .dossier-header.section-card,
+  .dossier-main { padding: 0; }
+  .dossier-shell,
+  .dossier-header.section-card { border-radius: 0; }
+
+  /* Backgrounds are dropped in print; keep the ones that carry meaning. */
+  .dossier-header .avatar,
+  .dossier-header .badge,
+  .qa-answer-chip--selected {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Its surface background is dropped, so align the text with the question instead of floating it. */
+  .qa-answer-text { padding: 0; }
+
+  .dossier-section-title { break-after: avoid; page-break-after: avoid; }
+  .qa-block { break-inside: avoid; page-break-inside: avoid; }
 }
 
 /* ============================================

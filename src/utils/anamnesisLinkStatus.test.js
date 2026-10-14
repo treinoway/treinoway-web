@@ -6,6 +6,7 @@ import {
 } from './anamnesisLinkStatus';
 import { buildAnamnesisLink, linkResponses } from '../test/anamnesisLinkFixtures';
 
+const localDate = (value) => new Date(value).toLocaleDateString('pt-BR');
 const link = (response, extra = {}) => buildAnamnesisLink({ id: 'a', title: 'A', response, ...extra });
 
 describe('getLinkStatusInfo', () => {
@@ -30,21 +31,23 @@ describe('getLinkStatusInfo', () => {
     expect(getLinkStatusInfo(link({ ...linkResponses.draft, answeredCount: undefined })).detail).toBeNull();
   });
 
-  it('uses the API label for awaiting confirmation and hints when the trainer filled it', () => {
+  it('uses the API label for awaiting confirmation and hints, with the date, when the trainer filled it', () => {
     expect(getLinkStatusInfo(link(linkResponses.awaitingByTrainer))).toMatchObject({
       label: 'Aguardando confirmação',
       badgeClass: 'badge-blue',
-      detail: 'Preenchida por você',
+      detail: `Preenchida por você em ${localDate(linkResponses.awaitingByTrainer.submittedAt)}`,
     });
+    expect(getLinkStatusInfo(link({ ...linkResponses.awaitingByTrainer, submittedAt: null })).detail).toBe('Preenchida por você');
     expect(getLinkStatusInfo(link({ ...linkResponses.awaitingByTrainer, statusLabel: 'Waiting' })).label).toBe('Waiting');
     expect(getLinkStatusInfo(link({ ...linkResponses.awaitingByTrainer, statusLabel: undefined })).label).toBe('Aguardando confirmação');
     expect(getLinkStatusInfo(link({ ...linkResponses.awaitingByTrainer, filledBy: 'student' })).detail).toBeNull();
   });
 
-  it('describes a submitted response with the local submission date', () => {
+  it('describes a submitted response with a labelled local submission date', () => {
     const info = getLinkStatusInfo(link(linkResponses.submitted));
     expect(info).toMatchObject({ key: 'submitted', label: 'Respondida', badgeClass: 'badge-green' });
-    expect(info.detail).toBe(new Date(linkResponses.submitted.submittedAt).toLocaleDateString('pt-BR'));
+    expect(info.detail).toBe(`Respondida em ${localDate(linkResponses.submitted.submittedAt)}`);
+    expect(getLinkStatusInfo(link({ ...linkResponses.submitted, submittedAt: null })).detail).toBeNull();
   });
 
   it('falls back to the API label for an unknown status', () => {

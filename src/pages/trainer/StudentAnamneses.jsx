@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, X } from 'lucide-react';
+import PropTypes from 'prop-types';
+import { ArrowLeft, Calendar, X } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
@@ -9,6 +10,76 @@ import RowMenu from '../../components/RowMenu';
 import { ANAMNESIS_FILL_TOAST_DURATION_MS, getAnamnesisFillPath } from '../../constants/anamnesis';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { canFillLink, canViewLinkResponses, getLinkStatusInfo } from '../../utils/anamnesisLinkStatus';
+
+const getResponsePath = (studentId, anamnesisId) => `/trainer/students/${studentId}/anamneses/${anamnesisId}/response`;
+
+/** Card keyboard activation; ignores keys coming from the row menu inside it. */
+const handleCardKeyDown = (event, onActivate) => {
+  if (event.target !== event.currentTarget) return;
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  onActivate();
+};
+
+/**
+ * Same shape as the StudentProtocols cards. The whole card opens the responses
+ * only when they can be viewed; filling stays a menu action because it needs
+ * the trainer to confirm the student is present.
+ */
+const LinkedAnamnesisCard = ({ link, linkedAt, menuItems, onOpenResponses, onUnlink }) => {
+  const status = getLinkStatusInfo(link);
+  const { title, isGeneral } = link.anamnesis;
+  const isClickable = canViewLinkResponses(link);
+  const interactiveProps = isClickable
+    ? {
+        className: 'card-link',
+        role: 'link',
+        tabIndex: 0,
+        'aria-label': `Ver respostas da anamnese ${title}`,
+        onClick: onOpenResponses,
+        onKeyDown: (event) => handleCardKeyDown(event, onOpenResponses),
+      }
+    : { className: 'card' };
+
+  return (
+    <div {...interactiveProps}>
+      <div className="card-header">
+        <div className="card-title-group">
+          <span className="card-title">{title}</span>
+          {isGeneral && <span className="badge badge-blue">Geral</span>}
+        </div>
+        <div className="card-header-actions">
+          <span className={`badge ${status.badgeClass}`}>{status.label}</span>
+          <RowMenu
+            ariaLabel={`Opções da anamnese ${title}`}
+            extraItems={menuItems}
+            onDelete={onUnlink}
+            deleteLabel="Desvincular"
+          />
+        </div>
+      </div>
+      <div className="stack-sm">
+        {status.detail && <p className="text-sm text-muted">{status.detail}</p>}
+        {linkedAt && (
+          <p className="date-display text-sm text-muted">
+            <Calendar size={14} strokeWidth={2} aria-hidden="true" />
+            Vinculada em {linkedAt}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+LinkedAnamnesisCard.propTypes = {
+  link: PropTypes.shape({
+    anamnesis: PropTypes.shape({ title: PropTypes.string, isGeneral: PropTypes.bool }).isRequired,
+  }).isRequired,
+  linkedAt: PropTypes.string,
+  menuItems: PropTypes.arrayOf(PropTypes.shape({ label: PropTypes.string, onClick: PropTypes.func })).isRequired,
+  onOpenResponses: PropTypes.func.isRequired,
+  onUnlink: PropTypes.func.isRequired,
+};
 
 const StudentAnamneses = () => {
   const { id } = useParams();
@@ -100,7 +171,7 @@ const StudentAnamneses = () => {
     ...(canViewLinkResponses(link)
       ? [{
           label: 'Ver respostas',
-          onClick: () => navigate(`/trainer/students/${id}/anamneses/${link.anamnesis.id}/response`),
+          onClick: () => navigate(getResponsePath(id, link.anamnesis.id)),
         }]
       : []),
     { label: 'Abrir template', onClick: () => navigate(`/trainer/anamneses/${link.anamnesis.id}`) },
@@ -153,40 +224,17 @@ const StudentAnamneses = () => {
           </p>
         </div>
       ) : (
-        <div>
-          {linkedAnamneses.map((link) => {
-            const linkedAt = formatLinkedAt(link);
-            const status = getLinkStatusInfo(link);
-            return (
-              <div key={link.id} className="anamnesis-link-card">
-                <div className="anamnesis-link-card-header">
-                  <div>
-                    <span className="anamnesis-link-card-title">
-                      {link.anamnesis.title}
-                    </span>
-                    {link.anamnesis.isGeneral && (
-                      <span className="badge badge-blue">Geral</span>
-                    )}
-                  </div>
-                  <div className="anamnesis-link-card-side">
-                    <span className={`badge ${status.badgeClass}`}>{status.label}</span>
-                    <RowMenu
-                      ariaLabel={`Opções da anamnese ${link.anamnesis.title}`}
-                      extraItems={buildMenuItems(link)}
-                      onDelete={() => handleUnlink(link)}
-                      deleteLabel="Desvincular"
-                    />
-                  </div>
-                </div>
-                {status.detail && (
-                  <p className="anamnesis-link-card-meta">{status.detail}</p>
-                )}
-                {linkedAt && (
-                  <p className="anamnesis-link-card-meta">Vinculada em {linkedAt}</p>
-                )}
-              </div>
-            );
-          })}
+        <div className="stack-md">
+          {linkedAnamneses.map((link) => (
+            <LinkedAnamnesisCard
+              key={link.id}
+              link={link}
+              linkedAt={formatLinkedAt(link)}
+              menuItems={buildMenuItems(link)}
+              onOpenResponses={() => navigate(getResponsePath(id, link.anamnesis.id))}
+              onUnlink={() => handleUnlink(link)}
+            />
+          ))}
         </div>
       )}
 
