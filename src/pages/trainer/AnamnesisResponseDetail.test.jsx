@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRoute } from '../../test/test-utils';
 import AnamnesisResponseDetail from './AnamnesisResponseDetail';
@@ -140,6 +140,21 @@ const setupApi = ({ responseStatus = 200, responseOverrides = {} } = {}) => {
   });
 };
 
+const waitForPage = () => screen.findByRole('heading', { level: 1, name: 'Saúde Geral' });
+
+const answerOptions = (questionText) =>
+  within(screen.getByRole('list', { name: questionText }))
+    .getAllByRole('listitem')
+    .map((item) => item.textContent);
+
+const setupAnswers = (answers) => {
+  api.get.mockImplementation((url) => {
+    if (url === '/trainer/students/student-1') return Promise.resolve({ data: mockStudent });
+    if (url === '/trainer/anamneses/anamnesis-1') return Promise.resolve({ data: mockAnamnesis });
+    return Promise.resolve({ data: { ...mockResponse, answers } });
+  });
+};
+
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -168,16 +183,17 @@ describe('AnamnesisResponseDetail', () => {
     expect(screen.getByText('Carregando...')).toBeInTheDocument();
   });
 
-  it('renders student name in hero after load', async () => {
+  it('renders the anamnesis title as the main heading, with the student as context', async () => {
     setupApi();
     renderPage();
-    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+    expect(await screen.findByRole('heading', { level: 1, name: 'Saúde Geral' })).toBeInTheDocument();
+    expect(screen.getAllByText('João Silva')).toHaveLength(2);
   });
 
   it('computes and shows IMC stat', async () => {
     setupApi();
     renderPage();
-    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+    await waitForPage();
     // IMC = 84 / (1.78^2) = 26.5
     expect(screen.getByText('26.5')).toBeInTheDocument();
   });
@@ -185,7 +201,7 @@ describe('AnamnesisResponseDetail', () => {
   it('shows age badge computed from birthDate', async () => {
     setupApi();
     renderPage();
-    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+    await waitForPage();
     // born 1992-03-15 → age depends on current date, just check badge contains "anos"
     const ageBadge = screen.getByText(/\d+ anos/);
     expect(ageBadge).toBeInTheDocument();
@@ -200,7 +216,7 @@ describe('AnamnesisResponseDetail', () => {
       return Promise.reject(new Error('unexpected'));
     });
     renderPage();
-    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+    await waitForPage();
     expect(screen.queryByText('Peso')).not.toBeInTheDocument();
     // Altura should still be visible
     expect(screen.getByText('Altura')).toBeInTheDocument();
@@ -217,7 +233,7 @@ describe('AnamnesisResponseDetail', () => {
   it('renders NUMERIC answer with unit', async () => {
     setupApi();
     renderPage();
-    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+    await waitForPage();
     // The qa-answer-numeric-value span contains '84'; hero also shows 84 — check the numeric class
     const numericValue = document.querySelector('.qa-answer-numeric-value');
     expect(numericValue).not.toBeNull();
@@ -228,10 +244,52 @@ describe('AnamnesisResponseDetail', () => {
     expect(numericUnit.textContent.toLowerCase()).toBe('kg');
   });
 
-  it('renders DICHOTOMOUS answer as Sim', async () => {
-    setupApi();
-    renderPage();
-    await waitFor(() => expect(screen.getByText('Sim')).toBeInTheDocument());
+  describe('choice-like answers show every option with the chosen ones marked', () => {
+    it('renders a DICHOTOMOUS "yes" as Sim/Não with Sim selected', async () => {
+      setupApi();
+      renderPage();
+      await waitForPage();
+      expect(answerOptions('Pratica exercício?')).toEqual(['Sim (resposta selecionada)', 'Não']);
+    });
+
+    it('renders a DICHOTOMOUS "no", as stored by the answer wizard, with Não selected', async () => {
+      setupAnswers([{ id: 'a3', questionId: 'q-bool', value: 'no' }]);
+      renderPage();
+      await waitForPage();
+      expect(answerOptions('Pratica exercício?')).toEqual(['Sim', 'Não (resposta selecionada)']);
+    });
+
+    it('accepts a boolean false as Não', async () => {
+      setupAnswers([{ id: 'a3', questionId: 'q-bool', value: false }]);
+      renderPage();
+      await waitForPage();
+      expect(answerOptions('Pratica exercício?')).toEqual(['Sim', 'Não (resposta selecionada)']);
+    });
+
+    it('keeps an unrecognised DICHOTOMOUS value visible instead of turning it into Não', async () => {
+      setupAnswers([{ id: 'a3', questionId: 'q-bool', value: 'talvez' }]);
+      renderPage();
+      await waitForPage();
+      expect(answerOptions('Pratica exercício?')).toEqual([
+        'Sim',
+        'Não',
+        'talvez (fora das opções atuais) (resposta selecionada)',
+      ]);
+    });
+
+    it('uses the same list for SINGLE_CHOICE, MULTIPLE_CHOICE and MATRIX', async () => {
+      setupApi();
+      renderPage();
+      await waitForPage();
+      expect(answerOptions('Turno preferido?')).toEqual(['Manhã (resposta selecionada)', 'Tarde', 'Noite']);
+      expect(answerOptions('Atividades praticadas?')).toEqual([
+        'Musculação (resposta selecionada)',
+        'Corrida (resposta selecionada)',
+        'Natação',
+        'Yoga',
+      ]);
+      expect(answerOptions('Nível de disponibilidade?')).toEqual(['Baixa', 'Média (resposta selecionada)', 'Alta']);
+    });
   });
 
   it('renders SINGLE_CHOICE with all options and only the answer selected', async () => {
@@ -305,13 +363,29 @@ describe('AnamnesisResponseDetail', () => {
     expect(screen.getAllByText('Sem resposta')).toHaveLength(7);
   });
 
-  it('shows submitted date in meta bar when response exists', async () => {
+  it('shows the submitted date and template version in sentence case', async () => {
     setupApi();
     renderPage();
-    await waitFor(() =>
-      expect(screen.getByText(/Respondida em/i)).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/V2 do Template/i)).toBeInTheDocument();
+    expect(await screen.findByText('Respondida em 15/04/2024 · v2 do template')).toBeInTheDocument();
+  });
+
+  it('summarises the student in the header: name, badges and stats with lowercase units', async () => {
+    setupApi();
+    renderPage();
+    await waitForPage();
+    const header = screen.getByRole('region', { name: 'Resumo da anamnese' });
+    expect(within(header).getByText('João Silva')).toBeInTheDocument();
+    expect(within(header).getByText(/\d+ anos/)).toBeInTheDocument();
+    const terms = within(header).getAllByRole('term').map((term) => term.textContent);
+    const values = within(header).getAllByRole('definition').map((value) => value.textContent);
+    expect(terms).toEqual(['Peso', 'Altura', 'IMC', 'Idade']);
+    expect(values.slice(0, 3)).toEqual(['84 kg', '178 cm', '26.5']);
+  });
+
+  it('renders each section title as a level-2 heading', async () => {
+    setupApi();
+    renderPage();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Dados Gerais' })).toBeInTheDocument();
   });
 
   it('shows "Aguardando resposta" and "Sem resposta" on 404', async () => {
@@ -328,7 +402,7 @@ describe('AnamnesisResponseDetail', () => {
     setupApi();
     const user = userEvent.setup();
     renderPage();
-    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+    await waitForPage();
 
     // Desktop sidebar nav button
     const navButtons = screen.getAllByRole('button', { name: 'Dados Gerais' });
@@ -339,20 +413,31 @@ describe('AnamnesisResponseDetail', () => {
   it('mobile stepper renders section list', async () => {
     setupApi();
     renderPage();
-    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+    await waitForPage();
     // The stepper nav (aria-label) contains the section
     const stepperNav = screen.getByRole('navigation', { name: 'Seções da anamnese' });
     expect(stepperNav).toBeInTheDocument();
     expect(stepperNav).toHaveTextContent('Dados Gerais');
   });
 
-  it('back button calls navigate(-1)', async () => {
+  it('back button, labelled with the student name, goes to the student anamneses list', async () => {
     setupApi();
     const user = userEvent.setup();
     renderPage();
-    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: /voltar/i }));
-    expect(mockNavigate).toHaveBeenCalledWith(-1);
+    await waitForPage();
+    const back = screen.getByRole('button', { name: 'Voltar para as anamneses do aluno' });
+    expect(back).toHaveTextContent('João Silva');
+    await user.click(back);
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/anamneses');
+  });
+
+  it('labels the back button "Aluno" when the student fails to load', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/students/student-1') return Promise.reject(new Error('boom'));
+      return Promise.resolve({ data: mockAnamnesis });
+    });
+    renderPage();
+    expect(await screen.findByRole('button', { name: 'Voltar para as anamneses do aluno' })).toHaveTextContent('Aluno');
   });
 
   it('print button calls window.print', async () => {
@@ -361,9 +446,10 @@ describe('AnamnesisResponseDetail', () => {
     const printMock = vi.fn();
     vi.stubGlobal('print', printMock);
     renderPage();
-    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: /exportar pdf/i }));
-    expect(printMock).toHaveBeenCalled();
+    await waitForPage();
+    await user.click(screen.getByRole('button', { name: 'Exportar PDF' }));
+    expect(printMock).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 
@@ -437,14 +523,14 @@ describe('AnamnesisResponseDetail', () => {
         responseOverrides: { status: 'submitted', statusLabel: 'Enviada', filledBy: 'student', filledByLabel: 'Aluno' },
       });
       renderPage();
-      await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+      await waitForPage();
       expect(screen.queryByText(/Preenchida pelo/)).not.toBeInTheDocument();
     });
 
     it('shows no badge when the response carries no authorship (legacy payload)', async () => {
       setupApi();
       renderPage();
-      await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+      await waitForPage();
       expect(screen.queryByText(/Preenchida pelo/)).not.toBeInTheDocument();
     });
   });
