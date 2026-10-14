@@ -246,7 +246,7 @@ describe('Signup', () => {
     });
   });
 
-  it('shows loading state on Google button while Google signup is in progress', async () => {
+  it('keeps the normal Google label and stays enabled while the popup is open', async () => {
     const user = userEvent.setup();
     mockLoginWithGoogle.mockImplementation(() => new Promise(() => {}));
 
@@ -254,7 +254,8 @@ describe('Signup', () => {
 
     await user.click(screen.getByRole('button', { name: /cadastrar com google/i }));
 
-    expect(screen.getByRole('button', { name: /cadastrando\.\.\./i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /cadastrar com google/i })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /cadastrando\.\.\./i })).not.toBeInTheDocument();
   });
 
   it('shows error when Google signup fails', async () => {
@@ -833,7 +834,7 @@ describe('Signup', () => {
       await user.click(await screen.findByRole('button', { name: /cadastrar com google/i }));
 
       await waitFor(() => {
-        expect(mockLoginWithGoogle).toHaveBeenCalledWith({ loginHint: 'convidado@teufit.com.br' });
+        expect(mockLoginWithGoogle).toHaveBeenCalledWith(expect.objectContaining({ loginHint: 'convidado@teufit.com.br' }));
       });
     });
 
@@ -922,7 +923,69 @@ describe('Signup', () => {
 
       await user.click(await screen.findByRole('button', { name: /cadastrar com google/i }));
 
-      await waitFor(() => expect(mockLoginWithGoogle).toHaveBeenCalledWith());
+      await waitFor(() => expect(mockLoginWithGoogle).toHaveBeenCalled());
+      expect(mockLoginWithGoogle.mock.calls[0][0]).not.toHaveProperty('loginHint');
+    });
+  });
+
+  describe('Google popup lifecycle', () => {
+    const googleButton = (name = /cadastrar com google/i) => screen.getByRole('button', { name });
+
+    it('keeps inputs, submit and Google button enabled while the popup is pending', async () => {
+      const user = userEvent.setup();
+      mockLoginWithGoogle.mockImplementation(() => new Promise(() => {}));
+
+      renderWithRouter(<Signup />);
+      await user.click(googleButton());
+
+      expect(screen.getByLabelText(/e-mail/i)).toBeEnabled();
+      expect(screen.getByLabelText(/^senha$/i)).toBeEnabled();
+      expect(screen.getByRole('button', { name: /^criar conta$/i })).toBeEnabled();
+      expect(googleButton(/cadastrar com google/i)).toBeEnabled();
+    });
+
+    it('disables controls during the backend exchange after the popup resolves', async () => {
+      const user = userEvent.setup();
+      mockLoginWithGoogle.mockImplementation(({ onPopupResolved }) => {
+        onPopupResolved();
+        return new Promise(() => {});
+      });
+
+      renderWithRouter(<Signup />);
+      await user.click(googleButton());
+
+      expect(screen.getByLabelText(/e-mail/i)).toBeDisabled();
+      expect(googleButton(/cadastrando\.\.\./i)).toBeDisabled();
+    });
+
+    it('re-enables everything without an error when the popup is closed', async () => {
+      const user = userEvent.setup();
+      mockLoginWithGoogle.mockResolvedValue({ success: false, error: null });
+
+      renderWithRouter(<Signup />);
+      await user.click(googleButton());
+
+      await waitFor(() => expect(googleButton(/cadastrar com google/i)).toBeEnabled());
+      expect(screen.getByLabelText(/e-mail/i)).toBeEnabled();
+      expect(screen.queryByText(/erro|falha/i)).not.toBeInTheDocument();
+    });
+
+    it('lets the user retry while a popup is pending and ignores the stale result', async () => {
+      const user = userEvent.setup();
+      let rejectFirst;
+      mockLoginWithGoogle
+        .mockImplementationOnce(() => new Promise((_, reject) => { rejectFirst = reject; }))
+        .mockImplementationOnce(() => new Promise(() => {}));
+
+      renderWithRouter(<Signup />);
+      await user.click(googleButton());
+      await user.click(googleButton(/cadastrar com google/i));
+      expect(mockLoginWithGoogle).toHaveBeenCalledTimes(2);
+
+      await act(async () => { rejectFirst(new Error('stale')); });
+
+      expect(googleButton(/cadastrar com google/i)).toBeEnabled();
+      expect(screen.queryByText(/inesperado/i)).not.toBeInTheDocument();
     });
   });
 });

@@ -3,14 +3,13 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isBetaGateEnabled } from '../hooks/useBetaGate';
+import useGoogleAuth from '../hooks/useGoogleAuth';
 import useInviteAuthFlow from '../hooks/useInviteAuthFlow';
 import GoogleIcon from '../components/GoogleIcon';
 import AuthEmailField from '../components/AuthEmailField';
 import InviteContext from '../components/InviteContext';
 import InviteStatusCard from '../components/InviteStatusCard';
 import InviteFormSkeleton from '../components/InviteFormSkeleton';
-
-const GOOGLE_CREDENTIAL_CONFLICT = 'auth/account-exists-with-different-credential';
 
 const getSubmitLabel = (loading, isValidInvite) => {
   if (loading) return 'Entrando...';
@@ -23,7 +22,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const { login, loginWithGoogle, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -44,6 +42,13 @@ const Login = () => {
     }
     return '/';
   };
+
+  const { startGoogleAuth, isExchanging } = useGoogleAuth({
+    loginWithGoogle,
+    loginHint: invite.lockedEmail,
+    onSuccess: (authenticatedUser) => navigate(resolveDestination(authenticatedUser), { replace: true }),
+    onError: setError,
+  });
 
   // Route through resolveDestination (not a hardcoded "/") so this guard
   // agrees with the explicit navigate(resolveDestination(...)) call in
@@ -73,33 +78,12 @@ const Login = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
     setError('');
-    setGoogleLoading(true);
-
-    try {
-      const result = invite.lockedEmail
-        ? await loginWithGoogle({ loginHint: invite.lockedEmail })
-        : await loginWithGoogle();
-
-      if (result.success) {
-        navigate(resolveDestination(result.user), { replace: true });
-      } else if (result.error) {
-        const message = String(result.error).includes(GOOGLE_CREDENTIAL_CONFLICT)
-          ? 'Esse e-mail já está cadastrado com senha. Entre com e-mail e senha.'
-          : result.error;
-        setError(message);
-        setGoogleLoading(false);
-      } else {
-        setGoogleLoading(false);
-      }
-    } catch {
-      setError('Ocorreu um erro inesperado.');
-      setGoogleLoading(false);
-    }
+    startGoogleAuth();
   };
 
-  const isBusy = loading || googleLoading;
+  const isBusy = loading || isExchanging;
   const showSignupNudge = invite.isValid && !invite.accountExists;
   const showFooter = !invite.isInvalid && !showSignupNudge;
 
@@ -131,7 +115,7 @@ const Login = () => {
         className="btn-google"
       >
         <GoogleIcon />
-        {googleLoading ? 'Conectando...' : 'Continuar com Google'}
+        {isExchanging ? 'Conectando...' : 'Continuar com Google'}
       </button>
 
       <div className="auth-divider"><span>ou</span></div>

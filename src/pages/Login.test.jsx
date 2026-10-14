@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter } from '../test/test-utils';
 import Login from './Login';
@@ -178,7 +178,7 @@ describe('Login', () => {
     });
   });
 
-  it('shows loading state on Google button while Google login is in progress', async () => {
+  it('keeps the normal Google label and stays enabled while the popup is open', async () => {
     const user = userEvent.setup();
     mockLoginWithGoogle.mockImplementation(() => new Promise(() => {}));
 
@@ -186,7 +186,8 @@ describe('Login', () => {
 
     await user.click(screen.getByRole('button', { name: /continuar com google/i }));
 
-    expect(screen.getByRole('button', { name: /conectando\.\.\./i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /continuar com google/i })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /conectando\.\.\./i })).not.toBeInTheDocument();
   });
 
   it('shows error when Google login fails', async () => {
@@ -426,7 +427,7 @@ describe('Login', () => {
       await user.click(await screen.findByRole('button', { name: /continuar com google/i }));
 
       await waitFor(() => {
-        expect(mockLoginWithGoogle).toHaveBeenCalledWith({ loginHint: 'convidado@teufit.com.br' });
+        expect(mockLoginWithGoogle).toHaveBeenCalledWith(expect.objectContaining({ loginHint: 'convidado@teufit.com.br' }));
       });
     });
 
@@ -481,6 +482,67 @@ describe('Login', () => {
       const emailInput = await screen.findByLabelText(/e-mail/i);
       expect(emailInput).not.toHaveAttribute('readonly');
       expect(screen.getByRole('button', { name: /^entrar$/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('Google popup lifecycle', () => {
+    const googleButton = (name = /continuar com google/i) => screen.getByRole('button', { name });
+
+    it('keeps inputs, submit and Google button enabled while the popup is pending', async () => {
+      const user = userEvent.setup();
+      mockLoginWithGoogle.mockImplementation(() => new Promise(() => {}));
+
+      renderWithRouter(<Login />);
+      await user.click(googleButton());
+
+      expect(screen.getByLabelText(/e-mail/i)).toBeEnabled();
+      expect(screen.getByLabelText(/^senha$/i)).toBeEnabled();
+      expect(screen.getByRole('button', { name: /^entrar$/i })).toBeEnabled();
+      expect(googleButton(/continuar com google/i)).toBeEnabled();
+    });
+
+    it('disables controls during the backend exchange after the popup resolves', async () => {
+      const user = userEvent.setup();
+      mockLoginWithGoogle.mockImplementation(({ onPopupResolved }) => {
+        onPopupResolved();
+        return new Promise(() => {});
+      });
+
+      renderWithRouter(<Login />);
+      await user.click(googleButton());
+
+      expect(screen.getByLabelText(/e-mail/i)).toBeDisabled();
+      expect(googleButton(/conectando\.\.\./i)).toBeDisabled();
+    });
+
+    it('re-enables everything without an error when the popup is closed', async () => {
+      const user = userEvent.setup();
+      mockLoginWithGoogle.mockResolvedValue({ success: false, error: null });
+
+      renderWithRouter(<Login />);
+      await user.click(googleButton());
+
+      await waitFor(() => expect(googleButton(/continuar com google/i)).toBeEnabled());
+      expect(screen.getByLabelText(/e-mail/i)).toBeEnabled();
+      expect(screen.queryByText(/erro|falha/i)).not.toBeInTheDocument();
+    });
+
+    it('lets the user retry while a popup is pending and ignores the stale result', async () => {
+      const user = userEvent.setup();
+      let rejectFirst;
+      mockLoginWithGoogle
+        .mockImplementationOnce(() => new Promise((_, reject) => { rejectFirst = reject; }))
+        .mockImplementationOnce(() => new Promise(() => {}));
+
+      renderWithRouter(<Login />);
+      await user.click(googleButton());
+      await user.click(googleButton(/continuar com google/i));
+      expect(mockLoginWithGoogle).toHaveBeenCalledTimes(2);
+
+      await act(async () => { rejectFirst(new Error('stale')); });
+
+      expect(googleButton(/continuar com google/i)).toBeEnabled();
+      expect(screen.queryByText(/inesperado/i)).not.toBeInTheDocument();
     });
   });
 });

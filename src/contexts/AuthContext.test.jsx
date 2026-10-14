@@ -619,6 +619,68 @@ describe('AuthContext', () => {
     });
   });
 
+  describe('loginWithGoogle cancellations and phases', () => {
+    const renderCapturing = (onResult, options) => {
+      const Consumer = () => {
+        const { loginWithGoogle } = useAuth();
+        return (
+          <button onClick={async () => onResult(await loginWithGoogle(options))}>Run Google</button>
+        );
+      };
+      return renderWithRouter(<AuthProvider><Consumer /></AuthProvider>);
+    };
+
+    it.each(['auth/cancelled-popup-request', 'auth/user-cancelled'])(
+      'treats %s as a silent cancellation',
+      async (code) => {
+        const popupError = new Error('cancelled');
+        popupError.code = code;
+        signInWithPopup.mockRejectedValue(popupError);
+        const onResult = vi.fn();
+
+        renderCapturing(onResult);
+        await act(async () => {
+          screen.getByRole('button', { name: 'Run Google' }).click();
+        });
+
+        await waitFor(() => expect(onResult).toHaveBeenCalledWith({ success: false, error: null }));
+      }
+    );
+
+    it('calls onPopupResolved once the popup returns a credential', async () => {
+      signInWithPopup.mockResolvedValue({
+        user: { getIdToken: vi.fn().mockResolvedValue('firebase-id-token') },
+      });
+      signOut.mockResolvedValue(undefined);
+      api.post.mockResolvedValue(AUTH_RESPONSE);
+      api.get.mockResolvedValue({ data: REGULAR_USER });
+      const onPopupResolved = vi.fn();
+
+      renderCapturing(vi.fn(), { onPopupResolved });
+      await act(async () => {
+        screen.getByRole('button', { name: 'Run Google' }).click();
+      });
+
+      await waitFor(() => expect(onPopupResolved).toHaveBeenCalledTimes(1));
+    });
+
+    it('does not call onPopupResolved when the popup is closed', async () => {
+      const popupError = new Error('closed');
+      popupError.code = 'auth/popup-closed-by-user';
+      signInWithPopup.mockRejectedValue(popupError);
+      const onPopupResolved = vi.fn();
+      const onResult = vi.fn();
+
+      renderCapturing(onResult, { onPopupResolved });
+      await act(async () => {
+        screen.getByRole('button', { name: 'Run Google' }).click();
+      });
+
+      await waitFor(() => expect(onResult).toHaveBeenCalled());
+      expect(onPopupResolved).not.toHaveBeenCalled();
+    });
+  });
+
   describe('forgotPassword', () => {
     const renderWithForgotPassword = (onResult) => {
       const Consumer = () => {

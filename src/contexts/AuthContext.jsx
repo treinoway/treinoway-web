@@ -7,6 +7,7 @@ import API_BASE_URL from '../api/baseUrl';
 import { translateError } from '../i18n';
 import { setSentryUser } from '../lib/sentry';
 import { clearOnboardingSessionState } from '../hooks/useOnboardingStatus';
+import { GOOGLE_POPUP_CANCEL_CODES } from '../constants/googleAuth';
 
 const AuthContext = createContext(null);
 
@@ -205,9 +206,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loginWithGoogle = async ({ loginHint } = {}) => {
+  const loginWithGoogle = async ({ loginHint, onPopupResolved } = {}) => {
     try {
       const result = await signInWithPopup(auth, buildGoogleProvider(loginHint));
+      onPopupResolved?.();
       const idToken = await result.user.getIdToken();
 
       // Firebase session is not needed — backend manages auth via JWT
@@ -216,8 +218,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/google/web', { idToken });
       return await establishSession(response.data);
     } catch (error) {
-      // Firebase popup closed by user
-      if (error.code === 'auth/popup-closed-by-user') {
+      if (GOOGLE_POPUP_CANCEL_CODES.has(error.code)) {
         return { success: false, error: null };
       }
       return {
