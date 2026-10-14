@@ -354,6 +354,17 @@ describe('useAnamnesisDraft', () => {
       expect(save).toHaveBeenCalledTimes(1);
     });
 
+    it('tries once on unmount and never retries afterwards', async () => {
+      const { save, answer, unmount } = setup();
+      save.mockRejectedValue(httpError(500));
+      answer({ q1: 'b' });
+      unmount();
+      await settle();
+      expect(save).toHaveBeenCalledTimes(1);
+      await advance(DRAFT_RETRY_DELAYS_MS[2] * 3);
+      expect(save).toHaveBeenCalledTimes(1);
+    });
+
     it('stops listening to the tab visibility after unmount', async () => {
       const { save, unmount } = setup();
       unmount();

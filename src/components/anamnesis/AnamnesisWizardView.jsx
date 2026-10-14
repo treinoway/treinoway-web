@@ -9,6 +9,7 @@ import { formatTimeForDisplay } from '../../utils/dateFormat';
 import { DRAFT_SAVE_STATUS } from '../../constants/anamnesis';
 
 const STEPPER_MIN_STEPS = 3;
+const JUMPABLE_STEPPER_MIN_STEPS = 2;
 
 const useWizardFocus = ({ stepIndex, focusQuestionId, clearFocusRequest }, headingRef) => {
   const isFirstRender = useRef(true);
@@ -114,7 +115,7 @@ const WizardActionBar = ({ wizard, submitLabel, submitting, onBack, onSubmit }) 
 /**
  * Presentational wizard shared by the student and the trainer flows: title,
  * stepper, current step (or review) and the action bar. State and submission
- * live in the caller.
+ * live in the caller. `allowJumpAhead` lets the user click any step (trainer flow).
  */
 const AnamnesisWizardView = ({
   wizard,
@@ -127,11 +128,13 @@ const AnamnesisWizardView = ({
   banner,
   reviewHint,
   saveState,
+  allowJumpAhead = false,
 }) => {
   const headingRef = useRef(null);
   useWizardFocus(wizard, headingRef);
 
   const handleBack = () => (wizard.isFirstStep ? onExit() : wizard.goBack());
+  const stepperMinSteps = allowJumpAhead ? JUMPABLE_STEPPER_MIN_STEPS : STEPPER_MIN_STEPS;
 
   return (
     <div className="anamnesis-wizard">
@@ -141,8 +144,13 @@ const AnamnesisWizardView = ({
       </div>
       {headerExtra}
       {banner}
-      {wizard.steps.length >= STEPPER_MIN_STEPS && (
-        <WizardStepper steps={wizard.steps} currentIndex={wizard.stepIndex} onSelect={wizard.goToStep} />
+      {wizard.steps.length >= stepperMinSteps && (
+        <WizardStepper
+          steps={wizard.steps}
+          currentIndex={wizard.stepIndex}
+          onSelect={wizard.goToStep}
+          allowJumpAhead={allowJumpAhead}
+        />
       )}
       {saveState && <DraftSaveStatus saveState={saveState} />}
       <WizardStep wizard={wizard} headingRef={headingRef} reviewHint={reviewHint} />
@@ -220,6 +228,7 @@ AnamnesisWizardView.propTypes = {
     status: PropTypes.string.isRequired,
     savedAt: PropTypes.instanceOf(Date),
   }),
+  allowJumpAhead: PropTypes.bool,
 };
 
 export default AnamnesisWizardView;

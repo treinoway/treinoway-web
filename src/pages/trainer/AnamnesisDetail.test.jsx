@@ -493,6 +493,48 @@ describe('AnamnesisDetail', () => {
     });
   });
 
+  it('offers only the creatable question types in the library (no "Matriz")', async () => {
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAnamnesisDetail();
+    await waitFor(() => expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument());
+    ['Texto Livre', 'Sim / Não', 'Escolha Única', 'Múltipla Escolha', 'Numérico'].forEach((label) => {
+      expect(screen.getByRole('button', { name: `Adicionar pergunta ${label}` })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: /Matriz/i })).not.toBeInTheDocument();
+  });
+
+  it('shows a legacy matrix question as discontinued without the rows/columns config', async () => {
+    const legacyMatrix = {
+      ...mockAnamnesis,
+      sections: [
+        {
+          id: 'section-1',
+          title: 'Histórico de Saúde',
+          order: 0,
+          questions: [
+            {
+              id: 'q-matrix',
+              text: 'Avalie os exercícios',
+              type: 'matrix',
+              required: false,
+              order: 0,
+              options: [],
+              config: { rows: ['Força'], columns: ['Ruim', 'Bom'] },
+            },
+          ],
+        },
+      ],
+    };
+    api.get.mockResolvedValue({ data: legacyMatrix });
+    renderAnamnesisDetail();
+    expect(await screen.findByText('MATRIZ (DESCONTINUADO)')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /texto da pergunta/i })).toHaveValue('Avalie os exercícios');
+    expect(screen.getByText(/Este tipo foi descontinuado/)).toBeInTheDocument();
+    expect(screen.queryByText('Linhas')).not.toBeInTheDocument();
+    expect(screen.queryByText('Colunas')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Nova opção...')).not.toBeInTheDocument();
+  });
+
   it('canvas shortcut sends "Digite a pergunta…" as seed text', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: mockAnamnesisNoQuestions });

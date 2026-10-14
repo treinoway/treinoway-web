@@ -27,6 +27,13 @@ describe('useAnamnesisWizard', () => {
     expect(currentSection.id).toBe('sec-1');
   });
 
+  it('reports the pending required answers of each section step', () => {
+    const { result } = renderWizard();
+    expect(result.current.wizard.steps.map((step) => step.pending)).toEqual([1, 1, 1, undefined]);
+    answer(result, 'q-train', 'no');
+    expect(result.current.wizard.steps[0].pending).toBe(0);
+  });
+
   it('only exposes visible questions of the current section, ordered', () => {
     const { result } = renderWizard();
     expect(result.current.wizard.visibleQuestions.map((question) => question.id)).toEqual(['q-train']);

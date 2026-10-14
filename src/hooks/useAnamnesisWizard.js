@@ -61,8 +61,12 @@ const getResumeState = (previousResponse, sections, answers, allQuestions) => {
   return { isDraft: true, stepIndex: firstPending === -1 ? sections.length : firstPending };
 };
 
-const buildSteps = (sections) => [
-  ...sections.map((section) => ({ id: section.id, title: section.title })),
+const buildSteps = (sections, summaries) => [
+  ...sections.map((section, index) => ({
+    id: section.id,
+    title: section.title,
+    pending: summaries[index].pending,
+  })),
   { id: REVIEW_STEP_ID, title: REVIEW_STEP_TITLE },
 ];
 
@@ -130,7 +134,7 @@ const useAnamnesisWizard = ({ anamnesis, previousResponse }) => {
   };
 
   return {
-    steps: buildSteps(sections),
+    steps: buildSteps(sections, summaries),
     stepIndex,
     isReview: stepIndex === sections.length,
     isFirstStep: stepIndex === 0,

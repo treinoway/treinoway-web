@@ -64,6 +64,14 @@ const saveDraftStudent = ({ anamnesisId }, answers) =>
 const saveDraftTrainer = ({ anamnesisId, studentId }, answers) =>
   api.patch(`/trainer/students/${studentId}/anamneses/${anamnesisId}/response/draft`, { answers });
 
+// The trainer draft endpoint reopens a response the same trainer already saved, so
+// only the student flow stops autosaving once submitted.
+const AUTOSAVE_RULES = {
+  [ANAMNESIS_SOURCE_MODE.STUDENT]: ({ canFinalize, previousResponse }) =>
+    canFinalize && !previousResponse?.submittedAt,
+  [ANAMNESIS_SOURCE_MODE.TRAINER]: ({ canFinalize }) => canFinalize,
+};
+
 const DRAFT_SAVERS = {
   [ANAMNESIS_SOURCE_MODE.STUDENT]: saveDraftStudent,
   [ANAMNESIS_SOURCE_MODE.TRAINER]: saveDraftTrainer,
@@ -74,8 +82,10 @@ const DRAFT_SAVERS = {
  * student (own link) or as the trainer filling on the student's behalf.
  * `enabled` defers the request (the trainer flow waits for the presence gate).
  * `version` changes with every completed load so callers can remount on fresh data.
- * `canAutosave` is false once the response was already submitted (the draft
- * endpoint answers 409 then) or the trainer cannot finalize it.
+ * `canAutosave` is false when the caller cannot finalize the response and, for
+ * the student, once it was submitted (the student draft endpoint answers 409).
+ * The trainer keeps autosave on an already-saved response: the first edit
+ * reopens it as a draft.
  */
 const useAnamnesisResponseSource = ({ mode, anamnesisId, studentId, enabled = true }) => {
   const { showToast } = useToast();
@@ -105,7 +115,7 @@ const useAnamnesisResponseSource = ({ mode, anamnesisId, studentId, enabled = tr
   return {
     ...state,
     reload: () => setReloadKey((key) => key + 1),
-    canAutosave: state.canFinalize && !state.previousResponse?.submittedAt,
+    canAutosave: AUTOSAVE_RULES[mode](state),
     submit: (payload) => SUBMITTERS[mode]({ anamnesisId, studentId }, payload),
     saveDraft: (answers) => DRAFT_SAVERS[mode]({ anamnesisId, studentId }, answers),
   };
