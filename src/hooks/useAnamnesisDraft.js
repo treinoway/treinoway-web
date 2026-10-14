@@ -47,9 +47,9 @@ const cancelRetry = (retry) => {
  * Autosaves the wizard answers as a draft. Only answers that differ from the
  * last successful save are sent, one request at a time (later edits ride the
  * next flush). Flushes on step change, 1.5 s after an answer change, when the
- * tab is hidden and on unmount; failures retry with backoff without blocking
- * the wizard. A 409 (already submitted) stops autosave, toasts and calls
- * `onConflict` so the caller can reload.
+ * tab is hidden and on unmount (best effort, never retried); failures retry
+ * with backoff without blocking the wizard. A 409 (already submitted) stops
+ * autosave, toasts and calls `onConflict` so the caller can reload.
  *
  * While `enabled` is false nothing is sent and the unload warning falls back to
  * `hasChanges` (the full submit is then the only way to persist).
@@ -62,7 +62,7 @@ const useAnamnesisDraft = ({ enabled, answers, stepIndex, hasChanges, save, onCo
   const [saved, setSaved] = useState(() => snapshotOf(answers));
   const savedRef = useRef(saved);
   const latest = useRef({ enabled, answers, save, onConflict, showToast });
-  const control = useRef({ paused: false, stopped: false });
+  const control = useRef({ paused: false, stopped: false, unmounted: false });
   const chain = useRef(null);
   const retry = useRef({ timer: null, attempt: 0 });
   const flushRef = useRef(null);
@@ -106,7 +106,7 @@ const useAnamnesisDraft = ({ enabled, answers, stepIndex, hasChanges, save, onCo
         return false;
       }
       setSaveState((prev) => ({ ...prev, status: DRAFT_SAVE_STATUS.ERROR }));
-      if (isRetryable(error)) {
+      if (isRetryable(error) && !state.unmounted) {
         const delays = DRAFT_RETRY_DELAYS_MS;
         const delay = delays[Math.min(retry.current.attempt, delays.length - 1)];
         retry.current.attempt += 1;
@@ -174,7 +174,10 @@ const useAnamnesisDraft = ({ enabled, answers, stepIndex, hasChanges, save, onCo
 
   useEffect(() => {
     const retryState = retry.current;
+    const controlState = control.current;
+    controlState.unmounted = false;
     return () => {
+      controlState.unmounted = true;
       flush();
       cancelRetry(retryState);
     };
