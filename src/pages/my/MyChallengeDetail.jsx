@@ -68,7 +68,7 @@ const PointHistoryList = ({ transactions, page, pageCount, onPageChange }) => {
         ))}
       </ul>
       {pageCount > 1 && (
-        <div className="btn-group" style={{ marginTop: 'var(--spacing-md)' }}>
+        <div className="btn-group" style={{ marginTop: 'var(--spacing-lg)' }}>
           <button
             type="button"
             className="btn-secondary"
@@ -185,7 +185,7 @@ const MyChallengeDetail = () => {
   if (forbidden) {
     return (
       <div>
-        <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
+        <div className="page-header" style={{ marginBottom: 'var(--spacing-lg)' }}>
           <button
             type="button"
             onClick={() => navigate('/my/challenges')}
@@ -215,7 +215,7 @@ const MyChallengeDetail = () => {
 
   return (
     <div>
-      <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
+      <div className="page-header" style={{ marginBottom: 'var(--spacing-lg)' }}>
         <button
           type="button"
           onClick={() => navigate('/my/challenges')}

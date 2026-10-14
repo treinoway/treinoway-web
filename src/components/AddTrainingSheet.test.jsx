@@ -284,7 +284,7 @@ describe('AddTrainingSheet — fechar', () => {
     const user = userEvent.setup();
     renderSheet({ onClose });
 
-    await user.click(screen.getByLabelText(/Fechar sheet/i));
+    await user.click(screen.getByRole('dialog').parentElement);
     expect(onClose).toHaveBeenCalledOnce();
   });
 

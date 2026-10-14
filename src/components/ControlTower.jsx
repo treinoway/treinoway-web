@@ -152,6 +152,11 @@ RadarBand.propTypes = {
 
 /* ─── Financeiro band ───────────────────────────────────────────────────── */
 
+// The band is the mobile entry point to Financeiro (no bottom-nav slot), so
+// "Recebido no mês" always links there; the overdue tile opens pre-filtered.
+const FINANCE_PATH = '/trainer/financeiro';
+const FINANCE_OVERDUE_PATH = '/trainer/financeiro?status=overdue';
+
 const overdueSubcue = (stale, amount) => (stale
   ? t('controlTower.finance.overdue.subcueStale')
   : (t('controlTower.finance.overdue.subcueAmount') || '').replace('{amount}', formatCurrencyBRL(amount)));
@@ -169,6 +174,8 @@ const FinanceiroBand = ({ finance, generatedAt, onRetry }) => {
         size="protagonist"
         dimmed={stale}
         className="control-tile--finance-hero"
+        to={FINANCE_PATH}
+        ariaLabel={(t('controlTower.finance.monthReceivedAriaLabel') || '').replace('{amount}', formatCurrencyBRL(finance.monthReceived))}
       />
       <ControlTile
         label={t('controlTower.finance.totalReceived')}
@@ -183,7 +190,7 @@ const FinanceiroBand = ({ finance, generatedAt, onRetry }) => {
           subcue={overdueSubcue(stale, finance.overdueAmount)}
           severity="critical"
           dimmed={stale}
-          to={!stale ? '/trainer/financeiro' : undefined}
+          to={!stale ? FINANCE_OVERDUE_PATH : undefined}
           onAction={stale ? onRetry : undefined}
           ariaLabel={(t('controlTower.finance.overdue.ariaLabel') || '').replace('{count}', String(finance.overdueCount))}
         />

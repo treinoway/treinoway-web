@@ -37,9 +37,7 @@ describe('SessionExerciseCard', () => {
 
   it('renders meta with sets, reps, and rest', () => {
     render(<SessionExerciseCard index={1} exerciseLog={makeExerciseLog()} />);
-    expect(screen.getByText(/4 séries/)).toBeInTheDocument();
-    expect(screen.getByText(/10 reps/)).toBeInTheDocument();
-    expect(screen.getByText(/desc\. 90s/)).toBeInTheDocument();
+    expect(screen.getByText('4 séries × 10 reps · desc. 90s')).toBeInTheDocument();
   });
 
   it('starts collapsed and expands on click', async () => {
@@ -105,7 +103,20 @@ describe('SessionExerciseCard', () => {
     });
     render(<SessionExerciseCard index={1} exerciseLog={log} />);
     // 70 × 10 = 700 kg
-    expect(screen.getByText(/700/)).toBeInTheDocument();
-    expect(screen.getByText('kg')).toBeInTheDocument();
+    expect(screen.getByText('700 kg')).toBeInTheDocument();
+  });
+
+  it('links the toggle to the expanded body via aria-controls', () => {
+    render(<SessionExerciseCard index={1} exerciseLog={makeExerciseLog()} defaultOpen />);
+    const toggle = screen.getByRole('button', { name: /recolher exercício/i });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const bodyId = toggle.getAttribute('aria-controls');
+    expect(document.getElementById(bodyId)).toContainElement(screen.getByRole('table'));
+  });
+
+  it('does not render volume for skipped exercises', () => {
+    const skippedLog = makeExerciseLog({ status: 'skipped', setLogs: [] });
+    render(<SessionExerciseCard index={1} exerciseLog={skippedLog} />);
+    expect(screen.queryByText(/kg$/)).not.toBeInTheDocument();
   });
 });

@@ -11,12 +11,12 @@ import { t } from '../i18n';
 const BiSetBadge = ({ onClick, ariaLabel }) => {
   const label = t('exerciseGroup.biset') || 'Bi-set';
   const isInteractive = typeof onClick === 'function';
-  const className = `biset-badge${isInteractive ? '' : ' biset-badge--static'}`;
+  const className = `badge badge--tag badge--brand biset-badge${isInteractive ? '' : ' biset-badge--static'}`;
 
   if (!isInteractive) {
     return (
       <span className={className} aria-label={ariaLabel || label}>
-        <Layers size={12} strokeWidth={2} aria-hidden="true" />
+        <Layers size={16} strokeWidth={2} aria-hidden="true" />
         {label}
       </span>
     );
@@ -29,7 +29,7 @@ const BiSetBadge = ({ onClick, ariaLabel }) => {
       onClick={onClick}
       aria-label={ariaLabel || label}
     >
-      <Layers size={12} strokeWidth={2} aria-hidden="true" />
+      <Layers size={16} strokeWidth={2} aria-hidden="true" />
       {label}
     </button>
   );

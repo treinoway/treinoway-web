@@ -1,31 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { renderWithRouter } from '../../test/test-utils';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { render, screen, waitFor, within } from '../../test/test-utils';
 import Financeiro from './Financeiro';
 import api from '../../api/axios';
 import { useToast } from '../../contexts/ToastContext';
+import { FINANCE_OVERDUE_EVENT } from '../../constants/finance';
+import {
+  apiError,
+  makeKpis,
+  makePayment,
+  makePlan,
+  overduePayment,
+  paidPayment,
+  pinFinanceClock,
+} from '../../test/financeFixtures';
 
-// Pin "today" to avoid timezone drift in status derivation
-const FIXED_NOW = new Date('2026-05-15T12:00:00Z');
-const RealDate = Date;
-class FixedDate extends RealDate {
-  constructor(...args) {
-    if (args.length === 0) { super(FIXED_NOW.getTime()); return; }
-    super(...args);
-  }
-  static now() { return FIXED_NOW.getTime(); }
-}
-
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return { ...actual, useNavigate: () => mockNavigate };
-});
-
-vi.mock('../../contexts/ToastContext', () => ({
-  useToast: vi.fn(),
-}));
+vi.mock('../../contexts/ToastContext', () => ({ useToast: vi.fn() }));
 
 vi.mock('../../api/axios', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -34,208 +25,395 @@ vi.mock('../../api/axios', () => ({
 
 const mockShowToast = vi.fn();
 
-const studentAlpha = { id: 'student-1', firstName: 'João', lastName: 'Silva', email: 'joao@example.com' };
-const studentBeta = { id: 'student-2', firstName: 'Maria', lastName: 'Souza', email: 'maria@example.com' };
+const pendingRow = makePayment({
+  id: 'pay-pending',
+  dueDate: '2026-10-10',
+  student: { id: 'student-2', name: 'João Pereira', avatarUrl: null },
+});
 
-const planMonthly = {
-  id: 'plan-1',
-  name: 'Plano Mensal',
-  recurrence: 'monthly',
-  recurrenceLabel: 'Mensal',
-  price: '270.00',
-  isArchived: false,
-};
+const buildOverview = (overrides = {}) => ({
+  month: '2026-10',
+  overdueGraceDays: 3,
+  kpis: makeKpis(),
+  payments: [overduePayment(), pendingRow, paidPayment()],
+  ...overrides,
+});
 
-const planArchived = {
-  id: 'plan-2',
-  name: 'Plano Antigo',
-  recurrence: 'quarterly',
-  recurrenceLabel: 'Trimestral',
-  price: '600.00',
-  isArchived: true,
-};
+let overviewResponse;
+let plansResponse;
 
-const subscriptionAlpha = {
-  id: 'sub-1',
-  studentId: 'student-1',
-  planId: 'plan-1',
-  status: 'active',
-  recurrence: 'monthly',
-  price: '270.00',
-};
-
-const subscriptionBeta = {
-  id: 'sub-2',
-  studentId: 'student-2',
-  planId: 'plan-1',
-  status: 'active',
-  recurrence: 'monthly',
-  price: '270.00',
-};
-
-// João: pending payment due this month
-const paymentPendingThisMonth = {
-  id: 'pay-1',
-  subscriptionId: 'sub-1',
-  cycleStartDate: '2026-05-01',
-  cycleEndDate: '2026-05-31',
-  dueDate: '2026-05-20',
-  amount: '270.00',
-  status: 'pending',
-  paidAt: null,
-};
-
-// Maria: pending payment with cycleEndDate in the past → overdue
-const paymentOverdue = {
-  id: 'pay-2',
-  subscriptionId: 'sub-2',
-  cycleStartDate: '2026-03-01',
-  cycleEndDate: '2026-03-31',
-  dueDate: '2026-03-15',
-  amount: '270.00',
-  status: 'pending',
-  paidAt: null,
-};
-
-const setupApiMocks = () => {
+const mockApi = () => {
   api.get.mockImplementation((url) => {
-    if (url === '/trainer/students') return Promise.resolve({ data: [studentAlpha, studentBeta] });
-    if (url === '/trainer/subscription-plans') return Promise.resolve({ data: [planMonthly, planArchived] });
-    if (url === '/trainer/subscriptions') return Promise.resolve({ data: [subscriptionAlpha, subscriptionBeta] });
-    if (url === '/trainer/subscriptions/sub-1/payments') return Promise.resolve({ data: [paymentPendingThisMonth] });
-    if (url === '/trainer/subscriptions/sub-2/payments') return Promise.resolve({ data: [paymentOverdue] });
+    if (url === '/trainer/finance/overview') return overviewResponse();
+    if (url === '/trainer/subscription-plans') return plansResponse();
     return Promise.resolve({ data: [] });
   });
-
-  api.post.mockImplementation((url) => {
-    if (url === '/trainer/payments/pay-2/mark-paid') {
-      return Promise.resolve({
-        data: { ...paymentOverdue, status: 'paid', paidAt: '2026-05-15T12:00:00.000Z' },
-      });
-    }
-    return Promise.resolve({ data: {} });
-  });
 };
 
-beforeEach(() => {
-  globalThis.Date = FixedDate;
-  vi.clearAllMocks();
-  useToast.mockReturnValue({ showToast: mockShowToast });
-  setupApiMocks();
-});
+const LocationProbe = () => {
+  const location = useLocation();
+  return <output aria-label="location">{`${location.pathname}${location.search}`}</output>;
+};
 
-afterEach(() => {
-  globalThis.Date = RealDate;
-});
+const HistoryProbe = () => {
+  const location = useLocation();
+  return <output aria-label="history state">{location.state?.studentName}</output>;
+};
 
-describe('Financeiro page', () => {
-  it('renders the hero title', async () => {
-    renderWithRouter(<Financeiro />);
-    expect(screen.getByRole('heading', { name: 'Financeiro' })).toBeInTheDocument();
+const renderPage = (route = '/trainer/financeiro') => render(
+  <MemoryRouter initialEntries={[route]}>
+    <Routes>
+      <Route path="/trainer/financeiro" element={<><Financeiro /><LocationProbe /></>} />
+      <Route
+        path="/trainer/students/:studentId/subscription-history"
+        element={<><LocationProbe /><HistoryProbe /></>}
+      />
+    </Routes>
+  </MemoryRouter>,
+);
+
+const waitForRows = () => screen.findByText('Maria Silva');
+
+describe('Financeiro', () => {
+  beforeEach(() => {
+    pinFinanceClock();
+    vi.clearAllMocks();
+    localStorage.clear();
+    useToast.mockReturnValue({ showToast: mockShowToast });
+    overviewResponse = () => Promise.resolve({ data: buildOverview() });
+    plansResponse = () => Promise.resolve({ data: [makePlan()] });
+    mockApi();
   });
 
-  it('renders both tabs', () => {
-    renderWithRouter(<Financeiro />);
-    expect(screen.getByRole('tab', { name: /Cobranças/ })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Planos/ })).toBeInTheDocument();
+  afterEach(() => vi.useRealTimers());
+
+  it('loads the month with exactly one overview request and no per-student calls', async () => {
+    renderPage();
+    await waitForRows();
+
+    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(api.get).toHaveBeenCalledWith('/trainer/finance/overview', expect.objectContaining({ params: { month: '2026-10' } }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Financeiro' })).toBeInTheDocument();
   });
 
-  it('shows overdue student (Maria) and pending student (João) after loading', async () => {
-    renderWithRouter(<Financeiro />);
-    await waitFor(() => {
-      expect(screen.getByText('Maria Souza')).toBeInTheDocument();
-      expect(screen.getByText('João Silva')).toBeInTheDocument();
-    });
-    expect(screen.getAllByText('Atrasado').length).toBeGreaterThan(0);
-    // 'Pendente' appears in both the status pill and the waveform legend
-    expect(screen.getAllByText('Pendente').length).toBeGreaterThan(0);
+  it('shows skeletons (not empty states) before the overview resolves', () => {
+    overviewResponse = () => new Promise(() => {});
+    renderPage();
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByText(/Sem cobranças/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mês anterior' })).toBeDisabled();
   });
 
-  it('marks a payment as paid and shows success toast', async () => {
+  it('renders the API KPIs, labelling overdue and delinquency as "hoje"', async () => {
+    renderPage();
+    await waitForRows();
+
+    const hero = screen.getByRole('region', { name: 'Resumo de outubro de 2026' });
+    expect(within(hero).getByText('Recebido no mês')).toBeInTheDocument();
+    expect(within(hero).getByText(/^R\$\s?1\.200,00$/)).toBeInTheDocument();
+    expect(within(hero).getByText('12 pagamentos')).toBeInTheDocument();
+    expect(within(hero).getByText('A receber')).toBeInTheDocument();
+    expect(within(hero).getByText('Em atraso hoje')).toBeInTheDocument();
+    expect(within(hero).getByText(/^R\$\s?199,80$/)).toBeInTheDocument();
+    expect(within(hero).getByText('Inadimplência hoje')).toBeInTheDocument();
+    expect(within(hero).getByText('13,3%')).toBeInTheDocument();
+    expect(within(hero).getByText('2 de 15 alunos')).toBeInTheDocument();
+  });
+
+  it('explains the grace rule and the "hoje" scope using overdueGraceDays from the API', async () => {
+    overviewResponse = () => Promise.resolve({ data: buildOverview({ overdueGraceDays: 5 }) });
+    renderPage();
+    await waitForRows();
+
+    const hero = screen.getByRole('region', { name: 'Resumo de outubro de 2026' });
+    expect(hero).toHaveTextContent('Uma cobrança entra em atraso 5 dias após o vencimento');
+    expect(hero).toHaveTextContent('Em atraso e inadimplência mostram a posição de hoje');
+  });
+
+  it('groups rows Em atraso → Pendentes → Pagas with counts', async () => {
+    renderPage();
+    await waitForRows();
+
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent);
+    expect(headings).toEqual(['Em atraso · 1', 'Pendentes · 1', 'Pagas · 1']);
+    expect(screen.getByRole('tab', { name: 'Todas (3)' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('filters by status and writes it to the URL', async () => {
     const user = userEvent.setup();
-    renderWithRouter(<Financeiro />);
-    await waitFor(() => {
-      expect(screen.getAllByRole('button', { name: 'Marcar pago' }).length).toBeGreaterThan(0);
-    });
+    renderPage();
+    await waitForRows();
 
-    // Overdue row (Maria) comes first — click the first "Marcar pago"
-    await user.click(screen.getAllByRole('button', { name: 'Marcar pago' })[0]);
+    await user.click(screen.getByRole('tab', { name: 'Pendentes (1)' }));
+    expect(screen.queryByText('Maria Silva')).not.toBeInTheDocument();
+    expect(screen.getByText('João Pereira')).toBeInTheDocument();
+    expect(screen.getByLabelText('location')).toHaveTextContent('status=pending');
+  });
 
-    await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/trainer/payments/pay-2/mark-paid');
-    });
-    expect(mockShowToast).toHaveBeenCalledWith(
+  it('opens pre-filtered from the dashboard link (?status=overdue)', async () => {
+    renderPage('/trainer/financeiro?status=overdue');
+    await waitForRows();
+    expect(screen.queryByText('João Pereira')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Em atraso (1)' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('shows "Ninguém em atraso." when the overdue filter is empty', async () => {
+    overviewResponse = () => Promise.resolve({ data: buildOverview({ payments: [pendingRow] }) });
+    renderPage('/trainer/financeiro?status=overdue');
+    await screen.findByText('Ninguém em atraso.');
+  });
+
+  it('shows "Tudo em dia neste mês." when everything is paid', async () => {
+    overviewResponse = () => Promise.resolve({ data: buildOverview({ payments: [paidPayment()] }) });
+    renderPage();
+    await screen.findByText('Tudo em dia neste mês.');
+  });
+
+  it('searches by student name (accent-insensitive, debounced)', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForRows();
+
+    await user.type(screen.getByRole('textbox', { name: 'Buscar cobranças por aluno' }), 'joao');
+    await waitFor(() => expect(screen.queryByText('Maria Silva')).not.toBeInTheDocument());
+    expect(screen.getByText('João Pereira')).toBeInTheDocument();
+
+    await user.clear(screen.getByRole('textbox', { name: 'Buscar cobranças por aluno' }));
+    await user.type(screen.getByRole('textbox', { name: 'Buscar cobranças por aluno' }), 'zzz');
+    await screen.findByText('Nenhum aluno encontrado para "zzz".');
+  });
+
+  it('marks paid with one tap, toasts "Desfazer" and refetches silently', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: {} });
+    renderPage();
+    await waitForRows();
+
+    await user.click(screen.getByRole('button', { name: /Marcar pago: Maria Silva/ }));
+    expect(api.post).toHaveBeenCalledWith('/trainer/payments/pay-overdue/mark-paid', {});
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith(
       'Pagamento registrado.',
       'success',
-      expect.objectContaining({ actionLabel: 'Desfazer' }),
-    );
+      expect.objectContaining({ actionLabel: 'Desfazer', duration: 5000 }),
+    ));
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Maria Silva')).toBeInTheDocument();
+
+    const { onAction } = mockShowToast.mock.calls[0][2];
+    await onAction();
+    expect(api.post).toHaveBeenCalledWith('/trainer/payments/pay-overdue/mark-pending');
   });
 
-  it('filters rows by search query', async () => {
+  it('maps a 409 conflict to an info toast and refetches', async () => {
     const user = userEvent.setup();
-    renderWithRouter(<Financeiro />);
-    await waitFor(() => expect(screen.getByText('Maria Souza')).toBeInTheDocument());
+    api.post.mockRejectedValue(apiError(409, 'SUBSCRIPTION_PAYMENT_CONFLICT', 'subscription.paymentConflict'));
+    renderPage();
+    await waitForRows();
 
-    await user.type(screen.getByPlaceholderText('Buscar por aluno'), 'joao');
+    await user.click(screen.getByRole('button', { name: /Marcar pago: Maria Silva/ }));
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith(
+      'Esta cobrança foi alterada em outro lugar. Atualizamos a lista.',
+      'info',
+    ));
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+  });
 
-    await waitFor(() => {
-      expect(screen.queryByText('Maria Souza')).not.toBeInTheDocument();
-      expect(screen.getByText('João Silva')).toBeInTheDocument();
+  it('voids a charge after confirmation (POST …/void)', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: {} });
+    renderPage();
+    await waitForRows();
+
+    await user.click(screen.getByRole('button', { name: 'Ações da cobrança de Maria Silva, vencimento 01/10' }));
+    await user.click(screen.getByRole('button', { name: 'Anular cobrança' }));
+    const dialog = screen.getByRole('alertdialog');
+    expect(dialog).toHaveTextContent(/Anular a cobrança de R\$\s?99,90 de Maria Silva \(venc\. 01\/10\)\?/);
+
+    await user.click(within(dialog).getByRole('button', { name: 'Voltar' }));
+    expect(api.post).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Ações da cobrança de Maria Silva, vencimento 01/10' }));
+    await user.click(screen.getByRole('button', { name: 'Anular cobrança' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Anular cobrança' }));
+    expect(api.post).toHaveBeenCalledWith('/trainer/payments/pay-overdue/void');
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Cobrança anulada.', 'success'));
+  });
+
+  it('predicts the revert outcome from voidedAt', async () => {
+    const user = userEvent.setup();
+    overviewResponse = () => Promise.resolve({
+      data: buildOverview({ payments: [paidPayment({ voidedAt: '2026-09-30T10:00:00.000Z' })] }),
+    });
+    renderPage();
+    await screen.findByText('Ana Costa');
+
+    await user.click(screen.getByRole('button', { name: /^Ações da cobrança de Ana Costa/ }));
+    await user.click(screen.getByRole('button', { name: 'Voltar para pendente' }));
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('O valor sai da receita de outubro. Como ela tinha sido anulada antes, volta a ficar anulada.');
+  });
+
+  it('records a past payment date through the sheet', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValue({ data: {} });
+    renderPage();
+    await waitForRows();
+
+    await user.click(screen.getByRole('button', { name: 'Ações da cobrança de Maria Silva, vencimento 01/10' }));
+    await user.click(screen.getByRole('button', { name: 'Marcar pago em outra data…' }));
+    const sheet = screen.getByRole('dialog', { name: 'Registrar pagamento' });
+    expect(within(sheet).getByText(/Maria Silva · R\$\s?99,90 · venc\. 01\/10/)).toBeInTheDocument();
+
+    await user.click(within(sheet).getByRole('button', { name: 'Registrar pagamento' }));
+    expect(api.post).toHaveBeenCalledWith('/trainer/payments/pay-overdue/mark-paid', { paidAt: '2026-10-06' });
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Pagamento registrado em 06/10.', 'success'));
+    expect(screen.queryByRole('dialog', { name: 'Registrar pagamento' })).not.toBeInTheDocument();
+  });
+
+  it('links the student identity to their history, passing the name in router state', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForRows();
+
+    const link = screen.getByRole('link', { name: 'Ver histórico de Maria Silva' });
+    expect(link).toHaveAttribute('href', '/trainer/students/student-1/subscription-history');
+    await user.click(link);
+
+    expect(screen.getByLabelText('location')).toHaveTextContent('/trainer/students/student-1/subscription-history');
+    expect(screen.getByLabelText('history state')).toHaveTextContent('Maria Silva');
+  });
+
+  it('no longer offers "Ver histórico" in the charge row menu', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForRows();
+
+    await user.click(screen.getByRole('button', { name: 'Ações da cobrança de Maria Silva, vencimento 01/10' }));
+    expect(screen.getByRole('button', { name: 'Editar cobrança' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Ver histórico/ })).not.toBeInTheDocument();
+  });
+
+  it('broadcasts the overdue count and patches the dashboard cache', async () => {
+    const listener = vi.fn();
+    window.addEventListener(FINANCE_OVERDUE_EVENT, listener);
+    localStorage.setItem('treinoway.trainerDashboardData', JSON.stringify({
+      plans: { expiredCount: 0, renewingSoonCount: 0 },
+      routines: { expiredCount: 0, expiringSoonCount: 0 },
+      finance: { monthReceived: '0.00', totalReceived: '0.00', overdueCount: 9, overdueAmount: '1.00' },
+      engagement: { inactiveStudentsCount: 0, adherenceMonthPct: '0', adherenceDeltaPp: null, weekPrCount: 0 },
+      generatedAt: '2026-10-06T10:00:00.000Z',
+    }));
+    renderPage();
+    await waitForRows();
+
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ detail: { overdueCount: 2, overdueAmount: '199.80' } }));
+    expect(JSON.parse(localStorage.getItem('treinoway.trainerDashboardData')).finance.overdueCount).toBe(2);
+    window.removeEventListener(FINANCE_OVERDUE_EVENT, listener);
+  });
+
+  describe('month navigation', () => {
+    it('blocks future months and falls back to the current month for a future ?month', async () => {
+      renderPage('/trainer/financeiro?month=2027-01');
+      await waitForRows();
+      expect(screen.getByText('outubro de 2026')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Próximo mês' })).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('loads the previous month', async () => {
+      const user = userEvent.setup();
+      renderPage();
+      await waitForRows();
+      await user.click(screen.getByRole('button', { name: 'Mês anterior' }));
+      await waitFor(() => expect(api.get).toHaveBeenLastCalledWith(
+        '/trainer/finance/overview',
+        expect.objectContaining({ params: { month: '2026-09' } }),
+      ));
+      expect(screen.getByLabelText('location')).toHaveTextContent('month=2026-09');
     });
   });
 
-  it('activates overdue filter chip and hides pending rows', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<Financeiro />);
-    await waitFor(() => expect(screen.getByText('Maria Souza')).toBeInTheDocument());
+  describe('empty and error states', () => {
+    it('shows the error state with retry', async () => {
+      const user = userEvent.setup();
+      overviewResponse = () => Promise.reject(apiError(500, 'INTERNAL', 'server.error', 'Erro no servidor.'));
+      renderPage();
+      await screen.findByText('Não foi possível carregar o financeiro.');
+      expect(screen.getByText('Erro no servidor.')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Atrasadas/ }));
+      overviewResponse = () => Promise.resolve({ data: buildOverview() });
+      await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+      await waitForRows();
+    });
 
-    await waitFor(() => {
-      // Pending João should be hidden; overdue Maria visible
-      expect(screen.queryByText('João Silva')).not.toBeInTheDocument();
-      expect(screen.getByText('Maria Souza')).toBeInTheDocument();
+    it('never-set-up: no rows and no plans → CRIAR PLANO opens the plan sheet on Planos', async () => {
+      const user = userEvent.setup();
+      overviewResponse = () => Promise.resolve({ data: buildOverview({ payments: [], kpis: makeKpis({ billedStudents: 0 }) }) });
+      plansResponse = () => Promise.resolve({ data: [] });
+      renderPage();
+      await screen.findByText('Sem cobranças ainda');
+
+      await user.click(screen.getByRole('button', { name: 'Criar plano' }));
+      expect(screen.getByRole('dialog', { name: 'Novo plano' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Planos' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('empty month with plans: KPIs + "Sem cobranças em outubro", no toolbar', async () => {
+      overviewResponse = () => Promise.resolve({ data: buildOverview({ payments: [], kpis: makeKpis({ billedStudents: 0 }) }) });
+      renderPage();
+      await screen.findByText('Sem cobranças em outubro');
+      expect(screen.getByText('sem cobranças no mês')).toBeInTheDocument();
+      expect(screen.queryByRole('textbox', { name: 'Buscar cobranças por aluno' })).not.toBeInTheDocument();
     });
   });
 
-  it('shows plans in the Planos tab and hides archived plans by default', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<Financeiro />);
-    await waitFor(() => expect(screen.getByText('Maria Souza')).toBeInTheDocument());
+  describe('Planos tab', () => {
+    it('loads plans on first open, hides archived ones behind a toggle', async () => {
+      const user = userEvent.setup();
+      plansResponse = () => Promise.resolve({ data: [makePlan(), makePlan({ id: 'plan-9', name: 'Antigo', isArchived: true })] });
+      renderPage();
+      await waitForRows();
+      expect(api.get).not.toHaveBeenCalledWith('/trainer/subscription-plans', expect.anything());
 
-    await user.click(screen.getByRole('tab', { name: /Planos/ }));
+      await user.click(screen.getByRole('tab', { name: 'Planos' }));
+      await screen.findByRole('heading', { level: 3, name: 'Consultoria Mensal' });
+      expect(api.get).toHaveBeenCalledWith('/trainer/subscription-plans', { params: { includeArchived: true } });
+      expect(screen.queryByRole('heading', { level: 3, name: 'Antigo' })).not.toBeInTheDocument();
 
-    expect(screen.getByText('Plano Mensal')).toBeInTheDocument();
-    expect(screen.queryByText('Plano Antigo')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Ver arquivados (1)' }));
+      expect(screen.getByRole('heading', { level: 3, name: 'Antigo' })).toBeInTheDocument();
+    });
 
-    // Toggle archived plans
-    await user.click(screen.getByLabelText('Mostrar arquivados').closest('label'));
-    expect(screen.getByText('Plano Antigo')).toBeInTheDocument();
-  });
+    it('creates a plan from NOVO PLANO and reloads the list', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValue({ data: makePlan({ id: 'plan-new' }) });
+      renderPage('/trainer/financeiro?tab=plans');
+      await screen.findByRole('heading', { level: 3, name: 'Consultoria Mensal' });
 
-  it('opens plan form sheet when "Novo plano" is clicked', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<Financeiro />);
-    await waitFor(() => expect(screen.getByText('Maria Souza')).toBeInTheDocument());
+      await user.click(screen.getByRole('button', { name: 'Novo plano' }));
+      await user.type(screen.getByLabelText('Nome'), 'Trimestral');
+      await user.type(screen.getByLabelText('Valor por cobrança (R$)'), '270');
+      await user.click(screen.getByRole('button', { name: 'Criar plano' }));
 
-    await user.click(screen.getByRole('tab', { name: /Planos/ }));
-    await user.click(screen.getByRole('button', { name: 'Novo plano' }));
+      await waitFor(() => expect(api.post).toHaveBeenCalledWith('/trainer/subscription-plans', expect.objectContaining({ name: 'Trimestral', price: 270 })));
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Plano criado.', 'success'));
+      expect(screen.queryByRole('dialog', { name: 'Novo plano' })).not.toBeInTheDocument();
+    });
 
-    expect(screen.getByRole('heading', { name: 'Novo plano' })).toBeInTheDocument();
-  });
+    it('archives a plan from the card menu', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValue({ data: {} });
+      renderPage('/trainer/financeiro?tab=plans');
+      await screen.findByRole('heading', { level: 3, name: 'Consultoria Mensal' });
 
-  it('navigates to subscription history when "Ver histórico" is clicked', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<Financeiro />);
-    await waitFor(() => expect(screen.getByText('Maria Souza')).toBeInTheDocument());
+      await user.click(screen.getByRole('button', { name: 'Ações do plano Consultoria Mensal' }));
+      await user.click(screen.getByRole('button', { name: 'Arquivar plano' }));
+      expect(api.post).toHaveBeenCalledWith('/trainer/subscription-plans/plan-1/archive');
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Plano arquivado.', 'success'));
+    });
 
-    // Open the row menu for the first row (overdue = Maria)
-    const menuBtns = screen.getAllByRole('button', { name: /Ações do pagamento/ });
-    await user.click(menuBtns[0]);
-    await user.click(screen.getByText('Ver histórico'));
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.stringContaining('/trainer/students/student-2/subscription-history'),
-    );
+    it('shows the plans error state', async () => {
+      plansResponse = () => Promise.reject(apiError(500, 'INTERNAL', 'server.error', 'Falhou.'));
+      renderPage('/trainer/financeiro?tab=plans');
+      await screen.findByText('Não foi possível carregar os planos.');
+    });
   });
 });

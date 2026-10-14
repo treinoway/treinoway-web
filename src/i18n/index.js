@@ -27,6 +27,22 @@ export function t(path) {
   return path.split('.').reduce((obj, key) => obj?.[key], translations);
 }
 
+/** `t()` with `{placeholder}` interpolation: tf('a.b', { name: 'X' }). */
+export function tf(path, params = {}) {
+  const template = t(path);
+  if (typeof template !== 'string') return template;
+  return template.replace(/\{(\w+)\}/g, (match, key) => (key in params ? String(params[key]) : match));
+}
+
+/**
+ * Pluralized translation for keys shaped `{ one, other }` with an `{n}`
+ * placeholder (pt-BR: 1 → one, everything else → other).
+ */
+export function tCount(path, count, params = {}) {
+  const form = count === 1 ? 'one' : 'other';
+  return tf(`${path}.${form}`, { ...params, n: count });
+}
+
 /**
  * Translates a backend error response into a user-friendly message.
  *

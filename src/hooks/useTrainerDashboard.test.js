@@ -1,6 +1,6 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import api from '../api/axios';
-import useTrainerDashboard from './useTrainerDashboard';
+import useTrainerDashboard, { patchTrainerDashboardFinanceCache } from './useTrainerDashboard';
 
 const CACHE_KEY = 'treinoway.trainerDashboardData';
 
@@ -168,5 +168,29 @@ describe('useTrainerDashboard', () => {
 
     expect(result.current.data).toBeNull();
     expect(result.current.hasData).toBe(false);
+  });
+});
+
+describe('patchTrainerDashboardFinanceCache', () => {
+  const validCache = {
+    plans: { expiredCount: 0, renewingSoonCount: 0 },
+    routines: { expiredCount: 0, expiringSoonCount: 0 },
+    finance: { monthReceived: '10.00', totalReceived: '20.00', overdueCount: 5, overdueAmount: '50.00' },
+    engagement: { inactiveStudentsCount: 0, adherenceMonthPct: '0', adherenceDeltaPp: null, weekPrCount: 0 },
+    generatedAt: '2026-10-06T10:00:00.000Z',
+  };
+
+  afterEach(() => localStorage.removeItem(CACHE_KEY));
+
+  it('patches only the overdue fields of a valid cache entry', () => {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(validCache));
+    patchTrainerDashboardFinanceCache({ overdueCount: 2, overdueAmount: '19.98' });
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
+    expect(cached.finance).toEqual({ monthReceived: '10.00', totalReceived: '20.00', overdueCount: 2, overdueAmount: '19.98' });
+  });
+
+  it('does nothing without a cache entry', () => {
+    patchTrainerDashboardFinanceCache({ overdueCount: 2, overdueAmount: '1.00' });
+    expect(localStorage.getItem(CACHE_KEY)).toBeNull();
   });
 });

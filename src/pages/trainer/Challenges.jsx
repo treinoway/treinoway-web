@@ -276,7 +276,7 @@ const Challenges = () => {
 
   return (
     <div>
-      <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
+      <div className="page-header" style={{ marginBottom: 'var(--spacing-lg)' }}>
         <div className="page-header-title-row">
           <Trophy size={24} className="page-header-title-icon" />
           <h1 className="page-title">Campeonatos</h1>

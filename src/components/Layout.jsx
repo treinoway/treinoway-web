@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import useActiveMode from '../hooks/useActiveMode';
 import useAiAccess from '../hooks/useAiAccess';
-import { t } from '../i18n';
+import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
+import { SIDEBAR_BADGE_MAX } from '../constants/finance';
+import { t, tCount, tf } from '../i18n';
 
 const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
 
@@ -21,6 +23,11 @@ const Layout = ({ children, noPadding = false }) => {
   const navigate = useNavigate();
   const popoverRef = useRef(null);
   const [, setActiveMode] = useActiveMode();
+  const financeOverdueCount = useFinanceOverdueCount();
+  const financeBadge = financeOverdueCount > SIDEBAR_BADGE_MAX ? `${SIDEBAR_BADGE_MAX}+` : String(financeOverdueCount);
+  const financeAriaLabel = financeOverdueCount > 0
+    ? tf('finance.sidebar.overdueAria', { count: tCount('finance.count.overdueCharge', financeOverdueCount) })
+    : t('finance.sidebar.label');
 
   const handleLogout = () => {
     logout();
@@ -169,6 +176,22 @@ const Layout = ({ children, noPadding = false }) => {
                   </>
                 </Link>
               )}
+
+              {/* Financeiro — badge = overdue charges from the dashboard cache (no request here) */}
+              <Link
+                to="/trainer/financeiro"
+                className={`sidebar-link ${isActive('/trainer/financeiro') ? 'sidebar-link--active' : ''}`}
+                aria-label={financeAriaLabel}
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <Wallet size={20} strokeWidth={1.6} />
+                  {financeOverdueCount > 0 && <span className="sidebar-link-dot" />}
+                </span>
+                <span className="sidebar-link-label">{t('finance.sidebar.label')}</span>
+                {financeOverdueCount > 0 && (
+                  <span className="sidebar-link-badge sidebar-link-badge--count" aria-hidden="true">{financeBadge}</span>
+                )}
+              </Link>
 
               {/* Biblioteca dropdown */}
               <button

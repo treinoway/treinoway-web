@@ -182,7 +182,7 @@ const CreateChampionship = () => {
 
   return (
     <div>
-      <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
+      <div className="page-header" style={{ marginBottom: 'var(--spacing-lg)' }}>
         <button
           type="button"
           onClick={() => navigate('/trainer/challenges')}
@@ -193,7 +193,7 @@ const CreateChampionship = () => {
         </button>
       </div>
 
-      <div style={{ marginBottom: 'var(--spacing-md)' }}>
+      <div style={{ marginBottom: 'var(--spacing-lg)' }}>
         <h1 className="page-title">Novo campeonato</h1>
         <p className="text-muted" style={{ fontSize: 'var(--font-body-small-size)' }}>
           Configure como quiser — pode editar tudo depois
@@ -374,7 +374,7 @@ const CreateChampionship = () => {
       </div>
 
       {/* Footer actions */}
-      <div className="btn-group" style={{ marginTop: 'var(--spacing-lg)' }}>
+      <div className="btn-group" style={{ marginTop: 'var(--spacing-xl)' }}>
         <button
           type="button"
           className="btn-secondary"

@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { ChevronRight } from 'lucide-react';
 import { WEEK_DAY_OPTIONS_SHORT } from '../constants/weekDays';
+import Badge from './ds/Badge';
 
 const TRAINING_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -12,10 +13,10 @@ const getWeekDayShortLabel = (value) => {
   return found ? found.label : value;
 };
 
-const computeReadinessClass = (exercises) => {
-  if (!exercises || exercises.length === 0) return '';
-  if (exercises.length < 3) return 'routine-summary-peek-item--partial';
-  return 'routine-summary-peek-item--ready';
+const computeReadiness = (exercises) => {
+  if (!exercises || exercises.length === 0) return { tone: 'neutral', label: 'Vazio' };
+  if (exercises.length < 3) return { tone: 'warning', label: 'Parcial' };
+  return { tone: 'success', label: 'Pronto' };
 };
 
 const formatExerciseStat = (ex) => {
@@ -54,7 +55,7 @@ const RoutineSummarySheetItem = ({
 }) => {
   const exercises = training.exercises || [];
   const letter = TRAINING_LETTERS[index] || String(index + 1);
-  const readinessClass = computeReadinessClass(exercises);
+  const readiness = computeReadiness(exercises);
   const weekDayLabel = getWeekDayShortLabel(training.weekDay);
   const exerciseCount = exercises.length;
 
@@ -62,28 +63,30 @@ const RoutineSummarySheetItem = ({
     exerciseCount === 1 ? '1 ex' : `${exerciseCount} ex`;
 
   return (
-    <div className={`routine-summary-peek-item${readinessClass ? ` ${readinessClass}` : ''}`}>
+    <div className="routine-summary-peek-item">
       <div className="routine-summary-peek-head">
-        <span className="routine-summary-peek-letter" aria-hidden="true">
+        <span className="accordion-index type-caption-strong" aria-hidden="true">
           {letter}
         </span>
-        <span className="routine-summary-peek-title">
+        <span className="routine-summary-peek-title type-body-strong">
           {training.name || '—'}
         </span>
         <span
-          className={`weekday-chip${weekDayLabel ? ' weekday-chip--set' : ' weekday-chip--unassigned'}`}
+          className={`badge badge--tag ${weekDayLabel ? 'badge--brand' : 'badge--neutral'}`}
           aria-label={`Dia: ${weekDayLabel || 'Sem dia'}`}
         >
           {weekDayLabel || 'Sem dia'}
         </span>
-        <span className="routine-summary-peek-count">{countLabel}</span>
+        <Badge variant="tag" tone={readiness.tone}>{readiness.label}</Badge>
+        <span className="routine-summary-peek-count type-caption">{countLabel}</span>
         <button
           type="button"
-          className="routine-summary-peek-jump"
+          className="icon-button"
           aria-label={`Ir para ${training.name || 'treino'}`}
+          title={`Ir para ${training.name || 'treino'}`}
           onClick={() => onJumpToTraining(training.id)}
         >
-          <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+          <ChevronRight size={20} strokeWidth={2} aria-hidden="true" />
         </button>
       </div>
 
@@ -110,19 +113,19 @@ const RoutineSummarySheetItem = ({
                   }
                 }}
               >
-                <span className="routine-summary-peek-exercise-stat">
+                <span className="routine-summary-peek-exercise-stat type-caption-strong">
                   {stat || '—'}
                 </span>
-                <span className="routine-summary-peek-exercise-name">{name}</span>
+                <span className="routine-summary-peek-exercise-name type-body">{name}</span>
                 {meta && (
-                  <span className="routine-summary-peek-exercise-meta">{meta}</span>
+                  <span className="routine-summary-peek-exercise-meta type-caption">{meta}</span>
                 )}
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="routine-summary-peek-empty" aria-label="Nenhum exercício adicionado.">
+        <div className="routine-summary-peek-empty type-caption" aria-label="Nenhum exercício adicionado.">
           Nenhum exercício adicionado.
         </div>
       )}

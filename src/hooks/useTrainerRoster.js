@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
+import { countStudentsByStatus } from '../utils/studentStatus';
 
-const CACHE_KEY = 'treinoway.trainerRosterCounts';
+// v2: counts are now derived from `billingStatus`. The unversioned key held
+// all-zero ativo/pendente/vencido counts (computed from a field the API never
+// returned), so it is intentionally abandoned.
+export const TRAINER_ROSTER_CACHE_KEY = 'treinoway.trainerRosterCounts.v2';
 
 const computeCounts = (students) => ({
   total: students.length,
-  ativo: students.filter((s) => s.status === 'ativo').length,
-  pendente: students.filter((s) => s.status === 'pendente').length,
-  vencido: students.filter((s) => s.status === 'vencido').length,
+  ...countStudentsByStatus(students),
 });
 
 const isValidCounts = (value) =>
@@ -19,7 +21,7 @@ const isValidCounts = (value) =>
 
 const readCache = () => {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = localStorage.getItem(TRAINER_ROSTER_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return isValidCounts(parsed) ? parsed : null;
@@ -30,7 +32,7 @@ const readCache = () => {
 
 const writeCache = (counts) => {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(counts));
+    localStorage.setItem(TRAINER_ROSTER_CACHE_KEY, JSON.stringify(counts));
   } catch {
     // Storage unavailable (quota/private mode) — in-memory state still updates.
   }
@@ -42,8 +44,8 @@ const writeCache = (counts) => {
  * network in the background. A single fetch powers both the Pulse chips and
  * the "Criar rotina" empty-roster guard — no extra on-click round-trip.
  *
- * Status classification mirrors StudentsStatsHero in
- * src/pages/trainer/Students.jsx (ativo | pendente | vencido).
+ * Status classification uses the shared billingStatus mapper
+ * (src/utils/studentStatus.js), same as src/pages/trainer/Students.jsx.
  *
  * Errors are kept silent: on failure the last cached counts (if any) are
  * preserved and `error` is set so the UI can offer a retry, but nothing is

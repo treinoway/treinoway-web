@@ -10,9 +10,11 @@ const RowMenu = ({
   deleteDisabled = false,
   deleteDisabledTitle,
   extraItems = [],
+  triggerDisabled = false,
 }) => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
+  const triggerRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -31,19 +33,25 @@ const RowMenu = ({
   const handleItemClick = (e, callback) => {
     e.stopPropagation();
     setOpen(false);
+    // Park focus on the trigger so a sheet/dialog opened by the item can
+    // return focus here when it closes.
+    triggerRef.current?.focus();
     callback();
   };
 
   return (
     <div className="row-menu" ref={menuRef} onClick={(e) => e.stopPropagation()}>
       <button
+        ref={triggerRef}
         type="button"
         className="row-menu-trigger"
         aria-label={ariaLabel}
+        title={ariaLabel}
         aria-expanded={open}
         onClick={handleTriggerClick}
+        disabled={triggerDisabled}
       >
-        <MoreVertical size={18} strokeWidth={1.6} />
+        <MoreVertical size={20} strokeWidth={2} aria-hidden="true" />
       </button>
       {open && (
         <div className="row-menu-dropdown">
@@ -93,6 +101,7 @@ RowMenu.propTypes = {
     danger: PropTypes.bool,
     disabled: PropTypes.bool,
   })),
+  triggerDisabled: PropTypes.bool,
 };
 
 export default RowMenu;

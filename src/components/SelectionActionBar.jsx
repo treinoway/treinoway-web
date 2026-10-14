@@ -26,18 +26,19 @@ const SelectionActionBar = ({ selectedCount, maxCount = 6, onCancel, onConfirm, 
     <div className="selection-action-bar" role="toolbar" aria-label="Seleção de exercícios">
       <button
         type="button"
-        className="selection-action-bar-close"
+        className="icon-button"
         onClick={onCancel}
         aria-label={t('exerciseGroup.cancelSelection') || 'Cancelar seleção'}
+        title={t('exerciseGroup.cancelSelection') || 'Cancelar seleção'}
       >
-        <X size={20} strokeWidth={2} />
+        <X size={20} strokeWidth={2} aria-hidden="true" />
       </button>
-      <span className="selection-action-bar-count" aria-live="polite">
+      <span className="selection-action-bar-count type-body-strong" aria-live="polite">
         {countLabel}
       </span>
       <button
         type="button"
-        className="btn-primary btn-sm selection-action-bar-cta"
+        className="btn btn--primary selection-action-bar-cta"
         onClick={onConfirm}
         disabled={!canConfirm}
       >
@@ -56,7 +57,7 @@ SelectionActionBar.propTypes = {
 };
 
 export const SelectionInstructionStrip = ({ short = false }) => (
-  <p className="selection-instruction-strip" role="note">
+  <p className="selection-instruction-strip type-caption" role="note">
     {short
       ? t('exerciseGroup.selectionInstruction')
       : t('exerciseGroup.selectionInstructionLong')}

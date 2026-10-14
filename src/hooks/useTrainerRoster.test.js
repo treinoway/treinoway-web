@@ -1,8 +1,8 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import api from '../api/axios';
-import useTrainerRoster from './useTrainerRoster';
+import useTrainerRoster, { TRAINER_ROSTER_CACHE_KEY as CACHE_KEY } from './useTrainerRoster';
 
-const CACHE_KEY = 'treinoway.trainerRosterCounts';
+const LEGACY_CACHE_KEY = 'treinoway.trainerRosterCounts';
 
 vi.mock('../api/axios', () => ({
   default: {
@@ -11,10 +11,10 @@ vi.mock('../api/axios', () => ({
 }));
 
 const students = [
-  { id: 1, status: 'ativo' },
-  { id: 2, status: 'ativo' },
-  { id: 3, status: 'pendente' },
-  { id: 4, status: 'vencido' },
+  { id: 1, billingStatus: 'ok' },
+  { id: 2, billingStatus: 'ok' },
+  { id: 3, billingStatus: 'due_soon' },
+  { id: 4, billingStatus: 'overdue' },
 ];
 
 describe('useTrainerRoster', () => {
@@ -140,6 +140,35 @@ describe('useTrainerRoster', () => {
 
     const { result } = renderHook(() => useTrainerRoster(true));
 
+    expect(result.current.counts).toBeNull();
+    expect(result.current.hasCounts).toBe(false);
+  });
+
+  it('derives counts from billingStatus (overdue → vencido, due_soon → pendente, ok/none/missing → ativo)', async () => {
+    api.get.mockResolvedValue({
+      data: [
+        ...Array.from({ length: 5 }, (_, i) => ({ id: `o${i}`, billingStatus: 'overdue' })),
+        { id: 'd1', billingStatus: 'due_soon' },
+        { id: 'k1', billingStatus: 'ok' },
+        { id: 'n1', billingStatus: 'none' },
+        { id: 'm1' },
+      ],
+    });
+
+    const { result } = renderHook(() => useTrainerRoster(true));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.counts).toEqual({ total: 9, ativo: 3, pendente: 1, vencido: 5 });
+  });
+
+  it('ignores the legacy unversioned cache (stale all-zero counts)', () => {
+    localStorage.setItem(LEGACY_CACHE_KEY, JSON.stringify({ total: 5, ativo: 0, pendente: 0, vencido: 0 }));
+    api.get.mockReturnValue(new Promise(() => {}));
+
+    const { result } = renderHook(() => useTrainerRoster(true));
+
+    expect(CACHE_KEY).not.toBe(LEGACY_CACHE_KEY);
     expect(result.current.counts).toBeNull();
     expect(result.current.hasCounts).toBe(false);
   });

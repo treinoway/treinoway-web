@@ -24,23 +24,21 @@ vi.mock('../../hooks/useOnboardingStatus', () => ({
   markOnboardingStepOptimistic: vi.fn(),
 }));
 
-// SVG import is mocked by Vitest asset transforms
-vi.mock('../../assets/illustrations/no-students.svg', () => ({
-  default: '/mocked-no-students.svg',
-}));
+const daysAgoIso = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-vi.mock('../../utils/relativeTime', () => ({
-  default: (iso) => (iso ? 'há 2d' : null),
-}));
+const openUnlinkConfirm = async (user, name) => {
+  await user.click(screen.getByRole('button', { name: new RegExp(`ações de ${name}`, 'i') }));
+  await user.click(screen.getByRole('button', { name: /^desvincular$/i }));
+};
 
 const mockStudents = [
-  { id: 'student-1', firstName: 'Aluno', lastName: 'Exemplo', email: 'aluno@example.com', status: 'ativo' },
+  { id: 'student-1', firstName: 'Aluno', lastName: 'Exemplo', email: 'aluno@example.com', billingStatus: 'ok' },
 ];
 
 const mockMultipleStudents = [
-  { id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com', status: 'ativo' },
-  { id: 's2', firstName: 'Bruno', lastName: 'Costa', email: 'bruno@example.com', status: 'pendente' },
-  { id: 's3', firstName: 'Carla', lastName: 'Lima', email: 'carla@example.com', status: 'vencido' },
+  { id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com', billingStatus: 'ok' },
+  { id: 's2', firstName: 'Bruno', lastName: 'Costa', email: 'bruno@example.com', billingStatus: 'due_soon' },
+  { id: 's3', firstName: 'Carla', lastName: 'Lima', email: 'carla@example.com', billingStatus: 'overdue' },
 ];
 
 const mockImportPreviewResponse = {
@@ -99,7 +97,7 @@ describe('Students', () => {
 
   it('renders page title and both header action buttons when students exist', async () => {
     renderWithRouter(<Students />);
-    await waitFor(() => expect(screen.getByText('Meus Alunos')).toBeInTheDocument());
+    expect(await screen.findByRole('heading', { level: 1, name: 'Meus alunos' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /importar alunos/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^vincular aluno$/i })).toBeInTheDocument();
   });
@@ -115,8 +113,7 @@ describe('Students', () => {
     });
 
     expect(screen.getByRole('button', { name: /vincular primeiro aluno/i })).toBeInTheDocument();
-    // SVG illustration is rendered as a presentational img (no accessible role)
-    expect(document.querySelector('.students-empty-state img')).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'Sem alunos ainda' })).toBeInTheDocument();
     // Header "Vincular aluno" button is hidden when no students exist — CTA is in the empty state only
     expect(screen.queryByRole('button', { name: /^vincular aluno$/i })).not.toBeInTheDocument();
     // "Importar alunos" remains visible in the header regardless of student count
@@ -166,19 +163,19 @@ describe('Students', () => {
         firstName: 'Ana',
         lastName: 'Silva',
         email: 'ana@example.com',
-        status: 'ativo',
+        billingStatus: 'ok',
         adherence: 84.6,
         adherenceCompleted: 11,
         adherenceExpected: 13,
         adherenceMonth: '2026-05-01',
-        lastWorkoutAt: '2026-05-16T10:00:00.000Z',
+        lastWorkoutAt: daysAgoIso(2),
       }],
     });
     renderWithRouter(<Students />);
 
     await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
     expect(screen.getByText('85%')).toBeInTheDocument();
-    expect(screen.getByText('há 2d')).toBeInTheDocument();
+    expect(screen.getByText('Há 2 dias')).toBeInTheDocument();
     expect(screen.getByText('Aderência')).toBeInTheDocument();
     expect(screen.getByText('Último treino')).toBeInTheDocument();
   });
@@ -190,7 +187,7 @@ describe('Students', () => {
         firstName: 'Ana',
         lastName: 'Silva',
         email: 'ana@example.com',
-        status: 'ativo',
+        billingStatus: 'ok',
         adherence: 62,
         adherenceCompleted: 5,
         adherenceExpected: 8,
@@ -211,7 +208,7 @@ describe('Students', () => {
         firstName: 'Ana',
         lastName: 'Silva',
         email: 'ana@example.com',
-        status: 'ativo',
+        billingStatus: 'ok',
         adherence: null,
         adherenceCompleted: null,
         adherenceExpected: null,
@@ -224,14 +221,14 @@ describe('Students', () => {
     expect(screen.queryByText(/\/.* treinos/)).not.toBeInTheDocument();
   });
 
-  it('shows em-dash placeholders when adherence and lastWorkoutAt are null', async () => {
+  it('shows fallbacks when adherence and lastWorkoutAt are null', async () => {
     api.get.mockResolvedValue({
       data: [{
         id: 's1',
         firstName: 'Ana',
         lastName: 'Silva',
         email: 'ana@example.com',
-        status: 'ativo',
+        billingStatus: 'ok',
         adherence: null,
         adherenceCompleted: null,
         adherenceExpected: null,
@@ -241,45 +238,8 @@ describe('Students', () => {
     renderWithRouter(<Students />);
 
     await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
-    const dashes = screen.getAllByText('—');
-    expect(dashes.length).toBe(2);
-  });
-
-  it('shows danger alert when adherence below 60%', async () => {
-    api.get.mockResolvedValue({
-      data: [{
-        id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com',
-        status: 'ativo', adherence: 45, lastWorkoutAt: null,
-      }],
-    });
-    renderWithRouter(<Students />);
-    await waitFor(() => expect(screen.getByText('45%')).toBeInTheDocument());
-    expect(screen.getByTitle('Aderência crítica')).toBeInTheDocument();
-  });
-
-  it('shows warn alert when adherence between 60% and 79%', async () => {
-    api.get.mockResolvedValue({
-      data: [{
-        id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com',
-        status: 'ativo', adherence: 70, lastWorkoutAt: null,
-      }],
-    });
-    renderWithRouter(<Students />);
-    await waitFor(() => expect(screen.getByText('70%')).toBeInTheDocument());
-    expect(screen.getByTitle('Aderência abaixo do ideal')).toBeInTheDocument();
-  });
-
-  it('shows danger alert when last workout older than 14 days', async () => {
-    const old = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
-    api.get.mockResolvedValue({
-      data: [{
-        id: 's1', firstName: 'Ana', lastName: 'Silva', email: 'ana@example.com',
-        status: 'ativo', adherence: 90, lastWorkoutAt: old,
-      }],
-    });
-    renderWithRouter(<Students />);
-    await waitFor(() => expect(screen.getByText('Ana Silva')).toBeInTheDocument());
-    expect(screen.getByTitle('Sem treino há mais de 14 dias')).toBeInTheDocument();
+    expect(screen.getByText('–')).toBeInTheDocument();
+    expect(screen.getByText('Nunca')).toBeInTheDocument();
   });
 
   it('does not render PR stat', async () => {
@@ -289,7 +249,7 @@ describe('Students', () => {
         firstName: 'Ana',
         lastName: 'Silva',
         email: 'ana@example.com',
-        status: 'ativo',
+        billingStatus: 'ok',
         currentPrLoad: 120,
       }],
     });
@@ -410,15 +370,79 @@ describe('Students', () => {
     expect(screen.getByText('Carla Lima')).toBeInTheDocument();
   });
 
+  // ── Status derived from billingStatus (matches dashboard plans tiles) ──
+
+  const buildBillingStudents = (billingStatus, total) =>
+    Array.from({ length: total }, (_, i) => ({
+      id: `${billingStatus}-${i}`,
+      firstName: `Aluno${i}`,
+      lastName: billingStatus,
+      email: `${billingStatus}${i}@example.com`,
+      billingStatus,
+    }));
+
+  const getKpiValue = (label) => {
+    const summary = screen.getByRole('region', { name: 'Resumo de alunos' });
+    return within(summary).getByText(label).nextElementSibling;
+  };
+
+  it('shows 5 overdue students under "Atenção" via ?status=vencido (dashboard deep-link) and in the KPI', async () => {
+    api.get.mockResolvedValue({
+      data: [...buildBillingStudents('overdue', 5), ...buildBillingStudents('ok', 2)],
+    });
+    renderWithRouter(<Students />, { route: '/trainer/students?status=vencido' });
+
+    await waitFor(() => expect(screen.getAllByText(/Aluno\d overdue/)).toHaveLength(5));
+    expect(screen.queryByText(/Aluno\d ok/)).not.toBeInTheDocument();
+    const attentionTab = screen.getByRole('tab', { name: /atenção/i });
+    expect(attentionTab).toHaveAttribute('aria-selected', 'true');
+    expect(attentionTab).toHaveTextContent('(5)');
+    expect(getKpiValue('Atenção')).toHaveTextContent('5');
+    expect(screen.getAllByText('Vencido')).toHaveLength(5);
+  });
+
+  it('classifies due_soon students as Pendentes', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({
+      data: [...buildBillingStudents('due_soon', 3), ...buildBillingStudents('none', 1)],
+    });
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Aluno0 none')).toBeInTheDocument());
+    expect(screen.getByRole('tab', { name: /pendentes/i })).toHaveTextContent('(3)');
+    expect(getKpiValue('Pendentes')).toHaveTextContent('3');
+
+    await user.click(screen.getByRole('tab', { name: /pendentes/i }));
+    expect(screen.getAllByText(/Aluno\d due_soon/)).toHaveLength(3);
+    expect(screen.queryByText('Aluno0 none')).not.toBeInTheDocument();
+  });
+
+  it('treats ok, none and missing billingStatus as Ativos', async () => {
+    api.get.mockResolvedValue({
+      data: [
+        ...buildBillingStudents('ok', 1),
+        ...buildBillingStudents('none', 1),
+        { id: 'legacy', firstName: 'Legado', lastName: 'Cache', email: 'legado@example.com' },
+      ],
+    });
+    renderWithRouter(<Students />, { route: '/trainer/students?status=ativo' });
+
+    await waitFor(() => expect(screen.getByText('Legado Cache')).toBeInTheDocument());
+    expect(screen.getByText('Aluno0 ok')).toBeInTheDocument();
+    expect(screen.getByText('Aluno0 none')).toBeInTheDocument();
+    expect(getKpiValue('Ativos')).toHaveTextContent('3');
+    expect(getKpiValue('Atenção')).toHaveTextContent('0');
+  });
+
   // ── Unlink flow ───────────────────────────────────────────────────────
 
-  it('clicking trash button opens the confirm dialog directly', async () => {
+  it('opening the row menu and choosing Desvincular opens the confirm dialog', async () => {
     const user = userEvent.setup();
     renderWithRouter(<Students />);
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
+    await openUnlinkConfirm(user, 'aluno exemplo');
 
     expect(screen.getByText(/desvincular aluno exemplo\? esta ação não pode ser desfeita/i)).toBeInTheDocument();
   });
@@ -430,7 +454,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
+    await openUnlinkConfirm(user, 'aluno exemplo');
     await user.click(screen.getByRole('button', { name: /^desvincular$/i }));
 
     await waitFor(() => {
@@ -445,7 +469,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
+    await openUnlinkConfirm(user, 'aluno exemplo');
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
     expect(api.delete).not.toHaveBeenCalled();
@@ -461,7 +485,7 @@ describe('Students', () => {
 
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /desvincular aluno exemplo/i }));
+    await openUnlinkConfirm(user, 'aluno exemplo');
     await user.click(screen.getByRole('button', { name: /^desvincular$/i }));
 
     await waitFor(() => {
@@ -501,7 +525,7 @@ describe('Students', () => {
     await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
-    await user.click(screen.getByRole('button', { name: /fechar modal/i }));
+    await user.click(screen.getByRole('button', { name: /^fechar$/i }));
 
     expect(screen.queryByRole('dialog', { name: /vincular aluno/i })).not.toBeInTheDocument();
   });
@@ -811,7 +835,7 @@ describe('Students', () => {
     await user.click(screen.getByRole('button', { name: /importar alunos/i }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /fechar modal/i }));
+    await user.click(screen.getByRole('button', { name: /^fechar$/i }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -1083,7 +1107,7 @@ describe('Students', () => {
       expect(screen.getByRole('dialog', { name: /alunos do primecoaching/i })).toBeInTheDocument()
     );
 
-    await user.click(screen.getByRole('button', { name: /fechar modal/i }));
+    await user.click(screen.getByRole('button', { name: /^fechar$/i }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Re-open — should start at platform step
@@ -1125,6 +1149,42 @@ describe('Students', () => {
     });
   });
 
+  it('renders the metric cards and the status segmented control with counts', async () => {
+    api.get.mockResolvedValue({ data: mockMultipleStudents });
+    renderWithRouter(<Students />);
+
+    const summary = await screen.findByLabelText('Resumo de alunos');
+    expect(within(summary).getByText('Total')).toBeInTheDocument();
+    expect(within(summary).getByText('planos vencidos')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Todos (3)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Pendentes (1)' })).toBeInTheDocument();
+  });
+
+  it('closes the link modal with Escape', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<Students />);
+
+    await waitFor(() => expect(screen.getByText('Aluno Exemplo')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog', { name: /vincular aluno/i })).not.toBeInTheDocument();
+  });
+
+  it('shows an error state with a retry action when the initial fetch fails', async () => {
+    const user = userEvent.setup();
+    const err = new Error('Network error');
+    err.userMessage = 'Erro ao carregar alunos.';
+    api.get.mockRejectedValueOnce(err);
+    renderWithRouter(<Students />);
+
+    expect(await screen.findByRole('heading', { name: 'Não foi possível carregar os alunos' })).toBeInTheDocument();
+    expect(screen.queryByText('Sem alunos ainda')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    expect(await screen.findByText('Aluno Exemplo')).toBeInTheDocument();
+  });
+
   // ── Readiness indicators ───────────────────────────────────────────────
 
   const mockStudentsWithReadiness = (list) => {
@@ -1136,7 +1196,7 @@ describe('Students', () => {
 
   it('renders a clean row with no chips when a student is ready', async () => {
     mockStudentsWithReadiness([
-      { id: 'r1', firstName: 'Marina', lastName: 'Alves', email: 'marina@example.com', status: 'ativo', ready: true, blockers: [], blockersLabel: [] },
+      { id: 'r1', firstName: 'Marina', lastName: 'Alves', email: 'marina@example.com', billingStatus: 'ok', ready: true, blockers: [], blockersLabel: [] },
     ]);
     renderWithRouter(<Students />);
 
@@ -1150,34 +1210,34 @@ describe('Students', () => {
 
   it('renders a single blocker chip and folds it into the row aria-label', async () => {
     mockStudentsWithReadiness([
-      { id: 'r2', firstName: 'Rafael', lastName: 'Souza', email: 'rafael@example.com', status: 'pendente', ready: false, blockers: ['no_active_protocol'], blockersLabel: ['Sem rotina ativa'] },
+      { id: 'r2', firstName: 'Rafael', lastName: 'Souza', email: 'rafael@example.com', billingStatus: 'due_soon', ready: false, blockers: ['no_active_protocol'], blockersLabel: ['Sem rotina ativa'] },
     ]);
     renderWithRouter(<Students />);
 
     const row = await screen.findByRole('button', { name: 'Rafael Souza — Sem rotina ativa. Ver perfil.' });
     expect(row).toBeInTheDocument();
-    expect(within(row).getByText('Sem rotina ativa')).toBeInTheDocument();
+    expect(screen.getByText('Sem rotina ativa')).toBeInTheDocument();
   });
 
   it('renders multiple blocker chips in backend order and lists them in the aria-label', async () => {
     mockStudentsWithReadiness([
-      { id: 'r3', firstName: 'Bruno', lastName: 'Carvalho', email: 'bruno@example.com', status: 'ativo', ready: false, blockers: ['no_active_protocol', 'subscription_overdue'], blockersLabel: ['Sem rotina ativa', 'Pagamento em atraso'] },
+      { id: 'r3', firstName: 'Bruno', lastName: 'Carvalho', email: 'bruno@example.com', billingStatus: 'ok', ready: false, blockers: ['no_active_protocol', 'subscription_overdue'], blockersLabel: ['Sem rotina ativa', 'Pagamento em atraso'] },
     ]);
     renderWithRouter(<Students />);
 
-    const row = await screen.findByRole('button', { name: 'Bruno Carvalho — Sem rotina ativa, Pagamento em atraso. Ver perfil.' });
-    expect(within(row).getByText('Sem rotina ativa')).toBeInTheDocument();
-    expect(within(row).getByText('Pagamento em atraso')).toBeInTheDocument();
+    await screen.findByRole('button', { name: 'Bruno Carvalho — Sem rotina ativa, Pagamento em atraso. Ver perfil.' });
+    expect(screen.getByText('Sem rotina ativa')).toBeInTheDocument();
+    expect(screen.getByText('Pagamento em atraso')).toBeInTheDocument();
   });
 
   it('shows the platform chip and the list-level quota banner for blocked_on_plan', async () => {
     mockStudentsWithReadiness([
-      { id: 'r4', firstName: 'Camila', lastName: 'Nunes', email: 'camila@example.com', status: 'ativo', ready: false, blockers: ['blocked_on_plan'], blockersLabel: ['Bloqueado pela sua cota'] },
+      { id: 'r4', firstName: 'Camila', lastName: 'Nunes', email: 'camila@example.com', billingStatus: 'ok', ready: false, blockers: ['blocked_on_plan'], blockersLabel: ['Bloqueado pela sua cota'] },
     ]);
     renderWithRouter(<Students />);
 
-    const row = await screen.findByRole('button', { name: 'Camila Nunes — Bloqueado pela sua cota. Ver perfil.' });
-    expect(within(row).getByText('Bloqueado pela sua cota')).toBeInTheDocument();
+    await screen.findByRole('button', { name: 'Camila Nunes — Bloqueado pela sua cota. Ver perfil.' });
+    expect(screen.getByText('Bloqueado pela sua cota')).toBeInTheDocument();
     // Quota banner surfaces once with the upgrade CTA
     expect(screen.getByText('Você atingiu o limite de alunos da sua cota')).toBeInTheDocument();
     expect(screen.getByText(/1 aluno está bloqueado pela sua cota/i)).toBeInTheDocument();
@@ -1186,8 +1246,8 @@ describe('Students', () => {
 
   it('pluralizes the quota banner body when multiple students are blocked by quota', async () => {
     mockStudentsWithReadiness([
-      { id: 'r5', firstName: 'Camila', lastName: 'Nunes', email: 'camila@example.com', status: 'ativo', ready: false, blockers: ['blocked_on_plan'], blockersLabel: ['Bloqueado pela sua cota'] },
-      { id: 'r6', firstName: 'Lucas', lastName: 'Pereira', email: 'lucas@example.com', status: 'pendente', ready: false, blockers: ['no_active_protocol', 'blocked_on_plan'], blockersLabel: ['Sem rotina ativa', 'Bloqueado pela sua cota'] },
+      { id: 'r5', firstName: 'Camila', lastName: 'Nunes', email: 'camila@example.com', billingStatus: 'ok', ready: false, blockers: ['blocked_on_plan'], blockersLabel: ['Bloqueado pela sua cota'] },
+      { id: 'r6', firstName: 'Lucas', lastName: 'Pereira', email: 'lucas@example.com', billingStatus: 'due_soon', ready: false, blockers: ['no_active_protocol', 'blocked_on_plan'], blockersLabel: ['Sem rotina ativa', 'Bloqueado pela sua cota'] },
     ]);
     renderWithRouter(<Students />);
 
@@ -1197,23 +1257,87 @@ describe('Students', () => {
 
   it('renders both chips for a combined student + platform block', async () => {
     mockStudentsWithReadiness([
-      { id: 'r7', firstName: 'Lucas', lastName: 'Pereira', email: 'lucas@example.com', status: 'pendente', ready: false, blockers: ['no_active_protocol', 'blocked_on_plan'], blockersLabel: ['Sem rotina ativa', 'Bloqueado pela sua cota'] },
+      { id: 'r7', firstName: 'Lucas', lastName: 'Pereira', email: 'lucas@example.com', billingStatus: 'due_soon', ready: false, blockers: ['no_active_protocol', 'blocked_on_plan'], blockersLabel: ['Sem rotina ativa', 'Bloqueado pela sua cota'] },
     ]);
     renderWithRouter(<Students />);
 
-    const row = await screen.findByRole('button', { name: 'Lucas Pereira — Sem rotina ativa, Bloqueado pela sua cota. Ver perfil.' });
-    expect(within(row).getByText('Sem rotina ativa')).toBeInTheDocument();
-    expect(within(row).getByText('Bloqueado pela sua cota')).toBeInTheDocument();
+    await screen.findByRole('button', { name: 'Lucas Pereira — Sem rotina ativa, Bloqueado pela sua cota. Ver perfil.' });
+    expect(screen.getByText('Sem rotina ativa')).toBeInTheDocument();
+    expect(screen.getByText('Bloqueado pela sua cota')).toBeInTheDocument();
   });
 
   it('degrades gracefully when readiness fields are absent (search shape)', async () => {
     mockStudentsWithReadiness([
-      { id: 'r8', firstName: 'Diego', lastName: 'Martins', email: 'diego@example.com', status: 'ativo' },
+      { id: 'r8', firstName: 'Diego', lastName: 'Martins', email: 'diego@example.com', billingStatus: 'ok' },
     ]);
     renderWithRouter(<Students />);
 
     const row = await screen.findByRole('button', { name: 'Ver perfil de Diego Martins.' });
     expect(row).toBeInTheDocument();
     expect(screen.queryByText(/limite de alunos da sua cota/i)).not.toBeInTheDocument();
+  });
+
+  // ── Incremental reveal ("Ver mais") ────────────────────────────────────
+
+  const buildStudents = (count, billingStatus = 'ok') =>
+    Array.from({ length: count }, (_, i) => ({
+      id: `p${billingStatus}${i}`,
+      firstName: `${billingStatus === 'ok' ? 'Aluno' : 'Pendente'}${String(i).padStart(2, '0')}`,
+      lastName: 'Teste',
+      email: `${billingStatus}${i}@example.com`,
+      billingStatus,
+    }));
+
+  it('shows the first page, reveals more on "Ver mais" and hides the button when all are shown', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: buildStudents(25) });
+    renderWithRouter(<Students />);
+
+    expect(await screen.findByText('Mostrando 20 de 25 alunos')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^ver perfil de/i })).toHaveLength(20);
+
+    await user.click(screen.getByRole('button', { name: 'Ver mais' }));
+
+    expect(screen.getByText('Mostrando 25 de 25 alunos')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^ver perfil de/i })).toHaveLength(25);
+    expect(screen.queryByRole('button', { name: 'Ver mais' })).not.toBeInTheDocument();
+  });
+
+  it('does not render "Ver mais" when the list fits in one page', async () => {
+    api.get.mockResolvedValue({ data: buildStudents(3) });
+    renderWithRouter(<Students />);
+
+    expect(await screen.findByText('Mostrando 3 de 3 alunos')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver mais' })).not.toBeInTheDocument();
+  });
+
+  it('resets the reveal and counts the filtered total when the filter or search changes', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [...buildStudents(25), ...buildStudents(22, 'due_soon')] });
+    renderWithRouter(<Students />);
+
+    await screen.findByText('Mostrando 20 de 47 alunos');
+    await user.click(screen.getByRole('button', { name: 'Ver mais' }));
+    expect(screen.getByText('Mostrando 40 de 47 alunos')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Pendentes (22)' }));
+    expect(screen.getByText('Mostrando 20 de 22 alunos')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Ver mais' }));
+    await user.type(screen.getByRole('textbox', { name: 'Buscar alunos' }), 'Pendente0');
+    expect(screen.getByText('Mostrando 10 de 10 alunos')).toBeInTheDocument();
+  });
+
+  it('colors the adherence and last workout values by threshold', async () => {
+    api.get.mockResolvedValue({
+      data: [{
+        id: 't1', firstName: 'Lucas', lastName: 'Ferreira', email: 'l@example.com', billingStatus: 'ok',
+        adherence: 45, adherenceCompleted: 2, adherenceExpected: 4, lastWorkoutAt: daysAgoIso(10),
+      }],
+    });
+    renderWithRouter(<Students />);
+
+    expect(await screen.findByText('45%')).toHaveClass('kpi-value--error');
+    expect(screen.getByText('Há 10 dias')).toHaveClass('kpi-value--warning');
   });
 });

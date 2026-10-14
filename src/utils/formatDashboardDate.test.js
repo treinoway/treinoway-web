@@ -63,6 +63,10 @@ describe('formatPeriodRangeShort', () => {
 });
 
 describe('formatDayMonthShort', () => {
+  it('does not shift date-only strings by timezone', () => {
+    expect(formatDayMonthShort('2026-04-05')).toBe('5 de abr');
+  });
+
   it('returns empty for null', () => {
     expect(formatDayMonthShort(null)).toBe('');
   });

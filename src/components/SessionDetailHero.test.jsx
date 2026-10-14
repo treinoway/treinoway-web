@@ -94,8 +94,7 @@ describe('SessionDetailHero', () => {
       />,
     );
     // 3480s = 58 min
-    expect(screen.getByText('58')).toBeInTheDocument();
-    expect(screen.getByText('min')).toBeInTheDocument();
+    expect(screen.getByText('58min')).toBeInTheDocument();
   });
 
   it('renders — for duration when durationSeconds is null', () => {
@@ -168,6 +167,63 @@ describe('SessionDetailHero', () => {
     expect(screen.getByText('Parcial')).toBeInTheDocument();
   });
 
+  describe('KPIs and header (TeuFit)', () => {
+    it('renders the volume total with kg unit', () => {
+      render(<SessionDetailHero session={makeSession()} />);
+      // 70*10 + 75*10 = 1450
+      expect(screen.getByText('1.450 kg')).toBeInTheDocument();
+      expect(screen.getByText('Soma total de carga')).toBeInTheDocument();
+    });
+
+    it('renders series fraction with completion percentage', () => {
+      render(<SessionDetailHero session={makeSession()} />);
+      expect(screen.getByText('2/2')).toBeInTheDocument();
+      expect(screen.getByText('100% completas')).toBeInTheDocument();
+    });
+
+    it('renders average RPE with one decimal when RPE is registered', () => {
+      render(<SessionDetailHero session={makeSession()} />);
+      expect(screen.getByText('7.5')).toBeInTheDocument();
+      expect(screen.queryByText('Nenhum RPE registrado')).not.toBeInTheDocument();
+    });
+
+    it('renders em dash and empty-state support when no RPE was registered', () => {
+      const session = makeSession({
+        exerciseLogs: [
+          {
+            id: 'elog-1',
+            status: 'completed',
+            exercise: { sets: 1 },
+            setLogs: [{ id: 's1', setNumber: 1, load: 50, repetitions: 10, rpe: null, completed: true }],
+          },
+        ],
+      });
+      render(<SessionDetailHero session={session} />);
+      expect(screen.getByText('Nenhum RPE registrado')).toBeInTheDocument();
+    });
+
+    it('renders hours and minutes for long sessions', () => {
+      render(<SessionDetailHero session={makeSession({ durationSeconds: 5340 })} />);
+      expect(screen.getByText('1h 29min')).toBeInTheDocument();
+    });
+
+    it('renders start and end times as duration support text', () => {
+      render(<SessionDetailHero session={makeSession()} />);
+      expect(screen.getByText(/Início \d{2}h\d{2} · Fim \d{2}h\d{2}/)).toBeInTheDocument();
+    });
+
+    it('renders the date line with weekday and time range', () => {
+      render(<SessionDetailHero session={makeSession()} />);
+      expect(screen.getByText(/^Quarta-feira, 1[34] de maio de 2026 · \d{2}h\d{2} — \d{2}h\d{2}$/)).toBeInTheDocument();
+    });
+
+    it('renders category tag and exercise/series count', () => {
+      render(<SessionDetailHero session={makeSession()} />);
+      expect(screen.getByText('Hipertrofia')).toBeInTheDocument();
+      expect(screen.getByText('1 exercício · 2 séries')).toBeInTheDocument();
+    });
+  });
+
   describe('Séries KPI (completed/planned)', () => {
     it('shows 3/3 when planned=3 and student completed all 3 setLogs', () => {
       const session = makeSession({
@@ -185,8 +241,7 @@ describe('SessionDetailHero', () => {
         ],
       });
       render(<SessionDetailHero session={session} />);
-      expect(screen.getByText('3')).toBeInTheDocument();
-      expect(screen.getByText('/3')).toBeInTheDocument();
+      expect(screen.getByText('3/3')).toBeInTheDocument();
     });
 
     it('shows 3/4 when planned=4 but only 3 setLogs exist (one set never started)', () => {
@@ -205,8 +260,7 @@ describe('SessionDetailHero', () => {
         ],
       });
       render(<SessionDetailHero session={session} />);
-      expect(screen.getByText('3')).toBeInTheDocument();
-      expect(screen.getByText('/4')).toBeInTheDocument();
+      expect(screen.getByText('3/4')).toBeInTheDocument();
     });
 
     it('shows 5/3 when student logs extra sets beyond what was planned', () => {
@@ -227,8 +281,7 @@ describe('SessionDetailHero', () => {
         ],
       });
       render(<SessionDetailHero session={session} />);
-      expect(screen.getByText('5')).toBeInTheDocument();
-      expect(screen.getByText('/3')).toBeInTheDocument();
+      expect(screen.getByText('5/3')).toBeInTheDocument();
     });
 
     it('shows 0/4 for a skipped exerciseLog with no setLogs', () => {
@@ -243,8 +296,7 @@ describe('SessionDetailHero', () => {
         ],
       });
       render(<SessionDetailHero session={session} />);
-      expect(screen.getByText('0')).toBeInTheDocument();
-      expect(screen.getByText('/4')).toBeInTheDocument();
+      expect(screen.getByText('0/4')).toBeInTheDocument();
     });
 
     it('excludes exerciseLogs without prescribed sets (exercise.sets == null) from totals', () => {
@@ -261,8 +313,8 @@ describe('SessionDetailHero', () => {
         ],
       });
       render(<SessionDetailHero session={session} />);
-      // Sets unit not rendered when totalSets is 0
-      expect(screen.queryByText(/^\/\d+$/)).not.toBeInTheDocument();
+      // Fraction not rendered when totalSets is 0
+      expect(screen.queryByText(/^\d+\/\d+$/)).not.toBeInTheDocument();
       // Volume should also be excluded — Volume total shows em dash
       expect(screen.queryByText('1.000')).not.toBeInTheDocument();
     });
@@ -305,11 +357,10 @@ describe('SessionDetailHero', () => {
       });
       render(<SessionDetailHero session={session} />);
       // Total sets = 3 + 4 = 7; completed = 3 + 2 = 5
-      expect(screen.getByText('5')).toBeInTheDocument();
-      expect(screen.getByText('/7')).toBeInTheDocument();
+      expect(screen.getByText('5/7')).toBeInTheDocument();
       // Volume = 1500 + 200 = 1700 (excluded log's 999*99 = 98901 must NOT appear)
-      expect(screen.getByText('1.700')).toBeInTheDocument();
-      expect(screen.queryByText('98.901')).not.toBeInTheDocument();
+      expect(screen.getByText('1.700 kg')).toBeInTheDocument();
+      expect(screen.queryByText('98.901 kg')).not.toBeInTheDocument();
     });
   });
 });

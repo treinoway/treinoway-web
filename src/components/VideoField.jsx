@@ -34,7 +34,7 @@ const VideoField = ({ value, onChange, label = 'Vídeo de demonstração' }) => 
 
   return (
     <section className="video-field">
-      <span className="form-label">{label}</span>
+      <span className="field-label type-caption-strong">{label}</span>
 
       {hasValidVideo && (
         <>
@@ -50,7 +50,7 @@ const VideoField = ({ value, onChange, label = 'Vídeo de demonstração' }) => 
           <div className="video-field-actions">
             <button
               type="button"
-              className="btn-secondary btn-sm"
+              className="btn btn--secondary"
               onClick={() => setPickerOpen(true)}
             >
               <Film size={16} strokeWidth={2} aria-hidden="true" />
@@ -58,7 +58,7 @@ const VideoField = ({ value, onChange, label = 'Vídeo de demonstração' }) => 
             </button>
             <button
               type="button"
-              className="btn-secondary btn-sm"
+              className="btn btn--secondary"
               onClick={handleRemove}
             >
               <X size={16} strokeWidth={2} aria-hidden="true" />
@@ -72,17 +72,17 @@ const VideoField = ({ value, onChange, label = 'Vídeo de demonstração' }) => 
         <div className="video-field-empty">
           <button
             type="button"
-            className="btn-primary video-field-cta"
+            className="btn btn--primary video-field-cta"
             onClick={() => setPickerOpen(true)}
           >
-            <Film size={18} strokeWidth={2} aria-hidden="true" />
+            <Film size={16} strokeWidth={2} aria-hidden="true" />
             Escolher da biblioteca
           </button>
 
           {!urlInputVisible && (
             <button
               type="button"
-              className="btn-link video-field-url-toggle"
+              className="btn btn--ghost video-field-url-toggle"
               onClick={() => setUrlInputVisible(true)}
             >
               ou cole uma URL do YouTube
@@ -93,14 +93,14 @@ const VideoField = ({ value, onChange, label = 'Vídeo de demonstração' }) => 
             <div className="video-field-input-wrap">
               <input
                 type="url"
-                className="form-input"
+                className="input"
                 placeholder="https://youtube.com/watch?v=..."
                 value={value ?? ''}
                 onChange={(e) => onChange(e.target.value)}
                 aria-label="URL do YouTube"
               />
               {hasInvalidUrl && (
-                <p className="video-field-hint" role="status">
+                <p className="video-field-hint type-caption" role="status">
                   Use um link do YouTube para pré-visualizar o vídeo.
                 </p>
               )}

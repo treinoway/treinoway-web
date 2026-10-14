@@ -121,8 +121,8 @@ describe('RoutineSummarySheetItem', () => {
     expect(screen.getByText('4×8–12')).toBeInTheDocument();
   });
 
-  it('applies --ready modifier when exercises.length >= 3', () => {
-    const { container } = render(
+  it('shows a success "Pronto" tag when exercises.length >= 3', () => {
+    render(
       <RoutineSummarySheetItem
         {...defaultProps}
         training={makeTraining({
@@ -130,31 +130,22 @@ describe('RoutineSummarySheetItem', () => {
         })}
       />
     );
-    expect(
-      container.querySelector('.routine-summary-peek-item--ready')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Pronto')).toHaveClass('badge--success');
   });
 
-  it('applies --partial modifier when exercises.length is 1 or 2', () => {
-    const { container } = render(
+  it('shows a warning "Parcial" tag when exercises.length is 1 or 2', () => {
+    render(
       <RoutineSummarySheetItem
         {...defaultProps}
         training={makeTraining({ exercises: [EXERCISE_FULL] })}
       />
     );
-    expect(
-      container.querySelector('.routine-summary-peek-item--partial')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Parcial')).toHaveClass('badge--warning');
   });
 
-  it('applies no readiness modifier when training has no exercises', () => {
-    const { container } = render(<RoutineSummarySheetItem {...defaultProps} />);
-    expect(
-      container.querySelector('.routine-summary-peek-item--ready')
-    ).not.toBeInTheDocument();
-    expect(
-      container.querySelector('.routine-summary-peek-item--partial')
-    ).not.toBeInTheDocument();
+  it('shows a neutral "Vazio" tag when training has no exercises', () => {
+    render(<RoutineSummarySheetItem {...defaultProps} />);
+    expect(screen.getByText('Vazio')).toHaveClass('badge--neutral');
   });
 
   it('calls onJumpToTraining with training id when jump button clicked', async () => {

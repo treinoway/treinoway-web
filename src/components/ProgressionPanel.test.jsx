@@ -34,7 +34,7 @@ describe('ProgressionPanel', () => {
 
   it('renders section heading', () => {
     renderWithRouter(<ProgressionPanel {...defaultProps} />);
-    expect(screen.getByText('Progressão de carga')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /progressão de carga/i })).toBeInTheDocument();
   });
 
   it('renders suffix "· vs 1ª sessão"', () => {
@@ -59,18 +59,25 @@ describe('ProgressionPanel', () => {
     expect(defaultProps.onOpenEntry).toHaveBeenCalledTimes(1);
   });
 
-  it('returns null when entries is empty and not loading', () => {
-    const { container } = renderWithRouter(
-      <ProgressionPanel {...defaultProps} entries={[]} />,
-    );
-    expect(container.firstChild).toBeNull();
+  it('shows an empty state when there are no entries', () => {
+    renderWithRouter(<ProgressionPanel {...defaultProps} entries={[]} />);
+    expect(screen.getByRole('heading', { name: /progressão de carga/i })).toBeInTheDocument();
+    expect(screen.getByText('Sem cargas registradas no período.')).toBeInTheDocument();
   });
 
-  it('renders skeleton when loading with no entries', () => {
+  it('keeps the card heading and hides the empty state while loading', () => {
     renderWithRouter(
       <ProgressionPanel {...defaultProps} entries={[]} loading />,
     );
-    expect(document.querySelector('.activity-section-skeleton')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /progressão de carga/i })).toBeInTheDocument();
+    expect(screen.queryByText('Sem cargas registradas no período.')).not.toBeInTheDocument();
+  });
+
+  it('links each group header to its rows for assistive tech', () => {
+    renderWithRouter(<ProgressionPanel {...defaultProps} />);
+    const header = screen.getByRole('button', { name: /treino a/i });
+    expect(header).toHaveAttribute('aria-expanded', 'true');
+    expect(document.getElementById(header.getAttribute('aria-controls'))).toBeInTheDocument();
   });
 
   it('renders error state and retry button', () => {

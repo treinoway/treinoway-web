@@ -1,101 +1,70 @@
-import { describe, it, expect } from 'vitest';
-import { screen } from '@testing-library/react';
-import { renderWithRoute } from '../test/test-utils';
+import { renderWithRoute, screen } from '../test/test-utils';
 import PulseTooltip from './PulseTooltip';
 
-const defaultProps = {
-  date: '2026-04-30',
+const makeSession = (overrides = {}) => ({
   status: 'completed',
-  trainingName: 'Treino A',
   volumeKg: 1200,
+  hasLoad: true,
+  sessionCount: 1,
+  trainingName: 'Treino A',
   completedSets: 4,
   totalSets: 4,
-  anchorDir: 'center',
-};
+  ...overrides,
+});
+
+const renderTooltip = (sessionOverrides = {}, props = {}) =>
+  renderWithRoute(<PulseTooltip date="2026-04-30" session={makeSession(sessionOverrides)} {...props} />);
 
 describe('PulseTooltip', () => {
-  it('renders the formatted date', () => {
-    renderWithRoute(<PulseTooltip {...defaultProps} />);
-    // 2026-04-30 is a Thursday (Qui)
-    expect(screen.getByText(/30 de abr/i)).toBeInTheDocument();
+  it('renders the formatted date with the weekday', () => {
+    renderTooltip();
+    expect(screen.getByText('Qui, 30 de abr')).toBeInTheDocument();
   });
 
-  it('renders status label for completed', () => {
-    renderWithRoute(<PulseTooltip {...defaultProps} status="completed" />);
-    expect(screen.getByText('Concluído')).toBeInTheDocument();
+  it.each([
+    ['completed', 'Treino completo'],
+    ['partial', 'Treino parcial'],
+    ['abandoned', 'Treino abandonado'],
+  ])('renders the %s status label', (status, label) => {
+    renderTooltip({ status });
+    expect(screen.getByText(label)).toBeInTheDocument();
   });
 
-  it('renders status label for partial', () => {
-    renderWithRoute(<PulseTooltip {...defaultProps} status="partial" />);
-    expect(screen.getByText('Parcial')).toBeInTheDocument();
-  });
-
-  it('renders status label for abandoned', () => {
-    renderWithRoute(<PulseTooltip {...defaultProps} status="abandoned" />);
-    expect(screen.getByText('Abandonado')).toBeInTheDocument();
-  });
-
-  it('renders status label for empty', () => {
-    renderWithRoute(
-      <PulseTooltip {...defaultProps} status="empty" trainingName={null} volumeKg={null} />,
-    );
-    expect(screen.getByText('Sem treino')).toBeInTheDocument();
-  });
-
-  it('renders training name when provided', () => {
-    renderWithRoute(<PulseTooltip {...defaultProps} />);
+  it('renders the training name only when provided', () => {
+    const { unmount } = renderTooltip();
     expect(screen.getByText('Treino A')).toBeInTheDocument();
-  });
-
-  it('does not render training name row when null', () => {
-    renderWithRoute(<PulseTooltip {...defaultProps} trainingName={null} />);
+    unmount();
+    renderTooltip({ trainingName: null });
     expect(screen.queryByText('Treino')).not.toBeInTheDocument();
   });
 
-  it('renders volume and sets for non-empty status', () => {
-    renderWithRoute(<PulseTooltip {...defaultProps} />);
-    expect(screen.getByText('Volume')).toBeInTheDocument();
-    expect(screen.getByText('Séries')).toBeInTheDocument();
+  it('renders sets and the rounded volume', () => {
+    renderTooltip({ volumeKg: 10029.4 });
     expect(screen.getByText('4/4')).toBeInTheDocument();
+    expect(screen.getByText('10.029 kg')).toBeInTheDocument();
   });
 
-  it('hides volume and sets for empty status', () => {
-    renderWithRoute(
-      <PulseTooltip {...defaultProps} status="empty" trainingName={null} volumeKg={null} />,
-    );
-    expect(screen.queryByText('Volume')).not.toBeInTheDocument();
-    expect(screen.queryByText('Séries')).not.toBeInTheDocument();
+  it('says "Sem carga registrada" for a session without load', () => {
+    renderTooltip({ hasLoad: false, volumeKg: null });
+    expect(screen.getByText('Sem carga registrada')).toBeInTheDocument();
   });
 
-  it('shows em-dash for null volumeKg', () => {
-    renderWithRoute(<PulseTooltip {...defaultProps} volumeKg={null} />);
+  it('shows the session count only for multi-session days', () => {
+    const { unmount } = renderTooltip();
+    expect(screen.queryByText('Sessões')).not.toBeInTheDocument();
+    unmount();
+    renderTooltip({ sessionCount: 2 });
+    expect(screen.getByText('Sessões')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+  });
+
+  it('shows an em-dash when no sets were logged', () => {
+    renderTooltip({ completedSets: 0, totalSets: 0 });
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 
-  it('applies left-anchored class when anchorDir is left', () => {
-    const { container } = renderWithRoute(
-      <PulseTooltip {...defaultProps} anchorDir="left" />,
-    );
-    expect(container.querySelector('.pulse-tooltip--left-anchored')).toBeInTheDocument();
-  });
-
-  it('applies right-anchored class when anchorDir is right', () => {
-    const { container } = renderWithRoute(
-      <PulseTooltip {...defaultProps} anchorDir="right" />,
-    );
-    expect(container.querySelector('.pulse-tooltip--right-anchored')).toBeInTheDocument();
-  });
-
-  it('applies no anchor class when anchorDir is center', () => {
-    const { container } = renderWithRoute(
-      <PulseTooltip {...defaultProps} anchorDir="center" />,
-    );
-    expect(container.querySelector('.pulse-tooltip--left-anchored')).not.toBeInTheDocument();
-    expect(container.querySelector('.pulse-tooltip--right-anchored')).not.toBeInTheDocument();
-  });
-
-  it('has role tooltip for accessibility', () => {
-    renderWithRoute(<PulseTooltip {...defaultProps} />);
-    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+  it('is a tooltip with the id the bar references', () => {
+    renderTooltip({}, { id: 'tip-1', anchorDir: 'left' });
+    expect(screen.getByRole('tooltip')).toHaveAttribute('id', 'tip-1');
   });
 });

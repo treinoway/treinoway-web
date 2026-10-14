@@ -11,8 +11,9 @@
  *     (older backend versions emitted this field name).
  *   - `status: 'done'` is coerced to `'completed'` for legacy clients.
  *
- * Waveform output (up to 30 bars, most-recent right):
- *   bars: [{ date, status, volumeKg, pct, trainingName, completedSets, totalSets }]
+ * Waveform output (one slot per calendar day of the period):
+ *   days: [{ date, session: null | { status, volumeKg, hasLoad, pct, sessionCount,
+ *            trainingName, completedSets, totalSets } }]
  *   maxVolumeKg: number
  *
  * Heatmap output (weeks × days grid):
@@ -20,7 +21,6 @@
  *   maxVolumeKg: number
  */
 
-const WAVEFORM_BAR_COUNT = 30;
 const DAYS_IN_WEEK = 7;
 // ISO day of week: 0=Sun…6=Sat. We render Mon–Sun so Sunday is index 6.
 const DOW_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -44,61 +44,95 @@ const resolveVolume = (day) => day.volumeKg ?? day.totalVolumeKg ?? null;
 const resolveStatus = (status) => (status === 'done' ? 'completed' : (status ?? 'empty'));
 
 /**
- * Returns YYYY-MM-DD string for today in local time.
- * @param {Date} [now]
+ * Returns the YYYY-MM-DD key of a date in local time.
+ * @param {Date} [date]
  * @returns {string}
  */
-const todayString = (now = new Date()) => {
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
+const formatDateKey = (date = new Date()) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 };
 
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
+// Smallest bar for a loaded session, so tiny volumes stay visible next to the max.
+const MIN_BAR_PCT = 4;
+
 /**
- * Builds waveform bar data from the daily-activity payload.
+ * Converts a period boundary (YYYY-MM-DD or ISO timestamp) to a local day key.
+ * @param {string|null|undefined} value
+ * @returns {string|null}
+ */
+const toLocalDateKey = (value) => {
+  if (!value) return null;
+  if (DATE_KEY.test(value)) return value;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : formatDateKey(date);
+};
+
+/** Period range in day keys; falls back to the data's own first/last day. */
+const resolveRange = (rows, period) => {
+  const from = toLocalDateKey(period?.from) ?? rows[0].date;
+  const to = toLocalDateKey(period?.to) ?? rows[rows.length - 1].date;
+  return from <= to ? { from, to } : null;
+};
+
+/** Every calendar day key from `from` to `to`, inclusive. */
+const listDateKeys = ({ from, to }) => {
+  const [year, month, day] = from.split('-').map(Number);
+  const cursor = new Date(year, month - 1, day, 12);
+  const keys = [];
+  for (let key = from; key <= to; key = formatDateKey(cursor)) {
+    keys.push(key);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return keys;
+};
+
+const hasLoad = (volumeKg) => Number.isFinite(volumeKg) && volumeKg > 0;
+
+const toSession = (row, maxVolumeKg) => {
+  const volumeKg = resolveVolume(row);
+  const loaded = hasLoad(volumeKg);
+  return {
+    status: resolveStatus(row.status),
+    volumeKg: loaded ? volumeKg : null,
+    hasLoad: loaded,
+    pct: loaded ? Math.max(MIN_BAR_PCT, Math.round((volumeKg / maxVolumeKg) * 100)) : 0,
+    sessionCount: row.sessionCount ?? 1,
+    trainingName: row.trainingName ?? null,
+    completedSets: row.completedSets ?? 0,
+    totalSets: row.totalSets ?? 0,
+  };
+};
+
+/**
+ * Builds the day-timeline for the volume chart: one slot per calendar day of
+ * the selected period, `session` null on rest days. The API already aggregates
+ * every session of a day into one row (summed volume + `sessionCount`), so a
+ * multi-session day is one bar.
  *
  * @param {object[]} dailyActivity - Array from API, sorted ascending by date.
- * @param {Date} [now] - Injected for tests.
- * @returns {{ bars: object[], maxVolumeKg: number }}
+ * @param {{ from?: string, to?: string }} [period] - Selected period.
+ * @returns {{ days: { date: string, session: object|null }[], maxVolumeKg: number }}
  */
-export const computeWaveformBars = (dailyActivity, now = new Date()) => {
-  if (!Array.isArray(dailyActivity) || dailyActivity.length === 0) {
-    return { bars: [], maxVolumeKg: 0 };
-  }
+export const computeVolumeTimeline = (dailyActivity, period) => {
+  const rows = Array.isArray(dailyActivity)
+    ? dailyActivity.filter((row) => row?.date && resolveStatus(row.status) !== 'empty')
+    : [];
+  const range = rows.length > 0 ? resolveRange(rows, period) : null;
+  if (!range) return { days: [], maxVolumeKg: 0 };
 
-  // Take the last WAVEFORM_BAR_COUNT days (most-recent = last element)
-  const slice = dailyActivity.slice(-WAVEFORM_BAR_COUNT);
-  const today = todayString(now);
-
-  const validVolumes = slice
-    .map(resolveVolume)
-    .filter((v) => v !== null && v !== undefined && Number.isFinite(v) && v > 0);
-  const maxVolumeKg = validVolumes.length > 0 ? Math.max(...validVolumes) : 0;
-
-  const bars = slice.map((day) => {
-    const status = resolveStatus(day.status);
-    const vol = resolveVolume(day) ?? 0;
-    const hasActivity = status && status !== 'empty';
-    let pct = 0;
-    if (maxVolumeKg > 0 && vol > 0) {
-      pct = Math.max(5, Math.round((vol / maxVolumeKg) * 100));
-    } else if (hasActivity) {
-      pct = 25;
-    }
-    return {
-      date: day.date,
-      status,
-      volumeKg: resolveVolume(day),
-      pct,
-      trainingName: day.trainingName ?? null,
-      completedSets: day.completedSets ?? 0,
-      totalSets: day.totalSets ?? 0,
-      isToday: day.date === today,
-    };
-  });
-
-  return { bars, maxVolumeKg };
+  const inRange = rows.filter((row) => row.date >= range.from && row.date <= range.to);
+  const volumes = inRange.map(resolveVolume).filter(hasLoad);
+  const maxVolumeKg = volumes.length > 0 ? Math.max(...volumes) : 0;
+  const byDate = new Map(inRange.map((row) => [row.date, row]));
+  const days = listDateKeys(range).map((date) => ({
+    date,
+    session: byDate.has(date) ? toSession(byDate.get(date), maxVolumeKg) : null,
+  }));
+  return { days, maxVolumeKg };
 };
 
 /**
@@ -114,7 +148,7 @@ export const computeHeatmapWeeks = (dailyActivity, now = new Date()) => {
     return { weeks: [], maxVolumeKg: 0 };
   }
 
-  const today = todayString(now);
+  const today = formatDateKey(now);
 
   const validVolumes = dailyActivity
     .map(resolveVolume)

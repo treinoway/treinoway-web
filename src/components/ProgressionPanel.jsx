@@ -2,32 +2,40 @@ import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { ChevronDown } from 'lucide-react';
 import ProgressionRow from './ProgressionRow';
+import SkeletonRows from './ds/SkeletonRows';
 import {
   groupProgressionByTraining,
   sliceVisibleGroups,
   expandAllGroups,
 } from '../utils/groupProgression';
+import { td } from '../utils/studentCockpit';
 
 const DEFAULT_VISIBLE_PROGRESSION_ROWS = 5;
 
-const ProgressionSkeleton = () => (
-  <div className="activity-section-skeleton" aria-hidden="true">
-    <div className="skeleton skeleton-title" />
-    <div className="skeleton skeleton-card" />
-    <div className="skeleton skeleton-card" />
-  </div>
-);
-
 const BlockErrorState = ({ onRetry }) => (
-  <div className="activity-block-error" role="alert">
-    <p>Falha ao carregar progressão</p>
-    <button type="button" className="btn-secondary btn-sm" onClick={onRetry}>
-      Tentar novamente
+  <div className="cockpit-card__error" role="alert">
+    <p className="type-body">{td('progression.error')}</p>
+    <button type="button" className="btn btn--secondary" onClick={onRetry}>
+      {td('retry')}
     </button>
   </div>
 );
 
 BlockErrorState.propTypes = { onRetry: PropTypes.func.isRequired };
+
+const PanelShell = ({ children }) => (
+  <section className="section-card cockpit-card" aria-labelledby="cockpit-progression-heading">
+    <header className="cockpit-card__header">
+      <h3 id="cockpit-progression-heading" className="cockpit-card__title type-h3">
+        {td('progression.title')}
+        <span className="cockpit-card__title-suffix type-caption">{td('progression.suffix')}</span>
+      </h3>
+    </header>
+    {children}
+  </section>
+);
+
+PanelShell.propTypes = { children: PropTypes.node };
 
 const ProgressionPanel = ({
   entries,
@@ -60,34 +68,21 @@ const ProgressionPanel = ({
   };
 
   if (loading && entries.length === 0 && !error) {
-    return (
-      <div className="cockpit-section">
-        <ProgressionSkeleton />
-      </div>
-    );
+    return <PanelShell><SkeletonRows label={td('loading.progression')} count={3} /></PanelShell>;
   }
 
   if (error && entries.length === 0) {
-    return (
-      <div className="cockpit-section">
-        <BlockErrorState onRetry={onRetry} />
-      </div>
-    );
+    return <PanelShell><BlockErrorState onRetry={onRetry} /></PanelShell>;
   }
 
-  if (entries.length === 0) return null;
+  if (entries.length === 0) {
+    return <PanelShell><p className="cockpit-card__muted type-body">{td('progression.empty')}</p></PanelShell>;
+  }
 
   return (
-    <div className="cockpit-section scan-zone-panel" aria-labelledby="cockpit-progression-heading">
-      <header className="cockpit-section-header">
-        <h2 id="cockpit-progression-heading" className="cockpit-section-eyebrow">
-          Progressão de carga
-          <span className="cockpit-section-eyebrow-suffix">· vs 1ª sessão</span>
-        </h2>
-      </header>
-
+    <PanelShell>
       <div className="progression-groups">
-        {visible.map((group) => (
+        {visible.map((group, index) => (
           <div
             key={group.trainingId ?? group.trainingName}
             className="progression-group"
@@ -96,18 +91,20 @@ const ProgressionPanel = ({
               type="button"
               className="progression-group-header"
               aria-expanded={group.expanded}
+              aria-controls={`progression-group-${index}`}
               onClick={() => handleToggleGroup(group)}
             >
-              <span className="progression-group-letter" aria-hidden="true">
+              <span className="progression-group-letter type-caption-strong" aria-hidden="true">
                 {(group.trainingName ?? 'O').charAt(0).toUpperCase()}
               </span>
-              <span className="progression-group-title">{group.trainingName}</span>
-              <span className="progression-group-meta">
-                {group.rows.length}{' '}
-                {group.rows.length === 1 ? 'exercício' : 'exercícios'}
+              <span className="progression-group-title type-body-lg-strong">{group.trainingName}</span>
+              <span className="progression-group-meta type-caption">
+                {group.rows.length === 1
+                  ? td('progression.exerciseOne', { count: 1 })
+                  : td('progression.exerciseOther', { count: group.rows.length })}
               </span>
               <ChevronDown
-                size={16}
+                size={20}
                 strokeWidth={2}
                 aria-hidden="true"
                 className={`progression-group-chevron${
@@ -116,7 +113,7 @@ const ProgressionPanel = ({
               />
             </button>
             {group.expanded && group.visibleRows.length > 0 && (
-              <ul className="progression-list">
+              <ul id={`progression-group-${index}`} className="progression-list">
                 {group.visibleRows.map((entry) => (
                   <ProgressionRow
                     key={`${entry.exerciseId}-${entry.trainingId ?? ''}`}
@@ -131,25 +128,25 @@ const ProgressionPanel = ({
       </div>
 
       {entries.length === 20 && (
-        <p className="activity-section-footnote text-sm text-muted">
-          Mostrando os 20 mais frequentes neste período
+        <p className="cockpit-card__muted type-caption">
+          {td('progression.topLimit')}
         </p>
       )}
 
       {(hasMore || showAll) && entries.length > DEFAULT_VISIBLE_PROGRESSION_ROWS && (
-        <div className="activity-section-footer">
+        <div className="cockpit-card__footer">
           <button
             type="button"
-            className="btn-secondary btn-sm"
+            className="btn btn--secondary"
             onClick={() => setShowAll((prev) => !prev)}
           >
             {showAll
-              ? 'Mostrar menos'
-              : `Ver todos os ${entries.length} exercícios`}
+              ? td('progression.showLess')
+              : td('progression.showAll', { count: entries.length })}
           </button>
         </div>
       )}
-    </div>
+    </PanelShell>
   );
 };
 
