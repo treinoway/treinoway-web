@@ -21910,3 +21910,142 @@ select.input { cursor: pointer; }
 }
 
 .sidebar--collapsed .sidebar-link-dot { display: block; }
+
+/* ── Anamneses: "Nova anamnese" panel, template gallery and preview ── */
+.anamnesis-create-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.anamnesis-create-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.anamnesis-create-panel__title { color: var(--text-primary); }
+
+.anamnesis-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.anamnesis-form__hint { color: var(--text-secondary); }
+
+.template-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* Columns follow the panel width (the sidebar eats into it on desktop): one at 375px, up to three. */
+.template-gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(var(--spacing-5xl) * 5)), 1fr));
+  gap: var(--spacing-md);
+}
+
+/* Inner box of the panel section card (§3.3): elevated surface, no border, no shadow. */
+.anamnesis-template-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface-elevated);
+}
+
+.anamnesis-template-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.anamnesis-template-card__title {
+  min-width: 0;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.anamnesis-template-card__header .badge { flex-shrink: 0; }
+
+.anamnesis-template-card__description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  color: var(--text-secondary);
+}
+
+.anamnesis-template-card__meta {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Side by side when they fit; when they wrap, "Usar este modelo" goes on top (like the sheet footer). */
+.anamnesis-template-card__actions {
+  display: flex;
+  flex-wrap: wrap-reverse;
+  gap: var(--spacing-sm);
+  margin-top: auto;
+  padding-top: var(--spacing-sm);
+}
+
+.anamnesis-template-card__actions .btn { flex: 1 1 auto; }
+
+.anamnesis-template-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.anamnesis-template-preview__summary {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.anamnesis-template-preview__description { color: var(--text-secondary); }
+
+.anamnesis-outline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.anamnesis-outline__header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.anamnesis-outline__questions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0 0;
+  padding: 0 0 0 calc(var(--size-index-chip) + var(--spacing-md));
+  list-style: none;
+}
+
+.anamnesis-outline__question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xs);
+}
+
+.anamnesis-outline__question-text {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.anamnesis-outline__question-meta,
+.anamnesis-outline__empty { color: var(--text-secondary); }
