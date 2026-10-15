@@ -2,6 +2,11 @@ import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
 import { ANAMNESIS_QUESTION_TYPE, isQuestionVisible } from '../constants/anamnesis';
+import { estimateMinutes } from '../utils/anamnesisAnswers';
+import { formatEstimatedTime, formatQuestionCount } from '../utils/anamnesisTemplates';
+import Modal from './ds/Modal';
+import SkeletonRows from './ds/SkeletonRows';
+import AnamnesisOutline from './anamnesis/AnamnesisOutline';
 
 /* ── per-type disabled input renderers ───────────────────── */
 
@@ -205,9 +210,73 @@ const formatConditionValue = (parentQuestion, condition) => {
   return '';
 };
 
+/* ── Read-only template preview (bottom sheet) ────────────── */
+
+const TemplatePreviewSheet = ({ anamnesis, questions, loading, using, onClose, onUse }) => {
+  const summary = [formatQuestionCount(questions.length), formatEstimatedTime(estimateMinutes(questions))]
+    .filter(Boolean)
+    .join(' · ');
+
+  const footer = (
+    <button type="button" className="btn btn--primary" onClick={onUse} disabled={loading || using}>
+      {using ? 'Carregando...' : 'Usar este modelo'}
+    </button>
+  );
+
+  return (
+    <Modal
+      title={anamnesis.title}
+      eyebrow="Pré-visualização"
+      closeLabel="Fechar pré-visualização"
+      closeDisabled={using}
+      onClose={onClose}
+      footer={footer}
+    >
+      {loading ? (
+        <SkeletonRows label="Carregando modelo" count={3} />
+      ) : (
+        <div className="anamnesis-template-preview">
+          <p className="anamnesis-template-preview__summary type-body-strong">{summary}</p>
+          {anamnesis.description && (
+            <p className="anamnesis-template-preview__description type-body">{anamnesis.description}</p>
+          )}
+          <AnamnesisOutline sections={anamnesis.sections ?? []} />
+        </div>
+      )}
+    </Modal>
+  );
+};
+
+TemplatePreviewSheet.propTypes = {
+  anamnesis: PropTypes.shape({
+    title: PropTypes.string.isRequired,
+    description: PropTypes.string,
+    sections: PropTypes.array,
+  }).isRequired,
+  questions: PropTypes.array.isRequired,
+  loading: PropTypes.bool.isRequired,
+  using: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onUse: PropTypes.func,
+};
+
 /* ── AnamnesisPreviewModal ───────────────────────────────── */
 
-const AnamnesisPreviewModal = ({ anamnesis, open, onClose }) => {
+/**
+ * Default: interactive preview of how the student sees the anamnesis.
+ * `readOnly`: template preview sheet (numbered sections, question count,
+ * estimated time) with the "Usar este modelo" CTA; `loading` shows a skeleton
+ * while the full anamnesis is fetched and `using` while it is being copied.
+ */
+const AnamnesisPreviewModal = ({
+  anamnesis,
+  open,
+  onClose,
+  readOnly = false,
+  loading = false,
+  using = false,
+  onUse,
+}) => {
   const [answers, setAnswers] = useState({});
 
   const sortedSections = useMemo(
@@ -227,6 +296,19 @@ const AnamnesisPreviewModal = ({ anamnesis, open, onClose }) => {
   }, [allQuestions]);
 
   if (!open) return null;
+
+  if (readOnly) {
+    return (
+      <TemplatePreviewSheet
+        anamnesis={anamnesis}
+        questions={allQuestions}
+        loading={loading}
+        using={using}
+        onClose={onClose}
+        onUse={onUse}
+      />
+    );
+  }
 
   const setAnswer = (questionId, value) => {
     setAnswers((prev) => {
@@ -354,6 +436,7 @@ PreviewMatrix.propTypes = {
 AnamnesisPreviewModal.propTypes = {
   anamnesis: PropTypes.shape({
     title: PropTypes.string,
+    description: PropTypes.string,
     sections: PropTypes.arrayOf(PropTypes.shape({
       id: PropTypes.string,
       title: PropTypes.string,
@@ -363,6 +446,10 @@ AnamnesisPreviewModal.propTypes = {
   }).isRequired,
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
+  readOnly: PropTypes.bool,
+  loading: PropTypes.bool,
+  using: PropTypes.bool,
+  onUse: PropTypes.func,
 };
 
 export default AnamnesisPreviewModal;

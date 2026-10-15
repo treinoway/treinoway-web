@@ -189,3 +189,31 @@ export const buildSubmitPayload = (allQuestions, answers) => {
       })),
   };
 };
+
+const SECONDS_PER_QUESTION_TYPE = {
+  [ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS]: 10,
+  [ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE]: 10,
+  [ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE]: 10,
+  [ANAMNESIS_QUESTION_TYPE.MATRIX]: 10,
+  [ANAMNESIS_QUESTION_TYPE.NUMERIC]: 15,
+  [ANAMNESIS_QUESTION_TYPE.FREE_TEXT]: 40,
+};
+
+/** Unknown types are answered like free text, so they get the slowest estimate. */
+const FALLBACK_SECONDS_PER_QUESTION = SECONDS_PER_QUESTION_TYPE[ANAMNESIS_QUESTION_TYPE.FREE_TEXT];
+
+/**
+ * Estimated minutes to answer the given questions: 10 s per closed question,
+ * 15 s per numeric, 40 s per free text, rounded up to whole minutes (minimum 1).
+ * Returns 0 when there are no questions, so callers can hide the estimate.
+ */
+export const estimateMinutes = (questions) => {
+  const list = questions ?? [];
+  if (list.length === 0) return 0;
+  const seconds = list.reduce(
+    (total, question) =>
+      total + (SECONDS_PER_QUESTION_TYPE[question?.type] ?? FALLBACK_SECONDS_PER_QUESTION),
+    0,
+  );
+  return Math.max(1, Math.ceil(seconds / 60));
+};

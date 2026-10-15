@@ -23,6 +23,19 @@ export const CREATABLE_QUESTION_TYPES = [
 ];
 
 /**
+ * Template catalog categories — mirrors the backend enum. The API sends the
+ * translated `categoryLabel`; these labels are only a fallback for the order
+ * and for an item that comes without it.
+ */
+export const ANAMNESIS_TEMPLATE_CATEGORIES = [
+  { value: 'screening', label: 'Triagem' },
+  { value: 'general', label: 'Geral' },
+  { value: 'weight_loss', label: 'Emagrecimento' },
+  { value: 'hypertrophy', label: 'Hipertrofia' },
+  { value: 'special_population', label: 'Públicos específicos' },
+];
+
+/**
  * Anamnesis response lifecycle and authorship — mirrors the backend values.
  */
 export const ANAMNESIS_RESPONSE_STATUS = {

@@ -4,6 +4,7 @@ import {
   buildAnswersFromResponse,
   buildAnswersMap,
   buildSubmitPayload,
+  estimateMinutes,
   flattenQuestions,
   getNumericBounds,
   getVisibleQuestionIds,
@@ -333,5 +334,58 @@ describe('buildSubmitPayload', () => {
     const answers = { 'q-multi': ['Yoga'], 'q-dich': 'no' };
     const ids = buildSubmitPayload(allQuestions, answers).answers.map((entry) => entry.questionId);
     expect(ids).toEqual(['q-dich', 'q-multi']);
+  });
+});
+
+describe('estimateMinutes', () => {
+  const ofType = (type, count) => Array.from({ length: count }, () => ({ type }));
+
+  it('returns 0 when there are no questions', () => {
+    expect(estimateMinutes([])).toBe(0);
+    expect(estimateMinutes(undefined)).toBe(0);
+    expect(estimateMinutes(null)).toBe(0);
+  });
+
+  it('rounds a single closed question up to the 1 minute minimum', () => {
+    expect(estimateMinutes(ofType('dichotomous', 1))).toBe(1);
+  });
+
+  it('counts 10 s for every closed type', () => {
+    const closed = [
+      ...ofType('dichotomous', 3),
+      ...ofType('single_choice', 3),
+      ...ofType('multiple_choice', 3),
+      ...ofType('matrix', 3),
+    ];
+    // 12 × 10 s = 120 s → exactly 2 min
+    expect(estimateMinutes(closed)).toBe(2);
+  });
+
+  it('counts 15 s per numeric question', () => {
+    // 4 × 15 s = 60 s → 1 min; 5 × 15 s = 75 s → 2 min
+    expect(estimateMinutes(ofType('numeric', 4))).toBe(1);
+    expect(estimateMinutes(ofType('numeric', 5))).toBe(2);
+  });
+
+  it('counts 40 s per free text question', () => {
+    // 3 × 40 s = 120 s → 2 min; 4 × 40 s = 160 s → 3 min
+    expect(estimateMinutes(ofType('free_text', 3))).toBe(2);
+    expect(estimateMinutes(ofType('free_text', 4))).toBe(3);
+  });
+
+  it('sums mixed types and rounds up to whole minutes', () => {
+    // 6×10 + 2×15 + 2×40 = 170 s → 3 min
+    const mixed = [...ofType('single_choice', 6), ...ofType('numeric', 2), ...ofType('free_text', 2)];
+    expect(estimateMinutes(mixed)).toBe(3);
+  });
+
+  it('treats an unknown type as free text', () => {
+    // 2 × 40 s = 80 s → 2 min
+    expect(estimateMinutes(ofType('mystery', 2))).toBe(2);
+  });
+
+  it('does not mutate the input', () => {
+    const questions = Object.freeze(ofType('numeric', 2).map(Object.freeze));
+    expect(() => estimateMinutes(questions)).not.toThrow();
   });
 });

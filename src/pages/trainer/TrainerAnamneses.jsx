@@ -1,11 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Plus } from 'lucide-react';
+import PropTypes from 'prop-types';
+import { ClipboardList, Plus, X } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
 import LibraryList, { LibraryListRow } from '../../components/LibraryList';
 import LibraryFilterBar from '../../components/LibraryFilterBar';
+import AnamnesisPreviewModal from '../../components/AnamnesisPreviewModal';
+import ConfirmDialog from '../../components/ds/ConfirmDialog';
+import EmptyBlock from '../../components/ds/EmptyBlock';
+import Segmented from '../../components/ds/Segmented';
+import TemplateGallery from '../../components/anamnesis/TemplateGallery';
+import SaveAsTemplateDialog from '../../components/anamnesis/SaveAsTemplateDialog';
 
 const formatDate = (iso) => {
   if (!iso) return '-';
@@ -30,31 +37,110 @@ const FILTER_ALL = 'all';
 const FILTER_MINE = 'mine';
 const FILTER_GENERAL = 'general';
 
+const CREATE_FROM_SCRATCH = 'scratch';
+const CREATE_FROM_TEMPLATE = 'template';
+const CREATE_PANEL_BODY_ID = 'anamnesis-create-panel-body';
+const createTabId = (mode) => `anamnesis-create-tab-${mode}`;
+const CREATE_MODE_ITEMS = [
+  { id: CREATE_FROM_SCRATCH, label: 'Criar do zero' },
+  { id: CREATE_FROM_TEMPLATE, label: 'Usar um modelo' },
+].map((item) => ({ ...item, domId: createTabId(item.id), controls: CREATE_PANEL_BODY_ID }));
+
+const EMPTY_FORM = { title: '', description: '' };
+
+const AnamnesisForm = ({ formData, saving, onChange, onSubmit, onCancel }) => (
+  <form onSubmit={onSubmit} className="anamnesis-form">
+    <div className="field">
+      <label className="field-label type-caption-strong" htmlFor="anamnesis-name">
+        Nome <span aria-hidden="true">*</span>
+      </label>
+      <input
+        id="anamnesis-name"
+        type="text"
+        value={formData.title}
+        onChange={onChange('title')}
+        className="input"
+        placeholder="Ex: Anamnese inicial"
+        required
+        disabled={saving}
+        autoFocus
+      />
+    </div>
+    <div className="field">
+      <label className="field-label type-caption-strong" htmlFor="anamnesis-description">
+        Descrição
+      </label>
+      <textarea
+        id="anamnesis-description"
+        value={formData.description}
+        onChange={onChange('description')}
+        className="input"
+        rows={3}
+        placeholder="Descrição opcional"
+        disabled={saving}
+      />
+    </div>
+    <p className="anamnesis-form__hint type-caption">
+      Após salvar, você poderá adicionar seções e perguntas à anamnese.
+    </p>
+    <div className="ds-actions">
+      <button type="submit" disabled={saving} className="btn btn--primary">
+        {saving ? 'Carregando...' : 'Salvar'}
+      </button>
+      <button type="button" onClick={onCancel} className="btn btn--secondary" disabled={saving}>
+        Cancelar
+      </button>
+    </div>
+  </form>
+);
+
+AnamnesisForm.propTypes = {
+  formData: PropTypes.shape({ title: PropTypes.string, description: PropTypes.string }).isRequired,
+  saving: PropTypes.bool.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+};
+
 const TrainerAnamneses = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [anamneses, setAnamneses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [createMode, setCreateMode] = useState(CREATE_FROM_SCRATCH);
   const [saving, setSaving] = useState(false);
   const [editingAnamnesis, setEditingAnamnesis] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
-  const [formData, setFormData] = useState({ title: '', description: '' });
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState(FILTER_ALL);
+  const [copyingId, setCopyingId] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [saveAsTarget, setSaveAsTarget] = useState(null);
+  const [savingAs, setSavingAs] = useState(false);
+  const previewRequestRef = useRef(null);
+
+  const showError = useCallback(
+    (error) => showToast(error.userMessage || translateError(error), 'error'),
+    [showToast],
+  );
 
   const fetchAnamneses = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const response = await api.get('/trainer/anamneses');
       setAnamneses(response.data);
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      setLoadError(true);
+      showError(error);
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showError]);
 
   useEffect(() => {
     fetchAnamneses();
@@ -76,10 +162,10 @@ const TrainerAnamneses = () => {
       const response = await api.post('/trainer/anamneses', formData);
       showToast('Anamnese criada com sucesso!', 'success');
       setShowForm(false);
-      setFormData({ title: '', description: '' });
+      setFormData(EMPTY_FORM);
       navigate(`/trainer/anamneses/${response.data.id}`);
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      showError(error);
     } finally {
       setSaving(false);
     }
@@ -94,7 +180,7 @@ const TrainerAnamneses = () => {
       fetchAnamneses();
       resetForm();
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      showError(error);
     } finally {
       setSaving(false);
     }
@@ -116,19 +202,60 @@ const TrainerAnamneses = () => {
           showToast('Anamnese excluída com sucesso!', 'success');
           fetchAnamneses();
         } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
+          showError(error);
         }
       },
     });
   };
 
-  const handleCopy = async (anamnesis) => {
+  const handleUseTemplate = async (template) => {
+    if (copyingId) return;
+    setCopyingId(template.id);
     try {
-      const response = await api.post(`/trainer/anamneses/${anamnesis.id}/copy`);
-      showToast('Anamnese copiada com sucesso!', 'success');
+      const response = await api.post(`/trainer/anamneses/${template.id}/copy`);
+      showToast('Anamnese criada a partir do modelo.', 'success');
       navigate(`/trainer/anamneses/${response.data.id}`);
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      showError(error);
+      setCopyingId(null);
+    }
+  };
+
+  const closePreview = () => {
+    previewRequestRef.current = null;
+    setPreview(null);
+  };
+
+  const handleClosePreview = () => {
+    if (!copyingId) closePreview();
+  };
+
+  const handlePreviewTemplate = async (template) => {
+    previewRequestRef.current = template.id;
+    setPreview({ template, detail: null });
+    try {
+      const response = await api.get(`/trainer/anamneses/${template.id}`);
+      if (previewRequestRef.current === template.id) setPreview({ template, detail: response.data });
+    } catch (error) {
+      if (previewRequestRef.current !== template.id) return;
+      showError(error);
+      closePreview();
+    }
+  };
+
+  const handleCancelSaveAs = () => setSaveAsTarget(null);
+
+  const handleSaveAsSubmit = async (title) => {
+    setSavingAs(true);
+    try {
+      await api.post(`/trainer/anamneses/${saveAsTarget.id}/copy`, { title });
+      showToast(`Modelo "${title}" salvo.`, 'success');
+      setSaveAsTarget(null);
+      fetchAnamneses();
+    } catch (error) {
+      showError(error);
+    } finally {
+      setSavingAs(false);
     }
   };
 
@@ -138,14 +265,21 @@ const TrainerAnamneses = () => {
       showToast('Nova versão criada com sucesso!', 'success');
       navigate(`/trainer/anamneses/${response.data.id}`);
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      showError(error);
     }
   };
 
   const resetForm = () => {
-    setFormData({ title: '', description: '' });
+    setFormData(EMPTY_FORM);
     setEditingAnamnesis(null);
     setShowForm(false);
+  };
+
+  const openCreatePanel = () => {
+    setFormData(EMPTY_FORM);
+    setEditingAnamnesis(null);
+    setCreateMode(CREATE_FROM_SCRATCH);
+    setShowForm(true);
   };
 
   const handleFormChange = (field) => (e) => {
@@ -154,11 +288,12 @@ const TrainerAnamneses = () => {
 
   const buildRowMenuItems = (anamnesis) => {
     const items = [];
+    const saveAsItem = { label: 'Salvar como modelo', onClick: () => setSaveAsTarget(anamnesis) };
     if (anamnesis.isGeneral) {
-      items.push({ label: 'Duplicar', onClick: () => handleCopy(anamnesis) });
+      items.push(saveAsItem);
     } else {
       items.push({ label: 'Editar', onClick: () => handleEditClick(anamnesis) });
-      items.push({ label: 'Duplicar', onClick: () => handleCopy(anamnesis) });
+      items.push(saveAsItem);
       items.push({ label: 'Nova versão', onClick: () => handleFork(anamnesis) });
     }
     return items;
@@ -173,6 +308,10 @@ const TrainerAnamneses = () => {
   }
 
   const hasItems = anamneses.length > 0;
+  const templates = anamneses.filter((a) => a.isGeneral);
+  const isCreating = !editingAnamnesis;
+  const showGallery = isCreating && createMode === CREATE_FROM_TEMPLATE;
+  const panelTitle = isCreating ? 'Nova anamnese' : 'Editar anamnese';
 
   const filterCounts = {
     [FILTER_ALL]: anamneses.length,
@@ -181,6 +320,26 @@ const TrainerAnamneses = () => {
   };
 
   const isNoResults = hasItems && filteredAnamneses.length === 0;
+
+  const panelBody = showGallery ? (
+    <TemplateGallery
+      templates={templates}
+      error={loadError}
+      copyingId={copyingId}
+      onRetry={fetchAnamneses}
+      onPreview={handlePreviewTemplate}
+      onUse={handleUseTemplate}
+      onCreateFromScratch={() => setCreateMode(CREATE_FROM_SCRATCH)}
+    />
+  ) : (
+    <AnamnesisForm
+      formData={formData}
+      saving={saving}
+      onChange={handleFormChange}
+      onSubmit={editingAnamnesis ? handleUpdate : handleCreate}
+      onCancel={resetForm}
+    />
+  );
 
   return (
     <div>
@@ -191,7 +350,7 @@ const TrainerAnamneses = () => {
         </div>
         {!showForm && hasItems && (
           <div className="page-header-actions">
-            <button type="button" onClick={() => setShowForm(true)} className="btn-primary">
+            <button type="button" onClick={openCreatePanel} className="btn btn--primary">
               <Plus size={16} strokeWidth={2} aria-hidden="true" />
               Nova anamnese
             </button>
@@ -200,68 +359,47 @@ const TrainerAnamneses = () => {
       </div>
 
       {showForm && (
-        <div className="card card--mb">
-          <h2 className="card-title mb-md">
-            {editingAnamnesis ? 'Editar anamnese' : 'Nova anamnese'}
-          </h2>
-          <form onSubmit={editingAnamnesis ? handleUpdate : handleCreate} className="form">
-            <div className="form-group">
-              <label className="form-label" htmlFor="anamnesis-name">
-                Nome <span aria-hidden="true" className="form-required">*</span>
-              </label>
-              <input
-                id="anamnesis-name"
-                type="text"
-                value={formData.title}
-                onChange={handleFormChange('title')}
-                className="form-input"
-                placeholder="Ex: Anamnese inicial"
-                required
-                disabled={saving}
-                autoFocus
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="anamnesis-description">
-                Descrição
-              </label>
-              <textarea
-                id="anamnesis-description"
-                value={formData.description}
-                onChange={handleFormChange('description')}
-                className="form-textarea"
-                rows={3}
-                placeholder="Descrição opcional"
-                disabled={saving}
-              />
-            </div>
-            <p className="text-sm text-muted">
-              Após salvar, você poderá adicionar seções e perguntas à anamnese.
-            </p>
-            <div className="btn-group">
-              <button type="submit" disabled={saving} className="btn-primary">
-                {saving ? 'Salvando...' : 'Salvar'}
-              </button>
-              <button type="button" onClick={resetForm} className="btn-secondary" disabled={saving}>
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
+        <section className="section-card anamnesis-create-panel" aria-labelledby="anamnesis-panel-title">
+          <div className="anamnesis-create-panel__header">
+            <h2 id="anamnesis-panel-title" className="anamnesis-create-panel__title type-h3">{panelTitle}</h2>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Fechar"
+              title="Fechar"
+              onClick={resetForm}
+              disabled={saving || Boolean(copyingId)}
+            >
+              <X size={20} strokeWidth={2} aria-hidden="true" />
+            </button>
+          </div>
+          {isCreating && (
+            <Segmented
+              ariaLabel="Como criar a anamnese"
+              items={CREATE_MODE_ITEMS}
+              value={createMode}
+              onChange={setCreateMode}
+              disabled={saving || Boolean(copyingId)}
+            />
+          )}
+          <div
+            id={CREATE_PANEL_BODY_ID}
+            role={isCreating ? 'tabpanel' : undefined}
+            aria-labelledby={isCreating ? createTabId(createMode) : undefined}
+          >
+            {panelBody}
+          </div>
+        </section>
       )}
 
       {!showForm && !hasItems && (
-        <div className="empty-state">
-          <div className="empty-state-icon empty-state-icon--accent">
-            <ClipboardList size={32} strokeWidth={2} />
-          </div>
-          <p className="empty-state-title">Sem anamneses ainda</p>
-          <p className="text-muted text-sm">Crie o primeiro template para aplicar aos alunos.</p>
-          <button type="button" className="btn-primary" onClick={() => setShowForm(true)}>
-            <Plus size={16} strokeWidth={2} aria-hidden="true" />
-            Criar primeira anamnese
-          </button>
-        </div>
+        <EmptyBlock
+          icon={ClipboardList}
+          title="Sem anamneses ainda"
+          description="Crie a primeira anamnese do zero ou a partir de um modelo."
+          actionLabel="Criar primeira anamnese"
+          onAction={openCreatePanel}
+        />
       )}
 
       {!showForm && hasItems && (
@@ -317,28 +455,33 @@ const TrainerAnamneses = () => {
         </>
       )}
 
+      {preview && (
+        <AnamnesisPreviewModal
+          anamnesis={preview.detail ?? preview.template}
+          open
+          readOnly
+          loading={!preview.detail}
+          using={copyingId === preview.template.id}
+          onClose={handleClosePreview}
+          onUse={() => handleUseTemplate(preview.template)}
+        />
+      )}
+
+      {saveAsTarget && (
+        <SaveAsTemplateDialog
+          anamnesisTitle={saveAsTarget.title}
+          saving={savingAs}
+          onSubmit={handleSaveAsSubmit}
+          onCancel={handleCancelSaveAs}
+        />
+      )}
+
       {confirmDialog && (
-        <div className="overlay" onClick={() => setConfirmDialog(null)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-dialog-message">{confirmDialog.message}</p>
-            <div className="btn-group">
-              <button
-                type="button"
-                onClick={confirmDialog.onConfirm}
-                className="btn-danger"
-              >
-                Confirmar
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmDialog(null)}
-                className="btn-secondary"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
     </div>
   );

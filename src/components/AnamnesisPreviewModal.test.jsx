@@ -266,4 +266,67 @@ describe('AnamnesisPreviewModal', () => {
     expect(screen.getByText('Detalhes sobre força?')).toBeInTheDocument();
     expect(screen.getByText(/«força»/i)).toBeInTheDocument();
   });
+
+  // ── Read-only template mode ───────────────────────────────
+
+  describe('readOnly (template preview)', () => {
+    const renderTemplate = (props = {}) => {
+      const handlers = { onClose: vi.fn(), onUse: vi.fn() };
+      render(
+        <AnamnesisPreviewModal
+          anamnesis={makeAnamnesis({ description: 'Para alunos novos' })}
+          open={true}
+          readOnly
+          {...handlers}
+          {...props}
+        />,
+      );
+      return handlers;
+    };
+
+    it('shows the numbered sections, question count and estimated time', () => {
+      renderTemplate();
+      expect(screen.getByRole('dialog', { name: 'Anamnese de Saúde' })).toBeInTheDocument();
+      expect(screen.getByText('Pré-visualização')).toBeInTheDocument();
+      // 4 closed × 10 s + 1 numeric × 15 s + 1 free text × 40 s = 95 s → 2 min
+      expect(screen.getByText('6 perguntas · Cerca de 2 min')).toBeInTheDocument();
+      expect(screen.getByText('Para alunos novos')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Histórico Clínico', level: 3 })).toBeInTheDocument();
+      expect(screen.getByText('Você tem diabetes?')).toBeInTheDocument();
+    });
+
+    it('is read-only: no answer inputs are rendered', () => {
+      renderTemplate();
+      expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    });
+
+    it('calls onUse from the CTA and onClose from the close button', async () => {
+      const user = userEvent.setup();
+      const { onUse, onClose } = renderTemplate();
+      await user.click(screen.getByRole('button', { name: 'Usar este modelo' }));
+      await user.click(screen.getByRole('button', { name: 'Fechar pré-visualização' }));
+      expect(onUse).toHaveBeenCalledTimes(1);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows a skeleton and disables the CTA while loading', () => {
+      renderTemplate({ anamnesis: { title: 'Anamnese de Saúde' }, loading: true });
+      expect(screen.getByRole('status', { name: 'Carregando modelo' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Usar este modelo' })).toBeDisabled();
+    });
+
+    it('shows "Carregando..." and blocks closing while copying', () => {
+      renderTemplate({ using: true });
+      expect(screen.getByRole('button', { name: 'Carregando...' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Fechar pré-visualização' })).toBeDisabled();
+    });
+
+    it('hides the time estimate when the anamnesis has no questions', () => {
+      renderTemplate({ anamnesis: makeAnamnesis({ sections: [] }) });
+      expect(screen.getByText('Nenhuma pergunta')).toBeInTheDocument();
+      expect(screen.queryByText(/min$/)).not.toBeInTheDocument();
+    });
+  });
 });
