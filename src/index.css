@@ -20550,6 +20550,28 @@ select.input { cursor: pointer; }
   gap: var(--spacing-sm);
 }
 
+.tt-exercises-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* Quiet "just added" feedback: static brand tint that fades out */
+.training-template-exercise-row--just-added {
+  border-radius: var(--radius-lg);
+  background: var(--background-brand-subtle);
+  animation: tt-row-added 1.5s var(--ease-standard) forwards;
+}
+
+@keyframes tt-row-added {
+  from { background: var(--background-brand-subtle); }
+  to { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .training-template-exercise-row--just-added { animation: none; }
+}
+
 /* Visibility row: label + hint + switch, inside a section card (§3.3 elevated box) */
 .visibility-row {
   display: flex;
