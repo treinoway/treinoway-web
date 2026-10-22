@@ -1,85 +1,98 @@
 import PropTypes from 'prop-types';
-import { SearchX } from 'lucide-react';
+import { Inbox, SearchX } from 'lucide-react';
+import Badge from './ds/Badge';
+import EmptyBlock from './ds/EmptyBlock';
 import RowMenu from './RowMenu';
 
+const BADGE_TONE_ALIASES = {
+  blue: 'brand',
+  primary: 'brand',
+  gray: 'neutral',
+  green: 'success',
+  accent: 'warning',
+};
+
+const resolveTone = (tone = 'neutral') => BADGE_TONE_ALIASES[tone] ?? tone;
+
 /**
- * LibraryListRow — one row in the Biblioteca unified list.
- * Matches the visual treatment of the Students page (student-stat-row pattern):
- * identity block on the left, optional inline stats on the right, ghost menu button.
+ * LibraryListRow — one row of a Biblioteca list, same anatomy as StudentRow.
  *
  * Props:
- *  - title (string, required)          — primary display name
- *  - subtitle (string)                 — secondary metadata line shown below title
- *  - badges (node)                     — badge elements rendered beside the title
- *  - stats (node)                      — optional stat chips rendered to the right on desktop
- *  - rowMenuProps (object)             — forwarded to RowMenu (ariaLabel, onEdit, onDelete, …)
- *  - onClick (func)                    — row click handler
- *  - ariaLabel (string)                — aria-label for the row button
- *  - selectable (bool)                 — when true, renders a leading selection checkbox
- *  - selected (bool)                   — checkbox checked state
- *  - onToggleSelect (func)             — called when the checkbox is toggled
- *  - selectAriaLabel (string)          — aria-label for the selection checkbox
+ *  - title (string, required)
+ *  - subtitle (string)                  — caption line under the meta badges
+ *  - badges ([{ label, tone, variant }]) — rendered with ds/Badge. `tone` accepts the
+ *      ds tones plus legacy aliases (blue/primary -> brand, gray -> neutral,
+ *      green -> success, accent -> warning)
+ *  - stats ([{ icon, label }])          — compact caption stats with optional lucide icon
+ *  - rowMenuProps (object)              — forwarded to RowMenu
+ *  - onOpen (func)                      — makes the title a stretched link (whole row clickable)
+ *  - ariaLabel (string)                 — aria-label for the title button
+ *  - selectable / selected / onToggleSelect / selectAriaLabel — optional leading checkbox
+ *  - selectDisabled (bool)              — keeps the checkbox column but disables it (row not selectable)
  */
 export const LibraryListRow = ({
   title,
   subtitle,
-  badges,
-  stats,
+  badges = [],
+  stats = [],
   rowMenuProps,
-  onClick,
+  onOpen,
   ariaLabel,
   selectable = false,
   selected = false,
   onToggleSelect,
   selectAriaLabel,
+  selectDisabled = false,
 }) => (
-  <div
-    className="library-stat-row"
-    onClick={onClick}
-    role="button"
-    tabIndex={0}
-    onKeyDown={(e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        onClick?.();
-      }
-    }}
-    aria-label={ariaLabel}
-  >
-    <div className="library-stat-row-identity">
-      {selectable && (
-        <span
-          className="library-row-checkbox-wrap"
-          onClick={(e) => e.stopPropagation()}
+  <div className={`library-row${selectable ? ' library-row--selectable' : ''}`}>
+    {selectable && (
+      <input
+        type="checkbox"
+        className="library-row__checkbox"
+        checked={selected}
+        onChange={() => onToggleSelect?.()}
+        disabled={selectDisabled}
+        aria-label={selectAriaLabel}
+      />
+    )}
+    <div className="library-row__identity">
+      {onOpen ? (
+        <button
+          type="button"
+          className="library-row__link type-h4"
+          aria-label={ariaLabel}
+          onClick={onOpen}
         >
-          <input
-            type="checkbox"
-            className="library-row-checkbox"
-            checked={selected}
-            onChange={() => onToggleSelect?.()}
-            aria-label={selectAriaLabel}
-          />
-        </span>
+          {title}
+        </button>
+      ) : (
+        <span className="library-row__title type-h4">{title}</span>
       )}
-      <div className="library-stat-row-name-block">
-        <div className="library-stat-row-title-line">
-          <span className="library-stat-row-name">{title}</span>
-          {badges && <div className="library-row-badges">{badges}</div>}
+      {badges.length > 0 && (
+        <div className="library-row__meta">
+          {badges.map(({ label, tone, variant }) => (
+            <Badge key={label} tone={resolveTone(tone)} variant={variant}>
+              {label}
+            </Badge>
+          ))}
         </div>
-        {subtitle && (
-          <span className="library-stat-row-meta">{subtitle}</span>
-        )}
-      </div>
+      )}
+      {subtitle && <span className="library-row__subtitle type-caption">{subtitle}</span>}
     </div>
-
-    {stats && (
-      <div className="library-stat-row-stats">
-        {stats}
+    {stats.length > 0 && (
+      <div className="library-row__stats">
+        {stats.map(({ icon: Icon, label }) => (
+          <span key={label} className="library-row__stat type-caption">
+            {Icon && <Icon size={16} strokeWidth={2} aria-hidden="true" />}
+            {label}
+          </span>
+        ))}
       </div>
     )}
-
     {rowMenuProps && (
-      <RowMenu {...rowMenuProps} />
+      <div className="library-row__action">
+        <RowMenu {...rowMenuProps} />
+      </div>
     )}
   </div>
 );
@@ -87,58 +100,53 @@ export const LibraryListRow = ({
 LibraryListRow.propTypes = {
   title: PropTypes.string.isRequired,
   subtitle: PropTypes.string,
-  badges: PropTypes.node,
-  stats: PropTypes.node,
+  badges: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      tone: PropTypes.string,
+      variant: PropTypes.oneOf(['status', 'tag']),
+    }),
+  ),
+  stats: PropTypes.arrayOf(
+    PropTypes.shape({
+      icon: PropTypes.elementType,
+      label: PropTypes.string.isRequired,
+    }),
+  ),
   rowMenuProps: PropTypes.object,
-  onClick: PropTypes.func,
+  onOpen: PropTypes.func,
   ariaLabel: PropTypes.string,
   selectable: PropTypes.bool,
   selected: PropTypes.bool,
   onToggleSelect: PropTypes.func,
   selectAriaLabel: PropTypes.string,
+  selectDisabled: PropTypes.bool,
 };
 
 /**
- * LibraryList — the unified Biblioteca list container.
- * Renders each row as an individual card (student-stat-row style).
+ * LibraryList — Biblioteca list container.
  *
  * Props:
- *  - children        — LibraryListRow elements
- *  - emptyMessage    — text shown when children is empty (triggers no-results state)
- *  - isNoResults     — when true renders no-results icon state; when false renders plain empty-state text
+ *  - children      — LibraryListRow elements
+ *  - emptyMessage  — text for the empty state (description when isNoResults, title otherwise)
+ *  - isNoResults   — true renders "Sem resultados" EmptyBlock
  */
 const LibraryList = ({
   children,
   emptyMessage = 'Nenhum item encontrado',
   isNoResults = false,
 }) => {
-  // Flatten one level so an empty `.map()` (which yields a truthy []) does not
-  // count as a rendered row — this keeps the no-results state working when the
-  // list mixes a conditional row with a mapped collection.
+  // Flatten one level so an empty `.map()` (a truthy []) does not count as a row.
   const hasChildren = Array.isArray(children)
     ? children.flat().filter(Boolean).length > 0
     : !!children;
 
-  if (!hasChildren) {
-    if (isNoResults) {
-      return (
-        <div className="students-no-results">
-          <div className="students-no-results-icon">
-            <SearchX size={28} strokeWidth={2} />
-          </div>
-          <p className="students-empty-state-eyebrow">Sem resultados</p>
-          <p className="students-empty-state-desc">{emptyMessage}</p>
-        </div>
-      );
-    }
-    return (
-      <div className="library-empty-notice">
-        <span className="eyebrow">{emptyMessage}</span>
-      </div>
-    );
-  }
+  if (hasChildren) return <div className="library-list">{children}</div>;
 
-  return <div className="students-list">{children}</div>;
+  if (isNoResults) {
+    return <EmptyBlock icon={SearchX} title="Sem resultados" description={emptyMessage} />;
+  }
+  return <EmptyBlock icon={Inbox} title={emptyMessage} />;
 };
 
 LibraryList.propTypes = {

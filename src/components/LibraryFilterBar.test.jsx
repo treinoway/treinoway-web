@@ -97,9 +97,24 @@ describe('LibraryFilterBar', () => {
         filterCounts={{ all: 7, mine: 3, general: 4 }}
       />,
     );
-    expect(screen.getByText('7')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Todos (7)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Meus (3)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Gerais (4)' })).toBeInTheDocument();
+  });
+
+  it('prefers a per-filter count over filterCounts', () => {
+    renderWithRouter(
+      <LibraryFilterBar
+        searchValue=""
+        onSearchChange={vi.fn()}
+        searchAriaLabel="Buscar"
+        filters={[{ value: 'all', label: 'Todos', count: 9 }]}
+        activeFilter="all"
+        onFilterChange={vi.fn()}
+        filterCounts={{ all: 1 }}
+      />,
+    );
+    expect(screen.getByRole('tab', { name: 'Todos (9)' })).toBeInTheDocument();
   });
 
   it('renders without filters when filters array is empty', () => {
@@ -150,5 +165,40 @@ describe('LibraryFilterBar', () => {
       />,
     );
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
+
+  it('renders a named search input and every tab label in full', () => {
+    renderWithRouter(
+      <LibraryFilterBar
+        searchValue=""
+        onSearchChange={vi.fn()}
+        searchAriaLabel="Buscar rotina"
+        filters={[{ value: 'ALL', label: 'Todos' }, { value: 'A', label: 'Mobilidade' }]}
+        activeFilter="ALL"
+        onFilterChange={vi.fn()}
+        filterCounts={{ ALL: 0 }}
+        filtersAriaLabel="Filtrar"
+        sortSelect={<button type="button">Todos os níveis</button>}
+      />,
+    );
+    expect(screen.getByRole('textbox', { name: 'Buscar rotina' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Todos' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Mobilidade' })).toBeInTheDocument();
+    expect(screen.queryByText('(0)')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Todos os níveis' })).toBeInTheDocument();
+  });
+
+  it('shows the count when it is greater than zero', () => {
+    renderWithRouter(
+      <LibraryFilterBar
+        searchValue=""
+        onSearchChange={vi.fn()}
+        filters={[{ value: 'ALL', label: 'Todos' }]}
+        activeFilter="ALL"
+        onFilterChange={vi.fn()}
+        filterCounts={{ ALL: 3 }}
+      />,
+    );
+    expect(screen.getByText('(3)')).toBeInTheDocument();
   });
 });

@@ -67,53 +67,86 @@ describe('LibraryListRow', () => {
     expect(screen.getByText('Força · Superior')).toBeInTheDocument();
   });
 
-  it('does not render subtitle element when not provided', () => {
-    renderWithRouter(<LibraryListRow title="Treino A" ariaLabel="Abrir Treino A" />);
-    // Only the title span should be in the main area — no rich-row-sub
-    expect(screen.queryByText('undefined')).not.toBeInTheDocument();
-  });
-
-  it('renders badges node', () => {
+  it('renders badges with their label', () => {
     renderWithRouter(
       <LibraryListRow
         title="Treino A"
-        ariaLabel="Abrir Treino A"
-        badges={<span className="badge badge-blue">Força</span>}
+        badges={[{ label: 'Força', tone: 'brand' }, { label: 'Vídeo', tone: 'gray' }]}
       />,
     );
-    expect(screen.getByText('Força')).toBeInTheDocument();
+    expect(screen.getByText('Força')).toHaveClass('badge--brand');
+    expect(screen.getByText('Vídeo')).toHaveClass('badge--neutral');
   });
 
-  it('renders stats node', () => {
+  it.each([
+    ['blue', 'badge--brand'],
+    ['primary', 'badge--brand'],
+    ['gray', 'badge--neutral'],
+    ['green', 'badge--success'],
+    ['accent', 'badge--warning'],
+    ['error', 'badge--error'],
+  ])('maps legacy badge tone %s to %s', (tone, expectedClass) => {
+    renderWithRouter(<LibraryListRow title="Treino A" badges={[{ label: 'Etiqueta', tone }]} />);
+    expect(screen.getByText('Etiqueta')).toHaveClass(expectedClass);
+  });
+
+  it('renders stats labels', () => {
     renderWithRouter(
-      <LibraryListRow
-        title="Treino A"
-        ariaLabel="Abrir Treino A"
-        stats={<span className="stat-chip">12 semanas</span>}
-      />,
+      <LibraryListRow title="Treino A" stats={[{ label: '12 semanas' }, { label: '3 treinos' }]} />,
     );
     expect(screen.getByText('12 semanas')).toBeInTheDocument();
+    expect(screen.getByText('3 treinos')).toBeInTheDocument();
   });
 
-  it('calls onClick when the row is clicked', async () => {
+  it('renders the title as plain text when onOpen is not provided', () => {
+    renderWithRouter(<LibraryListRow title="Treino A" />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('calls onOpen when the title button is clicked', async () => {
     const user = userEvent.setup();
-    const handleClick = vi.fn();
+    const handleOpen = vi.fn();
     renderWithRouter(
-      <LibraryListRow title="Treino A" ariaLabel="Abrir Treino A" onClick={handleClick} />,
+      <LibraryListRow title="Treino A" ariaLabel="Abrir Treino A" onOpen={handleOpen} />,
     );
     await user.click(screen.getByRole('button', { name: 'Abrir Treino A' }));
-    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(handleOpen).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onClick when Enter is pressed on the row', async () => {
+  it('calls onOpen when Enter is pressed on the title button', async () => {
     const user = userEvent.setup();
-    const handleClick = vi.fn();
+    const handleOpen = vi.fn();
     renderWithRouter(
-      <LibraryListRow title="Treino A" ariaLabel="Abrir Treino A" onClick={handleClick} />,
+      <LibraryListRow title="Treino A" ariaLabel="Abrir Treino A" onOpen={handleOpen} />,
     );
     screen.getByRole('button', { name: 'Abrir Treino A' }).focus();
     await user.keyboard('{Enter}');
-    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(handleOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a selection checkbox that does not trigger onOpen', async () => {
+    const user = userEvent.setup();
+    const handleOpen = vi.fn();
+    const handleToggle = vi.fn();
+    renderWithRouter(
+      <LibraryListRow
+        title="Treino A"
+        ariaLabel="Abrir Treino A"
+        onOpen={handleOpen}
+        selectable
+        selected={false}
+        onToggleSelect={handleToggle}
+        selectAriaLabel="Selecionar Treino A"
+      />,
+    );
+    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Treino A' }));
+    expect(handleToggle).toHaveBeenCalledTimes(1);
+    expect(handleOpen).not.toHaveBeenCalled();
+  });
+
+  it('does not render a checkbox when not selectable', () => {
+    renderWithRouter(<LibraryListRow title="Treino A" />);
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
   it('renders RowMenu when rowMenuProps provided', async () => {
@@ -136,5 +169,14 @@ describe('LibraryListRow', () => {
   it('does not render RowMenu when rowMenuProps is not provided', () => {
     renderWithRouter(<LibraryListRow title="Treino A" ariaLabel="Abrir Treino A" />);
     expect(screen.queryByRole('button', { name: /ações/i })).not.toBeInTheDocument();
+  });
+});
+
+describe('LibraryListRow selectDisabled', () => {
+  it('keeps the checkbox but disables it', () => {
+    renderWithRouter(
+      <LibraryListRow title="Geral" selectable selectDisabled selectAriaLabel="Geral (não pode ser excluída)" />,
+    );
+    expect(screen.getByRole('checkbox', { name: /geral/i })).toBeDisabled();
   });
 });
