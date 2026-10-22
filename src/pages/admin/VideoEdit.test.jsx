@@ -82,7 +82,7 @@ describe('VideoEdit', () => {
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Vídeo não encontrado.', 'error');
     });
-    expect(screen.getByTestId('redirected')).toBeInTheDocument();
+    expect(await screen.findByTestId('redirected')).toBeInTheDocument();
   });
 
   it('submits PATCH on save', async () => {

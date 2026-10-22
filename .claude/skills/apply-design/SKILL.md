@@ -282,14 +282,19 @@ Safe areas: `padding-bottom: max(var(--spacing-lg), env(safe-area-inset-bottom))
 ### 3.2 Page header
 
 ```jsx
-<header className="page-header">
-  <h1 className="type-h1">Meus alunos</h1>
-  <div className="page-header-actions">
+<header className="ds-page-header">
+  <div className="ds-page-header__heading">
+    <Users size={24} strokeWidth={2} aria-hidden="true" />
+    <h1 className="ds-page-header__title type-h1">Meus alunos</h1>
+  </div>
+  <div className="ds-page-header__actions">
     <button className="btn btn--secondary">Importar</button>
     <button className="btn btn--primary"><Plus size={16} strokeWidth={2} aria-hidden="true" />Convidar aluno</button>
   </div>
 </header>
 ```
+
+Biblioteca pages use `LibraryPageHeader` (`src/components/LibraryPageHeader.jsx`: `icon`, `title`, `actions`), which renders exactly this markup. The heading icon is 24px, the same as the sidebar icon.
 
 - Title `type-h1`, `--text-primary`, sentence case.
 - Actions right-aligned, `gap: var(--spacing-sm)`, primary rightmost. One primary per screen.
@@ -384,7 +389,7 @@ Iniciais (first + last name initial, UPPERCASE) ou foto. `.avatar`: circle `--ra
 
 ### 4.7 Toggle
 
-Switch on/off for preferences, filters, settings. `.toggle`: track 36×20 `--radius-full`; off track `--toggle-track-off` (alias → Neutral/300); on track `--action-primary-default`; thumb `--background-surface`. Disabled: track `--action-primary-disabled`. Render as `<button role="switch" aria-checked>` with a visible label. Focus `--focus-ring`.
+Switch on/off for preferences, filters, settings. `.toggle`: track 36×20 `--radius-full`; off track `--toggle-track-off` (alias → Neutral/300); on track `--action-primary-default`; thumb `--background-surface`. Disabled: track `--action-primary-disabled`. Render as `<button role="switch" aria-checked>` with a visible label. Focus `--focus-ring`. Use `ds/Toggle` (`src/components/ds/Toggle.jsx`: `checked`, `onChange(next)`, `label` required, `describedBy`, `disabled`); don't hand-roll switches.
 
 ### 4.8 Segmented / Segmented Item
 
@@ -468,36 +473,31 @@ Compact date for session/billing lists: OVERLINE weekday (`SEG`) / H3 day (`21`)
 
 ### 4.15 Row menu (3-dot)
 
-Row with **2+ actions** → `TemplateRowMenu` (`src/pages/trainer/TrainingTemplates.jsx`): props `ariaLabel` (required), `onDelete` (required), `onEdit` (optional), `deleteLabel` (default "Excluir"). Trigger = IconButton `MoreVertical`. Menu = dropdown: bg `--background-surface`, `--radius-lg`, `--shadow-overlay`, items Body/Default, destructive item `--feedback-error-text` (`row-menu-item--danger`). One action only → direct button/IconButton. Don't reinvent per-page menus.
+Row with **2+ actions** → `RowMenu` (`src/components/RowMenu.jsx`): props `ariaLabel` (required), `onEdit`, `onDelete`, `deleteLabel` (default "Excluir"), `deleteDisabled`/`deleteDisabledTitle`, `extraItems`, `triggerDisabled`. Trigger = IconButton `MoreVertical`. Menu = dropdown: bg `--background-surface`, `--radius-lg`, `--shadow-overlay`, items Body/Default, destructive item `--feedback-error-text` (`row-menu-item--danger`). One action only → direct button/IconButton. Don't reinvent per-page menus.
 
 ### 4.16 Confirm dialog
 
-Never `window.confirm()`.
+Never `window.confirm()`. Use `ds/ConfirmDialog` (`src/components/ds/ConfirmDialog.jsx`) driven by `useConfirmDialog` (`src/hooks/useConfirmDialog.js`):
 
 ```jsx
-const [confirmDialog, setConfirmDialog] = useState(null);
+const { dialogProps, requestConfirm } = useConfirmDialog();
 
-const handleDelete = (item) => {
-  setConfirmDialog({
-    message: `Excluir "${item.name}"? Esta ação não pode ser desfeita.`,
-    onConfirm: async () => { setConfirmDialog(null); await api.delete(`/endpoint/${item.id}`); },
-  });
-};
+const handleDelete = (item) => requestConfirm({
+  message: `Excluir "${item.name}"? Esta ação não pode ser desfeita.`,
+  onConfirm: () => api.delete(`/endpoint/${item.id}`),
+});
 
-{confirmDialog && (
-  <div className="overlay" onClick={() => setConfirmDialog(null)}>
-    <div className="confirm-dialog" role="alertdialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-      <p className="confirm-dialog-message type-body-lg">{confirmDialog.message}</p>
-      <div className="btn-group">
-        <button onClick={() => setConfirmDialog(null)} className="btn btn--secondary">Cancelar</button>
-        <button onClick={confirmDialog.onConfirm} className="btn btn--danger">Excluir</button>
-      </div>
-    </div>
-  </div>
-)}
+{dialogProps && <ConfirmDialog {...dialogProps} />}
 ```
 
-`.overlay` bg `--background-overlay`, z `--z-overlay`. Dialog bg `--background-surface`, `--radius-xl`, padding `--spacing-xl`, `--shadow-overlay`, z `--z-modal`.
+The dialog stays open and busy (buttons disabled, `busyLabel`) while `onConfirm` runs, closes afterwards, and a rejection becomes an error toast. Optional `confirmLabel` (default "Excluir") and `busyLabel`; `confirmTone="primary"` for non-destructive confirms. Markup is `ds-overlay`/`ds-dialog` with `role="alertdialog"`; Escape/scrim cancel unless busy.
+
+### 4.16b Biblioteca patterns
+
+- `LibraryListView` (`src/components/LibraryListView.jsx`): body of a Biblioteca list. Resolves loading → error → empty library (CTA) → toolbar + batch bar + list + footer, in that order; props `status`, `isEmptyLibrary`/`empty`, `toolbar`, `batch`, `footer`, `isNoResults`.
+- `LibraryListRow` (`src/components/LibraryList.jsx`): `title`, `subtitle`, `badges` (`{ label, tone, variant: 'status' | 'tag' }`), `stats`, `rowMenuProps` (→ `RowMenu`), `onOpen` (makes the title a stretched link covering the row, so the menu/checkbox stay clickable), `selectable`/`selected`/`onToggleSelect`/`selectAriaLabel` for batch selection.
+- `LibraryFooter`: "Mostrando X de Y" (`role="status"`) + ghost "Ver mais" while `shown < total`.
+- `LibraryEditorLayout`: edit-page shell: ghost "Voltar" + `type-h1` title, then skeleton (`loading`), `EmptyBlock` for `notFound`/`error`, or the children (`ready`). "Not found" only after the request ends (CLAUDE.md RULE 9).
 
 ### 4.17 Modal / Bottom sheet
 
@@ -626,7 +626,7 @@ Templates: Confirm `Excluir [X]? Esta ação não pode ser desfeita.` · Empty `
 - [ ] Buttons use `.btn` + type modifier; one primary per view
 - [ ] Badges: Tone × Style correct (Status uppercase / Tag sentence case)
 - [ ] Lists of students use Linha de aluno anatomy
-- [ ] Row with 2+ actions → `TemplateRowMenu`
+- [ ] Row with 2+ actions → `RowMenu`
 - [ ] Charts only `--chart-*`
 
 **Layout & a11y**
