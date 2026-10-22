@@ -1,6 +1,6 @@
-import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { renderWithRoute } from '../../test/test-utils';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { render, renderWithRoute, screen, waitFor, fireEvent } from '../../test/test-utils';
 import AnamnesisDetail from './AnamnesisDetail';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
@@ -120,6 +120,22 @@ function renderAnamnesisDetail(anamnesisId = 'anamnesis-1') {
   });
 }
 
+function AssignProbe() {
+  const location = useLocation();
+  return <div data-testid="assign-page">{location.state?.from}</div>;
+}
+
+function renderAssignRoutes(anamnesisId = 'anamnesis-1') {
+  return render(
+    <MemoryRouter initialEntries={[`/trainer/anamneses/${anamnesisId}`]}>
+      <Routes>
+        <Route path="/trainer/anamneses/:anamnesisId" element={<AnamnesisDetail />} />
+        <Route path="/trainer/anamneses/:anamnesisId/assign" element={<AssignProbe />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
 describe('AnamnesisDetail', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
@@ -135,7 +151,7 @@ describe('AnamnesisDetail', () => {
   it('shows loading state while fetching', () => {
     api.get.mockImplementation(() => new Promise(() => {}));
     renderAnamnesisDetail();
-    expect(screen.getByText(/carregando/i)).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: /carregando anamnese/i })).toBeInTheDocument();
   });
 
   it('fetches anamnesis from the correct endpoint', async () => {
@@ -146,12 +162,28 @@ describe('AnamnesisDetail', () => {
     });
   });
 
-  it('shows toast and does not crash on fetch error', async () => {
-    api.get.mockRejectedValue({ userMessage: 'Anamnese não encontrada.' });
+  it('shows an in-place error with retry when the fetch fails, and retries', async () => {
+    const user = userEvent.setup();
+    api.get.mockRejectedValueOnce({ userMessage: 'Falha de rede.' });
     renderAnamnesisDetail();
-    await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith('Anamnese não encontrada.', 'error');
-    });
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Não foi possível carregar a anamnese');
+    expect(alert).toHaveTextContent('Falha de rede.');
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    expect(await screen.findByRole('heading', { name: 'Anamnese de Saúde' })).toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows "not found" with a way back only after a 404 response', async () => {
+    const user = userEvent.setup();
+    api.get.mockRejectedValue({ response: { status: 404 }, userMessage: 'Não encontrada' });
+    renderAnamnesisDetail();
+    expect(screen.queryByText('Anamnese não encontrada')).not.toBeInTheDocument();
+    expect(await screen.findByText('Anamnese não encontrada')).toBeInTheDocument();
+    const backButtons = screen.getAllByRole('button', { name: 'Voltar para anamneses' });
+    await user.click(backButtons[backButtons.length - 1]);
+    expect(await screen.findByTestId('redirected')).toBeInTheDocument();
   });
 
   // ── Renders ──────────────────────────────────────────────
@@ -268,13 +300,12 @@ describe('AnamnesisDetail', () => {
       expect(screen.getByText('Adicione a primeira pergunta')).toBeInTheDocument();
     });
     // Use exact text match to avoid collision with library tile labels
-    const shortcuts = screen.getAllByRole('button', { name: /texto livre/i });
-    // The shortcut button says "+ Texto Livre"; library tile has aria-label "Adicionar pergunta Texto Livre"
-    expect(shortcuts.some((b) => b.textContent.includes('+ Texto Livre'))).toBe(true);
-    expect(screen.getByRole('button', { name: /sim\/não/i })).toBeInTheDocument();
+    // The canvas shortcut is named "Texto livre"; the library tile is "Adicionar pergunta Texto livre"
+    expect(screen.getByRole('button', { name: 'Texto livre' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sim/Não' })).toBeInTheDocument();
   });
 
-  it('clicking "+ Texto Livre" shortcut calls POST with type free_text', async () => {
+  it('clicking "Texto livre" shortcut calls POST with type free_text', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: mockAnamnesisNoQuestions });
     api.post.mockResolvedValue({ data: { id: 'new-q-id' } });
@@ -282,10 +313,7 @@ describe('AnamnesisDetail', () => {
     await waitFor(() => {
       expect(screen.getByText('Adicione a primeira pergunta')).toBeInTheDocument();
     });
-    // Pick the shortcut button (exact text "+ Texto Livre") from the canvas-empty-board shortcuts
-    const allTextLivre = screen.getAllByRole('button', { name: /texto livre/i });
-    const shortcut = allTextLivre.find((b) => b.textContent.trim() === '+ Texto Livre');
-    await user.click(shortcut);
+    await user.click(screen.getByRole('button', { name: 'Texto livre' }));
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
         '/trainer/anamneses/anamnesis-no-q/sections/section-1/questions',
@@ -294,15 +322,15 @@ describe('AnamnesisDetail', () => {
     });
   });
 
-  it('clicking "+ Sim/Não" shortcut calls POST with type dichotomous', async () => {
+  it('clicking "Sim/Não" shortcut calls POST with type dichotomous', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: mockAnamnesisNoQuestions });
     api.post.mockResolvedValue({ data: { id: 'new-q-id' } });
     renderAnamnesisDetail('anamnesis-no-q');
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /sim\/não/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sim/Não' })).toBeInTheDocument();
     });
-    await user.click(screen.getByRole('button', { name: /sim\/não/i }));
+    await user.click(screen.getByRole('button', { name: 'Sim/Não' }));
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
         '/trainer/anamneses/anamnesis-no-q/sections/section-1/questions',
@@ -355,6 +383,8 @@ describe('AnamnesisDetail', () => {
     await waitFor(() => {
       expect(screen.getByText('Anamnese Geral')).toBeInTheDocument();
     });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Mais ações da anamnese' }));
+    expect(screen.getByRole('button', { name: 'Enviar para alunos' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /nova versão/i })).not.toBeInTheDocument();
   });
 
@@ -483,7 +513,7 @@ describe('AnamnesisDetail', () => {
     api.post.mockResolvedValue({ data: { id: 'new-q-id' } });
     renderAnamnesisDetail();
     await waitFor(() => expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument());
-    const tile = screen.getByRole('button', { name: 'Adicionar pergunta Texto Livre' });
+    const tile = screen.getByRole('button', { name: 'Adicionar pergunta Texto livre' });
     await user.click(tile);
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
@@ -497,7 +527,7 @@ describe('AnamnesisDetail', () => {
     api.get.mockResolvedValue({ data: mockAnamnesis });
     renderAnamnesisDetail();
     await waitFor(() => expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument());
-    ['Texto Livre', 'Sim / Não', 'Escolha Única', 'Múltipla Escolha', 'Numérico'].forEach((label) => {
+    ['Texto livre', 'Sim / Não', 'Escolha única', 'Múltipla escolha', 'Numérico'].forEach((label) => {
       expect(screen.getByRole('button', { name: `Adicionar pergunta ${label}` })).toBeInTheDocument();
     });
     expect(screen.queryByRole('button', { name: /Matriz/i })).not.toBeInTheDocument();
@@ -541,9 +571,7 @@ describe('AnamnesisDetail', () => {
     api.post.mockResolvedValue({ data: { id: 'new-q-id' } });
     renderAnamnesisDetail('anamnesis-no-q');
     await waitFor(() => expect(screen.getByText('Adicione a primeira pergunta')).toBeInTheDocument());
-    const allTextLivre = screen.getAllByRole('button', { name: /texto livre/i });
-    const shortcut = allTextLivre.find((b) => b.textContent.trim() === '+ Texto Livre');
-    await user.click(shortcut);
+    await user.click(screen.getByRole('button', { name: 'Texto livre' }));
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
         '/trainer/anamneses/anamnesis-no-q/sections/section-1/questions',
@@ -603,9 +631,7 @@ describe('AnamnesisDetail', () => {
     api.post.mockResolvedValue({ data: { id: 'new-q-id' } });
     renderAnamnesisDetail('anamnesis-no-q');
     await waitFor(() => expect(screen.getByText('Adicione a primeira pergunta')).toBeInTheDocument());
-    const allTextLivre = screen.getAllByRole('button', { name: /texto livre/i });
-    const shortcut = allTextLivre.find((b) => b.textContent.trim() === '+ Texto Livre');
-    await user.click(shortcut);
+    await user.click(screen.getByRole('button', { name: 'Texto livre' }));
     await waitFor(() => {
       const textarea = screen.getByRole('textbox', { name: /texto da pergunta/i });
       expect(textarea).toBeInTheDocument();
@@ -800,7 +826,7 @@ describe('AnamnesisDetail', () => {
     await waitFor(() => expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /excluir seção histórico de saúde/i }));
     expect(screen.getByText(/excluir a seção "histórico de saúde"/i)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1/sections/section-1');
       expect(mockShowToast).toHaveBeenCalledWith('Seção excluída com sucesso!', 'success');
@@ -864,19 +890,34 @@ describe('AnamnesisDetail', () => {
 
   // ── Fork ─────────────────────────────────────────────────
 
-  it('shows "Nova versão" button for non-general anamneses and calls fork endpoint', async () => {
+  it('offers "Nova versão" in the actions menu for non-general anamneses and calls the fork endpoint', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: mockAnamnesis });
     api.post.mockResolvedValue({ data: { id: 'forked-id' } });
     renderAnamnesisDetail();
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /nova versão/i })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: /nova versão/i }));
+    await user.click(await screen.findByRole('button', { name: 'Mais ações da anamnese' }));
+    await user.click(screen.getByRole('button', { name: 'Nova versão' }));
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1/fork');
       expect(mockShowToast).toHaveBeenCalledWith('Nova versão criada com sucesso!', 'success');
     });
+  });
+
+  it('navigates to the assign screen from "Enviar para alunos" keeping the editor as origin', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAssignRoutes();
+    await user.click(await screen.findByRole('button', { name: 'Enviar para alunos' }));
+    expect(await screen.findByTestId('assign-page')).toHaveTextContent('/trainer/anamneses/anamnesis-1');
+  });
+
+  it('shows "Enviar para alunos" in the menu (not as primary) for general anamneses', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockGeneralAnamnesis });
+    renderAssignRoutes('anamnesis-2');
+    await user.click(await screen.findByRole('button', { name: 'Mais ações da anamnese' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar para alunos' }));
+    expect(await screen.findByTestId('assign-page')).toBeInTheDocument();
   });
 
   // ── Fork conflict ─────────────────────────────────────────
@@ -956,9 +997,9 @@ describe('AnamnesisDetail', () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: mockAnamnesis });
     renderAnamnesisDetail();
-    await waitFor(() => expect(screen.getByRole('tab', { name: 'Canvas' })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Pergunta' })).toBeInTheDocument());
 
-    const canvasTab = screen.getByRole('tab', { name: 'Canvas' });
+    const canvasTab = screen.getByRole('tab', { name: 'Pergunta' });
     await user.click(canvasTab);
     expect(canvasTab).toHaveAttribute('aria-selected', 'true');
 
@@ -994,7 +1035,7 @@ describe('AnamnesisDetail', () => {
     await openQuestion(user);
     await user.click(screen.getByRole('button', { name: 'Excluir pergunta' }));
     expect(
-      screen.getByText(/excluir a pergunta "você tem alguma doença crônica\?"/i)
+      await screen.findByText(/excluir a pergunta "você tem alguma doença crônica\?"/i)
     ).toBeInTheDocument();
   });
 
@@ -1005,7 +1046,7 @@ describe('AnamnesisDetail', () => {
     renderAnamnesisDetail();
     await openQuestion(user);
     await user.click(screen.getByRole('button', { name: 'Excluir pergunta' }));
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith(
         '/trainer/anamneses/anamnesis-1/sections/section-1/questions/q1',
@@ -1022,7 +1063,7 @@ describe('AnamnesisDetail', () => {
     await openQuestion(user);
     const callsBefore = api.get.mock.calls.length;
     await user.click(screen.getByRole('button', { name: 'Excluir pergunta' }));
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
     await waitFor(() => {
       expect(api.get.mock.calls.length).toBeGreaterThan(callsBefore);
     });
@@ -1048,7 +1089,7 @@ describe('AnamnesisDetail', () => {
     renderAnamnesisDetail();
     await openQuestion(user);
     await user.click(screen.getByRole('button', { name: 'Excluir pergunta' }));
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
     await waitFor(() => {
       expect(screen.getByText(/vinculada a alunos/i)).toBeInTheDocument();
     });
@@ -1082,7 +1123,7 @@ describe('AnamnesisDetail', () => {
     renderAnamnesisDetail();
     await expandSection(user);
     await user.click(screen.getByRole('button', { name: /excluir pergunta você tem alguma doença crônica\?/i }));
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith(
         '/trainer/anamneses/anamnesis-1/sections/section-1/questions/q1',
@@ -1335,5 +1376,82 @@ describe('AnamnesisDetail', () => {
       // The canvas eyebrow for a numeric question is the exact uppercase string "NUMÉRICO"
       expect(screen.getByText('NUMÉRICO')).toBeInTheDocument()
     );
+  });
+
+  // ── Dialogs / tabs (DS shell) ─────────────────────────────
+
+  it('cancelling the delete-section confirmation closes it without calling DELETE', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAnamnesisDetail();
+    await waitFor(() => expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /excluir seção histórico de saúde/i }));
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(api.delete).not.toHaveBeenCalled();
+  });
+
+  it('cancelling the delete-question confirmation does not call DELETE', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAnamnesisDetail();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Excluir pergunta' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Excluir pergunta' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(api.delete).not.toHaveBeenCalled();
+  });
+
+  it('shows an error toast when deleting a section fails', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    api.delete.mockRejectedValue({ userMessage: 'Não foi possível excluir.' });
+    renderAnamnesisDetail();
+    await waitFor(() => expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /excluir seção histórico de saúde/i }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Não foi possível excluir.', 'error'));
+  });
+
+  it('panel tabs expose tablist semantics wired to their panels', async () => {
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAnamnesisDetail();
+    const tablist = await screen.findByRole('tablist', { name: 'Painéis do editor' });
+    expect(tablist).toBeInTheDocument();
+    const tab = screen.getByRole('tab', { name: 'Seções' });
+    expect(tab).toHaveAttribute('aria-selected', 'true');
+    const panel = document.getElementById(tab.getAttribute('aria-controls'));
+    expect(panel).toHaveAttribute('role', 'tabpanel');
+  });
+
+  it('selecting a question from the outline switches the mobile tab to the question panel', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    renderAnamnesisDetail();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Seções' })).toBeInTheDocument());
+    await user.click((await screen.findAllByRole('button', { name: /qual seu nível de dor\?/i }))[0]);
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Pergunta' })).toHaveAttribute('aria-selected', 'true'));
+  });
+
+  it('fork conflict dialog creates a new version via the primary action and keeps Cancelar available', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    api.patch.mockRejectedValue({ response: { status: 409, data: { error: 'ANAMNESIS_HAS_STUDENT_LINKS' } } });
+    api.post.mockResolvedValue({ data: { id: 'forked-id' } });
+    renderAnamnesisDetail();
+    await waitFor(() => expect(screen.getByRole('switch', { name: /obrigatória/i })).toBeInTheDocument());
+    await user.click(screen.getByRole('switch', { name: /obrigatória/i }));
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent(/vinculada a alunos/i);
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Criar nova versão' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1/fork'));
+  });
+
+  it('has no inline styles in the editor shell', async () => {
+    api.get.mockResolvedValue({ data: mockAnamnesis });
+    const { container } = renderAnamnesisDetail();
+    await waitFor(() => expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument());
+    expect(container.querySelectorAll('[style]')).toHaveLength(0);
   });
 });

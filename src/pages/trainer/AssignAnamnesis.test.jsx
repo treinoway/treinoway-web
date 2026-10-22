@@ -1,6 +1,5 @@
-import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { renderWithRoute } from '../../test/test-utils';
+import { renderWithRoute, screen, waitFor } from '../../test/test-utils';
 import AssignAnamnesis from './AssignAnamnesis';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
@@ -97,7 +96,7 @@ describe('AssignAnamnesis', () => {
   it('shows loading state initially', () => {
     api.get.mockReturnValue(new Promise(() => {}));
     renderAssign();
-    expect(screen.getByText('Carregando...')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: /carregando anamnese/i })).toBeInTheDocument();
   });
 
   it('renders template title and student list after load', async () => {
@@ -145,15 +144,15 @@ describe('AssignAnamnesis', () => {
     expect(screen.getByText('Pedro Costa')).toBeInTheDocument();
   });
 
-  it('disables checkbox and shows "Já vinculada" badge for already-linked student', async () => {
+  it('disables checkbox and shows "Já enviada" badge for already-linked student', async () => {
     setupDefaultMocks({ linkedStudentIds: ['student-2'] });
     renderAssign();
     await waitFor(() => expect(screen.getByText('Maria Santos')).toBeInTheDocument());
 
-    expect(screen.getByText('Já vinculada')).toBeInTheDocument();
+    expect(screen.getByText('Já enviada')).toBeInTheDocument();
 
-    const mariaBtn = screen.getByRole('button', { name: /maria santos/i });
-    expect(mariaBtn).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: /maria santos/i })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: /joão silva/i })).toBeEnabled();
   });
 
   it('selecting 3 students shows correct counter and enables CTA', async () => {
@@ -162,13 +161,13 @@ describe('AssignAnamnesis', () => {
     renderAssign();
     await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /joão silva/i }));
-    await user.click(screen.getByRole('button', { name: /maria santos/i }));
-    await user.click(screen.getByRole('button', { name: /pedro costa/i }));
+    await user.click(screen.getByRole('checkbox', { name: /joão silva/i }));
+    await user.click(screen.getByRole('checkbox', { name: /maria santos/i }));
+    await user.click(screen.getByRole('checkbox', { name: /pedro costa/i }));
 
     expect(screen.getByText(/3 alunos selecionados/i)).toBeInTheDocument();
 
-    const cta = screen.getByRole('button', { name: /vincular a 3 alunos/i });
+    const cta = screen.getByRole('button', { name: /enviar para 3 alunos/i });
     expect(cta).not.toBeDisabled();
   });
 
@@ -177,7 +176,7 @@ describe('AssignAnamnesis', () => {
     renderAssign();
     await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
 
-    const cta = screen.getByRole('button', { name: /vincular a 0 alunos/i });
+    const cta = screen.getByRole('button', { name: /enviar para 0 alunos/i });
     expect(cta).toBeDisabled();
   });
 
@@ -188,10 +187,10 @@ describe('AssignAnamnesis', () => {
     renderAssign();
     await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /joão silva/i }));
-    await user.click(screen.getByRole('button', { name: /maria santos/i }));
-    await user.click(screen.getByRole('button', { name: /pedro costa/i }));
-    await user.click(screen.getByRole('button', { name: /vincular a 3 alunos/i }));
+    await user.click(screen.getByRole('checkbox', { name: /joão silva/i }));
+    await user.click(screen.getByRole('checkbox', { name: /maria santos/i }));
+    await user.click(screen.getByRole('checkbox', { name: /pedro costa/i }));
+    await user.click(screen.getByRole('button', { name: /enviar para 3 alunos/i }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledTimes(3);
@@ -200,7 +199,7 @@ describe('AssignAnamnesis', () => {
         { anamnesisId: 'anamnesis-1' },
       );
       expect(mockShowToast).toHaveBeenCalledWith(
-        '3 alunos vinculados com sucesso',
+        'Anamnese enviada para 3 alunos',
         'success',
       );
       expect(mockNavigate).toHaveBeenCalledWith(-1);
@@ -217,14 +216,14 @@ describe('AssignAnamnesis', () => {
     renderAssign();
     await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /joão silva/i }));
-    await user.click(screen.getByRole('button', { name: /maria santos/i }));
-    await user.click(screen.getByRole('button', { name: /pedro costa/i }));
-    await user.click(screen.getByRole('button', { name: /vincular a 3 alunos/i }));
+    await user.click(screen.getByRole('checkbox', { name: /joão silva/i }));
+    await user.click(screen.getByRole('checkbox', { name: /maria santos/i }));
+    await user.click(screen.getByRole('checkbox', { name: /pedro costa/i }));
+    await user.click(screen.getByRole('button', { name: /enviar para 3 alunos/i }));
 
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith(
-        expect.stringMatching(/2 de 3 vinculados/i),
+        expect.stringMatching(/2 de 3 envios concluídos/i),
         'warning',
       );
     });
@@ -254,32 +253,23 @@ describe('AssignAnamnesis', () => {
     expect(mockNavigate).toHaveBeenCalledWith(-1);
   });
 
-  it('mobile: clicking "Config." tab changes visible panel label', async () => {
-    const user = userEvent.setup();
-    setupDefaultMocks();
-    renderAssign();
-    await waitFor(() => expect(screen.getByText('Saúde & Histórico Clínico')).toBeInTheDocument());
-
-    const configTab = screen.getByRole('button', { name: /config\./i });
-    await user.click(configTab);
-
-    expect(configTab).toHaveClass('assign-mobile-tab--active');
-  });
-
-  it('mobile: clicking "Alunos" tab restores active state', async () => {
+  it('mobile: segmented tabs switch the active panel', async () => {
     const user = userEvent.setup();
     setupDefaultMocks();
     renderAssign();
     await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
 
-    const configTab = screen.getByRole('button', { name: /^config\.$/i });
-    const studentsTab = screen.getByRole('button', { name: /^alunos$/i });
+    const studentsTab = screen.getByRole('tab', { name: 'Alunos' });
+    const configTab = screen.getByRole('tab', { name: 'Anamnese' });
+    expect(studentsTab).toHaveAttribute('aria-selected', 'true');
 
     await user.click(configTab);
-    await user.click(studentsTab);
+    expect(configTab).toHaveAttribute('aria-selected', 'true');
+    expect(studentsTab).toHaveAttribute('aria-selected', 'false');
+    expect(document.getElementById(configTab.getAttribute('aria-controls'))).toHaveAttribute('role', 'tabpanel');
 
-    expect(studentsTab).toHaveClass('assign-mobile-tab--active');
-    expect(configTab).not.toHaveClass('assign-mobile-tab--active');
+    await user.click(studentsTab);
+    expect(studentsTab).toHaveAttribute('aria-selected', 'true');
   });
 
   it('opens preview modal when "Pré-visualizar" is clicked', async () => {
@@ -305,13 +295,89 @@ describe('AssignAnamnesis', () => {
     expect(screen.queryByRole('dialog', { name: /pré-visualização/i })).not.toBeInTheDocument();
   });
 
-  it('shows error toast and navigates back when anamnesis fetch fails', async () => {
-    api.get.mockRejectedValue({ userMessage: 'Anamnese não encontrada' });
+  it('shows an in-place error with retry when loading fails', async () => {
+    const user = userEvent.setup();
+    api.get.mockRejectedValueOnce({ userMessage: 'Falha de rede' });
     renderAssign();
 
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Falha de rede');
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    setupDefaultMocks();
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    expect(await screen.findByText('João Silva')).toBeInTheDocument();
+  });
+
+  it('shows "not found" only after a 404 and offers a way back', async () => {
+    const user = userEvent.setup();
+    api.get.mockRejectedValue({ response: { status: 404 } });
+    renderAssign();
+
+    expect(await screen.findByText('Anamnese não encontrada')).toBeInTheDocument();
+    const backButtons = screen.getAllByRole('button', { name: /voltar/i });
+    await user.click(backButtons[backButtons.length - 1]);
+    expect(mockNavigate).toHaveBeenCalledWith(-1);
+  });
+
+  it('total failure — shows the error toast, keeps the selection and does not navigate', async () => {
+    const user = userEvent.setup();
+    setupDefaultMocks();
+    api.post.mockRejectedValue({ userMessage: 'Erro' });
+    renderAssign();
+    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('checkbox', { name: /joão silva/i }));
+    await user.click(screen.getByRole('button', { name: /enviar para 1 aluno/i }));
+
     await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith('Anamnese não encontrada', 'error');
-      expect(mockNavigate).toHaveBeenCalledWith(-1);
+      expect(mockShowToast).toHaveBeenCalledWith('Nenhuma anamnese foi enviada. Tente novamente.', 'error');
     });
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByRole('checkbox', { name: /joão silva/i })).toBeChecked();
+  });
+
+  it('goes back to the origin received in the location state instead of history', async () => {
+    const user = userEvent.setup();
+    setupDefaultMocks();
+    renderWithRoute(<AssignAnamnesis />, {
+      route: { pathname: '/trainer/anamneses/anamnesis-1/assign', state: { from: '/trainer/anamneses/anamnesis-1' } },
+      path: '/trainer/anamneses/:anamnesisId/assign',
+    });
+    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: /cancelar/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1');
+  });
+
+  it('shows an empty state when the trainer has no students', async () => {
+    const user = userEvent.setup();
+    api.get.mockImplementation((url) => Promise.resolve({
+      data: url === '/trainer/anamneses/anamnesis-1' ? mockAnamnesis : [],
+    }));
+    renderAssign();
+
+    expect(await screen.findByText('Sem alunos ainda')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Ver alunos' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students');
+  });
+
+  it('shows a no-results state when the search matches nobody', async () => {
+    const user = userEvent.setup();
+    setupDefaultMocks();
+    renderAssign();
+    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+
+    await user.type(screen.getByPlaceholderText(/buscar aluno/i), 'zzz');
+
+    expect(screen.getByText('Nenhum aluno encontrado')).toBeInTheDocument();
+  });
+
+  it('renders no inline styles', async () => {
+    setupDefaultMocks();
+    const { container } = renderAssign();
+    await waitFor(() => expect(screen.getByText('João Silva')).toBeInTheDocument());
+    expect(container.querySelectorAll('[style]')).toHaveLength(0);
   });
 });
