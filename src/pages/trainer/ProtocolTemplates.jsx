@@ -1,21 +1,22 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Calendar, Dumbbell, Plus } from 'lucide-react';
-import RowMenu from '../../components/RowMenu';
-import LibraryList, { LibraryListRow } from '../../components/LibraryList';
+import { ClipboardList, Calendar, Dumbbell, Plus } from 'lucide-react';
+import ConfirmDialog from '../../components/ds/ConfirmDialog';
+import LibraryPageHeader from '../../components/LibraryPageHeader';
+import LibraryListView from '../../components/LibraryListView';
+import { LibraryListRow } from '../../components/LibraryList';
 import LibraryFilterBar from '../../components/LibraryFilterBar';
-import LibraryBatchBar from '../../components/LibraryBatchBar';
 import Select from '../../components/Select';
 import { useToast } from '../../contexts/ToastContext';
-import { translateError } from '../../i18n';
-import api from '../../api/axios';
+import useConfirmDialog from '../../hooks/useConfirmDialog';
+import useLibraryList from '../../hooks/useLibraryList';
 import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { TRAINING_LEVEL_OPTIONS, getLevelLabel } from '../../constants/trainingLevels';
 import { getRoutineDraft, clearRoutineDraft, cleanupDraftResources } from '../../utils/routineDraft';
 import formatRelativeTime from '../../utils/relativeTime';
 
-const PAGE_LIMIT = 20;
-const SEARCH_DEBOUNCE_MS = 300;
+const ENDPOINT = '/trainer/protocol-templates';
+const NEW_ROUTINE_PATH = '/trainer/routines/new';
 const ALL_FILTER = 'all';
 
 const TYPE_FILTERS = [
@@ -23,132 +24,68 @@ const TYPE_FILTERS = [
   ...PROTOCOL_TYPE_OPTIONS,
 ];
 
-const isReady = (template) => {
-  const count = template.scheduleTemplatesCount ?? template.trainingsCount ?? 0;
-  return count > 0;
+const countLabel = (count) => `${count} ${count === 1 ? 'treino' : 'treinos'}`;
+
+const isReady = (template) => (template.scheduleTemplatesCount ?? template.trainingsCount ?? 0) > 0;
+
+const hasDraftContent = (draft) =>
+  !!draft &&
+  (!!draft.data.name?.trim() ||
+    !!draft.data.trainingIds?.length ||
+    !!(draft.data.meta && Object.values(draft.data.meta).some((v) => v != null && v !== '')));
+
+const buildTemplateBadges = (template) => {
+  const levelLabel = template.trainingLevel ? getLevelLabel(template.trainingLevel) : null;
+  const typeLabel = template.type ? getProtocolTypeLabel(template.type) : null;
+  return [
+    typeLabel && typeLabel !== '-' && { label: typeLabel, tone: 'brand' },
+    levelLabel && levelLabel !== '-' && { label: levelLabel, tone: 'neutral' },
+    isReady(template) ? { label: 'Pronta', tone: 'success' } : { label: 'Rascunho', tone: 'warning' },
+  ].filter(Boolean);
+};
+
+const buildTemplateStats = (template) => {
+  const trainingsCount = template.scheduleTemplatesCount ?? template.trainingsCount ?? 0;
+  return [
+    template.defaultDurationWeeks && { icon: Calendar, label: `${template.defaultDurationWeeks} semanas` },
+    { icon: Dumbbell, label: countLabel(trainingsCount) },
+  ].filter(Boolean);
 };
 
 const ProtocolTemplates = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-
-  const [templates, setTemplates] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [confirmDialog, setConfirmDialog] = useState(null);
+  const { dialogProps, requestConfirm } = useConfirmDialog();
   const [draft, setDraft] = useState(() => getRoutineDraft());
-
-  const [searchInput, setSearchInput] = useState('');
-  const [q, setQ] = useState('');
   const [type, setType] = useState('');
   const [trainingLevel, setTrainingLevel] = useState('');
-  const [page, setPage] = useState(1);
-  const [selectedIds, setSelectedIds] = useState([]);
 
-  const debounceRef = useRef(null);
+  const list = useLibraryList({
+    endpoint: ENDPOINT,
+    filters: { type, trainingLevel },
+    requestConfirm,
+  });
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setQ(searchInput);
-      setPage(1);
-    }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(debounceRef.current);
-  }, [searchInput]);
+  const visibleDraft = hasDraftContent(draft) ? draft : null;
+  const hasActiveFilters = !!list.q || !!type || !!trainingLevel;
+  // The local draft is client-only: it cannot be paginated/filtered server-side,
+  // so it only shows with no active filters.
+  const showDraftRow = !!visibleDraft && !hasActiveFilters;
+  const isEmptyLibrary = list.total === 0 && !visibleDraft && !hasActiveFilters;
+  const canCreate = list.status === 'ready' && !isEmptyLibrary;
 
-  const fetchTemplates = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = { page, limit: PAGE_LIMIT };
-      if (q) params.q = q;
-      if (type) params.type = type;
-      if (trainingLevel) params.trainingLevel = trainingLevel;
-      const response = await api.get('/trainer/protocol-templates', { params });
-      setTemplates(response.data.data);
-      setTotal(response.data.total);
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, q, type, trainingLevel, showToast]);
+  const goToNew = () => navigate(NEW_ROUTINE_PATH);
 
-  useEffect(() => {
-    fetchTemplates();
-  }, [fetchTemplates]);
-
-  // Selection is per-page: drop it whenever the page/query/filters change.
-  useEffect(() => {
-    setSelectedIds([]);
-  }, [page, q, type, trainingLevel]);
-
-  const handleTypeFilterChange = (value) => {
-    setType(value === ALL_FILTER ? '' : value);
-    setPage(1);
-  };
-
-  const handleTrainingLevelChange = (value) => {
-    setTrainingLevel(value);
-    setPage(1);
-  };
-
-  const toggleSelect = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  };
-
-  const handleBatchDelete = () => {
-    const count = selectedIds.length;
-    setConfirmDialog({
-      message: `Excluir ${count} ${count === 1 ? 'item' : 'itens'} selecionado${count === 1 ? '' : 's'}? Esta ação não pode ser desfeita.`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          const res = await api.post('/trainer/protocol-templates/batch-delete', {
-            ids: selectedIds,
-          });
-          showToast(`${res.data.deletedCount} itens excluídos.`, 'success');
-          setSelectedIds([]);
-          await fetchTemplates();
-        } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
-        }
-      },
-    });
-  };
-
-  const handleDelete = (id, name) => {
-    setConfirmDialog({
-      message: `Excluir "${name}"? Esta ação não pode ser desfeita.`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await api.delete(`/trainer/protocol-templates/${id}`);
-          showToast('Rotina excluída.', 'success');
-          await fetchTemplates();
-        } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
-        }
-      },
-    });
-  };
-
-  const handleContinueDraft = () => navigate('/trainer/routines/new');
-
-  const handleDiscardDraft = (e) => {
-    e?.stopPropagation?.();
-    setConfirmDialog({
+  const handleDiscardDraft = () => {
+    requestConfirm({
       message: 'Descartar este rascunho? Os treinos e exercícios criados aqui também serão apagados.',
+      confirmLabel: 'Descartar',
+      busyLabel: 'Descartando…',
       onConfirm: async () => {
-        setConfirmDialog(null);
         try {
           const result = await cleanupDraftResources(draft);
           if (result.failureCount > 0) {
-            showToast(
-              `Rascunho descartado, mas ${result.failureCount} item(ns) não puderam ser apagados.`,
-              'warning',
-            );
+            showToast(`Rascunho descartado, mas ${result.failureCount} item(ns) não puderam ser apagados.`, 'warning');
           } else {
             showToast('Rascunho descartado.', 'success');
           }
@@ -162,32 +99,10 @@ const ProtocolTemplates = () => {
     });
   };
 
-  const trainingCount = draft?.data?.trainingIds?.length ?? 0;
-
-  const isEmptyDraft =
-    draft &&
-    !draft.data.name?.trim() &&
-    !draft.data.trainingIds?.length &&
-    !(draft.data.meta && Object.values(draft.data.meta).some((v) => v != null && v !== ''));
-
-  const visibleDraft = draft && !isEmptyDraft ? draft : null;
-
-  const hasActiveFilters = !!q || !!type || !!trainingLevel;
-  const isEmptyLibrary = total === 0 && !visibleDraft && !hasActiveFilters;
-  const totalPages = Math.ceil(total / PAGE_LIMIT);
-  const activeTypeValue = type || ALL_FILTER;
-
-  const pageIds = templates.map((t) => t.id);
-  const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
-
-  const handleToggleSelectAll = () => {
-    setSelectedIds(allSelected ? [] : [...pageIds]);
-  };
-
   const trainingLevelSelect = (
     <Select
       value={trainingLevel}
-      onChange={(e) => handleTrainingLevelChange(e.target.value)}
+      onChange={(e) => setTrainingLevel(e.target.value)}
       aria-label="Filtrar por nível"
     >
       <option value="">Todos os níveis</option>
@@ -197,235 +112,111 @@ const ProtocolTemplates = () => {
     </Select>
   );
 
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <span className="loading-text">Carregando…</span>
-      </div>
-    );
-  }
+  const toolbar = (
+    <LibraryFilterBar
+      searchValue={list.searchInput}
+      onSearchChange={list.setSearchInput}
+      searchPlaceholder="Buscar rotina por nome ou tipo…"
+      searchAriaLabel="Buscar rotina"
+      filtersAriaLabel="Filtrar rotinas por tipo"
+      filters={TYPE_FILTERS}
+      filterCounts={{ [type || ALL_FILTER]: list.total }}
+      activeFilter={type || ALL_FILTER}
+      onFilterChange={(value) => setType(value === ALL_FILTER ? '' : value)}
+      sortSelect={trainingLevelSelect}
+    />
+  );
 
-  // Local draft only shows on the first page with no active filters — it is a
-  // client-only row and cannot be paginated/filtered server-side.
-  const showDraftRow = !!visibleDraft && page === 1 && !hasActiveFilters;
-  const showList = !isEmptyLibrary;
+  const draftRow = showDraftRow && (
+    <LibraryListRow
+      key="local-draft"
+      title={visibleDraft.data.name?.trim() || 'Sem nome'}
+      subtitle={`Rascunho salvo ${formatRelativeTime(visibleDraft.savedAt)}`}
+      badges={[{ label: 'Em andamento', tone: 'warning' }]}
+      stats={[{ icon: Dumbbell, label: countLabel(visibleDraft.data.trainingIds?.length ?? 0) }]}
+      onOpen={goToNew}
+      ariaLabel="Continuar rascunho em andamento"
+      rowMenuProps={{
+        ariaLabel: 'Ações do rascunho',
+        onDelete: handleDiscardDraft,
+        deleteLabel: 'Descartar',
+        extraItems: [{ label: 'Continuar editando', onClick: goToNew, danger: false }],
+      }}
+    />
+  );
 
   return (
-    <div className="routines-page-content">
-      <div className="page-header">
-        <div>
-          <span className="page-header-eyebrow page-header-eyebrow--primary">Rotinas</span>
-          <div className="page-header-title-row">
-            <BookOpen size={24} strokeWidth={2} className="page-header-title-icon" />
-            <h1>Rotinas</h1>
-          </div>
-        </div>
-        <div className="page-header-actions">
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => navigate('/trainer/routines/new')}
-          >
-            <Plus size={16} strokeWidth={2} aria-hidden="true" />
+    <div>
+      <LibraryPageHeader
+        icon={ClipboardList}
+        title="Rotinas"
+        actions={canCreate && (
+          <button type="button" className="btn btn--primary btn--lg" onClick={goToNew}>
+            <Plus size={20} strokeWidth={2} aria-hidden="true" />
             Nova rotina
           </button>
-        </div>
-      </div>
+        )}
+      />
 
-      {showList && (
-        <LibraryFilterBar
-          searchValue={searchInput}
-          onSearchChange={setSearchInput}
-          searchPlaceholder="Buscar rotina por nome ou tipo…"
-          searchAriaLabel="Buscar rotina"
-          filters={TYPE_FILTERS}
-          activeFilter={activeTypeValue}
-          onFilterChange={handleTypeFilterChange}
-          sortSelect={trainingLevelSelect}
-        />
-      )}
-
-      {isEmptyLibrary && (
-        <div className="empty-state">
-          <div className="empty-state-icon empty-state-icon--accent">
-            <Dumbbell size={32} strokeWidth={2} />
-          </div>
-          <h2 className="empty-state-title">Comece pelo treino — não pelo dia</h2>
-          <p className="text-muted text-sm">
-            Crie Treino A, B, C… O dia da semana é opcional — você atribui depois.
-          </p>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => navigate('/trainer/routines/new')}
-          >
-            <Plus size={16} strokeWidth={2} aria-hidden="true" />
-            Adicionar primeira rotina
-          </button>
-        </div>
-      )}
-
-      {showList && (
-        <>
-          <LibraryBatchBar
-            allSelected={allSelected}
-            selectedCount={selectedIds.length}
-            onToggleSelectAll={handleToggleSelectAll}
-            onDelete={handleBatchDelete}
+      <LibraryListView
+        status={list.status}
+        loadError={list.loadError}
+        errorTitle="Não foi possível carregar as rotinas"
+        onRetry={list.reload}
+        isEmptyLibrary={isEmptyLibrary}
+        empty={{
+          icon: ClipboardList,
+          title: 'Sem rotinas ainda',
+          description: 'Comece pelo treino, não pelo dia: crie o Treino A, B, C… O dia da semana é opcional e você atribui depois.',
+          actionLabel: 'Criar primeira rotina',
+          onAction: goToNew,
+        }}
+        toolbar={toolbar}
+        refetching={list.refetching}
+        batch={list.items.length > 0 ? {
+          allSelected: list.allSelected,
+          selectedCount: list.selectedIds.length,
+          onToggleSelectAll: list.toggleSelectAll,
+          onDelete: list.deleteSelected,
+        } : null}
+        isNoResults={hasActiveFilters}
+        noResultsMessage="Nenhuma rotina corresponde aos filtros atuais."
+        footer={{
+          shown: list.items.length,
+          total: list.total,
+          noun: 'rotina',
+          nounPlural: 'rotinas',
+          loading: list.loadingMore,
+          onShowMore: list.loadMore,
+        }}
+      >
+        {draftRow}
+        {list.items.map((template) => (
+          <LibraryListRow
+            key={template.id}
+            title={template.name}
+            badges={buildTemplateBadges(template)}
+            stats={buildTemplateStats(template)}
+            selectable
+            selected={list.selectedIds.includes(template.id)}
+            onToggleSelect={() => list.toggleSelect(template.id)}
+            selectAriaLabel={`Selecionar ${template.name}`}
+            onOpen={() => navigate(`/trainer/routines/${template.id}`)}
+            ariaLabel={`Abrir rotina ${template.name}`}
+            rowMenuProps={{
+              ariaLabel: `Ações da rotina ${template.name}`,
+              onEdit: () => navigate(`/trainer/routines/${template.id}/edit`),
+              onDelete: () => list.deleteOne({
+                id: template.id,
+                message: `Excluir "${template.name}"? Esta ação não pode ser desfeita.`,
+                successMessage: 'Rotina excluída.',
+              }),
+            }}
           />
+        ))}
+      </LibraryListView>
 
-          <LibraryList
-            emptyMessage="Nenhuma rotina encontrada"
-            isNoResults={hasActiveFilters}
-          >
-            {showDraftRow && (
-              <LibraryListRow
-                key="local-draft"
-                title={visibleDraft.data.name?.trim() || 'Sem nome'}
-                subtitle={`Rascunho salvo ${formatRelativeTime(visibleDraft.savedAt)}`}
-                badges={<span className="badge badge-accent">EM ANDAMENTO</span>}
-                stats={
-                  <span className="stat-chip">
-                    <Dumbbell size={14} strokeWidth={2} aria-hidden="true" />
-                    {trainingCount} {trainingCount !== 1 ? 'treinos' : 'treino'}
-                  </span>
-                }
-                onClick={handleContinueDraft}
-                ariaLabel="Continuar rascunho em andamento"
-                rowMenuProps={{
-                  ariaLabel: 'Ações do rascunho',
-                  onDelete: handleDiscardDraft,
-                  deleteLabel: 'Descartar',
-                  extraItems: [
-                    {
-                      label: 'Continuar editando',
-                      onClick: handleContinueDraft,
-                      danger: false,
-                    },
-                  ],
-                }}
-              />
-            )}
-
-            {templates.map((template) => {
-              const levelLabel = template.trainingLevel ? getLevelLabel(template.trainingLevel) : null;
-              const typeLabel = template.type ? getProtocolTypeLabel(template.type) : null;
-              const trainingsCount = template.scheduleTemplatesCount ?? template.trainingsCount ?? 0;
-              const ready = isReady(template);
-
-              const badges = (
-                <>
-                  {typeLabel && typeLabel !== '-' && (
-                    <span className="badge badge-blue">{typeLabel}</span>
-                  )}
-                  {levelLabel && levelLabel !== '-' && (
-                    <span className="badge badge-gray">{levelLabel}</span>
-                  )}
-                  {ready ? (
-                    <span className="badge badge-green">
-                      <span className="badge-dot" aria-hidden="true" />
-                      Pronta
-                    </span>
-                  ) : (
-                    <span className="badge badge-accent">Rascunho</span>
-                  )}
-                </>
-              );
-
-              const subtitle = [
-                template.defaultDurationWeeks
-                  ? `${template.defaultDurationWeeks} sem.`
-                  : null,
-                `${trainingsCount} ${trainingsCount === 1 ? 'treino' : 'treinos'}`,
-              ]
-                .filter(Boolean)
-                .join(' · ');
-
-              const stats = (
-                <>
-                  {template.defaultDurationWeeks && (
-                    <span className="stat-chip">
-                      <Calendar size={14} strokeWidth={2} aria-hidden="true" />
-                      {template.defaultDurationWeeks} semanas
-                    </span>
-                  )}
-                  <span className="stat-chip">
-                    <Dumbbell size={14} strokeWidth={2} aria-hidden="true" />
-                    {trainingsCount} {trainingsCount === 1 ? 'treino' : 'treinos'}
-                  </span>
-                </>
-              );
-
-              return (
-                <LibraryListRow
-                  key={template.id}
-                  title={template.name}
-                  subtitle={subtitle}
-                  badges={badges}
-                  stats={stats}
-                  selectable
-                  selected={selectedIds.includes(template.id)}
-                  onToggleSelect={() => toggleSelect(template.id)}
-                  selectAriaLabel={`Selecionar ${template.name}`}
-                  onClick={() => navigate(`/trainer/routines/${template.id}/edit`)}
-                  ariaLabel={`Editar rotina ${template.name}`}
-                  rowMenuProps={{
-                    ariaLabel: `Ações da rotina ${template.name}`,
-                    onEdit: () => navigate(`/trainer/routines/${template.id}/edit`),
-                    onDelete: () => handleDelete(template.id, template.name),
-                  }}
-                />
-              );
-            })}
-          </LibraryList>
-
-          {totalPages > 1 && (
-            <div className="pagination-row">
-              <button
-                className="btn btn-sm btn-secondary"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Anterior
-              </button>
-              <span className="text-sm text-muted">
-                Página {page} de {totalPages}
-              </span>
-              <button
-                className="btn btn-sm btn-secondary"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {confirmDialog && (
-        <div className="overlay" onClick={() => setConfirmDialog(null)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-dialog-message">{confirmDialog.message}</p>
-            <div className="confirm-dialog-actions">
-              <button
-                type="button"
-                onClick={confirmDialog.onConfirm}
-                className="btn-danger"
-              >
-                Confirmar
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmDialog(null)}
-                className="btn-secondary"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {dialogProps && <ConfirmDialog {...dialogProps} />}
     </div>
   );
 };

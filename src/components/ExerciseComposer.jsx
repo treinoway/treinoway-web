@@ -152,7 +152,7 @@ const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
       ) : displayList.length === 0 ? (
         <div className="library-empty type-body">{emptyMessage}</div>
       ) : (
-        <div className="library-list" role="list">
+        <div className="library-panel__list" role="list">
           {displayList.map((tmpl) => {
             const selected = selectedIds.includes(tmpl.id);
             const typeLabel = tmpl.type ? getExerciseTypeLabel(tmpl.type) : null;
@@ -217,6 +217,7 @@ const ExerciseComposer = ({
   onSubmitFromLibrary,
   onCancel,
   onRequestDelete,
+  canUseVideoLibrary = false,
 }) => {
   const isEditMode = snapshot != null;
 
@@ -516,6 +517,7 @@ const ExerciseComposer = ({
           value={form.videoUrl}
           onChange={(url) => handleFieldChange('videoUrl', url)}
           label="Vídeo de demonstração"
+          canUseLibrary={canUseVideoLibrary}
         />
 
         {/* Observações — uncapped */}
@@ -650,6 +652,8 @@ ExerciseComposer.propTypes = {
   onSubmitFromLibrary: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
   onRequestDelete: PropTypes.func,
+  /** Admin-only: offers the video library picker next to the YouTube link. */
+  canUseVideoLibrary: PropTypes.bool,
 };
 
 ExerciseComposer.defaultProps = {

@@ -54,13 +54,17 @@ const useFillStudent = (studentId) => {
 
 const pluralizeQuestions = (count) => (count === 1 ? '1 pergunta' : `${count} perguntas`);
 
-const getPrefillNotice = (response, firstName) => {
+const isSavedTrainerResponse = (response) =>
+  response?.filledBy === ANAMNESIS_FILLED_BY.TRAINER && response.status !== ANAMNESIS_RESPONSE_STATUS.DRAFT;
+
+const getSavedResponseNotice = (firstName, isReopened) =>
+  isReopened
+    ? `Anamnese em rascunho. Ela só fica disponível para ${firstName} confirmar depois que você clicar em Salvar respostas.`
+    : `Você já registrou esta anamnese. Ao alterar alguma resposta, a anamnese volta para rascunho e só fica disponível para ${firstName} confirmar depois que você clicar em Salvar respostas.`;
+
+const getPrefillNotice = (response, firstName, isReopened) => {
   if (!response) return null;
-  const isTrainerSubmission =
-    response.filledBy === ANAMNESIS_FILLED_BY.TRAINER && response.status !== ANAMNESIS_RESPONSE_STATUS.DRAFT;
-  if (isTrainerSubmission) {
-    return `Você já registrou esta anamnese. Salvar de novo substitui as respostas e pede que ${firstName} confirme novamente.`;
-  }
+  if (isSavedTrainerResponse(response)) return getSavedResponseNotice(firstName, isReopened);
   const answered = (response.answers ?? []).filter((answer) => !isAnswerEmpty(answer.value)).length;
   if (answered === 0) return null;
   if (response.filledBy === ANAMNESIS_FILLED_BY.TRAINER) {
@@ -93,7 +97,8 @@ const FillWizard = ({ student, anamnesis, previousResponse, source, dossierPath,
     },
     onConflict: source.reload,
   });
-  const notice = getPrefillNotice(previousResponse, firstName);
+  // The first autosave of an already-saved response reopens it as a draft on the server.
+  const notice = getPrefillNotice(previousResponse, firstName, Boolean(draft.saveState.savedAt));
 
   if (wizard.steps.length === 1) {
     return (
@@ -117,6 +122,7 @@ const FillWizard = ({ student, anamnesis, previousResponse, source, dossierPath,
       headerExtra={<p className="anamnesis-wizard-byline">Preenchendo por {getStudentFullName(student)}</p>}
       banner={notice && <InfoBanner text={notice} />}
       reviewHint={REVIEW_HINT}
+      allowJumpAhead
       saveState={draft.enabled ? draft.saveState : undefined}
     />
   );

@@ -3,7 +3,10 @@ import {
   ANAMNESIS_CONDITION_OPERATOR,
   ANAMNESIS_PARENT_ELIGIBLE_TYPES,
   ANAMNESIS_QUESTION_TYPE,
+  CREATABLE_QUESTION_TYPES,
+  QUESTION_TYPES_WITH_OPTIONS,
   defaultQuestionForm,
+  getQuestionTypeLabel,
   isQuestionVisible,
 } from './anamnesis';
 
@@ -169,5 +172,14 @@ describe('anamnesis constants', () => {
       ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE,
       ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE,
     ]);
+  });
+});
+
+describe('creatable question types', () => {
+  it('excludes the legacy matrix type but keeps its label for display', () => {
+    expect(CREATABLE_QUESTION_TYPES).not.toContain(ANAMNESIS_QUESTION_TYPE.MATRIX);
+    expect(CREATABLE_QUESTION_TYPES).toHaveLength(5);
+    expect(QUESTION_TYPES_WITH_OPTIONS).not.toContain(ANAMNESIS_QUESTION_TYPE.MATRIX);
+    expect(getQuestionTypeLabel(ANAMNESIS_QUESTION_TYPE.MATRIX)).toBe('Matriz');
   });
 });

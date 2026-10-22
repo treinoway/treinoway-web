@@ -33,6 +33,7 @@ const renderForm = (props = {}) =>
       onCancel={mockOnCancel}
       onSuccess={mockOnSuccess}
       onNameChange={mockOnNameChange}
+      isAdmin
       {...props}
     />
   );
@@ -273,7 +274,7 @@ describe('ExerciseTemplateForm', () => {
     await user.click(screen.getByRole('button', { name: /remover vídeo/i }));
 
     expect(
-      screen.getByRole('dialog', { name: /remover vídeo\?/i })
+      screen.getByRole('alertdialog', { name: /remover vídeo\?/i })
     ).toBeInTheDocument();
   });
 
@@ -284,7 +285,7 @@ describe('ExerciseTemplateForm', () => {
     await user.type(screen.getByLabelText(/url do vídeo/i), VALID_YOUTUBE_URL);
     await user.click(screen.getByRole('button', { name: /remover vídeo/i }));
 
-    const dialog = screen.getByRole('dialog', { name: /remover vídeo\?/i });
+    const dialog = screen.getByRole('alertdialog', { name: /remover vídeo\?/i });
     await user.click(within(dialog).getByRole('button', { name: /confirmar/i }));
 
     expect(screen.getByLabelText(/url do vídeo/i)).toHaveValue('');
@@ -298,7 +299,7 @@ describe('ExerciseTemplateForm', () => {
     await user.type(screen.getByLabelText(/url do vídeo/i), VALID_YOUTUBE_URL);
     await user.click(screen.getByRole('button', { name: /remover vídeo/i }));
 
-    const dialog = screen.getByRole('dialog', { name: /remover vídeo\?/i });
+    const dialog = screen.getByRole('alertdialog', { name: /remover vídeo\?/i });
     await user.click(within(dialog).getByRole('button', { name: /cancelar/i }));
 
     expect(screen.getByLabelText(/url do vídeo/i)).toHaveValue(VALID_YOUTUBE_URL);
@@ -334,7 +335,7 @@ describe('ExerciseTemplateForm', () => {
 
     await user.click(screen.getByLabelText(/tornar este modelo público/i));
 
-    const dialog = screen.getByRole('dialog', { name: /tornar público\?/i });
+    const dialog = screen.getByRole('alertdialog', { name: /tornar público\?/i });
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByText(/outros treinadores podem usar/i)).toBeInTheDocument();
   });
@@ -345,7 +346,7 @@ describe('ExerciseTemplateForm', () => {
 
     await user.click(screen.getByLabelText(/tornar este modelo público/i));
 
-    const dialog = screen.getByRole('dialog', { name: /tornar público\?/i });
+    const dialog = screen.getByRole('alertdialog', { name: /tornar público\?/i });
     await user.click(within(dialog).getByRole('button', { name: /cancelar/i }));
 
     expect(screen.getByLabelText(/tornar este modelo público/i)).not.toBeChecked();
@@ -357,7 +358,7 @@ describe('ExerciseTemplateForm', () => {
 
     await user.click(screen.getByLabelText(/tornar este modelo público/i));
 
-    const dialog = screen.getByRole('dialog', { name: /tornar público\?/i });
+    const dialog = screen.getByRole('alertdialog', { name: /tornar público\?/i });
     await user.click(within(dialog).getByRole('button', { name: /confirmar/i }));
 
     expect(screen.getByLabelText(/tornar este modelo público/i)).toBeChecked();
@@ -369,16 +370,16 @@ describe('ExerciseTemplateForm', () => {
 
     // First activation: confirm
     await user.click(screen.getByLabelText(/tornar este modelo público/i));
-    const dialog = screen.getByRole('dialog', { name: /tornar público\?/i });
+    const dialog = screen.getByRole('alertdialog', { name: /tornar público\?/i });
     await user.click(within(dialog).getByRole('button', { name: /confirmar/i }));
 
     // Turn off — no dialog
     await user.click(screen.getByLabelText(/tornar este modelo público/i));
-    expect(screen.queryByRole('dialog', { name: /tornar público\?/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog', { name: /tornar público\?/i })).not.toBeInTheDocument();
 
     // Turn on again — no dialog
     await user.click(screen.getByLabelText(/tornar este modelo público/i));
-    expect(screen.queryByRole('dialog', { name: /tornar público\?/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog', { name: /tornar público\?/i })).not.toBeInTheDocument();
   });
 
   // ── onNameChange callback ─────────────────────────────────────────────
@@ -389,6 +390,57 @@ describe('ExerciseTemplateForm', () => {
 
     await user.type(screen.getByLabelText(/nome/i), 'Supino');
     expect(mockOnNameChange).toHaveBeenCalledWith(expect.stringContaining('S'));
+  });
+
+  // ── Validation / busy / dirty ────────────────────────────────────────
+
+  it('shows an inline error and does not call the API when the name is empty', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Informe o nome do exercício.');
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('clears the name error as soon as the user types', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+    await user.type(screen.getByLabelText(/nome/i), 'S');
+
+    expect(screen.queryByText('Informe o nome do exercício.')).not.toBeInTheDocument();
+  });
+
+  it('shows the busy label and disables actions while saving', async () => {
+    const user = userEvent.setup();
+    api.post.mockReturnValue(new Promise(() => {}));
+    renderForm();
+
+    await user.type(screen.getByLabelText(/nome/i), 'Supino');
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    expect(await screen.findByRole('button', { name: 'Salvando…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /cancelar/i })).toBeDisabled();
+  });
+
+  it('reports dirty state through onDirtyChange', async () => {
+    const user = userEvent.setup();
+    const onDirtyChange = vi.fn();
+    renderForm({ onDirtyChange });
+
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+    await user.type(screen.getByLabelText(/nome/i), 'S');
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+    await user.clear(screen.getByLabelText(/nome/i));
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('renders each section as a section card in the page variant', () => {
+    renderForm({ variant: 'page' });
+    expect(screen.getByRole('region', { name: 'Identificação' })).toHaveClass('section-card');
   });
 
   // ── Cancel ────────────────────────────────────────────────────────────
@@ -410,7 +462,7 @@ describe('ExerciseTemplateForm', () => {
 
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
     await selectType(user, 'Força');
-    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
@@ -427,7 +479,7 @@ describe('ExerciseTemplateForm', () => {
 
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
     await selectType(user, 'Força');
-    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalled());
     const payload = api.post.mock.calls[0][1];
@@ -447,7 +499,7 @@ describe('ExerciseTemplateForm', () => {
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
     await selectType(user, 'Força');
     await user.type(screen.getByLabelText(/url do vídeo/i), VALID_YOUTUBE_URL);
-    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
@@ -464,7 +516,7 @@ describe('ExerciseTemplateForm', () => {
 
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
     await selectType(user, 'Força');
-    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Exercício criado com sucesso!', 'success');
@@ -479,7 +531,7 @@ describe('ExerciseTemplateForm', () => {
 
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
     await selectType(user, 'Força');
-    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
       expect(mockOnSuccess).toHaveBeenCalledWith(created);
@@ -493,7 +545,7 @@ describe('ExerciseTemplateForm', () => {
 
     await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
     await selectType(user, 'Força');
-    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Erro ao criar', 'error');
@@ -510,10 +562,10 @@ describe('ExerciseTemplateForm', () => {
 
     // Activate public visibility — first time triggers confirm dialog
     await user.click(screen.getByLabelText(/tornar este modelo público/i));
-    const visDialog = screen.getByRole('dialog', { name: /tornar público\?/i });
+    const visDialog = screen.getByRole('alertdialog', { name: /tornar público\?/i });
     await user.click(within(visDialog).getByRole('button', { name: /confirmar/i }));
 
-    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
@@ -578,12 +630,9 @@ describe('ExerciseTemplateForm', () => {
       expect(screen.getByRole('radio', { name: /força/i })).toHaveAttribute('aria-checked', 'true');
     });
 
-    it('shows "Salvar" button instead of "Criar exercício"', () => {
+    it('uses the same "Salvar" action as create mode', () => {
       renderForm({ exerciseTemplate });
       expect(screen.getByRole('button', { name: /^salvar$/i })).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: /criar exercício/i })
-      ).not.toBeInTheDocument();
     });
 
     it('calls PATCH with only identity fields when submitting in edit mode', async () => {
@@ -660,6 +709,52 @@ describe('ExerciseTemplateForm', () => {
         `https://img.youtube.com/vi/${VALID_VIDEO_ID}/hqdefault.jpg`
       );
       expect(screen.getByRole('button', { name: /remover vídeo/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('non-admin trainer', () => {
+    const ownedTemplate = { id: 10, name: 'Supino', type: 'strength', videoUrl: '', isPublic: true };
+
+    it('does not render the visibility section nor the library picker entry', () => {
+      renderForm({ isAdmin: false });
+      expect(screen.queryByRole('switch', { name: /tornar este modelo público/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /visibilidade/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /escolher da biblioteca/i })).not.toBeInTheDocument();
+      expect(screen.getByLabelText(/url do vídeo/i)).toBeInTheDocument();
+    });
+
+    it('omits isPublic from the create payload', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValueOnce({ data: { id: 1 } });
+      renderForm({ isAdmin: false });
+
+      await user.type(screen.getByLabelText(/nome/i), 'Supino Reto');
+      await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith('/trainer/exercise-templates', { name: 'Supino Reto', type: 'strength' });
+      });
+    });
+
+    it('omits isPublic from the edit payload so an existing value is never flipped', async () => {
+      const user = userEvent.setup();
+      api.patch.mockResolvedValueOnce({ data: ownedTemplate });
+      renderForm({ isAdmin: false, exerciseTemplate: ownedTemplate });
+
+      await user.type(screen.getByLabelText(/nome/i), ' 2');
+      await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+      await waitFor(() => {
+        expect(api.patch).toHaveBeenCalledWith('/trainer/exercise-templates/10', { name: 'Supino 2', type: 'strength' });
+      });
+    });
+  });
+
+  describe('admin', () => {
+    it('renders the visibility switch and the library picker entry', () => {
+      renderForm({ isAdmin: true });
+      expect(screen.getByRole('switch', { name: /tornar este modelo público/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /escolher da biblioteca/i })).toBeInTheDocument();
     });
   });
 });

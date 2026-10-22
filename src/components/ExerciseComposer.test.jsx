@@ -96,7 +96,7 @@ const defaultProps = {
 };
 
 const renderComposer = (props = {}) =>
-  render(<ExerciseComposer {...defaultProps} {...props} />);
+  render(<ExerciseComposer {...defaultProps} canUseVideoLibrary {...props} />);
 
 const switchToCreateTab = async (user) => {
   await user.click(screen.getByRole('tab', { name: /Criar novo/i }));
@@ -1032,5 +1032,20 @@ describe('ExerciseComposer — clearing fields', () => {
     expect(payload).not.toHaveProperty('restInterval');
     expect(payload).not.toHaveProperty('suggestedLoad');
     expect(payload).not.toHaveProperty('notes');
+  });
+});
+
+describe('ExerciseComposer — video library gating', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('does not offer the video library when canUseVideoLibrary is false', async () => {
+    const user = userEvent.setup();
+    renderComposer({ canUseVideoLibrary: false });
+    await switchToCreateTab(user);
+
+    expect(screen.queryByRole('button', { name: /Escolher da biblioteca/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/URL do YouTube/i)).toBeInTheDocument();
   });
 });

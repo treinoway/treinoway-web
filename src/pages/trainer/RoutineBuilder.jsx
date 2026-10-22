@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import RoutineSummarySheet from '../../components/RoutineSummarySheet';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import useRoutineBuilder from '../../hooks/useRoutineBuilder';
 import useProtocolBuilder from '../../hooks/useProtocolBuilder';
 import useRoutineDraft from '../../hooks/useRoutineDraft';
@@ -43,6 +44,12 @@ import useProtocolDraft from '../../hooks/useProtocolDraft';
 import useUnsavedChangesWarning from '../../hooks/useUnsavedChangesWarning';
 import useBisetCreate from '../../hooks/useBisetCreate';
 import useExerciseReorder from '../../hooks/useExerciseReorder';
+import useDismissablePopover from '../../hooks/useDismissablePopover';
+import useAnchoredPopoverPosition, {
+  placeBelowStart,
+  placeBelowEnd,
+  placeFlipStart,
+} from '../../hooks/useAnchoredPopoverPosition';
 import formatRelativeTime from '../../utils/relativeTime';
 import ExerciseComposer from '../../components/ExerciseComposer';
 import AddTrainingSheet from '../../components/AddTrainingSheet';
@@ -63,6 +70,7 @@ import { WEEK_DAY_OPTIONS_SHORT } from '../../constants/weekDays';
 import { sortTrainingsByWeekDay } from '../../utils/sortTrainingsByWeekDay';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import DurationLabel from '../../components/DurationLabel';
+import DescriptionChipEditor from '../../components/routineBuilder/DescriptionChipEditor';
 import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { TRAINING_LEVEL_OPTIONS, getLevelLabel } from '../../constants/trainingLevels';
 import { GENDER_OPTIONS, getGenderLabel } from '../../constants/genderOrdination';
@@ -103,44 +111,12 @@ const IdentityChipPopover = ({
   emptyLabel,
 }) => {
   const [open, setOpen] = useState(false);
-  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef(null);
   const popoverRef = useRef(null);
 
-  const readPos = useCallback(() => {
-    if (!triggerRef.current) return null;
-    const rect = triggerRef.current.getBoundingClientRect();
-    return { top: rect.bottom + 4, left: rect.left };
-  }, []);
-
-  const recalcPosition = useCallback(() => {
-    const pos = readPos();
-    if (pos) setPopoverPos(pos);
-  }, [readPos]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handlePointerOutside = (e) => {
-      const clickedTrigger = triggerRef.current && triggerRef.current.contains(e.target);
-      const clickedPopover = popoverRef.current && popoverRef.current.contains(e.target);
-      if (!clickedTrigger && !clickedPopover) setOpen(false);
-    };
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-
-    document.addEventListener('pointerdown', handlePointerOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('resize', recalcPosition);
-    window.addEventListener('scroll', recalcPosition, true);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('resize', recalcPosition);
-      window.removeEventListener('scroll', recalcPosition, true);
-    };
-  }, [open, recalcPosition]);
+  const handleDismiss = useCallback(() => setOpen(false), []);
+  useDismissablePopover({ open, refs: [triggerRef, popoverRef], onDismiss: handleDismiss });
+  useAnchoredPopoverPosition({ open, triggerRef, popoverRef, place: placeBelowStart });
 
   const handleSelect = (v) => {
     onChange(v || null);
@@ -152,10 +128,8 @@ const IdentityChipPopover = ({
       setOpen(false);
       return;
     }
-    const pos = readPos();
-    if (pos) setPopoverPos(pos);
     setOpen(true);
-  }, [open, readPos]);
+  }, [open]);
 
   const isFilled = !!value;
 
@@ -166,12 +140,6 @@ const IdentityChipPopover = ({
           className="identity-chip-popover"
           role="listbox"
           aria-label={`Escolher ${label}`}
-          style={{
-            position: 'fixed',
-            top: popoverPos.top,
-            left: popoverPos.left,
-            zIndex: 1200,
-          }}
         >
           {clearable && isFilled && (
             <button
@@ -256,45 +224,13 @@ IdentityChipPopover.defaultProps = {
  */
 const IdentityChipDate = ({ label, value, onChange, required, emptyLabel }) => {
   const [open, setOpen] = useState(false);
-  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef(null);
   const popoverRef = useRef(null);
   const inputRef = useRef(null);
 
-  const readPos = useCallback(() => {
-    if (!triggerRef.current) return null;
-    const rect = triggerRef.current.getBoundingClientRect();
-    return { top: rect.bottom + 4, left: rect.left };
-  }, []);
-
-  const recalcPosition = useCallback(() => {
-    const pos = readPos();
-    if (pos) setPopoverPos(pos);
-  }, [readPos]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handlePointerOutside = (e) => {
-      const clickedTrigger = triggerRef.current && triggerRef.current.contains(e.target);
-      const clickedPopover = popoverRef.current && popoverRef.current.contains(e.target);
-      if (!clickedTrigger && !clickedPopover) setOpen(false);
-    };
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-
-    document.addEventListener('pointerdown', handlePointerOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('resize', recalcPosition);
-    window.addEventListener('scroll', recalcPosition, true);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('resize', recalcPosition);
-      window.removeEventListener('scroll', recalcPosition, true);
-    };
-  }, [open, recalcPosition]);
+  const handleDismiss = useCallback(() => setOpen(false), []);
+  useDismissablePopover({ open, refs: [triggerRef, popoverRef], onDismiss: handleDismiss });
+  useAnchoredPopoverPosition({ open, triggerRef, popoverRef, place: placeBelowStart });
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -307,10 +243,8 @@ const IdentityChipDate = ({ label, value, onChange, required, emptyLabel }) => {
       setOpen(false);
       return;
     }
-    const pos = readPos();
-    if (pos) setPopoverPos(pos);
     setOpen(true);
-  }, [open, readPos]);
+  }, [open]);
 
   const handleChange = (e) => {
     onChange(e.target.value || null);
@@ -329,12 +263,6 @@ const IdentityChipDate = ({ label, value, onChange, required, emptyLabel }) => {
           className="identity-chip-date-popover"
           role="dialog"
           aria-label={`Definir ${emptyLabel}`}
-          style={{
-            position: 'fixed',
-            top: popoverPos.top,
-            left: popoverPos.left,
-            zIndex: 1200,
-          }}
         >
           <span className="identity-chip-date-popover-label">{emptyLabel}</span>
           <input
@@ -401,118 +329,10 @@ IdentityChipDate.defaultProps = {
   required: false,
 };
 
-// ─── DescriptionChipEditor ────────────────────────────────────────────────────
-
-/**
- * Chip that, when clicked, expands an inline textarea below the identity strip
- * for free-text description entry.
- */
-const DescriptionChipEditor = ({ value, onSave }) => {
-  const [expanded, setExpanded] = useState(false);
-  const [draft, setDraft] = useState('');
-  const textareaRef = useRef(null);
-
-  const handleOpen = () => {
-    setDraft(value || '');
-    setExpanded(true);
-  };
-
-  const handleSave = useCallback(() => {
-    onSave(draft);
-    setExpanded(false);
-  }, [draft, onSave]);
-
-  const handleCancel = () => {
-    setExpanded(false);
-    setDraft('');
-  };
-
-  useEffect(() => {
-    if (expanded && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [expanded]);
-
-  useEffect(() => {
-    if (!expanded) return;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') handleCancel();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [expanded]);
-
-  const isFilled = !!value;
-
-  return (
-    <>
-      <button
-        type="button"
-        className={`identity-chip identity-chip--desktop-only${isFilled ? '' : ' identity-chip--empty'}`}
-        onClick={handleOpen}
-        aria-label="Definir Descrição"
-        aria-expanded={expanded}
-      >
-        {isFilled ? (
-          <>
-            <span className="identity-chip-label">Desc.:</span>
-            <span className="identity-chip-value">{value.length > 20 ? `${value.slice(0, 20)}…` : value}</span>
-          </>
-        ) : (
-          <>
-            <Plus size={12} strokeWidth={2} aria-hidden="true" />
-            Descrição
-          </>
-        )}
-      </button>
-
-      {expanded && (
-        <div className="identity-description-expander">
-          <span className="identity-description-expander-label type-caption-strong">Descrição da rotina</span>
-          <textarea
-            ref={textareaRef}
-            className="input identity-description-textarea"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Descreva o objetivo e perfil da rotina…"
-            aria-label="Descrição da rotina"
-          />
-          <div className="identity-description-actions">
-            <button
-              type="button"
-              className="btn btn--secondary"
-              onClick={handleCancel}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={handleSave}
-            >
-              Salvar
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
-DescriptionChipEditor.propTypes = {
-  value: PropTypes.string,
-  onSave: PropTypes.func.isRequired,
-};
-
-DescriptionChipEditor.defaultProps = {
-  value: null,
-};
-
 // ─── WeekdayChip ──────────────────────────────────────────────────────────────
 
 const WeekdayChip = ({ value, onChange, readOnly }) => {
   const [open, setOpen] = useState(false);
-  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef(null);
   const popoverRef = useRef(null);
 
@@ -524,83 +344,17 @@ const WeekdayChip = ({ value, onChange, readOnly }) => {
     return found ? found.label : value;
   }, [value]);
 
-  const POPOVER_HEIGHT_FALLBACK = 300;
-  const POPOVER_WIDTH_FALLBACK = 160;
-  const POPOVER_GAP = 4;
-  const POPOVER_EDGE_MARGIN = 8;
-
-  const calcPos = useCallback(() => {
-    if (!triggerRef.current) return null;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const popoverHeight = popoverRef.current?.offsetHeight || POPOVER_HEIGHT_FALLBACK;
-    const popoverWidth = popoverRef.current?.offsetWidth || POPOVER_WIDTH_FALLBACK;
-
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-    const flipUp = spaceBelow < popoverHeight + POPOVER_GAP && spaceAbove > spaceBelow;
-    const top = flipUp
-      ? Math.max(POPOVER_EDGE_MARGIN, rect.top - popoverHeight - POPOVER_GAP)
-      : rect.bottom + POPOVER_GAP;
-
-    const left = Math.min(
-      rect.left,
-      window.innerWidth - popoverWidth - POPOVER_EDGE_MARGIN
-    );
-
-    return { top, left };
-  }, []);
+  const handleDismiss = useCallback(() => setOpen(false), []);
+  useDismissablePopover({ open, refs: [triggerRef, popoverRef], onDismiss: handleDismiss });
+  useAnchoredPopoverPosition({ open, triggerRef, popoverRef, place: placeFlipStart });
 
   const handleToggle = useCallback(
     (e) => {
       e.stopPropagation();
-      if (open) {
-        setOpen(false);
-        return;
-      }
-      const pos = calcPos();
-      if (pos) setPopoverPos(pos);
-      setOpen(true);
+      setOpen((prev) => !prev);
     },
-    [open, calcPos]
+    []
   );
-
-  useEffect(() => {
-    if (!open) return;
-
-    // After the popover mounts its real dimensions are available. Schedule a
-    // recalc one frame later so the flip-up logic can use offsetHeight/offsetWidth
-    // instead of the fallback constants used during the initial toggle.
-    const rafId = requestAnimationFrame(() => {
-      const pos = calcPos();
-      if (pos) setPopoverPos(pos);
-    });
-
-    const recalcPosition = () => {
-      const pos = calcPos();
-      if (pos) setPopoverPos(pos);
-    };
-
-    const handlePointerOutside = (e) => {
-      const clickedTrigger = triggerRef.current && triggerRef.current.contains(e.target);
-      const clickedPopover = popoverRef.current && popoverRef.current.contains(e.target);
-      if (!clickedTrigger && !clickedPopover) setOpen(false);
-    };
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-
-    document.addEventListener('pointerdown', handlePointerOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('resize', recalcPosition);
-    window.addEventListener('scroll', recalcPosition, true);
-    return () => {
-      cancelAnimationFrame(rafId);
-      document.removeEventListener('pointerdown', handlePointerOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('resize', recalcPosition);
-      window.removeEventListener('scroll', recalcPosition, true);
-    };
-  }, [open, calcPos]);
 
   const handleSelect = (dayValue) => {
     onChange(dayValue || null);
@@ -614,12 +368,6 @@ const WeekdayChip = ({ value, onChange, readOnly }) => {
           className="weekday-popover"
           role="listbox"
           aria-label="Escolher dia"
-          style={{
-            position: 'fixed',
-            top: popoverPos.top,
-            left: popoverPos.left,
-            zIndex: 1200,
-          }}
         >
           <button
             type="button"
@@ -697,73 +445,31 @@ WeekdayChip.defaultProps = {
  */
 const InlineMenu = ({ ariaLabel, items, onOpen }) => {
   const [open, setOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
 
-  const readPos = useCallback(() => {
-    if (!triggerRef.current) return null;
-    const rect = triggerRef.current.getBoundingClientRect();
-    return { top: rect.bottom + 4, right: window.innerWidth - rect.right };
-  }, []);
-
-  const recalcPosition = useCallback(() => {
-    const pos = readPos();
-    if (pos) setMenuPos(pos);
-  }, [readPos]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handlePointerOutside = (e) => {
-      const clickedTrigger = triggerRef.current && triggerRef.current.contains(e.target);
-      const clickedMenu = menuRef.current && menuRef.current.contains(e.target);
-      if (!clickedTrigger && !clickedMenu) setOpen(false);
-    };
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-
-    document.addEventListener('pointerdown', handlePointerOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('resize', recalcPosition);
-    window.addEventListener('scroll', recalcPosition, true);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('resize', recalcPosition);
-      window.removeEventListener('scroll', recalcPosition, true);
-    };
-  }, [open, recalcPosition]);
+  const handleDismiss = useCallback(() => setOpen(false), []);
+  useDismissablePopover({ open, refs: [triggerRef, menuRef], onDismiss: handleDismiss });
+  useAnchoredPopoverPosition({ open, triggerRef, popoverRef: menuRef, place: placeBelowEnd });
 
   const handleTriggerClick = useCallback(
     (e) => {
       e.stopPropagation();
       setOpen((prev) => {
         const next = !prev;
-        if (next) {
-          const pos = readPos();
-          if (pos) setMenuPos(pos);
-          if (onOpen) onOpen();
-        }
+        if (next && onOpen) onOpen();
         return next;
       });
     },
-    [onOpen, readPos]
+    [onOpen]
   );
 
   const dropdown = open
     ? createPortal(
         <div
           ref={menuRef}
-          className="row-menu-dropdown"
+          className="row-menu-dropdown row-menu-dropdown--portal"
           role="menu"
-          style={{
-            position: 'fixed',
-            top: menuPos.top,
-            right: menuPos.right,
-            zIndex: 1200,
-          }}
         >
           {items.map((item, idx) => {
             if (item.kind === 'caption') {
@@ -1513,6 +1219,7 @@ const TrainingItem = ({
   onRefetchTraining,
 }) => {
   const { showToast } = useToast();
+  const { isAdmin } = useAuth();
   const [composerState, setComposerState] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -1922,6 +1629,7 @@ const TrainingItem = ({
                                 onSubmitFromLibrary={handleImport}
                                 onCancel={() => setComposerState(null)}
                                 onRequestDelete={() => handleRequestDeleteExercise(ex)}
+                                canUseVideoLibrary={isAdmin}
                               />
                             );
                           }
@@ -2042,6 +1750,7 @@ const TrainingItem = ({
                 onSubmitEdit={handleEditExercise}
                 onSubmitFromLibrary={handleImport}
                 onCancel={() => setComposerState(null)}
+                canUseVideoLibrary={isAdmin}
               />
             ) : !readOnly && !composerEditing && exercises.length > 0 && (
               <button

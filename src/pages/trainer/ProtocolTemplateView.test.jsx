@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRoute } from '../../test/test-utils';
 import ProtocolTemplateView from './ProtocolTemplateView';
@@ -102,6 +102,8 @@ const renderView = () =>
     path: '/trainer/routines/:id',
   });
 
+const waitForLoaded = () => screen.findByRole('heading', { name: 'Hipertrofia 12 Semanas', level: 1 });
+
 describe('ProtocolTemplateView', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
@@ -111,212 +113,177 @@ describe('ProtocolTemplateView', () => {
     setupApiMocks();
   });
 
-  it('shows loading state initially', () => {
+  it('shows an in-place loading state with the back button available', () => {
     api.get.mockImplementation(() => new Promise(() => {}));
     renderView();
-    expect(screen.getByText('Carregando...')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Carregando rotina' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /voltar/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /editar/i })).not.toBeInTheDocument();
   });
 
-  it('renders template name and eyebrow with type badge after load', async () => {
+  it('renders hero with name, type and level tags and description', async () => {
     renderView();
-
-    await waitFor(() => {
-      expect(screen.getByText('Hipertrofia 12 Semanas')).toBeInTheDocument();
-    });
-
-    // eyebrow div contains mixed text nodes + badge spans — query the div directly
-    const eyebrow = document.querySelector('.page-header-eyebrow');
-    expect(eyebrow).toBeInTheDocument();
-    expect(eyebrow.textContent.toLowerCase()).toContain('template de rotina');
-    // type badge inline
+    await waitForLoaded();
     expect(screen.getByText('Força')).toBeInTheDocument();
-    // level badge inline — appears in both eyebrow and stat strip
     expect(screen.getAllByText('Intermediário').length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getByText('Programa de hipertrofia focado em ganho de massa muscular.'),
+    ).toBeInTheDocument();
   });
 
-  it('renders description as lead-description', async () => {
+  it('renders metric cards with duration, trainings and level', async () => {
     renderView();
-
-    await waitFor(() => {
-      expect(
-        screen.getByText('Programa de hipertrofia focado em ganho de massa muscular.'),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it('renders stat strip with duration and trainings count', async () => {
-    renderView();
-
-    await waitFor(() => {
-      expect(screen.getByText('Hipertrofia 12 Semanas')).toBeInTheDocument();
-    });
-
+    await waitForLoaded();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('semanas')).toBeInTheDocument();
     expect(screen.getByText('por semana')).toBeInTheDocument();
-    // level appears twice (eyebrow badge + stat value) — confirm both render
-    expect(screen.getAllByText('Intermediário')).toHaveLength(2);
-    // gender unit below the level stat
     expect(screen.getByText('masculino')).toBeInTheDocument();
   });
 
-  it('renders trainings section header with count', async () => {
+  it('renders the week grid and the trainings section with count', async () => {
     renderView();
-
-    await waitFor(() => {
-      expect(screen.getByText('Treinos (2)')).toBeInTheDocument();
-    });
-  });
-
-  it('renders week grid', async () => {
-    renderView();
-
-    await waitFor(() => {
-      expect(screen.getByText('Hipertrofia 12 Semanas')).toBeInTheDocument();
-    });
-
+    await waitForLoaded();
+    expect(screen.getByRole('heading', { name: 'Semana' })).toBeInTheDocument();
     expect(screen.getByText('Seg')).toBeInTheDocument();
     expect(screen.getByText('Dom')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Treinos \(2\)/ })).toBeInTheDocument();
   });
 
-  it('renders collapsed training cards without showing exercise names', async () => {
+  it('keeps training exercises collapsed and shows a preview', async () => {
     renderView();
-
-    await waitFor(() => {
-      expect(screen.getByText('Peito e Tríceps')).toBeInTheDocument();
-    });
-
-    expect(screen.getByText('Costas e Bíceps')).toBeInTheDocument();
-    expect(screen.queryByText('Supino Reto')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tríceps Pulley')).not.toBeInTheDocument();
+    await waitForLoaded();
+    const toggle = await screen.findByRole('button', { name: 'Treino Peito e Tríceps' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText(/Supino Reto · Tríceps Pulley/)).toBeInTheDocument();
+    expect(screen.queryByText('Manter cotovelos fixos')).not.toBeVisible();
   });
 
-  it('expands a training card to show exercises on click', async () => {
+  it('expands and collapses a training via the accordion button', async () => {
     const user = userEvent.setup();
     renderView();
+    await waitForLoaded();
+    const toggle = await screen.findByRole('button', { name: 'Treino Peito e Tríceps' });
 
-    await waitFor(() => {
-      expect(screen.getByText('Peito e Tríceps')).toBeInTheDocument();
-    });
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Manter cotovelos fixos')).toBeVisible();
 
-    const toggleBtn = screen.getByRole('button', { name: /expandir treino peito e tríceps/i });
-    await user.click(toggleBtn);
-
-    expect(screen.getByText('Supino Reto')).toBeInTheDocument();
-    expect(screen.getByText('Tríceps Pulley')).toBeInTheDocument();
-    expect(screen.getByText('Manter cotovelos fixos')).toBeInTheDocument();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('Manter cotovelos fixos')).not.toBeVisible();
   });
 
-  it('collapses an expanded training card on second click', async () => {
+  it('expands all trainings and then collapses them all', async () => {
     const user = userEvent.setup();
     renderView();
+    await waitForLoaded();
 
-    await waitFor(() => {
-      expect(screen.getByText('Peito e Tríceps')).toBeInTheDocument();
-    });
+    await user.click(screen.getByRole('button', { name: 'Expandir tudo' }));
+    screen
+      .getAllByRole('button', { name: /^Treino / })
+      .forEach((button) => expect(button).toHaveAttribute('aria-expanded', 'true'));
 
-    const toggleBtn = screen.getByRole('button', { name: /expandir treino peito e tríceps/i });
-    await user.click(toggleBtn);
-    expect(screen.getByText('Supino Reto')).toBeInTheDocument();
-
-    await user.click(toggleBtn);
-    expect(screen.queryByText('Supino Reto')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Recolher tudo' }));
+    screen
+      .getAllByRole('button', { name: /^Treino / })
+      .forEach((button) => expect(button).toHaveAttribute('aria-expanded', 'false'));
   });
 
-  it('navigates to edit page when Editar button is clicked', async () => {
+  it('navigates to the edit page when Editar is clicked', async () => {
     const user = userEvent.setup();
     renderView();
-
-    await waitFor(() => {
-      expect(screen.getByText('Hipertrofia 12 Semanas')).toBeInTheDocument();
-    });
-
+    await waitForLoaded();
     await user.click(screen.getByRole('button', { name: /editar/i }));
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines/1/edit');
   });
 
-  it('navigates back to list when back button is clicked', async () => {
+  it('navigates back to the list when Voltar is clicked', async () => {
     const user = userEvent.setup();
     renderView();
-
-    await waitFor(() => {
-      expect(screen.getByText('Hipertrofia 12 Semanas')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /templates de rotina/i }));
+    await waitForLoaded();
+    await user.click(screen.getByRole('button', { name: /voltar/i }));
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines');
   });
 
-  it('shows confirm dialog when delete icon button is clicked', async () => {
+  it('deletes after confirming in the dialog, toasts and returns to the list', async () => {
     const user = userEvent.setup();
     renderView();
+    await waitForLoaded();
 
-    await waitFor(() => {
-      expect(screen.getByText('Hipertrofia 12 Semanas')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /excluir rotina/i }));
-
+    await user.click(screen.getByRole('button', { name: 'Mais ações da rotina' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    const dialog = screen.getByRole('alertdialog');
     expect(
-      screen.getByText(/Excluir "Hipertrofia 12 Semanas"\? Esta ação não pode ser desfeita\./i),
+      within(dialog).getByText(/Excluir "Hipertrofia 12 Semanas"\? Esta ação não pode ser desfeita\./),
     ).toBeInTheDocument();
-  });
 
-  it('calls DELETE and navigates away after confirming delete', async () => {
-    const user = userEvent.setup();
-    renderView();
-
-    await waitFor(() => {
-      expect(screen.getByText('Hipertrofia 12 Semanas')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /excluir rotina/i }));
-    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(within(dialog).getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/protocol-templates/1');
     });
-    expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines');
     expect(mockShowToast).toHaveBeenCalledWith('Rotina excluída com sucesso!', 'success');
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines');
   });
 
-  it('closes confirm dialog and makes no API call when Cancelar is clicked', async () => {
+  it('closes the dialog without calling the API when Cancelar is clicked', async () => {
     const user = userEvent.setup();
     renderView();
+    await waitForLoaded();
 
-    await waitFor(() => {
-      expect(screen.getByText('Hipertrofia 12 Semanas')).toBeInTheDocument();
-    });
+    await user.click(screen.getByRole('button', { name: 'Mais ações da rotina' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
 
-    await user.click(screen.getByRole('button', { name: /excluir rotina/i }));
-    expect(screen.getByText(/Esta ação não pode ser desfeita/i)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /cancelar/i }));
-
-    expect(screen.queryByText(/Esta ação não pode ser desfeita/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(api.delete).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('shows error toast and navigates to list when fetch fails', async () => {
-    api.get.mockRejectedValue({ userMessage: 'Erro ao carregar rotina.' });
+  it('shows an error toast and stays when the delete request fails', async () => {
+    const user = userEvent.setup();
+    api.delete.mockRejectedValue({ userMessage: 'Falha ao excluir.' });
     renderView();
+    await waitForLoaded();
+
+    await user.click(screen.getByRole('button', { name: 'Mais ações da rotina' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith('Erro ao carregar rotina.', 'error');
+      expect(mockShowToast).toHaveBeenCalledWith('Falha ao excluir.', 'error');
     });
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('shows the not-found block only after the request completes', async () => {
+    const user = userEvent.setup();
+    api.get.mockRejectedValue({ response: { status: 404 } });
+    renderView();
+
+    expect(await screen.findByText('Rotina não encontrada')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Voltar para rotinas' }));
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines');
   });
 
-  it('renders exercise preview text in collapsed card after exercises load', async () => {
+  it('shows an alert with retry when the fetch fails, and recovers on retry', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    api.get.mockRejectedValueOnce({ userMessage: 'Erro ao carregar rotina.' });
     renderView();
 
-    await waitFor(() => {
-      expect(screen.getByText('Peito e Tríceps')).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Erro ao carregar rotina.');
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/Supino Reto · Tríceps Pulley/i)).toBeInTheDocument();
-    });
+    await waitForLoaded();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows an empty message for a routine without trainings', async () => {
+    api.get.mockResolvedValue({ data: { ...mockTemplate, trainings: [] } });
+    renderView();
+    await waitForLoaded();
+    expect(screen.getByText('Sem treinos nesta rotina ainda')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Expandir tudo' })).not.toBeInTheDocument();
   });
 });

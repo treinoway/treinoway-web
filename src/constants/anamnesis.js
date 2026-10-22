@@ -11,6 +11,18 @@ export const ANAMNESIS_QUESTION_TYPE = {
 };
 
 /**
+ * Types that can still be authored. MATRIX is legacy: it stays readable
+ * (labels, wizard, dossier, preview) but the backend rejects creating it.
+ */
+export const CREATABLE_QUESTION_TYPES = [
+  ANAMNESIS_QUESTION_TYPE.FREE_TEXT,
+  ANAMNESIS_QUESTION_TYPE.DICHOTOMOUS,
+  ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE,
+  ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE,
+  ANAMNESIS_QUESTION_TYPE.NUMERIC,
+];
+
+/**
  * Anamnesis response lifecycle and authorship — mirrors the backend values.
  */
 export const ANAMNESIS_RESPONSE_STATUS = {
@@ -52,12 +64,11 @@ export function getQuestionTypeLabel(type) {
 }
 
 /**
- * Question types that require options (rows/choices).
+ * Question types that require options (choices).
  */
 export const QUESTION_TYPES_WITH_OPTIONS = [
   ANAMNESIS_QUESTION_TYPE.MULTIPLE_CHOICE,
   ANAMNESIS_QUESTION_TYPE.SINGLE_CHOICE,
-  ANAMNESIS_QUESTION_TYPE.MATRIX,
 ];
 
 /**

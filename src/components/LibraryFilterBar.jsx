@@ -1,20 +1,22 @@
 import PropTypes from 'prop-types';
 import { Search } from 'lucide-react';
+import Segmented from './ds/Segmented';
+
+// A "(0)" next to a visible row (e.g. a local draft) is misleading, so zero is omitted.
+const countOrNothing = (count) => (count > 0 ? count : undefined);
 
 /**
- * LibraryFilterBar — standardised search + filter-tab toolbar for Biblioteca pages.
- * Matches the visual treatment of the Students page toolbar exactly.
+ * LibraryFilterBar — search + segmented filter toolbar for Biblioteca pages.
+ * Same markup as the Students toolbar (`students-bar`).
  *
  * Props:
- *  - searchValue (string)           — current search input value
- *  - onSearchChange (func)          — called with new value on every keystroke
- *  - searchPlaceholder (string)     — placeholder text for the search input
- *  - searchAriaLabel (string)       — aria-label for the search input
- *  - filters (array)                — [{ value, label }] filter options
- *  - activeFilter (string)          — currently active filter value
- *  - onFilterChange (func)          — called with filter value when a tab is clicked
- *  - filterCounts (object)          — optional { [filterValue]: count } to show counts on tabs
- *  - sortSelect (node)              — optional sort <select> rendered at the trailing end
+ *  - searchValue / onSearchChange     — controlled search input
+ *  - searchPlaceholder / searchAriaLabel
+ *  - filters ([{ value, label, count? }]) — segmented tabs
+ *  - activeFilter / onFilterChange    — selected tab and change handler
+ *  - filterCounts ({ [value]: number }) — optional counts (overridden by filter.count)
+ *  - filtersAriaLabel (string)        — aria-label of the tablist
+ *  - sortSelect (node)                — optional trailing slot (sort / extra select)
  */
 const LibraryFilterBar = ({
   searchValue,
@@ -25,48 +27,40 @@ const LibraryFilterBar = ({
   activeFilter,
   onFilterChange,
   filterCounts,
+  filtersAriaLabel = 'Filtrar',
   sortSelect,
-}) => (
-  <div className="students-toolbar library-filter-toolbar" role="search">
-    <div className="students-search-wrap">
-      <Search size={16} strokeWidth={2} aria-hidden="true" />
-      <input
-        type="text"
-        className="students-search-input"
-        placeholder={searchPlaceholder}
-        value={searchValue}
-        onChange={(e) => onSearchChange(e.target.value)}
-        aria-label={searchAriaLabel}
-      />
-    </div>
+}) => {
+  const items = filters.map(({ value, label, count }) => ({
+    id: value,
+    label,
+    count: countOrNothing(count ?? filterCounts?.[value]),
+  }));
 
-    {filters.length > 0 && (
-      <div className="students-filter-group" role="tablist" aria-label="Filtrar">
-        {filters.map((f) => {
-          const count = filterCounts?.[f.value];
-          const isActive = activeFilter === f.value;
-          return (
-            <button
-              key={f.value}
-              type="button"
-              className={`students-filter-btn${isActive ? ' active' : ''}`}
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => onFilterChange(f.value)}
-            >
-              {f.label}
-              {count != null && (
-                <span className="students-filter-count">{count}</span>
-              )}
-            </button>
-          );
-        })}
+  return (
+    <div className="students-bar section-card section-card--compact" role="search">
+      <div className="input--search-wrap">
+        <Search size={16} strokeWidth={2} aria-hidden="true" />
+        <input
+          type="text"
+          className="input input--search input--on-elevated"
+          placeholder={searchPlaceholder}
+          value={searchValue}
+          onChange={(e) => onSearchChange(e.target.value)}
+          aria-label={searchAriaLabel}
+        />
       </div>
-    )}
-
-    {sortSelect}
-  </div>
-);
+      {items.length > 0 && (
+        <Segmented
+          ariaLabel={filtersAriaLabel}
+          items={items}
+          value={activeFilter}
+          onChange={onFilterChange}
+        />
+      )}
+      {sortSelect && <div className="students-bar__slot">{sortSelect}</div>}
+    </div>
+  );
+};
 
 LibraryFilterBar.propTypes = {
   searchValue: PropTypes.string.isRequired,
@@ -77,11 +71,13 @@ LibraryFilterBar.propTypes = {
     PropTypes.shape({
       value: PropTypes.string.isRequired,
       label: PropTypes.string.isRequired,
+      count: PropTypes.number,
     }),
   ),
   activeFilter: PropTypes.string,
   onFilterChange: PropTypes.func,
-  filterCounts: PropTypes.object,
+  filterCounts: PropTypes.objectOf(PropTypes.number),
+  filtersAriaLabel: PropTypes.string,
   sortSelect: PropTypes.node,
 };
 

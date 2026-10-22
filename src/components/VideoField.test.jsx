@@ -24,7 +24,7 @@ vi.mock('../api/axios', () => ({
 const renderField = (props = {}) => {
   const onChange = props.onChange ?? vi.fn();
   const value = props.value ?? '';
-  const utils = render(<VideoField value={value} onChange={onChange} {...props} />);
+  const utils = render(<VideoField value={value} onChange={onChange} canUseLibrary {...props} />);
   return { ...utils, onChange };
 };
 
@@ -227,5 +227,19 @@ describe('VideoField — null/undefined value safety', () => {
     expect(
       screen.getByRole('button', { name: /escolher da biblioteca/i })
     ).toBeInTheDocument();
+  });
+});
+
+describe('VideoField — without library access', () => {
+  it('hides the library CTA and shows the URL input right away', () => {
+    renderField({ canUseLibrary: false });
+    expect(screen.queryByRole('button', { name: /escolher da biblioteca/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/url do youtube/i)).toBeInTheDocument();
+  });
+
+  it('hides "Trocar" but keeps "Remover" for a valid video', () => {
+    renderField({ canUseLibrary: false, value: 'https://www.youtube.com/watch?v=abc123XYZ' });
+    expect(screen.queryByRole('button', { name: /trocar/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /remover/i })).toBeInTheDocument();
   });
 });

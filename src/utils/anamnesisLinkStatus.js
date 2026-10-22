@@ -19,6 +19,9 @@ const formatAnswerCount = (count) => {
   return count === 1 ? '1 resposta' : `${count} respostas`;
 };
 
+/** Appends "em dd/mm/aaaa" so a date never shows up without saying what happened on it. */
+const withDate = (hint, dateValue) => (dateValue ? `${hint} em ${formatDateTimeForDisplay(dateValue)}` : hint);
+
 const BUILDERS = {
   [ANAMNESIS_RESPONSE_STATUS.DRAFT]: (response) => ({
     label: DRAFT_LABEL,
@@ -28,12 +31,12 @@ const BUILDERS = {
   [ANAMNESIS_RESPONSE_STATUS.AWAITING_CONFIRMATION]: (response) => ({
     label: response.statusLabel || AWAITING_FALLBACK_LABEL,
     badgeClass: 'badge-blue',
-    detail: response.filledBy === ANAMNESIS_FILLED_BY.TRAINER ? TRAINER_FILLED_HINT : null,
+    detail: response.filledBy === ANAMNESIS_FILLED_BY.TRAINER ? withDate(TRAINER_FILLED_HINT, response.submittedAt) : null,
   }),
   [ANAMNESIS_RESPONSE_STATUS.SUBMITTED]: (response) => ({
     label: SUBMITTED_LABEL,
     badgeClass: 'badge-green',
-    detail: response.submittedAt ? formatDateTimeForDisplay(response.submittedAt) : null,
+    detail: response.submittedAt ? withDate(SUBMITTED_LABEL, response.submittedAt) : null,
   }),
 };
 
