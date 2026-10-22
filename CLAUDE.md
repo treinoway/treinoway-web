@@ -86,8 +86,8 @@ All visual code must use **semantic** tokens from `src/index.css` (`--background
 
 **Row with more than one action → three-dot menu.** Never multiple visible buttons in a row.
 
-- **Component:** `TemplateRowMenu` from `src/pages/trainer/TrainingTemplates.jsx`
-- Props: `ariaLabel` (required), `onDelete` (required), `onEdit` (optional), `deleteLabel` (default "Excluir")
+- **Component:** `RowMenu` from `src/components/RowMenu.jsx`
+- Props: `ariaLabel` (required), `onEdit`, `onDelete`, `deleteLabel` (default "Excluir"), `deleteDisabled`, `extraItems`
 - Trigger: `MoreVertical` from lucide-react. Destructive action: `row-menu-item--danger`.
 - **Exception:** row with only ONE action may have a direct button.
 
@@ -95,31 +95,21 @@ All visual code must use **semantic** tokens from `src/index.css` (`--background
 
 ## RULE 6: Destructive Confirmations
 
-**Never use `window.confirm()`.** Always use a custom dialog:
+**Never use `window.confirm()`.** Use `ds/ConfirmDialog` (`src/components/ds/ConfirmDialog.jsx`) with the `useConfirmDialog` hook (`src/hooks/useConfirmDialog.js`):
 
 ```jsx
-const [confirmDialog, setConfirmDialog] = useState(null);
+const { dialogProps, requestConfirm } = useConfirmDialog();
 
-const handleDelete = (item) => {
-  setConfirmDialog({
-    message: `Excluir "${item.name}"? Esta ação não pode ser desfeita.`,
-    onConfirm: async () => { setConfirmDialog(null); await api.delete(`/endpoint/${item.id}`); },
-  });
-};
+const handleDelete = (item) => requestConfirm({
+  message: `Excluir "${item.name}"? Esta ação não pode ser desfeita.`,
+  onConfirm: () => api.delete(`/endpoint/${item.id}`),
+});
 
 // In JSX:
-{confirmDialog && (
-  <div className="overlay" onClick={() => setConfirmDialog(null)}>
-    <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-      <p className="confirm-dialog-message">{confirmDialog.message}</p>
-      <div className="btn-group">
-        <button onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>Confirmar</button>
-        <button onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>Cancelar</button>
-      </div>
-    </div>
-  </div>
-)}
+{dialogProps && <ConfirmDialog {...dialogProps} />}
 ```
+
+The dialog stays busy while `onConfirm` runs, closes afterwards, and surfaces rejections as an error toast.
 
 ---
 
