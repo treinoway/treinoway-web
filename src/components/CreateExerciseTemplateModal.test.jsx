@@ -34,6 +34,7 @@ const renderModal = (props = {}) =>
       open={true}
       onClose={mockOnClose}
       onSuccess={mockOnSuccess}
+      isAdmin
       {...props}
     />
   );
@@ -87,5 +88,10 @@ describe('CreateExerciseTemplateModal', () => {
     expect(screen.getByLabelText(/nome/i)).toBeInTheDocument();
     expect(screen.getByRole('radiogroup', { name: /tipo do exercício/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/tornar este modelo público/i)).toBeInTheDocument();
+  });
+
+  it('hides the visibility switch for non-admins', () => {
+    renderModal({ isAdmin: false });
+    expect(screen.queryByLabelText(/tornar este modelo público/i)).not.toBeInTheDocument();
   });
 });
