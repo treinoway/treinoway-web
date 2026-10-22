@@ -1,15 +1,28 @@
+import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Plus } from 'lucide-react';
 import ExerciseTemplateSearchPicker from './ExerciseTemplateSearchPicker';
 import ExerciseRowCard from '../ExerciseRowCard';
 import RowMenu from '../RowMenu';
+import Badge from '../ds/Badge';
 import { formatSnapshotSummary } from '../../utils/exerciseMeta';
 import { findJunction } from '../../utils/trainingTemplateDraft';
 
-const ExerciseRow = ({ id, junction, source, onEdit, onRemove }) => {
+const ExerciseRow = ({ id, junction, source, highlighted = false, onEdit, onRemove }) => {
+  const rowRef = useRef(null);
   const name = junction?.name || junction?.exerciseTemplate?.name || source?.name || String(id);
+
+  useEffect(() => {
+    if (highlighted && typeof rowRef.current?.scrollIntoView === 'function') {
+      rowRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [highlighted]);
+
   return (
-    <div className="training-template-exercise-row">
+    <div
+      ref={rowRef}
+      className={`training-template-exercise-row${highlighted ? ' training-template-exercise-row--just-added' : ''}`}
+    >
       <ExerciseRowCard
         name={name}
         summary={junction ? formatSnapshotSummary(junction) : null}
@@ -27,6 +40,7 @@ ExerciseRow.propTypes = {
   id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   junction: PropTypes.object,
   source: PropTypes.object,
+  highlighted: PropTypes.bool,
   onEdit: PropTypes.func.isRequired,
   onRemove: PropTypes.func.isRequired,
 };
@@ -42,16 +56,28 @@ const TrainingTemplateExercises = ({
   onEdit,
   onCreateNew,
 }) => {
+  const [lastAdded, setLastAdded] = useState(null);
+
+  const handleAdd = (exercise) => {
+    setLastAdded({ id: exercise.id, message: `${exercise.name} adicionado ao treino` });
+    onAdd(exercise);
+  };
+
   return (
     <section className="section-card editor-page__section" aria-labelledby="tt-exercises-heading">
-      <h2 id="tt-exercises-heading" className="editor-page__section-title type-h3">Exercícios do treino</h2>
+      <div className="tt-exercises-header">
+        <h2 id="tt-exercises-heading" className="editor-page__section-title type-h3">Exercícios do treino</h2>
+        {exerciseIds.length > 0 && <Badge tone="brand" variant="tag">{exerciseIds.length}</Badge>}
+      </div>
 
       <ExerciseTemplateSearchPicker
         initialExercises={availableExercises}
         addedIds={exerciseIds}
         disabled={disabled}
-        onSelect={onAdd}
+        onSelect={handleAdd}
       />
+
+      <p className="visually-hidden" role="status">{lastAdded?.message}</p>
 
       {exerciseIds.length > 0 && (
         <div className="tt-exercise-list">
@@ -60,6 +86,7 @@ const TrainingTemplateExercises = ({
               key={id}
               id={id}
               junction={findJunction(junctions, id)}
+              highlighted={lastAdded !== null && String(lastAdded.id) === String(id)}
               source={availableExercises.find((item) => String(item.id) === String(id))}
               onEdit={onEdit}
               onRemove={onRemove}

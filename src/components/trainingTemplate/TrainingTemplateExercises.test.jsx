@@ -34,6 +34,18 @@ describe('TrainingTemplateExercises', () => {
     await user.click(screen.getByRole('option', { name: /supino reto/i }));
 
     expect(onAdd).toHaveBeenCalledWith(available[0]);
+    expect(screen.getByRole('status')).toHaveTextContent('Supino Reto adicionado ao treino');
+    expect(screen.getByRole('combobox', { name: 'Adicionar exercício' })).toHaveFocus();
+  });
+
+  it('shows the exercise count next to the section title only when there are exercises', () => {
+    renderSection();
+    expect(screen.getByRole('heading', { name: /exercícios do treino/i }).parentElement).toHaveTextContent(/^Exercícios do treino$/);
+  });
+
+  it('shows the count badge for the listed exercises', () => {
+    renderSection({ exerciseIds: [20, 21] });
+    expect(screen.getByRole('heading', { name: /exercícios do treino/i }).parentElement).toHaveTextContent('2');
   });
 
   it('lists the exercises, opens one for editing and removes via the row menu', async () => {
