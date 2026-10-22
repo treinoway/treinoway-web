@@ -31,7 +31,7 @@ const LibraryBatchBar = ({
     <div className="library-batch-bar">
       <button
         type="button"
-        className="library-batch-bar-select"
+        className="btn btn--ghost"
         onClick={onToggleSelectAll}
         aria-pressed={allSelected}
       >
@@ -39,16 +39,16 @@ const LibraryBatchBar = ({
       </button>
 
       {hasSelection && (
-        <div className="library-batch-bar-actions">
-          <span className="library-batch-bar-count">
+        <div className="library-batch-bar__actions">
+          <span className="library-batch-bar__count type-body-strong">
             {selectedCount} selecionado{selectedCount === 1 ? '' : 's'}
           </span>
           <button
             type="button"
-            className="library-batch-bar-delete"
+            className="btn btn--secondary"
             onClick={onDelete}
           >
-            <Trash2 size={15} strokeWidth={2} aria-hidden="true" />
+            <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
             Excluir selecionados
           </button>
         </div>
