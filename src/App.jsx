@@ -25,6 +25,8 @@ import Trainers from './pages/Trainers';
 // Trainer pages
 import TrainingTemplates from './pages/trainer/TrainingTemplates';
 import ExerciseTemplates from './pages/trainer/ExerciseTemplates';
+import TrainingTemplateEditor from './pages/trainer/TrainingTemplateEditor';
+import ExerciseTemplateEditor from './pages/trainer/ExerciseTemplateEditor';
 import ProtocolTemplateView from './pages/trainer/ProtocolTemplateView';
 import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
 import Students from './pages/trainer/Students';
@@ -155,6 +157,46 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <ExerciseTemplates />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/training-templates/new"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <TrainingTemplateEditor />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/training-templates/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <TrainingTemplateEditor />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/exercise-templates/new"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ExerciseTemplateEditor />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/exercise-templates/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ExerciseTemplateEditor />
                 </Layout>
               </ProtectedRoute>
             }

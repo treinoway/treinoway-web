@@ -127,7 +127,7 @@ const LibraryPanel = ({ initialTemplates, selectedIds, onToggle }) => {
       ) : displayList.length === 0 ? (
         <div className="library-empty type-body">{emptyMessage}</div>
       ) : (
-        <div className="library-list" role="list">
+        <div className="library-panel__list" role="list">
           {displayList.map((tmpl) => {
             const selected = selectedIds.includes(tmpl.id);
             const meta = formatExerciseMeta(tmpl);

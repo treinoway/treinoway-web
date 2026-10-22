@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import ExerciseTemplateForm from './ExerciseTemplateForm';
 
-const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplate }) => {
+const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplate, isAdmin = false }) => {
   if (!open) return null;
 
   const modalTitle = exerciseTemplate?.id ? 'Editar exercício' : 'Criar exercício';
@@ -28,6 +28,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
               onSuccess?.(result);
             }}
             onCancel={onClose}
+            isAdmin={isAdmin}
           />
         </div>
       </div>
@@ -37,6 +38,7 @@ const CreateExerciseTemplateModal = ({ open, onClose, onSuccess, exerciseTemplat
 
 CreateExerciseTemplateModal.propTypes = {
   open: PropTypes.bool.isRequired,
+  isAdmin: PropTypes.bool,
   onClose: PropTypes.func.isRequired,
   onSuccess: PropTypes.func,
   exerciseTemplate: PropTypes.object,

@@ -12,9 +12,9 @@ import { getYoutubeVideoId } from '../utils/youtube';
  *   - Valid YouTube URL: 16:9 iframe preview + Trocar / Remover actions
  *   - Non-YouTube URL typed: URL input visible + hint (non-blocking)
  */
-const VideoField = ({ value, onChange, label = 'Vídeo de demonstração' }) => {
+const VideoField = ({ value, onChange, label = 'Vídeo de demonstração', canUseLibrary = false }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [urlInputVisible, setUrlInputVisible] = useState(false);
+  const [urlInputVisible, setUrlInputVisible] = useState(!canUseLibrary);
 
   const trimmedValue = value?.trim() ?? '';
   const youtubeId = getYoutubeVideoId(trimmedValue);
@@ -48,14 +48,16 @@ const VideoField = ({ value, onChange, label = 'Vídeo de demonstração' }) => 
             />
           </div>
           <div className="video-field-actions">
-            <button
-              type="button"
-              className="btn btn--secondary"
-              onClick={() => setPickerOpen(true)}
-            >
-              <Film size={16} strokeWidth={2} aria-hidden="true" />
-              Trocar
-            </button>
+            {canUseLibrary && (
+              <button
+                type="button"
+                className="btn btn--secondary"
+                onClick={() => setPickerOpen(true)}
+              >
+                <Film size={16} strokeWidth={2} aria-hidden="true" />
+                Trocar
+              </button>
+            )}
             <button
               type="button"
               className="btn btn--secondary"
@@ -70,14 +72,16 @@ const VideoField = ({ value, onChange, label = 'Vídeo de demonstração' }) => 
 
       {!hasValidVideo && (
         <div className="video-field-empty">
-          <button
-            type="button"
-            className="btn btn--primary video-field-cta"
-            onClick={() => setPickerOpen(true)}
-          >
-            <Film size={16} strokeWidth={2} aria-hidden="true" />
-            Escolher da biblioteca
-          </button>
+          {canUseLibrary && (
+            <button
+              type="button"
+              className="btn btn--primary video-field-cta"
+              onClick={() => setPickerOpen(true)}
+            >
+              <Film size={16} strokeWidth={2} aria-hidden="true" />
+              Escolher da biblioteca
+            </button>
+          )}
 
           {!urlInputVisible && (
             <button
@@ -109,11 +113,13 @@ const VideoField = ({ value, onChange, label = 'Vídeo de demonstração' }) => 
         </div>
       )}
 
-      <VideoLibraryPicker
-        isOpen={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onSelect={handlePickerSelect}
-      />
+      {canUseLibrary && (
+        <VideoLibraryPicker
+          isOpen={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          onSelect={handlePickerSelect}
+        />
+      )}
     </section>
   );
 };
@@ -122,6 +128,8 @@ VideoField.propTypes = {
   value: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   label: PropTypes.string,
+  /** Library picker is admin-only; everyone else pastes a YouTube link. */
+  canUseLibrary: PropTypes.bool,
 };
 
 export default VideoField;
