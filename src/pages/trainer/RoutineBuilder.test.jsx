@@ -297,6 +297,16 @@ describe('RoutineBuilder — identity chip Tipo', () => {
     expect(screen.getByRole('option', { name: /Cardio/i })).toBeInTheDocument();
   });
 
+  it('renders the identity chip popover without an inline style attribute', async () => {
+    const user = userEvent.setup();
+    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
+    renderNew();
+
+    await user.click(screen.getByRole('button', { name: /Definir Tipo/i }));
+
+    expect(screen.getByRole('listbox', { name: /Escolher Tipo/i })).not.toHaveAttribute('style', expect.stringMatching(/(^|;\s*)(position|top|left|z-index)\s*:/));
+  });
+
   it('selecting "Força" calls updateMeta with { type: "strength" }', async () => {
     const updateMeta = vi.fn();
     useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE, updateMeta });
@@ -1009,8 +1019,8 @@ describe('RoutineBuilder — WeekdayChip flip & clamp positioning', () => {
 
     const popover = screen.getByRole('listbox', { name: /Escolher dia/i });
     // top should be rect.bottom + 4 = 84 when space is ample
-    expect(parseFloat(popover.style.top)).toBeGreaterThanOrEqual(80);
-    expect(parseFloat(popover.style.top)).toBeLessThan(200);
+    expect(parseFloat(popover.style.getPropertyValue('--popover-top'))).toBeGreaterThanOrEqual(80);
+    expect(parseFloat(popover.style.getPropertyValue('--popover-top'))).toBeLessThan(200);
   });
 
   it('flips popover upward when trigger is near the bottom of the viewport', async () => {
@@ -1028,7 +1038,7 @@ describe('RoutineBuilder — WeekdayChip flip & clamp positioning', () => {
 
     const popover = screen.getByRole('listbox', { name: /Escolher dia/i });
     // When flipped up, top must be strictly less than rect.top (650)
-    expect(parseFloat(popover.style.top)).toBeLessThan(650);
+    expect(parseFloat(popover.style.getPropertyValue('--popover-top'))).toBeLessThan(650);
   });
 
   it('clamps left so popover does not overflow right edge on narrow viewports', async () => {
@@ -1046,7 +1056,7 @@ describe('RoutineBuilder — WeekdayChip flip & clamp positioning', () => {
 
     const popover = screen.getByRole('listbox', { name: /Escolher dia/i });
     // left must be clamped to ≤ innerWidth - popoverWidth - margin = 375 - 160 - 8 = 207
-    expect(parseFloat(popover.style.left)).toBeLessThanOrEqual(207);
+    expect(parseFloat(popover.style.getPropertyValue('--popover-left'))).toBeLessThanOrEqual(207);
   });
 
   it('selecting a day still calls onChange correctly after flip calculation', async () => {
@@ -1590,9 +1600,9 @@ describe('RoutineBuilder — exercise row menu right-alignment', () => {
     const dropdown = screen.getByRole('menu');
     // right = window.innerWidth (1024) - rect.right (1000) = 24px
     const expectedRight = `${window.innerWidth - triggerRight}px`;
-    expect(dropdown.style.right).toBe(expectedRight);
+    expect(dropdown.style.getPropertyValue('--popover-right')).toBe(expectedRight);
     // `left` must NOT be set — presence of a left value would push menu off-screen
-    expect(dropdown.style.left).toBe('');
+    expect(dropdown.style.getPropertyValue('--popover-left')).toBe('');
   });
 });
 
