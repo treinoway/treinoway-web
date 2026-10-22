@@ -1,336 +1,144 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Dumbbell, Info, Layers, Loader } from 'lucide-react';
-import { useToast } from '../../contexts/ToastContext';
-import { translateError } from '../../i18n';
-import api from '../../api/axios';
-import useDelayedFlag from '../../hooks/useDelayedFlag';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Activity, Plus } from 'lucide-react';
+import ConfirmDialog from '../../components/ds/ConfirmDialog';
+import LibraryPageHeader from '../../components/LibraryPageHeader';
+import LibraryListView from '../../components/LibraryListView';
+import { LibraryListRow } from '../../components/LibraryList';
+import LibraryFilterBar from '../../components/LibraryFilterBar';
+import { useAuth } from '../../contexts/AuthContext';
+import useConfirmDialog from '../../hooks/useConfirmDialog';
+import useLibraryList from '../../hooks/useLibraryList';
 import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel } from '../../constants/exerciseTypes';
 import { getYoutubeVideoId } from '../../utils/youtube';
-import LibraryList, { LibraryListRow } from '../../components/LibraryList';
-import LibraryFilterBar from '../../components/LibraryFilterBar';
-import LibraryBatchBar from '../../components/LibraryBatchBar';
-import ExerciseTemplateForm from '../../components/ExerciseTemplateForm';
 
-const PAGE_LIMIT = 20;
-const SEARCH_DEBOUNCE_MS = 300;
+const ENDPOINT = '/trainer/exercise-templates';
+const NEW_PATH = '/trainer/exercise-templates/new';
 const ALL_FILTER = 'all';
+
+// Public templates belong to the shared library: only admins may delete them.
+const canDeleteTemplate = (template, isAdmin) => isAdmin || !template.isPublic;
 
 const TYPE_FILTERS = [
   { value: ALL_FILTER, label: 'Todos' },
   ...EXERCISE_TYPE_OPTIONS,
 ];
 
+const buildBadges = (template) => {
+  const typeLabel = template.type ? getExerciseTypeLabel(template.type) : null;
+  return [
+    typeLabel && { label: typeLabel, tone: 'brand' },
+    template.isPublic && { label: 'Público', tone: 'success' },
+    getYoutubeVideoId(template.videoUrl) && { label: 'Vídeo', tone: 'neutral' },
+  ].filter(Boolean);
+};
+
 const ExerciseTemplates = () => {
-  const { showToast } = useToast();
-  const [templates, setTemplates] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [confirmDialog, setConfirmDialog] = useState(null);
-  const [formName, setFormName] = useState('');
-
-  const [searchInput, setSearchInput] = useState('');
-  const [q, setQ] = useState('');
+  const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+  const { dialogProps, requestConfirm } = useConfirmDialog();
   const [type, setType] = useState('');
-  const [page, setPage] = useState(1);
-  const [selectedIds, setSelectedIds] = useState([]);
 
-  const debounceRef = useRef(null);
-  // True only until the very first fetch resolves. After that, refetches (search,
-  // filter, pagination) use an inline loading indicator so the filter bar / list
-  // stay mounted and the search input never loses focus.
-  const hasLoadedOnceRef = useRef(false);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [refetching, setRefetching] = useState(false);
-  // Delayed flag: only show the refetch indicator after 250 ms so fast fetches
-  // never flash a spinner on screen.
-  const showRefetchIndicator = useDelayedFlag(refetching, 250);
+  const isSelectable = (template) => canDeleteTemplate(template, isAdmin);
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setQ(searchInput);
-      setPage(1);
-    }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(debounceRef.current);
-  }, [searchInput]);
+  const list = useLibraryList({ endpoint: ENDPOINT, filters: { type }, requestConfirm, isSelectable });
 
-  const fetchTemplates = useCallback(async () => {
-    if (!hasLoadedOnceRef.current) {
-      setInitialLoading(true);
-    } else {
-      setRefetching(true);
-    }
-    try {
-      const params = { page, limit: PAGE_LIMIT };
-      if (q) params.q = q;
-      if (type) params.type = type;
-      const response = await api.get('/trainer/exercise-templates', { params });
-      setTemplates(response.data.data);
-      setTotal(response.data.total);
-      hasLoadedOnceRef.current = true;
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setInitialLoading(false);
-      setRefetching(false);
-    }
-  }, [page, q, type, showToast]);
+  const handleCreate = () => navigate(NEW_PATH);
+  const handleOpen = (template) => navigate(`${ENDPOINT}/${template.id}`);
 
-  useEffect(() => {
-    fetchTemplates();
-  }, [fetchTemplates]);
-
-  // Selection is per-page: drop it whenever the page/query/filter changes.
-  useEffect(() => {
-    setSelectedIds([]);
-  }, [page, q, type]);
-
-  const handleFilterChange = (value) => {
-    setType(value === ALL_FILTER ? '' : value);
-    setPage(1);
-  };
-
-  const handleEdit = (template) => {
-    setEditingId(template.id);
-    setFormName(template.name || '');
-    setShowForm(true);
-  };
-
-  const handleDelete = (id) => {
-    setConfirmDialog({
-      message: 'Excluir este exercício? Esta ação não pode ser desfeita.',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await api.delete(`/trainer/exercise-templates/${id}`);
-          showToast('Exercício excluído com sucesso!', 'success');
-          fetchTemplates();
-        } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
-        }
-      },
+  const handleDelete = (template) => {
+    list.deleteOne({
+      id: template.id,
+      message: `Excluir "${template.name}"? Esta ação não pode ser desfeita.`,
+      successMessage: 'Exercício excluído com sucesso!',
     });
   };
 
-  const toggleSelect = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  };
+  const hasActiveFilters = !!list.q || !!type;
+  const isEmptyLibrary = list.total === 0 && !hasActiveFilters;
+  const canCreate = list.status === 'ready' && !isEmptyLibrary;
 
-  const pageIds = templates.map((t) => t.id);
-  const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
-
-  const handleToggleSelectAll = () => {
-    setSelectedIds(allSelected ? [] : [...pageIds]);
-  };
-
-  const handleBatchDelete = () => {
-    const count = selectedIds.length;
-    setConfirmDialog({
-      message: `Excluir ${count} ${count === 1 ? 'item' : 'itens'} selecionado${count === 1 ? '' : 's'}? Esta ação não pode ser desfeita.`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          const res = await api.post('/trainer/exercise-templates/batch-delete', {
-            ids: selectedIds,
-          });
-          showToast(`${res.data.deletedCount} itens excluídos.`, 'success');
-          setSelectedIds([]);
-          fetchTemplates();
-        } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
-        }
-      },
-    });
-  };
-
-  const resetForm = () => {
-    setEditingId(null);
-    setShowForm(false);
-    setFormName('');
-  };
-
-  const hasActiveFilters = !!q || !!type;
-  const isEmptyLibrary = total === 0 && !hasActiveFilters && !initialLoading;
-  const totalPages = Math.ceil(total / PAGE_LIMIT);
-  // The filter bar and list stay mounted across refetches so the search input
-  // never unmounts mid-keystroke. Only hide during initial load or form mode.
-  const showFilterBar = !showForm && !initialLoading && !isEmptyLibrary;
-  const showList = !showForm && !initialLoading && !isEmptyLibrary;
-  const activeFilterValue = type || ALL_FILTER;
+  const toolbar = (
+    <LibraryFilterBar
+      searchValue={list.searchInput}
+      onSearchChange={list.setSearchInput}
+      searchPlaceholder="Buscar exercício por nome…"
+      searchAriaLabel="Buscar exercícios"
+      filtersAriaLabel="Filtrar exercícios por tipo"
+      filters={TYPE_FILTERS}
+      filterCounts={{ [type || ALL_FILTER]: list.total }}
+      activeFilter={type || ALL_FILTER}
+      onFilterChange={(value) => setType(value === ALL_FILTER ? '' : value)}
+    />
+  );
 
   return (
     <div>
-      {!showForm && (
-        <div className="page-header">
-          <div className="page-header-title-row">
-            <Dumbbell size={24} strokeWidth={2} className="page-header-title-icon" />
-            <h1>Exercícios</h1>
-          </div>
-          <div className="page-header-actions">
-            {!isEmptyLibrary && (
-              <button onClick={() => setShowForm(true)} className="btn-primary">
-                + Novo exercício
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      <LibraryPageHeader
+        icon={Activity}
+        title="Exercícios"
+        actions={canCreate && (
+          <button type="button" className="btn btn--primary btn--lg" onClick={handleCreate}>
+            <Plus size={20} strokeWidth={2} aria-hidden="true" />
+            Novo exercício
+          </button>
+        )}
+      />
 
-      {showFilterBar && (
-        <LibraryFilterBar
-          searchValue={searchInput}
-          onSearchChange={setSearchInput}
-          searchPlaceholder="Buscar exercício por nome…"
-          searchAriaLabel="Buscar exercícios"
-          filters={TYPE_FILTERS}
-          activeFilter={activeFilterValue}
-          onFilterChange={handleFilterChange}
-        />
-      )}
-
-      {showForm && (
-        <div className="etf-form-screen">
-          <div className="etf-form-wrapper">
-            <div className="etf-page-header">
-              <span className="etf-page-header-eyebrow">
-                <Layers size={12} strokeWidth={2} aria-hidden="true" />
-                Modelo · Biblioteca
-              </span>
-              <h1 className={formName.trim() ? undefined : 'is-empty'}>
-                {formName.trim() || 'Sem nome ainda'}
-              </h1>
-              <span className="etf-page-header-sub">
-                Disponível em qualquer treino que você prescrever.
-              </span>
-            </div>
-            <ExerciseTemplateForm
-              exerciseTemplate={editingId ? templates.find((t) => t.id === editingId) : null}
-              onSuccess={() => { fetchTemplates(); resetForm(); }}
-              onCancel={resetForm}
-              onNameChange={setFormName}
-            />
-          </div>
-        </div>
-      )}
-
-      {initialLoading && !showForm && (
-        <div className="loading-screen">
-          <span className="loading-text">Carregando...</span>
-        </div>
-      )}
-
-      {showList && (
-        <>
-          {showRefetchIndicator && (
-            <div className="library-refetch-indicator" aria-live="polite" aria-label="Atualizando lista…">
-              <Loader size={14} strokeWidth={2} aria-hidden="true" className="library-refetch-spinner" />
-              <span>Buscando…</span>
-            </div>
-          )}
-
-          <LibraryBatchBar
-            allSelected={allSelected}
-            selectedCount={selectedIds.length}
-            onToggleSelectAll={handleToggleSelectAll}
-            onDelete={handleBatchDelete}
+      <LibraryListView
+        status={list.status}
+        loadError={list.loadError}
+        errorTitle="Não foi possível carregar os exercícios"
+        onRetry={list.reload}
+        isEmptyLibrary={isEmptyLibrary}
+        empty={{
+          icon: Activity,
+          title: 'Sem exercícios ainda',
+          description: 'Um exercício é um movimento reutilizável que você adiciona aos seus treinos, com séries, repetições, carga sugerida e vídeo. Crie o primeiro para facilitar a montagem das rotinas.',
+          actionLabel: 'Criar primeiro exercício',
+          onAction: handleCreate,
+        }}
+        toolbar={toolbar}
+        refetching={list.refetching}
+        batch={list.items.length > 0 ? {
+          allSelected: list.allSelected,
+          selectedCount: list.selectedIds.length,
+          onToggleSelectAll: list.toggleSelectAll,
+          onDelete: list.deleteSelected,
+        } : null}
+        isNoResults={hasActiveFilters}
+        noResultsMessage="Nenhum exercício corresponde aos filtros atuais."
+        footer={{
+          shown: list.items.length,
+          total: list.total,
+          noun: 'exercício',
+          nounPlural: 'exercícios',
+          loading: list.loadingMore,
+          onShowMore: list.loadMore,
+        }}
+      >
+        {list.items.map((template) => (
+          <LibraryListRow
+            key={template.id}
+            title={template.name}
+            badges={buildBadges(template)}
+            selectable
+            selectDisabled={!canDeleteTemplate(template, isAdmin)}
+            selected={list.selectedIds.includes(template.id)}
+            onToggleSelect={() => list.toggleSelect(template.id)}
+            selectAriaLabel={`Selecionar ${template.name}`}
+            onOpen={() => handleOpen(template)}
+            ariaLabel={`Abrir exercício ${template.name}`}
+            rowMenuProps={canDeleteTemplate(template, isAdmin) ? {
+              ariaLabel: `Ações do modelo ${template.name}`,
+              onEdit: () => handleOpen(template),
+              onDelete: () => handleDelete(template),
+            } : undefined}
           />
+        ))}
+      </LibraryListView>
 
-          <LibraryList
-            emptyMessage={`Nenhum resultado para "${q}"`}
-            isNoResults={hasActiveFilters}
-          >
-            {templates.map((template) => {
-              const hasVideo = !!getYoutubeVideoId(template.videoUrl);
-              const typeLabel = template.type ? getExerciseTypeLabel(template.type) : null;
-
-              const badges = (
-                <>
-                  {typeLabel && <span className="badge badge-blue">{typeLabel}</span>}
-                  {template.isPublic && <span className="badge badge-green">Público</span>}
-                  {hasVideo && <span className="badge badge-gray">Vídeo</span>}
-                </>
-              );
-
-              return (
-                <LibraryListRow
-                  key={template.id}
-                  title={template.name}
-                  badges={badges}
-                  selectable
-                  selected={selectedIds.includes(template.id)}
-                  onToggleSelect={() => toggleSelect(template.id)}
-                  selectAriaLabel={`Selecionar ${template.name}`}
-                  rowMenuProps={{
-                    ariaLabel: `Ações do modelo ${template.name}`,
-                    onEdit: () => handleEdit(template),
-                    onDelete: () => handleDelete(template.id),
-                  }}
-                />
-              );
-            })}
-          </LibraryList>
-
-          {totalPages > 1 && (
-            <div className="pagination-row">
-              <button
-                className="btn btn-sm btn-secondary"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Anterior
-              </button>
-              <span className="text-sm text-muted">
-                Página {page} de {totalPages}
-              </span>
-              <button
-                className="btn btn-sm btn-secondary"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {!showForm && !initialLoading && isEmptyLibrary && (
-        <>
-          <div className="info-banner">
-            <span className="info-banner-icon"><Info size={16} strokeWidth={1.6} /></span>
-            <span><strong>O que é um exercício?</strong> Um exercício é um movimento reutilizável que pode ser adicionado aos seus treinos. Defina séries, repetições, carga sugerida e até link de vídeo para facilitar a montagem das rotinas.</span>
-          </div>
-          <div className="empty-state">
-            <div className="empty-state-icon empty-state-icon--accent">
-              <Dumbbell size={32} strokeWidth={1.2} />
-            </div>
-            <p className="empty-state-title">Nenhum exercício ainda</p>
-            <p>Crie seu primeiro exercício e use-o como base ao montar treinos para seus alunos.</p>
-            <button className="btn-primary" onClick={() => setShowForm(true)}>
-              + Criar primeiro exercício
-            </button>
-          </div>
-        </>
-      )}
-
-      {confirmDialog && (
-        <div className="overlay">
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-dialog-message">{confirmDialog.message}</p>
-            <div className="btn-group">
-              <button onClick={confirmDialog.onConfirm} className="btn-danger">
-                Confirmar
-              </button>
-              <button onClick={() => setConfirmDialog(null)} className="btn-secondary">
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {dialogProps && <ConfirmDialog {...dialogProps} />}
     </div>
   );
 };

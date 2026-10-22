@@ -1,6 +1,7 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { renderWithRouter, renderWithRoute } from '../../test/test-utils';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { render, renderWithRouter, renderWithRoute } from '../../test/test-utils';
 import TrainerAnamneses from './TrainerAnamneses';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
@@ -77,7 +78,7 @@ describe('TrainerAnamneses', () => {
     api.get.mockResolvedValue({ data: [] });
     renderWithRouter(<TrainerAnamneses />);
     await waitFor(() => {
-      expect(screen.getByText('Anamneses')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Anamneses' })).toBeInTheDocument();
     });
   });
 
@@ -106,6 +107,7 @@ describe('TrainerAnamneses', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /criar primeira anamnese/i }));
+    expect(screen.getByRole('dialog', { name: 'Nova anamnese' })).toBeInTheDocument();
     expect(screen.getByLabelText(/^nome/i)).toBeInTheDocument();
   });
 
@@ -117,9 +119,9 @@ describe('TrainerAnamneses', () => {
     });
     expect(screen.getByText('Anamnese Geral da Plataforma')).toBeInTheDocument();
     expect(screen.getByText('Anamnese Derivada')).toBeInTheDocument();
-    expect(screen.getByText('MINHA')).toBeInTheDocument();
-    expect(screen.getByText('GERAL')).toBeInTheDocument();
-    expect(screen.getByText('DERIVADA')).toBeInTheDocument();
+    expect(screen.getByText('Minha')).toBeInTheDocument();
+    expect(screen.getByText('Geral')).toBeInTheDocument();
+    expect(screen.getByText('Derivada')).toBeInTheDocument();
   });
 
   it('filters to only own anamneses when "Meus" chip is clicked', async () => {
@@ -210,7 +212,7 @@ describe('TrainerAnamneses', () => {
 
     await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Excluir' }));
 
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1');
@@ -281,6 +283,32 @@ describe('TrainerAnamneses', () => {
     });
   });
 
+  describe.each([
+    ['own', 'Anamnese Saúde Geral'],
+    ['general', 'Anamnese Geral da Plataforma'],
+  ])('"Enviar para alunos" (%s anamnesis)', (_kind, title) => {
+    it('opens the assign screen remembering the list as origin', async () => {
+      const user = userEvent.setup();
+      api.get.mockResolvedValue({ data: mockAnamneses });
+      const AssignProbe = () => <div data-testid="assign-page">{useLocation().state?.from}</div>;
+      render(
+        <MemoryRouter initialEntries={['/trainer/anamneses']}>
+          <Routes>
+            <Route path="/trainer/anamneses" element={<TrainerAnamneses />} />
+            <Route path="/trainer/anamneses/:anamnesisId/assign" element={<AssignProbe />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await waitFor(() => expect(screen.getByText(title)).toBeInTheDocument());
+
+      await user.click(screen.getByRole('button', { name: `Opções de ${title}` }));
+      await user.click(screen.getByRole('button', { name: 'Enviar para alunos' }));
+
+      expect(await screen.findByTestId('assign-page')).toHaveTextContent('/trainer/anamneses');
+      expect(api.post).not.toHaveBeenCalled();
+    });
+  });
+
   it('submitting create form calls POST and navigates to new anamnesis', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: [] });
@@ -320,6 +348,7 @@ describe('TrainerAnamneses', () => {
     await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
     await user.click(screen.getByRole('button', { name: 'Editar' }));
 
+    expect(screen.getByRole('dialog', { name: 'Editar anamnese' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('Anamnese Saúde Geral')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Questionário de saúde')).toBeInTheDocument();
   });
@@ -346,13 +375,174 @@ describe('TrainerAnamneses', () => {
     });
   });
 
-  it('shows error toast when fetch fails', async () => {
-    const error = { userMessage: 'Erro ao carregar' };
-    api.get.mockRejectedValue(error);
+  it('shows an alert with retry when the fetch fails, and recovers on retry', async () => {
+    const user = userEvent.setup();
+    api.get.mockRejectedValueOnce({ userMessage: 'Erro ao carregar' });
+    api.get.mockResolvedValueOnce({ data: mockAnamneses });
     renderWithRouter(<TrainerAnamneses />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Erro ao carregar');
+    expect(screen.queryByRole('button', { name: /nova anamnese/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /tentar novamente/i }));
+    expect(await screen.findByText('Anamnese Saúde Geral')).toBeInTheDocument();
+  });
+
+  it('shows counts on every filter tab', async () => {
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    renderWithRouter(<TrainerAnamneses />);
+    expect(await screen.findByRole('tab', { name: /todos \(3\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /meus \(2\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /gerais \(1\)/i })).toBeInTheDocument();
+  });
+
+  it('shows the no-results block when the search matches nothing', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    renderWithRouter(<TrainerAnamneses />);
+    await screen.findByText('Anamnese Saúde Geral');
+
+    await user.type(screen.getByRole('textbox', { name: /buscar anamnese/i }), 'zzz');
+
+    expect(screen.getByRole('heading', { name: 'Sem resultados' })).toBeInTheDocument();
+  });
+
+  it('hides the header CTA while the library is empty', async () => {
+    api.get.mockResolvedValue({ data: [] });
+    renderWithRouter(<TrainerAnamneses />);
+    await screen.findByRole('heading', { name: 'Sem anamneses ainda' });
+    expect(screen.queryByRole('button', { name: /nova anamnese/i })).not.toBeInTheDocument();
+  });
+
+  it('opens the create modal from the header and closes it on cancel', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    renderWithRouter(<TrainerAnamneses />);
+    await screen.findByText('Anamnese Saúde Geral');
+
+    await user.click(screen.getByRole('button', { name: /nova anamnese/i }));
+    expect(screen.getByRole('dialog', { name: 'Nova anamnese' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('keeps the modal open and shows a toast when create fails', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    api.post.mockRejectedValue({ userMessage: 'Falha ao criar' });
+    renderWithRouter(<TrainerAnamneses />);
+    await screen.findByText('Anamnese Saúde Geral');
+
+    await user.click(screen.getByRole('button', { name: /nova anamnese/i }));
+    await user.type(screen.getByLabelText(/^nome/i), 'Teste');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Falha ao criar', 'error'));
+    expect(screen.getByRole('dialog', { name: 'Nova anamnese' })).toBeInTheDocument();
+  });
+
+  it('closes the modal and refetches after a successful update', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    api.patch.mockResolvedValue({ data: {} });
+    renderWithRouter(<TrainerAnamneses />);
+    await screen.findByText('Anamnese Saúde Geral');
+
+    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(api.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows an error toast when delete fails and keeps the row', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    api.delete.mockRejectedValue({ userMessage: 'Anamnese em uso' });
+    renderWithRouter(<TrainerAnamneses />);
+    await screen.findByText('Anamnese Saúde Geral');
+
+    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Saúde Geral' }));
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Excluir' }));
+
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Anamnese em uso', 'error'));
+    expect(screen.getByText('Anamnese Saúde Geral')).toBeInTheDocument();
+  });
+
+  it('general anamnesis has no "Excluir" option and a disabled checkbox', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    renderWithRouter(<TrainerAnamneses />);
+    await screen.findByText('Anamnese Geral da Plataforma');
+
+    await user.click(screen.getByRole('button', { name: 'Opções de Anamnese Geral da Plataforma' }));
+    expect(screen.queryByRole('button', { name: 'Excluir' })).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /anamnese geral da plataforma/i })).toBeDisabled();
+  });
+
+  it('select-all only selects anamneses the trainer owns', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    renderWithRouter(<TrainerAnamneses />);
+    await screen.findByText('Anamnese Saúde Geral');
+
+    await user.click(screen.getByRole('button', { name: /selecionar todos/i }));
+
+    expect(screen.getByRole('checkbox', { name: /selecionar anamnese saúde geral/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /selecionar anamnese derivada/i })).toBeChecked();
+    expect(screen.getByText('2 selecionados')).toBeInTheDocument();
+  });
+
+  it('batch-deletes the selected anamneses after confirmation', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    api.delete.mockResolvedValue({});
+    renderWithRouter(<TrainerAnamneses />);
+    await screen.findByText('Anamnese Saúde Geral');
+
+    await user.click(screen.getByRole('checkbox', { name: /selecionar anamnese saúde geral/i }));
+    await user.click(screen.getByRole('checkbox', { name: /selecionar anamnese derivada/i }));
+    await user.click(screen.getByRole('button', { name: /excluir selecionados/i }));
+    expect(screen.getByText(/excluir 2 anamneses selecionadas/i)).toBeInTheDocument();
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Excluir' }));
+
     await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith('Erro ao carregar', 'error');
+      expect(api.delete).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-1');
+      expect(api.delete).toHaveBeenCalledWith('/trainer/anamneses/anamnesis-3');
+      expect(mockShowToast).toHaveBeenCalledWith('2 anamneses excluídas.', 'success');
     });
+  });
+
+  it('warns when part of a batch delete fails', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    api.delete.mockImplementation((url) =>
+      (url.endsWith('anamnesis-3') ? Promise.reject({ userMessage: 'em uso' }) : Promise.resolve({})));
+    renderWithRouter(<TrainerAnamneses />);
+    await screen.findByText('Anamnese Saúde Geral');
+
+    await user.click(screen.getByRole('button', { name: /selecionar todos/i }));
+    await user.click(screen.getByRole('button', { name: /excluir selecionados/i }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Excluir' }));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('1 excluída(s), 1 não puderam'), 'warning');
+    });
+  });
+
+  it('does not offer batch selection on the general-only tab', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: mockAnamneses });
+    renderWithRouter(<TrainerAnamneses />);
+    await screen.findByText('Anamnese Saúde Geral');
+
+    await user.click(screen.getByRole('tab', { name: /gerais/i }));
+
+    expect(screen.queryByRole('button', { name: /selecionar todos/i })).not.toBeInTheDocument();
   });
 
   it('shows version badge for every anamnesis', async () => {

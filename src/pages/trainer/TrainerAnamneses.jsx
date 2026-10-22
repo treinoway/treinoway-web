@@ -1,11 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Plus } from 'lucide-react';
+import { FileText, Plus } from 'lucide-react';
+import ConfirmDialog from '../../components/ds/ConfirmDialog';
+import AnamnesisFormModal from '../../components/anamnesis/AnamnesisFormModal';
+import LibraryPageHeader from '../../components/LibraryPageHeader';
+import LibraryListView from '../../components/LibraryListView';
+import { LibraryListRow } from '../../components/LibraryList';
+import LibraryFilterBar from '../../components/LibraryFilterBar';
 import { useToast } from '../../contexts/ToastContext';
+import useConfirmDialog from '../../hooks/useConfirmDialog';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import LibraryList, { LibraryListRow } from '../../components/LibraryList';
-import LibraryFilterBar from '../../components/LibraryFilterBar';
+
+const FILTER_ALL = 'all';
+const FILTER_MINE = 'mine';
+const FILTER_GENERAL = 'general';
+
+const FILTERS = [
+  { value: FILTER_ALL, label: 'Todos' },
+  { value: FILTER_MINE, label: 'Meus' },
+  { value: FILTER_GENERAL, label: 'Gerais' },
+];
 
 const formatDate = (iso) => {
   if (!iso) return '-';
@@ -21,103 +36,122 @@ const formatDate = (iso) => {
 };
 
 const getOriginBadge = (anamnesis) => {
-  if (anamnesis.isGeneral) return <span className="badge badge-accent">GERAL</span>;
-  if (anamnesis.parentId) return <span className="badge badge-neutral">DERIVADA</span>;
-  return <span className="badge badge-primary">MINHA</span>;
+  if (anamnesis.isGeneral) return { label: 'Geral', tone: 'warning' };
+  if (anamnesis.parentId) return { label: 'Derivada', tone: 'neutral' };
+  return { label: 'Minha', tone: 'brand' };
 };
 
-const FILTER_ALL = 'all';
-const FILTER_MINE = 'mine';
-const FILTER_GENERAL = 'general';
+const matchesFilter = (anamnesis, filter) =>
+  filter === FILTER_ALL ||
+  (filter === FILTER_MINE && !anamnesis.isGeneral) ||
+  (filter === FILTER_GENERAL && anamnesis.isGeneral);
+
+const getErrorMessage = (error) => error.userMessage || translateError(error);
 
 const TrainerAnamneses = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const { dialogProps, requestConfirm } = useConfirmDialog();
 
   const [anamneses, setAnamneses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [status, setStatus] = useState('loading');
+  const [loadError, setLoadError] = useState('');
+  const [formState, setFormState] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [editingAnamnesis, setEditingAnamnesis] = useState(null);
-  const [confirmDialog, setConfirmDialog] = useState(null);
-  const [formData, setFormData] = useState({ title: '', description: '' });
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState(FILTER_ALL);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const fetchAnamneses = useCallback(async () => {
-    setLoading(true);
     try {
       const response = await api.get('/trainer/anamneses');
       setAnamneses(response.data);
+      setStatus('ready');
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setLoading(false);
+      setLoadError(getErrorMessage(error));
+      setStatus('error');
     }
-  }, [showToast]);
+  }, []);
 
   useEffect(() => {
     fetchAnamneses();
   }, [fetchAnamneses]);
 
-  const filteredAnamneses = anamneses.filter((a) => {
-    const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter =
-      activeFilter === FILTER_ALL ||
-      (activeFilter === FILTER_MINE && !a.isGeneral) ||
-      (activeFilter === FILTER_GENERAL && a.isGeneral);
-    return matchesSearch && matchesFilter;
-  });
+  const handleRetry = () => {
+    setStatus('loading');
+    fetchAnamneses();
+  };
 
-  const handleCreate = async (e) => {
-    e.preventDefault();
+  const filteredAnamneses = anamneses.filter(
+    (a) => a.title.toLowerCase().includes(searchQuery.toLowerCase()) && matchesFilter(a, activeFilter),
+  );
+
+  const deletableIds = filteredAnamneses.filter((a) => !a.isGeneral).map((a) => a.id);
+  const allSelected = deletableIds.length > 0 && deletableIds.every((id) => selectedIds.includes(id));
+
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+    setSelectedIds([]);
+  };
+
+  const handleFilterChange = (value) => {
+    setActiveFilter(value);
+    setSelectedIds([]);
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const handleSubmitForm = async (values) => {
+    const editing = formState?.anamnesis;
     setSaving(true);
     try {
-      const response = await api.post('/trainer/anamneses', formData);
-      showToast('Anamnese criada com sucesso!', 'success');
-      setShowForm(false);
-      setFormData({ title: '', description: '' });
-      navigate(`/trainer/anamneses/${response.data.id}`);
+      if (editing) {
+        await api.patch(`/trainer/anamneses/${editing.id}`, values);
+        showToast('Anamnese atualizada com sucesso!', 'success');
+        setFormState(null);
+        fetchAnamneses();
+      } else {
+        const response = await api.post('/trainer/anamneses', values);
+        showToast('Anamnese criada com sucesso!', 'success');
+        navigate(`/trainer/anamneses/${response.data.id}`);
+      }
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      showToast(getErrorMessage(error), 'error');
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await api.patch(`/trainer/anamneses/${editingAnamnesis.id}`, formData);
-      showToast('Anamnese atualizada com sucesso!', 'success');
-      fetchAnamneses();
-      resetForm();
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleEditClick = (anamnesis) => {
-    setEditingAnamnesis(anamnesis);
-    setFormData({ title: anamnesis.title, description: anamnesis.description || '' });
-    setShowForm(true);
   };
 
   const handleDelete = (anamnesis) => {
-    setConfirmDialog({
+    requestConfirm({
       message: `Excluir "${anamnesis.title}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
       onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await api.delete(`/trainer/anamneses/${anamnesis.id}`);
-          showToast('Anamnese excluída com sucesso!', 'success');
-          fetchAnamneses();
-        } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
+        await api.delete(`/trainer/anamneses/${anamnesis.id}`);
+        showToast('Anamnese excluída com sucesso!', 'success');
+        await fetchAnamneses();
+      },
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    const ids = selectedIds;
+    requestConfirm({
+      message: `Excluir ${ids.length} ${ids.length === 1 ? 'anamnese selecionada' : 'anamneses selecionadas'}? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
+      onConfirm: async () => {
+        const results = await Promise.allSettled(ids.map((id) => api.delete(`/trainer/anamneses/${id}`)));
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        const deleted = ids.length - failed;
+        if (failed === 0) {
+          showToast(`${deleted} ${deleted === 1 ? 'anamnese excluída' : 'anamneses excluídas'}.`, 'success');
+        } else {
+          showToast(`${deleted} excluída(s), ${failed} não puderam ser excluídas (verifique se estão em uso).`, 'warning');
         }
+        setSelectedIds([]);
+        await fetchAnamneses();
       },
     });
   };
@@ -128,7 +162,7 @@ const TrainerAnamneses = () => {
       showToast('Anamnese copiada com sucesso!', 'success');
       navigate(`/trainer/anamneses/${response.data.id}`);
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      showToast(getErrorMessage(error), 'error');
     }
   };
 
@@ -138,208 +172,116 @@ const TrainerAnamneses = () => {
       showToast('Nova versão criada com sucesso!', 'success');
       navigate(`/trainer/anamneses/${response.data.id}`);
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      showToast(getErrorMessage(error), 'error');
     }
   };
 
-  const resetForm = () => {
-    setFormData({ title: '', description: '' });
-    setEditingAnamnesis(null);
-    setShowForm(false);
+  const handleAssign = (anamnesis) => navigate(`/trainer/anamneses/${anamnesis.id}/assign`, {
+    state: { from: '/trainer/anamneses' },
+  });
+
+  const buildRowMenuProps = (anamnesis) => {
+    const extraItems = [
+      { label: 'Enviar para alunos', onClick: () => handleAssign(anamnesis) },
+      { label: 'Duplicar', onClick: () => handleCopy(anamnesis) },
+    ];
+    if (anamnesis.isGeneral) return { ariaLabel: `Opções de ${anamnesis.title}`, extraItems };
+    extraItems.push({ label: 'Nova versão', onClick: () => handleFork(anamnesis) });
+    return {
+      ariaLabel: `Opções de ${anamnesis.title}`,
+      onEdit: () => setFormState({ anamnesis }),
+      extraItems,
+      onDelete: () => handleDelete(anamnesis),
+    };
   };
 
-  const handleFormChange = (field) => (e) => {
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-  };
+  const openCreateForm = () => setFormState({ anamnesis: null });
+  const isEmptyLibrary = anamneses.length === 0;
+  const canCreate = status === 'ready' && !isEmptyLibrary;
 
-  const buildRowMenuItems = (anamnesis) => {
-    const items = [];
-    if (anamnesis.isGeneral) {
-      items.push({ label: 'Duplicar', onClick: () => handleCopy(anamnesis) });
-    } else {
-      items.push({ label: 'Editar', onClick: () => handleEditClick(anamnesis) });
-      items.push({ label: 'Duplicar', onClick: () => handleCopy(anamnesis) });
-      items.push({ label: 'Nova versão', onClick: () => handleFork(anamnesis) });
-    }
-    return items;
-  };
+  const filterCounts = Object.fromEntries(
+    FILTERS.map(({ value }) => [value, anamneses.filter((a) => matchesFilter(a, value)).length]),
+  );
 
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <span className="loading-text">Carregando...</span>
-      </div>
-    );
-  }
-
-  const hasItems = anamneses.length > 0;
-
-  const filterCounts = {
-    [FILTER_ALL]: anamneses.length,
-    [FILTER_MINE]: anamneses.filter((a) => !a.isGeneral).length,
-    [FILTER_GENERAL]: anamneses.filter((a) => a.isGeneral).length,
-  };
-
-  const isNoResults = hasItems && filteredAnamneses.length === 0;
+  const toolbar = (
+    <LibraryFilterBar
+      searchValue={searchQuery}
+      onSearchChange={handleSearchChange}
+      searchPlaceholder="Buscar anamnese…"
+      searchAriaLabel="Buscar anamnese"
+      filtersAriaLabel="Filtrar anamneses"
+      filters={FILTERS}
+      activeFilter={activeFilter}
+      onFilterChange={handleFilterChange}
+      filterCounts={filterCounts}
+    />
+  );
 
   return (
     <div>
-      <div className="page-header">
-        <div className="page-header-title-row">
-          <ClipboardList size={24} strokeWidth={2} className="page-header-title-icon" />
-          <h1>Anamneses</h1>
-        </div>
-        {!showForm && hasItems && (
-          <div className="page-header-actions">
-            <button type="button" onClick={() => setShowForm(true)} className="btn-primary">
-              <Plus size={16} strokeWidth={2} aria-hidden="true" />
-              Nova anamnese
-            </button>
-          </div>
-        )}
-      </div>
-
-      {showForm && (
-        <div className="card card--mb">
-          <h2 className="card-title mb-md">
-            {editingAnamnesis ? 'Editar anamnese' : 'Nova anamnese'}
-          </h2>
-          <form onSubmit={editingAnamnesis ? handleUpdate : handleCreate} className="form">
-            <div className="form-group">
-              <label className="form-label" htmlFor="anamnesis-name">
-                Nome <span aria-hidden="true" className="form-required">*</span>
-              </label>
-              <input
-                id="anamnesis-name"
-                type="text"
-                value={formData.title}
-                onChange={handleFormChange('title')}
-                className="form-input"
-                placeholder="Ex: Anamnese inicial"
-                required
-                disabled={saving}
-                autoFocus
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="anamnesis-description">
-                Descrição
-              </label>
-              <textarea
-                id="anamnesis-description"
-                value={formData.description}
-                onChange={handleFormChange('description')}
-                className="form-textarea"
-                rows={3}
-                placeholder="Descrição opcional"
-                disabled={saving}
-              />
-            </div>
-            <p className="text-sm text-muted">
-              Após salvar, você poderá adicionar seções e perguntas à anamnese.
-            </p>
-            <div className="btn-group">
-              <button type="submit" disabled={saving} className="btn-primary">
-                {saving ? 'Salvando...' : 'Salvar'}
-              </button>
-              <button type="button" onClick={resetForm} className="btn-secondary" disabled={saving}>
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {!showForm && !hasItems && (
-        <div className="empty-state">
-          <div className="empty-state-icon empty-state-icon--accent">
-            <ClipboardList size={32} strokeWidth={2} />
-          </div>
-          <p className="empty-state-title">Sem anamneses ainda</p>
-          <p className="text-muted text-sm">Crie o primeiro template para aplicar aos alunos.</p>
-          <button type="button" className="btn-primary" onClick={() => setShowForm(true)}>
-            <Plus size={16} strokeWidth={2} aria-hidden="true" />
-            Criar primeira anamnese
+      <LibraryPageHeader
+        icon={FileText}
+        title="Anamneses"
+        actions={canCreate && (
+          <button type="button" className="btn btn--primary btn--lg" onClick={openCreateForm}>
+            <Plus size={20} strokeWidth={2} aria-hidden="true" />
+            Nova anamnese
           </button>
-        </div>
-      )}
+        )}
+      />
 
-      {!showForm && hasItems && (
-        <>
-          <LibraryFilterBar
-            searchValue={searchQuery}
-            onSearchChange={setSearchQuery}
-            searchPlaceholder="Buscar anamnese…"
-            searchAriaLabel="Buscar anamnese"
-            filters={[
-              { value: FILTER_ALL, label: 'Todos' },
-              { value: FILTER_MINE, label: 'Meus' },
-              { value: FILTER_GENERAL, label: 'Gerais' },
-            ]}
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
-            filterCounts={filterCounts}
+      <LibraryListView
+        status={status}
+        loadError={loadError}
+        errorTitle="Não foi possível carregar as anamneses"
+        onRetry={handleRetry}
+        isEmptyLibrary={isEmptyLibrary}
+        empty={{
+          icon: FileText,
+          title: 'Sem anamneses ainda',
+          description: 'Crie o primeiro modelo de anamnese para aplicar aos seus alunos. Depois de salvar, você poderá adicionar seções e perguntas.',
+          actionLabel: 'Criar primeira anamnese',
+          onAction: openCreateForm,
+        }}
+        toolbar={toolbar}
+        batch={deletableIds.length > 0 ? {
+          allSelected,
+          selectedCount: selectedIds.length,
+          onToggleSelectAll: () => setSelectedIds(allSelected ? [] : deletableIds),
+          onDelete: handleDeleteSelected,
+        } : null}
+        isNoResults
+        noResultsMessage="Nenhuma anamnese corresponde aos filtros atuais."
+      >
+        {filteredAnamneses.map((anamnesis) => (
+          <LibraryListRow
+            key={anamnesis.id}
+            title={anamnesis.title}
+            subtitle={`Atualizada em ${formatDate(anamnesis.updatedAt || anamnesis.createdAt)}`}
+            badges={[getOriginBadge(anamnesis), { label: `v${anamnesis.version}`, tone: 'neutral' }]}
+            selectable
+            selectDisabled={anamnesis.isGeneral}
+            selected={selectedIds.includes(anamnesis.id)}
+            onToggleSelect={() => toggleSelect(anamnesis.id)}
+            selectAriaLabel={anamnesis.isGeneral
+              ? `${anamnesis.title} (anamnese geral, não pode ser excluída)`
+              : `Selecionar ${anamnesis.title}`}
+            onOpen={() => navigate(`/trainer/anamneses/${anamnesis.id}`)}
+            ariaLabel={`Abrir ${anamnesis.title}`}
+            rowMenuProps={buildRowMenuProps(anamnesis)}
           />
+        ))}
+      </LibraryListView>
 
-          <LibraryList
-            emptyMessage={`Nenhuma anamnese encontrada para "${searchQuery}"`}
-            isNoResults={isNoResults}
-          >
-            {filteredAnamneses.map((anamnesis) => {
-              const dateLabel = formatDate(anamnesis.updatedAt || anamnesis.createdAt);
-              const subtitle = `v${anamnesis.version} · atualizada ${dateLabel}`;
-              const extraItems = buildRowMenuItems(anamnesis);
-
-              const badges = (
-                <>
-                  {getOriginBadge(anamnesis)}
-                  <span className="badge badge-neutral">v{anamnesis.version}</span>
-                </>
-              );
-
-              return (
-                <LibraryListRow
-                  key={anamnesis.id}
-                  title={anamnesis.title}
-                  subtitle={subtitle}
-                  badges={badges}
-                  onClick={() => navigate(`/trainer/anamneses/${anamnesis.id}`)}
-                  ariaLabel={`Abrir ${anamnesis.title}`}
-                  rowMenuProps={{
-                    ariaLabel: `Opções de ${anamnesis.title}`,
-                    extraItems,
-                    onDelete: () => handleDelete(anamnesis),
-                  }}
-                />
-              );
-            })}
-          </LibraryList>
-        </>
+      {formState && (
+        <AnamnesisFormModal
+          anamnesis={formState.anamnesis}
+          saving={saving}
+          onClose={() => setFormState(null)}
+          onSubmit={handleSubmitForm}
+        />
       )}
-
-      {confirmDialog && (
-        <div className="overlay" onClick={() => setConfirmDialog(null)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-dialog-message">{confirmDialog.message}</p>
-            <div className="btn-group">
-              <button
-                type="button"
-                onClick={confirmDialog.onConfirm}
-                className="btn-danger"
-              >
-                Confirmar
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmDialog(null)}
-                className="btn-secondary"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {dialogProps && <ConfirmDialog {...dialogProps} />}
     </div>
   );
 };

@@ -106,7 +106,7 @@ describe('ProtocolTemplates', () => {
   it('shows loading state initially', () => {
     api.get.mockImplementation(() => new Promise(() => {}));
     renderWithRouter(<ProtocolTemplates />);
-    expect(screen.getByText('Carregando…')).toBeInTheDocument();
+    expect(screen.getByText('Carregando...')).toBeInTheDocument();
   });
 
   // ── Page structure ─────────────────────────────────────────────────────────
@@ -117,13 +117,10 @@ describe('ProtocolTemplates', () => {
     });
   });
 
-  it('renders the ROTINAS eyebrow label', async () => {
+  it('renders no eyebrow above the title', async () => {
     renderWithRouter(<ProtocolTemplates />);
-    await waitFor(() => {
-      // The eyebrow text (uppercase via CSS, text node is "Rotinas")
-      const eyebrows = screen.getAllByText(/rotinas/i);
-      expect(eyebrows.length).toBeGreaterThanOrEqual(1);
-    });
+    await screen.findByText('Modelo Força');
+    expect(screen.getAllByText(/^rotinas$/i)).toHaveLength(1);
   });
 
   it('renders the search input', async () => {
@@ -142,12 +139,26 @@ describe('ProtocolTemplates', () => {
     });
   });
 
-  it('shows error toast when fetch fails', async () => {
-    api.get.mockRejectedValue({ userMessage: 'Falha ao carregar rotinas' });
+  it('shows an alert with retry when the initial fetch fails, and recovers on retry', async () => {
+    const user = userEvent.setup();
+    api.get.mockRejectedValueOnce({ userMessage: 'Falha ao carregar rotinas' });
     renderWithRouter(<ProtocolTemplates />);
-    await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith('Falha ao carregar rotinas', 'error');
-    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha ao carregar rotinas');
+    expect(screen.getByRole('heading', { name: /não foi possível carregar as rotinas/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /nova rotina/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /tentar novamente/i }));
+
+    expect(await screen.findByText('Modelo Força')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows the count on the active filter tab and the footer summary', async () => {
+    renderWithRouter(<ProtocolTemplates />);
+    expect(await screen.findByRole('tab', { name: /todos \(2\)/i })).toBeInTheDocument();
+    expect(screen.getByText('Mostrando 2 de 2 rotinas')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ver mais/i })).not.toBeInTheDocument();
   });
 
   // ── Server-side type filter tabs ───────────────────────────────────────────
@@ -237,18 +248,20 @@ describe('ProtocolTemplates', () => {
 
     await waitFor(() => {
       expect(screen.queryByText('Modelo Força')).not.toBeInTheDocument();
-      expect(screen.getByText(/nenhuma rotina encontrada/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /sem resultados/i })).toBeInTheDocument();
+      expect(screen.getByText(/nenhuma rotina corresponde/i)).toBeInTheDocument();
     });
   });
 
   // ── Empty state ────────────────────────────────────────────────────────────
-  it('shows themed empty state when no templates exist', async () => {
+  it('shows the empty block with the explanation and hides the header CTA', async () => {
     api.get.mockResolvedValue(envelope([]));
     renderWithRouter(<ProtocolTemplates />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/comece pelo treino/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('heading', { name: 'Sem rotinas ainda' })).toBeInTheDocument();
+    expect(screen.getByText(/comece pelo treino/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /nova rotina/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
   });
 
   // ── Navigation ─────────────────────────────────────────────────────────────
@@ -270,14 +283,14 @@ describe('ProtocolTemplates', () => {
     renderWithRouter(<ProtocolTemplates />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /adicionar primeira rotina/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /criar primeira rotina/i })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /adicionar primeira rotina/i }));
+    await user.click(screen.getByRole('button', { name: /criar primeira rotina/i }));
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines/new');
   });
 
-  it('navigates to edit page when clicking a card', async () => {
+  it('opens the routine view when clicking a row', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ProtocolTemplates />);
 
@@ -285,8 +298,8 @@ describe('ProtocolTemplates', () => {
       expect(screen.getByText('Modelo Força')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /editar rotina modelo força/i }));
-    expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines/1/edit');
+    await user.click(screen.getByRole('button', { name: /abrir rotina modelo força/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/routines/1');
   });
 
   it('navigates to edit via row menu Editar item', async () => {
@@ -332,7 +345,7 @@ describe('ProtocolTemplates', () => {
     const menuBtn = screen.getAllByRole('button', { name: /ações da rotina/i })[0];
     await user.click(menuBtn);
     await user.click(screen.getByRole('button', { name: /excluir/i }));
-    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /excluir/i }));
 
     expect(api.delete).toHaveBeenCalledWith('/trainer/protocol-templates/1');
     await waitFor(() => {
@@ -370,7 +383,7 @@ describe('ProtocolTemplates', () => {
     const menuBtn = screen.getAllByRole('button', { name: /ações da rotina/i })[0];
     await user.click(menuBtn);
     await user.click(screen.getByRole('button', { name: /excluir/i }));
-    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /excluir/i }));
 
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Erro ao excluir', 'error');
@@ -385,20 +398,19 @@ describe('ProtocolTemplates', () => {
       expect(screen.getByText('Modelo Força')).toBeInTheDocument();
     });
     expect(screen.queryByRole('button', { name: /continuar rascunho/i })).not.toBeInTheDocument();
-    expect(screen.queryByText('EM ANDAMENTO')).not.toBeInTheDocument();
+    expect(screen.queryByText('Em andamento')).not.toBeInTheDocument();
   });
 
-  it('shows draft card with name and EM ANDAMENTO badge when draft is valid', async () => {
+  it('shows draft card with name and Em andamento badge when draft is valid', async () => {
     localStorage.setItem(ROUTINE_DRAFT_KEY, makeDraft());
     renderWithRouter(<ProtocolTemplates />);
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /continuar rascunho/i })).toBeInTheDocument();
     });
-    const card = screen.getByRole('button', { name: /continuar rascunho/i });
-    expect(within(card).getByText('Rotina Teste')).toBeInTheDocument();
-    expect(within(card).getByText('EM ANDAMENTO')).toBeInTheDocument();
-    expect(within(card).getByText(/3 treinos/i)).toBeInTheDocument();
-    expect(within(card).getByText(/salvo/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /continuar rascunho/i })).toHaveTextContent('Rotina Teste');
+    expect(screen.getByText('Em andamento')).toBeInTheDocument();
+    expect(screen.getAllByText('3 treinos').length).toBeGreaterThan(0);
+    expect(screen.getByText(/salvo/i)).toBeInTheDocument();
   });
 
   it('shows "Sem nome" in draft card when draft has no name', async () => {
@@ -470,9 +482,9 @@ describe('ProtocolTemplates', () => {
     });
     await user.click(screen.getByRole('button', { name: /ações do rascunho/i }));
     await user.click(screen.getByRole('button', { name: /descartar/i }));
-    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /descartar/i }));
     await waitFor(() => {
-      expect(screen.queryByText('EM ANDAMENTO')).not.toBeInTheDocument();
+      expect(screen.queryByText('Em andamento')).not.toBeInTheDocument();
     });
     expect(localStorage.getItem(ROUTINE_DRAFT_KEY)).toBeNull();
   });
@@ -487,7 +499,7 @@ describe('ProtocolTemplates', () => {
     await user.click(screen.getByRole('button', { name: /ações do rascunho/i }));
     await user.click(screen.getByRole('button', { name: /descartar/i }));
     await user.click(screen.getByRole('button', { name: /cancelar/i }));
-    expect(screen.getByText('EM ANDAMENTO')).toBeInTheDocument();
+    expect(screen.getByText('Em andamento')).toBeInTheDocument();
     expect(localStorage.getItem(ROUTINE_DRAFT_KEY)).not.toBeNull();
   });
 
@@ -497,7 +509,7 @@ describe('ProtocolTemplates', () => {
     await waitFor(() => {
       expect(screen.getByText('Modelo Força')).toBeInTheDocument();
     });
-    expect(screen.getByText('EM ANDAMENTO')).toBeInTheDocument();
+    expect(screen.getByText('Em andamento')).toBeInTheDocument();
   });
 
   it('hides the draft card once a server-side filter is active', async () => {
@@ -511,7 +523,7 @@ describe('ProtocolTemplates', () => {
     // type filter hides it.
     await user.click(screen.getByRole('tab', { name: /^força$/i }));
     await waitFor(() => {
-      expect(screen.queryByText('EM ANDAMENTO')).not.toBeInTheDocument();
+      expect(screen.queryByText('Em andamento')).not.toBeInTheDocument();
     });
   });
 
@@ -520,7 +532,7 @@ describe('ProtocolTemplates', () => {
     localStorage.setItem(ROUTINE_DRAFT_KEY, makeDraft());
     renderWithRouter(<ProtocolTemplates />);
     await waitFor(() => {
-      expect(screen.getByText('EM ANDAMENTO')).toBeInTheDocument();
+      expect(screen.getByText('Em andamento')).toBeInTheDocument();
     });
     expect(screen.queryByText(/comece pelo treino/i)).not.toBeInTheDocument();
   });
@@ -553,9 +565,8 @@ describe('ProtocolTemplates', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /continuar rascunho/i })).toBeInTheDocument();
     });
-    const card = screen.getByRole('button', { name: /continuar rascunho/i });
-    expect(within(card).getByText(/1 treino/)).toBeInTheDocument();
-    expect(within(card).queryByText(/1 treinos/)).not.toBeInTheDocument();
+    expect(screen.getByText(/1 treino/)).toBeInTheDocument();
+    expect(screen.queryByText(/1 treinos/)).not.toBeInTheDocument();
   });
 
   it('does not render draft card for a completely empty draft (defensive)', async () => {
@@ -571,7 +582,7 @@ describe('ProtocolTemplates', () => {
     await waitFor(() => {
       expect(screen.getByText('Modelo Força')).toBeInTheDocument();
     });
-    expect(screen.queryByText('EM ANDAMENTO')).not.toBeInTheDocument();
+    expect(screen.queryByText('Em andamento')).not.toBeInTheDocument();
   });
 
   // ── Discard cleanup ────────────────────────────────────────────────────────
@@ -585,7 +596,7 @@ describe('ProtocolTemplates', () => {
     });
     await user.click(screen.getByRole('button', { name: /ações do rascunho/i }));
     await user.click(screen.getByRole('button', { name: /descartar/i }));
-    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /descartar/i }));
 
     await waitFor(() => {
       expect(cleanupDraftResources).toHaveBeenCalledOnce();
@@ -603,7 +614,7 @@ describe('ProtocolTemplates', () => {
     });
     await user.click(screen.getByRole('button', { name: /ações do rascunho/i }));
     await user.click(screen.getByRole('button', { name: /descartar/i }));
-    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /descartar/i }));
 
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith('Rascunho descartado.', 'success');
@@ -620,7 +631,7 @@ describe('ProtocolTemplates', () => {
     });
     await user.click(screen.getByRole('button', { name: /ações do rascunho/i }));
     await user.click(screen.getByRole('button', { name: /descartar/i }));
-    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /descartar/i }));
 
     await waitFor(() => {
       expect(mockShowToast).toHaveBeenCalledWith(
@@ -642,7 +653,7 @@ describe('ProtocolTemplates', () => {
     });
     await user.click(screen.getByRole('button', { name: /ações do rascunho/i }));
     await user.click(screen.getByRole('button', { name: /descartar/i }));
-    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /descartar/i }));
 
     await waitFor(() => {
       expect(localStorage.getItem(ROUTINE_DRAFT_KEY)).toBeNull();
@@ -672,27 +683,28 @@ describe('ProtocolTemplates', () => {
     });
   });
 
-  it('shows pagination controls and advances the page', async () => {
+  it('shows the footer summary and appends the next page on "Ver mais"', async () => {
     const user = userEvent.setup();
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/protocol-templates') return Promise.resolve(envelope(mockTemplates, 45));
-      return Promise.resolve({ data: [] });
+    const nextPage = [{ id: 3, name: 'Modelo Mobilidade', type: 'mobility', scheduleTemplatesCount: 1 }];
+    api.get.mockImplementation((url, config) => {
+      if (url !== '/trainer/protocol-templates') return Promise.resolve({ data: [] });
+      return Promise.resolve(config.params.page === 2 ? envelope(nextPage, 3, 2) : envelope(mockTemplates, 3));
     });
     renderWithRouter(<ProtocolTemplates />);
 
-    await waitFor(() => screen.getByText('Modelo Força'));
+    await screen.findByText('Modelo Força');
+    expect(screen.getByText('Mostrando 2 de 3 rotinas')).toBeInTheDocument();
 
-    expect(screen.getByText('Página 1 de 3')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /anterior/i })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: /ver mais/i }));
 
-    await user.click(screen.getByRole('button', { name: /próxima/i }));
-
-    await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith(
-        '/trainer/protocol-templates',
-        expect.objectContaining({ params: expect.objectContaining({ page: 2 }) }),
-      );
-    });
+    expect(await screen.findByText('Modelo Mobilidade')).toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledWith(
+      '/trainer/protocol-templates',
+      expect.objectContaining({ params: expect.objectContaining({ page: 2 }) }),
+    );
+    expect(screen.getByText('Modelo Força')).toBeInTheDocument();
+    expect(screen.getByText('Mostrando 3 de 3 rotinas')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ver mais/i })).not.toBeInTheDocument();
   });
 
   it('selects a row and batch-deletes the selection', async () => {
@@ -708,7 +720,7 @@ describe('ProtocolTemplates', () => {
     expect(batchButton).toBeInTheDocument();
 
     await user.click(batchButton);
-    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /excluir/i }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/trainer/protocol-templates/batch-delete', { ids: [1] });
