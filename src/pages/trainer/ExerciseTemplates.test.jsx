@@ -1,9 +1,14 @@
-import { screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, within } from '@testing-library/react';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
-import { renderWithRouter } from '../../test/test-utils';
 import ExerciseTemplates from './ExerciseTemplates';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
+
+const authState = vi.hoisted(() => ({ isAdmin: true }));
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => authState,
+}));
 
 vi.mock('../../contexts/ToastContext', () => ({
   useToast: vi.fn(),
@@ -21,6 +26,21 @@ vi.mock('../../api/axios', () => ({
 
 const mockShowToast = vi.fn();
 
+const LocationProbe = () => {
+  const { pathname } = useLocation();
+  return <div data-testid="location">{pathname}</div>;
+};
+
+const renderWithRouter = (ui) =>
+  render(
+    <MemoryRouter initialEntries={['/trainer/exercise-templates']}>
+      <Routes>
+        <Route path="/trainer/exercise-templates" element={ui} />
+        <Route path="*" element={<LocationProbe />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
 // Library templates are identity-only: no prescription fields.
 const mockTemplates = [
   { id: 1, name: 'Agachamento', type: 'strength', isPublic: false },
@@ -36,6 +56,7 @@ const envelope = (data, total = data.length, page = 1, limit = 20) => ({
 describe('ExerciseTemplates', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
+    authState.isAdmin = true;
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     api.get.mockResolvedValue(envelope(mockTemplates));
     api.post.mockReset();
@@ -66,25 +87,26 @@ describe('ExerciseTemplates', () => {
     });
   });
 
-  it('shows empty state and info banner when there are no templates', async () => {
+  it('shows the empty block with the explanation folded into the description', async () => {
     api.get.mockResolvedValue(envelope([]));
 
     renderWithRouter(<ExerciseTemplates />);
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum exercício ainda')).toBeInTheDocument();
-      expect(screen.getByText(/O que é um exercício\?/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Sem exercícios ainda' })).toBeInTheDocument();
+      expect(screen.getByText(/um exercício é um movimento reutilizável/i)).toBeInTheDocument();
     });
+    expect(screen.queryByRole('button', { name: /novo exercício/i })).not.toBeInTheDocument();
   });
 
-  it('shows CTA button in empty state that opens the create form', async () => {
+  it('shows CTA button in empty state that navigates to the create page', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue(envelope([]));
 
     renderWithRouter(<ExerciseTemplates />);
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum exercício ainda')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Sem exercícios ainda' })).toBeInTheDocument();
     });
 
     const ctaButton = screen.getByRole('button', { name: /criar primeiro exercício/i });
@@ -92,7 +114,7 @@ describe('ExerciseTemplates', () => {
 
     await user.click(ctaButton);
 
-    expect(screen.getByLabelText(/nome/i)).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/trainer/exercise-templates/new');
   });
 
   it('shows loading before GET resolves', async () => {
@@ -113,7 +135,7 @@ describe('ExerciseTemplates', () => {
     resolveTemplates(envelope([]));
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum exercício ainda')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Sem exercícios ainda' })).toBeInTheDocument();
     });
   });
 
@@ -161,89 +183,6 @@ describe('ExerciseTemplates', () => {
     });
   });
 
-  it('shows the create form when "+ Novo exercício" is clicked', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<ExerciseTemplates />);
-
-    await waitFor(() => screen.getByText('Agachamento'));
-
-    await user.click(screen.getByRole('button', { name: /novo exercício/i }));
-
-    // New form shows name input and the "Sem nome ainda" placeholder h1
-    expect(screen.getByLabelText(/nome/i)).toBeInTheDocument();
-    expect(screen.getByText('Sem nome ainda')).toBeInTheDocument();
-  });
-
-  it('calls POST to create a new template on form submission', async () => {
-    const user = userEvent.setup();
-    api.post.mockResolvedValue({ data: { id: 3, name: 'Flexão', type: 'strength', isPublic: false } });
-    api.get.mockResolvedValue(envelope([...mockTemplates, { id: 3, name: 'Flexão', type: 'strength', isPublic: false }]));
-
-    renderWithRouter(<ExerciseTemplates />);
-
-    await waitFor(() => screen.getByText('Agachamento'));
-    await user.click(screen.getByRole('button', { name: /novo exercício/i }));
-
-    await user.type(screen.getByLabelText(/nome/i), 'Flexão');
-    // Type is now a segmented radio toggle — click the radio button
-    await user.click(screen.getByRole('radio', { name: /força/i }));
-    // Library templates are identity-only — no prescription fields to fill.
-    await user.click(screen.getByRole('button', { name: /criar exercício/i }));
-
-    await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith(
-        '/trainer/exercise-templates',
-        expect.objectContaining({ name: 'Flexão', type: 'strength' })
-      );
-      expect(mockShowToast).toHaveBeenCalledWith('Exercício criado com sucesso!', 'success');
-    });
-  });
-
-  it('does not render prescription meta on the library rows', async () => {
-    renderWithRouter(<ExerciseTemplates />);
-
-    await waitFor(() => screen.getByText('Agachamento'));
-
-    // No sets×reps / load / rest strings rendered for library templates.
-    expect(screen.queryByText(/4x8/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/kg/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/descanso/i)).not.toBeInTheDocument();
-  });
-
-  it('populates form with existing data when Edit is clicked', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<ExerciseTemplates />);
-
-    await waitFor(() => screen.getByText('Agachamento'));
-
-    const menuTrigger = screen.getByRole('button', { name: /ações do modelo agachamento/i });
-    await user.click(menuTrigger);
-    await user.click(screen.getByText('Editar'));
-
-    // Page header now shows the template name as h1
-    expect(screen.getByDisplayValue('Agachamento')).toBeInTheDocument();
-    // Type radio should be pre-selected
-    expect(screen.getByRole('radio', { name: /força/i })).toHaveAttribute('aria-checked', 'true');
-  });
-
-  it('calls PATCH on save when editing an existing template', async () => {
-    const user = userEvent.setup();
-    api.patch.mockResolvedValue({ data: mockTemplates[0] });
-
-    renderWithRouter(<ExerciseTemplates />);
-
-    await waitFor(() => screen.getByText('Agachamento'));
-
-    const menuTrigger = screen.getByRole('button', { name: /ações do modelo agachamento/i });
-    await user.click(menuTrigger);
-    await user.click(screen.getByText('Editar'));
-    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
-
-    await waitFor(() => {
-      expect(api.patch).toHaveBeenCalledWith('/trainer/exercise-templates/1', expect.any(Object));
-      expect(mockShowToast).toHaveBeenCalledWith('Exercício atualizado com sucesso!', 'success');
-    });
-  });
 
   it('shows custom confirm dialog and calls DELETE on confirmation', async () => {
     const user = userEvent.setup();
@@ -256,8 +195,8 @@ describe('ExerciseTemplates', () => {
     const menuTrigger = screen.getByRole('button', { name: /ações do modelo agachamento/i });
     await user.click(menuTrigger);
     await user.click(screen.getByText('Excluir'));
-    await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
-    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+    await waitFor(() => screen.getByRole('alertdialog'));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /excluir/i }));
 
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/trainer/exercise-templates/1');
@@ -317,57 +256,6 @@ describe('ExerciseTemplates', () => {
     expect(screen.getAllByText('Vídeo').length).toBe(1);
   });
 
-  it('hides header actions when form is open', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<ExerciseTemplates />);
-
-    await waitFor(() => screen.getByText('Agachamento'));
-
-    await user.click(screen.getByRole('button', { name: /novo exercício/i }));
-
-    expect(screen.queryByRole('button', { name: /visualização em cards/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /visualização em lista/i })).not.toBeInTheDocument();
-  });
-
-  it('shows play button (not expand) in create form when a valid YouTube URL is entered', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<ExerciseTemplates />);
-
-    await waitFor(() => screen.getByText('Agachamento'));
-    await user.click(screen.getByRole('button', { name: /novo exercício/i }));
-
-    await user.type(
-      screen.getByLabelText(/url do vídeo/i),
-      'https://www.youtube.com/watch?v=formPreviewId'
-    );
-
-    expect(
-      screen.getByRole('button', { name: /reproduzir prévia/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /expandir vídeo em tela cheia/i })
-    ).not.toBeInTheDocument();
-  });
-
-  it('clicking play in edit form swaps thumbnail for inline iframe', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<ExerciseTemplates />);
-
-    await waitFor(() => screen.getByText('Rosca Direta'));
-
-    const menuTrigger = screen.getByRole('button', { name: /ações do modelo rosca direta/i });
-    await user.click(menuTrigger);
-    await user.click(screen.getByText('Editar'));
-
-    await user.click(screen.getByRole('button', { name: /reproduzir prévia/i }));
-
-    const iframes = document.querySelectorAll('iframe');
-    const inlineIframe = Array.from(iframes).find((el) =>
-      el.src.includes('youtube.com/embed/abc123XYZ')
-    );
-    expect(inlineIframe).toBeTruthy();
-    expect(screen.queryByRole('img', { name: /miniatura do vídeo/i })).not.toBeInTheDocument();
-  });
 
   describe('Server-driven list (pagination, search, filters, batch delete)', () => {
     it('renders rows from the pagination envelope (res.data.data)', async () => {
@@ -411,24 +299,52 @@ describe('ExerciseTemplates', () => {
       });
     });
 
-    it('shows pagination controls and advances the page', async () => {
+    it('shows the footer summary and appends the next page on "Ver mais"', async () => {
       const user = userEvent.setup();
-      api.get.mockResolvedValue(envelope(mockTemplates, 45));
+      api.get.mockImplementation((url, config) => {
+        if (config?.params?.page === 2) {
+          return Promise.resolve(envelope([{ id: 4, name: 'Remada Curvada', type: 'strength' }], 4, 2));
+        }
+        return Promise.resolve(envelope(mockTemplates, 4));
+      });
       renderWithRouter(<ExerciseTemplates />);
 
       await waitFor(() => screen.getByText('Agachamento'));
+      expect(screen.getByText('Mostrando 3 de 4 exercícios')).toBeInTheDocument();
 
-      expect(screen.getByText('Página 1 de 3')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /anterior/i })).toBeDisabled();
+      await user.click(screen.getByRole('button', { name: /ver mais/i }));
 
-      await user.click(screen.getByRole('button', { name: /próxima/i }));
+      expect(await screen.findByText('Remada Curvada')).toBeInTheDocument();
+      expect(screen.getByText('Agachamento')).toBeInTheDocument();
+      expect(api.get).toHaveBeenCalledWith(
+        '/trainer/exercise-templates',
+        expect.objectContaining({ params: expect.objectContaining({ page: 2 }) }),
+      );
+      expect(screen.getByText('Mostrando 4 de 4 exercícios')).toBeInTheDocument();
+    });
 
-      await waitFor(() => {
-        expect(api.get).toHaveBeenCalledWith(
-          '/trainer/exercise-templates',
-          expect.objectContaining({ params: expect.objectContaining({ page: 2 }) }),
-        );
-      });
+    it('shows an alert with retry when the initial fetch fails', async () => {
+      const user = userEvent.setup();
+      api.get.mockRejectedValueOnce({ userMessage: 'Falha ao carregar' });
+      renderWithRouter(<ExerciseTemplates />);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Falha ao carregar');
+      await user.click(screen.getByRole('button', { name: /tentar novamente/i }));
+
+      expect(await screen.findByText('Agachamento')).toBeInTheDocument();
+    });
+
+    it('shows the no-results block when a search matches nothing', async () => {
+      const user = userEvent.setup();
+      api.get.mockImplementation((url, config) =>
+        Promise.resolve(config?.params?.q ? envelope([], 0) : envelope(mockTemplates)));
+      renderWithRouter(<ExerciseTemplates />);
+
+      await waitFor(() => screen.getByText('Agachamento'));
+      await user.type(screen.getByRole('textbox', { name: /buscar exercícios/i }), 'zzz');
+
+      expect(await screen.findByRole('heading', { name: 'Sem resultados' })).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: /buscar exercícios/i })).toBeInTheDocument();
     });
 
     it('selects a row and batch-deletes the selection', async () => {
@@ -444,7 +360,7 @@ describe('ExerciseTemplates', () => {
       expect(batchButton).toBeInTheDocument();
 
       await user.click(batchButton);
-      await user.click(screen.getByRole('button', { name: /confirmar/i }));
+      await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /excluir/i }));
 
       await waitFor(() => {
         expect(api.post).toHaveBeenCalledWith('/trainer/exercise-templates/batch-delete', { ids: [1] });
@@ -530,6 +446,50 @@ describe('ExerciseTemplates', () => {
       await waitFor(() => {
         expect(document.querySelector('.library-refetch-indicator')).toBeNull();
       });
+    });
+  });
+
+  describe('public items (admin-only deletion)', () => {
+    it('lets a non-admin open a public row but offers no menu, and disables its checkbox', async () => {
+      authState.isAdmin = false;
+      renderWithRouter(<ExerciseTemplates />);
+      await waitFor(() => screen.getByText('Corrida'));
+
+      expect(screen.queryByRole('button', { name: /ações do modelo corrida/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /selecionar corrida/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /ações do modelo agachamento/i })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /selecionar agachamento/i })).toBeEnabled();
+    });
+
+    it('select-all skips public rows for a non-admin and batch-deletes only the others', async () => {
+      const user = userEvent.setup();
+      authState.isAdmin = false;
+      api.post.mockResolvedValue({ data: { deletedCount: 1 } });
+      renderWithRouter(<ExerciseTemplates />);
+      await waitFor(() => screen.getByText('Agachamento'));
+
+      await user.click(screen.getByRole('button', { name: /selecionar todos/i }));
+      expect(screen.getByRole('checkbox', { name: /selecionar agachamento/i })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /selecionar corrida/i })).not.toBeChecked();
+
+      await user.click(screen.getByRole('button', { name: /excluir selecionados/i }));
+      await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /excluir/i }));
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith(expect.stringMatching(/batch-delete$/), { ids: [1, 3] });
+      });
+    });
+
+    it('lets an admin delete a public row', async () => {
+      const user = userEvent.setup();
+      api.delete.mockResolvedValue({});
+      renderWithRouter(<ExerciseTemplates />);
+      await waitFor(() => screen.getByText('Corrida'));
+
+      expect(screen.getByRole('checkbox', { name: /selecionar corrida/i })).toBeEnabled();
+      await user.click(screen.getByRole('button', { name: /ações do modelo corrida/i }));
+      await user.click(screen.getByText('Excluir'));
+      await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /excluir/i }));
+      await waitFor(() => expect(api.delete).toHaveBeenCalledWith(expect.stringMatching(/\/2$/)));
     });
   });
 });
