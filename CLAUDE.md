@@ -212,6 +212,18 @@ New translations go in `src/i18n/locales/pt-BR.js` under the `errors`, `messageC
 
 ---
 
+## RULE 14: Comments, Deviations and the Lint Ratchet
+
+Enforced by `eslint-rules/` (lint errors, checked by the Stop hook):
+
+- **Header above every top-level function/component**: one-line summary — `// …`, or JSDoc whose summary is one line followed by `@param`/`@returns`.
+- **No comments inside functions** (JSX `{/* */}` included). Extract a well-named function or component instead. Only allowed inside a body: `// why: …` (non-obvious reason), `// deviation: …`, tool directives (`eslint-disable… -- <reason>`, `TODO`).
+- **Pattern rules as lint errors**: no `error.response.data.message` (use `error.userMessage`), no `window.confirm`, no direct `axios` import outside `src/api/axios.js`.
+- **Deviating**: follow the surrounding code's pattern; when you must break a convention, mark it `// deviation: <reason>` or `eslint-disable-next-line <rule> -- <reason>` (never a blanket `eslint-disable`) and tell the user in your final message. The Stop hook lists new deviations once and blocks until you do.
+- **Ratchet**: pre-existing violations are frozen in `eslint-suppressions.json`; only new ones fail. After fixing a frozen one, `npx eslint --prune-suppressions` (the Stop hook does it). Never re-run `--suppress-*` to silence new code.
+
+---
+
 ## General Conventions
 
 - **Language:** code in English, UI in pt-BR via i18n (`src/i18n/locales/pt-BR.js`)

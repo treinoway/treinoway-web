@@ -4,6 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import react from 'eslint-plugin-react'
 import { defineConfig, globalIgnores } from 'eslint/config'
+import local from './eslint-rules/index.js'
 
 export default defineConfig([
   globalIgnores(['dist']),
@@ -74,6 +75,43 @@ export default defineConfig([
     files: ['src/contexts/**/*.{js,jsx}'],
     rules: {
       'react-refresh/only-export-components': 'off',
+    },
+  },
+  // Comment conventions (see CLAUDE.md). Pre-existing violations are frozen in eslint-suppressions.json; only new ones fail.
+  {
+    files: ['**/*.{js,jsx}'],
+    plugins: { local },
+    rules: {
+      'local/function-header-comment': 'error',
+      'local/no-comments-in-function': 'error',
+      'local/disable-requires-reason': 'error',
+    },
+  },
+  {
+    files: ['src/**/*.{js,jsx}'],
+    ignores: ['**/*.test.{js,jsx}', 'src/test/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[property.name='message'][object.property.name='data'][object.object.property.name='response']",
+          message: 'Read error.userMessage (set by the Axios interceptor), never error.response.data.message.',
+        },
+        {
+          selector: "CallExpression[callee.object.name='window'][callee.property.name='confirm']",
+          message: 'Use the app confirm dialog component, never window.confirm.',
+        },
+      ],
+      'no-restricted-imports': [
+        'error',
+        { paths: [{ name: 'axios', message: 'Use the shared instance from src/api/axios.js.' }] },
+      ],
+    },
+  },
+  {
+    files: ['src/api/axios.js'],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
 ])
