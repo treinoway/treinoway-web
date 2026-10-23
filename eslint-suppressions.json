@@ -1,0 +1,3112 @@
+{
+  "public/mockups/session-2/interactions.js": {
+    "local/no-comments-in-function": {
+      "count": 16
+    }
+  },
+  "public/mockups/session/interactions.js": {
+    "local/no-comments-in-function": {
+      "count": 17
+    }
+  },
+  "src/App.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 12
+    }
+  },
+  "src/api/axios.js": {
+    "local/function-header-comment": {
+      "count": 4
+    },
+    "local/no-comments-in-function": {
+      "count": 11
+    }
+  },
+  "src/api/axios.test.js": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 7
+    }
+  },
+  "src/api/baseUrl.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/api/studentInvites.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/api/subscriptions.js": {
+    "local/function-header-comment": {
+      "count": 12
+    }
+  },
+  "src/api/trainerBriefing.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ActionCard.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/AddTrainingSheet.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 5
+    },
+    "local/no-comments-in-function": {
+      "count": 12
+    }
+  },
+  "src/components/AddTrainingSheet.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/components/AnamnesisPreviewModal.jsx": {
+    "local/function-header-comment": {
+      "count": 8
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/AnamnesisPreviewModal.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 12
+    }
+  },
+  "src/components/AuthEmailField.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/BiSetActionSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/BiSetBadge.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/BonusChipGrid.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/BrandCalendar/BrandCalendar.jsx": {
+    "local/disable-requires-reason": {
+      "count": 4
+    },
+    "local/function-header-comment": {
+      "count": 10
+    },
+    "local/no-comments-in-function": {
+      "count": 55
+    }
+  },
+  "src/components/BrandCalendar/BrandCalendar.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 39
+    }
+  },
+  "src/components/BrandCalendar/dateMask.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/BrandCalendar/utils.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/BrandIllustration.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ControlTile.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ControlTile.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/ControlTower.jsx": {
+    "local/function-header-comment": {
+      "count": 14
+    }
+  },
+  "src/components/ControlTower.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/components/CreateChampionshipModal.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/components/CreateChampionshipModal.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/components/CreateExerciseTemplateModal.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/CreateExerciseTemplateModal.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/DateInput.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/components/DurationLabel.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/EditExerciseSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 7
+    }
+  },
+  "src/components/EditExerciseSheet.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/components/ErrorBoundary.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/ErrorBoundary.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/ExerciseComposer.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    },
+    "local/no-comments-in-function": {
+      "count": 28
+    }
+  },
+  "src/components/ExerciseComposer.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 27
+    }
+  },
+  "src/components/ExerciseRowCard.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ExerciseTemplateForm.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/ExerciseTemplateForm.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 22
+    }
+  },
+  "src/components/FoodSearchDrawer.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/components/GoogleIcon.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/IArnoldFAB.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/IArnoldFAB.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/InfoBanner.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/IntensityBadge.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/IntensityField.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/IntensityField.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/IntensityRamp.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/IntensityRamp.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/InviteFormSkeleton.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/InviteStatusCard.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/Layout.jsx": {
+    "local/disable-requires-reason": {
+      "count": 2
+    },
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 14
+    }
+  },
+  "src/components/Layout.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 57
+    }
+  },
+  "src/components/LibraryBatchBar.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/LibraryEditorLayout.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/LibraryEditorLayout.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/LibraryFilterBar.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/LibraryList.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/LibraryListView.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/LibraryPageHeader.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/LibraryRefetchIndicator.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/MacroBar.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/components/MacroBar.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/MonthSelector.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/NoStudentsModal.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/NoStudentsModal.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/NumberStepper.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/NutritionistActivationSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/NutritionistOnboardingCard.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/NutritionistProfileSection.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/NutritionistRoute.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/NutritionistRoute.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/OnboardingChecklistCard/OnboardingAllDoneState.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/OnboardingChecklistCard/OnboardingChecklistCard.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    },
+    "local/no-comments-in-function": {
+      "count": 12
+    }
+  },
+  "src/components/OnboardingChecklistCard/OnboardingChecklistCard.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/components/OnboardingChecklistCard/OnboardingEncouragementLine.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/OnboardingChecklistCard/OnboardingProgressPill.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/OnboardingChecklistCard/OnboardingStepRow.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/OneTimeBanner.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/PeriodPickerSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/components/PeriodPickerSheet.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/PointsBottomSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/PointsSummaryCard.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/PrescriptionField.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/components/PrescriptionField.test.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/components/ProgressionPanel.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/ProgressionPanel.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/components/ProgressionRow.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ProgressionRow.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/components/ProgressionSessionAccordion.jsx": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/components/ProgressionSessionAccordion.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ProgressionSparkline.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/ProgressionSparkline.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/ProtectedRoute.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ProtectedRoute.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/PulseBand.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/PulseBand.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/PulseHeatmap.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 6
+    }
+  },
+  "src/components/PulseHeatmap.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/components/PulseStatChip.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/PulseTooltip.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/PulseTooltip.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/PulseWaveform.jsx": {
+    "local/function-header-comment": {
+      "count": 7
+    }
+  },
+  "src/components/PulseWaveform.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/QuickCreateChallengeSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/components/RankingList.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/components/RecentSessionsPanel.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/components/RecentSessionsPanel.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/RequireRole.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/RequireRole.test.jsx": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/components/RestQuickChips.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/RoutineSummaryBar.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/RoutineSummaryBar.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 5
+    }
+  },
+  "src/components/RoutineSummarySheet.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/RoutineSummarySheet.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 5
+    }
+  },
+  "src/components/RoutineSummarySheetItem.jsx": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/components/RoutineSummarySheetItem.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/RowMenu.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/components/ScrollToLatestPill.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ScrollToTop.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 5
+    }
+  },
+  "src/components/ScrollToTop.test.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 19
+    }
+  },
+  "src/components/Select.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/SelectionActionBar.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/SemanticStatusIcon.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/SessionDetailHero.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/components/SessionDetailHero.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 10
+    }
+  },
+  "src/components/SessionExerciseCard.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/SessionExerciseCard.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/components/SessionNotesGrid.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/SessionSetsTable.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/components/SignupCodeStep.jsx": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/components/SignupCodeStep.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/StatDisplay.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/StreamingSkeleton.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/StreamingSkeleton.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/components/StudentBonusSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/StudentCockpitHero.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/StudentIntensityBand.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/SubstituteComposerSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    },
+    "local/no-comments-in-function": {
+      "count": 11
+    }
+  },
+  "src/components/SubstituteComposerSheet.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 7
+    }
+  },
+  "src/components/SubstitutedLogLine.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/SubstitutedLogLine.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/SubstitutesInline.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/SwapExerciseSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 5
+    }
+  },
+  "src/components/SwapExerciseSheet.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/TrainerContextSelect.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/TrainerProfileSection.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/TrainingMetaRow.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/TrendChip.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/VideoField.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/VideoField.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/VideoLibraryPicker.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/components/VideoLibraryPicker.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/WelcomeHero.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/AnamnesisCanvas.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/anamnesis/AnamnesisCanvas.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/AnamnesisEditorHeader.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/components/anamnesis/AnamnesisEditorHeader.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/anamnesis/AnamnesisEditorStatus.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/AnamnesisEditorStatus.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/AnamnesisEditorWorkspace.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/anamnesis/AnamnesisFormModal.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/AnamnesisFormModal.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/AnamnesisLibraryPanel.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/AnamnesisMessage.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/AnamnesisOutlinePanel.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/anamnesis/AnamnesisOutlinePanel.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/AnamnesisWizardView.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/components/anamnesis/AnamnesisWizardView.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/anamnesis/AnswerField.jsx": {
+    "local/function-header-comment": {
+      "count": 10
+    }
+  },
+  "src/components/anamnesis/AnswerField.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/anamnesis/AssignFooter.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/AssignStudentsPanel.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/AssignTemplateCard.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/anamnesis/AssignWorkspace.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/anamnesis/PresenceGate.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/anamnesis/PresenceGate.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/WizardReview.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/anamnesis/WizardStepper.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/components/anamnesis/editor/CanvasEmptyBoard.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/components/anamnesis/editor/CanvasQuestionCard.jsx": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/components/anamnesis/editor/OutlineQuestionRow.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/editor/OutlineSectionEditForm.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/editor/OutlineSectionItem.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/anamnesis/editor/QuestionConditionEditor.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/anamnesis/editor/QuestionNumericConfig.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/editor/QuestionOptionsEditor.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/anamnesis/editor/QuestionTriggerPicker.jsx": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/components/ds/Avatar.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ds/Badge.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ds/Banner.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ds/ConfirmDialog.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ds/EmptyBlock.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ds/Kpi.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ds/MetricCard.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ds/Modal.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ds/Segmented.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ds/SkeletonRows.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ds/SkeletonText.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/ds/useModalBehavior.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/exerciseTemplate/ExerciseIdentitySection.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/exerciseTemplate/ExerciseVideoSection.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/exerciseTemplate/ExerciseVideoSection.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/finance/AssignPlanFields.jsx": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/components/finance/AssignPlanSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/components/finance/AssignPlanSheet.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/finance/ChargesPanel.jsx": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/components/finance/ChoiceGroup.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/finance/EditPaymentSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/finance/EditPaymentSheet.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/finance/FinanceMetrics.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/finance/MarkPaidSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/finance/PaymentActionsLayer.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/finance/PaymentRow.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/components/finance/PaymentRow.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/finance/PaymentStatusBadge.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/finance/PlanCard.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/finance/PlanFormSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 10
+    }
+  },
+  "src/components/finance/PlanFormSheet.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/finance/PlanPreview.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/finance/PlanPrice.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/finance/PlansPanel.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/components/finance/QuickCreatePlanSheet.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/components/finance/SheetFooter.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/finance/StudentSubscriptionSection.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/finance/SubscriptionBlock.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/components/finance/SubscriptionBlock.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/routineBuilder/DescriptionChipEditor.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/components/routineBuilder/DescriptionChipEditor.test.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/routineView/RoutineHero.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/routineView/RoutineTrainingItem.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/routineView/RoutineTrainingsCard.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/routineView/RoutineWeekGrid.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/students/ImportPreviewTable.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/students/ImportStudentsModal.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/components/students/LinkStudentModal.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/students/StudentAnamnesesCard.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/components/students/StudentAnamnesesCard.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/students/StudentLatestNoteCard.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/components/students/StudentRelationshipMetrics.jsx": {
+    "local/function-header-comment": {
+      "count": 7
+    }
+  },
+  "src/components/students/StudentRelationshipMetrics.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/students/StudentRoutinesCard.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/students/StudentRoutinesCard.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/students/StudentRow.jsx": {
+    "local/function-header-comment": {
+      "count": 7
+    }
+  },
+  "src/components/students/StudentRow.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/students/StudentVolumeCard.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/components/students/StudentVolumeCard.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/trainingTemplate/ExerciseTemplateSearchPicker.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/components/trainingTemplate/ExerciseTemplateSearchPicker.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/trainingTemplate/TrainingTemplateExercises.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/components/trainingTemplate/TrainingTemplateExercises.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/constants/anamnesis.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/constants/anamnesis.test.js": {
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/constants/anamnesisEditor.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/constants/dashboardPeriod.js": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/constants/dashboardPeriod.test.js": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/constants/dashboardViz.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/constants/exerciseIntensity.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/constants/exerciseTypes.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/constants/points-fields.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/constants/protocolStatus.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/constants/serviceMode.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/contexts/AiChatContext.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/contexts/AiChatContext.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/contexts/AuthContext.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    },
+    "local/no-comments-in-function": {
+      "count": 33
+    }
+  },
+  "src/contexts/AuthContext.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 15
+    }
+  },
+  "src/contexts/ToastContext.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/hooks/useActiveMode.js": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/hooks/useAiAccess.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/hooks/useAiAccess.test.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useAnamnesisDraft.js": {
+    "local/function-header-comment": {
+      "count": 6
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useAnamnesisDraft.test.jsx": {
+    "local/function-header-comment": {
+      "count": 7
+    }
+  },
+  "src/hooks/useAnamnesisMutationError.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useAnamnesisRecord.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useAnamnesisResponseSource.js": {
+    "local/function-header-comment": {
+      "count": 7
+    }
+  },
+  "src/hooks/useAnamnesisResponseSource.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useAnamnesisSelection.js": {
+    "local/disable-requires-reason": {
+      "count": 2
+    },
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useAnamnesisSubmit.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useAnamnesisSubmit.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useAnamnesisWizard.js": {
+    "local/function-header-comment": {
+      "count": 8
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useAnamnesisWizard.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useAnchoredPopoverPosition.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useAnchoredPopoverPosition.test.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/hooks/useAssignAnamnesisData.js": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/hooks/useAssignSubmit.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useBetaGate.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useBisetCreate.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/hooks/useBisetCreate.test.js": {
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/hooks/useConfirmDialog.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useDelayedFlag.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/hooks/useDelayedFlag.test.js": {
+    "local/no-comments-in-function": {
+      "count": 9
+    }
+  },
+  "src/hooks/useDismissablePopover.js": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useExerciseProgressionDetail.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useExerciseReorder.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 10
+    }
+  },
+  "src/hooks/useExerciseReorder.test.js": {
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/hooks/useExerciseTemplateRecord.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useExerciseTemplateSearch.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 6
+    }
+  },
+  "src/hooks/useFinanceOverdueCount.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useFinanceOverview.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useFinancePlans.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useGoogleAuth.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useGoogleAuth.test.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useIntervalTick.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useInviteAuthFlow.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useInvitePreview.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useInvitePreview.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useLibraryList.js": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useLinkedStudent.js": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/hooks/useLinkedStudent.test.js": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/hooks/useOnboardingStatus.js": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 7
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/hooks/usePaymentActions.js": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/hooks/usePeriodPersistence.js": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/hooks/usePeriodPersistence.test.js": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/usePersistedViewMode.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useProtocolBuilder.js": {
+    "local/function-header-comment": {
+      "count": 5
+    },
+    "local/no-comments-in-function": {
+      "count": 63
+    }
+  },
+  "src/hooks/useProtocolBuilder.test.js": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 45
+    }
+  },
+  "src/hooks/useProtocolDraft.js": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 14
+    }
+  },
+  "src/hooks/useProtocolDraft.test.js": {
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/hooks/useRoutineBuilder.js": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 65
+    }
+  },
+  "src/hooks/useRoutineBuilder.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 21
+    }
+  },
+  "src/hooks/useRoutineDraft.js": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 25
+    }
+  },
+  "src/hooks/useRoutineDraft.test.js": {
+    "local/no-comments-in-function": {
+      "count": 42
+    }
+  },
+  "src/hooks/useRoutineTemplateView.js": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/hooks/useSectionReorder.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useStickToBottom.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/hooks/useStickToBottom.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 10
+    }
+  },
+  "src/hooks/useStudentDashboard.js": {
+    "local/function-header-comment": {
+      "count": 5
+    },
+    "local/no-comments-in-function": {
+      "count": 6
+    }
+  },
+  "src/hooks/useStudentDashboard.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 5
+    }
+  },
+  "src/hooks/useStudentImport.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useStudentInvites.js": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useStudentPaymentHistory.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useStudentSubscription.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useStudentSubscription.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useStudentSubscriptionManager.js": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useStudentSubscriptionManager.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useTrainerBriefing.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/hooks/useTrainerContext.js": {
+    "local/function-header-comment": {
+      "count": 4
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/hooks/useTrainerDashboard.js": {
+    "local/function-header-comment": {
+      "count": 6
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/hooks/useTrainerRoster.js": {
+    "local/function-header-comment": {
+      "count": 5
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/hooks/useTrainingTemplateEditor.js": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useUnsavedChangesWarning.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/i18n/index.js": {
+    "local/function-header-comment": {
+      "count": 9
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/i18n/index.test.js": {
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/lib/sentry.js": {
+    "local/function-header-comment": {
+      "count": 5
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/lib/sentry.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/pages/AccountDeletion.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/Dashboard.jsx": {
+    "local/disable-requires-reason": {
+      "count": 2
+    },
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/pages/Dashboard.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 15
+    }
+  },
+  "src/pages/ForgotPassword.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/ForgotPassword.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/pages/InviteRedeem.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 48
+    }
+  },
+  "src/pages/InviteRedeem.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 24
+    }
+  },
+  "src/pages/InviteSignupFlow.test.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 4
+    },
+    "local/no-comments-in-function": {
+      "count": 21
+    }
+  },
+  "src/pages/Login.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 7
+    }
+  },
+  "src/pages/Login.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/pages/PrivacyPolicy.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/Profile.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 8
+    }
+  },
+  "src/pages/Profile.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 32
+    }
+  },
+  "src/pages/Signup.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 23
+    }
+  },
+  "src/pages/Signup.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/pages/Terms.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/Trainers.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/pages/Trainers.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/pages/admin/InvitesList.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/pages/admin/InvitesList.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/pages/admin/VideoCreate.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/admin/VideoEdit.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/admin/VideoEdit.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/pages/admin/VideoForm.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/pages/admin/VideosList.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/pages/admin/VideosList.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/my/AnamnesisWizard.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/pages/my/AnamnesisWizard.test.jsx": {
+    "local/function-header-comment": {
+      "count": 11
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/pages/my/MyAnamneses.jsx": {
+    "local/function-header-comment": {
+      "count": 11
+    }
+  },
+  "src/pages/my/MyAnamneses.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/pages/my/MyChallengeDetail.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/pages/my/MyChallenges.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/pages/my/MyDietProtocol.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/pages/my/MyDietProtocol.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 10
+    }
+  },
+  "src/pages/my/MyProtocolDetail.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/my/MyProtocolDetail.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/pages/my/MyProtocols.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/my/WorkoutSession.jsx": {
+    "local/function-header-comment": {
+      "count": 8
+    },
+    "local/no-comments-in-function": {
+      "count": 18
+    }
+  },
+  "src/pages/my/WorkoutSession.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/my/WorkoutSessions.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/pages/my/WorkoutSessions.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/pages/nutritionist/DietProtocolEditor.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/pages/nutritionist/DietProtocols.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 6
+    }
+  },
+  "src/pages/nutritionist/DietProtocols.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/pages/nutritionist/DietTemplates.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/pages/nutritionist/DietTemplates.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 5
+    }
+  },
+  "src/pages/nutritionist/NutritionistOnboardingPage.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/pages/nutritionist/NutritionistPatients.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/pages/nutritionist/NutritionistPatients.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 7
+    }
+  },
+  "src/pages/trainer/AiAssistant.jsx": {
+    "local/function-header-comment": {
+      "count": 15
+    },
+    "local/no-comments-in-function": {
+      "count": 19
+    }
+  },
+  "src/pages/trainer/AiAssistant.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 80
+    }
+  },
+  "src/pages/trainer/AnamnesisDetail.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/AnamnesisDetail.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 89
+    }
+  },
+  "src/pages/trainer/AnamnesisResponseDetail.jsx": {
+    "local/function-header-comment": {
+      "count": 14
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/pages/trainer/AnamnesisResponseDetail.test.jsx": {
+    "local/function-header-comment": {
+      "count": 5
+    },
+    "local/no-comments-in-function": {
+      "count": 9
+    }
+  },
+  "src/pages/trainer/AssignAnamnesis.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/AssignAnamnesis.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/pages/trainer/BrandingAssetUpload.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/BrandingColorPicker.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/BrandingDismissibleBanner.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/BrandingPreview.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/ChallengeDetail.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    },
+    "local/no-comments-in-function": {
+      "count": 13
+    }
+  },
+  "src/pages/trainer/Challenges.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/pages/trainer/Challenges.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 5
+    }
+  },
+  "src/pages/trainer/CreateChallenge.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/pages/trainer/CreateChampionship.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/pages/trainer/CreateChampionship.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 4
+    }
+  },
+  "src/pages/trainer/ExerciseProgressionDetail.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 8
+    }
+  },
+  "src/pages/trainer/ExerciseProgressionDetail.test.jsx": {
+    "local/function-header-comment": {
+      "count": 7
+    }
+  },
+  "src/pages/trainer/ExerciseTemplateEditor.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/ExerciseTemplateEditor.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/ExerciseTemplates.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/pages/trainer/ExerciseTemplates.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 16
+    }
+  },
+  "src/pages/trainer/Financeiro.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/pages/trainer/Financeiro.test.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/pages/trainer/ProtocolTemplateView.jsx": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/pages/trainer/ProtocolTemplateView.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/pages/trainer/ProtocolTemplates.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/pages/trainer/ProtocolTemplates.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 16
+    }
+  },
+  "src/pages/trainer/RoutineBuilder.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 24
+    },
+    "local/no-comments-in-function": {
+      "count": 117
+    }
+  },
+  "src/pages/trainer/RoutineBuilder.test.jsx": {
+    "local/function-header-comment": {
+      "count": 7
+    },
+    "local/no-comments-in-function": {
+      "count": 149
+    }
+  },
+  "src/pages/trainer/SessionDetail.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/pages/trainer/SessionDetail.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/pages/trainer/StudentAnamneses.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/pages/trainer/StudentAnamneses.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/StudentDetail.jsx": {
+    "local/function-header-comment": {
+      "count": 13
+    }
+  },
+  "src/pages/trainer/StudentDetail.loading.test.jsx": {
+    "local/function-header-comment": {
+      "count": 7
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/StudentDetail.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/StudentInvitesPanel.jsx": {
+    "local/function-header-comment": {
+      "count": 11
+    }
+  },
+  "src/pages/trainer/StudentInvitesPanel.test.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    },
+    "local/no-comments-in-function": {
+      "count": 9
+    }
+  },
+  "src/pages/trainer/StudentPoints.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/StudentProtocols.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/StudentProtocols.test.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 5
+    }
+  },
+  "src/pages/trainer/Students.jsx": {
+    "local/function-header-comment": {
+      "count": 10
+    },
+    "local/no-comments-in-function": {
+      "count": 5
+    }
+  },
+  "src/pages/trainer/Students.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 30
+    }
+  },
+  "src/pages/trainer/SubscriptionHistory.jsx": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/pages/trainer/SubscriptionHistory.test.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/pages/trainer/TrainerAnamneses.jsx": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/pages/trainer/TrainerAnamneses.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/TrainerAnamnesisFill.jsx": {
+    "local/function-header-comment": {
+      "count": 10
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/pages/trainer/TrainerAnamnesisFill.test.jsx": {
+    "local/function-header-comment": {
+      "count": 7
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/TrainerBranding.jsx": {
+    "local/disable-requires-reason": {
+      "count": 1
+    },
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 8
+    }
+  },
+  "src/pages/trainer/TrainerBranding.test.jsx": {
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/pages/trainer/TrainerProfile.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/TrainingTemplateEditor.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/pages/trainer/TrainingTemplateEditor.test.jsx": {
+    "local/function-header-comment": {
+      "count": 8
+    },
+    "local/no-comments-in-function": {
+      "count": 11
+    }
+  },
+  "src/pages/trainer/TrainingTemplates.jsx": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/pages/trainer/TrainingTemplates.test.jsx": {
+    "local/function-header-comment": {
+      "count": 3
+    },
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/test-utils/selectOption.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/test/anamnesisWizardFixtures.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/test/financeFixtures.js": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/test/test-utils.jsx": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/utils/analytics.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/utils/anamnesisAnswers.js": {
+    "local/function-header-comment": {
+      "count": 13
+    }
+  },
+  "src/utils/anamnesisAnswers.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/anamnesisEditor.js": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/utils/anamnesisLinkStatus.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/utils/anamnesisLinkStatus.test.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/utils/colorContrast.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/utils/computeDailyActivityViz.js": {
+    "local/function-header-comment": {
+      "count": 6
+    },
+    "local/no-comments-in-function": {
+      "count": 6
+    }
+  },
+  "src/utils/computeDailyActivityViz.test.js": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 6
+    }
+  },
+  "src/utils/conversationGroups.js": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/utils/currencyFormat.js": {
+    "local/function-header-comment": {
+      "count": 4
+    }
+  },
+  "src/utils/dateFormat.js": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/utils/dateFormat.test.js": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/utils/dietMacros.js": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/utils/dietMacros.test.js": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/utils/errorMessages.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/exerciseMeta.js": {
+    "local/function-header-comment": {
+      "count": 6
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/utils/exerciseRenderEntries.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/utils/financeCharges.js": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/utils/financeErrors.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/utils/financeForm.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/formatDashboardDate.js": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/utils/formatDashboardDate.test.js": {
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/utils/formatDuration.js": {
+    "local/function-header-comment": {
+      "count": 4
+    },
+    "local/no-comments-in-function": {
+      "count": 5
+    }
+  },
+  "src/utils/formatDuration.test.js": {
+    "local/no-comments-in-function": {
+      "count": 6
+    }
+  },
+  "src/utils/formatHeroDate.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/formatHeroDate.test.js": {
+    "local/no-comments-in-function": {
+      "count": 2
+    }
+  },
+  "src/utils/formatRpe.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/formatRpe.test.js": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/utils/getGreeting.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/getGreeting.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/groupProgression.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/initials.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/inviteCode.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/onboardingProfile.js": {
+    "local/function-header-comment": {
+      "count": 6
+    }
+  },
+  "src/utils/pointsDiff.js": {
+    "local/function-header-comment": {
+      "count": 2
+    }
+  },
+  "src/utils/protocolDraft.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/relativeTime.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/relativeTime.test.js": {
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/utils/routineDraft.js": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 6
+    }
+  },
+  "src/utils/routineDraft.test.js": {
+    "local/no-comments-in-function": {
+      "count": 10
+    }
+  },
+  "src/utils/shouldShowSparkline.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 8
+    }
+  },
+  "src/utils/shouldShowSparkline.test.js": {
+    "local/no-comments-in-function": {
+      "count": 13
+    }
+  },
+  "src/utils/sortTrainingsByWeekDay.js": {
+    "local/function-header-comment": {
+      "count": 2
+    },
+    "local/no-comments-in-function": {
+      "count": 3
+    }
+  },
+  "src/utils/studentCockpit.js": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/utils/studentInvite.js": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/utils/studentInvite.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/studentName.js": {
+    "local/function-header-comment": {
+      "count": 3
+    }
+  },
+  "src/utils/studentRow.js": {
+    "local/function-header-comment": {
+      "count": 5
+    }
+  },
+  "src/utils/studentRow.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/subscriptionHelpers.js": {
+    "local/function-header-comment": {
+      "count": 7
+    }
+  },
+  "src/utils/subscriptionHelpers.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    },
+    "local/no-comments-in-function": {
+      "count": 1
+    }
+  },
+  "src/utils/timezone.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/trainingTemplateDraft.js": {
+    "local/function-header-comment": {
+      "count": 7
+    }
+  },
+  "src/utils/volumeChart.js": {
+    "local/function-header-comment": {
+      "count": 8
+    }
+  },
+  "src/utils/volumeChart.test.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  },
+  "src/utils/youtube.js": {
+    "local/function-header-comment": {
+      "count": 1
+    }
+  }
+}
