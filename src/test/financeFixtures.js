@@ -62,6 +62,7 @@ export const makePlan = (overrides = {}) => ({
   price: '99.90',
   discountPercent: null,
   discountAmount: null,
+  billingDay: null,
   isArchived: false,
   activeSubscriptionCount: 4,
   ...overrides,

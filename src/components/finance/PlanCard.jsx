@@ -6,9 +6,12 @@ import { t, tCount, tf } from '../../i18n';
 import { RECURRENCE_LABEL } from '../../utils/subscriptionHelpers';
 
 const buildSubtitle = (plan, recurrenceLabel) => {
-  if (plan.isArchived) return `${recurrenceLabel} · ${t('finance.plans.archivedBadge')}`;
-  if (typeof plan.activeSubscriptionCount !== 'number') return recurrenceLabel;
-  return `${recurrenceLabel} · ${tCount('finance.count.student', plan.activeSubscriptionCount)}`;
+  const base = plan.billingDay
+    ? `${recurrenceLabel} · ${tf('finance.plans.billingDayMeta', { day: plan.billingDay })}`
+    : recurrenceLabel;
+  if (plan.isArchived) return `${base} · ${t('finance.plans.archivedBadge')}`;
+  if (typeof plan.activeSubscriptionCount !== 'number') return base;
+  return `${base} · ${tCount('finance.count.student', plan.activeSubscriptionCount)}`;
 };
 
 /**
@@ -50,6 +53,7 @@ PlanCard.propTypes = {
     price: money.isRequired,
     discountPercent: money,
     discountAmount: money,
+    billingDay: PropTypes.number,
     isArchived: PropTypes.bool,
     activeSubscriptionCount: PropTypes.number,
   }).isRequired,

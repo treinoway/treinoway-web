@@ -37,6 +37,15 @@ describe('PlanCard', () => {
     expect(screen.getByText(/R\$\s?990,00 − R\$\s?90,00/)).toBeInTheDocument();
   });
 
+  it('shows the billing day only when the plan has one', () => {
+    const { rerender } = render(
+      <PlanCard plan={makePlan({ billingDay: 5 })} onEdit={vi.fn()} onArchiveToggle={vi.fn()} />,
+    );
+    expect(screen.getByText(/dia 5/i)).toBeInTheDocument();
+    rerender(<PlanCard plan={makePlan({ billingDay: null })} onEdit={vi.fn()} onArchiveToggle={vi.fn()} />);
+    expect(screen.queryByText(/dia \d/i)).not.toBeInTheDocument();
+  });
+
   it('edits and archives through the row menu', async () => {
     const user = userEvent.setup();
     const onEdit = vi.fn();

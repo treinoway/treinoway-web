@@ -124,6 +124,43 @@ describe('AssignPlanSheet', () => {
     expect(onPlanArchived).toHaveBeenCalled();
   });
 
+  describe('billing day ("Dia de vencimento")', () => {
+    const billed = makePlan({ id: 'plan-3', name: 'Dia dez', billingDay: 10 });
+
+    it('pre-fills the day from the selected plan and sends the edited override', async () => {
+      const { onAssign, user } = setup({ plans: [billed, annual] });
+      const field = screen.getByLabelText('Dia de vencimento');
+      expect(field).toHaveValue(10);
+
+      await user.clear(field);
+      await user.type(field, '5');
+      await user.click(screen.getByRole('button', { name: 'Atribuir plano' }));
+      expect(onAssign).toHaveBeenCalledWith(expect.objectContaining({ planId: 'plan-3', billingDay: 5 }));
+    });
+
+    it('re-fills when another plan is picked (empty for a plan without day)', async () => {
+      const { user } = setup({ plans: [billed, annual] });
+      await user.click(screen.getByRole('radio', { name: /Anual/ }));
+      expect(screen.getByLabelText('Dia de vencimento')).toHaveValue(null);
+      await user.click(screen.getByRole('radio', { name: /Dia dez/ }));
+      expect(screen.getByLabelText('Dia de vencimento')).toHaveValue(10);
+    });
+
+    it('omits billingDay from the payload when the field is empty', async () => {
+      const { onAssign, user } = setup();
+      expect(screen.getByLabelText('Dia de vencimento')).toHaveValue(null);
+      await user.click(screen.getByRole('button', { name: 'Atribuir plano' }));
+      expect(onAssign.mock.calls[0][0]).not.toHaveProperty('billingDay');
+    });
+
+    it('previews the first cycle period and first due date (dd/MM like the rest of the app)', async () => {
+      const { user } = setup({ plans: [billed, annual] });
+      await user.click(screen.getByRole('button', { name: '1º do próximo mês' }));
+      expect(screen.getByText(/10\/10.*09\/11/)).toBeInTheDocument();
+      expect(screen.getByText(/primeiro vencimento.*01\/11/i)).toBeInTheDocument();
+    });
+  });
+
   it('quick-creates a plan when the trainer has none', async () => {
     const user = userEvent.setup();
     const onCreatePlanAndAssign = vi.fn().mockResolvedValue(undefined);

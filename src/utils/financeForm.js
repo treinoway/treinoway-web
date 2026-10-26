@@ -30,3 +30,13 @@ export const parseDiscountInput = (mode, text, priceCents) => {
   }
   return { percentHundredths: null, discountCents: cents, error: null };
 };
+
+/** Billing-day text → `{ day, error }`; empty is valid (`day: null`), otherwise an integer 1–31; `badInput` (unparseable browser text) is always an error. */
+export const parseBillingDay = (text, badInput = false) => {
+  if (badInput) return { day: null, error: t('finance.planForm.billingDayInvalid') };
+  const trimmed = String(text ?? '').trim();
+  if (trimmed === '') return { day: null, error: null };
+  const day = Number(trimmed);
+  if (!Number.isInteger(day) || day < 1 || day > 31) return { day: null, error: t('finance.planForm.billingDayInvalid') };
+  return { day, error: null };
+};

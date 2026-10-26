@@ -2,15 +2,16 @@ import { useId, useState } from 'react';
 import PropTypes from 'prop-types';
 import Modal from '../ds/Modal';
 import Banner from '../ds/Banner';
+import BillingDayField from './BillingDayField';
 import FieldError from './FieldError';
 import PlanPreview from './PlanPreview';
 import SheetFooter from './SheetFooter';
 import QuickCreatePlanSheet from './QuickCreatePlanSheet';
-import { DiscountField, PlanOptions, StartDateField } from './AssignPlanFields';
+import { DiscountField, FirstCyclePreview, PlanOptions, StartDateField } from './AssignPlanFields';
 import { t, tf } from '../../i18n';
 import { ASSIGN_MODE, DISCOUNT_CHOICE, FINANCE_ERROR, START_MODE } from '../../constants/finance';
 import { classifyAssignError } from '../../utils/financeErrors';
-import { DISCOUNT_MODE, parseDiscountInput } from '../../utils/financeForm';
+import { DISCOUNT_MODE, parseBillingDay, parseDiscountInput } from '../../utils/financeForm';
 import {
   SUBSCRIPTION_RECURRENCE,
   centsToApiNumber,
@@ -52,8 +53,9 @@ const resolveDiscount = ({ choice, customType, customText, plan }) => {
 };
 
 /** "Do plano" omits both fields; otherwise both are sent explicitly (one may be null). */
-const buildAssignPayload = ({ planId, startDate, choice, discount }) => {
+const buildAssignPayload = ({ planId, startDate, choice, discount, billingDay }) => {
   const payload = { planId, startDate };
+  if (billingDay !== null) payload.billingDay = billingDay;
   if (choice === DISCOUNT_CHOICE.PLAN) return payload;
   return {
     ...payload,
@@ -74,13 +76,17 @@ const buildAssignRules = ({ isReplace, startDate, today, currentPlanName }) => {
   return sentences.length > 0 ? sentences.join(' ') : null;
 };
 
-const validateAssign = ({ selectedPlan, startDate, discount }) => {
+const validateAssign = ({ selectedPlan, startDate, discount, billingDayError }) => {
   const errors = {};
   if (!selectedPlan) errors.plan = t('finance.assign.selectPlan');
   if (!startDate) errors.start = t('finance.assign.startRequired');
   if (discount.error) errors.discount = discount.error;
+  if (billingDayError) errors.billingDay = billingDayError;
   return errors;
 };
+
+/** Plan's default billing day as input text ('' when the plan has none). */
+const planBillingDayText = (plan) => (plan?.billingDay ? String(plan.billingDay) : '');
 
 const firstEligiblePlanId = (plans, currentPlanId) => plans.find((plan) => plan.id !== currentPlanId)?.id ?? '';
 
@@ -106,6 +112,8 @@ const AssignPlanSheet = ({
   const today = todayDateString();
   const formId = `${useId()}-form`;
   const [selectedPlanId, setSelectedPlanId] = useState(() => firstEligiblePlanId(plans, isReplace ? currentPlanId : null));
+  const [billingDayBad, setBillingDayBad] = useState(false);
+  const [billingDayText, setBillingDayText] = useState(() => planBillingDayText(plans.find((plan) => plan.id === selectedPlanId)));
   const [startMode, setStartMode] = useState(START_MODE.TODAY);
   const [customDate, setCustomDate] = useState(today);
   const [discountState, setDiscountState] = useState(INITIAL_DISCOUNT);
@@ -115,6 +123,8 @@ const AssignPlanSheet = ({
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) || null;
   const startDate = resolveStartDate(startMode, customDate, today);
   const discount = resolveDiscount({ ...discountState, plan: selectedPlan });
+  const billingDay = parseBillingDay(billingDayText, billingDayBad);
+  const showFirstCycle = Boolean(startDate) && startDate >= today && !billingDay.error;
   const previewDiscount = discount.error ? planDiscount(null) : discount;
   const rules = buildAssignRules({ isReplace, startDate, today, currentPlanName });
   const title = t(isReplace ? 'finance.assign.titleReplace' : 'finance.assign.titleAssign');
@@ -126,6 +136,13 @@ const AssignPlanSheet = ({
   const handleSelectPlan = (planId) => {
     setSelectedPlanId(planId);
     setDiscountState(INITIAL_DISCOUNT);
+    setBillingDayText(planBillingDayText(plans.find((plan) => plan.id === planId)));
+    setBillingDayBad(false);
+  };
+
+  const handleBillingDayChange = (text, badInput) => {
+    setBillingDayText(text);
+    setBillingDayBad(badInput);
   };
 
   const handleAssignError = (err) => {
@@ -137,12 +154,12 @@ const AssignPlanSheet = ({
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const nextErrors = validateAssign({ selectedPlan, startDate, discount });
+    const nextErrors = validateAssign({ selectedPlan, startDate, discount, billingDayError: billingDay.error });
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
     setSubmitting(true);
     try {
-      await onAssign(buildAssignPayload({ planId: selectedPlan.id, startDate, choice: discountState.choice, discount }));
+      await onAssign(buildAssignPayload({ planId: selectedPlan.id, startDate, choice: discountState.choice, discount, billingDay: billingDay.day }));
     } catch (err) {
       handleAssignError(err);
       setSubmitting(false);
@@ -193,6 +210,22 @@ const AssignPlanSheet = ({
           error={errors.discount}
           onChange={(patch) => setDiscountState((prev) => ({ ...prev, ...patch }))}
         />
+        <BillingDayField
+          label={t('finance.assign.billingDayLabel')}
+          hint={t('finance.assign.billingDayHint')}
+          value={billingDayText}
+          error={errors.billingDay}
+          disabled={submitting}
+          onChange={handleBillingDayChange}
+        />
+        {showFirstCycle && (
+          <FirstCyclePreview
+            startDate={startDate}
+            billingDay={billingDay.day}
+            recurrence={selectedPlan?.recurrence || SUBSCRIPTION_RECURRENCE.MONTHLY}
+            today={today}
+          />
+        )}
         <PlanPreview
           title={t('finance.assign.previewTitle')}
           priceCents={toCents(selectedPlan?.price)}
@@ -214,6 +247,7 @@ AssignPlanSheet.propTypes = {
     name: PropTypes.string.isRequired,
     recurrence: PropTypes.string.isRequired,
     price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    billingDay: PropTypes.number,
   })).isRequired,
   currentPlanId: PropTypes.string,
   currentPlanName: PropTypes.string,

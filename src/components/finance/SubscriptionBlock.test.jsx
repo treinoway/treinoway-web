@@ -44,6 +44,11 @@ describe('SubscriptionBlock', () => {
     expect(screen.getByText('Nenhuma cobrança em aberto.')).toBeInTheDocument();
   });
 
+  it('shows the billing day as "Vence todo dia D"', () => {
+    renderBlock({ subscription: { ...subscription, billingDay: 10 } });
+    expect(screen.getByText(/todo dia 10/i)).toBeInTheDocument();
+  });
+
   it('shows "Começa em" for a future start date', () => {
     renderBlock({ subscription: { ...subscription, startDate: '2026-11-01' } });
     expect(screen.getByText('Começa em 01/11')).toBeInTheDocument();

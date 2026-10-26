@@ -5,7 +5,15 @@ import FieldError from './FieldError';
 import { t, tf } from '../../i18n';
 import { DISCOUNT_MODE } from '../../utils/financeForm';
 import { DISCOUNT_CHOICE, START_MODE } from '../../constants/finance';
-import { RECURRENCE_LABEL, computeNetFromApi, formatCentsBRL } from '../../utils/subscriptionHelpers';
+import {
+  RECURRENCE_LABEL,
+  computeFirstCycle,
+  computeNextDueDate,
+  computeNetFromApi,
+  formatCentsBRL,
+  formatCyclePeriod,
+  formatShortDate,
+} from '../../utils/subscriptionHelpers';
 
 
 const START_CHOICES = [
@@ -201,4 +209,30 @@ DiscountField.propTypes = {
   disabled: PropTypes.bool.isRequired,
   error: PropTypes.string,
   onChange: PropTypes.func.isRequired,
+};
+
+/* ─── First cycle preview ───────────────────────────────────────────────── */
+
+/** First cycle period + first due date, computed with the backend rule. */
+export const FirstCyclePreview = ({ startDate, billingDay, recurrence, today }) => {
+  const firstCycle = computeFirstCycle(startDate, billingDay, recurrence);
+  const { cycleStartDate, cycleEndDate, dueDate } = firstCycle;
+  const showNextDue = cycleStartDate < startDate;
+  return (
+    <div className="field">
+      <span className="field-label type-caption-strong">{t('finance.assign.firstCycleTitle')}</span>
+      <p className="type-body">{formatCyclePeriod(cycleStartDate, cycleEndDate)}</p>
+      <p className="type-caption">{tf('finance.assign.firstDueDate', { date: formatShortDate(dueDate, today) })}</p>
+      {showNextDue && (
+        <p className="type-caption">{tf('finance.assign.nextDueDate', { date: formatShortDate(computeNextDueDate(firstCycle), today) })}</p>
+      )}
+    </div>
+  );
+};
+
+FirstCyclePreview.propTypes = {
+  startDate: PropTypes.string.isRequired,
+  billingDay: PropTypes.number,
+  recurrence: PropTypes.string.isRequired,
+  today: PropTypes.string.isRequired,
 };
