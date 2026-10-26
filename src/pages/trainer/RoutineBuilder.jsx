@@ -2953,15 +2953,18 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
               onDeleteTraining={readOnly ? null : () => handleDeleteTraining(t.id)}
               onAddExercise={readOnly ? null : (payload) => { markTouched(); return routine.addExercise(t.id, payload); }}
               onEditExercise={readOnly ? null : (exId, payload) => { markTouched(); return routine.updateExercise(t.id, exId, payload); }}
-              onImportFromLibrary={readOnly ? null : (ids, templatesById) => {
+              onImportFromLibrary={readOnly ? null : async (ids, templatesById) => {
                 markTouched();
-                return Promise.all(
-                  ids.map((tmplId) =>
-                    routine.addExerciseFromTemplate(t.id, tmplId, {
+                const results = [];
+                // why: sequential awaits keep the server-assigned order equal to the selection order
+                for (const tmplId of ids) {
+                  results.push(
+                    await routine.addExerciseFromTemplate(t.id, tmplId, {
                       template: templatesById?.[tmplId],
                     })
-                  )
-                );
+                  );
+                }
+                return results;
               }}
               onDeleteExercise={readOnly ? null : (exId) => { markTouched(); return routine.deleteExercise(t.id, exId); }}
               onReorder={
