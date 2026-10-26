@@ -190,6 +190,15 @@ describe('extractErrorInfo', () => {
   });
 });
 
+describe('translateError - platform plan', () => {
+  it('returns the Beta-specific text for PLATFORM_PLAN_BETA_WITH_PAID_SUBSCRIPTION', () => {
+    const error = { response: { status: 409, data: { error: 'PLATFORM_PLAN_BETA_WITH_PAID_SUBSCRIPTION', messageCode: 'resource.conflict' } } };
+    expect(translateError(error)).toBe(
+      'Este treinador tem assinatura paga ativa no Asaas. O plano Beta só pode ser aplicado depois que ela for encerrada.',
+    );
+  });
+});
+
 describe('tf', () => {
   it('interpolates named placeholders', () => {
     expect(tf('studentDetail.routines.openAria', { name: 'Protocolo 03' })).toBe('Abrir rotina Protocolo 03');

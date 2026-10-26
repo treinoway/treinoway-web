@@ -87,7 +87,7 @@ const Layout = ({ children, noPadding = false }) => {
 
   const getPlanBadgeClass = (tier) => {
     if (tier === 'PRO') return 'badge badge-blue';
-    if (tier === 'PLATINUM' || tier === 'DIAMOND') return 'badge badge-accent';
+    if (tier === 'PLATINUM' || tier === 'DIAMOND' || tier === 'BETA') return 'badge badge-accent';
     return 'badge badge-gray';
   };
 

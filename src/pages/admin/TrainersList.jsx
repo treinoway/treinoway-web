@@ -56,6 +56,7 @@ PlanWarnings.propTypes = {
 // Modal to pick a new plan for one trainer; the page owns the request.
 const ChangePlanModal = ({ trainer, saving, onSave, onClose }) => {
   const [tier, setTier] = useState(trainer.tier);
+  const betaBlocked = Boolean(trainer.hasAsaasSubscription) && trainer.tier !== 'BETA';
   const handleClose = () => {
     if (!saving) onClose();
   };
@@ -85,9 +86,12 @@ const ChangePlanModal = ({ trainer, saving, onSave, onClose }) => {
           </label>
           <Select id="trainer-plan-tier" value={tier} onChange={(event) => setTier(event.target.value)} disabled={saving}>
             {PLATFORM_PLAN_TIERS.map((value) => (
-              <option key={value} value={value}>{t(`platformPlan.tier.${value}`)}</option>
+              <option key={value} value={value} disabled={value === 'BETA' && betaBlocked}>
+                {t(`platformPlan.tier.${value}`)}
+              </option>
             ))}
           </Select>
+          {betaBlocked && <p className="field-hint type-caption">{t('adminTrainers.betaBlockedHint')}</p>}
         </div>
         <PlanWarnings trainer={trainer} nextTier={tier} />
       </div>
