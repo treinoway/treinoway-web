@@ -7,7 +7,7 @@ const getTierTone = (tier) => (tier === 'FREE' ? 'neutral' : 'brand');
 
 // Plan badge using the platformPlan.tier labels.
 const TierBadge = ({ tier }) => (
-  <Badge tone={getTierTone(tier)} variant="tag">{t(`platformPlan.tier.${tier}`)}</Badge>
+  <Badge tone={getTierTone(tier)} variant="tag">{t(`platformPlan.tier.${tier}`) || tier}</Badge>
 );
 
 TierBadge.propTypes = { tier: PropTypes.string.isRequired };

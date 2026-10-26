@@ -9,6 +9,8 @@ const en = {
     FORGOT_PASSWORD_FAILED: 'Could not send the code. Please try again later.',
     WEAK_PASSWORD: 'Password must be at least 8 characters long.',
     USER_DELETED: 'This account has been deactivated. Contact support.',
+    PLATFORM_PLAN_BETA_WITH_PAID_SUBSCRIPTION:
+      'This trainer has an active paid subscription in Asaas. The Beta plan can only be applied after it has ended.',
   },
   messageCodes: {
     'invite.notFound': "We don't recognize that code. Check it and try again.",
@@ -99,6 +101,7 @@ const en = {
       PRO: 'Pro',
       PLATINUM: 'Platinum',
       DIAMOND: 'Diamond',
+      BETA: 'Beta',
     },
   },
 
@@ -748,6 +751,7 @@ const en = {
     asaasWarning:
       'This trainer has an active Asaas subscription. The next billing webhook may overwrite the plan set here.',
     downgradeWarning: 'Students above the new plan limit will be blocked.',
+    betaBlockedHint: 'Beta unavailable: the trainer has an active paid subscription in Asaas.',
     confirm: 'Confirm change',
     saving: 'Saving...',
     cancel: 'Cancel',

@@ -102,6 +102,8 @@ const ptBR = {
     WEAK_PASSWORD: "A senha deve ter pelo menos 8 caracteres.",
     USER_DELETED:
       "Esta conta foi desativada. Entre em contato com o suporte.",
+    PLATFORM_PLAN_BETA_WITH_PAID_SUBSCRIPTION:
+      "Este treinador tem assinatura paga ativa no Asaas. O plano Beta só pode ser aplicado depois que ela for encerrada.",
   },
 
   messageCodes: {
@@ -337,6 +339,7 @@ const ptBR = {
       PRO: "Pro",
       PLATINUM: "Platinum",
       DIAMOND: "Diamond",
+      BETA: "Beta",
     },
   },
 
@@ -1673,6 +1676,8 @@ const ptBR = {
     asaasWarning:
       "Este trainer tem assinatura ativa no Asaas. O próximo webhook de cobrança pode sobrescrever o plano definido aqui.",
     downgradeWarning: "Alunos acima do limite do novo plano serão bloqueados.",
+    betaBlockedHint:
+      "Beta indisponível: o treinador tem assinatura paga ativa no Asaas.",
     confirm: "Confirmar alteração",
     saving: "Salvando...",
     cancel: "Cancelar",
