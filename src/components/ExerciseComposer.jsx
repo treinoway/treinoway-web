@@ -17,6 +17,7 @@ import IntensityField from './IntensityField';
 import VideoField from './VideoField';
 import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel, getLoadDefault } from '../constants/exerciseTypes';
 import { t } from '../i18n';
+import { getGifUrlError } from '../utils/gif';
 import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ const EMPTY_FORM = {
   repetitionsMax: '',
   restInterval: '',
   videoUrl: '',
+  gifUrl: '',
   duration: '',
   hasLoad: true,
   suggestedLoad: '',
@@ -49,6 +51,7 @@ const buildPayload = (form, { isEdit } = {}) => {
     prescriptionMode: form.prescriptionMode,
   };
   payload.videoUrl = form.videoUrl?.trim() ? form.videoUrl.trim() : null;
+  payload.gifUrl = form.gifUrl?.trim() ? form.gifUrl.trim() : null;
   if (form.sets !== '' && form.sets != null) {
     payload.sets = parseInt(form.sets, 10);
   } else if (isEdit) {
@@ -92,6 +95,7 @@ const snapshotToForm = (snapshot) => ({
   repetitionsMax: snapshot.repetitions?.max ?? snapshot.exerciseTemplate?.repetitions?.max ?? '',
   restInterval: snapshot.restInterval ?? snapshot.exerciseTemplate?.restInterval ?? '',
   videoUrl: snapshot.videoUrl ?? '',
+  gifUrl: snapshot.gifUrl ?? snapshot.exerciseTemplate?.gifUrl ?? '',
   duration: snapshot.duration ?? snapshot.exerciseTemplate?.duration ?? '',
   hasLoad: snapshot.hasLoad ?? snapshot.exerciseTemplate?.hasLoad ?? false,
   suggestedLoad: snapshot.suggestedLoad ?? snapshot.exerciseTemplate?.suggestedLoad ?? '',
@@ -279,6 +283,8 @@ const ExerciseComposer = ({
     const errs = {};
     if (!form.name.trim()) errs.name = 'Nome obrigatório';
     if (!form.type) errs.type = 'Tipo obrigatório';
+    const gifError = getGifUrlError(form.gifUrl);
+    if (gifError) errs.gifUrl = gifError;
     return errs;
   };
 
@@ -516,7 +522,10 @@ const ExerciseComposer = ({
         <VideoField
           value={form.videoUrl}
           onChange={(url) => handleFieldChange('videoUrl', url)}
+          gifValue={form.gifUrl}
+          onGifChange={(url) => handleFieldChange('gifUrl', url)}
           label="Vídeo de demonstração"
+          gifError={errors.gifUrl}
           canUseLibrary={canUseVideoLibrary}
         />
 

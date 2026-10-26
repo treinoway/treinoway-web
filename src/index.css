@@ -3575,6 +3575,7 @@ button.auth-forgot-link:disabled {
   border-radius: var(--radius-lg);
 }
 
+.video-embed-wrapper .video-embed-gif,
 .video-embed-wrapper iframe {
   position: absolute;
   top: 0;
@@ -3582,6 +3583,28 @@ button.auth-forgot-link:disabled {
   width: 100%;
   height: 100%;
   border: none;
+}
+
+.video-embed-wrapper .video-embed-gif {
+  object-fit: contain;
+  display: block;
+  background: var(--background-inverse);
+}
+
+.gif-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  text-align: center;
+  color: var(--color-outline);
+}
+
+.video-field-preview .gif-fallback,
+.video-hero-stage .gif-fallback,
+.video-embed-wrapper .gif-fallback {
+  position: absolute;
+  inset: 0;
 }
 
 .training-card-exercises-empty {
@@ -19155,6 +19178,7 @@ select.input { cursor: pointer; }
 /* Video field */
 .video-field { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .video-field-preview { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--radius-lg); background: var(--background-inverse); }
+.video-field-gif { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
 .video-field-preview iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .video-field-actions,
 .video-field-empty { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); }
@@ -20693,6 +20717,7 @@ select.input { cursor: pointer; }
 }
 
 .video-hero-thumb { object-fit: cover; display: block; }
+.video-hero-thumb--contain { object-fit: contain; }
 
 .video-hero-play {
   position: absolute;

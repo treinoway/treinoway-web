@@ -58,6 +58,7 @@ const TRAINING_TEMPLATE_FULL = {
         sets: 4,
         prescriptionMode: 'reps',
         videoUrl: 'https://videos.example.com/supino-inclinado.mp4',
+        gifUrl: 'https://media.example.com/supino.gif',
         restInterval: 90,
         intensity: 'rpe8',
       },
@@ -77,6 +78,7 @@ const EXERCISE_TEMPLATE_FULL = {
   sets: 5,
   prescriptionMode: 'reps',
   videoUrl: 'https://videos.example.com/terra.mp4',
+  gifUrl: 'https://media.example.com/terra.gif',
   restInterval: 120,
   intensity: 'rpe9',
 };
@@ -564,6 +566,7 @@ describe('useProtocolBuilder — saveRoutine (single bulk request)', () => {
     const localExercise = result.current.data.trainings[0].exercises[0];
     expect(localExercise).toMatchObject({
       videoUrl: 'https://videos.example.com/supino-inclinado.mp4',
+      gifUrl: 'https://media.example.com/supino.gif',
       restInterval: 90,
       intensity: 'rpe8',
     });
@@ -585,6 +588,7 @@ describe('useProtocolBuilder — saveRoutine (single bulk request)', () => {
       name: 'Supino Inclinado',
       exerciseTemplateId: 'et-full-1',
       videoUrl: 'https://videos.example.com/supino-inclinado.mp4',
+      gifUrl: 'https://media.example.com/supino.gif',
       restInterval: 90,
       intensity: 'rpe8',
     });
@@ -607,6 +611,7 @@ describe('useProtocolBuilder — saveRoutine (single bulk request)', () => {
     const localExercise = result.current.data.trainings[0].exercises[0];
     expect(localExercise).toMatchObject({
       videoUrl: 'https://videos.example.com/terra.mp4',
+      gifUrl: 'https://media.example.com/terra.gif',
       restInterval: 120,
       intensity: 'rpe9',
     });
@@ -628,6 +633,7 @@ describe('useProtocolBuilder — saveRoutine (single bulk request)', () => {
       name: 'Levantamento Terra',
       exerciseTemplateId: 'et-4',
       videoUrl: 'https://videos.example.com/terra.mp4',
+      gifUrl: 'https://media.example.com/terra.gif',
       restInterval: 120,
       intensity: 'rpe9',
     });

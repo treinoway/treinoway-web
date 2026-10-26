@@ -243,3 +243,33 @@ describe('VideoField — without library access', () => {
     expect(screen.getByRole('button', { name: /remover/i })).toBeInTheDocument();
   });
 });
+
+describe('VideoField — GIF', () => {
+  const GIF_URL = 'https://media.example.com/agachamento.gif';
+
+  it('renders the GIF link input', () => {
+    renderField({ gifValue: '', onGifChange: vi.fn() });
+    expect(screen.getByRole('textbox', { name: /link do gif/i })).toBeInTheDocument();
+  });
+
+  it('calls onGifChange when typing a GIF URL', async () => {
+    const user = userEvent.setup();
+    const onGifChange = vi.fn();
+    renderField({ gifValue: '', onGifChange });
+
+    await user.type(screen.getByRole('textbox', { name: /link do gif/i }), 'h');
+
+    expect(onGifChange).toHaveBeenCalledWith('h');
+  });
+
+  it('previews the GIF as an image when there is no video', () => {
+    renderField({ gifValue: GIF_URL, onGifChange: vi.fn() });
+    expect(screen.getByRole('img', { name: /prévia do gif/i })).toHaveAttribute('src', GIF_URL);
+  });
+
+  it('shows the video iframe and no GIF preview when both are set', () => {
+    renderField({ value: 'https://www.youtube.com/watch?v=abc123XYZ', gifValue: GIF_URL, onGifChange: vi.fn() });
+    expect(document.querySelector('iframe')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /prévia do gif/i })).not.toBeInTheDocument();
+  });
+});

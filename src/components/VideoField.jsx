@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Film, X } from 'lucide-react';
 import VideoLibraryPicker from './VideoLibraryPicker';
 import { getYoutubeVideoId } from '../utils/youtube';
+import { isHttpUrl } from '../utils/gif';
 
 /**
  * VideoField — shared video input for ExerciseForm and ExerciseComposer.
@@ -11,15 +12,20 @@ import { getYoutubeVideoId } from '../utils/youtube';
  *   - Empty: CTA "Escolher da biblioteca" + link to reveal URL input
  *   - Valid YouTube URL: 16:9 iframe preview + Trocar / Remover actions
  *   - Non-YouTube URL typed: URL input visible + hint (non-blocking)
+ *   - GIF link (optional): 16:9 image preview when there is no valid video
  */
-const VideoField = ({ value, onChange, label = 'Vídeo de demonstração', canUseLibrary = false }) => {
+const VideoField = ({ value, onChange, gifValue = '', onGifChange, label = 'Vídeo de demonstração', canUseLibrary = false, gifError = null }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [failedGif, setFailedGif] = useState(null);
   const [urlInputVisible, setUrlInputVisible] = useState(!canUseLibrary);
 
   const trimmedValue = value?.trim() ?? '';
   const youtubeId = getYoutubeVideoId(trimmedValue);
   const hasValidVideo = Boolean(youtubeId);
   const hasInvalidUrl = trimmedValue.length > 0 && !hasValidVideo;
+  const trimmedGif = gifValue?.trim() ?? '';
+  const showGifPreview = !hasValidVideo && isHttpUrl(trimmedGif);
+  const hasInvalidGif = trimmedGif.length > 0 && !isHttpUrl(trimmedGif);
 
   const handleRemove = () => {
     onChange('');
@@ -113,6 +119,35 @@ const VideoField = ({ value, onChange, label = 'Vídeo de demonstração', canUs
         </div>
       )}
 
+      {showGifPreview && (
+        <div className="video-field-preview">
+          {failedGif === trimmedGif ? (
+            <p className="gif-fallback type-caption">Não foi possível carregar o GIF</p>
+          ) : (
+            <img className="video-field-gif" src={trimmedGif} alt="Prévia do GIF" onError={() => setFailedGif(trimmedGif)} />
+          )}
+        </div>
+      )}
+
+      {onGifChange && (
+        <div className="video-field-input-wrap">
+          <input
+            type="url"
+            className="input"
+            placeholder="https://.../exercicio.gif"
+            value={gifValue ?? ''}
+            onChange={(e) => onGifChange(e.target.value)}
+            aria-label="Link do GIF"
+          />
+          {gifError && <span className="field-error type-caption" role="alert">{gifError}</span>}
+          {hasInvalidGif && !gifError && (
+            <p className="video-field-hint type-caption" role="status">
+              Use um link http(s) para pré-visualizar o GIF.
+            </p>
+          )}
+        </div>
+      )}
+
       {canUseLibrary && (
         <VideoLibraryPicker
           isOpen={pickerOpen}
@@ -127,9 +162,12 @@ const VideoField = ({ value, onChange, label = 'Vídeo de demonstração', canUs
 VideoField.propTypes = {
   value: PropTypes.string,
   onChange: PropTypes.func.isRequired,
+  gifValue: PropTypes.string,
+  onGifChange: PropTypes.func,
   label: PropTypes.string,
   /** Library picker is admin-only; everyone else pastes a YouTube link. */
   canUseLibrary: PropTypes.bool,
+  gifError: PropTypes.string,
 };
 
 export default VideoField;

@@ -76,6 +76,7 @@ const buildPayloadFromTemplate = (template) => {
     payload.suggestedLoad = template.suggestedLoad;
   }
   if (template.videoUrl) payload.videoUrl = template.videoUrl;
+  if (template.gifUrl) payload.gifUrl = template.gifUrl;
   if (template.duration != null) payload.duration = template.duration;
   if (template.notes) payload.notes = template.notes;
   return payload;

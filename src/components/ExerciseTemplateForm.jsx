@@ -8,18 +8,23 @@ import ExerciseVisibilitySection from './exerciseTemplate/ExerciseVisibilitySect
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
+import { getGifUrlError } from '../utils/gif';
 
 const EMPTY_FORM = {
   name: '',
   type: 'strength',
   videoUrl: '',
+  gifUrl: '',
   isPublic: false,
 };
 
-const buildPayload = (data, { includeVisibility }) => {
+const buildPayload = (data, { includeVisibility, hadGif }) => {
   const payload = { name: data.name, type: data.type };
   if (includeVisibility) payload.isPublic = data.isPublic;
   if (data.videoUrl?.trim()) payload.videoUrl = data.videoUrl.trim();
+  const gifUrl = data.gifUrl?.trim();
+  if (gifUrl) payload.gifUrl = gifUrl;
+  else if (hadGif) payload.gifUrl = null;
   return payload;
 };
 
@@ -29,6 +34,7 @@ const buildInitialForm = (template) => {
     name: template.name || '',
     type: template.type || '',
     videoUrl: template.videoUrl || '',
+    gifUrl: template.gifUrl || '',
     isPublic: template.isPublic || false,
   };
 };
@@ -44,6 +50,7 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(initialForm);
   const [nameError, setNameError] = useState('');
+  const [gifUrlError, setGifUrlError] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [publicConfirmedThisSession, setPublicConfirmedThisSession] = useState(false);
@@ -116,9 +123,12 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
       setNameError('Informe o nome do exercício.');
       return;
     }
+    const gifError = getGifUrlError(formData.gifUrl);
+    setGifUrlError(gifError);
+    if (gifError) return;
     setSaving(true);
     try {
-      const response = await persist(buildPayload(formData, { includeVisibility: isAdmin }));
+      const response = await persist(buildPayload(formData, { includeVisibility: isAdmin, hadGif: !!initialForm.gifUrl }));
       onSuccess?.(response.data);
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
@@ -150,6 +160,9 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
             className={sectionClass}
             videoUrl={formData.videoUrl}
             onVideoUrlChange={(value) => updateField('videoUrl', value)}
+            gifUrl={formData.gifUrl}
+            onGifUrlChange={(value) => { setGifUrlError(null); updateField('gifUrl', value); }}
+            gifError={gifUrlError}
             onPickFromLibrary={isAdmin ? () => setPickerOpen(true) : undefined}
             onRemoveVideo={handleRemoveVideo}
           />

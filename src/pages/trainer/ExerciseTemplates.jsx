@@ -11,6 +11,7 @@ import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useLibraryList from '../../hooks/useLibraryList';
 import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel } from '../../constants/exerciseTypes';
 import { getYoutubeVideoId } from '../../utils/youtube';
+import { shouldShowGif } from '../../utils/gif';
 
 const ENDPOINT = '/trainer/exercise-templates';
 const NEW_PATH = '/trainer/exercise-templates/new';
@@ -25,11 +26,13 @@ const TYPE_FILTERS = [
 ];
 
 const buildBadges = (template) => {
+  const hasVideo = !!getYoutubeVideoId(template.videoUrl);
   const typeLabel = template.type ? getExerciseTypeLabel(template.type) : null;
   return [
     typeLabel && { label: typeLabel, tone: 'brand' },
     template.isPublic && { label: 'Público', tone: 'success' },
-    getYoutubeVideoId(template.videoUrl) && { label: 'Vídeo', tone: 'neutral' },
+    hasVideo && { label: 'Vídeo', tone: 'neutral' },
+    shouldShowGif(template) && { label: 'GIF', tone: 'neutral' },
   ].filter(Boolean);
 };
 

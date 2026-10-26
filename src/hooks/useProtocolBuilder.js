@@ -32,6 +32,7 @@ const extractExercisesFromTemplate = (raw) => {
       suggestedLoad: j.suggestedLoad ?? j.exerciseTemplate?.suggestedLoad ?? null,
       restInterval: j.restInterval ?? j.exerciseTemplate?.restInterval ?? null,
       videoUrl: j.videoUrl ?? j.exerciseTemplate?.videoUrl ?? null,
+      gifUrl: j.gifUrl ?? j.exerciseTemplate?.gifUrl ?? null,
       intensity: j.intensity ?? j.exerciseTemplate?.intensity ?? null,
       notes: j.notes ?? j.exerciseTemplate?.notes ?? null,
       _isFromTemplate: true,
@@ -70,6 +71,7 @@ const toBulkExercise = (exercise, index) => {
   if (exercise.notes != null && exercise.notes !== '') payload.notes = exercise.notes;
   if (exercise.intensity != null && exercise.intensity !== '') payload.intensity = exercise.intensity;
   if (exercise.videoUrl != null && exercise.videoUrl !== '') payload.videoUrl = exercise.videoUrl;
+  if (exercise.gifUrl != null && exercise.gifUrl !== '') payload.gifUrl = exercise.gifUrl;
 
   return payload;
 };
@@ -572,6 +574,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           suggestedLoad: template?.suggestedLoad ?? null,
           restInterval: template?.restInterval ?? null,
           videoUrl: template?.videoUrl ?? null,
+          gifUrl: template?.gifUrl ?? null,
           intensity: template?.intensity ?? null,
           notes: template?.notes ?? null,
           _isFromTemplate: true,
