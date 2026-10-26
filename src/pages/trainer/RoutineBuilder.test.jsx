@@ -4136,3 +4136,132 @@ describe('RoutineBuilder — design system status and labels', () => {
     expect(fab).toBeDefined();
   });
 });
+
+// ─── Tests — library import preserves selection order ────────────────────────
+
+const ORDER_TEMPLATES = [
+  { id: 'tmpl-a', name: 'Alfa agachamento', type: 'strength', sets: 3, repetitions: { min: 8, max: 12 } },
+  { id: 'tmpl-b', name: 'Bravo barra', type: 'strength', sets: 3, repetitions: { min: 8, max: 12 } },
+  { id: 'tmpl-c', name: 'Charlie corrida', type: 'strength', sets: 3, repetitions: { min: 8, max: 12 } },
+];
+
+// Builds a manually-resolved addExerciseFromTemplate mock that records completion order.
+const createDeferredAdd = () => {
+  const resolvers = {};
+  const completed = [];
+  const addExerciseFromTemplate = vi.fn((_trainingId, tmplId) =>
+    new Promise((resolve) => {
+      resolvers[tmplId] = () => {
+        completed.push(tmplId);
+        resolve({ id: `junction-${tmplId}` });
+      };
+    })
+  );
+  return { addExerciseFromTemplate, resolvers, completed };
+};
+
+// Opens the composer and imports A, C, B from the library in that click order.
+const selectAndImport = async (user) => {
+  await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+  await user.click(await screen.findByRole('button', { name: /Adicionar exercício/i }));
+  await user.click(await screen.findByText('Alfa agachamento'));
+  await user.click(screen.getByText('Charlie corrida'));
+  await user.click(screen.getByText('Bravo barra'));
+  await user.click(screen.getByRole('button', { name: /Importar 3/i }));
+};
+
+// Returns the template ids passed to each addExerciseFromTemplate call.
+const callsTmplIds = (fn) => fn.mock.calls.map((c) => c[1]);
+
+// Renders RoutineBuilder in protocol edit mode with the order-test templates.
+const renderProtocolEditForOrder = (addExerciseFromTemplate) => {
+  useProtocolBuilder.mockReturnValue({
+    ...PROTOCOL_HOOK_EMPTY,
+    data: { ...PROTOCOL_HOOK_EMPTY.data, id: 'protocol-123', name: 'Protocolo', trainings: [TRAINING_EMPTY] },
+    exerciseTemplates: ORDER_TEMPLATES,
+    addExerciseFromTemplate,
+  });
+  renderWithRoute(<RoutineBuilder />, {
+    route: '/trainer/protocols/protocol-123/edit',
+    path: '/trainer/protocols/:id/edit',
+  });
+};
+
+// Renders RoutineBuilder in routine template mode with the order-test templates.
+const renderTemplateForOrder = (addExerciseFromTemplate) => {
+  useRoutineBuilder.mockReturnValue({
+    ...EMPTY_HOOK_STATE,
+    data: { ...EMPTY_HOOK_STATE.data, name: 'Rotina', trainings: [TRAINING_EMPTY] },
+    exerciseTemplates: ORDER_TEMPLATES,
+    addExerciseFromTemplate,
+  });
+  renderNew();
+};
+
+// Asserts each import call starts only after the previous one resolves.
+const expectSequentialCalls = async (addExerciseFromTemplate, resolvers) => {
+  await waitFor(() => expect(addExerciseFromTemplate).toHaveBeenCalledTimes(1));
+  expect(callsTmplIds(addExerciseFromTemplate)).toEqual(['tmpl-a']);
+
+  await act(async () => { resolvers['tmpl-a'](); });
+  await waitFor(() => expect(addExerciseFromTemplate).toHaveBeenCalledTimes(2));
+  expect(callsTmplIds(addExerciseFromTemplate)).toEqual(['tmpl-a', 'tmpl-c']);
+
+  await act(async () => { resolvers['tmpl-c'](); });
+  await waitFor(() => expect(addExerciseFromTemplate).toHaveBeenCalledTimes(3));
+  expect(callsTmplIds(addExerciseFromTemplate)).toEqual(['tmpl-a', 'tmpl-c', 'tmpl-b']);
+  await act(async () => { resolvers['tmpl-b'](); });
+};
+
+// Server is "faster" for later items: always resolve B, then C, then A.
+const expectCompletionOrder = async (addExerciseFromTemplate, resolvers, completed) => {
+  await waitFor(() => expect(addExerciseFromTemplate).toHaveBeenCalled());
+  for (let i = 0; i < 6; i += 1) {
+    await act(async () => {
+      ['tmpl-b', 'tmpl-c', 'tmpl-a'].forEach((id) => {
+        if (resolvers[id] && !completed.includes(id)) resolvers[id]();
+      });
+    });
+  }
+  await waitFor(() => expect(completed).toHaveLength(3));
+  expect(completed).toEqual(['tmpl-a', 'tmpl-c', 'tmpl-b']);
+};
+
+describe('RoutineBuilder — library import keeps selection order (A, C, B)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockResolvedValue({ data: { data: [], total: 0 } });
+  });
+
+  it('template mode: issues addExerciseFromTemplate one at a time in selection order', async () => {
+    const { addExerciseFromTemplate, resolvers } = createDeferredAdd();
+    const user = userEvent.setup();
+    renderTemplateForOrder(addExerciseFromTemplate);
+    await selectAndImport(user);
+    await expectSequentialCalls(addExerciseFromTemplate, resolvers);
+  });
+
+  it('template mode: resulting list order is A, C, B even if B would resolve first', async () => {
+    const { addExerciseFromTemplate, resolvers, completed } = createDeferredAdd();
+    const user = userEvent.setup();
+    renderTemplateForOrder(addExerciseFromTemplate);
+    await selectAndImport(user);
+    await expectCompletionOrder(addExerciseFromTemplate, resolvers, completed);
+  });
+
+  it('protocol edit mode: issues addExerciseFromTemplate one at a time in selection order', async () => {
+    const { addExerciseFromTemplate, resolvers } = createDeferredAdd();
+    const user = userEvent.setup();
+    renderProtocolEditForOrder(addExerciseFromTemplate);
+    await selectAndImport(user);
+    await expectSequentialCalls(addExerciseFromTemplate, resolvers);
+  });
+
+  it('protocol edit mode: resulting list order is A, C, B even if B would resolve first', async () => {
+    const { addExerciseFromTemplate, resolvers, completed } = createDeferredAdd();
+    const user = userEvent.setup();
+    renderProtocolEditForOrder(addExerciseFromTemplate);
+    await selectAndImport(user);
+    await expectCompletionOrder(addExerciseFromTemplate, resolvers, completed);
+  });
+});
