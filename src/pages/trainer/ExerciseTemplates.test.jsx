@@ -247,6 +247,26 @@ describe('ExerciseTemplates', () => {
     expect(screen.getByText('Vídeo')).toBeInTheDocument();
   });
 
+  it('shows a GIF badge for a template with gifUrl and no video', async () => {
+    api.get.mockResolvedValue(envelope([
+      { id: 4, name: 'Remada Curvada', type: 'strength', isPublic: false, videoUrl: null, gifUrl: 'https://media.example.com/remada.gif' },
+    ]));
+    renderWithRouter(<ExerciseTemplates />);
+
+    await waitFor(() => screen.getByText('Remada Curvada'));
+
+    expect(screen.getByText('GIF')).toBeInTheDocument();
+    expect(screen.queryByText('Vídeo')).not.toBeInTheDocument();
+  });
+
+  it('does not show the GIF badge for templates without a gifUrl', async () => {
+    renderWithRouter(<ExerciseTemplates />);
+
+    await waitFor(() => screen.getByText('Agachamento'));
+
+    expect(screen.queryByText('GIF')).not.toBeInTheDocument();
+  });
+
   it('does not show Vídeo badge for templates without a videoUrl', async () => {
     renderWithRouter(<ExerciseTemplates />);
 

@@ -16,6 +16,7 @@ import SubstitutedLogLine from '../../components/SubstitutedLogLine';
 import DurationLabel from '../../components/DurationLabel';
 import StudentIntensityBand from '../../components/StudentIntensityBand';
 import { t } from '../../i18n';
+import { shouldShowGif } from '../../utils/gif';
 
 const interpolate = (template, values) =>
   template.replace(/\{(\w+)\}/g, (_, key) =>
@@ -321,6 +322,16 @@ function ExerciseLogCard({ sessionId, exerciseLog, isSessionActive, onUpdated, o
                 ▷ Ver vídeo
               </a>
             )}
+            {shouldShowGif(exerciseLog.exercise ?? {}) && (
+              <a
+                href={exerciseLog.exercise.gifUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-link"
+              >
+                ▷ Ver GIF
+              </a>
+            )}
             {exerciseLog.exercise?.notes && (
               <p className="text-sm text-muted">{exerciseLog.exercise.notes}</p>
             )}
@@ -438,6 +449,7 @@ ExerciseLogCard.propTypes = {
       name: PropTypes.string,
       notes: PropTypes.string,
       videoUrl: PropTypes.string,
+      gifUrl: PropTypes.string,
       intensity: PropTypes.string,
       intensityLabel: PropTypes.string,
       substitutes: PropTypes.array,

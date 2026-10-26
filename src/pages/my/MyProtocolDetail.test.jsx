@@ -321,6 +321,55 @@ describe('MyProtocolDetail', () => {
     expect(screen.queryByRole('link', { name: /ver vídeo/i })).not.toBeInTheDocument();
   });
 
+  it('shows a GIF control for an exercise with only gifUrl and renders the GIF in the sheet', async () => {
+    const GIF_URL = 'https://media.example.com/rosca.gif';
+    setupApiMocks({
+      trainings: [mockTrainings[0]],
+      exercisesMap: { 10: [{ ...mockExercisesA[1], videoUrl: null, gifUrl: GIF_URL }] },
+    });
+    const user = userEvent.setup();
+
+    renderMyProtocolDetail();
+
+    await user.click(await screen.findByRole('button', { name: /ver gif/i }));
+
+    expect(screen.getByRole('img', { name: /gif do exercício/i })).toHaveAttribute('src', GIF_URL);
+    expect(document.querySelector('iframe')).not.toBeInTheDocument();
+  });
+
+  it('closes the GIF sheet', async () => {
+    setupApiMocks({
+      trainings: [mockTrainings[0]],
+      exercisesMap: { 10: [{ ...mockExercisesA[1], videoUrl: null, gifUrl: 'https://media.example.com/rosca.gif' }] },
+    });
+    const user = userEvent.setup();
+
+    renderMyProtocolDetail();
+
+    await user.click(await screen.findByRole('button', { name: /ver gif/i }));
+    await user.click(screen.getByRole('button', { name: /fechar gif/i }));
+
+    expect(screen.queryByRole('img', { name: /gif do exercício/i })).not.toBeInTheDocument();
+  });
+
+  it('prefers the YouTube video over the GIF when the exercise has both', async () => {
+    setupApiMocks({
+      trainings: [mockTrainings[0]],
+      exercisesMap: { 10: [{ ...mockExercisesA[0], gifUrl: 'https://media.example.com/supino.gif' }] },
+    });
+    const user = userEvent.setup();
+
+    renderMyProtocolDetail();
+
+    expect(await screen.findByRole('button', { name: /ver vídeo/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ver gif/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /ver vídeo/i }));
+
+    expect(screen.getByTitle('Vídeo do exercício')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /gif do exercício/i })).not.toBeInTheDocument();
+  });
+
   it('shows empty exercises message for training with no exercises', async () => {
     setupApiMocks();
 

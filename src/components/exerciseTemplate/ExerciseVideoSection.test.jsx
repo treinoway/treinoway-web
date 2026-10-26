@@ -40,4 +40,31 @@ describe('ExerciseVideoSection', () => {
     expect(onPickFromLibrary).toHaveBeenCalled();
     expect(onRemoveVideo).toHaveBeenCalled();
   });
+
+  describe('GIF', () => {
+    const GIF_URL = 'https://media.example.com/agachamento.gif';
+
+    it('renders a GIF link input', () => {
+      renderSection({ gifUrl: '', onGifUrlChange: vi.fn() });
+      expect(screen.getByLabelText(/link do gif/i)).toBeInTheDocument();
+    });
+
+    it('forwards typed GIF text through onGifUrlChange', async () => {
+      const onGifUrlChange = vi.fn();
+      renderSection({ gifUrl: '', onGifUrlChange });
+      await userEvent.setup().type(screen.getByLabelText(/link do gif/i), 'h');
+      expect(onGifUrlChange).toHaveBeenCalledWith('h');
+    });
+
+    it('previews the GIF in the media slot when there is no video', () => {
+      renderSection({ gifUrl: GIF_URL, onGifUrlChange: vi.fn() });
+      expect(screen.getByRole('img', { name: /prévia do gif/i })).toHaveAttribute('src', GIF_URL);
+    });
+
+    it('prefers the video preview over the GIF when both are set', () => {
+      renderSection({ videoUrl: VALID_URL, gifUrl: GIF_URL, onGifUrlChange: vi.fn() });
+      expect(screen.getByRole('img', { name: /miniatura do vídeo/i })).toBeInTheDocument();
+      expect(screen.queryByRole('img', { name: /prévia do gif/i })).not.toBeInTheDocument();
+    });
+  });
 });

@@ -46,4 +46,13 @@ describe('trainingTemplateDraft', () => {
     expect(payload.exerciseTemplates[1]).toEqual({ exerciseTemplateId: 21, order: 1 });
     expect(payload).not.toHaveProperty('exerciseTemplateIds');
   });
+
+  it('carries gifUrl from the exercise template into the draft junction', () => {
+    const junction = buildDraftJunction({ id: 5, name: 'Esteira', type: 'cardio', gifUrl: 'https://media.example.com/esteira.gif' });
+    expect(junction.gifUrl).toBe('https://media.example.com/esteira.gif');
+  });
+
+  it('defaults draft junction gifUrl to null', () => {
+    expect(buildDraftJunction({ id: 5, name: 'Esteira', type: 'cardio' }).gifUrl).toBeNull();
+  });
 });
