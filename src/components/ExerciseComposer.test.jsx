@@ -464,6 +464,67 @@ describe('ExerciseComposer — VideoField integration', () => {
   });
 });
 
+// ─── Tests — GIF ──────────────────────────────────────────────────────────────
+
+describe('ExerciseComposer — GIF', () => {
+  const GIF_URL = 'https://media.example.com/agachamento.gif';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('previews a typed GIF URL and sends gifUrl in the create payload', async () => {
+    const onSubmitCreate = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ onSubmitCreate });
+    await switchToCreateTab(user);
+
+    await user.type(screen.getByLabelText(/Nome/i), 'Agachamento');
+    await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
+    await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
+    await user.type(screen.getByRole('textbox', { name: /link do gif/i }), GIF_URL);
+
+    expect(screen.getByRole('img', { name: /prévia do gif/i })).toHaveAttribute('src', GIF_URL);
+
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    await waitFor(() => {
+      expect(onSubmitCreate).toHaveBeenCalledWith(expect.objectContaining({ gifUrl: GIF_URL }));
+    });
+  });
+
+  it('sends gifUrl: null when the GIF is empty', async () => {
+    const onSubmitCreate = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ onSubmitCreate });
+    await switchToCreateTab(user);
+
+    await user.type(screen.getByLabelText(/Nome/i), 'Agachamento');
+    await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
+    await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    await waitFor(() => {
+      expect(onSubmitCreate).toHaveBeenCalledWith(expect.objectContaining({ gifUrl: null }));
+    });
+  });
+
+  it('pre-fills the GIF in edit mode and sends gifUrl: null after clearing it', async () => {
+    const onSubmitEdit = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ snapshot: { ...EXERCISE_SNAPSHOT, gifUrl: GIF_URL }, onSubmitEdit });
+
+    const input = screen.getByRole('textbox', { name: /link do gif/i });
+    expect(input).toHaveValue(GIF_URL);
+    await user.clear(input);
+    await user.click(screen.getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(onSubmitEdit).toHaveBeenCalledWith('junc-1', expect.objectContaining({ gifUrl: null }));
+    });
+  });
+});
+
 // ─── Tests — delete action (edit mode footer) ────────────────────────────────
 
 describe('ExerciseComposer — delete action', () => {

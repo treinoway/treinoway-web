@@ -2,8 +2,9 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Film, Play, X, Link } from 'lucide-react';
 import { getYoutubeVideoId } from '../../utils/youtube';
+import { isHttpUrl } from '../../utils/gif';
 
-const VideoStage = ({ youtubeId, thumbError, playing, canPickFromLibrary, onPlay, onThumbError }) => {
+const VideoStage = ({ youtubeId, gifUrl, gifFailed, onGifError, thumbError, playing, canPickFromLibrary, onPlay, onThumbError }) => {
   if (youtubeId && !thumbError) {
     return (
       <div className="video-hero-stage" role="img" aria-label="Pré-visualização do vídeo de demonstração">
@@ -33,6 +34,18 @@ const VideoStage = ({ youtubeId, thumbError, playing, canPickFromLibrary, onPlay
     );
   }
 
+  if (gifUrl) {
+    return (
+      <div className="video-hero-stage">
+        {gifFailed ? (
+          <p className="gif-fallback type-caption">Não foi possível carregar o GIF</p>
+        ) : (
+          <img className="video-hero-thumb video-hero-thumb--contain" src={gifUrl} alt="Prévia do GIF" onError={onGifError} />
+        )}
+      </div>
+    );
+  }
+
   const hint = thumbError
     ? 'Vídeo indisponível. Verifique o link ou escolha outro vídeo.'
     : canPickFromLibrary
@@ -50,6 +63,9 @@ const VideoStage = ({ youtubeId, thumbError, playing, canPickFromLibrary, onPlay
 
 VideoStage.propTypes = {
   youtubeId: PropTypes.string,
+  gifUrl: PropTypes.string,
+  gifFailed: PropTypes.bool.isRequired,
+  onGifError: PropTypes.func.isRequired,
   thumbError: PropTypes.bool.isRequired,
   playing: PropTypes.bool.isRequired,
   canPickFromLibrary: PropTypes.bool.isRequired,
@@ -58,10 +74,13 @@ VideoStage.propTypes = {
 };
 
 /** "Demonstração" section: 16:9 preview stage, YouTube URL field, library picker (only when `onPickFromLibrary` is given) and removal. */
-const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, onPickFromLibrary, onRemoveVideo }) => {
+const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = '', onGifUrlChange, gifError = null, onPickFromLibrary, onRemoveVideo }) => {
   const youtubeId = getYoutubeVideoId(videoUrl);
   const canPickFromLibrary = !!onPickFromLibrary;
+  const previewGifUrl = isHttpUrl(gifUrl) ? gifUrl.trim() : null;
+  const hasInvalidGifUrl = gifUrl.trim() !== '' && !previewGifUrl;
   const hasInvalidUrl = videoUrl.trim() !== '' && !youtubeId;
+  const [failedGif, setFailedGif] = useState(null);
   // Playback state belongs to one video: a different id starts again as a plain thumbnail.
   const [playback, setPlayback] = useState({ videoId: null, playing: false, thumbError: false });
   const { playing, thumbError } = playback.videoId === youtubeId ? playback : { playing: false, thumbError: false };
@@ -70,11 +89,14 @@ const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, onPickFro
   return (
     <section className={className} aria-labelledby="exercise-video-heading">
       <h2 id="exercise-video-heading" className="editor-page__section-title type-h3">Demonstração</h2>
-      <p className="editor-page__section-hint type-caption">Opcional. Aceita links do YouTube.</p>
+      <p className="editor-page__section-hint type-caption">Opcional. Aceita links do YouTube ou de GIF.</p>
 
       <div className="video-hero">
         <VideoStage
           youtubeId={youtubeId}
+          gifUrl={previewGifUrl}
+          gifFailed={failedGif === previewGifUrl}
+          onGifError={() => setFailedGif(previewGifUrl)}
           thumbError={thumbError}
           playing={playing}
           canPickFromLibrary={canPickFromLibrary}
@@ -96,6 +118,28 @@ const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, onPickFro
             />
           </div>
           {hasInvalidUrl && <span className="field-error type-caption" role="alert">Link de YouTube inválido</span>}
+        </div>
+
+        <div className="field">
+          <label className="field-label type-caption-strong" htmlFor="exercise-gif-url">Link do GIF</label>
+          <div className="input--search-wrap">
+            <Link size={16} strokeWidth={2} aria-hidden="true" />
+            <input
+              id="exercise-gif-url"
+              type="url"
+              value={gifUrl}
+              onChange={(e) => onGifUrlChange(e.target.value)}
+              className={`input input--search${gifError ? ' input--error' : ''}`}
+              placeholder="https://.../exercicio.gif"
+            />
+          </div>
+          {gifError && <span className="field-error type-caption" role="alert">{gifError}</span>}
+          {hasInvalidGifUrl && !gifError && (
+            <span className="field-hint type-caption" role="status">Use um link http(s) para pré-visualizar o GIF.</span>
+          )}
+          {previewGifUrl && youtubeId && (
+            <span className="field-hint type-caption">O vídeo tem prioridade sobre o GIF.</span>
+          )}
         </div>
 
         {(canPickFromLibrary || youtubeId) && (
@@ -123,6 +167,9 @@ ExerciseVideoSection.propTypes = {
   className: PropTypes.string.isRequired,
   videoUrl: PropTypes.string.isRequired,
   onVideoUrlChange: PropTypes.func.isRequired,
+  gifUrl: PropTypes.string,
+  onGifUrlChange: PropTypes.func,
+  gifError: PropTypes.string,
   onPickFromLibrary: PropTypes.func,
   onRemoveVideo: PropTypes.func.isRequired,
 };

@@ -11,6 +11,7 @@ import { sortTrainingsByWeekDay } from '../../utils/sortTrainingsByWeekDay';
 import { getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { getStatusLabel, getStatusBadgeClass } from '../../constants/protocolStatus';
 import { getYoutubeVideoId } from '../../utils/youtube';
+import { shouldShowGif } from '../../utils/gif';
 import { useToast } from '../../contexts/ToastContext';
 import IntensityBadge from '../../components/IntensityBadge';
 
@@ -23,7 +24,8 @@ const MyProtocolDetail = () => {
   const [exercisesMap, setExercisesMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [startingTrainingId, setStartingTrainingId] = useState(null);
-  const [videoModal, setVideoModal] = useState({ open: false, videoId: null });
+  const [videoModal, setVideoModal] = useState({ open: false, videoId: null, gifUrl: null });
+  const [gifFailed, setGifFailed] = useState(false);
 
   useEffect(() => {
     fetchProtocol();
@@ -87,6 +89,9 @@ const MyProtocolDetail = () => {
     || protocol?.trainer?.name
     || protocol?.trainer?.email
     || 'N/A';
+
+  const isGifModal = !!videoModal.gifUrl;
+  const closeMedia = () => setVideoModal({ open: false, videoId: null, gifUrl: null });
 
   if (loading) {
     return (
@@ -249,7 +254,7 @@ const MyProtocolDetail = () => {
                                   return (
                                     <button
                                       className="training-card-exercise-video-link"
-                                      onClick={() => setVideoModal({ open: true, videoId })}
+                                      onClick={() => setVideoModal({ open: true, videoId, gifUrl: null })}
                                     >
                                       <Play size={14} strokeWidth={1.6} />
                                       Ver vídeo
@@ -268,6 +273,15 @@ const MyProtocolDetail = () => {
                                   </a>
                                 );
                               })()}
+                              {shouldShowGif(exercise) && (
+                                <button
+                                  className="training-card-exercise-video-link"
+                                  onClick={() => { setGifFailed(false); setVideoModal({ open: true, videoId: null, gifUrl: exercise.gifUrl }); }}
+                                >
+                                  <Play size={14} strokeWidth={1.6} />
+                                  Ver GIF
+                                </button>
+                              )}
                             </div>
                           </div>
                         );
@@ -282,27 +296,37 @@ const MyProtocolDetail = () => {
       )}
 
       {videoModal.open && (
-        <div className="bottom-sheet-overlay" onClick={() => setVideoModal({ open: false, videoId: null })}>
+        <div className="bottom-sheet-overlay" onClick={closeMedia}>
           <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="bottom-sheet-header">
-              <span className="bottom-sheet-title">Vídeo do exercício</span>
+              <span className="bottom-sheet-title">{isGifModal ? 'GIF do exercício' : 'Vídeo do exercício'}</span>
               <button
                 className="bottom-sheet-close"
-                onClick={() => setVideoModal({ open: false, videoId: null })}
-                aria-label="Fechar vídeo"
+                onClick={closeMedia}
+                aria-label={isGifModal ? 'Fechar GIF' : 'Fechar vídeo'}
               >
                 <X size={20} />
               </button>
             </div>
             <div className="bottom-sheet-body">
-              <div className="video-embed-wrapper">
-                <iframe
-                  src={`https://www.youtube.com/embed/${videoModal.videoId}`}
-                  title="Vídeo do exercício"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
+              {isGifModal ? (
+                <div className="video-embed-wrapper">
+                  {gifFailed ? (
+                    <p className="gif-fallback type-caption">Não foi possível carregar o GIF</p>
+                  ) : (
+                    <img className="video-embed-gif" src={videoModal.gifUrl} alt="GIF do exercício" onError={() => setGifFailed(true)} />
+                  )}
+                </div>
+              ) : (
+                <div className="video-embed-wrapper">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoModal.videoId}`}
+                    title="Vídeo do exercício"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

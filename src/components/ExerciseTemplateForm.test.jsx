@@ -25,6 +25,7 @@ const mockOnNameChange = vi.fn();
 
 const VALID_YOUTUBE_URL = 'https://www.youtube.com/watch?v=abc123XYZ';
 const VALID_VIDEO_ID = 'abc123XYZ';
+const GIF_URL = 'https://media.example.com/agachamento.gif';
 const INVALID_URL = 'https://vimeo.com/123456';
 
 const renderForm = (props = {}) =>
@@ -505,6 +506,56 @@ describe('ExerciseTemplateForm', () => {
       expect(api.post).toHaveBeenCalledWith(
         '/trainer/exercise-templates',
         expect.objectContaining({ videoUrl: VALID_YOUTUBE_URL })
+      );
+    });
+  });
+
+  it('renders a GIF link input', () => {
+    renderForm();
+    expect(screen.getByLabelText(/link do gif/i)).toBeInTheDocument();
+  });
+
+  it('previews a typed GIF URL as an image in the media slot', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.type(screen.getByLabelText(/link do gif/i), GIF_URL);
+
+    expect(screen.getByRole('img', { name: /prévia do gif/i })).toHaveAttribute('src', GIF_URL);
+  });
+
+  it('includes gifUrl in the create payload when provided', async () => {
+    const user = userEvent.setup();
+    api.post.mockResolvedValueOnce({ data: { id: 1 } });
+    renderForm();
+
+    await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
+    await selectType(user, 'Força');
+    await user.type(screen.getByLabelText(/link do gif/i), GIF_URL);
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith(
+        '/trainer/exercise-templates',
+        expect.objectContaining({ gifUrl: GIF_URL })
+      );
+    });
+  });
+
+  it('pre-fills the GIF input and sends gifUrl: null after clearing it on edit', async () => {
+    const user = userEvent.setup();
+    const withGif = { id: 10, name: 'Agachamento', type: 'strength', videoUrl: '', gifUrl: GIF_URL, isPublic: false };
+    api.patch.mockResolvedValueOnce({ data: { ...withGif, gifUrl: null } });
+    renderForm({ exerciseTemplate: withGif });
+
+    expect(screen.getByLabelText(/link do gif/i)).toHaveValue(GIF_URL);
+    await user.clear(screen.getByLabelText(/link do gif/i));
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith(
+        '/trainer/exercise-templates/10',
+        expect.objectContaining({ gifUrl: null })
       );
     });
   });
