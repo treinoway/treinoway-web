@@ -236,6 +236,57 @@ export const formatCyclePeriod = (startDate, endDate) => {
   return `${startText} – ${formatFullDate(endDate)}`;
 };
 
+const RECURRENCE_MONTHS = Object.freeze({
+  [SUBSCRIPTION_RECURRENCE.MONTHLY]: 1,
+  [SUBSCRIPTION_RECURRENCE.QUARTERLY]: 3,
+  [SUBSCRIPTION_RECURRENCE.SEMIANNUAL]: 6,
+  [SUBSCRIPTION_RECURRENCE.ANNUAL]: 12,
+});
+
+/** Days in a month (UTC calendar; monthIndex may overflow/underflow the year). */
+const daysInMonth = (year, monthIndex) => new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+
+/** Y/M/D parts → "YYYY-MM-DD" (UTC, day may overflow/underflow). */
+const toDateOnly = (year, monthIndex, day) => new Date(Date.UTC(year, monthIndex, day)).toISOString().slice(0, 10);
+
+/** Start of the cycle in `baseMonthIndex + offsetMonths`: min(day, month length), never drifting from the base. */
+const clampedMonthStart = (year, baseMonthIndex, offsetMonths, day) => {
+  const target = new Date(Date.UTC(year, baseMonthIndex + offsetMonths, 1));
+  const targetYear = target.getUTCFullYear();
+  const targetMonth = target.getUTCMonth();
+  return { year: targetYear, monthIndex: targetMonth, day: Math.min(day, daysInMonth(targetYear, targetMonth)) };
+};
+
+/**
+ * First cycle of a new subscription, mirroring the backend billing-day rule.
+ * @param {string} startDate "YYYY-MM-DD"; with a billing day the grid aligns to it, otherwise it anchors here.
+ * @param {number|null} billingDay 1–31 or null.
+ * @param {string} recurrence monthly | quarterly | semiannual | annual.
+ * @returns {{cycleStartDate: string, cycleEndDate: string, dueDate: string}} dueDate = max(cycleStartDate, startDate).
+ */
+export const computeFirstCycle = (startDate, billingDay, recurrence) => {
+  const [year, month, day] = String(startDate).split('-').map(Number);
+  const monthIndex = month - 1;
+  const months = RECURRENCE_MONTHS[recurrence] ?? 1;
+  const anchorDay = billingDay ?? day;
+  const startsBeforeBillingDay = billingDay != null && day < Math.min(billingDay, daysInMonth(year, monthIndex));
+  const baseOffset = startsBeforeBillingDay ? -1 : 0;
+  const start = clampedMonthStart(year, monthIndex, baseOffset, anchorDay);
+  const next = clampedMonthStart(year, monthIndex, baseOffset + months, anchorDay);
+  const cycleStartDate = toDateOnly(start.year, start.monthIndex, start.day);
+  return {
+    cycleStartDate,
+    cycleEndDate: toDateOnly(next.year, next.monthIndex, next.day - 1),
+    dueDate: cycleStartDate > startDate ? cycleStartDate : startDate,
+  };
+};
+
+/** Day after the first cycle ends = start of the next cycle = the next due date. */
+export const computeNextDueDate = ({ cycleEndDate }) => {
+  const [year, month, day] = cycleEndDate.split('-').map(Number);
+  return toDateOnly(year, month - 1, day + 1);
+};
+
 const SHORT_MONTHS_PT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const LONG_MONTHS_PT = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',

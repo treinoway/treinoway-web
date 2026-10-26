@@ -11,6 +11,7 @@ import {
   formatDiscountLine,
   formatDelinquencyRate,
   todayDateString,
+  computeFirstCycle,
   currentYearMonth,
   timestampToBusinessDate,
   formatShortDate,
@@ -158,5 +159,20 @@ describe('year-month helpers', () => {
 
   it('normalizeForSearch strips accents and case', () => {
     expect(normalizeForSearch('  João ')).toBe('joao');
+  });
+});
+
+describe('computeFirstCycle (mirrors the backend billing-day rule)', () => {
+  it.each([
+    ['no billing day: cycle starts and is due on the start date', '2026-10-10', null, 'monthly', '2026-10-10', '2026-11-09', '2026-10-10'],
+    ['no billing day clamps the end to the month length', '2026-01-31', null, 'monthly', '2026-01-31', '2026-02-27', '2026-01-31'],
+    ['start after the billing day: cycle starts on D, due on the start date', '2026-10-10', 5, 'monthly', '2026-10-05', '2026-11-04', '2026-10-10'],
+    ['start before the billing day: cycle starts the previous month', '2026-10-03', 5, 'monthly', '2026-09-05', '2026-10-04', '2026-10-03'],
+    ['start on the billing day: due on that day', '2026-10-05', 5, 'monthly', '2026-10-05', '2026-11-04', '2026-10-05'],
+    ['day 31 in a short month is the last day of the month', '2026-02-28', 31, 'monthly', '2026-02-28', '2026-03-30', '2026-02-28'],
+    ['leap year: day 30 on Feb 29', '2028-02-29', 30, 'monthly', '2028-02-29', '2028-03-29', '2028-02-29'],
+    ['quarterly day 31 clamps both ends without drift', '2026-11-30', 31, 'quarterly', '2026-11-30', '2027-02-27', '2026-11-30'],
+  ])('%s', (_label, startDate, billingDay, recurrence, cycleStartDate, cycleEndDate, dueDate) => {
+    expect(computeFirstCycle(startDate, billingDay, recurrence)).toEqual({ cycleStartDate, cycleEndDate, dueDate });
   });
 });

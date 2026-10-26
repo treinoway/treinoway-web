@@ -3,12 +3,13 @@ import PropTypes from 'prop-types';
 import Modal from '../ds/Modal';
 import Banner from '../ds/Banner';
 import ChoiceGroup from './ChoiceGroup';
+import BillingDayField from './BillingDayField';
 import FieldError from './FieldError';
 import PlanPreview from './PlanPreview';
 import SheetFooter from './SheetFooter';
 import { t, tCount, tf, extractErrorInfo } from '../../i18n';
 import { getErrorMessage } from '../../utils/financeErrors';
-import { DISCOUNT_MODE, parseDiscountInput, parsePositiveMoney } from '../../utils/financeForm';
+import { DISCOUNT_MODE, parseBillingDay, parseDiscountInput, parsePositiveMoney } from '../../utils/financeForm';
 import {
   RECURRENCE_LABEL,
   RECURRENCE_OPTIONS,
@@ -30,7 +31,7 @@ const DISCOUNT_CHOICES = [
   { value: DISCOUNT_MODE.AMOUNT, label: t('finance.planForm.discountAmount') },
 ];
 
-const API_FIELD_TO_FORM = { name: 'name', price: 'price', discountPercent: 'discount', discountAmount: 'discount' };
+const API_FIELD_TO_FORM = { name: 'name', price: 'price', discountPercent: 'discount', discountAmount: 'discount', billingDay: 'billingDay' };
 
 const inputClass = (error) => `input${error ? ' input--error' : ''}`;
 
@@ -46,26 +47,31 @@ const buildInitialForm = (plan) => ({
   name: plan?.name || '',
   recurrence: plan?.recurrence || SUBSCRIPTION_RECURRENCE.MONTHLY,
   priceText: plan ? formatCentsForInput(toCents(plan.price)) : '',
+  billingDayText: plan?.billingDay ? String(plan.billingDay) : '',
+  billingDayBad: false,
   ...buildInitialDiscount(plan),
 });
 
 const validatePlanForm = (form) => {
   const price = parsePositiveMoney(form.priceText);
   const discount = parseDiscountInput(form.discountMode, form.discountText, price.cents);
+  const billingDay = parseBillingDay(form.billingDayText, form.billingDayBad);
   const errors = {};
   if (!form.name.trim()) errors.name = t('finance.planForm.nameRequired');
   if (price.error) errors.price = price.error;
   if (discount.error) errors.discount = discount.error;
-  return { errors, price, discount };
+  if (billingDay.error) errors.billingDay = billingDay.error;
+  return { errors, price, discount, billingDay };
 };
 
 /** Both discount fields are always sent: the chosen one with its value, the other null. */
-const buildPayload = (form, price, discount) => ({
+const buildPayload = (form, price, discount, billingDay) => ({
   name: form.name.trim(),
   recurrence: form.recurrence,
   price: centsToApiNumber(price.cents),
   discountPercent: hundredthsToApiNumber(discount.percentHundredths),
   discountAmount: centsToApiNumber(discount.discountCents),
+  billingDay: billingDay.day,
 });
 
 const mapSubmitError = (err) => {
@@ -136,21 +142,23 @@ const PlanFormSheet = ({ plan = null, onClose, onSubmit }) => {
   const live = validatePlanForm(form);
   const previewDiscount = live.discount.error ? {} : live.discount;
   const showPriceBanner = hasPriceChanged(plan, live.price, live.discount);
+  const showBillingDayBanner = isEdit && !live.billingDay.error && live.billingDay.day !== (plan.billingDay ?? null);
 
   const setField = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
   const handleDiscountMode = (mode) => setForm((prev) => ({ ...prev, discountMode: mode, discountText: '' }));
+  const handleBillingDayChange = (text, badInput) => setForm((prev) => ({ ...prev, billingDayText: text, billingDayBad: badInput }));
   const handleClose = () => {
     if (!submitting) onClose();
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const { errors: nextErrors, price, discount } = validatePlanForm(form);
+    const { errors: nextErrors, price, discount, billingDay } = validatePlanForm(form);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
     setSubmitting(true);
     try {
-      await onSubmit(buildPayload(form, price, discount));
+      await onSubmit(buildPayload(form, price, discount, billingDay));
     } catch (err) {
       setErrors(mapSubmitError(err));
       setSubmitting(false);
@@ -239,6 +247,15 @@ const PlanFormSheet = ({ plan = null, onClose, onSubmit }) => {
           />
         )}
 
+        <BillingDayField
+          label={t('finance.planForm.billingDayLabel')}
+          hint={t('finance.planForm.billingDayHint')}
+          value={form.billingDayText}
+          error={errors.billingDay}
+          disabled={submitting}
+          onChange={handleBillingDayChange}
+        />
+
         <PlanPreview
           title={t('finance.planForm.previewTitle')}
           priceCents={live.price.error ? null : live.price.cents}
@@ -248,6 +265,7 @@ const PlanFormSheet = ({ plan = null, onClose, onSubmit }) => {
         />
 
         {showPriceBanner && <Banner>{buildPriceChangeBanner(plan)}</Banner>}
+        {showBillingDayBanner && <Banner>{t('finance.planForm.billingDayChangeBanner')}</Banner>}
         <FieldError message={errors.form} />
       </form>
     </Modal>
@@ -263,6 +281,7 @@ PlanFormSheet.propTypes = {
     price: money,
     discountPercent: money,
     discountAmount: money,
+    billingDay: PropTypes.number,
     activeSubscriptionCount: PropTypes.number,
   }),
   onClose: PropTypes.func.isRequired,

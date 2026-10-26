@@ -85,6 +85,9 @@ const ActiveSubscriptionCard = ({ subscription, planName, openCharges, totalOpen
       <p className="subscription-card__text type-caption">
         {tf('finance.block.sinceMeta', { recurrence: recurrenceLabel, date: formatFullDate(subscription.startDate) })}
       </p>
+      {subscription.billingDay && (
+        <p className="subscription-card__text type-caption">{tf('finance.block.dueEveryDay', { day: subscription.billingDay })}</p>
+      )}
       <PlanPrice entity={subscription} />
       <OpenChargesList charges={openCharges} totalCount={totalOpen} rowProps={rowProps} onViewHistory={onViewHistory} />
     </article>

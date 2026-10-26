@@ -33,6 +33,7 @@ describe('PlanFormSheet', () => {
       price: 99.9,
       discountPercent: 33.33,
       discountAmount: null,
+      billingDay: null,
     });
   });
 
@@ -105,5 +106,44 @@ describe('PlanFormSheet', () => {
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  describe('billing day ("Dia de vencimento")', () => {
+    const fillRequired = async (user) => {
+      await user.type(screen.getByLabelText('Nome'), 'Plano');
+      await user.type(screen.getByLabelText('Valor por cobrança (R$)'), '150');
+    };
+
+    it('sends billingDay null when the field is left empty', async () => {
+      const { onSubmit, user } = setup();
+      expect(screen.getByLabelText('Dia de vencimento')).toHaveValue(null);
+      await fillRequired(user);
+      await user.click(screen.getByRole('button', { name: 'Criar plano' }));
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ billingDay: null }));
+    });
+
+    it('sends the typed day as a number', async () => {
+      const { onSubmit, user } = setup();
+      await fillRequired(user);
+      await user.type(screen.getByLabelText('Dia de vencimento'), '10');
+      await user.click(screen.getByRole('button', { name: 'Criar plano' }));
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ billingDay: 10 }));
+    });
+
+    it('pre-fills the plan billing day when editing', async () => {
+      const { onSubmit, user } = setup({ plan: makePlan({ billingDay: 31 }) });
+      expect(screen.getByLabelText('Dia de vencimento')).toHaveValue(31);
+      await user.click(screen.getByRole('button', { name: 'Salvar' }));
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ billingDay: 31 }));
+    });
+
+    it.each(['0', '32'])('blocks submit when the day is %s', async (value) => {
+      const { onSubmit, user } = setup();
+      await fillRequired(user);
+      await user.type(screen.getByLabelText('Dia de vencimento'), value);
+      await user.click(screen.getByRole('button', { name: 'Criar plano' }));
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('Dia de vencimento')).toBeInvalid();
+    });
   });
 });
