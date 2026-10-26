@@ -14758,86 +14758,109 @@ nav.onboarding-steps {
 }
 
 /* ============================================
-   Admin — Trainer invites
+   Admin — trainers, iArnold usage, invites
    ============================================ */
-.invite-send-form {
+.admin-page {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xl);
 }
 
-.invite-send-field {
+.admin-page .metric-grid { margin-bottom: 0; }
+
+@media (min-width: 768px) {
+  .admin-page { gap: var(--spacing-2xl); }
+}
+
+.admin-search { width: 100%; }
+
+@media (min-width: 768px) {
+  .admin-search { max-width: 50%; }
+}
+
+.admin-form-row {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-md);
+}
+
+.admin-form-row > .field { flex: 1; }
+
+.admin-filter-bar {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
 }
 
 @media (min-width: 768px) {
-  .invite-send-form {
+  .admin-form-row {
     flex-direction: row;
     align-items: flex-end;
   }
 
-  .invite-send-field {
-    flex: 1;
-  }
+  .admin-filter-bar { grid-template-columns: 1fr 1fr; }
 }
 
-.invite-result {
+.admin-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
   margin-top: var(--spacing-lg);
   padding: var(--spacing-lg);
-  border-radius: var(--radius-brand);
-  background: var(--brand-mist);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface-elevated);
 }
 
-.invite-result-title {
-  font-weight: 700;
-  color: var(--brand-ink);
-}
-
-.invite-result-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.invite-copy-row {
+.admin-copy-row {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
 }
 
-.invite-copy-value {
+.admin-copy-value {
   flex: 1;
   min-width: 0;
-  font-size: var(--font-body-small-size);
-  color: var(--brand-ink);
+  color: var(--text-primary);
   word-break: break-all;
 }
 
-.invite-copy-value--code {
-  font-family: var(--font-family-stat);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.08em;
+.admin-copy-value--code {
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.invite-filter-bar {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-lg);
+.admin-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
 }
 
-@media (min-width: 768px) {
-  .invite-filter-bar {
-    grid-template-columns: 1fr 1fr;
-    align-items: end;
-  }
+/* Admin tables (trainers, iArnold usage, invites) */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
 }
+
+.admin-table th {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: left;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.admin-table td {
+  padding: var(--spacing-md);
+  vertical-align: middle;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.admin-table tbody tr:last-child td { border-bottom: 0; }
+.admin-table__sub { display: block; color: var(--text-secondary); }
+.admin-table__number { font-variant-numeric: tabular-nums; }
+.admin-table__actions { text-align: right; }
+.admin-table-wrap { padding-top: var(--spacing-sm); padding-bottom: var(--spacing-sm); }
+.admin-table-wrap[aria-busy="true"] { opacity: var(--opacity-muted); }
 
 /* ============================================
    Video library picker (trainer-side modal)
@@ -18829,7 +18852,7 @@ select.input { cursor: pointer; }
 .exercise-list-wide { display: flex; flex-direction: column; gap: var(--spacing-xs); }
 
 .exercise-sortable-entry { position: relative; }
-.exercise-sortable-entry--dragging { opacity: 0.6; }
+.exercise-sortable-entry--dragging { opacity: var(--opacity-muted); }
 
 .exercise-drag-handle {
   display: inline-flex;
@@ -18868,7 +18891,7 @@ select.input { cursor: pointer; }
 .exercise-row-wide--interactive:hover { background: var(--background-surface-elevated); }
 .exercise-row-wide:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .exercise-row-wide[aria-pressed='true'] { background: var(--background-brand-subtle); }
-.exercise-selection-row--dimmed { opacity: 0.6; }
+.exercise-selection-row--dimmed { opacity: var(--opacity-muted); }
 
 .exercise-row-index { flex-shrink: 0; min-width: var(--spacing-lg); color: var(--text-secondary); text-align: center; font-variant-numeric: tabular-nums; }
 .exercise-row-wide-body { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; }

@@ -2195,11 +2195,6 @@
       "count": 1
     }
   },
-  "src/pages/admin/InvitesList.jsx": {
-    "local/function-header-comment": {
-      "count": 3
-    }
-  },
   "src/pages/admin/InvitesList.test.jsx": {
     "local/function-header-comment": {
       "count": 1

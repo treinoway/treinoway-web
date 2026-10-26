@@ -623,8 +623,8 @@ describe('Dashboard', () => {
     });
   });
 
-  describe('Admin invites entry point', () => {
-    it('shows the "Convites do beta" card linking to /admin/invites for an admin', () => {
+  describe('Admin entry points', () => {
+    it('renders no admin cards on the Dashboard, even for an admin', () => {
       vi.mocked(useAuth).mockReturnValue({
         user: { id: 3, firstName: 'Admin', status: 'active', roles: ['admin'] },
         hasRole: mockHasRole,
@@ -637,17 +637,10 @@ describe('Dashboard', () => {
 
       renderWithRouter(<Dashboard />);
 
-      expect(screen.getByRole('link', { name: /convites do beta/i }))
-        .toHaveAttribute('href', '/admin/invites');
-    });
-
-    it('hides the admin invites card for a non-admin user', () => {
-      mockHasRole.mockReturnValue(false);
-      mockApiGet();
-
-      renderWithRouter(<Dashboard />);
-
-      expect(screen.queryByText('Convites do beta')).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Administração' })).not.toBeInTheDocument();
+      ['Convites do beta', 'Trainers e planos', 'Uso do iArnold'].forEach((name) => {
+        expect(screen.queryByText(name)).not.toBeInTheDocument();
+      });
     });
   });
 });

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import useActiveMode from '../hooks/useActiveMode';
@@ -9,6 +9,12 @@ import useAiAccess from '../hooks/useAiAccess';
 import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
 import { SIDEBAR_BADGE_MAX } from '../constants/finance';
 import { t, tCount, tf } from '../i18n';
+
+const ADMIN_LINKS = [
+  { path: '/admin/invites', labelKey: 'adminNav.invites', Icon: Mail },
+  { path: '/admin/trainers', labelKey: 'adminNav.trainers', Icon: UsersRound },
+  { path: '/admin/ai-usage', labelKey: 'adminNav.aiUsage', Icon: BarChart3 },
+];
 
 const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
 
@@ -142,6 +148,25 @@ const Layout = ({ children, noPadding = false }) => {
               <span className="sidebar-link-label">{link.label}</span>
             </Link>
           ))}
+
+          {hasRole('ADMIN') && (
+            <>
+              <div className="sidebar-section-label">{t('adminNav.title')}</div>
+              {ADMIN_LINKS.map(({ path, labelKey, Icon }) => (
+                <Link
+                  key={path}
+                  to={path}
+                  className={`sidebar-link ${isActive(path) ? 'sidebar-link--active' : ''}`}
+                  aria-label={t(labelKey)}
+                >
+                  <span className="sidebar-link-icon" aria-hidden="true">
+                    <Icon size={20} strokeWidth={1.6} />
+                  </span>
+                  <span className="sidebar-link-label">{t(labelKey)}</span>
+                </Link>
+              ))}
+            </>
+          )}
 
           {/* Trainer section */}
           {hasRole('TRAINER') && (

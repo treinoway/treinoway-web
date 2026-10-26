@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter } from '../../test/test-utils';
 import InvitesList from './InvitesList';
@@ -189,7 +189,7 @@ describe('InvitesList', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Este e-mail já possui um convite ativo.');
   });
 
-  it('revokes a pending invite after confirmation', async () => {
+  it('revokes a pending invite after confirmation in the design-system dialog', async () => {
     const user = userEvent.setup();
     api.post.mockResolvedValue({});
 
@@ -200,12 +200,33 @@ describe('InvitesList', () => {
     await user.click(screen.getByRole('button', { name: /ações do convite ana@example.com/i }));
     await user.click(screen.getByText('Revogar'));
 
-    await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
-    await user.click(screen.getByRole('button', { name: /confirmar/i }));
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toHaveAccessibleName('Revogar o convite de ana@example.com? O código deixará de funcionar.');
+    expect(api.post).not.toHaveBeenCalled();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Revogar' }));
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/admin/trainer-invites/invite-1/revoke');
       expect(mockShowToast).toHaveBeenCalledWith('Convite revogado.', 'success');
+    });
+  });
+
+  it('shows an error toast when revoking fails', async () => {
+    const user = userEvent.setup();
+    api.post.mockRejectedValue({ userMessage: 'Convite não pode ser revogado.' });
+
+    renderWithRouter(<InvitesList />);
+
+    await waitFor(() => screen.getByText('ana@example.com'));
+
+    await user.click(screen.getByRole('button', { name: /ações do convite ana@example.com/i }));
+    await user.click(screen.getByText('Revogar'));
+    const dialog = await screen.findByRole('alertdialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Revogar' }));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('Convite não pode ser revogado.', 'error');
     });
   });
 
@@ -219,10 +240,11 @@ describe('InvitesList', () => {
     await user.click(screen.getByRole('button', { name: /ações do convite ana@example.com/i }));
     await user.click(screen.getByText('Revogar'));
 
-    await waitFor(() => screen.getByRole('button', { name: /cancelar/i }));
-    await user.click(screen.getByRole('button', { name: /cancelar/i }));
+    const dialog = await screen.findByRole('alertdialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
 
     expect(api.post).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
   it('does not offer a revoke action for non-pending invites', async () => {
