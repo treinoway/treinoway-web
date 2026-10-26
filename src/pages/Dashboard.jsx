@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Palette, Sparkles, Trophy, HeartPulse, Mail } from 'lucide-react';
+import { UserPlus, Palette, Sparkles, Trophy, HeartPulse } from 'lucide-react';
 import api from '../api/axios';
 import NoStudentsModal from '../components/NoStudentsModal';
 import OnboardingChecklistCard from '../components/OnboardingChecklistCard';
@@ -23,7 +23,7 @@ import getGreeting from '../utils/getGreeting';
 const SKIP_STORAGE_KEY = 'treinoway.skipNoStudentsWarning';
 
 const Dashboard = () => {
-  const { user, hasRole, isAdmin, refreshUser, updateTokens } = useAuth();
+  const { user, hasRole, refreshUser, updateTokens } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [activeMode] = useActiveMode();
@@ -228,22 +228,6 @@ const Dashboard = () => {
               />
             )}
 
-          </ActionGrid>
-        </section>
-      )}
-
-      {isAdmin && (
-        <section>
-          <div className="section-header">
-            <h2 className="dashboard-section-title">Administração</h2>
-          </div>
-          <ActionGrid>
-            <ActionCard
-              icon={Mail}
-              title="Convites do beta"
-              description="Envie e gerencie os convites de acesso beta para treinadores"
-              to="/admin/invites"
-            />
           </ActionGrid>
         </section>
       )}

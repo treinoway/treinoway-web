@@ -780,6 +780,45 @@ describe('Layout', () => {
     });
   });
 
+  describe('admin section', () => {
+    const setupRoles = (roles) => {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' },
+        logout: mockLogout,
+        hasRole: (role) => roles.includes(role),
+      });
+    };
+
+    it('shows the Administração section with its three links for admins', () => {
+      setupRoles(['ADMIN']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const sidebar = document.querySelector('.sidebar');
+      expect(within(sidebar).getByText('Administração')).toBeInTheDocument();
+      expect(within(sidebar).getByRole('link', { name: 'Convites do beta' })).toHaveAttribute('href', '/admin/invites');
+      expect(within(sidebar).getByRole('link', { name: 'Trainers e planos' })).toHaveAttribute('href', '/admin/trainers');
+      expect(within(sidebar).getByRole('link', { name: 'Uso do iArnold' })).toHaveAttribute('href', '/admin/ai-usage');
+    });
+
+    it('renders Administração before Treinador for an admin trainer', () => {
+      setupRoles(['ADMIN', 'TRAINER']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const sidebar = document.querySelector('.sidebar');
+      const admin = within(sidebar).getByText('Administração');
+      const trainer = within(sidebar).getByText('Treinador');
+      expect(admin.compareDocumentPosition(trainer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('hides the Administração section for non-admins', () => {
+      setupRoles(['TRAINER']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.queryByText('Administração')).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Convites do beta' })).not.toBeInTheDocument();
+    });
+  });
+
   // ---------------------------------------------------------------------------
   // Platform plan badge
   // ---------------------------------------------------------------------------

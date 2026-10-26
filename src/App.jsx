@@ -65,6 +65,8 @@ import VideosList from './pages/admin/VideosList';
 import VideoCreate from './pages/admin/VideoCreate';
 import VideoEdit from './pages/admin/VideoEdit';
 import InvitesList from './pages/admin/InvitesList';
+import TrainersList from './pages/admin/TrainersList';
+import AiUsage from './pages/admin/AiUsage';
 
 // Student pages (diet)
 import MyDietProtocol from './pages/my/MyDietProtocol';
@@ -688,6 +690,26 @@ function App() {
               <RequireRole roles={['admin']}>
                 <Layout>
                   <InvitesList />
+                </Layout>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/trainers"
+            element={
+              <RequireRole roles={['admin']}>
+                <Layout>
+                  <TrainersList />
+                </Layout>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/ai-usage"
+            element={
+              <RequireRole roles={['admin']}>
+                <Layout>
+                  <AiUsage />
                 </Layout>
               </RequireRole>
             }
