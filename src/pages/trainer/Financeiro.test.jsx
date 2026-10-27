@@ -18,6 +18,10 @@ import {
 
 vi.mock('../../contexts/ToastContext', () => ({ useToast: vi.fn() }));
 
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 1 } }),
+}));
+
 vi.mock('../../api/axios', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
   onNetworkError: vi.fn(() => vi.fn()),
@@ -295,7 +299,7 @@ describe('Financeiro', () => {
   it('broadcasts the overdue count and patches the dashboard cache', async () => {
     const listener = vi.fn();
     window.addEventListener(FINANCE_OVERDUE_EVENT, listener);
-    localStorage.setItem('treinoway.trainerDashboardData', JSON.stringify({
+    localStorage.setItem('treinoway.trainerDashboardData:1', JSON.stringify({
       plans: { expiredCount: 0, renewingSoonCount: 0 },
       routines: { expiredCount: 0, expiringSoonCount: 0 },
       finance: { monthReceived: '0.00', totalReceived: '0.00', overdueCount: 9, overdueAmount: '1.00' },
@@ -306,7 +310,7 @@ describe('Financeiro', () => {
     await waitForRows();
 
     expect(listener).toHaveBeenCalledWith(expect.objectContaining({ detail: { overdueCount: 2, overdueAmount: '199.80' } }));
-    expect(JSON.parse(localStorage.getItem('treinoway.trainerDashboardData')).finance.overdueCount).toBe(2);
+    expect(JSON.parse(localStorage.getItem('treinoway.trainerDashboardData:1')).finance.overdueCount).toBe(2);
     window.removeEventListener(FINANCE_OVERDUE_EVENT, listener);
   });
 

@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { translateError } from '../i18n';
+import { translateError, t } from '../i18n';
 import api from '../api/axios';
 import DateInput from '../components/DateInput';
 import TrainerProfileSection from '../components/TrainerProfileSection';
 import NutritionistProfileSection from '../components/NutritionistProfileSection';
+import ProfileAvatarField, { ProfileAvatar } from '../components/ProfileAvatarField';
 import Select from '../components/Select';
 import { computeMissingProfileFields } from '../utils/onboardingProfile';
 import { markOnboardingStepOptimistic } from '../hooks/useOnboardingStatus';
@@ -67,39 +68,59 @@ SectionHeader.propTypes = {
   emptyCount: PropTypes.number.isRequired,
 };
 
+// Maps the stored user to the editable form shape.
+const buildFormData = (user) => ({
+  firstName: user?.firstName || '',
+  lastName: user?.lastName || '',
+  gender: user?.gender || '',
+  birthDate: user?.birthDate?.split('T')[0] || '',
+  address: {
+    line1: user?.address?.line1 || '',
+    line2: user?.address?.line2 || '',
+    neighborhood: user?.address?.neighborhood || '',
+    city: user?.address?.city || '',
+    state: user?.address?.state || '',
+    stateCode: user?.address?.stateCode || '',
+    country: user?.address?.country || '',
+    countryCode: user?.address?.countryCode || '',
+    postalCode: user?.address?.postalCode || '',
+  },
+  socials: {
+    instagram: user?.socials?.instagram || '',
+    whatsapp: user?.socials?.whatsapp || '',
+    linkedin: user?.socials?.linkedin || '',
+  },
+});
+
+// Builds the multipart body expected by POST /me/avatar.
+const buildAvatarFormData = (file) => {
+  const body = new FormData();
+  body.append('file', file);
+  return body;
+};
+
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+const AVATAR_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+// Returns the i18n key of the first avatar-file problem, or null when the file is acceptable.
+const getAvatarFileError = (file) => {
+  if (!AVATAR_ALLOWED_TYPES.includes(file.type)) return 'profile.avatar.invalidType';
+  if (file.size > AVATAR_MAX_BYTES) return 'profile.avatar.tooLarge';
+  return null;
+};
+
 const Profile = () => {
   const { user, updateUser, refreshUser, hasRole, logout } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const [editing, setEditing] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [editing, setEditing] = useState(() => searchParams.get('edit') === '1');
+  const highlightMissing = searchParams.get('focus') === 'missing';
   const [loading, setLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
   const [cepError, setCepError] = useState('');
-
-  const emptyFormData = {
-    firstName: '',
-    lastName: '',
-    gender: '',
-    birthDate: '',
-    address: {
-      line1: '',
-      line2: '',
-      neighborhood: '',
-      city: '',
-      state: '',
-      stateCode: '',
-      country: '',
-      countryCode: '',
-      postalCode: '',
-    },
-    socials: {
-      instagram: '',
-      whatsapp: '',
-      linkedin: '',
-    },
-  };
-
-  const [formData, setFormData] = useState(emptyFormData);
+  const [formData, setFormData] = useState(() => buildFormData(user));
 
 useEffect(() => {
     refreshUser();
@@ -107,30 +128,7 @@ useEffect(() => {
   }, []);
 
   useEffect(() => {
-    if (user && !editing) {
-      setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        gender: user.gender || '',
-        birthDate: user.birthDate?.split('T')[0] || '',
-        address: {
-          line1: user.address?.line1 || '',
-          line2: user.address?.line2 || '',
-          neighborhood: user.address?.neighborhood || '',
-          city: user.address?.city || '',
-          state: user.address?.state || '',
-          stateCode: user.address?.stateCode || '',
-          country: user.address?.country || '',
-          countryCode: user.address?.countryCode || '',
-          postalCode: user.address?.postalCode || '',
-        },
-        socials: {
-          instagram: user.socials?.instagram || '',
-          whatsapp: user.socials?.whatsapp || '',
-          linkedin: user.socials?.linkedin || '',
-        },
-      });
-    }
+    if (user && !editing) setFormData(buildFormData(user));
   }, [user, editing]);
 
   const handleCepLookup = async (cep) => {
@@ -168,28 +166,7 @@ useEffect(() => {
     }
   };
 
-  const getOriginalData = () => ({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    gender: user?.gender || '',
-    birthDate: user?.birthDate?.split('T')[0] || '',
-    address: {
-      line1: user?.address?.line1 || '',
-      line2: user?.address?.line2 || '',
-      neighborhood: user?.address?.neighborhood || '',
-      city: user?.address?.city || '',
-      state: user?.address?.state || '',
-      stateCode: user?.address?.stateCode || '',
-      country: user?.address?.country || '',
-      countryCode: user?.address?.countryCode || '',
-      postalCode: user?.address?.postalCode || '',
-    },
-    socials: {
-      instagram: user?.socials?.instagram || '',
-      whatsapp: user?.socials?.whatsapp || '',
-      linkedin: user?.socials?.linkedin || '',
-    },
-  });
+  const getOriginalData = () => buildFormData(user);
 
   const buildPatchPayload = () => {
     const payload = {};
@@ -261,6 +238,7 @@ useEffect(() => {
       updateUser(response.data);
       showToast('Perfil atualizado com sucesso!', 'success');
       setEditing(false);
+      dropEditParams();
 
       const wasIncomplete = computeMissingProfileFields(user).length > 0;
       const isNowComplete = computeMissingProfileFields(response.data).length === 0;
@@ -275,32 +253,41 @@ useEffect(() => {
     }
   };
 
+  const dropEditParams = () => {
+    if (!searchParams.has('edit') && !searchParams.has('focus')) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('edit');
+    next.delete('focus');
+    setSearchParams(next, { replace: true });
+  };
+
   const handleCancel = () => {
-    if (user) {
-      setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        gender: user.gender || '',
-        birthDate: user.birthDate?.split('T')[0] || '',
-        address: {
-          line1: user.address?.line1 || '',
-          line2: user.address?.line2 || '',
-          neighborhood: user.address?.neighborhood || '',
-          city: user.address?.city || '',
-          state: user.address?.state || '',
-          stateCode: user.address?.stateCode || '',
-          country: user.address?.country || '',
-          countryCode: user.address?.countryCode || '',
-          postalCode: user.address?.postalCode || '',
-        },
-        socials: {
-          instagram: user.socials?.instagram || '',
-          whatsapp: user.socials?.whatsapp || '',
-          linkedin: user.socials?.linkedin || '',
-        },
-      });
-    }
+    if (user) setFormData(buildFormData(user));
     setEditing(false);
+  };
+
+  const handleAvatarSelect = async (file) => {
+    const fileErrorKey = getAvatarFileError(file);
+    if (fileErrorKey) {
+      showToast(t(fileErrorKey), 'error');
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const response = await api.post('/me/avatar', buildAvatarFormData(file), {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const merged = { ...user, avatarUrl: response.data.avatarUrl };
+      updateUser(merged);
+      showToast(t('profile.avatar.success'), 'success');
+      if (hasRole('TRAINER') && computeMissingProfileFields(merged).length === 0) {
+        markOnboardingStepOptimistic('profileCompleted');
+      }
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const handleLogout = () => {
@@ -311,6 +298,10 @@ useEffect(() => {
   const avatarInitials = user?.firstName
     ? `${user.firstName[0]}${user.lastName?.[0] || ''}`.toUpperCase()
     : (user?.email?.[0] || '?').toUpperCase();
+
+  const flagFirstName = highlightMissing && !formData.firstName.trim();
+  const flagLastName = highlightMissing && !formData.lastName.trim();
+  const flagAvatar = highlightMissing && !user?.avatarUrl;
 
   // Tweak 2 & 6: Compute empty field counts for each section
   const fullName = user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : null;
@@ -353,27 +344,42 @@ useEffect(() => {
             <div className="profile-section">
               <h3 className="profile-section-title">Dados Pessoais</h3>
 
+              <ProfileAvatarField
+                avatarUrl={user?.avatarUrl}
+                uploading={uploadingAvatar}
+                invalid={flagAvatar}
+                onSelect={handleAvatarSelect}
+              />
+
               <div className="grid-responsive-2col">
                 <div>
-                  <label className="form-label">Nome</label>
+                  <label className="form-label" htmlFor="profile-first-name">Nome</label>
                   <input
+                    id="profile-first-name"
                     type="text"
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="form-input"
+                    className={`form-input${flagFirstName ? ' form-input--error' : ''}`}
+                    aria-invalid={flagFirstName ? 'true' : undefined}
+                    aria-describedby={flagFirstName ? 'profile-first-name-error' : undefined}
                     disabled={loading}
                   />
+                  {flagFirstName && <span id="profile-first-name-error" className="form-error">{t('profile.firstName.required')}</span>}
                 </div>
 
                 <div>
-                  <label className="form-label">Sobrenome</label>
+                  <label className="form-label" htmlFor="profile-last-name">Sobrenome</label>
                   <input
+                    id="profile-last-name"
                     type="text"
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="form-input"
+                    className={`form-input${flagLastName ? ' form-input--error' : ''}`}
+                    aria-invalid={flagLastName ? 'true' : undefined}
+                    aria-describedby={flagLastName ? 'profile-last-name-error' : undefined}
                     disabled={loading}
                   />
+                  {flagLastName && <span id="profile-last-name-error" className="form-error">{t('profile.lastName.required')}</span>}
                 </div>
               </div>
 
@@ -570,9 +576,7 @@ useEffect(() => {
         ) : (
           <div className="profile-display fade-in">
             <div className="profile-avatar-row">
-              <div className="profile-avatar">
-                {avatarInitials}
-              </div>
+              <ProfileAvatar avatarUrl={user?.avatarUrl} initials={avatarInitials} />
               <div className="profile-avatar-info">
                 <span className="profile-avatar-name">{user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.email}</span>
                 <span className="profile-avatar-email">{user?.email}</span>

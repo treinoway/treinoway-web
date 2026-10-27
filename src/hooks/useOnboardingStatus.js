@@ -1,13 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
+import { readJsonCache, writeJsonCache } from '../utils/trainerCaches';
 
 const RETRY_DELAYS_MS = [1000, 3000];
 const OPTIMISTIC_STORAGE_KEY = 'treinoway:onboardingOptimistic';
 const ONBOARDING_DISMISS_KEY_PREFIX = 'treinoway:onboardingDismissed';
+const ONBOARDING_STATUS_KEY_PREFIX = 'treinoway:onboardingStatus';
 const LEGACY_ONBOARDING_DISMISS_SESSION_KEY = 'treinoway:onboardingDismissed';
 const OPTIMISTIC_STEP_KEYS = ['profileCompleted', 'firstStudentLinked', 'firstProtocolCreated'];
+export const ONBOARDING_STEP_KEYS = [
+  'profileCompleted',
+  'firstStudentLinked',
+  'firstProtocolCreated',
+  'firstStudentInvited',
+  'firstAnamnesisSent',
+];
 
 export const getOnboardingDismissKey = (userId) => `${ONBOARDING_DISMISS_KEY_PREFIX}:${userId}`;
+
+// Storage key of the user's last-known status, or null while the id is unknown.
+const getOnboardingStatusKey = (userId) => (
+  userId === undefined || userId === null ? null : `${ONBOARDING_STATUS_KEY_PREFIX}:${userId}`
+);
+
+// Last-known onboarding status of the user (`{ onboarding }`), or null.
+export const readOnboardingStatusCache = (userId) => {
+  const parsed = readJsonCache(getOnboardingStatusKey(userId));
+  if (!parsed || typeof parsed.onboarding !== 'object' || parsed.onboarding === null) return null;
+  // why: older caches may carry a stale `brandingAllowed`; it is ignored
+  return { onboarding: parsed.onboarding };
+};
+
+// Persists the user's last-known onboarding status.
+const writeOnboardingStatusCache = (userId, status) => {
+  writeJsonCache(getOnboardingStatusKey(userId), status);
+};
 
 export const clearOnboardingSessionState = () => {
   try {
@@ -50,27 +77,32 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const buildDefaults = () => ({
   me: null,
-  onboarding: {
-    profileCompleted: false,
-    firstStudentLinked: false,
-    firstProtocolCreated: false,
-  },
+  onboarding: ONBOARDING_STEP_KEYS.reduce((acc, key) => ({ ...acc, [key]: false }), {}),
   isTrainer: false,
 });
+
+// Merges the cached/server flags with session-optimistic ones into the full step map.
+const buildOnboarding = (source, optimistic) => ONBOARDING_STEP_KEYS.reduce((acc, key) => {
+  acc[key] = !!source?.[key] || !!optimistic?.[key];
+  return acc;
+}, {});
 
 /**
  * Fetches `/me?include=trainerOnboarding,address` once per mount with a
  * 2-attempt exponential retry (1s, 3s). Never surfaces toasts — callers
  * that need a user-facing error are responsible for their own handling.
  *
- * On exhaustion we return all-pending defaults so the card can still render.
+ * Starts from the user's last-known status (localStorage) so the card never
+ * needs a skeleton for returning trainers. On exhaustion `fetchFailed` is set
+ * and the state keeps whatever the cache held; without a cache the caller
+ * renders nothing rather than a misleading all-pending card.
  */
-const useOnboardingStatus = ({ enabled = true } = {}) => {
+const useOnboardingStatus = ({ enabled = true, userId = null } = {}) => {
+  const [cached] = useState(() => readOnboardingStatusCache(userId));
   const [me, setMe] = useState(null);
-  const [onboarding, setOnboarding] = useState(() => {
-    const optimistic = readOptimisticSteps() || {};
-    return { ...buildDefaults().onboarding, ...optimistic };
-  });
+  const [onboarding, setOnboarding] = useState(
+    () => buildOnboarding(cached?.onboarding, readOptimisticSteps()),
+  );
   const [isTrainer, setIsTrainer] = useState(false);
   const [loading, setLoading] = useState(enabled);
   const [fetchFailed, setFetchFailed] = useState(false);
@@ -83,17 +115,14 @@ const useOnboardingStatus = ({ enabled = true } = {}) => {
     setIsTrainer(hasTrainerRole);
 
     const trainerOnboarding = data?.trainerOnboarding;
-    const optimistic = readOptimisticSteps() || {};
-    if (trainerOnboarding) {
-      setOnboarding({
-        profileCompleted: !!trainerOnboarding.profileCompleted || !!optimistic.profileCompleted,
-        firstStudentLinked: !!trainerOnboarding.firstStudentLinked || !!optimistic.firstStudentLinked,
-        firstProtocolCreated: !!trainerOnboarding.firstProtocolCreated || !!optimistic.firstProtocolCreated,
-      });
-    } else {
+    if (!trainerOnboarding) {
       setOnboarding(buildDefaults().onboarding);
+      return;
     }
-  }, []);
+    const nextOnboarding = buildOnboarding(trainerOnboarding, readOptimisticSteps());
+    setOnboarding(nextOnboarding);
+    writeOnboardingStatusCache(userId, { onboarding: nextOnboarding });
+  }, [userId]);
 
   const fetchStatus = useCallback(async () => {
     setLoading(true);
@@ -133,6 +162,7 @@ const useOnboardingStatus = ({ enabled = true } = {}) => {
   }, [enabled, fetchStatus]);
 
   const markStepDone = useCallback((stepKey) => {
+    writeOptimisticStep(stepKey);
     setOnboarding((prev) => {
       if (!prev || prev[stepKey]) return prev;
       return { ...prev, [stepKey]: true };
@@ -142,6 +172,7 @@ const useOnboardingStatus = ({ enabled = true } = {}) => {
   return {
     me,
     onboarding,
+    hasCache: cached !== null,
     isTrainer,
     loading,
     fetchFailed,

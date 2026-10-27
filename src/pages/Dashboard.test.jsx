@@ -51,6 +51,7 @@ const meAllDone = {
     profileCompleted: true,
     firstStudentLinked: true,
     firstProtocolCreated: true,
+    firstAnamnesisSent: true,
   },
 };
 
@@ -178,7 +179,8 @@ describe('Dashboard', () => {
 
     it('shows trainer quick actions', async () => {
       renderWithRouter(<Dashboard />);
-      expect(screen.getByText('Sua marca')).toBeInTheDocument();
+      expect(screen.getByText('Campeonatos')).toBeInTheDocument();
+      expect(screen.queryByText('Sua marca')).not.toBeInTheDocument();
     });
 
     it('does not render a "Criar Rotina para um Aluno" card — the hero is the sole "Criar rotina" entry point', () => {
@@ -243,9 +245,10 @@ describe('Dashboard', () => {
       expect(screen.getByText('iArnold')).toBeInTheDocument();
     });
 
-    it('links "Sua marca" to /trainer/branding', () => {
+    it('does not show a "Sua marca" card in the Ações grid', () => {
       renderWithRouter(<Dashboard />);
-      expect(screen.getByRole('link', { name: /sua marca/i })).toHaveAttribute('href', '/trainer/branding');
+      expect(screen.queryByRole('link', { name: /sua marca/i })).not.toBeInTheDocument();
+      expect(document.querySelector('a[href="/trainer/branding"]')).toBeNull();
     });
 
     it('shows "Seja um Nutricionista" for a trainer-only user (missing NUTRITIONIST role)', () => {
@@ -436,7 +439,7 @@ describe('Dashboard', () => {
 
     it('navigates instantly using cached roster counts (no extra fetch needed to decide)', async () => {
       const user = userEvent.setup();
-      localStorage.setItem(ROSTER_CACHE_KEY, JSON.stringify({ total: 1, ativo: 1, pendente: 0, vencido: 0 }));
+      localStorage.setItem(`${ROSTER_CACHE_KEY}:1`, JSON.stringify({ total: 1, ativo: 1, pendente: 0, vencido: 0 }));
       mockApiGet({
         '/trainer/students': () => Promise.resolve({ data: buildStudents({ ativo: 1 }) }),
       });
@@ -448,7 +451,7 @@ describe('Dashboard', () => {
     });
 
     it('shows the "Vincular primeiro aluno" link instead of a clickable "Criar rotina" button when the cached roster is empty', () => {
-      localStorage.setItem(ROSTER_CACHE_KEY, JSON.stringify({ total: 0, ativo: 0, pendente: 0, vencido: 0 }));
+      localStorage.setItem(`${ROSTER_CACHE_KEY}:1`, JSON.stringify({ total: 0, ativo: 0, pendente: 0, vencido: 0 }));
       mockApiGet();
 
       renderWithRouter(<Dashboard />);
@@ -522,7 +525,7 @@ describe('Dashboard', () => {
     });
 
     it('shows "Criar rotina" when the roster is not known to be empty', () => {
-      localStorage.setItem(ROSTER_CACHE_KEY, JSON.stringify({ total: 4, ativo: 4, pendente: 0, vencido: 0 }));
+      localStorage.setItem(`${ROSTER_CACHE_KEY}:1`, JSON.stringify({ total: 4, ativo: 4, pendente: 0, vencido: 0 }));
       mockApiGet({ '/trainer/students': () => Promise.resolve({ data: buildStudents({ ativo: 4 }) }) });
 
       renderWithRouter(<Dashboard />);
@@ -530,7 +533,7 @@ describe('Dashboard', () => {
     });
 
     it('shows "Vincular primeiro aluno" linking to /trainer/students when the cached roster is empty', () => {
-      localStorage.setItem(ROSTER_CACHE_KEY, JSON.stringify({ total: 0, ativo: 0, pendente: 0, vencido: 0 }));
+      localStorage.setItem(`${ROSTER_CACHE_KEY}:1`, JSON.stringify({ total: 0, ativo: 0, pendente: 0, vencido: 0 }));
       mockApiGet();
 
       renderWithRouter(<Dashboard />);
@@ -564,7 +567,7 @@ describe('Dashboard', () => {
     });
 
     it('paints cached panel data instantly, before the network refresh resolves', () => {
-      localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
+      localStorage.setItem(`${DASHBOARD_CACHE_KEY}:1`, JSON.stringify({
         plans: { expiredCount: 3, renewingSoonCount: 0 },
         routines: { expiredCount: 0, expiringSoonCount: 0 },
         finance: { monthReceived: 2500, totalReceived: 12000, overdueCount: 0, overdueAmount: 0 },
@@ -587,6 +590,154 @@ describe('Dashboard', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: 'Atualizar' })).toBeInTheDocument());
       // No toast is fired for a silent background/panel failure.
       expect(mockShowToast).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Onboarding placement (criteria 1-4)', () => {
+    const STATUS_CACHE_KEY = 'treinoway:onboardingStatus:1';
+    const pendingOnboarding = {
+      profileCompleted: true,
+      firstStudentLinked: false,
+      firstProtocolCreated: false,
+      firstStudentInvited: false,
+      firstAnamnesisSent: false,
+      brandingConfigured: false,
+    };
+    const doneOnboarding = {
+      ...pendingOnboarding,
+      firstStudentLinked: true,
+      firstProtocolCreated: true,
+      firstAnamnesisSent: true,
+    };
+
+    beforeEach(() => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    });
+
+    const isBefore = (first, second) =>
+      Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+    it('renders "Primeiros passos" before "Tua semana em foco" while steps are incomplete', async () => {
+      mockApiGet({
+        [ME_URL]: () => Promise.resolve({ data: { ...meAllDone, trainerOnboarding: pendingOnboarding } }),
+      });
+
+      renderWithRouter(<Dashboard />);
+
+      const onboarding = await screen.findByRole('heading', { name: 'Primeiros passos' });
+      const controlTower = screen.getByRole('heading', { name: 'Tua semana em foco' });
+      expect(isBefore(onboarding, controlTower)).toBe(true);
+    });
+
+    it('renders the all-done card after "Tua semana em foco"', async () => {
+      mockApiGet({
+        [ME_URL]: () => Promise.resolve({ data: { ...meAllDone, trainerOnboarding: doneOnboarding } }),
+      });
+
+      renderWithRouter(<Dashboard />);
+
+      const allDone = await screen.findByText('Tudo pronto!');
+      const controlTower = screen.getByRole('heading', { name: 'Tua semana em foco' });
+      expect(isBefore(controlTower, allDone)).toBe(true);
+    });
+
+    it('shows no onboarding skeleton above the Control Tower when the cached status is all done and /me is still loading', () => {
+      localStorage.setItem(STATUS_CACHE_KEY, JSON.stringify({ onboarding: doneOnboarding, brandingAllowed: false }));
+      mockApiGet({ [ME_URL]: () => new Promise(() => {}) });
+
+      renderWithRouter(<Dashboard />);
+
+      expect(screen.queryByRole('region', { name: 'Primeiros passos' })).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Tua semana em foco' })).toBeInTheDocument();
+    });
+
+    it('shows no onboarding skeleton when the card was dismissed and /me is still loading', () => {
+      localStorage.setItem('treinoway:onboardingDismissed:1', '1');
+      mockApiGet({ [ME_URL]: () => new Promise(() => {}) });
+
+      renderWithRouter(<Dashboard />);
+
+      expect(screen.queryByRole('region', { name: 'Primeiros passos' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('New-trainer Control Tower (criterion 8)', () => {
+    beforeEach(() => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    });
+
+    it('shows a welcome state with a CTA instead of zeroed tiles when the trainer has 0 linked students', async () => {
+      mockApiGet({ '/trainer/students': () => Promise.resolve({ data: [] }) });
+
+      renderWithRouter(<Dashboard />);
+
+      expect(await screen.findByText('Seu painel ganha vida com o primeiro aluno')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Convidar primeiro aluno' })).toHaveAttribute('href', '/trainer/students');
+      expect(screen.queryByText('Nada exige ação agora')).not.toBeInTheDocument();
+    });
+
+    it('keeps the regular panel when the trainer already has students', async () => {
+      mockApiGet({ '/trainer/students': () => Promise.resolve({ data: buildStudents({ ativo: 2 }) }) });
+
+      renderWithRouter(<Dashboard />);
+
+      await waitFor(() => expect(api.get).toHaveBeenCalledWith('/trainer/students'));
+      expect(screen.queryByText('Seu painel ganha vida com o primeiro aluno')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Per-user dashboard caches (criterion 9)', () => {
+    const cachedDashboard = {
+      plans: { expiredCount: 3, renewingSoonCount: 0 },
+      routines: { expiredCount: 0, expiringSoonCount: 0 },
+      finance: { monthReceived: 2500, totalReceived: 12000, overdueCount: 0, overdueAmount: 0 },
+      engagement: { inactiveStudentsCount: 0, adherenceMonthPct: 78.5, adherenceDeltaPp: null, weekPrCount: 0 },
+      generatedAt: '2026-07-14T12:00:00.000Z',
+    };
+
+    beforeEach(() => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    });
+
+    it('never paints another user\'s cached panel data', () => {
+      localStorage.setItem('treinoway.trainerDashboardData:1', JSON.stringify(cachedDashboard));
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 2, firstName: 'Bia', status: 'active', roles: ['TRAINER'] },
+        hasRole: mockHasRole,
+        refreshUser: mockRefreshUser,
+        updateTokens: mockUpdateTokens,
+      });
+      mockApiGet({ '/trainer/dashboard': () => new Promise(() => {}) });
+
+      renderWithRouter(<Dashboard />);
+
+      expect(screen.queryByRole('link', { name: '3 planos expirados, ver detalhes' })).not.toBeInTheDocument();
+    });
+
+    it('never reads another user\'s cached roster counts', () => {
+      localStorage.setItem(`${ROSTER_CACHE_KEY}:1`, JSON.stringify({ total: 0, ativo: 0, pendente: 0, vencido: 0 }));
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 2, firstName: 'Bia', status: 'active', roles: ['TRAINER'] },
+        hasRole: mockHasRole,
+        refreshUser: mockRefreshUser,
+        updateTokens: mockUpdateTokens,
+      });
+      mockApiGet({ '/trainer/students': () => new Promise(() => {}) });
+
+      renderWithRouter(<Dashboard />);
+
+      expect(screen.getByRole('button', { name: 'Criar rotina' })).toBeInTheDocument();
+    });
+
+    it('writes the fetched dashboard payload under the current user\'s key only', async () => {
+      mockApiGet();
+
+      renderWithRouter(<Dashboard />);
+
+      await waitFor(() => {
+        expect(localStorage.getItem('treinoway.trainerDashboardData:1')).not.toBeNull();
+      });
+      expect(localStorage.getItem('treinoway.trainerDashboardData')).toBeNull();
     });
   });
 

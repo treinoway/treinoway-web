@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { Link } from 'react-router-dom';
 import { Radar, Wallet, Activity, CircleCheck, Users } from 'lucide-react';
 import ControlTile from './ControlTile';
 import StatDisplay from './StatDisplay';
@@ -309,6 +310,20 @@ ControlTowerRetry.propTypes = {
   onRetry: PropTypes.func.isRequired,
 };
 
+/* ─── New-trainer welcome ───────────────────────────────────────────────── */
+
+// Welcome state shown instead of the bands while the trainer has no students.
+const ControlTowerWelcome = () => (
+  <div className="control-tower-welcome">
+    <Users size={32} strokeWidth={2} className="control-tower-welcome-icon" aria-hidden="true" />
+    <h3 className="control-tower-welcome-title">{t('controlTower.welcome.title')}</h3>
+    <p className="control-tower-welcome-description">{t('controlTower.welcome.description')}</p>
+    <Link to="/trainer/students" className="btn-primary">
+      {t('controlTower.welcome.cta')}
+    </Link>
+  </div>
+);
+
 /* ─── ControlTower ──────────────────────────────────────────────────────── */
 
 /**
@@ -319,15 +334,16 @@ ControlTowerRetry.propTypes = {
  * means Radar and the Financeiro "em atraso" tile disappear entirely when
  * their count is zero, so the panel visibly shrinks when the week is calm.
  */
-const ControlTower = ({ data, loading, error, onRetry }) => {
+const ControlTower = ({ data, loading, error, rosterEmpty, onRetry }) => {
   const isCacheMiss = data === null;
   const showSkeleton = isCacheMiss && loading;
   const showRetry = isCacheMiss && !loading && error;
   const showData = !isCacheMiss;
+  const showWelcome = !!rosterEmpty && !showRetry;
   const timestamp = showData ? formatRelativeTime(data.generatedAt) : null;
 
   const title = t('controlTower.title');
-  const updatedText = timestamp ? (t('controlTower.updatedPrefix') || '').replace('{timestamp}', timestamp) : null;
+  const updatedText = timestamp && !showWelcome ? (t('controlTower.updatedPrefix') || '').replace('{timestamp}', timestamp) : null;
   const retryMessage = typeof error === 'string' && error ? error : t('controlTower.retryFallback');
 
   return (
@@ -337,10 +353,11 @@ const ControlTower = ({ data, loading, error, onRetry }) => {
         {updatedText && <span className="control-tower-timestamp">{updatedText}</span>}
       </div>
 
-      {showSkeleton && <ControlTowerSkeleton />}
+      {showWelcome && <ControlTowerWelcome />}
+      {!showWelcome && showSkeleton && <ControlTowerSkeleton />}
       {showRetry && <ControlTowerRetry message={retryMessage} onRetry={onRetry} />}
 
-      {showData && (
+      {!showWelcome && showData && (
         <>
           <RadarBand plans={data.plans} routines={data.routines} />
           <FinanceiroBand finance={data.finance} generatedAt={data.generatedAt} onRetry={onRetry} />
@@ -361,6 +378,7 @@ ControlTower.propTypes = {
   }),
   loading: PropTypes.bool,
   error: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
+  rosterEmpty: PropTypes.bool,
   onRetry: PropTypes.func.isRequired,
 };
 

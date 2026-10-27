@@ -1,8 +1,13 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import api from '../api/axios';
-import useTrainerRoster, { TRAINER_ROSTER_CACHE_KEY as CACHE_KEY } from './useTrainerRoster';
+import useTrainerRoster, { TRAINER_ROSTER_CACHE_KEY } from './useTrainerRoster';
 
+const CACHE_KEY = `${TRAINER_ROSTER_CACHE_KEY}:1`;
 const LEGACY_CACHE_KEY = 'treinoway.trainerRosterCounts';
+
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 1 } }),
+}));
 
 vi.mock('../api/axios', () => ({
   default: {

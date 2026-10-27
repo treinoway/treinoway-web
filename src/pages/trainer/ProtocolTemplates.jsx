@@ -14,6 +14,7 @@ import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/pro
 import { TRAINING_LEVEL_OPTIONS, getLevelLabel } from '../../constants/trainingLevels';
 import { getRoutineDraft, clearRoutineDraft, cleanupDraftResources } from '../../utils/routineDraft';
 import formatRelativeTime from '../../utils/relativeTime';
+import { t } from '../../i18n';
 
 const ENDPOINT = '/trainer/protocol-templates';
 const NEW_ROUTINE_PATH = '/trainer/routines/new';
@@ -38,6 +39,7 @@ const buildTemplateBadges = (template) => {
   const levelLabel = template.trainingLevel ? getLevelLabel(template.trainingLevel) : null;
   const typeLabel = template.type ? getProtocolTypeLabel(template.type) : null;
   return [
+    template.isExample && { label: t('protocolTemplates.exampleBadge'), tone: 'neutral' },
     typeLabel && typeLabel !== '-' && { label: typeLabel, tone: 'brand' },
     levelLabel && levelLabel !== '-' && { label: levelLabel, tone: 'neutral' },
     isReady(template) ? { label: 'Pronta', tone: 'success' } : { label: 'Rascunho', tone: 'warning' },

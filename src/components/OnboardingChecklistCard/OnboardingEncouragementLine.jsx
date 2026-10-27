@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import { getEncouragementCopy } from '../../utils/onboardingProfile';
 
-const OnboardingEncouragementLine = ({ doneCount }) => {
-  const copy = getEncouragementCopy(doneCount);
+const OnboardingEncouragementLine = ({ doneCount, totalCount }) => {
+  const copy = getEncouragementCopy({ done: doneCount, total: totalCount });
   if (!copy) return null;
 
   return <p className="onboarding-encouragement">{copy}</p>;
@@ -10,6 +10,7 @@ const OnboardingEncouragementLine = ({ doneCount }) => {
 
 OnboardingEncouragementLine.propTypes = {
   doneCount: PropTypes.number.isRequired,
+  totalCount: PropTypes.number.isRequired,
 };
 
 export default OnboardingEncouragementLine;

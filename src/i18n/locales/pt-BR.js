@@ -600,20 +600,19 @@ const ptBR = {
 
   onboarding: {
     title: "Primeiros passos",
-    progressPill: "{done} de 3",
+    progressPill: "{done} de {total}",
     encouragement: {
-      zero: "Vamos começar — 3 passos rápidos.",
-      one: "Boa! Mais 2 para você decolar.",
-      two: "Quase lá — falta só 1!",
+      zero: "Vamos começar — {total} passos rápidos.",
+      remaining: "Boa! Mais {remaining} para você decolar.",
+      almostThere: "Quase lá — falta só 1!",
     },
     profileCompleted: {
       title: "Complete seu perfil",
-      description: "Adicione seus dados pessoais e endereço",
+      description: "Adicione seu nome, sobrenome e uma foto",
       doneSubtitle: "Concluído",
       missing: {
         prefix: "Falta: {fields}",
         connector: "e",
-        more: "mais {count}",
       },
       raceFallback: "Revise seus dados",
     },
@@ -621,10 +620,16 @@ const ptBR = {
       title: "Vincule seu primeiro aluno",
       description: "Você pode começar com um aluno real ou de teste",
       doneSubtitle: "Concluído",
+      invitedSubtitle: "Convite enviado — aguardando o aluno aceitar",
     },
     firstProtocolCreated: {
-      title: "Crie seu primeiro protocolo",
+      title: "Crie sua primeira rotina",
       description: "Monte um treino do zero ou use um template",
+      doneSubtitle: "Concluído",
+    },
+    firstAnamnesisSent: {
+      title: "Envie sua primeira anamnese",
+      description: "Conheça seu aluno antes de montar o treino",
       doneSubtitle: "Concluído",
     },
     allDone: {
@@ -638,18 +643,30 @@ const ptBR = {
     fields: {
       firstName: "nome",
       lastName: "sobrenome",
-      birthDate: "data de nascimento",
-      gender: "gênero",
-      line1: "endereço",
-      city: "cidade",
-      state: "estado",
-      postalCode: "CEP",
-      country: "país",
+      avatar: "foto",
     },
     aria: {
       pendingRow: "Complete {title}, pendente. {subtitle}",
       doneRow: "Complete {title}, concluído. Ir para {title}.",
     },
+  },
+
+  profile: {
+    avatar: {
+      label: "Foto de perfil",
+      change: "Alterar foto",
+      uploading: "Enviando...",
+      required: "Adicione uma foto de perfil",
+      success: "Foto atualizada com sucesso!",
+      tooLarge: "Arquivo muito grande. O tamanho máximo é 5MB.",
+      invalidType: "Formato inválido. Use uma imagem JPG, PNG ou WebP.",
+    },
+    firstName: { required: "Informe seu nome" },
+    lastName: { required: "Informe seu sobrenome" },
+  },
+
+  protocolTemplates: {
+    exampleBadge: "Exemplo",
   },
 
   brandCalendar: {
@@ -1498,6 +1515,11 @@ const ptBR = {
     updatedPrefix: "atualizado {timestamp}",
     retryButton: "Atualizar",
     retryFallback: "Não foi possível atualizar.",
+    welcome: {
+      title: "Seu painel ganha vida com o primeiro aluno",
+      description: "Planos, cobranças e engajamento aparecem aqui assim que você vincular alguém.",
+      cta: "Convidar primeiro aluno",
+    },
     radar: {
       label: "Radar",
       calmMessage: "Nada exige ação agora",

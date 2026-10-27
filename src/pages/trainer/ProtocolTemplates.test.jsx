@@ -102,6 +102,23 @@ describe('ProtocolTemplates', () => {
     localStorage.clear();
   });
 
+  it('shows an "Exemplo" badge only on routines flagged isExample', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/trainer/protocol-templates') {
+        return Promise.resolve(envelope([
+          { ...mockTemplates[0], id: 9, name: 'Rotina de exemplo', isExample: true },
+          { ...mockTemplates[1], isExample: false },
+        ]));
+      }
+      return Promise.resolve({ data: [] });
+    });
+
+    renderWithRouter(<ProtocolTemplates />);
+
+    await screen.findByText('Rotina de exemplo');
+    expect(screen.getAllByText('Exemplo')).toHaveLength(1);
+  });
+
   // ── Loading state ──────────────────────────────────────────────────────────
   it('shows loading state initially', () => {
     api.get.mockImplementation(() => new Promise(() => {}));

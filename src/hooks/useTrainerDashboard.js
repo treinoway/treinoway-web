@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
 import { translateError } from '../i18n';
-
-const CACHE_KEY = 'treinoway.trainerDashboardData';
+import { useAuth } from '../contexts/AuthContext';
+import {
+  TRAINER_DASHBOARD_CACHE_KEY,
+  scopedCacheKey,
+  readJsonCache,
+  writeJsonCache,
+} from '../utils/trainerCaches';
 
 // Money and adherence fields are returned as numeric strings (e.g. "2500.00")
 // by the real /trainer/dashboard contract, but older cache entries may still
@@ -33,35 +38,25 @@ const isValidDashboardData = (value) =>
   && typeof value.engagement.weekPrCount === 'number'
   && typeof value.generatedAt === 'string';
 
-const readCache = () => {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return isValidDashboardData(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-};
-
-const writeCache = (data) => {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-  } catch {
-    // Storage unavailable (quota/private mode) — in-memory state still updates.
-  }
+// Reads the user's cached panel payload, or null when absent or malformed.
+const readCache = (userId) => {
+  const parsed = readJsonCache(scopedCacheKey(TRAINER_DASHBOARD_CACHE_KEY, userId));
+  return isValidDashboardData(parsed) ? parsed : null;
 };
 
 /**
- * Patches `finance.overdueCount/overdueAmount` of the cached dashboard payload
- * so the sidebar badge and the Dashboard agree with what Financeiro just
- * loaded (overview overdue is "as of today" for any month). No-op without a
- * valid cache entry.
+ * Patches `finance.overdueCount/overdueAmount` of the user's cached dashboard
+ * payload so the sidebar badge and the Dashboard agree with what Financeiro
+ * just loaded (overview overdue is "as of today" for any month). No-op without
+ * a valid cache entry.
  */
-export const patchTrainerDashboardFinanceCache = ({ overdueCount, overdueAmount }) => {
-  const cached = readCache();
+export const patchTrainerDashboardFinanceCache = ({ userId, overdueCount, overdueAmount }) => {
+  const cached = readCache(userId);
   if (!cached) return;
-  writeCache({ ...cached, finance: { ...cached.finance, overdueCount, overdueAmount } });
+  writeJsonCache(
+    scopedCacheKey(TRAINER_DASHBOARD_CACHE_KEY, userId),
+    { ...cached, finance: { ...cached.finance, overdueCount, overdueAmount } },
+  );
 };
 
 /**
@@ -77,7 +72,9 @@ export const patchTrainerDashboardFinanceCache = ({ overdueCount, overdueAmount 
  * @param {boolean} enabled — fetch/refetch only while true (active trainer mode).
  */
 const useTrainerDashboard = (enabled) => {
-  const [data, setData] = useState(readCache);
+  const { user } = useAuth();
+  const userId = user?.id;
+  const [data, setData] = useState(() => readCache(userId));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const mountedRef = useRef(true);
@@ -100,14 +97,14 @@ const useTrainerDashboard = (enabled) => {
       const next = response.data;
       if (!mountedRef.current) return;
       setData(next);
-      writeCache(next);
+      writeJsonCache(scopedCacheKey(TRAINER_DASHBOARD_CACHE_KEY, userId), next);
     } catch (err) {
       if (!mountedRef.current) return;
       setError(err.userMessage || translateError(err));
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (!enabled) return;

@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
+import { useAuth } from '../contexts/AuthContext';
 import { countStudentsByStatus } from '../utils/studentStatus';
+import {
+  TRAINER_ROSTER_CACHE_KEY,
+  scopedCacheKey,
+  readJsonCache,
+  writeJsonCache,
+} from '../utils/trainerCaches';
 
 // v2: counts are now derived from `billingStatus`. The unversioned key held
 // all-zero ativo/pendente/vencido counts (computed from a field the API never
 // returned), so it is intentionally abandoned.
-export const TRAINER_ROSTER_CACHE_KEY = 'treinoway.trainerRosterCounts.v2';
+export { TRAINER_ROSTER_CACHE_KEY };
 
 const computeCounts = (students) => ({
   total: students.length,
@@ -19,23 +26,10 @@ const isValidCounts = (value) =>
   && typeof value.pendente === 'number'
   && typeof value.vencido === 'number';
 
-const readCache = () => {
-  try {
-    const raw = localStorage.getItem(TRAINER_ROSTER_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return isValidCounts(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-};
-
-const writeCache = (counts) => {
-  try {
-    localStorage.setItem(TRAINER_ROSTER_CACHE_KEY, JSON.stringify(counts));
-  } catch {
-    // Storage unavailable (quota/private mode) — in-memory state still updates.
-  }
+// Reads the user's cached counts, or null when absent or malformed.
+const readCache = (userId) => {
+  const parsed = readJsonCache(scopedCacheKey(TRAINER_ROSTER_CACHE_KEY, userId));
+  return isValidCounts(parsed) ? parsed : null;
 };
 
 /**
@@ -54,7 +48,9 @@ const writeCache = (counts) => {
  * @param {boolean} enabled — fetch/refetch only while true (active trainer mode).
  */
 const useTrainerRoster = (enabled) => {
-  const [counts, setCounts] = useState(readCache);
+  const { user } = useAuth();
+  const userId = user?.id;
+  const [counts, setCounts] = useState(() => readCache(userId));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const mountedRef = useRef(true);
@@ -77,14 +73,14 @@ const useTrainerRoster = (enabled) => {
       const next = computeCounts(response.data);
       if (!mountedRef.current) return;
       setCounts(next);
-      writeCache(next);
+      writeJsonCache(scopedCacheKey(TRAINER_ROSTER_CACHE_KEY, userId), next);
     } catch {
       if (!mountedRef.current) return;
       setError(true);
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (!enabled) return;

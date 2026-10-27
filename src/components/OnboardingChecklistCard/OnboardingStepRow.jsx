@@ -6,6 +6,7 @@ import { t } from '../../i18n';
 const OnboardingStepRow = ({
   title,
   subtitle,
+  doneSubtitle,
   status,
   onClick,
   onViewed,
@@ -48,7 +49,7 @@ const OnboardingStepRow = ({
     .replace('{title}', title);
 
   const Icon = isDone ? CheckCircle2 : Circle;
-  const subtitleText = isDone ? t('onboarding.profileCompleted.doneSubtitle') : subtitle;
+  const subtitleText = isDone ? (doneSubtitle || t('onboarding.profileCompleted.doneSubtitle')) : subtitle;
 
   return (
     <button
@@ -75,6 +76,7 @@ const OnboardingStepRow = ({
 OnboardingStepRow.propTypes = {
   title: PropTypes.string.isRequired,
   subtitle: PropTypes.string,
+  doneSubtitle: PropTypes.string,
   status: PropTypes.oneOf(['pending', 'done']).isRequired,
   onClick: PropTypes.func.isRequired,
   onViewed: PropTypes.func,
@@ -82,6 +84,7 @@ OnboardingStepRow.propTypes = {
 
 OnboardingStepRow.defaultProps = {
   subtitle: '',
+  doneSubtitle: '',
   onViewed: null,
 };
 
