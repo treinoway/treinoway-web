@@ -126,6 +126,8 @@ const templatePrescriptionPatch = (template) => ({
   ...(template.hasLoad != null && { hasLoad: template.hasLoad }),
   ...(template.suggestedLoad != null && { suggestedLoad: template.suggestedLoad }),
   ...(template.notes && { notes: template.notes }),
+  videoUrl: template.videoUrl ?? '',
+  gifUrl: template.gifUrl ?? '',
   intensity: template.type === 'cardio' ? template.intensity ?? null : null,
   advancedTechniques: sortTechniquesByOrder(template.advancedTechniques),
 });
@@ -158,6 +160,17 @@ const buildTemplateOverrides = (form, template) => {
     ...volume,
     ...buildSecondaryOverrides(form),
     ...buildTechniqueOverrides(form, template),
+    ...buildMediaOverrides(form, template),
+  };
+};
+
+// Media overrides: only sent when the trainer changed the inherited URL (empty clears it with null).
+const buildMediaOverrides = (form, template) => {
+  const toOverride = (value) => value.trim() || null;
+  const changed = (key) => (form[key] ?? '').trim() !== (template[key] ?? '').trim();
+  return {
+    ...(changed('videoUrl') && { videoUrl: toOverride(form.videoUrl ?? '') }),
+    ...(changed('gifUrl') && { gifUrl: toOverride(form.gifUrl ?? '') }),
   };
 };
 
@@ -468,7 +481,7 @@ const ExerciseComposer = ({
   const handleChangeTemplate = () => {
     setPickedTemplate(null);
     setSubmitError(null);
-    setForm((prev) => ({ ...prev, intensity: null, advancedTechniques: [] }));
+    setForm((prev) => ({ ...prev, intensity: null, advancedTechniques: [], videoUrl: '', gifUrl: '' }));
   };
 
   const saveFromTemplate = async () => {
@@ -483,6 +496,11 @@ const ExerciseComposer = ({
   const handleSubmitFromTemplate = () => {
     if (hasPartialReps(form)) {
       setErrors({ reps: 'Informe as repetições mínimas e máximas.' });
+      return;
+    }
+    const gifError = getGifUrlError(form.gifUrl);
+    if (gifError) {
+      setErrors({ gifUrl: gifError });
       return;
     }
     setErrors({});
@@ -667,6 +685,20 @@ const ExerciseComposer = ({
         error={errors.reps}
       />
       {pickedTemplate && <TechniquesBand value={form.advancedTechniques} onChange={handleTechniquesChange} />}
+      {pickedTemplate && (
+        <div className="composer-band">
+          <span className="composer-band-label type-h4">Detalhes</span>
+          <VideoField
+            value={form.videoUrl}
+            onChange={(url) => handleFieldChange('videoUrl', url)}
+            gifValue={form.gifUrl}
+            onGifChange={(url) => handleFieldChange('gifUrl', url)}
+            label="Vídeo de demonstração"
+            gifError={errors.gifUrl}
+            canUseLibrary={canUseVideoLibrary}
+          />
+        </div>
+      )}
       <div className="composer-band">
         <NotesField value={form.notes} onChange={(value) => handleFieldChange('notes', value)} />
       </div>

@@ -6052,6 +6052,8 @@ button.auth-forgot-link:disabled {
   position: fixed;
   top: var(--popover-top, 0);
   right: var(--popover-right, 0);
+  max-height: calc(100vh - var(--spacing-xl) * 2);
+  overflow-y: auto;
   z-index: var(--z-popover-portal);
 }
 

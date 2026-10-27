@@ -183,3 +183,83 @@ describe('ExerciseComposer — single add save errors', () => {
     consoleError.mockRestore();
   });
 });
+
+const YT = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+const VIDEO_TEMPLATE = { id: 'tmpl-video', name: 'Agachamento livre', type: 'strength', videoUrl: YT, gifUrl: '' };
+
+// Picks the template, fills reps and saves.
+const pickFillSave = async (user) => {
+  await pickBare(user);
+  await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
+  await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
+  await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+};
+
+describe('ExerciseComposer — single add video section', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockResolvedValue({ data: { data: [], total: 0 } });
+  });
+
+  it('shows no video section before a template is picked and shows it after', async () => {
+    const user = userEvent.setup();
+    renderComposer();
+    expect(screen.queryByText('Vídeo de demonstração')).not.toBeInTheDocument();
+    await pickBare(user);
+    expect(screen.getByText('Vídeo de demonstração')).toBeInTheDocument();
+  });
+
+  it('prefills the video from the template and omits it when unchanged', async () => {
+    const onSubmitFromTemplate = vi.fn().mockResolvedValue({});
+    const user = userEvent.setup();
+    renderComposer({ exerciseTemplates: [VIDEO_TEMPLATE], onSubmitFromTemplate });
+    await pickFillSave(user);
+
+    expect(screen.getByTitle(/Vídeo de demonstração do exercício/i)).toBeInTheDocument();
+    await waitFor(() => expect(onSubmitFromTemplate).toHaveBeenCalledTimes(1));
+    const overrides = onSubmitFromTemplate.mock.calls[0][1];
+    expect(overrides).not.toHaveProperty('videoUrl');
+    expect(overrides).not.toHaveProperty('gifUrl');
+  });
+
+  it('sends a changed video URL as an override', async () => {
+    const onSubmitFromTemplate = vi.fn().mockResolvedValue({});
+    const user = userEvent.setup();
+    renderComposer({ onSubmitFromTemplate });
+    await pickBare(user);
+    await user.click(screen.getByLabelText('URL do YouTube'));
+    await user.paste(YT);
+    await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
+    await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    await waitFor(() => expect(onSubmitFromTemplate).toHaveBeenCalledTimes(1));
+    expect(onSubmitFromTemplate.mock.calls[0][1]).toEqual(expect.objectContaining({ videoUrl: YT }));
+  });
+
+  it('sends null when the inherited video is removed', async () => {
+    const onSubmitFromTemplate = vi.fn().mockResolvedValue({});
+    const user = userEvent.setup();
+    renderComposer({ exerciseTemplates: [VIDEO_TEMPLATE], onSubmitFromTemplate });
+    await pickBare(user);
+    await user.click(screen.getByRole('button', { name: /Remover/i }));
+    await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
+    await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    await waitFor(() => expect(onSubmitFromTemplate).toHaveBeenCalledTimes(1));
+    expect(onSubmitFromTemplate.mock.calls[0][1]).toEqual(expect.objectContaining({ videoUrl: null }));
+  });
+
+  it('blocks saving on an invalid GIF link', async () => {
+    const onSubmitFromTemplate = vi.fn();
+    const user = userEvent.setup();
+    renderComposer({ onSubmitFromTemplate });
+    await pickBare(user);
+    await user.type(screen.getByLabelText('Link do GIF'), 'not-a-url');
+    await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
+
+    expect(onSubmitFromTemplate).not.toHaveBeenCalled();
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
+});
