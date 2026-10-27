@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import SkeletonText from './ds/SkeletonText';
 import { getTranslations } from '../i18n';
 
 const ROTATION_INTERVAL_MS = 2500;
 
+// Picks a random index different from the excluded one.
 const pickRandomIndex = (length, excludeIndex = -1) => {
   if (length <= 1) return 0;
   let next;
@@ -13,7 +15,8 @@ const pickRandomIndex = (length, excludeIndex = -1) => {
   return next;
 };
 
-const StreamingSkeleton = ({ statusMessage }) => {
+// Visual placeholder for a reply being generated; the page-level live region announces the progress.
+const StreamingSkeleton = ({ statusMessage = '' }) => {
   const translations = getTranslations();
   const phrases = translations.iArnold?.skeleton?.phrases ?? [];
   const fallback = translations.iArnold?.skeleton?.thinking ?? 'Pensando…';
@@ -35,33 +38,19 @@ const StreamingSkeleton = ({ statusMessage }) => {
   const displayStatus = statusMessage || (phrases.length > 0 ? phrases[phraseIndex] : fallback);
 
   return (
-    <div
-      className="streaming-skeleton"
-      role="status"
-      aria-live="polite"
-      aria-label="iArnold está processando sua pergunta"
-    >
-      <div className="streaming-skeleton__bars" aria-hidden="true">
-        <div className="streaming-skeleton__bar streaming-skeleton__bar--w-90" />
-        <div className="streaming-skeleton__bar streaming-skeleton__bar--w-75" />
-        <div className="streaming-skeleton__bar streaming-skeleton__bar--w-60" />
-      </div>
-      <div className="streaming-skeleton__status">
-        <span className="streaming-skeleton__dot" aria-hidden="true" />
-        <span className="streaming-skeleton__status-text" key={displayStatus}>
-          {displayStatus}
-        </span>
-      </div>
+    <div className="streaming-skeleton" aria-hidden="true">
+      <SkeletonText typeClass="type-body" width="long" />
+      <SkeletonText typeClass="type-body" width="medium" />
+      <SkeletonText typeClass="type-body" width="short" />
+      <p className="type-caption streaming-skeleton__status" key={displayStatus}>
+        {displayStatus}
+      </p>
     </div>
   );
 };
 
 StreamingSkeleton.propTypes = {
   statusMessage: PropTypes.string,
-};
-
-StreamingSkeleton.defaultProps = {
-  statusMessage: '',
 };
 
 export default StreamingSkeleton;

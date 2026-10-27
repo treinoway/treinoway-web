@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 import Layout from './components/Layout';
+import AiRouteGuard from './components/AiRouteGuard';
 
 // Public pages
 import Login from './pages/Login';
@@ -407,7 +408,9 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout>
-                  <AiAssistant />
+                  <AiRouteGuard>
+                    <AiAssistant />
+                  </AiRouteGuard>
                 </Layout>
               </ProtectedRoute>
             }

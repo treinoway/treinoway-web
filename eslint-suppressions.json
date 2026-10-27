@@ -19,7 +19,7 @@
   },
   "src/api/axios.js": {
     "local/function-header-comment": {
-      "count": 4
+      "count": 3
     },
     "local/no-comments-in-function": {
       "count": 11
@@ -730,11 +730,6 @@
       "count": 2
     }
   },
-  "src/components/ScrollToLatestPill.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    }
-  },
   "src/components/ScrollToTop.jsx": {
     "local/function-header-comment": {
       "count": 1
@@ -822,11 +817,6 @@
     }
   },
   "src/components/StatDisplay.jsx": {
-    "local/function-header-comment": {
-      "count": 2
-    }
-  },
-  "src/components/StreamingSkeleton.jsx": {
     "local/function-header-comment": {
       "count": 2
     }
@@ -1515,10 +1505,7 @@
   },
   "src/contexts/AiChatContext.jsx": {
     "local/function-header-comment": {
-      "count": 3
-    },
-    "local/no-comments-in-function": {
-      "count": 4
+      "count": 2
     }
   },
   "src/contexts/AiChatContext.test.jsx": {
@@ -2386,10 +2373,7 @@
   },
   "src/pages/trainer/AiAssistant.jsx": {
     "local/function-header-comment": {
-      "count": 15
-    },
-    "local/no-comments-in-function": {
-      "count": 19
+      "count": 1
     }
   },
   "src/pages/trainer/AiAssistant.test.jsx": {
@@ -2397,7 +2381,7 @@
       "count": 1
     },
     "local/no-comments-in-function": {
-      "count": 80
+      "count": 75
     }
   },
   "src/pages/trainer/AnamnesisDetail.jsx": {
@@ -2597,7 +2581,7 @@
   },
   "src/pages/trainer/SessionDetail.jsx": {
     "local/function-header-comment": {
-      "count": 3
+      "count": 2
     },
     "local/no-comments-in-function": {
       "count": 2

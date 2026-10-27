@@ -201,7 +201,7 @@ const Dashboard = () => {
               <ActionCard
                 icon={Sparkles}
                 title="iArnold"
-                description="Crie treinos e rotinas com linguagem natural usando inteligência artificial"
+                description="Crie rotinas e treinos, aplique rotinas e analise o desempenho dos alunos com linguagem natural"
                 to="/trainer/ai-assistant"
                 variant="ai"
               />

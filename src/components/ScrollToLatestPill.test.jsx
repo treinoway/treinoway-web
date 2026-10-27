@@ -30,30 +30,18 @@ describe('ScrollToLatestPill', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it('is hidden when visible=false (aria-hidden, tabIndex=-1)', () => {
+  it('is removed from the accessibility tree and the tab order when visible=false', () => {
     renderWithRouter(
       <ScrollToLatestPill onClick={() => {}} visible={false} />
     );
-    const wrapper = document.querySelector('.scroll-pill');
-    expect(wrapper).toHaveClass('scroll-pill--hidden');
-    expect(wrapper).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.queryByRole('button', { name: 'Ir para a resposta mais recente' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { hidden: true })).toHaveAttribute('tabindex', '-1');
   });
 
-  it('is visible when visible=true (no hidden class, tabIndex=0)', () => {
+  it('is exposed and focusable when visible=true', () => {
     renderWithRouter(
       <ScrollToLatestPill onClick={() => {}} visible />
     );
-    const wrapper = document.querySelector('.scroll-pill');
-    expect(wrapper).not.toHaveClass('scroll-pill--hidden');
-    expect(wrapper).toHaveAttribute('aria-hidden', 'false');
     expect(screen.getByRole('button', { name: 'Ir para a resposta mais recente' })).toHaveAttribute('tabindex', '0');
-  });
-
-  it('renders accent dot', () => {
-    renderWithRouter(
-      <ScrollToLatestPill onClick={() => {}} visible />
-    );
-    expect(document.querySelector('.scroll-pill__dot--accent')).toBeInTheDocument();
   });
 });

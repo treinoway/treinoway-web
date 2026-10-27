@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
+import Badge from './ds/Badge';
 import useActiveMode from '../hooks/useActiveMode';
 import useAiAccess from '../hooks/useAiAccess';
 import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
@@ -197,7 +198,7 @@ const Layout = ({ children, noPadding = false }) => {
                   </span>
                   <>
                     <span className="sidebar-link-label">iArnold</span>
-                    <span className="sidebar-link-badge">IA</span>
+                    <span className="sidebar-link-badge"><Badge tone="brand" variant="tag">IA</Badge></span>
                   </>
                 </Link>
               )}
@@ -377,13 +378,14 @@ const Layout = ({ children, noPadding = false }) => {
       {/* AI floating action button — visible when AI is working or has a new response, and user is not on the AI page */}
       {hasRole('TRAINER') && showAi && !isActive('/trainer/ai-assistant') && (aiLoading || aiHasNewResponse) && (
         <button
+          type="button"
           className="ai-fab"
           onClick={() => navigate('/trainer/ai-assistant')}
-          aria-label={aiHasNewResponse ? 'Assistente IA respondeu' : 'Assistente IA processando'}
+          aria-label={aiHasNewResponse ? t('iArnold.fab.replied') : t('iArnold.fab.processing')}
         >
-          <Sparkles size={20} strokeWidth={1.6} />
-          {aiHasNewResponse && <span className="ai-fab__badge" />}
-          {aiLoading && <span className="ai-fab__pulse" />}
+          <Sparkles size={20} strokeWidth={2} aria-hidden="true" />
+          {aiHasNewResponse && <span className="ai-fab__badge" aria-hidden="true" />}
+          {aiLoading && <span className="ai-fab__pulse" aria-hidden="true" />}
         </button>
       )}
     </div>

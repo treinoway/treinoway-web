@@ -327,6 +327,20 @@ describe('Layout', () => {
     expect(within(sidebar).getByRole('link', { name: 'iArnold' })).toBeInTheDocument();
   });
 
+  it('marks the iArnold sidebar link with the design-system brand badge, not an orange one', () => {
+    setupTrainerWithAi({ aiActionsPerStudent: 3 });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const sidebar = document.querySelector('.sidebar');
+    const badge = within(within(sidebar).getByRole('link', { name: 'iArnold' })).getByText('IA');
+    expect(badge).toHaveClass('badge', 'badge--tag', 'badge--brand');
+  });
+
   it('hides iArnold sidebar link when aiActionsPerStudent === 0 (FREE)', () => {
     setupTrainerWithAi({ aiActionsPerStudent: 0 });
 
@@ -495,6 +509,36 @@ describe('Layout', () => {
 
     const fab = screen.getByRole('button', { name: /assistente ia processando/i });
     expect(fab.querySelector('.ai-fab__pulse')).toBeInTheDocument();
+  });
+
+  it('renders the floating button as a non-submit button with a decorative icon and no accessible-name leakage', () => {
+    setupTrainerWithAi();
+    useAiChat.mockReturnValue({ loading: false, hasNewResponse: true });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const fab = screen.getByRole('button', { name: 'Assistente IA respondeu' });
+    expect(fab).toHaveAttribute('type', 'button');
+    expect(fab.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(1);
+    expect(fab.querySelector('.ai-fab__badge')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('hides the loading ring from assistive technology', () => {
+    setupTrainerWithAi();
+    useAiChat.mockReturnValue({ loading: true, hasNewResponse: false });
+
+    renderWithRouter(
+      <Layout>
+        <span>Content</span>
+      </Layout>
+    );
+
+    const fab = screen.getByRole('button', { name: 'Assistente IA processando' });
+    expect(fab.querySelector('.ai-fab__pulse')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('does not show floating button for non-trainers', () => {

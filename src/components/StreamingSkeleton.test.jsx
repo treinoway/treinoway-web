@@ -16,6 +16,12 @@ vi.mock('../i18n', () => ({
 
 const POOL = ['Alongando…', 'Fazendo flexões…', 'Aquecendo os músculos…'];
 
+// Returns the pool phrase currently on screen.
+const currentPhrase = () => POOL.find((phrase) => screen.queryByText(phrase));
+
+// Returns the status line currently on screen, a pool phrase or the backend message.
+const shownStatus = () => [...POOL, 'Executando ação…'].find((text) => screen.queryByText(text));
+
 describe('StreamingSkeleton', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -25,62 +31,36 @@ describe('StreamingSkeleton', () => {
     vi.useRealTimers();
   });
 
-  it('renders 3 shimmer bars', () => {
-    renderWithRouter(<StreamingSkeleton />);
-    const bars = document.querySelectorAll('.streaming-skeleton__bar');
-    expect(bars).toHaveLength(3);
-  });
-
   it('renders status message when provided', () => {
     renderWithRouter(<StreamingSkeleton statusMessage="Buscando dados do aluno…" />);
     expect(screen.getByText('Buscando dados do aluno…')).toBeInTheDocument();
   });
 
-  it('has role="status" on the container', () => {
-    renderWithRouter(<StreamingSkeleton />);
-    expect(screen.getByRole('status')).toBeInTheDocument();
+  it('is not a live region itself (the page announces progress once)', () => {
+    renderWithRouter(<StreamingSkeleton statusMessage="Buscando dados do aluno…" />);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByText('Buscando dados do aluno…').closest('[aria-live]')).toBeNull();
   });
 
-  it('has aria-live="polite" on the container', () => {
-    renderWithRouter(<StreamingSkeleton />);
-    expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
-  });
-
-  it('has descriptive aria-label on the container', () => {
-    renderWithRouter(<StreamingSkeleton />);
-    expect(
-      screen.getByRole('status', { name: 'iArnold está processando sua pergunta' })
-    ).toBeInTheDocument();
-  });
-
-  it('bar widths are set via modifier classes', () => {
-    renderWithRouter(<StreamingSkeleton />);
-    expect(document.querySelector('.streaming-skeleton__bar--w-90')).toBeInTheDocument();
-    expect(document.querySelector('.streaming-skeleton__bar--w-75')).toBeInTheDocument();
-    expect(document.querySelector('.streaming-skeleton__bar--w-60')).toBeInTheDocument();
-  });
-
-  it('renders the pulse dot element', () => {
-    renderWithRouter(<StreamingSkeleton />);
-    expect(document.querySelector('.streaming-skeleton__dot')).toBeInTheDocument();
+  it('is hidden from assistive technology', () => {
+    renderWithRouter(<StreamingSkeleton statusMessage="Buscando dados do aluno…" />);
+    expect(screen.getByText('Buscando dados do aluno…').closest('[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('when statusMessage is empty, renders one of the pool phrases', () => {
     renderWithRouter(<StreamingSkeleton statusMessage="" />);
-    const statusText = document.querySelector('.streaming-skeleton__status-text');
-    expect(POOL).toContain(statusText.textContent);
+    expect(currentPhrase()).toBeDefined();
   });
 
   it('when statusMessage is not provided, renders one of the pool phrases', () => {
     renderWithRouter(<StreamingSkeleton />);
-    const statusText = document.querySelector('.streaming-skeleton__status-text');
-    expect(POOL).toContain(statusText.textContent);
+    expect(currentPhrase()).toBeDefined();
   });
 
   it('rotates to a different phrase after 2500ms', () => {
     renderWithRouter(<StreamingSkeleton />);
 
-    const before = document.querySelector('.streaming-skeleton__status-text').textContent;
+    const before = shownStatus();
 
     // Advance timer multiple times to guarantee a change (pool has 3 items,
     // adjacent-repeat prevention ensures next !== current).
@@ -88,7 +68,7 @@ describe('StreamingSkeleton', () => {
       vi.advanceTimersByTime(2500);
     });
 
-    const after = document.querySelector('.streaming-skeleton__status-text').textContent;
+    const after = shownStatus();
     expect(POOL).toContain(after);
     expect(after).not.toBe(before);
   });
@@ -106,13 +86,13 @@ describe('StreamingSkeleton', () => {
 
     rerender(<StreamingSkeleton statusMessage="Executando ação…" />);
 
-    const snapshot = document.querySelector('.streaming-skeleton__status-text').textContent;
+    const snapshot = shownStatus();
 
     act(() => {
       vi.advanceTimersByTime(10000);
     });
 
-    expect(document.querySelector('.streaming-skeleton__status-text').textContent).toBe(snapshot);
+    expect(shownStatus()).toBe(snapshot);
     expect(snapshot).toBe('Executando ação…');
   });
 
@@ -121,14 +101,14 @@ describe('StreamingSkeleton', () => {
 
     rerender(<StreamingSkeleton statusMessage="" />);
 
-    const before = document.querySelector('.streaming-skeleton__status-text').textContent;
+    const before = shownStatus();
     expect(POOL).toContain(before);
 
     act(() => {
       vi.advanceTimersByTime(2500);
     });
 
-    const after = document.querySelector('.streaming-skeleton__status-text').textContent;
+    const after = shownStatus();
     expect(POOL).toContain(after);
     expect(after).not.toBe(before);
   });

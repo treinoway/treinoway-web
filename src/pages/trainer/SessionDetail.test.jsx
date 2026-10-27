@@ -93,12 +93,12 @@ const renderPage = () =>
 
 describe('SessionDetail', () => {
   const mockShowToast = vi.fn();
-  const mockSendMessage = vi.fn();
+  const mockStartConversation = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     useToast.mockReturnValue({ showToast: mockShowToast });
-    useAiChat.mockReturnValue({ sendMessage: mockSendMessage });
+    useAiChat.mockReturnValue({ startConversation: mockStartConversation });
     api.get.mockImplementation((url) => {
       if (url.includes('workout-sessions/session-1')) {
         return Promise.resolve({ data: makeSession() });
@@ -224,9 +224,9 @@ describe('SessionDetail', () => {
     expect(screen.getByRole('button', { name: /editar anotação/i })).toBeInTheDocument();
   });
 
-  it('navigates to ai-assistant and prefills message on iArnold click', async () => {
+  it('navigates to ai-assistant and starts a new conversation scoped to the student', async () => {
     const user = userEvent.setup();
-    mockSendMessage.mockResolvedValue(undefined);
+    mockStartConversation.mockResolvedValue(undefined);
     renderPage();
     await waitFor(() => {
       expect(screen.getByTestId('session-hero')).toBeInTheDocument();
@@ -234,9 +234,12 @@ describe('SessionDetail', () => {
     await user.click(screen.getByRole('button', { name: /analisar com iarnold/i }));
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/ai-assistant');
     await waitFor(() => {
-      expect(mockSendMessage).toHaveBeenCalledWith(
-        expect.stringContaining('Treino B'),
-      );
+      expect(mockStartConversation).toHaveBeenCalledTimes(1);
     });
+    const [prompt, options] = mockStartConversation.mock.calls[0];
+    expect(options).toEqual({ studentId: 'student-1' });
+    expect(prompt).toContain('Treino B');
+    expect(prompt).toContain('Neto');
+    expect(prompt).toMatch(/^analise/i);
   });
 });

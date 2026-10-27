@@ -263,7 +263,7 @@ describe('AiChatContext', () => {
     });
   });
 
-  it('shows error toast on fetch failure and sets errorRetry', async () => {
+  it('sets errorRetry on fetch failure without an extra toast (single error surface)', async () => {
     const user = userEvent.setup();
     global.fetch.mockRejectedValue(new Error('Network error'));
 
@@ -272,14 +272,11 @@ describe('AiChatContext', () => {
     await user.click(screen.getByRole('button', { name: /enviar/i }));
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith(
-        'Não foi possível conectar ao assistente. Tente novamente.',
-        'error'
-      );
+      const errorRetryEl = document.querySelector('[data-info="errorRetry"]');
+      expect(errorRetryEl.textContent).toBe('Test message');
     });
 
-    const errorRetryEl = document.querySelector('[data-info="errorRetry"]');
-    expect(errorRetryEl.textContent).toBe('Test message');
+    expect(showToast).not.toHaveBeenCalled();
   });
 
   it('retryLastMessage resends the failed message', async () => {
@@ -363,7 +360,7 @@ describe('AiChatContext', () => {
   it('sets errorRetry and errorCode when SSE error event fires', async () => {
     const user = userEvent.setup();
     const errorEvents = [
-      { event: 'error', data: { error: 'AI_OVERLOADED', messageCode: 'ai.overloaded', message: 'Sobrecarregado.' } },
+      { event: 'error', data: { messageCode: 'ai.overloaded', message: 'Sobrecarregado.' } },
     ];
     global.fetch.mockResolvedValue(createMockSSEStream(errorEvents));
 
@@ -377,13 +374,13 @@ describe('AiChatContext', () => {
     });
 
     const errorCodeEl = document.querySelector('[data-info="errorCode"]');
-    expect(errorCodeEl.textContent).toBe('AI_OVERLOADED');
+    expect(errorCodeEl.textContent).toBe('ai.overloaded');
   });
 
-  it('shows toast when SSE error event fires', async () => {
+  it('does not toast when an SSE error event fires (the error card is the single surface)', async () => {
     const user = userEvent.setup();
     const errorEvents = [
-      { event: 'error', data: { error: 'AI_OVERLOADED', messageCode: 'ai.overloaded', message: 'Sobrecarregado.' } },
+      { event: 'error', data: { messageCode: 'ai.overloaded', message: 'Sobrecarregado.' } },
     ];
     global.fetch.mockResolvedValue(createMockSSEStream(errorEvents));
 
@@ -392,14 +389,17 @@ describe('AiChatContext', () => {
     await user.click(screen.getByRole('button', { name: /enviar/i }));
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith('Sobrecarregado.', 'error');
+      const errorRetryEl = document.querySelector('[data-info="errorRetry"]');
+      expect(errorRetryEl.textContent).toBe('Test message');
     });
+
+    expect(showToast).not.toHaveBeenCalled();
   });
 
   it('clears errorCode on startNewConversation', async () => {
     const user = userEvent.setup();
     const errorEvents = [
-      { event: 'error', data: { error: 'AI_OVERLOADED', messageCode: 'ai.overloaded', message: 'Sobrecarregado.' } },
+      { event: 'error', data: { messageCode: 'ai.overloaded', message: 'Sobrecarregado.' } },
     ];
     global.fetch.mockResolvedValue(createMockSSEStream(errorEvents));
 
@@ -409,7 +409,7 @@ describe('AiChatContext', () => {
 
     await waitFor(() => {
       const errorCodeEl = document.querySelector('[data-info="errorCode"]');
-      expect(errorCodeEl.textContent).toBe('AI_OVERLOADED');
+      expect(errorCodeEl.textContent).toBe('ai.overloaded');
     });
 
     await user.click(screen.getByRole('button', { name: /nova conversa/i }));

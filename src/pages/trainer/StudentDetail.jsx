@@ -195,7 +195,7 @@ const StudentDetail = () => {
   const location = useLocation();
   const { showToast } = useToast();
   const { user } = useAuth();
-  const { sendMessage } = useAiChat();
+  const { startConversation } = useAiChat();
 
   const [period, setPeriod] = usePeriodPersistence(user?.id);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -270,7 +270,7 @@ const StudentDetail = () => {
     setIArnoldSubmitting(true);
     try {
       navigate('/trainer/ai-assistant');
-      await sendMessage(td('iArnoldPrompt', { name: studentName || td('iArnoldFallbackName') }));
+      await startConversation(td('iArnoldPrompt', { name: studentName || td('iArnoldFallbackName') }), { studentId: id });
     } catch (err) {
       console.error('[Cockpit] iArnold prefill failed', translateError(err));
     } finally {

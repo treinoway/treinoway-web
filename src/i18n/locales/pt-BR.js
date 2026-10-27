@@ -184,6 +184,18 @@ const ptBR = {
     "ai.overloaded":
       "O assistente está sobrecarregado no momento. Tente novamente em instantes.",
     "ai.trainerNotFound": "Perfil de treinador não encontrado.",
+    "ai.timeout":
+      "O iArnold demorou demais para responder. Tente novamente ou divida o pedido.",
+    "ai.unavailable":
+      "O iArnold está indisponível no momento. Tente novamente mais tarde.",
+    "ai.responseTooLong":
+      "A resposta ficou longa demais. Divida o pedido em partes menores e tente de novo.",
+    "ai.confirmationRequired":
+      "Confirme o pedido para que o iArnold execute a ação.",
+    "platformPlan.aiNotAvailable":
+      "O seu plano não inclui o iArnold. Faça upgrade para usar o assistente.",
+    "platformPlan.aiActionsExceeded":
+      "Você atingiu o limite de ações do iArnold deste aluno no seu plano.",
     "gamification.ranking.insufficientStudents":
       "São necessários pelo menos 3 alunos ativos (últimos 14 dias) para exibir o ranking.",
     "gamification.config.notFound":
@@ -890,7 +902,6 @@ const ptBR = {
     seeAllExercises: "Ver todos os {count} exercícios",
     showLess: "Mostrar menos",
     askIArnold: "Perguntar ao iArnold",
-    iArnoldPrefill: "Como posso ajudar com {studentName}?",
     blockLoadFailed: "Falha ao carregar",
     retry: "Tentar novamente",
     invalidPeriod: "Período inválido. Tente novamente.",
@@ -940,6 +951,120 @@ const ptBR = {
   },
 
   iArnold: {
+    fab: { replied: "Assistente IA respondeu", processing: "Assistente IA processando" },
+    sessionPrompt: {
+      text: "Analise o desempenho do aluno {student}, que acabou de fazer o {training}: frequência, última sessão e evolução de carga nos principais exercícios",
+      studentFallback: "este aluno",
+      trainingFallback: "treino",
+    },
+    chat: {
+      title: "iArnold",
+      history: "Histórico",
+      newConversation: "Nova conversa",
+      startNewConversation: "Iniciar nova conversa",
+      loading: "Carregando...",
+      processing: "Processando…",
+      actionDone: "Ação executada com sucesso.",
+      emptyReply: "Não consegui gerar uma resposta. Tente reformular seu pedido.",
+      genericError: "Não foi possível processar sua mensagem.",
+      connectionLost: "A conexão com o assistente foi interrompida. Tente novamente.",
+      replied: "iArnold respondeu.",
+      retry: "Tentar novamente",
+      you: "Você",
+      assistantName: "iArnold",
+      conversationLabel: "Conversa com iArnold",
+      composerLabel: "Mensagem para o assistente",
+      composerPlaceholder: "Pergunte ao iArnold…",
+      send: "Enviar mensagem",
+      enterHint: "Enter para enviar",
+      placeholderHint: "Preencha os campos entre chaves antes de enviar",
+      activeContext: "Contexto ativo",
+      activeContextStudents: "Contexto ativo: {count} alunos",
+      dataAccess: "iArnold tem acesso aos seus alunos, rotinas, treinos, exercícios e desempenho",
+      poweredBy: "Powered by Claude",
+      briefingLabel: "Briefing de alunos",
+      groups: {
+        create: { title: "Criar", subtitle: "Entra na sua biblioteca depois que você confirmar" },
+        track: { title: "Acompanhar alunos", subtitle: "Mudanças só valem depois que você confirmar" },
+      },
+    },
+    create: {
+      create: {
+        routine: {
+          eyebrow: "Rotina",
+          title: "Criar rotina completa",
+          description: "Monta uma rotina na biblioteca, com vários treinos, exercícios, séries, repetições, carga e descanso.",
+          hint: "Pede sua confirmação",
+          prompt: "Crie a rotina {nome da rotina} com 3 treinos (A, B e C) para {objetivo}, com exercícios, séries, repetições, carga e descanso",
+        },
+        workout: {
+          eyebrow: "Treino avulso",
+          title: "Montar treino",
+          description: "Cria um treino na biblioteca com os exercícios, séries, repetições e descanso que você pedir.",
+          hint: "Pede sua confirmação",
+          prompt: "Monte o treino {nome do treino} de {grupo muscular} com {número} exercícios, incluindo séries, repetições e descanso",
+        },
+        exercise: {
+          eyebrow: "Exercício",
+          title: "Cadastrar exercício",
+          description: "Cadastra um novo exercício na sua biblioteca para usar em treinos e rotinas.",
+          hint: "Pede sua confirmação",
+          prompt: "Cadastre na biblioteca o exercício {nome do exercício} para {grupo muscular}",
+        },
+      },
+      track: {
+        apply: {
+          eyebrow: "Rotina do aluno",
+          title: "Aplicar rotina a um aluno",
+          description: "Aplica uma rotina da sua biblioteca a um aluno, com data de início e de término.",
+          hint: "Pede sua confirmação",
+          prompt: "Aplique a rotina {nome da rotina} para o aluno {nome do aluno} a partir de {data de início}",
+        },
+        adjust: {
+          eyebrow: "Treino do aluno",
+          title: "Ajustar treino de um aluno",
+          description: "Muda séries, repetições, carga ou descanso de um exercício na rotina atual do aluno.",
+          hint: "Pede sua confirmação",
+          prompt: "No treino {nome do treino} do aluno {nome do aluno}, altere o exercício {nome do exercício} para {séries} séries de {repetições} repetições, com carga de {carga} e descanso de {descanso}",
+        },
+        analyze: {
+          eyebrow: "Desempenho",
+          title: "Analisar desempenho",
+          description: "Resume frequência, última sessão, rotina atual e evolução de carga nos principais exercícios.",
+          hint: "Somente leitura",
+          prompt: "Analise o desempenho do aluno {nome do aluno}: frequência, última sessão e evolução de carga nos principais exercícios",
+        },
+      },
+    },
+    actions: {
+      import_from_template: "Rotina aplicada",
+      add_training_to_protocol: "Treino adicionado",
+      add_exercises_to_training: "Exercícios adicionados",
+      create_exercise_template: "Exercício criado",
+      create_training_template: "Treino criado",
+      create_protocol_template: "Rotina criada",
+      update_protocol_template: "Rotina atualizada",
+      update_training_template: "Treino atualizado",
+      update_exercise_template: "Exercício atualizado",
+      update_protocol: "Rotina do aluno atualizada",
+      update_training: "Treino do aluno atualizado",
+      update_exercise: "Exercício do aluno atualizado",
+      get_student_performance: "Desempenho analisado",
+      generic: "Ação executada",
+      many: "{count} ações executadas",
+    },
+    history: {
+      title: "Histórico de conversas",
+      close: "Fechar histórico",
+      loading: "Carregando conversas",
+      empty: "Nenhuma conversa ainda.",
+      untitled: "Sem título",
+      open: "Abrir conversa: {title}",
+      remove: "Excluir conversa: {title}",
+      removeTitle: "Excluir conversa",
+      groups: { today: "Hoje", yesterday: "Ontem", week: "Esta semana", older: "Anteriores" },
+      confirmRemove: "Excluir a conversa \"{title}\"? Esta ação não pode ser desfeita.",
+    },
     scrollPill: {
       new: "Ver nova resposta",
       aria: "Ir para a resposta mais recente",
@@ -1382,7 +1507,7 @@ const ptBR = {
     customPeriod: "Período personalizado",
     retry: "Tentar novamente",
     askIArnold: "Perguntar ao iArnold",
-    iArnoldPrompt: "Como posso ajudar com {name}?",
+    iArnoldPrompt: "Analise o aluno {name} e sugira ajustes na rotina e na aderência.",
     iArnoldFallbackName: "esse aluno",
     sections: {
       relationship: "Aderência e relacionamento",
