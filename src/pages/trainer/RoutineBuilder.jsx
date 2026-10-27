@@ -48,7 +48,7 @@ import useExerciseReorder from '../../hooks/useExerciseReorder';
 import useDismissablePopover from '../../hooks/useDismissablePopover';
 import useAnchoredPopoverPosition, {
   placeBelowStart,
-  placeBelowEnd,
+  placeFlipEnd,
   placeFlipStart,
 } from '../../hooks/useAnchoredPopoverPosition';
 import formatRelativeTime from '../../utils/relativeTime';
@@ -449,7 +449,7 @@ const InlineMenu = ({ ariaLabel, items, onOpen }) => {
 
   const handleDismiss = useCallback(() => setOpen(false), []);
   useDismissablePopover({ open, refs: [triggerRef, menuRef], onDismiss: handleDismiss });
-  useAnchoredPopoverPosition({ open, triggerRef, popoverRef: menuRef, place: placeBelowEnd });
+  useAnchoredPopoverPosition({ open, triggerRef, popoverRef: menuRef, place: placeFlipEnd });
 
   const handleTriggerClick = useCallback(
     (e) => {

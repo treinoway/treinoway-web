@@ -18,17 +18,27 @@ export const placeBelowStartClamped = (rect, popover) => {
   };
 };
 
+// Top coordinate: below the trigger, or above it when there is no room below and more room above.
+const flipTop = (rect, height) => {
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const flipUp = spaceBelow < height + POPOVER_OFFSET && rect.top > spaceBelow;
+  return flipUp
+    ? Math.max(EDGE_MARGIN, rect.top - height - POPOVER_OFFSET)
+    : rect.bottom + POPOVER_OFFSET;
+};
+
 /** Below the trigger, or above when there is no room below and more room above. */
 export const placeFlipStart = (rect, popover) => {
   const height = popover.offsetHeight || HEIGHT_FALLBACK;
   const width = popover.offsetWidth || WIDTH_FALLBACK;
-  const spaceBelow = window.innerHeight - rect.bottom;
-  const flipUp = spaceBelow < height + POPOVER_OFFSET && rect.top > spaceBelow;
-  const top = flipUp
-    ? Math.max(EDGE_MARGIN, rect.top - height - POPOVER_OFFSET)
-    : rect.bottom + POPOVER_OFFSET;
-  return { top, left: Math.min(rect.left, window.innerWidth - width - EDGE_MARGIN) };
+  return { top: flipTop(rect, height), left: Math.min(rect.left, window.innerWidth - width - EDGE_MARGIN) };
 };
+
+/** Like placeFlipStart, but right edge aligned with the trigger's right edge. */
+export const placeFlipEnd = (rect, popover) => ({
+  top: flipTop(rect, popover.offsetHeight || HEIGHT_FALLBACK),
+  right: window.innerWidth - rect.right,
+});
 
 /** Below the trigger, right edge aligned with the trigger's right edge. */
 export const placeBelowEnd = (rect) => ({

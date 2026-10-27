@@ -6,6 +6,7 @@ import useAnchoredPopoverPosition, {
   placeBelowStartClamped,
   placeFlipStart,
   placeBelowEnd,
+  placeFlipEnd,
 } from './useAnchoredPopoverPosition';
 
 const rect = (overrides = {}) => ({ top: 100, bottom: 140, left: 50, right: 150, ...overrides });
@@ -38,6 +39,21 @@ describe('placement strategies', () => {
   it('placeFlipStart stays below when there is room', () => {
     setViewport(1000, 800);
     expect(placeFlipStart(rect(), popover(100, 200)).top).toBe(144);
+  });
+
+  it('placeFlipEnd flips above near the bottom, keeping the right edge', () => {
+    setViewport(1000, 400);
+    expect(placeFlipEnd(rect({ top: 300, bottom: 340 }), popover(100, 200))).toEqual({ top: 96, right: 850 });
+  });
+
+  it('placeFlipEnd stays below when there is room', () => {
+    setViewport(1000, 800);
+    expect(placeFlipEnd(rect(), popover(100, 200))).toEqual({ top: 144, right: 850 });
+  });
+
+  it('placeFlipEnd uses a height fallback and clamps to the top edge', () => {
+    setViewport(1000, 400);
+    expect(placeFlipEnd(rect({ top: 250, bottom: 290 }), popover(100, 0)).top).toBe(8);
   });
 
   it('placeBelowEnd anchors the right edge', () => {
