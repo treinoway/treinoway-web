@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 
@@ -45,5 +45,22 @@ describe('index.css: dashboard action card and iArnold focus', () => {
 
   it('keeps the sidebar iArnold badge free of the brand accent orange', () => {
     expect(ruleBody('.sidebar-link-badge')).not.toContain('brand-accent');
+  });
+});
+
+describe('index.css: onboarding checklist card', () => {
+  const componentDir = resolve(process.cwd(), 'src/components/OnboardingChecklistCard');
+  const usedClasses = readdirSync(componentDir)
+    .filter((file) => file.endsWith('.jsx') && !file.includes('.test.'))
+    .flatMap((file) => readFileSync(resolve(componentDir, file), 'utf8').match(/onboarding-[a-z-]+[a-z]/g) ?? [])
+    .filter((name, index, all) => all.indexOf(name) === index);
+
+  it('finds the classes the checklist components use', () => {
+    expect(usedClasses).toContain('onboarding-card');
+    expect(usedClasses).toContain('onboarding-row');
+  });
+
+  it.each(usedClasses)('.%s has a rule', (name) => {
+    expect(css).toMatch(new RegExp(`\\.${name}[\\s,:.{]`));
   });
 });
