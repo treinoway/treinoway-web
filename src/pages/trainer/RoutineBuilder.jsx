@@ -38,6 +38,7 @@ import RoutineSummarySheet from '../../components/RoutineSummarySheet';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import useRoutineBuilder from '../../hooks/useRoutineBuilder';
+import { markOnboardingStepOptimistic, readOnboardingStatusCache } from '../../hooks/useOnboardingStatus';
 import useProtocolBuilder from '../../hooks/useProtocolBuilder';
 import useRoutineDraft from '../../hooks/useRoutineDraft';
 import useProtocolDraft from '../../hooks/useProtocolDraft';
@@ -2421,6 +2422,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
   // into state — it only activates after the first explicit change.
   const touchedRef = useRef(false);
 
+  const { user: authUser } = useAuth();
   const isProtocol = mode === 'protocol';
   const isTemplateEdit = !isProtocol && !!routineId;
 
@@ -2683,6 +2685,16 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
     [routine]
   );
 
+  const navigateAfterTemplateSave = useCallback(() => {
+    const alreadyOnboarded = readOnboardingStatusCache(authUser?.id)?.onboarding?.firstProtocolCreated;
+    if (isTemplateEdit || alreadyOnboarded) {
+      navigate('/trainer/routines');
+      return;
+    }
+    markOnboardingStepOptimistic('firstProtocolCreated');
+    navigate('/', { state: { justCompleted: 'firstRoutine' } });
+  }, [authUser, isTemplateEdit, navigate]);
+
   const handleSave = useCallback(async () => {
     if (!canSave) return;
     try {
@@ -2714,7 +2726,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
       if (!isProtocol) {
         draft.clearDraft();
         showToast('Rotina salva.', 'success');
-        navigate('/trainer/routines');
+        navigateAfterTemplateSave();
       } else {
         protocolDraft.clearDraft();
         showToast('Rotina salva.', 'success');
@@ -2723,7 +2735,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
     } catch (err) {
       showToast(err.userMessage || translateError(err), 'error');
     }
-  }, [canSave, routine, titleName, trainings, draft, protocolDraft, showToast, navigate, isProtocol, studentId, editProtocolId]);
+  }, [canSave, routine, titleName, trainings, draft, protocolDraft, showToast, navigate, navigateAfterTemplateSave, isProtocol, studentId, editProtocolId]);
 
   const handleToggleExpand = useCallback((trainingId) => {
     setExpandedId((prev) => {

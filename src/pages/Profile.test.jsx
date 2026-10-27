@@ -754,4 +754,123 @@ describe('Profile', () => {
       expect(screen.queryByRole('button', { name: /acessar modo admin/i })).not.toBeInTheDocument();
     });
   });
+
+  describe('Onboarding deep-link (criterion 7)', () => {
+    const trainerWithoutSurname = { id: 1, email: 'user@example.com', firstName: 'João' };
+
+    beforeEach(() => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+      vi.mocked(useAuth).mockReturnValue({
+        user: trainerWithoutSurname,
+        updateUser: mockUpdateUser,
+        refreshUser: mockRefreshUser,
+        hasRole: mockHasRole,
+        logout: mockLogout,
+        isAdmin: false,
+      });
+    });
+
+    it('opens in edit mode and flags only the missing required fields with ?edit=1&focus=missing', () => {
+      renderWithRouter(<Profile />, { route: '/profile?edit=1&focus=missing' });
+
+      expect(screen.getByRole('button', { name: /^salvar$/i })).toBeInTheDocument();
+      const [firstName, lastName] = screen.getAllByRole('textbox');
+      expect(firstName).not.toHaveAttribute('aria-invalid', 'true');
+      expect(lastName).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('opens in edit mode with ?edit=1 alone, without flagging anything', () => {
+      renderWithRouter(<Profile />, { route: '/profile?edit=1' });
+
+      expect(screen.getByRole('button', { name: /^salvar$/i })).toBeInTheDocument();
+      screen.getAllByRole('textbox').forEach((input) => {
+        expect(input).not.toHaveAttribute('aria-invalid', 'true');
+      });
+    });
+
+    it('stays in view mode without the edit query param', () => {
+      renderWithRouter(<Profile />, { route: '/profile' });
+
+      expect(screen.getByRole('button', { name: /editar/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('Avatar upload (criterion 20)', () => {
+    const trainerUser = { ...mockUser, id: 1, roles: ['TRAINER'] };
+    const photo = () => new File(['(binary)'], 'ana.png', { type: 'image/png' });
+
+    beforeEach(() => {
+      sessionStorage.clear();
+      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+      vi.mocked(api.post).mockReset();
+      vi.mocked(useAuth).mockReturnValue({
+        user: trainerUser,
+        updateUser: mockUpdateUser,
+        refreshUser: mockRefreshUser,
+        hasRole: mockHasRole,
+        logout: mockLogout,
+        isAdmin: false,
+      });
+    });
+
+    it('uploads the picked image to POST /me/avatar as multipart and stores the returned profile', async () => {
+      const user = userEvent.setup();
+      const updated = { ...trainerUser, avatarUrl: 'https://cdn.example.com/ana.png' };
+      api.post.mockResolvedValue({ data: { avatarUrl: updated.avatarUrl } });
+
+      renderWithRouter(<Profile />, { route: '/profile?edit=1' });
+      await user.upload(screen.getByLabelText('Foto de perfil'), photo());
+
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith('/me/avatar', expect.any(FormData), expect.anything());
+      });
+      const sent = api.post.mock.calls[0][1];
+      expect(sent.get('file')).toBeInstanceOf(File);
+      await waitFor(() => expect(mockUpdateUser).toHaveBeenCalledWith(updated));
+      expect(mockUpdateUser).toHaveBeenCalledWith(expect.objectContaining({
+        id: trainerUser.id,
+        roles: trainerUser.roles,
+        firstName: trainerUser.firstName,
+        avatarUrl: 'https://cdn.example.com/ana.png',
+      }));
+    });
+
+    it('marks the profile step done optimistically when name and surname are already set', async () => {
+      const user = userEvent.setup();
+      api.post.mockResolvedValue({ data: { avatarUrl: 'https://cdn.example.com/ana.png' } });
+
+      renderWithRouter(<Profile />, { route: '/profile?edit=1' });
+      await user.upload(screen.getByLabelText('Foto de perfil'), photo());
+
+      await waitFor(() => {
+        expect(JSON.parse(sessionStorage.getItem('treinoway:onboardingOptimistic'))).toMatchObject({ profileCompleted: true });
+      });
+    });
+
+    it('renders the avatar image instead of initials when the user has an avatarUrl', () => {
+      vi.mocked(useAuth).mockReturnValue({
+        user: { ...trainerUser, avatarUrl: 'https://cdn.example.com/ana.png' },
+        updateUser: mockUpdateUser,
+        refreshUser: mockRefreshUser,
+        hasRole: mockHasRole,
+        logout: mockLogout,
+        isAdmin: false,
+      });
+
+      renderWithRouter(<Profile />);
+
+      expect(screen.getByRole('img', { name: 'Foto de perfil' })).toHaveAttribute('src', 'https://cdn.example.com/ana.png');
+    });
+
+    it('shows an error toast and keeps the user untouched when the upload fails', async () => {
+      const user = userEvent.setup();
+      api.post.mockRejectedValue({ userMessage: 'Falha no envio da foto' });
+
+      renderWithRouter(<Profile />, { route: '/profile?edit=1' });
+      await user.upload(screen.getByLabelText('Foto de perfil'), photo());
+
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Falha no envio da foto', 'error'));
+      expect(mockUpdateUser).not.toHaveBeenCalled();
+    });
+  });
 });

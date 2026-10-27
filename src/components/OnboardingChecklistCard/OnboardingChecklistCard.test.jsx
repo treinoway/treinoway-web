@@ -1,4 +1,5 @@
 import { screen, waitFor } from '@testing-library/react';
+import { useLocation } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter } from '../../test/test-utils';
 import OnboardingChecklistCard from './OnboardingChecklistCard';
@@ -114,8 +115,8 @@ describe('OnboardingChecklistCard', () => {
 
     expect(screen.getByText('Complete seu perfil')).toBeInTheDocument();
     expect(screen.getByText('Vincule seu primeiro aluno')).toBeInTheDocument();
-    expect(screen.getByText('Crie seu primeiro protocolo')).toBeInTheDocument();
-    expect(screen.getByText('0 de 3')).toBeInTheDocument();
+    expect(screen.getByText('Crie sua primeira rotina')).toBeInTheDocument();
+    expect(screen.getByText('0 de 4')).toBeInTheDocument();
   });
 
   it('shows "Falta: ..." subtitle with missing fields when profile is incomplete', async () => {
@@ -148,17 +149,16 @@ describe('OnboardingChecklistCard', () => {
       trainerOnboarding: {
         profileCompleted: true,
         firstStudentLinked: true,
-        firstProtocolCreated: false,
+        firstProtocolCreated: true,
       },
     }));
 
     renderWithRouter(<OnboardingChecklistCard />);
 
     await waitFor(() => {
-      expect(screen.getByText('2 de 3')).toBeInTheDocument();
+      expect(screen.getByText('3 de 4')).toBeInTheDocument();
+      expect(screen.getByText('Quase lá — falta só 1!')).toBeInTheDocument();
     });
-
-    expect(screen.getByText('Quase lá — falta só 1!')).toBeInTheDocument();
   });
 
   it('renders success state with dismiss button when all steps are done', async () => {
@@ -167,6 +167,7 @@ describe('OnboardingChecklistCard', () => {
         profileCompleted: true,
         firstStudentLinked: true,
         firstProtocolCreated: true,
+        firstAnamnesisSent: true,
       },
     }));
 
@@ -187,6 +188,7 @@ describe('OnboardingChecklistCard', () => {
         profileCompleted: true,
         firstStudentLinked: true,
         firstProtocolCreated: true,
+        firstAnamnesisSent: true,
       },
     }));
 
@@ -211,6 +213,7 @@ describe('OnboardingChecklistCard', () => {
       profileCompleted: true,
       firstStudentLinked: true,
       firstProtocolCreated: true,
+      firstAnamnesisSent: true,
     };
     mockMeResponse(baseTrainerWithOnboarding({ trainerOnboarding: allDoneOnboarding }));
 
@@ -242,6 +245,7 @@ describe('OnboardingChecklistCard', () => {
       profileCompleted: true,
       firstStudentLinked: true,
       firstProtocolCreated: true,
+      firstAnamnesisSent: true,
     };
     vi.mocked(useAuth).mockReturnValue({ hasRole: mockHasRole, user: { id: 1 } });
     mockMeResponse(baseTrainerWithOnboarding({ trainerOnboarding: allDoneOnboarding }));
@@ -275,6 +279,7 @@ describe('OnboardingChecklistCard', () => {
         profileCompleted: true,
         firstStudentLinked: true,
         firstProtocolCreated: true,
+        firstAnamnesisSent: true,
       },
     }));
 
@@ -309,29 +314,13 @@ describe('OnboardingChecklistCard', () => {
       .filter((text) => text && (
         text.includes('Complete seu perfil')
         || text.includes('Vincule seu primeiro aluno')
-        || text.includes('Crie seu primeiro protocolo')
+        || text.includes('Crie sua primeira rotina')
       ));
 
-    expect(titles[0]).toMatch(/Vincule seu primeiro aluno|Crie seu primeiro protocolo/);
+    expect(titles[0]).toMatch(/Vincule seu primeiro aluno|Crie sua primeira rotina/);
     expect(titles[titles.length - 1]).toMatch(/Complete seu perfil/);
   });
 
-  it('renders all-pending when /me fetch keeps failing (trainer known from auth)', async () => {
-    api.get.mockRejectedValue(new Error('network'));
-
-    renderWithRouter(<OnboardingChecklistCard />);
-
-    await waitFor(() => {
-      expect(api.get).toHaveBeenCalledTimes(3);
-    }, { timeout: 6000 });
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Primeiros passos' })).toBeInTheDocument();
-    });
-
-    expect(screen.getByText('Adicione seus dados pessoais e endereço')).toBeInTheDocument();
-    expect(screen.getByText('0 de 3')).toBeInTheDocument();
-  }, 10000);
 
   it('shows skeleton while loading', () => {
     api.get.mockImplementation(() => new Promise(() => {}));
@@ -339,5 +328,155 @@ describe('OnboardingChecklistCard', () => {
     const { container } = renderWithRouter(<OnboardingChecklistCard />);
 
     expect(container.querySelector('.onboarding-card--skeleton')).toBeInTheDocument();
+  });
+
+  describe('first-contact steps (criteria 4, 5, 6, 13, 16)', () => {
+    const STATUS_CACHE_KEY = 'treinoway:onboardingStatus:1';
+    const allPending = {
+      profileCompleted: false,
+      firstStudentLinked: false,
+      firstProtocolCreated: false,
+      firstStudentInvited: false,
+      firstAnamnesisSent: false,
+      brandingConfigured: false,
+    };
+
+    const LocationProbe = () => {
+      const location = useLocation();
+      return <output aria-label="location">{`${location.pathname}${location.search}`}</output>;
+    };
+
+    const renderCard = (route = '/') => renderWithRouter(
+      <>
+        <OnboardingChecklistCard />
+        <LocationProbe />
+      </>,
+      { route },
+    );
+
+    it('shows the anamnesis step in a 4-step checklist', async () => {
+      mockMeResponse(baseTrainerWithOnboarding({
+        platformPlan: { tier: 'FREE', limits: { branding: false } },
+        trainerOnboarding: allPending,
+      }));
+
+      renderCard();
+
+      expect(await screen.findByText('Envie sua primeira anamnese')).toBeInTheDocument();
+      expect(screen.queryByText('Configure sua marca')).not.toBeInTheDocument();
+      expect(screen.getByText('0 de 4')).toBeInTheDocument();
+    });
+
+    it('never shows a branding step, even when the plan allows branding', async () => {
+      mockMeResponse(baseTrainerWithOnboarding({
+        platformPlan: { tier: 'PRO', limits: { branding: true } },
+        trainerOnboarding: { ...allPending, brandingConfigured: true },
+      }));
+
+      renderCard();
+
+      expect(await screen.findByText('Envie sua primeira anamnese')).toBeInTheDocument();
+      expect(screen.queryByText('Configure sua marca')).not.toBeInTheDocument();
+      expect(screen.getByText('0 de 4')).toBeInTheDocument();
+    });
+
+    it('links the anamnesis step to its screen', async () => {
+      const user = userEvent.setup();
+      mockMeResponse(baseTrainerWithOnboarding({
+        trainerOnboarding: allPending,
+      }));
+
+      renderCard();
+
+      await user.click(await screen.findByRole('button', { name: /Envie sua primeira anamnese/ }));
+      expect(screen.getByRole('status', { name: 'location' })).toHaveTextContent('/trainer/anamneses');
+    });
+
+    it('counts step 2 as done with an awaiting-student subtitle when invited but not yet linked', async () => {
+      mockMeResponse(baseTrainerWithOnboarding({
+        trainerOnboarding: { ...allPending, firstStudentInvited: true },
+      }));
+
+      renderCard();
+
+      expect(await screen.findByText('Convite enviado — aguardando o aluno aceitar')).toBeInTheDocument();
+      expect(screen.getByText('1 de 4')).toBeInTheDocument();
+    });
+
+    it('marks the routine step done optimistically when landing with justCompleted firstRoutine', async () => {
+      mockMeResponse(baseTrainerWithOnboarding({ trainerOnboarding: allPending }));
+
+      renderCard({ pathname: '/', state: { justCompleted: 'firstRoutine' } });
+
+      expect(await screen.findByText('Crie sua primeira rotina')).toBeInTheDocument();
+      expect(screen.getByText('1 de 4')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Crie sua primeira rotina, concluído/ })).toBeInTheDocument();
+    });
+
+    it('persists the last-known status per user after a successful fetch', async () => {
+      mockMeResponse(baseTrainerWithOnboarding({
+        trainerOnboarding: { ...allPending, profileCompleted: true },
+      }));
+
+      renderCard();
+
+      await screen.findByRole('heading', { name: 'Primeiros passos' });
+      const cached = JSON.parse(localStorage.getItem(STATUS_CACHE_KEY));
+      expect(cached.onboarding.profileCompleted).toBe(true);
+      expect(cached.onboarding.firstAnamnesisSent).toBe(false);
+      expect(localStorage.getItem('treinoway:onboardingStatus:2')).toBeNull();
+    });
+
+    it('does not render a skeleton while /me loads when the cached status is all done', () => {
+      localStorage.setItem(STATUS_CACHE_KEY, JSON.stringify({
+        onboarding: { ...allPending, profileCompleted: true, firstStudentLinked: true, firstProtocolCreated: true, firstAnamnesisSent: true },
+        brandingAllowed: false,
+      }));
+      api.get.mockImplementation(() => new Promise(() => {}));
+
+      renderCard();
+
+      expect(screen.queryByRole('region', { name: 'Primeiros passos' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Primeiros passos' })).not.toBeInTheDocument();
+    });
+
+    it('does not render a skeleton while /me loads when the card was dismissed', () => {
+      localStorage.setItem(getOnboardingDismissKey(1), '1');
+      api.get.mockImplementation(() => new Promise(() => {}));
+
+      renderCard();
+
+      expect(screen.queryByRole('region', { name: 'Primeiros passos' })).not.toBeInTheDocument();
+    });
+
+    it('falls back to the cached status when /me keeps failing', async () => {
+      localStorage.setItem(STATUS_CACHE_KEY, JSON.stringify({
+        onboarding: { ...allPending, profileCompleted: true },
+        brandingAllowed: false,
+      }));
+      api.get.mockRejectedValue(new Error('network'));
+
+      renderCard();
+
+      await waitFor(() => {
+        expect(api.get).toHaveBeenCalledTimes(3);
+      }, { timeout: 6000 });
+      expect(await screen.findByText('1 de 4')).toBeInTheDocument();
+    }, 10000);
+
+    it('renders nothing (no "0 de N") when /me keeps failing and there is no cache', async () => {
+      api.get.mockRejectedValue(new Error('network'));
+
+      renderCard();
+
+      await waitFor(() => {
+        expect(api.get).toHaveBeenCalledTimes(3);
+      }, { timeout: 6000 });
+      await waitFor(() => {
+        expect(screen.queryByRole('region', { name: 'Primeiros passos' })).not.toBeInTheDocument();
+      });
+      expect(screen.queryByRole('heading', { name: 'Primeiros passos' })).not.toBeInTheDocument();
+      expect(screen.queryByText(/^0 de \d$/)).not.toBeInTheDocument();
+    }, 10000);
   });
 });

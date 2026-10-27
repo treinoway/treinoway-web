@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, waitFor, fireEvent, within, act } from '../../test/test-utils';
+import { screen, waitFor, fireEvent, within, act, render } from '../../test/test-utils';
 import { renderWithRoute } from '../../test/test-utils';
 import api from '../../api/axios';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -2066,6 +2067,62 @@ describe('RoutineBuilder — clearDraft on successful save', () => {
       expect(saveRoutine).toHaveBeenCalled();
     });
     expect(clearDraft).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Tests — first routine onboarding hint (criterion 6) ──────────────────────
+
+describe('RoutineBuilder — onboarding hint after saving a routine', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  const LocationProbe = () => {
+    const location = useLocation();
+    return (
+      <output aria-label="location">
+        {location.pathname}
+        {location.state?.justCompleted ? `|${location.state.justCompleted}` : ''}
+      </output>
+    );
+  };
+
+  const renderNewWithHome = () =>
+    render(
+      <MemoryRouter initialEntries={['/trainer/routines/new']}>
+        <Routes>
+          <Route path="/trainer/routines/new" element={<RoutineBuilder />} />
+          <Route path="*" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+  it('navigates to "/" with justCompleted firstRoutine after creating a routine template', async () => {
+    const saveRoutine = vi.fn().mockResolvedValue({ id: 'r-new' });
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE, saveRoutine });
+
+    const user = userEvent.setup();
+    renderNewWithHome();
+
+    await user.click(screen.getAllByRole('button', { name: /Salvar rotina/i })[0]);
+
+    expect(await screen.findByRole('status', { name: 'location' })).toHaveTextContent('/|firstRoutine');
+  });
+
+  it('does not navigate home when saving fails', async () => {
+    const saveRoutine = vi.fn().mockRejectedValue({ userMessage: 'Erro ao salvar rotina.' });
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE, saveRoutine });
+
+    const user = userEvent.setup();
+    renderNewWithHome();
+
+    await user.click(screen.getAllByRole('button', { name: /Salvar rotina/i })[0]);
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('Erro ao salvar rotina.', 'error');
+    });
+    expect(screen.queryByRole('status', { name: 'location' })).not.toBeInTheDocument();
   });
 });
 

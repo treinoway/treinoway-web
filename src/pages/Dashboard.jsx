@@ -3,10 +3,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Palette, Sparkles, Trophy, HeartPulse } from 'lucide-react';
+import { UserPlus, Sparkles, Trophy, HeartPulse } from 'lucide-react';
 import api from '../api/axios';
 import NoStudentsModal from '../components/NoStudentsModal';
-import OnboardingChecklistCard from '../components/OnboardingChecklistCard';
+import { OnboardingChecklistView } from '../components/OnboardingChecklistCard';
 import NutritionistActivationSheet from '../components/NutritionistActivationSheet';
 import NutritionistOnboardingCard from '../components/NutritionistOnboardingCard';
 import WelcomeHero from '../components/WelcomeHero';
@@ -17,6 +17,7 @@ import useActiveMode from '../hooks/useActiveMode';
 import useAiAccess from '../hooks/useAiAccess';
 import useTrainerRoster from '../hooks/useTrainerRoster';
 import useTrainerDashboard from '../hooks/useTrainerDashboard';
+import useOnboardingChecklist from '../hooks/useOnboardingChecklist';
 import formatHeroDateLabel from '../utils/formatHeroDate';
 import getGreeting from '../utils/getGreeting';
 
@@ -41,6 +42,8 @@ const Dashboard = () => {
 
   const roster = useTrainerRoster(showTrainerCards);
   const controlTower = useTrainerDashboard(showTrainerCards);
+  const onboardingChecklist = useOnboardingChecklist(showTrainerCards);
+  const rosterEmpty = roster.hasCounts && roster.isEmpty;
 
   useEffect(() => {
     if (refreshUser) {
@@ -132,7 +135,7 @@ const Dashboard = () => {
 
   let heroCta = null;
   if (showTrainerCards) {
-    heroCta = roster.hasCounts && roster.isEmpty
+    heroCta = rosterEmpty
       ? { label: 'Vincular primeiro aluno', to: '/trainer/students' }
       : { label: 'Criar rotina', onClick: handleCreateRoutine, loading: checkingStudents };
   }
@@ -147,16 +150,19 @@ const Dashboard = () => {
         greeting={greeting}
       />
 
+      {showTrainerCards && <OnboardingChecklistView checklist={onboardingChecklist} placement="top" />}
+
       {showTrainerCards && (
         <ControlTower
           data={controlTower.data}
           loading={controlTower.loading}
           error={controlTower.error}
+          rosterEmpty={rosterEmpty}
           onRetry={controlTower.refetch}
         />
       )}
 
-      {showTrainerCards && <OnboardingChecklistCard />}
+      {showTrainerCards && <OnboardingChecklistView checklist={onboardingChecklist} placement="bottom" />}
       {showNutritionistOnboarding && nutritionistIncomplete && <NutritionistOnboardingCard />}
 
       {isActivationMode && (
@@ -198,15 +204,6 @@ const Dashboard = () => {
                 description="Crie treinos e rotinas com linguagem natural usando inteligência artificial"
                 to="/trainer/ai-assistant"
                 variant="ai"
-              />
-            )}
-
-            {showTrainerCards && (
-              <ActionCard
-                icon={Palette}
-                title="Sua marca"
-                description="Defina as cores e o visual da sua marca para criar uma experiência personalizada para seus alunos"
-                to="/trainer/branding"
               />
             )}
 

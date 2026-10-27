@@ -29,7 +29,7 @@ vi.mock('react-router-dom', async () => {
 beforeEach(() => {
   vi.clearAllMocks();
   useAuth.mockReturnValue({
-    user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' },
+    user: { id: 1, firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' },
     logout: mockLogout,
     hasRole: mockHasRole.mockReturnValue(false),
   });
@@ -51,7 +51,7 @@ function setupAuth({ email = 'ana@example.com', isTrainer = false, aiActionsPerS
       ? { limits: { aiActionsPerStudent } }
       : undefined;
   useAuth.mockReturnValue({
-    user: { firstName: 'Ana', lastName: 'Lima', email, platformPlan },
+    user: { id: 1, firstName: 'Ana', lastName: 'Lima', email, platformPlan },
     logout: mockLogout,
     hasRole: mockHasRole.mockReturnValue(isTrainer),
   });
@@ -60,6 +60,7 @@ function setupAuth({ email = 'ana@example.com', isTrainer = false, aiActionsPerS
 function setupTrainerWithAi({ aiActionsPerStudent = 3 } = {}) {
   useAuth.mockReturnValue({
     user: {
+      id: 1,
       firstName: 'Ana',
       lastName: 'Lima',
       email: 'ana@example.com',
@@ -658,7 +659,7 @@ describe('Layout', () => {
   // ---------------------------------------------------------------------------
 
   describe('Financeiro sidebar link', () => {
-    const DASHBOARD_CACHE_KEY = 'treinoway.trainerDashboardData';
+    const DASHBOARD_CACHE_KEY = 'treinoway.trainerDashboardData:1';
     const seedDashboardCache = (overdueCount) => {
       localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
         plans: { expiredCount: 0, renewingSoonCount: 0 },

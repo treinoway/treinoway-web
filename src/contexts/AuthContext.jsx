@@ -7,6 +7,7 @@ import API_BASE_URL from '../api/baseUrl';
 import { translateError } from '../i18n';
 import { setSentryUser } from '../lib/sentry';
 import { clearOnboardingSessionState } from '../hooks/useOnboardingStatus';
+import { clearTrainerCaches } from '../utils/trainerCaches';
 import { GOOGLE_POPUP_CANCEL_CODES } from '../constants/googleAuth';
 
 const AuthContext = createContext(null);
@@ -264,6 +265,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     clearOnboardingSessionState();
+    clearTrainerCaches();
   };
 
   const updateUser = (updatedUser) => {

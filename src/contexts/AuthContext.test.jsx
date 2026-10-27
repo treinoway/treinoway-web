@@ -873,6 +873,26 @@ describe('AuthContext', () => {
       expect(sessionStorage.getItem('treinoway:onboardingDismissed')).toBeNull();
     });
 
+    it('clears the trainer dashboard and roster caches (all users, plus legacy unscoped keys) on logout', async () => {
+      localStorage.setItem('accessToken', 'stored-token');
+      localStorage.setItem('user', JSON.stringify(TRAINER_USER));
+      localStorage.setItem(`treinoway.trainerDashboardData:${TRAINER_USER.id}`, '{}');
+      localStorage.setItem(`treinoway.trainerRosterCounts.v2:${TRAINER_USER.id}`, '{}');
+      localStorage.setItem('treinoway.trainerDashboardData', '{}');
+      localStorage.setItem('treinoway.trainerRosterCounts.v2', '{}');
+
+      renderProvider();
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Logout' }).click();
+      });
+
+      expect(localStorage.getItem(`treinoway.trainerDashboardData:${TRAINER_USER.id}`)).toBeNull();
+      expect(localStorage.getItem(`treinoway.trainerRosterCounts.v2:${TRAINER_USER.id}`)).toBeNull();
+      expect(localStorage.getItem('treinoway.trainerDashboardData')).toBeNull();
+      expect(localStorage.getItem('treinoway.trainerRosterCounts.v2')).toBeNull();
+    });
+
     it('does not clear the per-user onboarding dismiss flag (localStorage) on logout', async () => {
       localStorage.setItem('accessToken', 'stored-token');
       localStorage.setItem('user', JSON.stringify(TRAINER_USER));

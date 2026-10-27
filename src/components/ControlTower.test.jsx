@@ -248,4 +248,22 @@ describe('ControlTower', () => {
       expect(screen.queryByRole('link', { name: /PR/i })).not.toBeInTheDocument();
     });
   });
+
+  describe('New-trainer state (rosterEmpty)', () => {
+    it('replaces the tiles with a welcome message and a CTA to link the first student', () => {
+      renderWithRouter(<ControlTower data={buildData()} loading={false} error={false} rosterEmpty onRetry={vi.fn()} />);
+
+      expect(screen.getByRole('heading', { name: 'Tua semana em foco' })).toBeInTheDocument();
+      expect(screen.getByText('Seu painel ganha vida com o primeiro aluno')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Convidar primeiro aluno' })).toHaveAttribute('href', '/trainer/students');
+      expect(screen.queryByText('Planos expirados')).not.toBeInTheDocument();
+    });
+
+    it('does not show the welcome state when the roster is not known to be empty', () => {
+      renderWithRouter(<ControlTower data={buildData()} loading={false} error={false} onRetry={vi.fn()} />);
+
+      expect(screen.queryByText('Seu painel ganha vida com o primeiro aluno')).not.toBeInTheDocument();
+      expect(screen.getByText('Planos expirados')).toBeInTheDocument();
+    });
+  });
 });

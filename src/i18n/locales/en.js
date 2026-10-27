@@ -172,20 +172,19 @@ const en = {
   },
   onboarding: {
     title: 'First steps',
-    progressPill: '{done} of 3',
+    progressPill: '{done} of {total}',
     encouragement: {
-      zero: 'Let\u2019s get started \u2014 3 quick steps.',
-      one: 'Nice! 2 more to take off.',
-      two: 'Almost there \u2014 just 1 left!',
+      zero: 'Let\u2019s get started \u2014 {total} quick steps.',
+      remaining: 'Nice! {remaining} more to take off.',
+      almostThere: 'Almost there \u2014 just 1 left!',
     },
     profileCompleted: {
       title: 'Complete your profile',
-      description: 'Add your personal info and address',
+      description: 'Add your first name, last name and a photo',
       doneSubtitle: 'Done',
       missing: {
         prefix: 'Missing: {fields}',
         connector: 'and',
-        more: '{count} more',
       },
       raceFallback: 'Review your info',
     },
@@ -193,10 +192,16 @@ const en = {
       title: 'Link your first student',
       description: 'You can start with a real or test student',
       doneSubtitle: 'Done',
+      invitedSubtitle: 'Invite sent \u2014 waiting for the student to accept',
     },
     firstProtocolCreated: {
-      title: 'Create your first protocol',
+      title: 'Create your first routine',
       description: 'Build a workout from scratch or use a template',
+      doneSubtitle: 'Done',
+    },
+    firstAnamnesisSent: {
+      title: 'Send your first anamnesis',
+      description: 'Get to know your student before building the workout',
       doneSubtitle: 'Done',
     },
     allDone: {
@@ -210,18 +215,30 @@ const en = {
     fields: {
       firstName: 'first name',
       lastName: 'last name',
-      birthDate: 'birth date',
-      gender: 'gender',
-      line1: 'address',
-      city: 'city',
-      state: 'state',
-      postalCode: 'ZIP code',
-      country: 'country',
+      avatar: 'photo',
     },
     aria: {
       pendingRow: 'Complete {title}, pending. {subtitle}',
       doneRow: 'Complete {title}, done. Go to {title}.',
     },
+  },
+
+  profile: {
+    avatar: {
+      label: 'Profile photo',
+      change: 'Change photo',
+      uploading: 'Uploading...',
+      required: 'Add a profile photo',
+      success: 'Photo updated successfully!',
+      tooLarge: 'File too large. Maximum size is 5MB.',
+      invalidType: 'Invalid format. Use a JPG, PNG or WebP image.',
+    },
+    firstName: { required: 'Enter your first name' },
+    lastName: { required: 'Enter your last name' },
+  },
+
+  protocolTemplates: {
+    exampleBadge: 'Example',
   },
 
   brandCalendar: {
@@ -574,6 +591,11 @@ const en = {
     updatedPrefix: 'updated {timestamp}',
     retryButton: 'Refresh',
     retryFallback: 'Could not refresh.',
+    welcome: {
+      title: 'Your dashboard comes alive with your first student',
+      description: 'Plans, charges and engagement show up here as soon as you link someone.',
+      cta: 'Invite first student',
+    },
     radar: {
       label: 'Radar',
       calmMessage: 'Nothing needs attention right now',

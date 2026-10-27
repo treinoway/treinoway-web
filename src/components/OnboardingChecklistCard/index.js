@@ -1,1 +1,1 @@
-export { default } from './OnboardingChecklistCard';
+export { default, OnboardingChecklistView } from './OnboardingChecklistCard';
