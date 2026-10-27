@@ -102,6 +102,11 @@ const switchToCreateTab = async (user) => {
   await user.click(screen.getByRole('tab', { name: /Criar novo/i }));
 };
 
+// Opens the multi-select library list through the "Adicionar em lote" button.
+const openBatch = async (user) => {
+  await user.click(screen.getByRole('button', { name: /Adicionar em lote/i }));
+};
+
 // ─── Tests — create mode ──────────────────────────────────────────────────────
 
 describe('ExerciseComposer — create mode', () => {
@@ -118,26 +123,28 @@ describe('ExerciseComposer — create mode', () => {
     expect(screen.getByRole('combobox', { name: /Tipo/i })).toBeInTheDocument();
   });
 
-  it('shows the segmented toggle with "Criar novo" and "Da biblioteca"', () => {
+  it('shows the segmented toggle with "Adicionar exercício" and "Criar novo"', () => {
     renderComposer();
     expect(screen.getByRole('tab', { name: /Criar novo/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Da biblioteca/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Adicionar exercício/i })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Da biblioteca/i })).not.toBeInTheDocument();
   });
 
-  it('renders the tabs in physical order "Da biblioteca" then "Criar novo"', () => {
+  it('renders the tabs in physical order "Adicionar exercício" then "Criar novo"', () => {
     renderComposer();
     const tabs = screen.getAllByRole('tab').filter((el) =>
-      /Da biblioteca|Criar novo/i.test(el.textContent)
+      /Adicionar exercício|Criar novo/i.test(el.textContent)
     );
-    expect(tabs[0]).toHaveTextContent(/Da biblioteca/i);
+    expect(tabs[0]).toHaveTextContent(/Adicionar exercício/i);
     expect(tabs[1]).toHaveTextContent(/Criar novo/i);
   });
 
-  it('defaults to the "Da biblioteca" tab when opened (not in edit mode)', () => {
+  it('defaults to the "Adicionar exercício" tab with the search combobox (not in edit mode)', () => {
     renderComposer();
-    expect(screen.getByRole('tab', { name: /Da biblioteca/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /Adicionar exercício/i })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: /Criar novo/i })).toHaveAttribute('aria-selected', 'false');
-    expect(screen.getByRole('list')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /Buscar na biblioteca/i })).toBeInTheDocument();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 
   it('carga switch, vídeo library CTA and observações are visible immediately without any toggle', async () => {
@@ -578,7 +585,8 @@ describe('ExerciseComposer — edit mode (snapshot)', () => {
   it('hides the segmented toggle in edit mode', () => {
     renderComposer({ snapshot: EXERCISE_SNAPSHOT });
     expect(screen.queryByRole('tab', { name: /Criar novo/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /Da biblioteca/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Adicionar exercício/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Adicionar em lote/i })).not.toBeInTheDocument();
   });
 
   it('shows "Salvar alterações" submit label in edit mode', () => {
@@ -653,7 +661,7 @@ describe('ExerciseComposer — edit mode (snapshot)', () => {
 
 // ─── Tests — library tab ──────────────────────────────────────────────────────
 
-describe('ExerciseComposer — library tab', () => {
+describe('ExerciseComposer — batch library (Adicionar em lote)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -665,11 +673,11 @@ describe('ExerciseComposer — library tab', () => {
     vi.useRealTimers();
   });
 
-  it('switching to "Da biblioteca" shows the library panel', async () => {
+  it('clicking "Adicionar em lote" shows the library panel', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     renderComposer();
 
-    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await openBatch(user);
 
     expect(screen.getByRole('list')).toBeInTheDocument();
     expect(screen.getByText('Agachamento')).toBeInTheDocument();
@@ -683,7 +691,7 @@ describe('ExerciseComposer — library tab', () => {
     });
     renderComposer();
 
-    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await openBatch(user);
     await user.type(
       screen.getByRole('textbox', { name: /Buscar exercício/i }),
       'agach'
@@ -712,7 +720,7 @@ describe('ExerciseComposer — library tab', () => {
     });
     renderComposer();
 
-    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await openBatch(user);
     expect(screen.queryByText('Leg Press')).not.toBeInTheDocument();
 
     await user.type(
@@ -732,7 +740,7 @@ describe('ExerciseComposer — library tab', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     renderComposer({ onSubmitFromLibrary });
 
-    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await openBatch(user);
     await user.click(screen.getByText('Agachamento'));
     await user.click(screen.getByRole('button', { name: /Importar 1/i }));
 
@@ -751,7 +759,7 @@ describe('ExerciseComposer — library tab', () => {
     });
     renderComposer({ onSubmitFromLibrary });
 
-    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await openBatch(user);
     await user.type(
       screen.getByRole('textbox', { name: /Buscar exercício/i }),
       'leg'
@@ -774,18 +782,18 @@ describe('ExerciseComposer — library tab', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     renderComposer();
 
-    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await openBatch(user);
 
     const importBtn = screen.getByRole('button', { name: /^Importar$/i });
     expect(importBtn).toBeDisabled();
   });
 
-  it('cancel on library tab calls onCancel', async () => {
+  it('cancel on the batch list calls onCancel', async () => {
     const onCancel = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     renderComposer({ onCancel });
 
-    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await openBatch(user);
     await user.click(screen.getByRole('button', { name: /Cancelar/i }));
 
     expect(onCancel).toHaveBeenCalledTimes(1);
@@ -798,7 +806,7 @@ describe('ExerciseComposer — library tab', () => {
     api.get.mockReturnValueOnce(searchPromise);
     renderComposer();
 
-    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await openBatch(user);
     await user.type(
       screen.getByRole('textbox', { name: /Buscar exercício/i }),
       'flex'
@@ -822,7 +830,7 @@ describe('ExerciseComposer — library tab', () => {
     api.get.mockResolvedValue({ data: { data: [EXERCISE_TEMPLATES[0]], total: 1 } });
     renderComposer();
 
-    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await openBatch(user);
     await user.type(
       screen.getByRole('textbox', { name: /Buscar exercício/i }),
       'ag'
@@ -848,7 +856,7 @@ describe('ExerciseComposer — library tab', () => {
     api.get.mockReturnValue(new Promise((resolve) => { resolveSearch = resolve; }));
     renderComposer();
 
-    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await openBatch(user);
     await user.type(
       screen.getByRole('textbox', { name: /Buscar exercício/i }),
       'slow'
@@ -879,7 +887,7 @@ describe('ExerciseComposer — library tab', () => {
     api.get.mockReturnValueOnce(new Promise((resolve) => { resolveSecond = resolve; }));
 
     renderComposer();
-    await user.click(screen.getByRole('tab', { name: /Da biblioteca/i }));
+    await openBatch(user);
 
     // First search: type, flush debounce + spinner delay, wait for result
     await user.type(screen.getByRole('textbox', { name: /Buscar exercício/i }), 'ag');

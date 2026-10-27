@@ -52,7 +52,6 @@ import useAnchoredPopoverPosition, {
   placeFlipStart,
 } from '../../hooks/useAnchoredPopoverPosition';
 import formatRelativeTime from '../../utils/relativeTime';
-import ExerciseComposer from '../../components/ExerciseComposer';
 import AddTrainingSheet from '../../components/AddTrainingSheet';
 import BiSetBadge from '../../components/BiSetBadge';
 import BiSetActionSheet from '../../components/BiSetActionSheet';
@@ -61,7 +60,6 @@ import SubstitutesInline from '../../components/SubstitutesInline';
 import IntensityBadge from '../../components/IntensityBadge';
 import SelectionActionBar, { SelectionInstructionStrip } from '../../components/SelectionActionBar';
 import Badge from '../../components/ds/Badge';
-import MetricCard from '../../components/ds/MetricCard';
 import EmptyBlock from '../../components/ds/EmptyBlock';
 import ConfirmDialog from '../../components/ds/ConfirmDialog';
 import Modal from '../../components/ds/Modal';
@@ -72,21 +70,18 @@ import { sortTrainingsByWeekDay } from '../../utils/sortTrainingsByWeekDay';
 import { formatExerciseMeta } from '../../utils/exerciseMeta';
 import DurationLabel from '../../components/DurationLabel';
 import DescriptionChipEditor from '../../components/routineBuilder/DescriptionChipEditor';
+import RoutineSummaryStrip from '../../components/routineBuilder/RoutineSummaryStrip';
+import ExerciseDrawer from '../../components/routineBuilder/ExerciseDrawer';
+import useExerciseDrawer from '../../hooks/useExerciseDrawer';
+import useConfirmDialog from '../../hooks/useConfirmDialog';
+import useMediaQuery from '../../hooks/useMediaQuery';
+import useFormLayoutPreference from '../../hooks/useFormLayoutPreference';
+import FormLayoutToggle from '../../components/routineBuilder/FormLayoutToggle';
 import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { TRAINING_LEVEL_OPTIONS, getLevelLabel } from '../../constants/trainingLevels';
 import { GENDER_OPTIONS, getGenderLabel } from '../../constants/genderOrdination';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const WEEK_DAYS = [
-  { key: 'sunday', label: 'Dom' },
-  { key: 'monday', label: 'Seg' },
-  { key: 'tuesday', label: 'Ter' },
-  { key: 'wednesday', label: 'Qua' },
-  { key: 'thursday', label: 'Qui' },
-  { key: 'friday', label: 'Sex' },
-  { key: 'saturday', label: 'Sáb' },
-];
 
 const DURATION_OPTIONS = [4, 6, 8, 10, 12, 16, 20, 24].map((n) => ({
   value: String(n),
@@ -1204,7 +1199,6 @@ const TrainingItem = ({
   training,
   index,
   exerciseTemplates,
-  saving,
   expanded,
   readOnly,
   mode,
@@ -1212,16 +1206,13 @@ const TrainingItem = ({
   onEditTraining,
   onChangeWeekDay,
   onDeleteTraining,
-  onAddExercise,
-  onEditExercise,
-  onImportFromLibrary,
+  onOpenAddExercise,
+  onOpenEditExercise,
   onDeleteExercise,
   onReorder,
   onRefetchTraining,
 }) => {
   const { showToast } = useToast();
-  const { isAdmin } = useAuth();
-  const [composerState, setComposerState] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -1303,32 +1294,6 @@ const TrainingItem = ({
     []
   );
 
-  const handleAddExercise = async (payload) => {
-    const created = await onAddExercise(payload);
-    setComposerState(null);
-    if (created?.id) {
-      // Double rAF: first frame lets React commit the new exercise node,
-      // second frame fires after the browser has laid it out so
-      // getBoundingClientRect() is accurate inside smoothScrollTo.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const el = document.querySelector(`[data-exercise-id="${created.id}"]`);
-          smoothScrollTo(el, 'center');
-        });
-      });
-    }
-  };
-
-  const handleEditExercise = async (exId, payload) => {
-    await onEditExercise(exId, payload);
-    setComposerState(null);
-  };
-
-  const handleImport = async (templateIds, templatesById) => {
-    await onImportFromLibrary(templateIds, templatesById);
-    setComposerState(null);
-  };
-
   const handleRequestDeleteExercise = (ex) => {
     const name = ex.name || ex.exerciseTemplate?.name || 'exercício';
     setConfirmDialog({
@@ -1336,7 +1301,6 @@ const TrainingItem = ({
       confirmLabel: 'Excluir',
       onConfirm: async () => {
         setConfirmDialog(null);
-        setComposerState(null);
         await onDeleteExercise(ex.id);
       },
     });
@@ -1499,11 +1463,6 @@ const TrainingItem = ({
     [exercises, showToast, onRefetchTraining]
   );
 
-  const composerEditing =
-    composerState && typeof composerState === 'object' && composerState.editing
-      ? composerState.editing
-      : null;
-
   return (
     <>
       <div
@@ -1581,6 +1540,18 @@ const TrainingItem = ({
         {/* ── Body ── */}
         {expanded && (
           <div className="training-item-body accordion-body" id={`training-body-${training.id}`}>
+            {!readOnly && (
+              <div className="training-item-toolbar">
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  onClick={() => onOpenAddExercise(training.id)}
+                >
+                  <Plus size={16} strokeWidth={2} aria-hidden="true" />
+                  Adicionar exercício
+                </button>
+              </div>
+            )}
             {selectionMode && (
               <>
                 <SelectionActionBar
@@ -1618,22 +1589,6 @@ const TrainingItem = ({
                           const ex = entry.ex;
                           const i = runningIndex;
                           runningIndex += 1;
-                          if (composerEditing?.id === ex.id) {
-                            return (
-                              <ExerciseComposer
-                                key={ex.id}
-                                snapshot={composerEditing}
-                                exerciseTemplates={exerciseTemplates}
-                                saving={saving}
-                                onSubmitCreate={handleAddExercise}
-                                onSubmitEdit={handleEditExercise}
-                                onSubmitFromLibrary={handleImport}
-                                onCancel={() => setComposerState(null)}
-                                onRequestDelete={() => handleRequestDeleteExercise(ex)}
-                                canUseVideoLibrary={isAdmin}
-                              />
-                            );
-                          }
                           return (
                             <SortableExerciseEntry
                               key={ex.id}
@@ -1649,7 +1604,7 @@ const TrainingItem = ({
                                 selected={selectedIds.includes(ex.id)}
                                 atSelectionLimit={selectedIds.length >= MAX_BISET_MEMBERS}
                                 onToggleSelect={handleToggleSelect}
-                                onEdit={(exercise) => setComposerState({ editing: exercise })}
+                                onEdit={(exercise) => onOpenEditExercise(training.id, exercise)}
                                 onDelete={handleRequestDeleteExercise}
                                 onEnterSelection={enterSelectionMode}
                                 onAddSubstitute={
@@ -1687,7 +1642,7 @@ const TrainingItem = ({
                               onToggleSelect={handleToggleSelect}
                               onOpenBisetSheet={() => setBisetSheetGroupId(entry.groupId)}
                               onDissolveBiset={() => handleDissolveBiset(entry.groupId)}
-                              onEdit={(exercise) => setComposerState({ editing: exercise })}
+                              onEdit={(exercise) => onOpenEditExercise(training.id, exercise)}
                               onDelete={handleRequestDeleteExercise}
                               onEnterSelection={enterSelectionMode}
                               onAddSubstitute={
@@ -1726,42 +1681,15 @@ const TrainingItem = ({
                 </DragOverlay>
               </DndContext>
             ) : (
-              composerState === null && (
-                <EmptyBlock
-                  icon={Dumbbell}
-                  title="Nenhum exercício"
-                  description={
-                    readOnly
-                      ? 'Este treino ainda não tem exercícios.'
-                      : 'Adicione exercícios a este treino para começar.'
-                  }
-                  actionLabel={readOnly ? undefined : 'Adicionar exercício'}
-                  onAction={() => setComposerState('create')}
-                />
-              )
-            )}
-
-            {/* Trailing composer — create mode only; edit mode renders inline above */}
-            {!readOnly && composerState === 'create' ? (
-              <ExerciseComposer
-                snapshot={null}
-                exerciseTemplates={exerciseTemplates}
-                saving={saving}
-                onSubmitCreate={handleAddExercise}
-                onSubmitEdit={handleEditExercise}
-                onSubmitFromLibrary={handleImport}
-                onCancel={() => setComposerState(null)}
-                canUseVideoLibrary={isAdmin}
+              <EmptyBlock
+                icon={Dumbbell}
+                title="Nenhum exercício"
+                description={
+                  readOnly
+                    ? 'Este treino ainda não tem exercícios.'
+                    : 'Use "Adicionar exercício" acima para começar.'
+                }
               />
-            ) : !readOnly && !composerEditing && exercises.length > 0 && (
-              <button
-                type="button"
-                className="btn btn--secondary btn--block"
-                onClick={() => setComposerState('create')}
-              >
-                <Plus size={16} strokeWidth={2} aria-hidden="true" />
-                Adicionar exercício
-              </button>
             )}
           </div>
         )}
@@ -1824,7 +1752,6 @@ TrainingItem.propTypes = {
   }).isRequired,
   index: PropTypes.number.isRequired,
   exerciseTemplates: PropTypes.arrayOf(PropTypes.object).isRequired,
-  saving: PropTypes.bool.isRequired,
   expanded: PropTypes.bool.isRequired,
   readOnly: PropTypes.bool,
   mode: PropTypes.oneOf(['template', 'protocol']),
@@ -1832,9 +1759,8 @@ TrainingItem.propTypes = {
   onEditTraining: PropTypes.func,
   onChangeWeekDay: PropTypes.func,
   onDeleteTraining: PropTypes.func,
-  onAddExercise: PropTypes.func,
-  onEditExercise: PropTypes.func,
-  onImportFromLibrary: PropTypes.func,
+  onOpenAddExercise: PropTypes.func,
+  onOpenEditExercise: PropTypes.func,
   onDeleteExercise: PropTypes.func,
   onReorder: PropTypes.func,
   onRefetchTraining: PropTypes.func,
@@ -1846,9 +1772,8 @@ TrainingItem.defaultProps = {
   onEditTraining: null,
   onChangeWeekDay: null,
   onDeleteTraining: null,
-  onAddExercise: null,
-  onEditExercise: null,
-  onImportFromLibrary: null,
+  onOpenAddExercise: null,
+  onOpenEditExercise: null,
   onDeleteExercise: null,
   onReorder: null,
   onRefetchTraining: null,
@@ -1877,8 +1802,13 @@ const BuilderTopbar = ({
   saving,
   canSave,
   saveHintText,
+  behindModal,
+  formLayout,
+  onChangeFormLayout,
 }) => {
   const inputRef = useRef(null);
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const isWide = useMediaQuery('(min-width: 1024px)');
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -1904,7 +1834,7 @@ const BuilderTopbar = ({
   const statusTone = saveStatusLabel.startsWith('Rascunho salvo') ? 'success' : 'neutral';
 
   return (
-    <div className={`builder-topbar${scrolled ? ' builder-topbar--scrolled' : ''}`}>
+    <div className={`builder-topbar${scrolled ? ' builder-topbar--scrolled' : ''}`} aria-hidden={behindModal || undefined}>
       <button
         type="button"
         className="icon-button builder-topbar-back"
@@ -1971,7 +1901,6 @@ const BuilderTopbar = ({
         </button>
       )}
 
-      {/* Mobile-only: Resumo icon-button (hidden ≥768px via CSS — desktop uses FAB) */}
       {onOpenSummary && (
         <button
           type="button"
@@ -1986,6 +1915,13 @@ const BuilderTopbar = ({
 
       {/* Desktop: status + action buttons (hidden on mobile via CSS) */}
       <div className="builder-topbar-actions builder-topbar-actions--responsive">
+        {!readOnly && isWide && <FormLayoutToggle value={formLayout} onChange={onChangeFormLayout} />}
+        {onOpenSummary && isDesktop && (
+          <button type="button" className="btn btn--secondary" onClick={onOpenSummary}>
+            <AlignLeft size={16} strokeWidth={2} aria-hidden="true" />
+            Resumo
+          </button>
+        )}
         {readOnly ? (
           <>
             <Badge variant="tag" tone="neutral">Visualizando rotina</Badge>
@@ -2007,9 +1943,10 @@ const BuilderTopbar = ({
                 className="btn btn--secondary"
                 onClick={onImportTemplate}
                 aria-label="Importar de template"
+                title="Importar de template"
               >
                 <FileDown size={16} strokeWidth={2} aria-hidden="true" />
-                Importar de template
+                <span className="builder-topbar-import-label">Importar de template</span>
               </button>
             )}
             <button type="button" className="btn btn--secondary" onClick={onCancel}>
@@ -2062,9 +1999,15 @@ BuilderTopbar.propTypes = {
   saving: PropTypes.bool.isRequired,
   canSave: PropTypes.bool.isRequired,
   saveHintText: PropTypes.string,
+  behindModal: PropTypes.bool,
+  formLayout: PropTypes.oneOf(['modal', 'side']),
+  onChangeFormLayout: PropTypes.func,
 };
 
 BuilderTopbar.defaultProps = {
+  behindModal: false,
+  formLayout: 'modal',
+  onChangeFormLayout: () => {},
   studentName: null,
   readOnly: false,
   editProtocolId: null,
@@ -2255,82 +2198,6 @@ IdentityStrip.defaultProps = {
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
 
-const trainingShape = PropTypes.shape({
-  id: PropTypes.string,
-  weekDay: PropTypes.string,
-  exercises: PropTypes.array,
-});
-
-const BuilderStatsRow = ({ trainings }) => {
-  const trainingCount = trainings.length;
-  const exerciseCount = trainings.reduce(
-    (sum, t) => sum + (t.exercises?.length || 0),
-    0
-  );
-  const unassignedCount = trainings.filter((t) => !t.weekDay).length;
-  const coveredDays = new Set(
-    trainings.filter((t) => t.weekDay).map((t) => t.weekDay)
-  ).size;
-
-  const assignedSub = () => {
-    if (trainingCount === 0) return '—';
-    if (unassignedCount > 0) return `${unassignedCount} sem dia`;
-    return 'todos com dia';
-  };
-
-  return (
-    <div className="metric-grid metric-grid--3 builder-stats-row">
-      <MetricCard
-        label="Treinos"
-        value={trainingCount}
-        support="na rotina"
-        tone={trainingCount > 0 ? 'brand' : 'neutral'}
-      />
-      <MetricCard label="Exercícios" value={exerciseCount} support="Total" />
-      <MetricCard
-        label="Dias atribuídos"
-        value={`${coveredDays}/${trainingCount || '—'}`}
-        support={assignedSub()}
-        tone={unassignedCount > 0 ? 'warning' : 'neutral'}
-      />
-    </div>
-  );
-};
-
-BuilderStatsRow.propTypes = {
-  trainings: PropTypes.arrayOf(trainingShape).isRequired,
-};
-
-const WeekOverview = ({ trainings }) => {
-  const dayCount = (dayKey) =>
-    trainings.filter((t) => t.weekDay?.toLowerCase() === dayKey).length;
-
-  return (
-    <div className="week-overview">
-      {WEEK_DAYS.map((day) => {
-        const count = dayCount(day.key);
-        const isEmpty = count === 0;
-        return (
-          <div
-            key={day.key}
-            className={`week-overview-cell${isEmpty ? ' week-overview-cell--empty' : ' week-overview-cell--active'}`}
-          >
-            <span className="week-overview-day">{day.label}</span>
-            <span className="week-overview-stat">{isEmpty ? '–' : count}</span>
-            <span className="week-overview-sub">
-              {isEmpty ? 'Sem treino' : count === 1 ? '1 treino' : `${count} treinos`}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-WeekOverview.propTypes = {
-  trainings: PropTypes.arrayOf(trainingShape).isRequired,
-};
-
 const FirstTrainingHero = ({ onAddTraining }) => (
   <div className="section-card">
     <EmptyBlock
@@ -2422,7 +2289,8 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
   // into state — it only activates after the first explicit change.
   const touchedRef = useRef(false);
 
-  const { user: authUser } = useAuth();
+  const { user: authUser, isAdmin } = useAuth();
+  const [formLayout, setFormLayout] = useFormLayoutPreference();
   const isProtocol = mode === 'protocol';
   const isTemplateEdit = !isProtocol && !!routineId;
 
@@ -2791,12 +2659,47 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
     touchedRef.current = true;
   }, []);
 
-  // ── Summary sheet ────────────────────────────────────────────────────────
-
-  const totalExerciseCount = useMemo(
-    () => trainings.reduce((sum, t) => sum + (t.exercises?.length || 0), 0),
+  const weekDayCounts = useMemo(
+    () => trainings.reduce((counts, training) => {
+      const day = training.weekDay?.toLowerCase();
+      return day ? { ...counts, [day]: (counts[day] ?? 0) + 1 } : counts;
+    }, {}),
     [trainings]
   );
+
+  const handleAssignWeekDay = useCallback((trainingId, weekDay) => {
+    touchedRef.current = true;
+    routine.updateTrainingWeekDay(trainingId, weekDay);
+  }, [routine]);
+
+  const handleExerciseCreated = useCallback((created) => {
+    if (!created?.id) return;
+    // why: first frame commits the new row, second runs after layout so getBoundingClientRect() is accurate
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        smoothScrollTo(document.querySelector(`[data-exercise-id="${created.id}"]`), 'center');
+      });
+    });
+  }, []);
+
+  const exerciseDrawer = useExerciseDrawer({
+    routine,
+    onMutate: markTouched,
+    onExerciseCreated: handleExerciseCreated,
+  });
+  const { dialogProps: deleteDialogProps, requestConfirm: requestDeleteConfirm } = useConfirmDialog();
+
+  const handleRequestDeleteDrawerExercise = () => {
+    const { exercise } = exerciseDrawer.target;
+    const name = exercise.name || exercise.exerciseTemplate?.name || 'exercício';
+    requestDeleteConfirm({
+      message: `Excluir "${name}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
+      onConfirm: exerciseDrawer.handleDelete,
+    });
+  };
+
+  // ── Summary sheet ────────────────────────────────────────────────────────
 
   // Flat ordered list of all trainings (assigned first sorted by weekday,
   // then unassigned) for the sheet — mirrors the render order used in the
@@ -2879,6 +2782,9 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         saving={routine.saving}
         canSave={canSave}
         saveHintText={readOnly ? null : saveHintText}
+        behindModal={addTrainingSheetOpen || !!exerciseDrawer.target}
+        formLayout={formLayout}
+        onChangeFormLayout={setFormLayout}
       />
 
       {routine.error && (
@@ -2900,26 +2806,11 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
         onUpdateMeta={readOnly ? null : handleUpdateMeta}
       />
 
-      <BuilderStatsRow trainings={trainings} />
+      <RoutineSummaryStrip trainings={trainings} onSelectTraining={handleScrollToTraining} />
 
       <div className="training-canvas">
         {/* Scroll-boundary sentinel — observed by IntersectionObserver */}
         <div ref={sentinelRef} className="training-canvas-sentinel" aria-hidden="true" />
-
-        {/* Week overview section */}
-        <div className="canvas-section-header">
-          <span className="canvas-section-title type-h4">
-            Distribuição semanal{' '}
-            <span className="canvas-section-title-count">
-              {trainings.filter((t) => t.weekDay).length} / 7
-            </span>
-          </span>
-          <span className="canvas-section-hint type-caption">
-            O dia é opcional. Você pode criar toda a rotina sem atribuir.
-          </span>
-        </div>
-
-        <WeekOverview trainings={trainings} />
 
         {/* Training list section */}
         <div className="canvas-section-header builder-canvas-trainings-header">
@@ -2927,6 +2818,16 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
             Treinos da rotina{' '}
             <span className="canvas-section-title-count">{trainings.length}</span>
           </span>
+          {!readOnly && trainings.length > 0 && (
+            <button
+              type="button"
+              className="btn btn--secondary builder-add-action"
+              onClick={() => setAddTrainingSheetOpen(true)}
+            >
+              <Plus size={16} strokeWidth={2} aria-hidden="true" />
+              Adicionar treino
+            </button>
+          )}
         </div>
 
         {trainings.length === 0 && !readOnly && (
@@ -2955,7 +2856,6 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
               training={t}
               index={i}
               exerciseTemplates={routine.exerciseTemplates}
-              saving={routine.saving}
               expanded={expandedId === t.id}
               readOnly={readOnly}
               mode={mode}
@@ -2963,21 +2863,8 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
               onEditTraining={readOnly ? null : handleOpenEditTraining}
               onChangeWeekDay={readOnly ? null : (weekDay) => { markTouched(); routine.updateTrainingWeekDay(t.id, weekDay); }}
               onDeleteTraining={readOnly ? null : () => handleDeleteTraining(t.id)}
-              onAddExercise={readOnly ? null : (payload) => { markTouched(); return routine.addExercise(t.id, payload); }}
-              onEditExercise={readOnly ? null : (exId, payload) => { markTouched(); return routine.updateExercise(t.id, exId, payload); }}
-              onImportFromLibrary={readOnly ? null : async (ids, templatesById) => {
-                markTouched();
-                const results = [];
-                // why: sequential awaits keep the server-assigned order equal to the selection order
-                for (const tmplId of ids) {
-                  results.push(
-                    await routine.addExerciseFromTemplate(t.id, tmplId, {
-                      template: templatesById?.[tmplId],
-                    })
-                  );
-                }
-                return results;
-              }}
+              onOpenAddExercise={readOnly ? null : exerciseDrawer.openAdd}
+              onOpenEditExercise={readOnly ? null : exerciseDrawer.openEdit}
               onDeleteExercise={readOnly ? null : (exId) => { markTouched(); return routine.deleteExercise(t.id, exId); }}
               onReorder={
                 readOnly
@@ -3013,17 +2900,6 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
             </div>
           );
         })()}
-
-        {trainings.length > 0 && !readOnly && (
-          <button
-            type="button"
-            className="btn btn--secondary btn--block"
-            onClick={() => setAddTrainingSheetOpen(true)}
-          >
-            <Plus size={16} strokeWidth={2} aria-hidden="true" />
-            Adicionar treino
-          </button>
-        )}
       </div>
 
       {!readOnly && (
@@ -3040,6 +2916,9 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
           existingTrainingIds={new Set(trainings.map((t) => t.id))}
           saving={routine.saving}
           editingTraining={editingTraining}
+          layout={formLayout}
+          weekDayCounts={weekDayCounts}
+          onAssignWeekDay={handleAssignWeekDay}
           eyebrow={
             editingTraining
               ? `${titleName || 'Rotina'} · Editar treino`
@@ -3049,6 +2928,25 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
           }
         />
       )}
+
+      {!readOnly && exerciseDrawer.target && (
+        <ExerciseDrawer
+          key={exerciseDrawer.target.exercise?.id ?? `new-${exerciseDrawer.target.trainingId}`}
+          exercise={exerciseDrawer.target.exercise}
+          exerciseTemplates={routine.exerciseTemplates}
+          saving={routine.saving}
+          canUseVideoLibrary={isAdmin}
+          layout={formLayout}
+          onCreate={exerciseDrawer.handleCreate}
+          onEdit={exerciseDrawer.handleEdit}
+          onImport={exerciseDrawer.handleImport}
+          onAddFromTemplate={exerciseDrawer.handleAddFromTemplate}
+          onRequestDelete={exerciseDrawer.target.exercise ? handleRequestDeleteDrawerExercise : null}
+          onClose={exerciseDrawer.close}
+        />
+      )}
+
+      {deleteDialogProps && <ConfirmDialog {...deleteDialogProps} />}
 
       {isProtocol && !readOnly && (
         <ImportTemplateSheet
@@ -3099,18 +2997,6 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
           )}
         </>
       )}
-
-      {/* Resumo FAB — desktop only (≥768px via CSS); mobile uses topbar trigger */}
-      <button
-        type="button"
-        className="btn btn--secondary routine-summary-fab"
-        onClick={() => setSummarySheetOpen(true)}
-        aria-label="Ver resumo de exercícios"
-      >
-        <AlignLeft size={16} strokeWidth={2} aria-hidden="true" />
-        <span className="routine-summary-fab-label">Resumo</span>
-        <span className="routine-summary-fab-count">{totalExerciseCount} ex</span>
-      </button>
 
       {/* Routine Summary Sheet */}
       <RoutineSummarySheet

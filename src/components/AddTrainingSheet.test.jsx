@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor, render } from '../test/test-utils';
+import { screen, waitFor, render, within } from '../test/test-utils';
 import userEvent from '@testing-library/user-event';
 import AddTrainingSheet from './AddTrainingSheet';
 
@@ -79,9 +79,40 @@ const renderSheet = (props = {}) =>
 describe('AddTrainingSheet — rendering (create mode)', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders title "Adicionar treino" when open in create mode', () => {
+  it('renders title "Novo treino" when open in create mode', () => {
     renderSheet();
-    expect(screen.getByRole('heading', { name: /Adicionar treino/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Novo treino' })).toBeInTheDocument();
+  });
+
+  it('renders inside a drawer dialog named "Novo treino"', () => {
+    renderSheet();
+    expect(screen.getByRole('dialog', { name: 'Novo treino' })).toBeInTheDocument();
+  });
+
+  it('renders inside a drawer dialog named "Editar treino" in edit mode', () => {
+    renderSheet({ editingTraining: EDITING_TRAINING });
+    expect(screen.getByRole('dialog', { name: 'Editar treino' })).toBeInTheDocument();
+  });
+
+  it('keeps Cancelar and the primary action in the footer, outside the scroll body (create)', () => {
+    renderSheet();
+    // why: Drawer contract — body is role="region" named by the title; footer is outside it.
+    const body = screen.getByRole('region', { name: 'Novo treino' });
+    expect(within(body).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
+    expect(within(body).queryByRole('button', { name: /Adicionar e abrir/i })).not.toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Novo treino' });
+    expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /Adicionar e abrir/i })).toBeInTheDocument();
+  });
+
+  it('keeps Cancelar and Salvar alterações in the footer, outside the scroll body (edit)', () => {
+    renderSheet({ editingTraining: EDITING_TRAINING });
+    const body = screen.getByRole('region', { name: 'Editar treino' });
+    expect(within(body).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
+    expect(within(body).queryByRole('button', { name: /Salvar alterações/i })).not.toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Editar treino' });
+    expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /Salvar alterações/i })).toBeInTheDocument();
   });
 
   it('renders eyebrow text when provided', () => {
@@ -102,23 +133,32 @@ describe('AddTrainingSheet — rendering (create mode)', () => {
 
   it('does not render when open=false', () => {
     renderSheet({ open: false });
-    expect(screen.queryByRole('heading', { name: /Adicionar treino/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Novo treino' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
 
-// ─── 1b. weekDay field removed ───────────────────────────────────────────────
+// ─── 1b. training day picker ─────────────────────────────────────────────────
 
-describe('AddTrainingSheet — weekDay field removed', () => {
+describe('AddTrainingSheet — training day picker', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('does not render a "Dia da semana" select in create mode', () => {
+  it('renders a "Dia do treino" radiogroup with "Sem dia" checked in create mode', () => {
     renderSheet();
-    expect(screen.queryByLabelText(/Dia da semana/i)).not.toBeInTheDocument();
+    const group = screen.getByRole('radiogroup', { name: /Dia do treino/i });
+    expect(within(group).getByRole('radio', { name: 'Sem dia' })).toBeChecked();
   });
 
-  it('does not render a "Dia da semana" select in edit mode', () => {
+  it('renders the picker in edit mode with "Sem dia" when the training has no day', () => {
     renderSheet({ editingTraining: EDITING_TRAINING });
-    expect(screen.queryByLabelText(/Dia da semana/i)).not.toBeInTheDocument();
+    const group = screen.getByRole('radiogroup', { name: /Dia do treino/i });
+    expect(within(group).getByRole('radio', { name: 'Sem dia' })).toBeChecked();
+  });
+
+  it('pre-fills the picker from the training weekDay in edit mode', () => {
+    renderSheet({ editingTraining: { ...EDITING_TRAINING, weekDay: 'friday' } });
+    const group = screen.getByRole('radiogroup', { name: /Dia do treino/i });
+    expect(within(group).getByRole('radio', { name: /^Sex/ })).toBeChecked();
   });
 
   it('payload does not contain weekDay when submitting create form', async () => {
@@ -302,7 +342,7 @@ describe('AddTrainingSheet — fechar', () => {
     const user = userEvent.setup();
     renderSheet({ onClose });
 
-    await user.click(screen.getByRole('heading', { name: /Adicionar treino/i }));
+    await user.click(screen.getByRole('heading', { name: 'Novo treino' }));
     expect(onClose).not.toHaveBeenCalled();
   });
 });

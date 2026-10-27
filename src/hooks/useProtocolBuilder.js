@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
 import { useToast } from '../contexts/ToastContext';
 import { getLoadDefault } from '../constants/exerciseTypes';
+import { toApiOverrides } from '../utils/exerciseOverrides';
 
 // ─── Shape helpers ────────────────────────────────────────────────────────────
 
@@ -529,9 +530,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           const res = await api.post('/trainer/exercises/from-template', {
             trainingId,
             templateId,
-            ...(overrides.prescriptionMode !== undefined && {
-              prescriptionMode: overrides.prescriptionMode,
-            }),
+            ...toApiOverrides(overrides),
           });
           // Backend hardcodes hasLoad:false when the caller omits it (the
           // ExerciseTemplate model carries no hasLoad field). Apply the
@@ -578,6 +577,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           intensity: template?.intensity ?? null,
           notes: template?.notes ?? null,
           _isFromTemplate: true,
+          ...toApiOverrides(overrides),
         };
         setData((prev) => ({
           ...prev,

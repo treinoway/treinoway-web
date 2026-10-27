@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api/axios';
+import { toApiOverrides } from '../utils/exerciseOverrides';
 
 // ─── Shape helpers ────────────────────────────────────────────────────────────
 
@@ -371,14 +372,14 @@ const useRoutineBuilder = (routineId) => {
 
   /**
    * POST /trainer/training-templates/:trainingId/exercises/from-template
-   * Imports an exercise from the library into the training.
+   * Imports an exercise from the library into the training, optionally with prescription overrides.
    */
   const addExerciseFromTemplate = useCallback(
-    (trainingId, templateId) =>
+    (trainingId, templateId, overrides = {}) =>
       mutate(async () => {
         const res = await api.post(
           `/trainer/training-templates/${trainingId}/exercises/from-template`,
-          { exerciseTemplateId: templateId }
+          { exerciseTemplateId: templateId, ...toApiOverrides(overrides) }
         );
         const newExercise = res.data;
         setData((prev) => ({

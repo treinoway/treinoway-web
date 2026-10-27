@@ -131,7 +131,6 @@ const IntensityRamp = ({
       <p className="field-hint type-caption" aria-live="polite">
         {selectedLabel ? (
           <>
-            <span className="sr-only">Intensidade selecionada: </span>
             Selecionada: <strong>{selectedLabel}</strong> · opcional. Define o
             alvo de esforço que o aluno verá durante o cardio.
           </>

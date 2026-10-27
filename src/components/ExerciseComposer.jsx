@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import {
@@ -10,19 +10,21 @@ import {
   Trash2,
 } from 'lucide-react';
 import useExerciseTemplateSearch from '../hooks/useExerciseTemplateSearch';
-import PrescriptionField from './PrescriptionField';
+import PrescriptionBand, { NotesField } from './exerciseComposer/PrescriptionBand';
+import PickedExercise from './exerciseComposer/PickedExercise';
+import TemplateSearchCombobox from './exerciseComposer/TemplateSearchCombobox';
 import Segmented from './ds/Segmented';
 import ConfirmDialog from './ds/ConfirmDialog';
 import IntensityField from './IntensityField';
 import VideoField from './VideoField';
 import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel, getLoadDefault } from '../constants/exerciseTypes';
-import { t } from '../i18n';
+import { t, translateError } from '../i18n';
 import { getGifUrlError } from '../utils/gif';
 import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const REST_CHIPS = [60, 90, 120, 180];
+const COMPOSER_FORM_ID = 'exercise-composer-form';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -102,6 +104,67 @@ const snapshotToForm = (snapshot) => ({
   notes: snapshot.notes || snapshot.exerciseTemplate?.notes || '',
   intensity: snapshot.intensity ?? snapshot.exerciseTemplate?.intensity ?? null,
 });
+
+// Form fields a library template actually defines (real templates often define none), to fill without clobbering typed values.
+const templatePrescriptionPatch = (template) => ({
+  ...(template.prescriptionMode != null && { prescriptionMode: template.prescriptionMode }),
+  ...(template.sets != null && { sets: template.sets }),
+  ...(template.repetitions && { repetitionsMin: template.repetitions.min ?? '', repetitionsMax: template.repetitions.max ?? '' }),
+  ...(template.duration != null && { duration: template.duration }),
+  ...(template.restInterval != null && { restInterval: template.restInterval }),
+  ...(template.hasLoad != null && { hasLoad: template.hasLoad }),
+  ...(template.suggestedLoad != null && { suggestedLoad: template.suggestedLoad }),
+  ...(template.notes && { notes: template.notes }),
+  intensity: template.type === 'cardio' ? template.intensity ?? null : null,
+});
+
+// True when a form field holds a value worth sending.
+const hasValue = (value) => value !== '' && value != null;
+
+// Reps or duration part of the from-template overrides.
+const buildVolumeOverrides = (form) => {
+  if (form.prescriptionMode === 'duration') {
+    return hasValue(form.duration) ? { duration: parseInt(form.duration, 10) } : {};
+  }
+  if (!hasValue(form.repetitionsMin) || !hasValue(form.repetitionsMax)) return {};
+  return { repetitions: { min: parseInt(form.repetitionsMin, 10), max: parseInt(form.repetitionsMax, 10) } };
+};
+
+// True when reps mode has only one of min/max filled (an incomplete range).
+const hasPartialReps = (form) =>
+  form.prescriptionMode !== 'duration' && hasValue(form.repetitionsMin) !== hasValue(form.repetitionsMax);
+
+// Prescription overrides sent with a library exercise; `template` lets create mode build the local row.
+const buildTemplateOverrides = (form, template) => {
+  const volume = buildVolumeOverrides(form);
+  // why: the API rejects a prescriptionMode without its volume, so the mode is only sent alongside reps or duration
+  return {
+    template,
+    hasLoad: form.hasLoad,
+    ...(template.type === 'cardio' && form.intensity && { intensity: form.intensity }),
+    ...(Object.keys(volume).length > 0 && { prescriptionMode: form.prescriptionMode }),
+    ...volume,
+    ...buildSecondaryOverrides(form),
+  };
+};
+
+// Sets, rest, load and notes part of the from-template overrides.
+const buildSecondaryOverrides = (form) => ({
+  ...(hasValue(form.sets) && { sets: parseInt(form.sets, 10) }),
+  ...(hasValue(form.restInterval) && { restInterval: parseInt(form.restInterval, 10) }),
+  ...(form.hasLoad && hasValue(form.suggestedLoad) && { suggestedLoad: parseFloat(form.suggestedLoad) }),
+  ...(form.notes?.trim() && { notes: form.notes.trim() }),
+});
+
+// User-facing message for a failed save; unexpected (non-API) errors are also logged.
+const describeSaveError = (error) => {
+  if (!error?.userMessage && !error?.response) console.error(error);
+  return error?.userMessage || translateError(error);
+};
+
+// True when the exercise form differs from its pristine state.
+const isFormChanged = (form, initialForm) =>
+  Object.keys(initialForm).some((field) => form[field] !== initialForm[field]);
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -219,13 +282,20 @@ const ExerciseComposer = ({
   onSubmitCreate,
   onSubmitEdit,
   onSubmitFromLibrary,
+  onSubmitFromTemplate,
   onCancel,
   onRequestDelete,
   canUseVideoLibrary = false,
+  footerTarget,
+  onDirtyChange,
 }) => {
   const isEditMode = snapshot != null;
+  const isInDrawer = footerTarget !== undefined;
 
-  const [tab, setTab] = useState('library');
+  const [tab, setTab] = useState('single');
+  const [batchMode, setBatchMode] = useState(false);
+  const [pickedTemplate, setPickedTemplate] = useState(null);
+  const [submitError, setSubmitError] = useState(null);
   const [form, setForm] = useState(() =>
     isEditMode ? snapshotToForm(snapshot) : { ...EMPTY_FORM }
   );
@@ -239,6 +309,13 @@ const ExerciseComposer = ({
   const [selectedTemplatesById, setSelectedTemplatesById] = useState({});
   const [errors, setErrors] = useState({});
   const [confirmDialog, setConfirmDialog] = useState(null);
+
+  const initialForm = isEditMode ? snapshotToForm(snapshot) : EMPTY_FORM;
+  const isDirty = isFormChanged(form, initialForm) || selectedTemplateIds.length > 0 || pickedTemplate !== null;
+
+  useEffect(() => {
+    if (onDirtyChange) onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const handleFieldChange = (field, value) => {
     setForm((prev) => {
@@ -342,6 +419,59 @@ const ExerciseComposer = ({
     onSubmitEdit(snapshot.id, buildPayload(form, { isEdit: true }));
   };
 
+  const handleTabChange = (nextTab) => {
+    setTab(nextTab);
+    setBatchMode(false);
+    setPickedTemplate(null);
+    setForm({ ...EMPTY_FORM });
+    setErrors({});
+  };
+
+  const handlePickTemplate = (template) => {
+    setPickedTemplate(template);
+    setSubmitError(null);
+    setForm((prev) => ({
+      ...prev,
+      ...(!loadManuallySet && { hasLoad: getLoadDefault(template.type) }),
+      ...templatePrescriptionPatch(template),
+    }));
+  };
+
+  const handleChangeTemplate = () => {
+    setPickedTemplate(null);
+    setSubmitError(null);
+    setForm((prev) => ({ ...prev, intensity: null }));
+  };
+
+  const saveFromTemplate = async () => {
+    setSubmitError(null);
+    try {
+      await onSubmitFromTemplate(pickedTemplate.id, buildTemplateOverrides(form, pickedTemplate));
+    } catch (error) {
+      setSubmitError(describeSaveError(error));
+    }
+  };
+
+  const handleSubmitFromTemplate = () => {
+    if (hasPartialReps(form)) {
+      setErrors({ reps: 'Informe as repetições mínimas e máximas.' });
+      return;
+    }
+    setErrors({});
+    if (Object.keys(buildVolumeOverrides(form)).length > 0) {
+      saveFromTemplate();
+      return;
+    }
+    const warnKey = form.prescriptionMode === 'duration' ? 'duration' : 'reps';
+    setConfirmDialog({
+      message: t(`exercise.prescriptionWarn.${warnKey}`),
+      onConfirm: () => {
+        setConfirmDialog(null);
+        saveFromTemplate();
+      },
+    });
+  };
+
   const handleImport = () => {
     if (selectedTemplateIds.length === 0) return;
     onSubmitFromLibrary(selectedTemplateIds, selectedTemplatesById);
@@ -362,14 +492,20 @@ const ExerciseComposer = ({
     }
   };
 
-  const activeRestChip = REST_CHIPS.includes(Number(form.restInterval))
-    ? Number(form.restInterval)
-    : null;
+  let importLabel = `Importar ${selectedTemplateIds.length}`;
+  if (saving) importLabel = 'Adicionando…';
+  else if (selectedTemplateIds.length === 0) importLabel = 'Importar';
+
+  const renderActions = (buttons) => {
+    if (footerTarget === undefined) return <div className="composer-actions">{buttons}</div>;
+    if (footerTarget === null) return null;
+    return createPortal(buttons, footerTarget);
+  };
 
   // ── Create/edit form ──────────────────────────────────────────────────────
 
   const renderCreateForm = (onSubmit, submitLabel) => (
-    <form onSubmit={onSubmit} noValidate>
+    <form id={COMPOSER_FORM_ID} onSubmit={onSubmit} noValidate>
 
       {/* ── Band 1: O ESSENCIAL ── */}
       <div className="composer-band">
@@ -426,93 +562,14 @@ const ExerciseComposer = ({
         />
       </div>
 
-      {/* ── Band 2: PRESCRIÇÃO ── */}
-      <div className="composer-band">
-        <span className="composer-band-label type-body-strong">Prescrição</span>
-
-        <PrescriptionField
-          idPrefix="composer"
-          formData={form}
-          onChange={handlePrescriptionChange}
-        />
-
-        {/* Descanso + Carga — side-by-side on desktop, stacked on mobile */}
-        <div className="composer-carga-rest-row">
-          {/* Descanso — chips + suffix input */}
-          <div className="composer-rest-group">
-            <label className="field-label type-caption-strong" htmlFor="composer-rest">Descanso</label>
-            <div
-              className="chip-group"
-              role="group"
-              aria-label="Atalhos de descanso"
-            >
-              {REST_CHIPS.map((seconds) => (
-                <button
-                  key={seconds}
-                  type="button"
-                  className={`chip${activeRestChip === seconds ? ' chip--active' : ''}`}
-                  onClick={() => handleRestChipClick(seconds)}
-                  aria-pressed={activeRestChip === seconds}
-                >
-                  {seconds}s
-                </button>
-              ))}
-            </div>
-            <div className="form-input-with-suffix">
-              <input
-                id="composer-rest"
-                className="input"
-                type="number"
-                min="0"
-                value={form.restInterval}
-                onChange={(e) => handleFieldChange('restInterval', e.target.value)}
-                placeholder="90"
-                aria-label="Intervalo de descanso em segundos"
-              />
-              <span className="form-input-suffix" aria-hidden="true">s</span>
-            </div>
-          </div>
-
-          {/* Carga — toggle + optional kg reveal */}
-          <div className="composer-load-col">
-            <div className="composer-load-toggle-row">
-              <span className="composer-load-toggle-label type-body" id="composer-load-label">
-                Exercício com carga
-              </span>
-              <button
-                type="button"
-                role="switch"
-                className="toggle"
-                aria-labelledby="composer-load-label"
-                aria-checked={form.hasLoad}
-                onClick={() => handleLoadToggle(!form.hasLoad)}
-              />
-            </div>
-
-            {/* Carga kg input — reveals only when hasLoad */}
-            {form.hasLoad && (
-              <div className="composer-load-reveal">
-                <label className="field-label type-caption-strong" htmlFor="composer-load">
-                  Carga sugerida
-                </label>
-                <div className="form-input-with-suffix">
-                  <input
-                    id="composer-load"
-                    className="input"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={form.suggestedLoad}
-                    onChange={(e) => handleFieldChange('suggestedLoad', e.target.value)}
-                    placeholder="Ex: 20"
-                  />
-                  <span className="form-input-suffix" aria-hidden="true">kg</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <PrescriptionBand
+        form={form}
+        exerciseType={form.type}
+        onFieldChange={handleFieldChange}
+        onPrescriptionChange={handlePrescriptionChange}
+        onLoadToggle={handleLoadToggle}
+        onRestChip={handleRestChipClick}
+      />
 
       {/* ── Band 3: DETALHES ── */}
       <div className="composer-band">
@@ -544,98 +601,146 @@ const ExerciseComposer = ({
         </div>
       </div>
 
-      {/* ── Footer ── */}
-      <div className="composer-actions">
-        {isEditMode && onRequestDelete && (
+      {renderActions(
+        <>
+          {isEditMode && onRequestDelete && (
+            <button
+              type="button"
+              className="btn btn--secondary composer-actions-delete"
+              onClick={onRequestDelete}
+              disabled={saving}
+            >
+              <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
+              Excluir
+            </button>
+          )}
+          <button type="button" className="btn btn--secondary" onClick={onCancel} disabled={saving}>
+            Cancelar
+          </button>
+          <button type="submit" form={COMPOSER_FORM_ID} className="btn btn--primary" disabled={saving}>
+            {saving ? 'Salvando…' : submitLabel}
+          </button>
+        </>
+      )}
+    </form>
+  );
+
+  const renderPrescriptionFields = () => (
+    <>
+      <IntensityField
+        idPrefix="composer"
+        type={pickedTemplate?.type ?? ''}
+        intensity={form.intensity}
+        options={EXERCISE_INTENSITY_OPTIONS}
+        onChange={handleIntensityChange}
+        onClear={handleIntensityClear}
+        onKeepCardio={handleKeepCardio}
+      />
+      <PrescriptionBand
+        form={form}
+        exerciseType={pickedTemplate?.type}
+        onFieldChange={handleFieldChange}
+        onPrescriptionChange={handlePrescriptionChange}
+        onLoadToggle={handleLoadToggle}
+        onRestChip={handleRestChipClick}
+      />
+      {errors.reps && <span className="field-error type-caption" role="alert">{errors.reps}</span>}
+      <NotesField value={form.notes} onChange={(value) => handleFieldChange('notes', value)} />
+    </>
+  );
+
+  const renderSingleActions = () => renderActions(
+    <>
+      {submitError && <p className="composer-footer-error field-error type-body" role="alert">{submitError}</p>}
+      <button type="button" className="btn btn--secondary" onClick={onCancel}>Cancelar</button>
+      <button
+        type="button"
+        className="btn btn--primary"
+        onClick={handleSubmitFromTemplate}
+        disabled={saving || !pickedTemplate}
+      >
+        {saving ? 'Salvando…' : 'Salvar exercício'}
+      </button>
+    </>
+  );
+
+  const renderSingleAdd = () => (
+    <>
+      {pickedTemplate
+        ? <PickedExercise template={pickedTemplate} onChange={handleChangeTemplate} />
+        : <TemplateSearchCombobox templates={exerciseTemplates} onPick={handlePickTemplate} />}
+      {renderPrescriptionFields()}
+      {renderSingleActions()}
+    </>
+  );
+
+  const renderBatchAdd = () => (
+    <>
+      <div>
+        <button type="button" className="btn btn--ghost" onClick={() => setBatchMode(false)}>Voltar</button>
+      </div>
+      <LibraryPanel
+        initialTemplates={exerciseTemplates}
+        selectedIds={selectedTemplateIds}
+        onToggle={handleToggleTemplate}
+      />
+      {renderActions(
+        <>
+          <button type="button" className="btn btn--secondary" onClick={onCancel}>Cancelar</button>
           <button
             type="button"
-            className="btn btn--secondary composer-actions-delete"
-            onClick={onRequestDelete}
-            disabled={saving}
+            className="btn btn--primary"
+            onClick={handleImport}
+            disabled={saving || selectedTemplateIds.length === 0}
           >
-            <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
-            Excluir
+            <Plus size={16} strokeWidth={2} aria-hidden="true" />
+            {importLabel}
           </button>
-        )}
-        <button
-          type="button"
-          className="btn btn--secondary"
-          onClick={onCancel}
-          disabled={saving}
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          className="btn btn--primary"
-          disabled={saving}
-        >
-          {saving ? 'Salvando…' : submitLabel}
-        </button>
-      </div>
-    </form>
+        </>
+      )}
+    </>
   );
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="inline-composer-wide">
-      <div className="inline-composer-title type-h4">
-        {isEditMode || tab === 'create'
-          ? <Plus size={16} strokeWidth={2} aria-hidden="true" />
-          : <Library size={16} strokeWidth={2} aria-hidden="true" />
-        }
-        {isEditMode ? 'Editar exercício' : 'Adicionar exercício'}
-      </div>
-
-      {!isEditMode && (
-        <Segmented
-          ariaLabel="Modo de adição"
-          items={[
-            { id: 'library', label: 'Da biblioteca' },
-            { id: 'create', label: 'Criar novo' },
-          ]}
-          value={tab}
-          onChange={setTab}
-        />
+    <div className="exercise-composer">
+      {!isInDrawer && (
+        <div className="inline-composer-title type-h4">
+          {isEditMode || tab === 'create'
+            ? <Plus size={16} strokeWidth={2} aria-hidden="true" />
+            : <Library size={16} strokeWidth={2} aria-hidden="true" />
+          }
+          {isEditMode ? 'Editar exercício' : 'Adicionar exercício'}
+        </div>
       )}
 
-      {/* Content by mode */}
+      {!isEditMode && (
+        <div className="exercise-composer__tabs-row">
+          <Segmented
+            ariaLabel="Modo de adição"
+            items={[
+              { id: 'single', label: 'Adicionar exercício' },
+              { id: 'create', label: 'Criar novo' },
+            ]}
+            value={tab}
+            onChange={handleTabChange}
+          />
+          {tab === 'single' && !batchMode && (
+            <button type="button" className="btn btn--ghost" onClick={() => setBatchMode(true)}>
+              Adicionar em lote
+            </button>
+          )}
+        </div>
+      )}
+
       {isEditMode && renderCreateForm(handleSubmitEdit, 'Salvar alterações')}
 
       {!isEditMode && tab === 'create' && renderCreateForm(handleSubmitCreate, 'Salvar exercício')}
 
-      {!isEditMode && tab === 'library' && (
-        <>
-          <LibraryPanel
-            initialTemplates={exerciseTemplates}
-            selectedIds={selectedTemplateIds}
-            onToggle={handleToggleTemplate}
-          />
-          <div className="composer-actions">
-            <button
-              type="button"
-              className="btn btn--secondary"
-              onClick={onCancel}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={handleImport}
-              disabled={saving || selectedTemplateIds.length === 0}
-            >
-              <Plus size={16} strokeWidth={2} aria-hidden="true" />
-              {saving
-                ? 'Adicionando…'
-                : selectedTemplateIds.length === 0
-                ? 'Importar'
-                : `Importar ${selectedTemplateIds.length}`}
-            </button>
-          </div>
-        </>
-      )}
+      {!isEditMode && tab === 'single' && !batchMode && renderSingleAdd()}
+
+      {!isEditMode && tab === 'single' && batchMode && renderBatchAdd()}
 
       {confirmDialog && createPortal(
         <ConfirmDialog
@@ -659,15 +764,23 @@ ExerciseComposer.propTypes = {
   onSubmitCreate: PropTypes.func.isRequired,
   onSubmitEdit: PropTypes.func.isRequired,
   onSubmitFromLibrary: PropTypes.func.isRequired,
+  /** Single library add: (templateId, overrides) with the edited prescription. */
+  onSubmitFromTemplate: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
   onRequestDelete: PropTypes.func,
   /** Admin-only: offers the video library picker next to the YouTube link. */
   canUseVideoLibrary: PropTypes.bool,
+  /** Drawer footer node to portal the action buttons into (null while mounting). Omit for inline actions. */
+  footerTarget: PropTypes.instanceOf(Element),
+  /** Called with true/false whenever unsaved edits appear or disappear. */
+  onDirtyChange: PropTypes.func,
 };
 
 ExerciseComposer.defaultProps = {
   snapshot: null,
   onRequestDelete: null,
+  footerTarget: undefined,
+  onDirtyChange: null,
 };
 
 export default ExerciseComposer;

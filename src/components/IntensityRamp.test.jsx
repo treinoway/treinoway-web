@@ -116,4 +116,12 @@ describe('IntensityRamp', () => {
     const status = screen.getByText(/Selecionada:/);
     expect(status).toHaveTextContent('Moderada');
   });
+
+  it('prefixes the selected status with "Selecionada:" exactly once, with no duplicated text', () => {
+    setup({ value: 'moderate' });
+    const status = screen.getByText(/Selecionada:/);
+    expect(status.textContent.match(/Selecionada:/g)).toHaveLength(1);
+    expect(status).not.toHaveTextContent(/Intensidade selecionada/i);
+    expect(screen.queryByText(/Intensidade selecionada/i)).not.toBeInTheDocument();
+  });
 });
