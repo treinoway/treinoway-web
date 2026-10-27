@@ -16,10 +16,12 @@ import TemplateSearchCombobox from './exerciseComposer/TemplateSearchCombobox';
 import Segmented from './ds/Segmented';
 import ConfirmDialog from './ds/ConfirmDialog';
 import IntensityField from './IntensityField';
+import TechniquesBand from './exerciseComposer/TechniquesBand';
 import VideoField from './VideoField';
 import { EXERCISE_TYPE_OPTIONS, getExerciseTypeLabel, getLoadDefault } from '../constants/exerciseTypes';
 import { t, translateError } from '../i18n';
 import { getGifUrlError } from '../utils/gif';
+import { haveSameTechniqueIds, sortTechniquesByOrder, toTechniqueIds, toTechniqueRefs, withoutDeletedTechniques } from '../utils/advancedTechniques';
 import { EXERCISE_INTENSITY_OPTIONS } from '../constants/exerciseIntensity';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -43,6 +45,14 @@ const EMPTY_FORM = {
   suggestedLoad: '',
   notes: '',
   intensity: null,
+  advancedTechniques: [],
+};
+
+// Technique part of a create/edit payload: ids (sent to the API) plus the display list (stripped by the hooks).
+const buildTechniquePayload = (form, { isEdit }) => {
+  const ids = toTechniqueIds(form.advancedTechniques);
+  if (!isEdit && ids.length === 0) return {};
+  return { advancedTechniqueIds: ids, advancedTechniques: toTechniqueRefs(withoutDeletedTechniques(form.advancedTechniques)) };
 };
 
 const buildPayload = (form, { isEdit } = {}) => {
@@ -85,7 +95,7 @@ const buildPayload = (form, { isEdit } = {}) => {
     payload.notes = '';
   }
   payload.intensity = form.type === 'cardio' ? (form.intensity || null) : null;
-  return payload;
+  return { ...payload, ...buildTechniquePayload(form, { isEdit }) };
 };
 
 const snapshotToForm = (snapshot) => ({
@@ -103,6 +113,7 @@ const snapshotToForm = (snapshot) => ({
   suggestedLoad: snapshot.suggestedLoad ?? snapshot.exerciseTemplate?.suggestedLoad ?? '',
   notes: snapshot.notes || snapshot.exerciseTemplate?.notes || '',
   intensity: snapshot.intensity ?? snapshot.exerciseTemplate?.intensity ?? null,
+  advancedTechniques: sortTechniquesByOrder(snapshot.advancedTechniques),
 });
 
 // Form fields a library template actually defines (real templates often define none), to fill without clobbering typed values.
@@ -116,6 +127,7 @@ const templatePrescriptionPatch = (template) => ({
   ...(template.suggestedLoad != null && { suggestedLoad: template.suggestedLoad }),
   ...(template.notes && { notes: template.notes }),
   intensity: template.type === 'cardio' ? template.intensity ?? null : null,
+  advancedTechniques: sortTechniquesByOrder(template.advancedTechniques),
 });
 
 // True when a form field holds a value worth sending.
@@ -145,7 +157,16 @@ const buildTemplateOverrides = (form, template) => {
     ...(Object.keys(volume).length > 0 && { prescriptionMode: form.prescriptionMode }),
     ...volume,
     ...buildSecondaryOverrides(form),
+    ...buildTechniqueOverrides(form, template),
   };
+};
+
+// Technique overrides: only sent when the trainer changed the inherited list (otherwise the server inherits it).
+const buildTechniqueOverrides = (form, template) => {
+  // why: a template's deleted technique is not inherited as a live link, so it must not force an override
+  const templateLive = withoutDeletedTechniques(sortTechniquesByOrder(template.advancedTechniques));
+  if (haveSameTechniqueIds(withoutDeletedTechniques(form.advancedTechniques), templateLive)) return {};
+  return { advancedTechniqueIds: toTechniqueIds(form.advancedTechniques), advancedTechniques: toTechniqueRefs(withoutDeletedTechniques(form.advancedTechniques)) };
 };
 
 // Sets, rest, load and notes part of the from-template overrides.
@@ -164,7 +185,10 @@ const describeSaveError = (error) => {
 
 // True when the exercise form differs from its pristine state.
 const isFormChanged = (form, initialForm) =>
-  Object.keys(initialForm).some((field) => form[field] !== initialForm[field]);
+  Object.keys(initialForm).some((field) => !isSameFieldValue(form[field], initialForm[field]));
+
+// Field equality; technique lists compare by id and order.
+const isSameFieldValue = (a, b) => (Array.isArray(a) && Array.isArray(b) ? haveSameTechniqueIds(a, b) : a === b);
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -348,6 +372,10 @@ const ExerciseComposer = ({
     setForm((prev) => ({ ...prev, intensity: null }));
   };
 
+  const handleTechniquesChange = (advancedTechniques) => {
+    setForm((prev) => ({ ...prev, advancedTechniques }));
+  };
+
   const handleKeepCardio = () => {
     setForm((prev) => ({ ...prev, type: 'cardio' }));
   };
@@ -440,7 +468,7 @@ const ExerciseComposer = ({
   const handleChangeTemplate = () => {
     setPickedTemplate(null);
     setSubmitError(null);
-    setForm((prev) => ({ ...prev, intensity: null }));
+    setForm((prev) => ({ ...prev, intensity: null, advancedTechniques: [] }));
   };
 
   const saveFromTemplate = async () => {
@@ -505,11 +533,11 @@ const ExerciseComposer = ({
   // ── Create/edit form ──────────────────────────────────────────────────────
 
   const renderCreateForm = (onSubmit, submitLabel) => (
-    <form id={COMPOSER_FORM_ID} onSubmit={onSubmit} noValidate>
+    <form id={COMPOSER_FORM_ID} className="composer-sections" onSubmit={onSubmit} noValidate>
 
       {/* ── Band 1: O ESSENCIAL ── */}
       <div className="composer-band">
-        <span className="composer-band-label type-body-strong">O essencial</span>
+        <span className="composer-band-label type-h4">O essencial</span>
 
         <div className="composer-name-type-row">
           <div>
@@ -571,9 +599,11 @@ const ExerciseComposer = ({
         onRestChip={handleRestChipClick}
       />
 
-      {/* ── Band 3: DETALHES ── */}
+      <TechniquesBand value={form.advancedTechniques} onChange={handleTechniquesChange} />
+
+      {/* ── Band 4: DETALHES ── */}
       <div className="composer-band">
-        <span className="composer-band-label type-body-strong">Detalhes</span>
+        <span className="composer-band-label type-h4">Detalhes</span>
 
         {/* Vídeo — library picker + YouTube URL fallback */}
         <VideoField
@@ -627,15 +657,6 @@ const ExerciseComposer = ({
 
   const renderPrescriptionFields = () => (
     <>
-      <IntensityField
-        idPrefix="composer"
-        type={pickedTemplate?.type ?? ''}
-        intensity={form.intensity}
-        options={EXERCISE_INTENSITY_OPTIONS}
-        onChange={handleIntensityChange}
-        onClear={handleIntensityClear}
-        onKeepCardio={handleKeepCardio}
-      />
       <PrescriptionBand
         form={form}
         exerciseType={pickedTemplate?.type}
@@ -643,9 +664,12 @@ const ExerciseComposer = ({
         onPrescriptionChange={handlePrescriptionChange}
         onLoadToggle={handleLoadToggle}
         onRestChip={handleRestChipClick}
+        error={errors.reps}
       />
-      {errors.reps && <span className="field-error type-caption" role="alert">{errors.reps}</span>}
-      <NotesField value={form.notes} onChange={(value) => handleFieldChange('notes', value)} />
+      {pickedTemplate && <TechniquesBand value={form.advancedTechniques} onChange={handleTechniquesChange} />}
+      <div className="composer-band">
+        <NotesField value={form.notes} onChange={(value) => handleFieldChange('notes', value)} />
+      </div>
     </>
   );
 
@@ -665,13 +689,24 @@ const ExerciseComposer = ({
   );
 
   const renderSingleAdd = () => (
-    <>
-      {pickedTemplate
-        ? <PickedExercise template={pickedTemplate} onChange={handleChangeTemplate} />
-        : <TemplateSearchCombobox templates={exerciseTemplates} onPick={handlePickTemplate} />}
+    <div className="composer-sections">
+      <div className="composer-band">
+        {pickedTemplate
+          ? <PickedExercise template={pickedTemplate} onChange={handleChangeTemplate} />
+          : <TemplateSearchCombobox templates={exerciseTemplates} onPick={handlePickTemplate} />}
+        <IntensityField
+          idPrefix="composer"
+          type={pickedTemplate?.type ?? ''}
+          intensity={form.intensity}
+          options={EXERCISE_INTENSITY_OPTIONS}
+          onChange={handleIntensityChange}
+          onClear={handleIntensityClear}
+          onKeepCardio={handleKeepCardio}
+        />
+      </div>
       {renderPrescriptionFields()}
       {renderSingleActions()}
-    </>
+    </div>
   );
 
   const renderBatchAdd = () => (

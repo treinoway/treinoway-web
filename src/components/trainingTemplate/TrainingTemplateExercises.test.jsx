@@ -79,4 +79,20 @@ describe('TrainingTemplateExercises', () => {
     await user.click(screen.getByRole('combobox'));
     expect(screen.getByRole('option', { name: /supino reto/i })).toHaveAttribute('aria-disabled', 'true');
   });
+
+  it('shows the advanced technique chips of a junction in order', () => {
+    renderSection({
+      exerciseIds: [20],
+      junctions: [
+        {
+          exerciseTemplateId: 20,
+          advancedTechniques: [
+            { id: 2, name: 'Rest-pause', order: 1 },
+            { id: 1, name: 'Drop set', order: 0 },
+          ],
+        },
+      ],
+    });
+    expect(screen.getByRole('group', { name: 'Técnicas avançadas: Drop set, Rest-pause' })).toBeInTheDocument();
+  });
 });

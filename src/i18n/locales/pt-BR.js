@@ -246,6 +246,11 @@ const ptBR = {
       "Este protocolo não está atribuído a você.",
     "diet.mealNotFound": "Refeição não encontrada.",
     "diet.foodItemNotFound": "Alimento não encontrado.",
+    "advancedTechnique.notFound": "Técnica avançada não encontrada.",
+    "advancedTechnique.forbidden":
+      "Técnicas públicas não podem ser editadas ou excluídas.",
+    "advancedTechnique.invalidSelection":
+      "Seleção de técnicas inválida. Use até 5 técnicas sem repetir.",
     "exercise.supersetMembershipInvalid":
       "Os exercícios do bi-set precisam estar em sequência no treino.",
     "exercise.supersetMinMembers":
@@ -1121,6 +1126,16 @@ const ptBR = {
       confirm: "Salvar mesmo assim",
       cancel: "Voltar e preencher",
     },
+  },
+
+  techniqueChips: {
+    groupLabel: "Técnicas avançadas: {names}",
+    overflow: "+{count}",
+  },
+
+  videoBadge: {
+    label: "Vídeo",
+    title: "Tem vídeo de demonstração",
   },
 
   exerciseGroup: {

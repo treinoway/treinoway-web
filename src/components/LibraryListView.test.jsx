@@ -49,6 +49,17 @@ describe('LibraryListView', () => {
     expect(empty.onAction).toHaveBeenCalled();
   });
 
+  it('falls through to the list when empty is omitted, even if isEmptyLibrary is set', () => {
+    const propsWithoutEmpty = { ...baseProps, empty: undefined };
+    render(
+      <LibraryListView {...propsWithoutEmpty} isEmptyLibrary>
+        <LibraryListRow title="Item um" />
+      </LibraryListView>,
+    );
+    expect(screen.getByText('toolbar')).toBeInTheDocument();
+    expect(screen.getByText('Item um')).toBeInTheDocument();
+  });
+
   it('renders toolbar, batch bar, rows and footer when ready', () => {
     render(
       <LibraryListView

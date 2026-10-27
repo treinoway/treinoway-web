@@ -74,7 +74,7 @@ VideoStage.propTypes = {
 };
 
 /** "Demonstração" section: 16:9 preview stage, YouTube URL field, library picker (only when `onPickFromLibrary` is given) and removal. */
-const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = '', onGifUrlChange, gifError = null, onPickFromLibrary, onRemoveVideo }) => {
+const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = '', onGifUrlChange, gifError = null, onPickFromLibrary, onRemoveVideo, disabled = false }) => {
   const youtubeId = getYoutubeVideoId(videoUrl);
   const canPickFromLibrary = !!onPickFromLibrary;
   const previewGifUrl = isHttpUrl(gifUrl) ? gifUrl.trim() : null;
@@ -113,6 +113,7 @@ const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = 
               type="url"
               value={videoUrl}
               onChange={(e) => onVideoUrlChange(e.target.value)}
+              disabled={disabled}
               className={`input input--search${hasInvalidUrl ? ' input--error' : ''}`}
               placeholder="https://youtube.com/..."
             />
@@ -129,6 +130,7 @@ const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = 
               type="url"
               value={gifUrl}
               onChange={(e) => onGifUrlChange(e.target.value)}
+              disabled={disabled}
               className={`input input--search${gifError ? ' input--error' : ''}`}
               placeholder="https://.../exercicio.gif"
             />
@@ -142,7 +144,7 @@ const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = 
           )}
         </div>
 
-        {(canPickFromLibrary || youtubeId) && (
+        {!disabled && (canPickFromLibrary || youtubeId) && (
           <div className="video-hero-actions">
             {canPickFromLibrary && (
               <button type="button" className="btn btn--ghost" onClick={onPickFromLibrary}>
@@ -172,6 +174,7 @@ ExerciseVideoSection.propTypes = {
   gifError: PropTypes.string,
   onPickFromLibrary: PropTypes.func,
   onRemoveVideo: PropTypes.func.isRequired,
+  disabled: PropTypes.bool,
 };
 
 export default ExerciseVideoSection;

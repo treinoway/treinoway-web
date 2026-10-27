@@ -364,6 +364,8 @@
   --feedback-warning: var(--primitive-yellow-300);
   --feedback-warning-bg: var(--primitive-yellow-100);
   --feedback-warning-text: var(--primitive-yellow-400);
+  --chip-technique-bg: #FDDCBA;
+  --chip-technique-text: #6B3400;
   --feedback-error: var(--primitive-red-300);
   --feedback-error-bg: var(--primitive-red-100);
   --feedback-error-text: var(--primitive-red-400);
@@ -17178,6 +17180,17 @@ select.input { cursor: pointer; }
   margin-top: var(--spacing-lg);
 }
 
+.library-own-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.library-own-hint__text { color: var(--text-secondary); }
+
 .students-footer__count,
 .library-footer__count { color: var(--text-secondary); }
 .students-footer .btn,
@@ -17829,6 +17842,32 @@ select.input { cursor: pointer; }
 .exercise-row-wide-name-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-xs) var(--spacing-sm); }
 .exercise-row-wide-name { color: var(--text-primary); overflow-wrap: anywhere; }
 .exercise-row-wide-meta { color: var(--text-secondary); }
+
+.technique-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-inline-start: var(--spacing-xs);
+  vertical-align: middle;
+}
+.technique-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0 var(--spacing-sm);
+  border-radius: var(--radius-full);
+  background: var(--chip-technique-bg);
+  color: var(--chip-technique-text);
+  font-size: var(--font-caption-size);
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.technique-chip--neutral {
+  background: var(--background-surface-elevated);
+  color: var(--text-secondary);
+}
 .exercise-selection-row-caption { color: var(--text-secondary); }
 .biset-member-rest-muted { color: var(--text-tertiary); }
 
@@ -18001,6 +18040,9 @@ select.input { cursor: pointer; }
 .inline-composer-title { display: flex; align-items: center; gap: var(--spacing-sm); color: var(--text-primary); }
 .composer-band { display: flex; flex-direction: column; gap: var(--spacing-md); }
 .composer-band-label { color: var(--text-primary); }
+/* Every composer flow (create, edit, library add) stacks its bands in .composer-sections: 2xl gap + divider above all but the first */
+.composer-sections { display: flex; flex-direction: column; gap: var(--spacing-2xl); }
+.composer-sections > .composer-band + .composer-band { padding-top: var(--spacing-2xl); border-top: 1px solid var(--border-default); }
 .composer-name-type-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-md); }
 
 @media (min-width: 768px) {
@@ -18227,7 +18269,7 @@ select.input { cursor: pointer; }
 
 /* Video field */
 .video-field { display: flex; flex-direction: column; gap: var(--spacing-sm); }
-.video-field-preview { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--radius-lg); background: var(--background-inverse); }
+.video-field-preview { position: relative; width: 100%; max-width: calc(var(--spacing-5xl) * 5); aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--radius-lg); background: var(--background-inverse); }
 .video-field-gif { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
 .video-field-preview iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .video-field-actions,
@@ -19618,6 +19660,84 @@ select.input { cursor: pointer; }
   flex-shrink: 0;
   color: var(--text-secondary);
 }
+
+/* Técnicas avançadas: picker, ordered list and inline create */
+.technique-field { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.technique-field__empty { margin: 0; color: var(--text-secondary); }
+.technique-field__limit { display: flex; align-items: center; gap: var(--spacing-xs); margin: 0; color: var(--text-secondary); }
+.technique-field__create { align-self: flex-start; }
+.technique-option__description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text-secondary);
+}
+
+.technique-list { display: flex; flex-direction: column; gap: var(--spacing-xs); margin: 0; padding: 0; list-style: none; }
+
+.technique-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface-elevated);
+}
+
+.technique-row--dragging { opacity: var(--opacity-muted); }
+.technique-row .exercise-drag-handle { padding: var(--spacing-xs); border: 0; background: transparent; }
+.technique-row .exercise-drag-handle:disabled { color: var(--icon-disabled); cursor: default; }
+
+.technique-row__order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--spacing-xl);
+  height: var(--spacing-xl);
+  border-radius: var(--radius-full);
+  background: var(--background-brand-subtle);
+  color: var(--text-brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.technique-row__name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.technique-row__hint { display: block; color: var(--text-secondary); font-weight: 400; }
+
+.technique-row__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--size-control-touch);
+  height: var(--size-control-touch);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--icon-default);
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .technique-row__action { width: var(--size-control); height: var(--size-control); }
+}
+
+.technique-row__action:hover:not(:disabled) { background: var(--background-surface); color: var(--text-primary); }
+.technique-row__action:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.technique-row__action:disabled { color: var(--icon-disabled); cursor: not-allowed; }
+
+.technique-inline-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface-elevated);
+}
+
+.technique-inline-form__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-sm); }
 
 .tt-exercise-list {
   display: flex;

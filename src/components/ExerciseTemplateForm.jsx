@@ -5,10 +5,12 @@ import ConfirmDialog from './ds/ConfirmDialog';
 import ExerciseIdentitySection from './exerciseTemplate/ExerciseIdentitySection';
 import ExerciseVideoSection from './exerciseTemplate/ExerciseVideoSection';
 import ExerciseVisibilitySection from './exerciseTemplate/ExerciseVisibilitySection';
+import ExerciseTechniquesSection from './exerciseTemplate/ExerciseTechniquesSection';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
 import { getGifUrlError } from '../utils/gif';
+import { haveSameTechniqueIds, sortTechniquesByOrder, toTechniqueIds, withoutDeletedTechniques } from '../utils/advancedTechniques';
 
 const EMPTY_FORM = {
   name: '',
@@ -16,15 +18,18 @@ const EMPTY_FORM = {
   videoUrl: '',
   gifUrl: '',
   isPublic: false,
+  advancedTechniques: [],
 };
 
-const buildPayload = (data, { includeVisibility, hadGif }) => {
+const buildPayload = (data, { includeVisibility, hadGif, initialTechniques }) => {
   const payload = { name: data.name, type: data.type };
   if (includeVisibility) payload.isPublic = data.isPublic;
   if (data.videoUrl?.trim()) payload.videoUrl = data.videoUrl.trim();
   const gifUrl = data.gifUrl?.trim();
   if (gifUrl) payload.gifUrl = gifUrl;
   else if (hadGif) payload.gifUrl = null;
+  // why: comparing the live list to the raw initial one also resends when only deleted techniques were dropped
+  if (!haveSameTechniqueIds(withoutDeletedTechniques(data.advancedTechniques), initialTechniques)) payload.advancedTechniqueIds = toTechniqueIds(data.advancedTechniques);
   return payload;
 };
 
@@ -36,6 +41,7 @@ const buildInitialForm = (template) => {
     videoUrl: template.videoUrl || '',
     gifUrl: template.gifUrl || '',
     isPublic: template.isPublic || false,
+    advancedTechniques: sortTechniquesByOrder(template.advancedTechniques),
   };
 };
 
@@ -128,7 +134,7 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
     if (gifError) return;
     setSaving(true);
     try {
-      const response = await persist(buildPayload(formData, { includeVisibility: isAdmin, hadGif: !!initialForm.gifUrl }));
+      const response = await persist(buildPayload(formData, { includeVisibility: isAdmin, hadGif: !!initialForm.gifUrl, initialTechniques: initialForm.advancedTechniques }));
       onSuccess?.(response.data);
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
@@ -165,6 +171,11 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
             gifError={gifUrlError}
             onPickFromLibrary={isAdmin ? () => setPickerOpen(true) : undefined}
             onRemoveVideo={handleRemoveVideo}
+          />
+          <ExerciseTechniquesSection
+            className={sectionClass}
+            value={formData.advancedTechniques}
+            onChange={(value) => updateField('advancedTechniques', value)}
           />
           </div>
         </div>

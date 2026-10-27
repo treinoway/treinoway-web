@@ -1,3 +1,5 @@
+import { sortTechniquesByOrder, toTechniqueIds } from './advancedTechniques';
+
 const JUNCTION_OVERRIDE_FIELDS = [
   'name',
   'type',
@@ -72,6 +74,7 @@ export const buildDraftJunction = (exerciseTemplate) => ({
   suggestedLoad: exerciseTemplate.suggestedLoad ?? null,
   restInterval: exerciseTemplate.restInterval ?? null,
   notes: exerciseTemplate.notes ?? null,
+  advancedTechniques: sortTechniquesByOrder(exerciseTemplate.advancedTechniques),
   exerciseTemplate: { id: exerciseTemplate.id, name: exerciseTemplate.name, type: exerciseTemplate.type },
 });
 
@@ -79,6 +82,7 @@ export const applyPayloadToDraft = (junction, payload) => {
   const overrides = Object.fromEntries(
     JUNCTION_OVERRIDE_FIELDS.filter((field) => payload[field] !== undefined).map((field) => [field, payload[field]]),
   );
+  if (payload.advancedTechniques !== undefined) overrides.advancedTechniques = payload.advancedTechniques;
   return { ...junction, ...overrides };
 };
 
@@ -86,7 +90,9 @@ const buildExercisePayload = (id, order, junctions) => {
   const junction = findJunction(junctions, id);
   if (!junction) return { exerciseTemplateId: id, order };
   const overrides = Object.fromEntries(JUNCTION_OVERRIDE_FIELDS.map((field) => [field, junction[field]]));
-  return { exerciseTemplateId: id, order, ...overrides };
+  // why: a full PATCH recreates junctions and an omitted key would inherit the template's list, so known junctions always resend theirs
+  const advancedTechniqueIds = toTechniqueIds(sortTechniquesByOrder(junction.advancedTechniques));
+  return { exerciseTemplateId: id, order, ...overrides, advancedTechniqueIds };
 };
 
 /** `isPublic` is only sent when `includeVisibility` (admins); otherwise the backend keeps/defaults it. */
