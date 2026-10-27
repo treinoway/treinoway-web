@@ -201,4 +201,20 @@ describe('LibraryFilterBar', () => {
     );
     expect(screen.getByText('(3)')).toBeInTheDocument();
   });
+
+  describe('searchInputType', () => {
+    const renderBar = (props = {}) =>
+      renderWithRouter(<LibraryFilterBar searchValue="" onSearchChange={() => {}} {...props} />);
+
+    it('renders a plain text input by default', () => {
+      renderBar();
+      expect(screen.getByRole('textbox', { name: 'Buscar' })).toHaveAttribute('type', 'text');
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    });
+
+    it('exposes the searchbox role when type is search', () => {
+      renderBar({ searchInputType: 'search' });
+      expect(screen.getByRole('searchbox', { name: 'Buscar' })).toHaveAttribute('type', 'search');
+    });
+  });
 });

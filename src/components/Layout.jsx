@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3 } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
@@ -17,7 +17,7 @@ const ADMIN_LINKS = [
   { path: '/admin/ai-usage', labelKey: 'adminNav.aiUsage', Icon: BarChart3 },
 ];
 
-const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/anamneses'];
+const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/advanced-techniques', '/trainer/anamneses'];
 
 const Layout = ({ children, noPadding = false }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -83,6 +83,7 @@ const Layout = ({ children, noPadding = false }) => {
     { path: '/trainer/routines', label: 'Rotinas', Icon: ClipboardList },
     { path: '/trainer/training-templates', label: 'Treinos únicos', Icon: Dumbbell },
     { path: '/trainer/exercise-templates', label: 'Exercícios', Icon: Activity },
+    { path: '/trainer/advanced-techniques', label: 'Técnicas avançadas', Icon: Zap },
     { path: '/trainer/anamneses', label: 'Anamneses', Icon: FileText },
   ];
 

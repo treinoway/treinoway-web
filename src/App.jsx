@@ -28,6 +28,8 @@ import TrainingTemplates from './pages/trainer/TrainingTemplates';
 import ExerciseTemplates from './pages/trainer/ExerciseTemplates';
 import TrainingTemplateEditor from './pages/trainer/TrainingTemplateEditor';
 import ExerciseTemplateEditor from './pages/trainer/ExerciseTemplateEditor';
+import AdvancedTechniques from './pages/trainer/AdvancedTechniques';
+import AdvancedTechniqueEditor from './pages/trainer/AdvancedTechniqueEditor';
 import ProtocolTemplateView from './pages/trainer/ProtocolTemplateView';
 import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
 import Students from './pages/trainer/Students';
@@ -200,6 +202,36 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <ExerciseTemplateEditor />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/advanced-techniques"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <AdvancedTechniques />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/advanced-techniques/new"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <AdvancedTechniqueEditor />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/advanced-techniques/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <AdvancedTechniqueEditor />
                 </Layout>
               </ProtectedRoute>
             }

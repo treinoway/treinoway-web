@@ -41,6 +41,22 @@ describe('ExerciseVideoSection', () => {
     expect(onRemoveVideo).toHaveBeenCalled();
   });
 
+  describe('disabled', () => {
+    it('leaves the inputs enabled by default', () => {
+      renderSection({ gifUrl: '', onGifUrlChange: vi.fn() });
+      expect(screen.getByLabelText(/url do vídeo/i)).toBeEnabled();
+      expect(screen.getByLabelText(/link do gif/i)).toBeEnabled();
+    });
+
+    it('disables both inputs and hides the library and remove actions', () => {
+      renderSection({ videoUrl: VALID_URL, gifUrl: '', onGifUrlChange: vi.fn(), disabled: true });
+      expect(screen.getByLabelText(/url do vídeo/i)).toBeDisabled();
+      expect(screen.getByLabelText(/link do gif/i)).toBeDisabled();
+      expect(screen.queryByRole('button', { name: /escolher da biblioteca/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /remover vídeo/i })).not.toBeInTheDocument();
+    });
+  });
+
   describe('GIF', () => {
     const GIF_URL = 'https://media.example.com/agachamento.gif';
 

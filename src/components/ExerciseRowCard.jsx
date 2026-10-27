@@ -1,5 +1,8 @@
 import PropTypes from 'prop-types';
 import { ChevronRight } from 'lucide-react';
+import TechniqueChips from './advancedTechniques/TechniqueChips';
+import VideoBadge from './VideoBadge';
+import { hasDemoMedia } from '../utils/demoMedia';
 
 /**
  * Clickable exercise row used on training template detail views.
@@ -11,6 +14,8 @@ import { ChevronRight } from 'lucide-react';
 const ExerciseRowCard = ({
   name,
   summary,
+  techniques,
+  media,
   emptyHint,
   sourceDeleted = false,
   sourceDeletedLabel = 'Exercício original removido',
@@ -18,7 +23,7 @@ const ExerciseRowCard = ({
   ariaLabel,
 }) => {
   const label = ariaLabel || `Editar exercício ${name}`;
-  const showEmptyHint = !summary && !sourceDeleted && !!emptyHint;
+  const showEmptyHint = !summary && !techniques?.length && !hasDemoMedia(media) && !sourceDeleted && !!emptyHint;
 
   return (
     <button
@@ -37,7 +42,13 @@ const ExerciseRowCard = ({
         {sourceDeleted && (
           <span className="exercise-row-card__warning-text">{sourceDeletedLabel}</span>
         )}
-        {summary && <span className="exercise-row-card__summary">{summary}</span>}
+        {(summary || techniques?.length > 0 || hasDemoMedia(media)) && (
+          <span className="exercise-row-card__summary">
+            {summary}
+            <VideoBadge exercise={media} />
+            <TechniqueChips techniques={techniques} />
+          </span>
+        )}
         {showEmptyHint && (
           <span className="exercise-row-card__empty-hint">{emptyHint}</span>
         )}
@@ -55,6 +66,9 @@ const ExerciseRowCard = ({
 ExerciseRowCard.propTypes = {
   name: PropTypes.string.isRequired,
   summary: PropTypes.string,
+  techniques: PropTypes.array,
+  /** Object carrying videoUrl/gifUrl; drives the "Vídeo" badge. */
+  media: PropTypes.shape({ videoUrl: PropTypes.string, gifUrl: PropTypes.string }),
   emptyHint: PropTypes.string,
   sourceDeleted: PropTypes.bool,
   sourceDeletedLabel: PropTypes.string,

@@ -26,6 +26,8 @@ const ExerciseRow = ({ id, junction, source, highlighted = false, onEdit, onRemo
       <ExerciseRowCard
         name={name}
         summary={junction ? formatSnapshotSummary(junction) : null}
+        techniques={junction?.advancedTechniques}
+        media={junction}
         emptyHint="Toque para definir séries, repetições e carga"
         sourceDeleted={!!junction && junction.exerciseTemplate == null}
         onClick={() => onEdit(id)}

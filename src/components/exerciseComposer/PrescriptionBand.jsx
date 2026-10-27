@@ -90,9 +90,9 @@ LoadGroup.propTypes = {
 };
 
 // Prescription band shared by the "Criar novo" form and the library single add (sets, reps/time and rest on one grid, then load).
-const PrescriptionBand = ({ form, exerciseType, onFieldChange, onPrescriptionChange, onLoadToggle, onRestChip }) => (
+const PrescriptionBand = ({ form, exerciseType, onFieldChange, onPrescriptionChange, onLoadToggle, onRestChip, error }) => (
   <div className="composer-band">
-    <span className="composer-band-label type-body-strong">Prescrição</span>
+    <span className="composer-band-label type-h4">Prescrição</span>
     <PrescriptionField
       idPrefix="composer"
       formData={form}
@@ -106,10 +106,13 @@ const PrescriptionBand = ({ form, exerciseType, onFieldChange, onPrescriptionCha
       onFieldChange={onFieldChange}
       onLoadToggle={onLoadToggle}
     />
+    {error && <span className="field-error type-caption" role="alert">{error}</span>}
   </div>
 );
 
 PrescriptionBand.propTypes = {
+  /** Reps validation message shown at the end of the band. */
+  error: PropTypes.string,
   form: PropTypes.object.isRequired,
   /** Exercise type; cardio defaults the duration unit to minutes. */
   exerciseType: PropTypes.string,

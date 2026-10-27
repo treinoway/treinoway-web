@@ -3,8 +3,18 @@ import api from '../api/axios';
 import { useToast } from '../contexts/ToastContext';
 import { getLoadDefault } from '../constants/exerciseTypes';
 import { toApiOverrides } from '../utils/exerciseOverrides';
+import { getLiveTechniqueIds, sortTechniquesByOrder, stripTechniqueDisplay, toTechniqueIds } from '../utils/advancedTechniques';
 
 // ─── Shape helpers ────────────────────────────────────────────────────────────
+
+// Junction techniques: sent as ids when the junction owns a list (otherwise the server inherits the template's).
+const extractTechniqueFields = (junction) => {
+  const own = junction.advancedTechniques;
+  const display = sortTechniquesByOrder(own ?? junction.exerciseTemplate?.advancedTechniques);
+  return Array.isArray(own)
+    ? { advancedTechniques: display, advancedTechniqueIds: toTechniqueIds(display) }
+    : { advancedTechniques: display };
+};
 
 /**
  * Extracts a flat exercises array from a protocol-template training payload.
@@ -36,6 +46,7 @@ const extractExercisesFromTemplate = (raw) => {
       gifUrl: j.gifUrl ?? j.exerciseTemplate?.gifUrl ?? null,
       intensity: j.intensity ?? j.exerciseTemplate?.intensity ?? null,
       notes: j.notes ?? j.exerciseTemplate?.notes ?? null,
+      ...extractTechniqueFields(j),
       _isFromTemplate: true,
     }));
 };
@@ -73,6 +84,7 @@ const toBulkExercise = (exercise, index) => {
   if (exercise.intensity != null && exercise.intensity !== '') payload.intensity = exercise.intensity;
   if (exercise.videoUrl != null && exercise.videoUrl !== '') payload.videoUrl = exercise.videoUrl;
   if (exercise.gifUrl != null && exercise.gifUrl !== '') payload.gifUrl = exercise.gifUrl;
+  if (Array.isArray(exercise.advancedTechniqueIds)) payload.advancedTechniqueIds = getLiveTechniqueIds(exercise);
 
   return payload;
 };
@@ -490,7 +502,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
       mutate(async () => {
         if (isEditMode) {
           const { id: _id, _isNew: _n, _isFromTemplate: _ift, _templateId: _tid, ...cleanPayload } = exercisePayload;
-          const res = await api.post(`/trainer/trainings/${trainingId}/exercises`, cleanPayload);
+          const res = await api.post(`/trainer/trainings/${trainingId}/exercises`, stripTechniqueDisplay(cleanPayload));
           const newExercise = res.data;
           setData((prev) => ({
             ...prev,
@@ -576,6 +588,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           gifUrl: template?.gifUrl ?? null,
           intensity: template?.intensity ?? null,
           notes: template?.notes ?? null,
+          advancedTechniques: overrides.advancedTechniques ?? sortTechniquesByOrder(template?.advancedTechniques),
           _isFromTemplate: true,
           ...toApiOverrides(overrides),
         };
@@ -598,7 +611,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     (trainingId, exerciseId, fields) =>
       mutate(async () => {
         if (isEditMode) {
-          await api.patch(`/trainer/exercises/${exerciseId}`, fields);
+          await api.patch(`/trainer/exercises/${exerciseId}`, stripTechniqueDisplay(fields));
         }
         setData((prev) => ({
           ...prev,

@@ -23,7 +23,7 @@ describe('ExerciseTemplateForm — invalid GIF link', () => {
     await user.type(screen.getByLabelText(/nome/i), 'Agachamento');
     await user.click(screen.getByRole('radio', { name: /força/i }));
     await user.type(screen.getByLabelText(/link do gif/i), 'HTTPS://a.com/a.gif');
-    await user.click(screen.getByRole('button', { name: /salvar|criar/i }));
+    await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     expect(screen.getByRole('alert')).toHaveTextContent(/link http\(s\) válido/i);
     expect(api.post).not.toHaveBeenCalled();

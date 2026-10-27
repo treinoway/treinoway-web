@@ -76,6 +76,9 @@ import useExerciseDrawer from '../../hooks/useExerciseDrawer';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useMediaQuery from '../../hooks/useMediaQuery';
 import useFormLayoutPreference from '../../hooks/useFormLayoutPreference';
+import TechniqueChips from '../../components/advancedTechniques/TechniqueChips';
+import VideoBadge from '../../components/VideoBadge';
+import { hasDemoMedia } from '../../utils/demoMedia';
 import FormLayoutToggle from '../../components/routineBuilder/FormLayoutToggle';
 import { PROTOCOL_TYPE_OPTIONS, getProtocolTypeLabel } from '../../constants/protocolTypes';
 import { TRAINING_LEVEL_OPTIONS, getLevelLabel } from '../../constants/trainingLevels';
@@ -560,6 +563,7 @@ const ExerciseRow = ({
   // identity-only. Fall back to the type label from the template only when the
   // exercise has no type of its own.
   const meta = formatExerciseMeta(ex) || formatExerciseMeta(ex.exerciseTemplate);
+  const techniques = ex.advancedTechniques ?? [];
   const intensity = ex.intensity ?? ex.exerciseTemplate?.intensity ?? null;
   const intensityLabel = ex.intensityLabel ?? ex.exerciseTemplate?.intensityLabel ?? null;
 
@@ -665,7 +669,7 @@ const ExerciseRow = ({
           <span className="exercise-row-wide-name type-body-strong">{name}</span>
           <IntensityBadge intensity={intensity} label={intensityLabel} />
         </span>
-        {meta && (
+        {(meta || techniques.length > 0 || hasDemoMedia(ex)) && (
           <span className="exercise-row-wide-meta type-caption">
             {meta}
             {restMutedLabel && (
@@ -676,6 +680,8 @@ const ExerciseRow = ({
                 </span>
               </>
             )}
+            <VideoBadge exercise={ex} />
+            <TechniqueChips techniques={techniques} />
           </span>
         )}
         {selectionMode && selectionDisabled && selectionDisabledReason && (

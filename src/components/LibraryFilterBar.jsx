@@ -11,7 +11,7 @@ const countOrNothing = (count) => (count > 0 ? count : undefined);
  *
  * Props:
  *  - searchValue / onSearchChange     — controlled search input
- *  - searchPlaceholder / searchAriaLabel
+ *  - searchPlaceholder / searchAriaLabel / searchInputType ('text' default; 'search' exposes the searchbox role)
  *  - filters ([{ value, label, count? }]) — segmented tabs
  *  - activeFilter / onFilterChange    — selected tab and change handler
  *  - filterCounts ({ [value]: number }) — optional counts (overridden by filter.count)
@@ -23,6 +23,7 @@ const LibraryFilterBar = ({
   onSearchChange,
   searchPlaceholder = 'Buscar…',
   searchAriaLabel = 'Buscar',
+  searchInputType = 'text',
   filters = [],
   activeFilter,
   onFilterChange,
@@ -41,7 +42,7 @@ const LibraryFilterBar = ({
       <div className="input--search-wrap">
         <Search size={16} strokeWidth={2} aria-hidden="true" />
         <input
-          type="text"
+          type={searchInputType}
           className="input input--search input--on-elevated"
           placeholder={searchPlaceholder}
           value={searchValue}
@@ -66,6 +67,7 @@ LibraryFilterBar.propTypes = {
   searchValue: PropTypes.string.isRequired,
   onSearchChange: PropTypes.func.isRequired,
   searchPlaceholder: PropTypes.string,
+  searchInputType: PropTypes.oneOf(['text', 'search']),
   searchAriaLabel: PropTypes.string,
   filters: PropTypes.arrayOf(
     PropTypes.shape({

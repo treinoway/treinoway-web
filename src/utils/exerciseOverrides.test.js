@@ -13,4 +13,10 @@ describe('toApiOverrides', () => {
     expect(toApiOverrides()).toEqual({});
     expect(toApiOverrides({ template: { id: 't' } })).toEqual({});
   });
+
+  it('drops the display advancedTechniques list but keeps advancedTechniqueIds', () => {
+    expect(
+      toApiOverrides({ advancedTechniques: [{ id: 't1' }], advancedTechniqueIds: ['t1'], sets: 3 }),
+    ).toEqual({ advancedTechniqueIds: ['t1'], sets: 3 });
+  });
 });

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api/axios';
 import { toApiOverrides } from '../utils/exerciseOverrides';
+import { stripTechniqueDisplay } from '../utils/advancedTechniques';
 
 // ─── Shape helpers ────────────────────────────────────────────────────────────
 
@@ -342,7 +343,7 @@ const useRoutineBuilder = (routineId) => {
       mutate(async () => {
         const res = await api.post(
           `/trainer/training-templates/${trainingId}/exercises`,
-          exercisePayload
+          stripTechniqueDisplay(exercisePayload)
         );
         const newExercise = res.data;
         setData((prev) => ({
@@ -413,7 +414,7 @@ const useRoutineBuilder = (routineId) => {
       mutate(async () => {
         const res = await api.patch(
           `/trainer/training-templates/${trainingId}/exercises/${exerciseId}`,
-          fields
+          stripTechniqueDisplay(fields)
         );
         setData((prev) => ({
           ...prev,

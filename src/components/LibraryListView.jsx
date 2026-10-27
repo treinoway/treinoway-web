@@ -57,7 +57,7 @@ const LibraryListView = ({
     );
   }
 
-  if (isEmptyLibrary) return <EmptyBlock {...empty} />;
+  if (isEmptyLibrary && empty) return <EmptyBlock {...empty} />;
 
   return (
     <>
@@ -84,7 +84,7 @@ LibraryListView.propTypes = {
     description: PropTypes.string,
     actionLabel: PropTypes.string,
     onAction: PropTypes.func,
-  }).isRequired,
+  }),
   toolbar: PropTypes.node,
   refetching: PropTypes.bool,
   batch: PropTypes.object,
