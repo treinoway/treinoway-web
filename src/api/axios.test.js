@@ -190,3 +190,88 @@ describe('axios interceptor — app-timezone header', () => {
     axiosPostSpy.mockRestore();
   });
 });
+
+describe('axios — refreshAccessToken (shared refresh for non-axios callers)', () => {
+  beforeEach(() => {
+    mockAdapter.mockReset();
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('refreshes the session and resolves with the new access token', async () => {
+    localStorage.setItem('refreshToken', 'refresh-abc');
+    const axiosModule = await import('axios');
+    const postSpy = vi.spyOn(axiosModule.default, 'post').mockResolvedValue({
+      data: { accessToken: 'token-new', refreshToken: 'refresh-new' },
+    });
+    vi.resetModules();
+    const { refreshAccessToken } = await import('./axios');
+
+    const token = await refreshAccessToken();
+
+    expect(token).toBe('token-new');
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(postSpy.mock.calls[0][0]).toContain('/auth/refresh');
+    expect(postSpy.mock.calls[0][1]).toEqual({ refreshToken: 'refresh-abc' });
+    expect(localStorage.getItem('accessToken')).toBe('token-new');
+    expect(localStorage.getItem('refreshToken')).toBe('refresh-new');
+  });
+
+  it('resolves null without calling the server when there is no refresh token', async () => {
+    const axiosModule = await import('axios');
+    const postSpy = vi.spyOn(axiosModule.default, 'post');
+    vi.resetModules();
+    const { refreshAccessToken } = await import('./axios');
+
+    await expect(refreshAccessToken()).resolves.toBeNull();
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  it('shares one in-flight refresh between concurrent callers', async () => {
+    localStorage.setItem('refreshToken', 'refresh-abc');
+    const axiosModule = await import('axios');
+    const postSpy = vi.spyOn(axiosModule.default, 'post').mockResolvedValue({
+      data: { accessToken: 'token-new', refreshToken: 'refresh-new' },
+    });
+    vi.resetModules();
+    const { refreshAccessToken } = await import('./axios');
+
+    const [first, second] = await Promise.all([refreshAccessToken(), refreshAccessToken()]);
+
+    expect(first).toBe('token-new');
+    expect(second).toBe('token-new');
+    expect(postSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares the in-flight refresh with the 401 interceptor (token rotation: one use only)', async () => {
+    localStorage.setItem('accessToken', 'token-old');
+    localStorage.setItem('refreshToken', 'refresh-abc');
+    const axiosModule = await import('axios');
+    const postSpy = vi.spyOn(axiosModule.default, 'post').mockResolvedValue({
+      data: { accessToken: 'token-new', refreshToken: 'refresh-new' },
+    });
+    vi.resetModules();
+    const mod = await import('./axios');
+    mod.default.defaults.adapter = mockAdapter;
+    let attempt = 0;
+    mockAdapter.mockImplementation((config) => {
+      attempt += 1;
+      if (attempt === 1) {
+        const error = new Error('Unauthorized');
+        error.response = { status: 401, data: {}, headers: {}, config };
+        error.config = config;
+        return Promise.reject(error);
+      }
+      return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+    });
+
+    const streamRefresh = mod.refreshAccessToken();
+    await mod.default.get('/protected/resource');
+    await streamRefresh;
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
+  });
+});

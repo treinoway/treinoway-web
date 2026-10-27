@@ -79,7 +79,8 @@ api.interceptors.request.use(
 // Single in-flight refresh (token rotation: only one refresh token use at a time)
 let refreshPromise = null;
 
-function clearAuthAndRedirect() {
+// Drops the stored session and sends the user to the login screen.
+export function clearAuthAndRedirect() {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
@@ -100,6 +101,19 @@ async function performRefresh() {
     }));
   }
   return newAccessToken;
+}
+
+// Refreshes the session one call at a time; shared by the 401 interceptor and non-axios callers (SSE).
+export function refreshAccessToken() {
+  if (!refreshPromise) {
+    // why: the settled promise lingers for one tick so a 401 signed just before the rotation reuses it instead of burning the new refresh token.
+    refreshPromise = performRefresh().finally(() => {
+      setTimeout(() => {
+        refreshPromise = null;
+      }, 0);
+    });
+  }
+  return refreshPromise;
 }
 
 // Response interceptor to handle token refresh and detect HTML responses
@@ -138,12 +152,7 @@ api.interceptors.response.use(
 
       try {
         // Only one refresh at a time; concurrent 401s wait for the same result (token rotation)
-        if (!refreshPromise) {
-          refreshPromise = performRefresh().finally(() => {
-            refreshPromise = null;
-          });
-        }
-        const newAccessToken = await refreshPromise;
+        const newAccessToken = await refreshAccessToken();
 
         if (!newAccessToken) {
           clearAuthAndRedirect();

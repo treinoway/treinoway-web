@@ -87,12 +87,12 @@ const mockSubscription = { id: 'sub-1', planId: 'plan-1', recurrence: 'quarterly
 const mockPlans = [{ id: 'plan-1', name: 'Plano trimestral', isArchived: false }];
 
 const mockShowToast = vi.fn();
-const mockSendMessage = vi.fn();
+const mockStartConversation = vi.fn();
 
 function setupMocks(overrides = {}) {
   vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
   vi.mocked(useAuth).mockReturnValue({ user: { id: 'trainer-1', firstName: 'João', lastName: 'Lucas' } });
-  vi.mocked(useAiChat).mockReturnValue({ sendMessage: mockSendMessage });
+  vi.mocked(useAiChat).mockReturnValue({ startConversation: mockStartConversation });
 
   const routes = {
     '/trainer/students': [mockStudent],
@@ -123,7 +123,7 @@ describe('StudentDetail (cockpit)', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
     mockNavigate.mockReset();
-    mockSendMessage.mockReset();
+    mockStartConversation.mockReset();
     mockRetryBlock.mockReset();
     api.get.mockReset();
     api.post.mockReset();
@@ -638,12 +638,25 @@ describe('StudentDetail (cockpit)', () => {
     });
   });
 
-  it('asks iArnold about the student', async () => {
+  it('asks iArnold about the student in a NEW conversation scoped to the student', async () => {
     const user = userEvent.setup();
-    mockSendMessage.mockResolvedValue(undefined);
+    mockStartConversation.mockResolvedValue(undefined);
     await renderDetail();
     await user.click(screen.getByRole('button', { name: 'Perguntar ao iArnold' }));
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/ai-assistant');
-    expect(mockSendMessage).toHaveBeenCalledWith('Como posso ajudar com Aluno Exemplo?');
+    expect(mockStartConversation).toHaveBeenCalledTimes(1);
+    const [prompt, options] = mockStartConversation.mock.calls[0];
+    expect(options).toEqual({ studentId: 'student-1' });
+    expect(prompt).toContain('Aluno Exemplo');
+  });
+
+  it('phrases the iArnold prompt as the trainer request, not as an assistant question', async () => {
+    const user = userEvent.setup();
+    mockStartConversation.mockResolvedValue(undefined);
+    await renderDetail();
+    await user.click(screen.getByRole('button', { name: 'Perguntar ao iArnold' }));
+    const [prompt] = mockStartConversation.mock.calls[0];
+    expect(prompt).not.toMatch(/^como posso ajudar/i);
+    expect(prompt).not.toMatch(/\?\s*$/);
   });
 });

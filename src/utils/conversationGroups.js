@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 const startOfDay = (date) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -50,10 +52,10 @@ export const groupConversationsByDate = (conversations) => {
   });
 
   const result = [];
-  if (groups.today.length > 0) result.push({ label: 'Hoje', conversations: groups.today });
-  if (groups.yesterday.length > 0) result.push({ label: 'Ontem', conversations: groups.yesterday });
-  if (groups.week.length > 0) result.push({ label: 'Esta semana', conversations: groups.week });
-  if (groups.older.length > 0) result.push({ label: 'Anteriores', conversations: groups.older });
+  if (groups.today.length > 0) result.push({ label: t('iArnold.history.groups.today'), conversations: groups.today });
+  if (groups.yesterday.length > 0) result.push({ label: t('iArnold.history.groups.yesterday'), conversations: groups.yesterday });
+  if (groups.week.length > 0) result.push({ label: t('iArnold.history.groups.week'), conversations: groups.week });
+  if (groups.older.length > 0) result.push({ label: t('iArnold.history.groups.older'), conversations: groups.older });
 
   return result;
 };

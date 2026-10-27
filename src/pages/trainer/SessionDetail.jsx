@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, SearchX } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useAiChat } from '../../contexts/AiChatContext';
-import { translateError } from '../../i18n';
+import { translateError, t, tf } from '../../i18n';
 import api from '../../api/axios';
 import SessionDetailHero from '../../components/SessionDetailHero';
 import SessionNotesGrid from '../../components/SessionNotesGrid';
@@ -21,20 +21,13 @@ const getStudentName = (student) => {
   return student.email ?? null;
 };
 
-const formatSessionDate = (iso) => {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
-};
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const SessionDetail = () => {
   const { studentId, sessionId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { sendMessage } = useAiChat();
+  const { startConversation } = useAiChat();
 
   const [session, setSession] = useState(null);
   const [student, setStudent] = useState(null);
@@ -71,21 +64,18 @@ const SessionDetail = () => {
   const handleAskIArnold = useCallback(async () => {
     if (iArnoldSubmitting) return;
     setIArnoldSubmitting(true);
-    const trainingName = session?.training?.name ?? 'esta sessão';
-    const studentName = getStudentName(student) ?? 'este aluno';
-    const dateLabel = formatSessionDate(session?.startedAt);
-    const prefix = dateLabel
-      ? `Analise a sessão ${trainingName} de ${studentName} em ${dateLabel}`
-      : `Analise a sessão ${trainingName} de ${studentName}`;
+    const trainingName = session?.training?.name ?? t('iArnold.sessionPrompt.trainingFallback');
+    const studentName = getStudentName(student) ?? t('iArnold.sessionPrompt.studentFallback');
+    const prefix = tf('iArnold.sessionPrompt.text', { student: studentName, training: trainingName });
     try {
       navigate('/trainer/ai-assistant');
-      await sendMessage(prefix);
+      await startConversation(prefix, { studentId });
     } catch (err) {
       console.error('[SessionDetail] iArnold prefill failed', translateError(err));
     } finally {
       setIArnoldSubmitting(false);
     }
-  }, [iArnoldSubmitting, navigate, sendMessage, session, student]);
+  }, [iArnoldSubmitting, navigate, startConversation, session, student, studentId]);
 
   const handleBack = () => {
     navigate(`/trainer/students/${studentId}`);

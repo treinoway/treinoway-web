@@ -98,7 +98,7 @@ let pending;
 const setupMocks = () => {
   vi.mocked(useToast).mockReturnValue({ showToast: vi.fn() });
   vi.mocked(useAuth).mockReturnValue({ user: { id: 'trainer-1', firstName: 'João', lastName: 'Lucas' } });
-  vi.mocked(useAiChat).mockReturnValue({ sendMessage: vi.fn() });
+  vi.mocked(useAiChat).mockReturnValue({ startConversation: vi.fn() });
   pending = new Map();
   api.get.mockImplementation((url) => {
     const request = deferred();

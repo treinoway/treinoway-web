@@ -1,32 +1,100 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from './AuthContext';
-import { useToast } from './ToastContext';
 import api from '../api/axios';
-import API_BASE_URL from '../api/baseUrl';
-import { translateError } from '../i18n';
+import { openChatStream, readChatEvents } from '../api/aiChatStream';
+import { t, translateError } from '../i18n';
 
 const AiChatContext = createContext(null);
 
-const BASE_URL = API_BASE_URL;
+let messageSequence = 0;
 
-const parseSSELines = (lines) => {
-  const events = [];
-  let currentEvent = null;
-  for (const line of lines) {
-    if (line.startsWith('event: ')) {
-      currentEvent = line.slice(7);
-    } else if (line.startsWith('data: ') && currentEvent) {
-      try {
-        const data = JSON.parse(line.slice(6));
-        events.push({ event: currentEvent, data });
-      } catch {
-        // Skip malformed data lines
-      }
-      currentEvent = null;
+// Returns the next stable key for a locally created message.
+const nextMessageId = () => {
+  messageSequence += 1;
+  return `local-${messageSequence}`;
+};
+
+// Builds a chat message with a stable key.
+const buildMessage = (role, content, extra = {}) => ({ id: nextMessageId(), role, content, ...extra });
+
+// True for an assistant row that only carries tool calls (no text of its own).
+const isToolOnlyRow = (message) => message.role === 'assistant' && !message.content?.trim();
+
+// Maps persisted messages to UI messages, folding tool-only assistant rows into the next assistant reply.
+const toUiMessages = (storedMessages) => {
+  const uiMessages = [];
+  let carriedActions = [];
+  storedMessages.forEach((message) => {
+    const actions = message.toolCalls || [];
+    if (isToolOnlyRow(message)) {
+      carriedActions = [...carriedActions, ...actions];
+      return;
     }
+    const isReply = message.role === 'assistant';
+    uiMessages.push({
+      id: message.id ?? nextMessageId(),
+      role: message.role,
+      content: message.content,
+      actionsExecuted: isReply ? [...carriedActions, ...actions] : actions,
+    });
+    if (isReply) carriedActions = [];
+  });
+  if (carriedActions.length > 0) {
+    uiMessages.push({ id: nextMessageId(), role: 'assistant', content: t('iArnold.chat.actionDone'), actionsExecuted: carriedActions });
   }
-  return events;
+  return uiMessages;
+};
+
+// Builds the error state shown by the single error surface.
+const buildChatError = (error, retryText) => ({
+  message: error.userMessage || translateError(error),
+  code: error.response?.data?.messageCode ?? null,
+  retryText,
+});
+
+// Creates the handlers of one chat turn; every handler is a no-op once the turn is no longer current.
+const createTurnHandlers = ({ text, isCurrent, finish, setters }) => {
+  const { setMessages, setStatusMessage, setChatError, setConversationId, setHasNewResponse } = setters;
+
+  const fail = (error) => {
+    const orphanConversationId = error.response?.data?.conversationId;
+    if (orphanConversationId) setConversationId(orphanConversationId);
+    setMessages((prev) => prev.filter((message) => !message.isStreaming));
+    setChatError(buildChatError(error, text));
+    finish();
+  };
+
+  const complete = (data) => {
+    const fallback = data.actionsExecuted?.length > 0 ? t('iArnold.chat.actionDone') : t('iArnold.chat.emptyReply');
+    const reply = buildMessage('assistant', data.message || fallback, { actionsExecuted: data.actionsExecuted || [] });
+    setMessages((prev) => prev.map((message) => (message.isStreaming ? reply : message)));
+    setConversationId(data.conversationId);
+    setHasNewResponse(true);
+    finish();
+  };
+
+  const appendDelta = (content) => {
+    setStatusMessage('');
+    setMessages((prev) =>
+      prev.map((message) => (message.isStreaming ? { ...message, content: message.content + content } : message))
+    );
+  };
+
+  const handleEvent = ({ event, data }) => {
+    if (!isCurrent()) return;
+    if (event === 'status') setStatusMessage(data.message);
+    if (event === 'heartbeat') setStatusMessage((prev) => prev || t('iArnold.chat.processing'));
+    if (event === 'text_delta') appendDelta(data.content);
+    if (event === 'error') fail({ response: { data } });
+    if (event === 'done') complete(data);
+  };
+
+  const interrupted = () => {
+    if (isCurrent()) fail({ userMessage: t('iArnold.chat.connectionLost') });
+  };
+
+  return { handleEvent, fail, interrupted };
 };
 
 export const useAiChat = () => {
@@ -39,294 +107,160 @@ export const useAiChat = () => {
 
 export const AiChatProvider = ({ children }) => {
   const { accessToken, user } = useAuth();
-  const { showToast } = useToast();
 
-  const ownerIdRef = useRef(user?.id ?? null);
+  const userIdRef = useRef(user?.id ?? null);
+  userIdRef.current = user?.id ?? null;
+  const ownerIdRef = useRef(userIdRef.current);
+  const accessTokenRef = useRef(accessToken);
+  accessTokenRef.current = accessToken;
 
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationIdState] = useState(null);
-  const conversationIdRef = useRef(null);
   const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [hasNewResponse, setHasNewResponse] = useState(false);
+  const [chatError, setChatError] = useState(null);
+
+  const conversationIdRef = useRef(null);
+  const streamControllerRef = useRef(null);
+  const loadSequenceRef = useRef(0);
+  const lastTurnRef = useRef(null);
+  const conversationStudentIdRef = useRef(null);
 
   const setConversationId = useCallback((id) => {
     conversationIdRef.current = id;
     setConversationIdState(id);
   }, []);
-  const [streamingText, setStreamingText] = useState('');
-  const [statusMessage, setStatusMessage] = useState('');
-  const [hasNewResponse, setHasNewResponse] = useState(false);
-  const [errorRetry, setErrorRetry] = useState(null);
-  const [errorCode, setErrorCode] = useState(null);
 
-  const accessTokenRef = useRef(accessToken);
-  accessTokenRef.current = accessToken;
+  const isOwnedByCurrentUser = useCallback(
+    () => userIdRef.current != null && userIdRef.current === ownerIdRef.current,
+    []
+  );
 
-  const loadingRef = useRef(false);
-  const pendingMessageRef = useRef(null);
-
-  const handleStreamEvent = useCallback((event, data, accumulated) => {
-    if (event === 'status') {
-      setStatusMessage(data.message);
-      return accumulated;
-    }
-
-    if (event === 'text_delta') {
-      const updated = accumulated + data.content;
-      setStreamingText(updated);
-      setStatusMessage('');
-      setMessages((prev) => {
-        const copy = [...prev];
-        const last = copy[copy.length - 1];
-        if (last?.isStreaming) {
-          copy[copy.length - 1] = { ...last, content: updated };
-        }
-        return copy;
-      });
-      return updated;
-    }
-
-    if (event === 'done') {
-      const hasActions = data.actionsExecuted?.length > 0;
-      const fallbackText = hasActions
-        ? 'Ação executada com sucesso.'
-        : 'Não consegui gerar uma resposta. Tente reformular seu pedido.';
-      const finalMessage = {
-        role: 'assistant',
-        content: data.message || fallbackText,
-        actionsExecuted: data.actionsExecuted || [],
-      };
-      setMessages((prev) => [...prev.slice(0, -1), finalMessage]);
-      setConversationId(data.conversationId);
-      setStreamingText('');
-      setStatusMessage('');
-      setLoading(false);
-      loadingRef.current = false;
-      setHasNewResponse(true);
-      return accumulated;
-    }
-
-    if (event === 'error') {
-      setMessages((prev) => prev.filter((m) => !m.isStreaming));
-      setStreamingText('');
-      setStatusMessage('');
-      setLoading(false);
-      loadingRef.current = false;
-      setErrorCode(data.error || null);
-      if (pendingMessageRef.current) {
-        setErrorRetry(pendingMessageRef.current);
-      }
-      showToast(data.message, 'error');
-      return accumulated;
-    }
-
-    if (event === 'heartbeat') {
-      if (!accumulated) {
-        setStatusMessage((prev) => prev || 'Processando...');
-      }
-      return accumulated;
-    }
-
-    return accumulated;
-  }, [showToast, setConversationId]);
-
-  const readStream = useCallback(async (reader, decoder) => {
-    let buffer = '';
-    let accumulated = '';
-    let chunkCount = 0;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        console.info(`[AiChat] Reader done after ${chunkCount} chunks`);
-        break;
-      }
-      chunkCount++;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      const events = parseSSELines(lines);
-      for (const { event, data } of events) {
-        accumulated = handleStreamEvent(event, data, accumulated);
-      }
-    }
-  }, [handleStreamEvent]);
-
-  const sendMessage = useCallback(async (messageText) => {
-    if (!user?.id || user.id !== ownerIdRef.current) return;
-    const trimmedInput = messageText.trim();
-    if (!trimmedInput || loadingRef.current) return;
-
-    const userMessage = { role: 'user', content: trimmedInput };
-    const streamingPlaceholder = { role: 'assistant', content: '', isStreaming: true };
-    setMessages((prev) => [...prev, userMessage, streamingPlaceholder]);
-    setErrorRetry(null);
-    setErrorCode(null);
-    pendingMessageRef.current = trimmedInput;
-    setLoading(true);
-    loadingRef.current = true;
-    setStreamingText('');
+  const abortStream = useCallback(() => {
+    if (!streamControllerRef.current) return;
+    streamControllerRef.current.abort();
+    streamControllerRef.current = null;
+    setMessages((prev) => prev.filter((message) => !message.isStreaming));
     setStatusMessage('');
-
-    const payload = {
-      message: trimmedInput,
-      ...(conversationIdRef.current && { conversationId: conversationIdRef.current }),
-    };
-
-    const doStreamFetch = async (token) => {
-      return fetch(`${BASE_URL}/trainer/ai/chat/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-    };
-
-    try {
-      let token = localStorage.getItem('accessToken') || accessTokenRef.current;
-      let response = await doStreamFetch(token);
-
-      // If 401, try refreshing the token once (mirrors axios interceptor behavior)
-      if (response.status === 401) {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-          try {
-            const refreshResp = await fetch(`${BASE_URL}/auth/refresh`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ refreshToken }),
-            });
-            if (refreshResp.ok) {
-              const data = await refreshResp.json();
-              const newAccessToken = data.token?.accessToken || data.accessToken;
-              const newRefreshToken = data.refreshToken;
-              if (newAccessToken) {
-                localStorage.setItem('accessToken', newAccessToken);
-                if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
-                window.dispatchEvent(new CustomEvent('treinoway:tokensRefreshed', {
-                  detail: { newAccessToken, newRefreshToken },
-                }));
-                token = newAccessToken;
-                response = await doStreamFetch(token);
-              }
-            }
-          } catch {
-            // Refresh failed, will fall through to the error below
-          }
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error('Erro ao conectar com o assistente.');
-      }
-
-      console.info('[AiChat] Stream started, reading...');
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      await readStream(reader, decoder);
-      console.info('[AiChat] Stream ended, loadingRef:', loadingRef.current);
-
-      // If the stream ended without a 'done' or 'error' event, clean up
-      if (loadingRef.current) {
-        setMessages((prev) => {
-          const last = prev[prev.length - 1];
-          if (last?.isStreaming && !last.content) {
-            return [...prev.slice(0, -1), { role: 'assistant', content: 'A conexão foi interrompida. Tente novamente.' }];
-          }
-          if (last?.isStreaming) {
-            return [...prev.slice(0, -1), { ...last, isStreaming: false }];
-          }
-          return prev;
-        });
-        setStreamingText('');
-        setStatusMessage('');
-        setHasNewResponse(true);
-        setLoading(false);
-        loadingRef.current = false;
-      }
-    } catch (err) {
-      console.error('[AiChat] Stream error:', err.name, err.message);
-      setMessages((prev) => prev.filter((m) => !m.isStreaming));
-      setStreamingText('');
-      setStatusMessage('');
-      setErrorRetry(trimmedInput);
-      showToast('Não foi possível conectar ao assistente. Tente novamente.', 'error');
-      setLoading(false);
-      loadingRef.current = false;
-    }
-  }, [readStream, showToast, user]);
+  }, []);
 
   const startNewConversation = useCallback(() => {
+    abortStream();
+    loadSequenceRef.current += 1;
+    lastTurnRef.current = null;
+    conversationStudentIdRef.current = null;
     setMessages([]);
     setConversationId(null);
-    setErrorRetry(null);
-    setErrorCode(null);
-    setStreamingText('');
+    setChatError(null);
     setStatusMessage('');
     setHasNewResponse(false);
-    pendingMessageRef.current = null;
-  }, [setConversationId]);
+    setLoading(false);
+  }, [abortStream, setConversationId]);
 
   useEffect(() => {
-    const currentUserId = user?.id ?? null;
-    if (ownerIdRef.current !== currentUserId) {
-      startNewConversation();
-      ownerIdRef.current = currentUserId;
-    }
+    if (ownerIdRef.current === (user?.id ?? null)) return;
+    startNewConversation();
+    ownerIdRef.current = user?.id ?? null;
   }, [user?.id, startNewConversation]);
 
-  const loadConversation = useCallback(async (id) => {
-    if (!user?.id || user.id !== ownerIdRef.current) return;
+  useEffect(() => {
+    const controllerRef = streamControllerRef;
+    return () => controllerRef.current?.abort();
+  }, []);
+
+  const runTurn = useCallback(async (text, { studentId: requestedStudentId, appendUser }) => {
+    const studentId = requestedStudentId ?? conversationStudentIdRef.current;
+    conversationStudentIdRef.current = studentId ?? null;
+    const controller = new AbortController();
+    streamControllerRef.current = controller;
+    lastTurnRef.current = { text, studentId };
+    const isCurrent = () => streamControllerRef.current === controller;
+    const finish = () => {
+      streamControllerRef.current = null;
+      setLoading(false);
+      setStatusMessage('');
+    };
+    const setters = { setMessages, setStatusMessage, setChatError, setConversationId, setHasNewResponse };
+    const { handleEvent, fail, interrupted } = createTurnHandlers({ text, isCurrent, finish, setters });
+    const payload = {
+      message: text,
+      ...(conversationIdRef.current && { conversationId: conversationIdRef.current }),
+      ...(studentId && { studentId }),
+    };
+
+    setChatError(null);
     setLoading(true);
-    setMessages([]);
-    setErrorRetry(null);
+    setStatusMessage('');
+    const placeholder = buildMessage('assistant', '', { isStreaming: true });
+    setMessages((prev) => [...prev, ...(appendUser ? [buildMessage('user', text)] : []), placeholder]);
+
+    try {
+      const response = await openChatStream({ payload, token: accessTokenRef.current, signal: controller.signal });
+      if (!isCurrent()) return;
+      await readChatEvents(response, controller.signal, handleEvent);
+      interrupted();
+    } catch (error) {
+      if (isCurrent()) fail(error);
+    }
+  }, [setConversationId]);
+
+  const sendMessage = useCallback(async (messageText, { studentId } = {}) => {
+    const trimmedInput = messageText.trim();
+    if (!isOwnedByCurrentUser() || !trimmedInput || streamControllerRef.current) return;
+    await runTurn(trimmedInput, { studentId, appendUser: true });
+  }, [isOwnedByCurrentUser, runTurn]);
+
+  const startConversation = useCallback(async (messageText, { studentId } = {}) => {
+    if (!isOwnedByCurrentUser()) return;
+    startNewConversation();
+    await sendMessage(messageText, { studentId });
+  }, [isOwnedByCurrentUser, startNewConversation, sendMessage]);
+
+  const loadConversation = useCallback(async (id) => {
+    if (!isOwnedByCurrentUser()) return;
+    abortStream();
+    loadSequenceRef.current += 1;
+    const sequence = loadSequenceRef.current;
+    const isLatest = () => loadSequenceRef.current === sequence;
+    setLoading(true);
+    setChatError(null);
 
     try {
       const response = await api.get(`/trainer/ai/conversations/${id}`);
-      const { id: convId, messages: dbMessages } = response.data;
-
-      const uiMessages = dbMessages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-        actionsExecuted: msg.toolCalls || [],
-      }));
-
-      setConversationId(convId);
-      setMessages(uiMessages);
+      if (!isLatest()) return;
+      lastTurnRef.current = null;
+      conversationStudentIdRef.current = null;
+      setConversationId(response.data.id);
+      setMessages(toUiMessages(response.data.messages));
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      if (isLatest()) setChatError(buildChatError(error, null));
     } finally {
-      setLoading(false);
+      if (isLatest()) setLoading(false);
     }
-  }, [showToast, user, setConversationId]);
+  }, [isOwnedByCurrentUser, abortStream, setConversationId]);
 
-  const clearNewResponse = useCallback(() => {
-    setHasNewResponse(false);
-  }, []);
+  const clearNewResponse = useCallback(() => setHasNewResponse(false), []);
 
   const retryLastMessage = useCallback(async () => {
-    if (!errorRetry) return;
-    const retryText = errorRetry;
-    setErrorRetry(null);
-    setErrorCode(null);
-    await sendMessage(retryText);
-  }, [errorRetry, sendMessage]);
+    const lastTurn = lastTurnRef.current;
+    if (!lastTurn || !chatError?.retryText || streamControllerRef.current) return;
+    await runTurn(lastTurn.text, { studentId: lastTurn.studentId, appendUser: false });
+  }, [chatError, runTurn]);
 
-  const isOwner = user?.id != null && user.id === ownerIdRef.current;
+  const isOwner = userIdRef.current != null && userIdRef.current === ownerIdRef.current;
 
   const value = {
     messages: isOwner ? messages : [],
     conversationId: isOwner ? conversationId : null,
     loading: isOwner ? loading : false,
-    streamingText: isOwner ? streamingText : '',
     statusMessage: isOwner ? statusMessage : '',
     hasNewResponse: isOwner ? hasNewResponse : false,
-    errorRetry: isOwner ? errorRetry : null,
-    errorCode: isOwner ? errorCode : null,
+    errorRetry: isOwner ? (chatError?.retryText ?? null) : null,
+    errorCode: isOwner ? (chatError?.code ?? null) : null,
+    errorMessage: isOwner ? (chatError?.message ?? null) : null,
     sendMessage,
+    startConversation,
     startNewConversation,
     loadConversation,
     clearNewResponse,

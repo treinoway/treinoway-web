@@ -1,9 +1,10 @@
-import { screen, waitFor, act } from '@testing-library/react';
+import { screen, waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { renderWithRouter } from '../../test/test-utils';
 import AiAssistant from './AiAssistant';
 import { groupConversationsByDate } from '../../utils/conversationGroups';
+import { getTranslations } from '../../i18n';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAiChat } from '../../contexts/AiChatContext';
@@ -74,11 +75,11 @@ function createDefaultContextValue(overrides = {}) {
     messages: [],
     conversationId: null,
     loading: false,
-    streamingText: '',
     statusMessage: '',
     hasNewResponse: false,
     errorRetry: null,
     errorCode: null,
+    errorMessage: null,
     sendMessage: vi.fn(),
     startNewConversation: vi.fn(),
     loadConversation: vi.fn(),
@@ -131,16 +132,12 @@ describe('AiAssistant', () => {
 
     expect(screen.getByRole('heading', { name: 'iArnold', level: 1 })).toBeInTheDocument();
 
-    // No scroll-area wrapper — page scroll is used instead
-    expect(document.querySelector('.ai-chat__scroll-area')).not.toBeInTheDocument();
-
     // Briefing, create cards and prompts render directly
     expect(screen.getByLabelText('Briefing de alunos')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Criar rotina completa' })).toBeInTheDocument();
-    expect(screen.getByText('Atenção')).toBeInTheDocument();
   });
 
-  it('renders messages view with .ai-chat__messages when messages are present', () => {
+  it('renders the conversation list when messages are present', () => {
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         messages: [
@@ -152,8 +149,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    expect(document.querySelector('.ai-chat__scroll-area')).not.toBeInTheDocument();
-    expect(document.querySelector('.ai-chat__messages')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Conversa com iArnold' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Briefing de alunos')).not.toBeInTheDocument();
   });
 
   it('header is always rendered regardless of messages state', () => {
@@ -243,9 +240,8 @@ describe('AiAssistant', () => {
     expect(screen.queryByText('24')).not.toBeInTheDocument();
     expect(screen.queryByText('87%')).not.toBeInTheDocument();
 
-    // Skeleton modifier applied to each stat cell
-    const skeletonTiles = document.querySelectorAll('.ai-chat__briefing-stat--skeleton');
-    expect(skeletonTiles).toHaveLength(4);
+    const tiles = within(screen.getByLabelText('Briefing de alunos')).getAllByRole('listitem');
+    expect(tiles).toHaveLength(4);
   });
 
   it('shows loading text in timestamp while briefing is loading', () => {
@@ -384,85 +380,69 @@ describe('AiAssistant', () => {
 
     expect(screen.getByRole('heading', { name: 'Criar rotina completa' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Montar treino' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Plano alimentar' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Cadastrar exercício' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Aplicar rotina a um aluno' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ajustar treino de um aluno' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Analisar desempenho' })).toBeInTheDocument();
+  });
+
+  it('shows nothing about nutrition or diets anywhere on the page', () => {
+    const { container } = renderWithRouter(<AiAssistant />);
+
+    expect(container.textContent).not.toMatch(/dieta|nutri|alimentar|cutting/i);
+    expect(screen.queryByRole('heading', { name: /plano alimentar/i })).not.toBeInTheDocument();
   });
 
   it('fills input when clicking a create card', async () => {
     const user = userEvent.setup();
+    const sendMessage = vi.fn();
+    vi.mocked(useAiChat).mockReturnValue(createDefaultContextValue({ sendMessage }));
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('heading', { name: 'Criar rotina completa' }).closest('button'));
+    await user.click(screen.getByRole('button', { name: 'Aplicar rotina a um aluno' }));
 
     expect(screen.getByRole('textbox', { name: /mensagem para o assistente/i })).toHaveValue(
-      'Crie uma rotina de hipertrofia de 8 semanas para um aluno intermediário com 4 treinos por semana'
+      'Aplique a rotina {nome da rotina} para o aluno {nome do aluno} a partir de {data de início}'
     );
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 
-  it('fills input when clicking a contextual prompt row', async () => {
+  it('selects the first placeholder so the trainer can type over it', async () => {
     const user = userEvent.setup();
     renderWithRouter(<AiAssistant />);
 
-    const promptRows = screen.getAllByRole('button', { name: /aluno a/i });
-    await user.click(promptRows[0]);
+    await user.click(screen.getByRole('button', { name: 'Aplicar rotina a um aluno' }));
 
-    expect(screen.getByRole('textbox', { name: /mensagem para o assistente/i })).toHaveValue(
-      'Sugira uma mensagem de reengajamento e ajuste de rotina para um aluno que não treina há 9 dias'
-    );
+    const textbox = screen.getByRole('textbox', { name: /mensagem para o assistente/i });
+    expect(textbox).toHaveFocus();
+    expect(textbox.value.slice(textbox.selectionStart, textbox.selectionEnd)).toBe('{nome da rotina}');
   });
 
-  it('renders contextual prompts with correct tags', () => {
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.getByText('Atenção')).toBeInTheDocument();
-    expect(screen.getAllByText('Progresso').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Dieta')).toBeInTheDocument();
-    expect(screen.getByText('Análise')).toBeInTheDocument();
-  });
-
-  // ---------------------------------------------------------------------------
-  // Composer toolbar
-  // ---------------------------------------------------------------------------
-
-  it('renders composer toolbar buttons', () => {
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.getByRole('button', { name: /anexar arquivo/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /selecionar aluno/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /abrir biblioteca/i })).toBeInTheDocument();
-  });
-
-  it('shows toast when clicking the attach button', async () => {
+  it('keeps sending blocked until every placeholder is replaced', async () => {
     const user = userEvent.setup();
+    const sendMessage = vi.fn();
+    vi.mocked(useAiChat).mockReturnValue(createDefaultContextValue({ sendMessage }));
     renderWithRouter(<AiAssistant />);
 
-    await user.click(screen.getByRole('button', { name: /anexar arquivo/i }));
+    await user.click(screen.getByRole('button', { name: 'Analisar desempenho' }));
+    const textbox = screen.getByRole('textbox', { name: /mensagem para o assistente/i });
+    await user.keyboard('{Enter}');
 
-    expect(showToast).toHaveBeenCalledWith('Em breve!', 'info');
-  });
+    expect(screen.getByRole('button', { name: /enviar mensagem/i })).toBeDisabled();
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(textbox).toHaveAccessibleDescription('Preencha os campos entre chaves antes de enviar');
 
-  it('shows toast when clicking the student selector button', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<AiAssistant />);
+    await user.keyboard('Ana');
+    await user.keyboard('{Enter}');
 
-    await user.click(screen.getByRole('button', { name: /selecionar aluno/i }));
-
-    expect(showToast).toHaveBeenCalledWith('Em breve!', 'info');
-  });
-
-  it('shows toast when clicking the biblioteca button', async () => {
-    const user = userEvent.setup();
-    renderWithRouter(<AiAssistant />);
-
-    await user.click(screen.getByRole('button', { name: /abrir biblioteca/i }));
-
-    expect(showToast).toHaveBeenCalledWith('Em breve!', 'info');
+    expect(sendMessage).toHaveBeenCalledWith(expect.stringMatching(/^Analise o desempenho do aluno Ana:/));
   });
 
   it('renders composer meta line with context chip', () => {
     renderWithRouter(<AiAssistant />);
 
     expect(screen.getByText(/contexto ativo: 24 alunos/i)).toBeInTheDocument();
-    expect(screen.getByText(/iArnold tem acesso aos dados/i)).toBeInTheDocument();
+    expect(screen.getByText(/iArnold tem acesso aos seus alunos, rotinas, treinos, exercícios e desempenho/i)).toBeInTheDocument();
     expect(screen.getByText('Powered by Claude')).toBeInTheDocument();
   });
 
@@ -513,7 +493,8 @@ describe('AiAssistant', () => {
     expect(screen.getByText('Como posso ajudar?')).toBeInTheDocument();
     expect(screen.getByText('JS')).toBeInTheDocument();
     expect(screen.getByText('Você')).toBeInTheDocument();
-    expect(screen.getByText('iArnold', { selector: '.ai-chat__message-label' })).toBeInTheDocument();
+    const conversation = screen.getByRole('list', { name: 'Conversa com iArnold' });
+    expect(within(conversation).getByText('iArnold')).toBeInTheDocument();
   });
 
   it('shows skeleton when streaming (no raw text rendered)', () => {
@@ -547,15 +528,15 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    expect(screen.getByRole('status')).toBeInTheDocument();
-    expect(document.querySelector('.streaming-skeleton__status-text')).toBeInTheDocument();
+    const { phrases } = getTranslations().iArnold.skeleton;
+    expect(phrases.some((phrase) => screen.queryByText(phrase))).toBe(true);
+    expect(screen.getByRole('status')).toHaveTextContent('iArnold está processando sua pergunta');
   });
 
   it('skeleton does not render streaming text tokens as visible content', () => {
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         loading: true,
-        streamingText: 'Perfeito! Criando o protocolo agora.',
         statusMessage: 'Executando ação...',
         messages: [
           { role: 'user', content: 'Crie um protocolo' },
@@ -584,8 +565,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    expect(screen.getByRole('status')).toBeInTheDocument();
-    expect(screen.getByText('Analisando...')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Analisando...');
+    expect(screen.getAllByText('Analisando...').length).toBeGreaterThanOrEqual(1);
   });
 
   it('disables input and send button while loading', () => {
@@ -613,13 +594,14 @@ describe('AiAssistant', () => {
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         errorRetry: 'Failed message',
+        errorMessage: 'Mensagem de erro traduzida.',
         messages: [{ role: 'user', content: 'Failed message' }],
       })
     );
 
     renderWithRouter(<AiAssistant />);
 
-    expect(screen.getByText('Não foi possível processar sua mensagem.')).toBeInTheDocument();
+    expect(screen.getByText('Mensagem de erro traduzida.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /tentar novamente/i })).toBeInTheDocument();
   });
 
@@ -639,37 +621,6 @@ describe('AiAssistant', () => {
     await user.click(screen.getByRole('button', { name: /tentar novamente/i }));
 
     expect(retryLastMessage).toHaveBeenCalled();
-  });
-
-  it('shows distinct overloaded message when errorCode is AI_OVERLOADED', () => {
-    vi.mocked(useAiChat).mockReturnValue(
-      createDefaultContextValue({
-        errorRetry: 'Minha mensagem',
-        errorCode: 'AI_OVERLOADED',
-        messages: [{ role: 'user', content: 'Minha mensagem' }],
-      })
-    );
-
-    renderWithRouter(<AiAssistant />);
-
-    expect(
-      screen.getByText('O assistente está sobrecarregado no momento. Tente novamente em instantes.')
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Não foi possível processar sua mensagem.')).not.toBeInTheDocument();
-  });
-
-  it('shows generic error message when errorCode is not AI_OVERLOADED', () => {
-    vi.mocked(useAiChat).mockReturnValue(
-      createDefaultContextValue({
-        errorRetry: 'Minha mensagem',
-        errorCode: null,
-        messages: [{ role: 'user', content: 'Minha mensagem' }],
-      })
-    );
-
-    renderWithRouter(<AiAssistant />);
-
-    expect(screen.getByText('Não foi possível processar sua mensagem.')).toBeInTheDocument();
   });
 
   // ---------------------------------------------------------------------------
@@ -748,7 +699,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    expect(screen.getByText('Protocolo criado')).toBeInTheDocument();
+    expect(screen.getByText('Rotina aplicada')).toBeInTheDocument();
   });
 
   // ---------------------------------------------------------------------------
@@ -817,12 +768,12 @@ describe('AiAssistant', () => {
     const historyBtns = screen.getAllByRole('button', { name: /^histórico$/i });
     await user.click(historyBtns[0]);
 
-    expect(screen.getByText('Carregando...')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Carregando conversas' })).toBeInTheDocument();
 
     resolveGet({ data: mockConversations });
 
     await waitFor(() => {
-      expect(screen.queryByText('Carregando...')).not.toBeInTheDocument();
+      expect(screen.queryByRole('status', { name: 'Carregando conversas' })).not.toBeInTheDocument();
     });
   });
 
@@ -1106,9 +1057,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    const strong = document.querySelector('strong');
-    expect(strong).toBeInTheDocument();
-    expect(strong.textContent).toBe('agachamento');
+    expect(screen.getByText('agachamento').tagName).toBe('STRONG');
   });
 
   it('does not render markdown in user messages', () => {
@@ -1122,15 +1071,13 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    expect(document.querySelector('strong')).not.toBeInTheDocument();
-    expect(screen.getByText('Devo fazer **agachamento**?')).toBeInTheDocument();
+    expect(screen.getByText('Devo fazer **agachamento**?').querySelector('strong')).toBeNull();
   });
 
   it('renders skeleton during streaming — no markdown parsed, no raw tokens visible', () => {
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         loading: true,
-        streamingText: 'Faça **3 séries** de agachamento.',
         messages: [
           { role: 'user', content: 'Treino de pernas?' },
           { role: 'assistant', content: 'Faça **3 séries** de agachamento.', isStreaming: true },
@@ -1141,7 +1088,7 @@ describe('AiAssistant', () => {
     renderWithRouter(<AiAssistant />);
 
     expect(screen.getByRole('status')).toBeInTheDocument();
-    expect(document.querySelector('strong')).not.toBeInTheDocument();
+    expect(screen.queryByText('agachamento')).not.toBeInTheDocument();
     expect(screen.queryByText('Faça **3 séries** de agachamento.')).not.toBeInTheDocument();
   });
 
@@ -1158,8 +1105,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    expect(document.querySelector('table')).toBeInTheDocument();
-    expect(document.querySelector('th')).toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader')).toHaveLength(2);
     expect(screen.getByText('Exercício')).toBeInTheDocument();
     expect(screen.getByText('Agachamento')).toBeInTheDocument();
   });
@@ -1189,8 +1136,7 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    const pill = document.querySelector('.scroll-pill');
-    expect(pill).toHaveClass('scroll-pill--hidden');
+    expect(screen.queryByRole('button', { name: 'Ir para a resposta mais recente' })).not.toBeInTheDocument();
   });
 
   it('pill shows "new" variant after done fires while user is scrolled away', async () => {
@@ -1214,7 +1160,7 @@ describe('AiAssistant', () => {
 
     const { rerender } = renderWithRouter(<AiAssistant />);
 
-    expect(document.querySelector('.scroll-pill')).toHaveClass('scroll-pill--hidden');
+    expect(screen.queryByRole('button', { name: 'Ir para a resposta mais recente' })).not.toBeInTheDocument();
 
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
@@ -1234,9 +1180,8 @@ describe('AiAssistant', () => {
       );
     });
 
-    expect(document.querySelector('.scroll-pill')).not.toHaveClass('scroll-pill--hidden');
-    expect(document.querySelector('.scroll-pill__dot--accent')).toBeInTheDocument();
-    expect(document.querySelector('.scroll-pill__dot--pulse')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ir para a resposta mais recente' })).toBeInTheDocument();
+    expect(screen.getByText('Ver nova resposta')).toBeInTheDocument();
   });
 
   it('pill click calls scrollToBottom', async () => {
@@ -1301,7 +1246,7 @@ describe('AiAssistant', () => {
     expect(mockScrollToBottom).toHaveBeenCalledWith({ behavior: 'smooth' });
   });
 
-  it('messages container has aria-live=polite when messages are present', () => {
+  it('exposes a single polite live region and keeps the message list out of it', () => {
     vi.mocked(useAiChat).mockReturnValue(
       createDefaultContextValue({
         messages: [
@@ -1313,8 +1258,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    const container = document.querySelector('.ai-chat__messages');
-    expect(container).toHaveAttribute('aria-live', 'polite');
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByRole('list', { name: 'Conversa com iArnold' })).not.toHaveAttribute('aria-live');
   });
 
   it('streaming message bubble has aria-busy=true', () => {
@@ -1330,8 +1275,8 @@ describe('AiAssistant', () => {
 
     renderWithRouter(<AiAssistant />);
 
-    const streamingBubble = document.querySelector('[aria-busy="true"]');
-    expect(streamingBubble).toBeInTheDocument();
+    const [, streamingMessage] = within(screen.getByRole('list', { name: 'Conversa com iArnold' })).getAllByRole('listitem');
+    expect(streamingMessage).toHaveAttribute('aria-busy', 'true');
   });
 });
 

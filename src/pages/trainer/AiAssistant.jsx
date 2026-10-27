@@ -1,126 +1,22 @@
-import { useState, useRef, useEffect, useCallback, memo } from 'react';
-import PropTypes from 'prop-types';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import {
-  ArrowUp,
-  Paperclip,
-  UserRound,
-  BookOpen,
-  Check,
-  ChevronRight,
-  ClipboardList,
-  Dumbbell,
-  UtensilsCrossed,
-  Zap,
-  Circle,
-  Plus,
-  History,
-  X,
-  Trash2,
-  MessageSquare,
-  Sparkles,
-} from 'lucide-react';
-import { useToast } from '../../contexts/ToastContext';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { History, Plus, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAiChat } from '../../contexts/AiChatContext';
-import { translateError } from '../../i18n';
-import api from '../../api/axios';
+import { t } from '../../i18n';
+import { findPlaceholders, hasPlaceholders } from '../../utils/promptPlaceholders';
 import useTrainerBriefing from '../../hooks/useTrainerBriefing';
-import { groupConversationsByDate } from '../../utils/conversationGroups';
 import useStickToBottom from '../../hooks/useStickToBottom';
+import useConversationHistory from '../../hooks/useConversationHistory';
+import Banner from '../../components/ds/Banner';
+import ConfirmDialog from '../../components/ds/ConfirmDialog';
 import ScrollToLatestPill from '../../components/ScrollToLatestPill';
-import StreamingSkeleton from '../../components/StreamingSkeleton';
+import BriefingStrip from '../../components/iarnold/BriefingStrip';
+import CreateCards from '../../components/iarnold/CreateCards';
+import ChatMessageList from '../../components/iarnold/ChatMessageList';
+import ChatComposer from '../../components/iarnold/ChatComposer';
+import ConversationHistoryModal from '../../components/iarnold/ConversationHistoryModal';
 
-const MAX_INPUT_LENGTH = 1000;
-const CHAR_COUNT_THRESHOLD = 900;
-
-// ---------------------------------------------------------------------------
-// Constants — empty state data (placeholders until data integration)
-// ---------------------------------------------------------------------------
-
-const CREATE_CARDS = [
-  {
-    Icon: ClipboardList,
-    eyebrow: 'Rotina',
-    title: 'Criar rotina completa',
-    desc: 'Periodização, progressão e divisão semanal com base no histórico do aluno.',
-    hint: '4–12 semanas',
-    prompt: 'Crie uma rotina de hipertrofia de 8 semanas para um aluno intermediário com 4 treinos por semana',
-  },
-  {
-    Icon: Dumbbell,
-    eyebrow: 'Treino avulso',
-    title: 'Montar treino',
-    desc: 'Um treino específico — grupo muscular, tempo disponível, equipamento e objetivo.',
-    hint: '30–90 min',
-    prompt: 'Monte um treino de pernas focado em quadríceps com 6 exercícios em 60 minutos',
-  },
-  {
-    Icon: UtensilsCrossed,
-    eyebrow: 'Nutrição',
-    title: 'Plano alimentar',
-    desc: 'Macros e refeições ajustados ao peso, objetivo e restrições do aluno.',
-    hint: 'Cutting · Bulk · Manutenção',
-    prompt: 'Crie uma dieta de cutting de 1800kcal com 5 refeições para uma aluna com intolerância à lactose',
-  },
-];
-
-const CONTEXTUAL_PROMPTS = [
-  // TODO(data-integration): nomes/métricas de alunos reais
-  {
-    tag: 'alert',
-    label: 'Atenção',
-    text: (
-      <>
-        Reativar <strong>Aluno A</strong> — sem treino há 9 dias, mandar mensagem + ajuste
-      </>
-    ),
-    prompt: 'Sugira uma mensagem de reengajamento e ajuste de rotina para um aluno que não treina há 9 dias',
-  },
-  {
-    tag: 'progress',
-    label: 'Progresso',
-    text: (
-      <>
-        Nova progressão de <strong>peito</strong> para <strong>Aluno B</strong> — estagnada há 3 semanas
-      </>
-    ),
-    prompt: 'Sugira uma nova progressão de peito para um aluno estagnado há 3 semanas',
-  },
-  {
-    tag: 'nutrition',
-    label: 'Dieta',
-    text: (
-      <>
-        Revisar macros de <strong>Aluno C</strong> — perdeu 2,3kg nas últimas 2 semanas
-      </>
-    ),
-    prompt: 'Revise os macros de um aluno que perdeu 2,3kg em 2 semanas, avaliando se é saudável',
-  },
-  {
-    tag: 'progress',
-    label: 'Análise',
-    text: (
-      <>
-        Comparar evolução de <strong>supino</strong> entre todos os alunos no último trimestre
-      </>
-    ),
-    prompt: 'Compare a evolução do supino entre todos os alunos no último trimestre',
-  },
-];
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-const formatConversationDate = (dateStr) => {
-  if (!dateStr) return '—';
-  const date = new Date(dateStr);
-  if (isNaN(date)) return '—';
-  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-};
-
+// Builds the one or two letters shown in the trainer's avatar.
 const getUserInitials = (user) => {
   if (!user) return 'V';
   if (user.firstName) {
@@ -129,252 +25,48 @@ const getUserInitials = (user) => {
   return (user.email?.[0] || 'V').toUpperCase();
 };
 
-// ---------------------------------------------------------------------------
-// Markdown rendering — memoised so re-renders during stream don't reparse
-// finished messages
-// ---------------------------------------------------------------------------
+// Text read out by the page's single live region: progress while streaming, then a short confirmation.
+const useLiveAnnouncement = ({ isStreaming, statusMessage, hasError }) => {
+  const [wasStreaming, setWasStreaming] = useState(false);
+  const [replied, setReplied] = useState(false);
 
-const markdownComponents = {
-  p: ({ children }) => <p className="ai-chat__md-p">{children}</p>,
-  h1: ({ children }) => <p className="ai-chat__md-heading">{children}</p>,
-  h2: ({ children }) => <p className="ai-chat__md-heading">{children}</p>,
-  h3: ({ children }) => <p className="ai-chat__md-heading">{children}</p>,
-  code: ({ children }) => <code className="ai-chat__md-code-inline">{children}</code>,
-  pre: ({ children }) => <pre className="ai-chat__md-pre">{children}</pre>,
-  ul: ({ children }) => <ul className="ai-chat__md-list">{children}</ul>,
-  ol: ({ children }) => <ol className="ai-chat__md-list">{children}</ol>,
-  table: ({ children }) => (
-    <div className="ai-chat__md-table-wrapper">
-      <table className="ai-chat__md-table">{children}</table>
-    </div>
-  ),
-  thead: ({ children }) => <thead>{children}</thead>,
-  tbody: ({ children }) => <tbody>{children}</tbody>,
-  tr: ({ children }) => <tr>{children}</tr>,
-  th: ({ children }) => <th className="ai-chat__md-th">{children}</th>,
-  td: ({ children }) => <td className="ai-chat__md-td">{children}</td>,
+  if (isStreaming !== wasStreaming) {
+    setWasStreaming(isStreaming);
+    setReplied(wasStreaming && !hasError);
+  }
+
+  if (isStreaming) return statusMessage || t('iArnold.skeleton.aria');
+  return replied ? t('iArnold.chat.replied') : '';
 };
 
-const MarkdownMessage = memo(
-  ({ content }) => (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-      {content}
-    </ReactMarkdown>
-  ),
-  (prev, next) => prev.content === next.content,
-);
+// Follows the stream to the bottom, or flags a pill when a reply lands while the trainer scrolled up.
+const useReplyScroll = ({ loading }) => {
+  const { isNearBottom, shouldFollow, scrollToBottom, bottomRef } = useStickToBottom({ threshold: 80 });
+  const [hasUnseenReply, setHasUnseenReply] = useState(false);
+  const [wasLoading, setWasLoading] = useState(false);
 
-MarkdownMessage.displayName = 'MarkdownMessage';
+  if (loading !== wasLoading) {
+    setWasLoading(loading);
+    if (wasLoading) setHasUnseenReply(!shouldFollow);
+  }
+  if (isNearBottom && hasUnseenReply) setHasUnseenReply(false);
 
-MarkdownMessage.propTypes = {
-  content: PropTypes.string.isRequired,
+  const previousLoadingRef = useRef(false);
+  useEffect(() => {
+    const finishedLoading = previousLoadingRef.current && !loading;
+    previousLoadingRef.current = loading;
+    if (finishedLoading && shouldFollow) scrollToBottom({ behavior: 'smooth' });
+  }, [loading, shouldFollow, scrollToBottom]);
+
+  const jumpToLatest = useCallback(() => {
+    scrollToBottom({ behavior: 'smooth' });
+    setHasUnseenReply(false);
+  }, [scrollToBottom]);
+
+  return { scrollToBottom, bottomRef, jumpToLatest, setHasUnseenReply, pillVisible: !isNearBottom && hasUnseenReply };
 };
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-const TypingIndicator = () => (
-  <div className="ai-chat__typing" aria-label="Assistente digitando">
-    <span className="ai-chat__typing-dot" />
-    <span className="ai-chat__typing-dot" />
-    <span className="ai-chat__typing-dot" />
-  </div>
-);
-
-const getActionLabel = (tool) => {
-  const labels = {
-    import_from_template: 'Protocolo criado',
-    add_training_to_protocol: 'Treino adicionado',
-    create_exercise_template: 'Exercício criado',
-    create_training_template: 'Treino criado',
-    create_protocol_template: 'Rotina criada',
-  };
-  return labels[tool] || 'Ação executada';
-};
-
-const ActionBadge = ({ actions }) => {
-  const successActions = actions.filter((a) => a.success);
-  if (successActions.length === 0) return null;
-
-  const label =
-    successActions.length === 1
-      ? getActionLabel(successActions[0].tool)
-      : `${successActions.length} ações executadas`;
-
-  return (
-    <div className="ai-chat__action-badge">
-      <Check size={12} strokeWidth={2} />
-      <span>{label}</span>
-    </div>
-  );
-};
-
-ActionBadge.propTypes = {
-  actions: PropTypes.arrayOf(
-    PropTypes.shape({
-      tool: PropTypes.string,
-      success: PropTypes.bool,
-    })
-  ).isRequired,
-};
-
-const ConversationItem = ({ conversation, isActive, isLoading, onSelect, onDelete }) => {
-  const title = conversation.title || null;
-  const preview = conversation.preview || conversation.firstMessage || null;
-
-  const itemClass = [
-    'ai-history__item',
-    isActive ? 'ai-history__item--active' : '',
-    isLoading ? 'ai-history__item--loading' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
-  return (
-    <div className={itemClass}>
-      <button
-        className="ai-history__item-btn"
-        onClick={() => onSelect(conversation)}
-        aria-label={`Abrir conversa: ${title || 'Sem título'}`}
-      >
-        <div className="ai-history__item-btn-row">
-          {isLoading ? (
-            <MessageSquare size={14} strokeWidth={1.6} className="ai-history__item-spinner" />
-          ) : (
-            <MessageSquare size={14} strokeWidth={1.6} className="ai-history__item-icon" />
-          )}
-          <span className={`ai-history__item-title${!title ? ' ai-history__item-title--untitled' : ''}`}>
-            {title || 'Sem título'}
-          </span>
-          <span className="ai-history__item-date">
-            {formatConversationDate(conversation.updatedAt || conversation.createdAt)}
-          </span>
-        </div>
-        {preview && <span className="ai-history__item-preview">{preview}</span>}
-      </button>
-      <button
-        className="ai-history__item-delete"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(conversation);
-        }}
-        aria-label={`Excluir conversa: ${title || 'Sem título'}`}
-      >
-        <Trash2 size={13} strokeWidth={1.6} />
-      </button>
-    </div>
-  );
-};
-
-ConversationItem.propTypes = {
-  conversation: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    title: PropTypes.string,
-    createdAt: PropTypes.string,
-    updatedAt: PropTypes.string,
-    preview: PropTypes.string,
-    firstMessage: PropTypes.string,
-  }).isRequired,
-  isActive: PropTypes.bool.isRequired,
-  isLoading: PropTypes.bool.isRequired,
-  onSelect: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
-};
-
-// ---------------------------------------------------------------------------
-// Message avatars
-// ---------------------------------------------------------------------------
-
-const UserAvatar = ({ initials }) => (
-  <div className="ai-chat__avatar ai-chat__avatar--user" aria-hidden="true">
-    {initials}
-  </div>
-);
-
-UserAvatar.propTypes = { initials: PropTypes.string.isRequired };
-
-const ArnoldAvatar = () => (
-  <div className="ai-chat__avatar ai-chat__avatar--arnold" aria-hidden="true">
-    <Sparkles size={16} strokeWidth={2} />
-  </div>
-);
-
-// ---------------------------------------------------------------------------
-// Empty state sub-components
-// ---------------------------------------------------------------------------
-
-const CreateCard = ({ Icon, eyebrow, title, desc, hint, prompt, onClick }) => (
-  <button className="ai-chat__create-card" onClick={() => onClick(prompt)}>
-    <div className="ai-chat__create-card-icon">
-      <Icon size={20} strokeWidth={2} />
-    </div>
-    <span className="ai-chat__create-card-eyebrow">{eyebrow}</span>
-    <h3 className="ai-chat__create-card-title">{title}</h3>
-    <p className="ai-chat__create-card-desc">{desc}</p>
-    <div className="ai-chat__create-card-hint">
-      <Zap size={10} strokeWidth={2} />
-      {hint}
-    </div>
-  </button>
-);
-
-CreateCard.propTypes = {
-  Icon: PropTypes.elementType.isRequired,
-  eyebrow: PropTypes.string.isRequired,
-  title: PropTypes.string.isRequired,
-  desc: PropTypes.string.isRequired,
-  hint: PropTypes.string.isRequired,
-  prompt: PropTypes.string.isRequired,
-  onClick: PropTypes.func.isRequired,
-};
-
-const PromptRow = ({ tag, label, text, prompt, onClick }) => (
-  <button className="ai-chat__prompt-row" onClick={() => onClick(prompt)}>
-    <span className={`ai-chat__prompt-tag ai-chat__prompt-tag--${tag}`}>{label}</span>
-    <span className="ai-chat__prompt-text">{text}</span>
-    <ChevronRight size={16} strokeWidth={2} className="ai-chat__prompt-arrow" />
-  </button>
-);
-
-PromptRow.propTypes = {
-  tag: PropTypes.string.isRequired,
-  label: PropTypes.string.isRequired,
-  text: PropTypes.node.isRequired,
-  prompt: PropTypes.string.isRequired,
-  onClick: PropTypes.func.isRequired,
-};
-
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Briefing formatting helpers
-// ---------------------------------------------------------------------------
-
-const formatBriefingTime = (isoString) => {
-  if (!isoString) return '—';
-  const date = new Date(isoString);
-  if (isNaN(date)) return '—';
-  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-};
-
-const formatAdherence = (value) => `${Math.round(Number(value))}%`;
-
-const formatDeltaPp = (value) => {
-  const rounded = Math.round(Number(value));
-  if (rounded > 0) return `+${rounded}pp vs mês ant.`;
-  if (rounded < 0) return `${rounded}pp vs mês ant.`;
-  return '0pp vs mês ant.';
-};
-
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
 
 const AiAssistant = () => {
-  const { showToast } = useToast();
   const { user } = useAuth();
   const {
     messages,
@@ -383,7 +75,7 @@ const AiAssistant = () => {
     statusMessage,
     hasNewResponse,
     errorRetry,
-    errorCode,
+    errorMessage,
     sendMessage,
     startNewConversation,
     loadConversation,
@@ -392,499 +84,140 @@ const AiAssistant = () => {
   } = useAiChat();
 
   const [input, setInput] = useState('');
-
-  const { data: briefing, loading: briefingLoading, error: briefingError } = useTrainerBriefing();
-
-  // History panel state
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [conversations, setConversations] = useState([]);
-  const [conversationsLoading, setConversationsLoading] = useState(false);
-  const [loadingConversationId, setLoadingConversationId] = useState(null);
-  const [confirmDialog, setConfirmDialog] = useState(null);
-
-  // Track whether a response arrived while user was scrolled away
-  const [hasNewResponseSinceLastView, setHasNewResponseSinceLastView] = useState(false);
-
   const inputRef = useRef(null);
-  // Track previous loading state to detect the done transition
-  const prevLoadingRef = useRef(false);
+  const pendingSelectionRef = useRef(null);
+  const { data: briefing, loading: briefingLoading, error: briefingError } = useTrainerBriefing();
+  const { scrollToBottom, bottomRef, jumpToLatest, setHasUnseenReply, pillVisible } = useReplyScroll({ loading });
+  const isStreaming = messages.some((message) => message.isStreaming);
+  const announcement = useLiveAnnouncement({ isStreaming, statusMessage, hasError: Boolean(errorMessage || errorRetry) });
 
-  const { isNearBottom, shouldFollow, scrollToBottom, bottomRef } = useStickToBottom({ threshold: 80 });
-
-  const userInitials = getUserInitials(user);
-
-  // Clear badge when screen mounts into view with existing new response
   useEffect(() => {
     if (hasNewResponse) clearNewResponse();
   }, [hasNewResponse, clearNewResponse]);
 
-  // When user sends a message: force-follow and smooth scroll to bottom
-  const handleSend = useCallback(async (e) => {
-    e.preventDefault();
+  const focusInput = () => inputRef.current?.focus();
+
+  const history = useConversationHistory({
+    conversationId,
+    loadConversation,
+    startNewConversation,
+    onConversationOpened: focusInput,
+  });
+
+  const handleSend = async () => {
     const trimmedInput = input.trim();
-    if (!trimmedInput || loading) return;
+    if (!trimmedInput || loading || hasPlaceholders(trimmedInput)) return;
     setInput('');
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-    }
-    setHasNewResponseSinceLastView(false);
+    setHasUnseenReply(false);
     scrollToBottom({ behavior: 'smooth' });
     await sendMessage(trimmedInput);
-    inputRef.current?.focus();
-  }, [input, loading, sendMessage, scrollToBottom]);
-
-  // When streaming finishes (loading flips false): handle done event
-  useEffect(() => {
-    const wasLoading = prevLoadingRef.current;
-    prevLoadingRef.current = loading;
-
-    if (wasLoading && !loading) {
-      // Stream just completed
-      if (shouldFollow) {
-        scrollToBottom({ behavior: 'smooth' });
-        setHasNewResponseSinceLastView(false);
-      } else {
-        // User scrolled away — show pill in 'new' variant
-        setHasNewResponseSinceLastView(true);
-      }
-    }
-  }, [loading, shouldFollow, scrollToBottom]);
-
-  // When user returns to bottom: clear the "new response" badge
-  useEffect(() => {
-    if (isNearBottom && hasNewResponseSinceLastView) {
-      setHasNewResponseSinceLastView(false);
-    }
-  }, [isNearBottom, hasNewResponseSinceLastView]);
-
-  const handlePillClick = useCallback(() => {
-    scrollToBottom({ behavior: 'smooth' });
-    setHasNewResponseSinceLastView(false);
-  }, [scrollToBottom]);
-
-  const loadConversations = useCallback(async () => {
-    setConversationsLoading(true);
-    try {
-      const response = await api.get('/trainer/ai/conversations');
-      setConversations(response.data);
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setConversationsLoading(false);
-    }
-  }, [showToast]);
-
-  const handleOpenHistory = async () => {
-    setHistoryOpen(true);
-    await loadConversations();
-  };
-
-  const handleSelectConversation = async (conversation) => {
-    setLoadingConversationId(conversation.id);
-    try {
-      await loadConversation(conversation.id);
-      setHistoryOpen(false);
-      inputRef.current?.focus();
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setLoadingConversationId(null);
-    }
-  };
-
-  const handleDeleteConversation = (conversation) => {
-    setHistoryOpen(false);
-    setConfirmDialog({
-      message: `Excluir a conversa "${conversation.title || 'Sem título'}"? Esta ação não pode ser desfeita.`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await api.delete(`/trainer/ai/conversations/${conversation.id}`);
-          setConversations((prev) => prev.filter((c) => c.id !== conversation.id));
-          if (conversationId === conversation.id) {
-            startNewConversation();
-          }
-        } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
-        }
-      },
-    });
-  };
-
-  const handleNewConversationFromSheet = () => {
-    setHistoryOpen(false);
-    startNewConversation();
-    setInput('');
-    inputRef.current?.focus();
-  };
-
-  const handleRetry = async () => {
-    await retryLastMessage();
-    inputRef.current?.focus();
+    focusInput();
   };
 
   const handleNewConversation = () => {
     startNewConversation();
     setInput('');
-    inputRef.current?.focus();
+    focusInput();
   };
 
-  const handlePromptClick = (prompt) => {
+  const handleNewFromHistory = () => {
+    history.close();
+    handleNewConversation();
+  };
+
+  const handleRetry = async () => {
+    await retryLastMessage();
+    focusInput();
+  };
+
+  const handlePromptSelect = (prompt) => {
+    const [firstPlaceholder] = findPlaceholders(prompt);
+    pendingSelectionRef.current = firstPlaceholder ?? null;
     setInput(prompt);
-    inputRef.current?.focus();
+    focusInput();
   };
 
-  const handlePlaceholderAction = () => {
-    showToast('Em breve!', 'info');
-  };
-
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    if (value.length <= MAX_INPUT_LENGTH) {
-      setInput(value);
-    }
-
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = `${textarea.scrollHeight}px`;
-  };
+  useEffect(() => {
+    const selection = pendingSelectionRef.current;
+    const textarea = inputRef.current;
+    if (!selection || !textarea || textarea.value !== input) return;
+    pendingSelectionRef.current = null;
+    textarea.focus();
+    textarea.setSelectionRange(selection.start, selection.end);
+  }, [input]);
 
   const hasMessages = messages.length > 0;
-  const isSendDisabled = !input.trim() || loading;
-  const showCharCount = input.length > CHAR_COUNT_THRESHOLD;
-  const isCharCountWarn = input.length >= MAX_INPUT_LENGTH;
-  const groupedConversations = groupConversationsByDate(conversations);
-
-  // Pill visible only when a completed response arrived while user was scrolled away
-  const pillVisible = !isNearBottom && hasNewResponseSinceLastView;
+  const showError = !loading && Boolean(errorMessage || errorRetry);
+  const retryButton = errorRetry ? (
+    <button type="button" className="btn btn--secondary" onClick={handleRetry}>
+      {t('iArnold.chat.retry')}
+    </button>
+  ) : null;
 
   return (
     <div className="ai-chat">
-      {/* Header — always rendered, never duplicated */}
-      <div className="page-header">
-        <div className="page-header-title-row">
-          <Sparkles size={24} strokeWidth={1.6} className="page-header-title-icon" />
-          <h1 className="page-title">iArnold</h1>
-        </div>
-        <div className="page-header-actions">
-          <button className="btn-secondary" onClick={handleOpenHistory}>
-            <History size={16} strokeWidth={1.6} />
-            Histórico
-          </button>
-          <button className="btn-primary" onClick={handleNewConversation}>
-            <Plus size={16} strokeWidth={2} />
-            Nova conversa
-          </button>
-        </div>
-      </div>
+      <p className="visually-hidden" role="status">{announcement}</p>
 
-      {!hasMessages ? (
-        /* Empty state: content flows naturally in page scroll */
+      <header className="ds-page-header">
+        <div className="ds-page-header__heading">
+          <Sparkles size={24} strokeWidth={2} aria-hidden="true" />
+          <h1 className="ds-page-header__title type-h1">{t('iArnold.chat.title')}</h1>
+        </div>
+        <div className="ds-page-header__actions">
+          <button type="button" className="btn btn--secondary" onClick={history.open}>
+            <History size={16} strokeWidth={2} aria-hidden="true" />
+            {t('iArnold.chat.history')}
+          </button>
+          <button type="button" className="btn btn--primary" onClick={handleNewConversation}>
+            <Plus size={16} strokeWidth={2} aria-hidden="true" />
+            {t('iArnold.chat.newConversation')}
+          </button>
+        </div>
+      </header>
+
+      {hasMessages ? (
         <>
-          {/* Briefing strip */}
-          <section className="ai-chat__briefing" aria-label="Briefing de alunos">
-            <header className="ai-chat__briefing-header">
-              <span className="ai-chat__briefing-label">
-                <span className="ai-chat__live-dot" />
-                Briefing · Seus alunos agora
-              </span>
-              <span className="ai-chat__briefing-timestamp">
-                {briefingLoading
-                  ? 'Carregando...'
-                  : briefing
-                    ? `Atualizado ${formatBriefingTime(briefing.computedAt)}`
-                    : ''}
-              </span>
-            </header>
-
-            {briefingError ? (
-              <p className="ai-chat__briefing-error">{briefingError}</p>
-            ) : (
-              <div className="ai-chat__briefing-grid">
-                <div className={`ai-chat__briefing-stat${briefingLoading ? ' ai-chat__briefing-stat--skeleton' : ''}`}>
-                  <span className="ai-chat__briefing-stat-value">
-                    {briefingLoading ? null : (briefing?.activeStudents ?? '—')}
-                  </span>
-                  <span className="ai-chat__briefing-stat-label">Alunos ativos</span>
-                  <span className="ai-chat__briefing-stat-trend ai-chat__briefing-stat-trend--up">
-                    {briefingLoading ? null : `+${briefing?.returningThisWeek ?? 0} esta semana`}
-                  </span>
-                </div>
-                <div className={`ai-chat__briefing-stat${briefingLoading ? ' ai-chat__briefing-stat--skeleton' : ''}`}>
-                  <span className="ai-chat__briefing-stat-value ai-chat__briefing-stat-value--accent">
-                    {briefingLoading ? null : (briefing?.stagnantProgress ?? '—')}
-                  </span>
-                  <span className="ai-chat__briefing-stat-label">Progresso estagnado</span>
-                  <span className="ai-chat__briefing-stat-trend">
-                    {briefingLoading ? null : 'Sem evolução 14+ dias'}
-                  </span>
-                </div>
-                <div className={`ai-chat__briefing-stat${briefingLoading ? ' ai-chat__briefing-stat--skeleton' : ''}`}>
-                  <span className="ai-chat__briefing-stat-value ai-chat__briefing-stat-value--warning">
-                    {briefingLoading ? null : (briefing?.inactiveStudents ?? '—')}
-                  </span>
-                  <span className="ai-chat__briefing-stat-label">Inativos</span>
-                  <span className="ai-chat__briefing-stat-trend">
-                    {briefingLoading ? null : 'Sem treino há 7+ dias'}
-                  </span>
-                </div>
-                <div className={`ai-chat__briefing-stat${briefingLoading ? ' ai-chat__briefing-stat--skeleton' : ''}`}>
-                  <span className="ai-chat__briefing-stat-value">
-                    {briefingLoading ? null : (briefing ? formatAdherence(briefing.overallAdherence) : '—')}
-                  </span>
-                  <span className="ai-chat__briefing-stat-label">Adesão geral</span>
-                  <span className="ai-chat__briefing-stat-trend ai-chat__briefing-stat-trend--up">
-                    {briefingLoading ? null : (briefing ? formatDeltaPp(briefing.adherenceDeltaPp) : '')}
-                  </span>
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* Create cards */}
-          <div className="ai-chat__section-header">
-            <h2 className="ai-chat__section-title">Criar do zero</h2>
-            <span className="ai-chat__section-subtitle">iArnold monta para você</span>
-          </div>
-          <div className="ai-chat__create-grid">
-            {CREATE_CARDS.map((card) => (
-              <CreateCard key={card.title} {...card} onClick={handlePromptClick} />
-            ))}
-          </div>
-
-          {/* Contextual prompts */}
-          <div className="ai-chat__section-header">
-            <h2 className="ai-chat__section-title">Sugestões para agora</h2>
-            <span className="ai-chat__section-subtitle">Baseado nos dados dos seus alunos</span>
-          </div>
-          <div className="ai-chat__prompts-list">
-            {CONTEXTUAL_PROMPTS.map((p) => (
-              <PromptRow key={p.prompt} {...p} onClick={handlePromptClick} />
-            ))}
-          </div>
+          <ChatMessageList messages={messages} userInitials={getUserInitials(user)} statusMessage={statusMessage} />
+          <div ref={bottomRef} />
         </>
       ) : (
-        /* Messages view: page scroll handles overflow — no internal scroll container */
-        <div
-          className="ai-chat__messages"
-          aria-live="polite"
-          aria-label="Conversa com iArnold"
-        >
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`ai-chat__message ai-chat__message--${msg.role} ai-chat__message--animate`}
-              aria-busy={msg.isStreaming ? 'true' : undefined}
-            >
-              {msg.role === 'user' ? (
-                <UserAvatar initials={userInitials} />
-              ) : (
-                <ArnoldAvatar />
-              )}
-              <div className="ai-chat__message-body">
-                <span className="ai-chat__message-label">
-                  {msg.role === 'user' ? 'Você' : 'iArnold'}
-                </span>
-                {msg.isStreaming ? (
-                  <StreamingSkeleton statusMessage={statusMessage} />
-                ) : (
-                  <>
-                    <div className="ai-chat__message-content">
-                      {msg.role === 'assistant' ? (
-                        <MarkdownMessage content={msg.content} />
-                      ) : (
-                        msg.content
-                      )}
-                    </div>
-                    {msg.actionsExecuted?.length > 0 && (
-                      <ActionBadge actions={msg.actionsExecuted} />
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
+        <>
+          <BriefingStrip briefing={briefing} loading={briefingLoading} error={briefingError} />
+          <CreateCards onSelect={handlePromptSelect} />
+        </>
+      )}
 
-          {errorRetry && !loading && (
-            <div className="ai-chat__error-card">
-              <p className="ai-chat__error-text">
-                {errorCode === 'AI_OVERLOADED'
-                  ? 'O assistente está sobrecarregado no momento. Tente novamente em instantes.'
-                  : 'Não foi possível processar sua mensagem.'}
-              </p>
-              <button
-                onClick={handleRetry}
-                className="ai-chat__error-retry"
-                aria-label="Tentar novamente"
-              >
-                Tentar novamente
-              </button>
-            </div>
-          )}
-
-          <div ref={bottomRef} />
+      {showError && (
+        <div className="ai-chat__error">
+          <Banner tone="error" action={retryButton}>{errorMessage || t('iArnold.chat.genericError')}</Banner>
         </div>
       )}
 
-      {/* Composer — sticky bottom, always rendered as last flex child */}
-      <div className="ai-chat__composer-wrap">
-        <ScrollToLatestPill
-          visible={pillVisible}
-          onClick={handlePillClick}
+      <ChatComposer
+        value={input}
+        onValueChange={setInput}
+        onSubmit={handleSend}
+        disabled={loading}
+        textareaRef={inputRef}
+        activeStudents={briefing?.activeStudents}
+      >
+        <ScrollToLatestPill visible={pillVisible} onClick={jumpToLatest} />
+      </ChatComposer>
+
+      {history.isOpen && (
+        <ConversationHistoryModal
+          groups={history.groups}
+          loading={history.loading}
+          activeId={conversationId}
+          loadingId={history.loadingId}
+          onClose={history.close}
+          onNew={handleNewFromHistory}
+          onSelect={history.select}
+          onDelete={history.remove}
         />
-        <form onSubmit={handleSend}>
-          <div className="ai-chat__composer">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={handleInputChange}
-              placeholder="Pergunte ao iArnold…"
-              className="ai-chat__input"
-              disabled={loading}
-              rows={1}
-              aria-label="Mensagem para o assistente"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend(e);
-                }
-              }}
-            />
-            <div className="ai-chat__composer-toolbar">
-              <div className="ai-chat__composer-tools">
-                <button
-                  type="button"
-                  className="ai-chat__tool-btn"
-                  onClick={handlePlaceholderAction}
-                  aria-label="Anexar arquivo"
-                >
-                  <Paperclip size={14} strokeWidth={2} />
-                </button>
-                <button
-                  type="button"
-                  className="ai-chat__tool-btn ai-chat__tool-btn--active"
-                  onClick={handlePlaceholderAction}
-                  aria-label="Selecionar aluno"
-                >
-                  <UserRound size={14} strokeWidth={2} />
-                  Aluno
-                </button>
-                <button
-                  type="button"
-                  className="ai-chat__tool-btn"
-                  onClick={handlePlaceholderAction}
-                  aria-label="Abrir biblioteca"
-                >
-                  <BookOpen size={14} strokeWidth={2} />
-                  Biblioteca
-                </button>
-              </div>
-              <div className="ai-chat__composer-right">
-                {showCharCount && (
-                  <span className={isCharCountWarn ? 'ai-chat__char-count--warn' : ''}>
-                    {input.length}/{MAX_INPUT_LENGTH}
-                  </span>
-                )}
-                <span className="ai-chat__composer-hint">Enter para enviar</span>
-                <button
-                  type="submit"
-                  disabled={isSendDisabled}
-                  className="ai-chat__send-btn"
-                  aria-label="Enviar mensagem"
-                >
-                  <ArrowUp size={14} strokeWidth={2.4} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </form>
-        <div className="ai-chat__composer-meta">
-          <div className="ai-chat__composer-meta-left">
-            <span className="ai-chat__meta-chip">
-              <Circle size={8} strokeWidth={0} fill="currentColor" className="ai-chat__meta-chip-dot" />
-              {briefing
-                ? `Contexto ativo: ${briefing.activeStudents} alunos`
-                : 'Contexto ativo'}
-            </span>
-            <span>iArnold tem acesso aos dados dos seus alunos, treinos e dietas</span>
-          </div>
-          <span>Powered by Claude</span>
-        </div>
-      </div>
-
-      {/* History panel */}
-      {historyOpen && (
-        <div className="overlay">
-          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="bottom-sheet-header">
-              <h2 className="bottom-sheet-title">Histórico de conversas</h2>
-              <button
-                className="bottom-sheet-close"
-                onClick={() => setHistoryOpen(false)}
-                aria-label="Fechar histórico"
-              >
-                <X size={18} strokeWidth={2} />
-              </button>
-            </div>
-            <div className="bottom-sheet-body">
-              <div className="ai-history__new-conversation-btn">
-                <button
-                  className="btn-secondary btn-secondary-full"
-                  onClick={handleNewConversationFromSheet}
-                  aria-label="Iniciar nova conversa"
-                >
-                  <Plus size={14} strokeWidth={2} />
-                  Nova conversa
-                </button>
-              </div>
-
-              {conversationsLoading ? (
-                <p className="ai-history__loading-text">Carregando...</p>
-              ) : conversations.length === 0 ? (
-                <div className="ai-history__empty-state">
-                  <MessageSquare size={32} strokeWidth={1.6} />
-                  <p className="ai-history__empty-state-text">Nenhuma conversa ainda.</p>
-                </div>
-              ) : (
-                <div className="ai-history__list">
-                  {groupedConversations.map((group) => (
-                    <div key={group.label}>
-                      <p className="ai-history__group-label">{group.label}</p>
-                      {group.conversations.map((conv) => (
-                        <ConversationItem
-                          key={conv.id}
-                          conversation={conv}
-                          isActive={conv.id === conversationId}
-                          isLoading={conv.id === loadingConversationId}
-                          onSelect={handleSelectConversation}
-                          onDelete={handleDeleteConversation}
-                        />
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       )}
 
-      {/* Delete confirmation dialog */}
-      {confirmDialog && (
-        <div className="overlay" onClick={() => setConfirmDialog(null)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-dialog-message">{confirmDialog.message}</p>
-            <div className="btn-group btn-group--equal">
-              <button onClick={confirmDialog.onConfirm} className="btn-danger">
-                Excluir
-              </button>
-              <button onClick={() => setConfirmDialog(null)} className="btn-secondary">
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {history.confirmDialogProps && <ConfirmDialog {...history.confirmDialogProps} />}
     </div>
   );
 };

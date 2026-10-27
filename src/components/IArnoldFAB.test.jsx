@@ -29,18 +29,18 @@ describe('IArnoldFAB', () => {
     expect(screen.getByRole('button', { name: 'Perguntar ao iArnold' })).toBeInTheDocument();
   });
 
-  it('applies emphasized modifier when emphasized=true', () => {
-    const { container } = render(
-      <IArnoldFAB label="Perguntar ao iArnold" emphasized onClick={() => {}} />,
-    );
-    expect(container.querySelector('.iarnold-fab--emphasized')).toBeInTheDocument();
+  it('renders as a primary button when emphasized=true', () => {
+    render(<IArnoldFAB label="Perguntar ao iArnold" emphasized onClick={() => {}} />);
+    const button = screen.getByRole('button', { name: 'Perguntar ao iArnold' });
+    expect(button).toHaveClass('btn--primary');
+    expect(button).not.toHaveClass('btn--secondary');
   });
 
-  it('does not apply emphasized modifier when emphasized=false', () => {
-    const { container } = render(
-      <IArnoldFAB label="Perguntar ao iArnold" onClick={() => {}} />,
-    );
-    expect(container.querySelector('.iarnold-fab--emphasized')).not.toBeInTheDocument();
+  it('renders as a secondary button when emphasized=false', () => {
+    render(<IArnoldFAB label="Perguntar ao iArnold" onClick={() => {}} />);
+    const button = screen.getByRole('button', { name: 'Perguntar ao iArnold' });
+    expect(button).toHaveClass('btn--secondary');
+    expect(button).not.toHaveClass('btn--primary');
   });
 
   it('calls onClick when clicked', async () => {
