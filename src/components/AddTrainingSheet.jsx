@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Plus, Search, Check, Info, Save, ChevronDown } from 'lucide-react';
-import Modal from './ds/Modal';
+import Drawer from './ds/Drawer';
+import ConfirmDialog from './ds/ConfirmDialog';
+import useDiscardGuard from '../hooks/useDiscardGuard';
+import WeekDayPicker from './routineBuilder/WeekDayPicker';
 import Segmented from './ds/Segmented';
 import { TRAINING_CATEGORY_OPTIONS, TRAINING_CATEGORY_LABEL } from '../constants/trainingCategories';
 
@@ -20,6 +23,7 @@ const EMPTY_FORM = {
   category: '',
   bodySegment: '',
   description: '',
+  weekDay: '',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -29,6 +33,7 @@ const buildFormFromSnapshot = (training) => ({
   category: training.category || '',
   bodySegment: training.bodySegment || '',
   description: training.description || '',
+  weekDay: training.weekDay ? training.weekDay.toLowerCase() : '',
 });
 
 // Extracts exercise junction rows from a training template payload,
@@ -42,6 +47,12 @@ const extractTemplateExercises = (template) => {
     template.exercises ||
     []
   );
+};
+
+// True when the form differs from its pristine state (empty in create mode, the snapshot in edit mode).
+const isFormDirty = (form, editingTraining) => {
+  const pristine = editingTraining ? buildFormFromSnapshot(editingTraining) : EMPTY_FORM;
+  return Object.keys(pristine).some((field) => form[field] !== pristine[field]);
 };
 
 const sortByOrder = (exercises) =>
@@ -89,6 +100,9 @@ const AddTrainingSheet = ({
   eyebrow,
   saving,
   editingTraining,
+  layout,
+  weekDayCounts = {},
+  onAssignWeekDay = null,
 }) => {
   const isEditMode = !!editingTraining;
 
@@ -115,6 +129,9 @@ const AddTrainingSheet = ({
     onClose();
   };
 
+  const dirty = isFormDirty(form, editingTraining) || selectedIds.size > 0;
+  const { requestClose, dialogProps } = useDiscardGuard(handleClose, dirty);
+
   // When opening in edit mode, pre-populate form from snapshot
   useEffect(() => {
     if (open && isEditMode) {
@@ -130,7 +147,7 @@ const AddTrainingSheet = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editingTraining]);
 
-  // Focus the first field on open (Escape / focus trap come from <Modal>)
+  // Focus the first field on open (Escape / focus trap come from <Drawer>)
   useEffect(() => {
     if (!open) return;
     const raf = requestAnimationFrame(() => {
@@ -195,16 +212,23 @@ const AddTrainingSheet = ({
     ...(form.description.trim() && { description: form.description.trim() }),
   });
 
+  const assignWeekDay = (trainingId, previousWeekDay) => {
+    if (!onAssignWeekDay || !trainingId || form.weekDay === previousWeekDay) return;
+    onAssignWeekDay(trainingId, form.weekDay || null);
+  };
+
   const handleSubmit = async () => {
     try {
       if (isEditMode) {
         const payload = buildPayload();
         await onUpdate(editingTraining.id, payload);
+        assignWeekDay(editingTraining.id, buildFormFromSnapshot(editingTraining).weekDay);
         handleClose();
         return;
       }
       if (mode === 'create') {
         const created = await onCreate(buildPayload());
+        assignWeekDay(created?.id, '');
         handleClose();
         return created;
       }
@@ -233,7 +257,13 @@ const AddTrainingSheet = ({
 
   // ── Labels ───────────────────────────────────────────────────────────────
 
-  const sheetTitle = isEditMode ? 'Editar treino' : 'Adicionar treino';
+  const ownDay = isEditMode ? buildFormFromSnapshot(editingTraining).weekDay : '';
+  const otherTrainingsByDay = ownDay
+    ? { ...weekDayCounts, [ownDay]: Math.max((weekDayCounts[ownDay] ?? 0) - 1, 0) }
+    : weekDayCounts;
+
+  const sheetTitle = isEditMode ? 'Editar treino' : 'Novo treino';
+  const returnFocusSelector = isEditMode ? `[data-training-id="${editingTraining.id}"] .row-menu-trigger` : undefined;
 
   const submitLabel = saving
     ? isEditMode
@@ -249,7 +279,7 @@ const AddTrainingSheet = ({
 
   const footer = (
     <>
-      <button type="button" className="btn btn--secondary" onClick={handleClose} disabled={saving}>
+      <button type="button" className="btn btn--secondary" onClick={requestClose} disabled={saving}>
         Cancelar
       </button>
       <button
@@ -269,248 +299,265 @@ const AddTrainingSheet = ({
   );
 
   return (
-    <Modal title={sheetTitle} eyebrow={eyebrow || undefined} onClose={handleClose} footer={footer}>
-      <div className="add-training-sheet">
-        {!isEditMode && (
-          <Segmented
-            ariaLabel="Modo de adição de treino"
-            items={[
-              { id: 'create', label: 'Criar novo' },
-              { id: 'library', label: 'Da biblioteca' },
-            ]}
-            value={mode}
-            onChange={setMode}
-          />
-        )}
+    <>
+      <Drawer
+        title={sheetTitle}
+        onClose={requestClose}
+        footer={footer}
+        busy={saving}
+        layout={layout}
+        returnFocusSelector={returnFocusSelector}
+      >
+        <div className="add-training-sheet">
+          {eyebrow && <span className="add-training-eyebrow type-caption">{eyebrow}</span>}
+          {!isEditMode && (
+            <Segmented
+              ariaLabel="Modo de adição de treino"
+              items={[
+                { id: 'create', label: 'Criar novo' },
+                { id: 'library', label: 'Da biblioteca' },
+              ]}
+              value={mode}
+              onChange={setMode}
+            />
+          )}
 
-        {(mode === 'create' || isEditMode) && (
-          <div className="add-training-create-tab">
-            <div className="field">
-              <label className="field-label type-caption-strong" htmlFor="add-training-name">
-                Nome do treino <span aria-hidden="true">*</span>
-              </label>
-              <input
-                id="add-training-name"
-                ref={firstFieldRef}
-                className="input"
-                placeholder="Ex: Costas & Bíceps"
-                value={form.name}
-                onChange={(e) => updateField('name', e.target.value)}
-                autoComplete="off"
-                aria-required="true"
+          {(mode === 'create' || isEditMode) && (
+            <div className="add-training-create-tab">
+              <div className="field">
+                <label className="field-label type-caption-strong" htmlFor="add-training-name">
+                  Nome do treino <span aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="add-training-name"
+                  ref={firstFieldRef}
+                  className="input"
+                  placeholder="Ex: Costas & Bíceps"
+                  value={form.name}
+                  onChange={(e) => updateField('name', e.target.value)}
+                  autoComplete="off"
+                  aria-required="true"
+                />
+                {!isEditMode && (
+                  <span className="field-hint type-caption">
+                    Será salvo na sua biblioteca de treinos únicos.
+                  </span>
+                )}
+              </div>
+
+              <div className="add-training-grid">
+                <div className="field">
+                  <label className="field-label type-caption-strong" htmlFor="add-training-category">
+                    Categoria <span aria-hidden="true">*</span>
+                  </label>
+                  <select
+                    id="add-training-category"
+                    className="input"
+                    value={form.category}
+                    onChange={(e) => updateField('category', e.target.value)}
+                    aria-required="true"
+                  >
+                    <option value="">— Selecionar —</option>
+                    {TRAINING_CATEGORY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label className="field-label type-caption-strong" htmlFor="add-training-segment">
+                    Segmento
+                  </label>
+                  <select
+                    id="add-training-segment"
+                    className="input"
+                    value={form.bodySegment}
+                    onChange={(e) => updateField('bodySegment', e.target.value)}
+                  >
+                    {BODY_SEGMENTS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <WeekDayPicker
+                value={form.weekDay}
+                counts={otherTrainingsByDay}
+                onChange={(day) => updateField('weekDay', day)}
               />
+
+              <button
+                type="button"
+                className="btn btn--ghost add-training-more-toggle"
+                onClick={() => setShowMoreFields((v) => !v)}
+                aria-expanded={showMoreFields}
+              >
+                <ChevronDown
+                  size={16}
+                  strokeWidth={2}
+                  className={`add-training-more-icon${showMoreFields ? ' add-training-more-icon--open' : ''}`}
+                  aria-hidden="true"
+                />
+                {showMoreFields ? 'Menos campos' : 'Mostrar mais campos'}
+              </button>
+
+              {showMoreFields && (
+                <div className="field">
+                  <label className="field-label type-caption-strong" htmlFor="add-training-description">
+                    Descrição (opcional)
+                  </label>
+                  <textarea
+                    id="add-training-description"
+                    className="input"
+                    placeholder="Objetivo, observações gerais, público-alvo…"
+                    value={form.description}
+                    onChange={(e) => updateField('description', e.target.value)}
+                    rows={3}
+                  />
+                  <span className="field-hint type-caption">
+                    Aparece no card do treino e ajuda a identificar depois.
+                  </span>
+                </div>
+              )}
+
               {!isEditMode && (
-                <span className="field-hint type-caption">
-                  Será salvo na sua biblioteca de treinos únicos.
-                </span>
+                <div className="ds-banner">
+                  <span className="ds-banner__icon" aria-hidden="true">
+                    <Info size={20} strokeWidth={2} />
+                  </span>
+                  <span className="ds-banner__text type-body">
+                    <span>
+                      Os exercícios serão adicionados <strong>direto no card do treino</strong>, inline. Você não
+                      sai desta rotina.
+                    </span>
+                  </span>
+                </div>
               )}
             </div>
+          )}
 
-            <div className="add-training-grid">
-              <div className="field">
-                <label className="field-label type-caption-strong" htmlFor="add-training-category">
-                  Categoria <span aria-hidden="true">*</span>
-                </label>
-                <select
-                  id="add-training-category"
-                  className="input"
-                  value={form.category}
-                  onChange={(e) => updateField('category', e.target.value)}
-                  aria-required="true"
-                >
-                  <option value="">— Selecionar —</option>
-                  {TRAINING_CATEGORY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="field">
-                <label className="field-label type-caption-strong" htmlFor="add-training-segment">
-                  Segmento
-                </label>
-                <select
-                  id="add-training-segment"
-                  className="input"
-                  value={form.bodySegment}
-                  onChange={(e) => updateField('bodySegment', e.target.value)}
-                >
-                  {BODY_SEGMENTS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="btn btn--ghost add-training-more-toggle"
-              onClick={() => setShowMoreFields((v) => !v)}
-              aria-expanded={showMoreFields}
-            >
-              <ChevronDown
-                size={16}
-                strokeWidth={2}
-                className={`add-training-more-icon${showMoreFields ? ' add-training-more-icon--open' : ''}`}
-                aria-hidden="true"
-              />
-              {showMoreFields ? 'Menos campos' : 'Mostrar mais campos'}
-            </button>
-
-            {showMoreFields && (
-              <div className="field">
-                <label className="field-label type-caption-strong" htmlFor="add-training-description">
-                  Descrição (opcional)
-                </label>
-                <textarea
-                  id="add-training-description"
-                  className="input"
-                  placeholder="Objetivo, observações gerais, público-alvo…"
-                  value={form.description}
-                  onChange={(e) => updateField('description', e.target.value)}
-                  rows={3}
+          {!isEditMode && mode === 'library' && (
+            <div className="add-training-library-tab">
+              <div className="input--search-wrap">
+                <Search size={16} strokeWidth={2} aria-hidden="true" />
+                <input
+                  type="text"
+                  className="input input--search"
+                  placeholder="Buscar treino na biblioteca…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Buscar treino na biblioteca"
+                  ref={firstFieldRef}
                 />
-                <span className="field-hint type-caption">
-                  Aparece no card do treino e ajuda a identificar depois.
-                </span>
               </div>
-            )}
 
-            {!isEditMode && (
               <div className="ds-banner">
                 <span className="ds-banner__icon" aria-hidden="true">
                   <Info size={20} strokeWidth={2} />
                 </span>
                 <span className="ds-banner__text type-body">
                   <span>
-                    Os exercícios serão adicionados <strong>direto no card do treino</strong>, inline. Você não
-                    sai desta rotina.
+                    Importando: os exercícios do template serão copiados. Alterações aqui não afetam o template
+                    original.
                   </span>
                 </span>
               </div>
-            )}
-          </div>
-        )}
 
-        {!isEditMode && mode === 'library' && (
-          <div className="add-training-library-tab">
-            <div className="input--search-wrap">
-              <Search size={16} strokeWidth={2} aria-hidden="true" />
-              <input
-                type="text"
-                className="input input--search"
-                placeholder="Buscar treino na biblioteca…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                aria-label="Buscar treino na biblioteca"
-                ref={firstFieldRef}
-              />
-            </div>
+              {filteredTemplates.length === 0 ? (
+                <p className="empty-state-inline type-body">Nenhum treino encontrado.</p>
+              ) : (
+                <div
+                  className="template-list"
+                  role="listbox"
+                  aria-label="Treinos disponíveis"
+                  aria-multiselectable="true"
+                >
+                  {filteredTemplates.map((t) => {
+                    const isSelected = selectedIds.has(t.id);
+                    const isExpanded = expandedIds.has(t.id);
+                    const categoryLabel = TRAINING_CATEGORY_LABEL[t.category] || t.category || '';
+                    const exercises = extractTemplateExercises(t);
+                    const exerciseCount = exercises.length;
+                    const metaParts = [
+                      categoryLabel,
+                      t.bodySegment ? BODY_SEGMENTS.find((s) => s.value === t.bodySegment)?.label : null,
+                      exerciseCount > 0 ? `${exerciseCount} exercícios` : null,
+                    ].filter(Boolean);
+                    const sortedExercises = sortByOrder(exercises);
+                    const disclosureLabel = isExpanded ? 'Ocultar exercícios' : 'Ver exercícios';
 
-            <div className="ds-banner">
-              <span className="ds-banner__icon" aria-hidden="true">
-                <Info size={20} strokeWidth={2} />
-              </span>
-              <span className="ds-banner__text type-body">
-                <span>
-                  Importando: os exercícios do template serão copiados. Alterações aqui não afetam o template
-                  original.
-                </span>
-              </span>
-            </div>
-
-            {filteredTemplates.length === 0 ? (
-              <p className="empty-state-inline type-body">Nenhum treino encontrado.</p>
-            ) : (
-              <div
-                className="template-list"
-                role="listbox"
-                aria-label="Treinos disponíveis"
-                aria-multiselectable="true"
-              >
-                {filteredTemplates.map((t) => {
-                  const isSelected = selectedIds.has(t.id);
-                  const isExpanded = expandedIds.has(t.id);
-                  const categoryLabel = TRAINING_CATEGORY_LABEL[t.category] || t.category || '';
-                  const exercises = extractTemplateExercises(t);
-                  const exerciseCount = exercises.length;
-                  const metaParts = [
-                    categoryLabel,
-                    t.bodySegment ? BODY_SEGMENTS.find((s) => s.value === t.bodySegment)?.label : null,
-                    exerciseCount > 0 ? `${exerciseCount} exercícios` : null,
-                  ].filter(Boolean);
-                  const sortedExercises = sortByOrder(exercises);
-                  const disclosureLabel = isExpanded ? 'Ocultar exercícios' : 'Ver exercícios';
-
-                  return (
-                    <div key={t.id} className="template-item-wrap">
-                      <div
-                        role="option"
-                        aria-selected={isSelected}
-                        tabIndex={0}
-                        className={`template-item${isSelected ? ' template-item--selected' : ''}`}
-                        onClick={() => handleToggleTemplate(t.id)}
-                        onKeyDown={(e) => handleRowKeyDown(e, t.id)}
-                      >
-                        <div className="template-item-body">
-                          <span className="template-item-name type-body-strong">{t.name}</span>
-                          {metaParts.length > 0 && (
-                            <span className="template-item-meta type-caption">{metaParts.join(' · ')}</span>
-                          )}
-                        </div>
-                        {isSelected && (
-                          <Check size={16} strokeWidth={2} className="template-item-check" aria-hidden="true" />
-                        )}
-                        <button
-                          type="button"
-                          className="icon-button"
-                          aria-expanded={isExpanded}
-                          aria-label={disclosureLabel}
-                          title={disclosureLabel}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleExpanded(t.id);
-                          }}
+                    return (
+                      <div key={t.id} className="template-item-wrap">
+                        <div
+                          role="option"
+                          aria-selected={isSelected}
+                          tabIndex={0}
+                          className={`template-item${isSelected ? ' template-item--selected' : ''}`}
+                          onClick={() => handleToggleTemplate(t.id)}
+                          onKeyDown={(e) => handleRowKeyDown(e, t.id)}
                         >
-                          <ChevronDown
-                            size={20}
-                            strokeWidth={2}
-                            className={`add-training-more-icon${isExpanded ? ' add-training-more-icon--open' : ''}`}
-                            aria-hidden="true"
-                          />
-                        </button>
-                      </div>
-                      {isExpanded && (
-                        <div className="template-preview">
-                          {sortedExercises.length === 0 ? (
-                            <span className="template-preview-empty type-caption">
-                              Nenhum exercício neste treino
-                            </span>
-                          ) : (
-                            sortedExercises.map((ex, idx) => (
-                              <span
-                                key={ex.id ?? `${t.id}-${idx}`}
-                                className="template-preview-exercise type-caption"
-                              >
-                                {formatExercisePreviewLine(ex, idx)}
-                              </span>
-                            ))
+                          <div className="template-item-body">
+                            <span className="template-item-name type-body-strong">{t.name}</span>
+                            {metaParts.length > 0 && (
+                              <span className="template-item-meta type-caption">{metaParts.join(' · ')}</span>
+                            )}
+                          </div>
+                          {isSelected && (
+                            <Check size={16} strokeWidth={2} className="template-item-check" aria-hidden="true" />
                           )}
+                          <button
+                            type="button"
+                            className="icon-button"
+                            aria-expanded={isExpanded}
+                            aria-label={disclosureLabel}
+                            title={disclosureLabel}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleExpanded(t.id);
+                            }}
+                          >
+                            <ChevronDown
+                              size={20}
+                              strokeWidth={2}
+                              className={`add-training-more-icon${isExpanded ? ' add-training-more-icon--open' : ''}`}
+                              aria-hidden="true"
+                            />
+                          </button>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </Modal>
+                        {isExpanded && (
+                          <div className="template-preview">
+                            {sortedExercises.length === 0 ? (
+                              <span className="template-preview-empty type-caption">
+                                Nenhum exercício neste treino
+                              </span>
+                            ) : (
+                              sortedExercises.map((ex, idx) => (
+                                <span
+                                  key={ex.id ?? `${t.id}-${idx}`}
+                                  className="template-preview-exercise type-caption"
+                                >
+                                  {formatExercisePreviewLine(ex, idx)}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Drawer>
+      {dialogProps && <ConfirmDialog {...dialogProps} />}
+    </>
   );
 };
 
@@ -525,6 +572,11 @@ AddTrainingSheet.propTypes = {
   eyebrow: PropTypes.string,
   saving: PropTypes.bool,
   editingTraining: PropTypes.object,
+  layout: PropTypes.oneOf(['modal', 'side']),
+  /** Trainings already on each weekday (informational counts in the day picker). */
+  weekDayCounts: PropTypes.objectOf(PropTypes.number),
+  /** (trainingId, weekDay|null) — assigns the day through the builder after create/update. */
+  onAssignWeekDay: PropTypes.func,
 };
 
 AddTrainingSheet.defaultProps = {
@@ -533,6 +585,7 @@ AddTrainingSheet.defaultProps = {
   eyebrow: null,
   saving: false,
   editingTraining: null,
+  layout: 'side',
 };
 
 export default AddTrainingSheet;

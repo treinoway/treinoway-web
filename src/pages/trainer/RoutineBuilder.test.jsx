@@ -208,20 +208,19 @@ describe('RoutineBuilder — empty state (nova rotina)', () => {
     expect(screen.getByRole('button', { name: /Definir Gênero/i })).toBeInTheDocument();
   });
 
-  it('renders zeroed stats cards', () => {
+  it('renders the summary strip with zeroed totals', () => {
     renderNew();
-    const labels = screen.getAllByText('0');
-    expect(labels.length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText('Treinos')).toBeInTheDocument();
-    expect(screen.getByText('Exercícios')).toBeInTheDocument();
+    const strip = screen.getByRole('region', { name: 'Resumo da rotina' });
+    expect(within(strip).getByText('0 treinos')).toBeInTheDocument();
+    expect(within(strip).getByText('0 exercícios')).toBeInTheDocument();
   });
 
-  it('renders week overview with 7 days showing "–"', () => {
+  it('renders the 7 day pills in the summary strip, none interactive', () => {
     renderNew();
-    const dashes = screen.getAllByText('–');
-    expect(dashes.length).toBe(7);
-    expect(screen.getByText('Dom')).toBeInTheDocument();
-    expect(screen.getByText('Sáb')).toBeInTheDocument();
+    const strip = screen.getByRole('region', { name: 'Resumo da rotina' });
+    expect(within(strip).getByText('Dom')).toBeInTheDocument();
+    expect(within(strip).getByText('Sáb')).toBeInTheDocument();
+    expect(within(strip).queryAllByRole('button')).toHaveLength(0);
   });
 
   it('renders the first-training hero with CTA', () => {
@@ -1100,10 +1099,8 @@ describe('RoutineBuilder — add training sheet', () => {
 
     await user.click(screen.getByRole('button', { name: /Adicionar treino/i }));
 
-    expect(
-      screen.getByRole('heading', { name: /Adicionar treino/i })
-    ).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Criar novo/i })).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Novo treino' });
+    expect(within(dialog).getByRole('tab', { name: /Criar novo/i })).toBeInTheDocument();
   });
 
   it('sheet calls createTraining with name and category on submit', async () => {
@@ -1142,14 +1139,12 @@ describe('RoutineBuilder — add training sheet', () => {
     renderNew();
 
     await user.click(screen.getByRole('button', { name: /Adicionar treino/i }));
-    expect(screen.getByRole('heading', { name: /Adicionar treino/i })).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Novo treino' });
 
-    // The sheet's cancel button text is "Cancelar"
-    const cancelBtns = screen.getAllByRole('button', { name: /^Cancelar$/i });
-    await user.click(cancelBtns[cancelBtns.length - 1]);
+    await user.click(within(dialog).getByRole('button', { name: /^Cancelar$/i }));
 
     await waitFor(() => {
-      expect(screen.queryByRole('heading', { name: /Adicionar treino/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Novo treino' })).not.toBeInTheDocument();
     });
   });
 });
@@ -1168,9 +1163,7 @@ describe('RoutineBuilder — add training sheet from empty hero', () => {
 
     await user.click(screen.getByRole('button', { name: /Adicionar.*treino/i }));
 
-    expect(
-      screen.getByRole('heading', { name: /Adicionar treino/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Novo treino' })).toBeInTheDocument();
   });
 });
 
@@ -1468,9 +1461,9 @@ describe('RoutineBuilder — drag handle affordance', () => {
   });
 });
 
-// ─── Tests — inline edit composer position ───────────────────────────────────
+// ─── Tests — edit exercise opens in a drawer (row stays in the list) ─────────
 
-describe('RoutineBuilder — inline edit composer replaces the row in place', () => {
+describe('RoutineBuilder — edit exercise drawer keeps the row in the list', () => {
   const expandTraining = async (user) => {
     const chevron = screen.getByRole('button', { name: /Expandir treino/i });
     await user.click(chevron);
@@ -1488,18 +1481,16 @@ describe('RoutineBuilder — inline edit composer replaces the row in place', ()
     });
   });
 
-  it('clicking edit on a row replaces that row with the composer and hides it', async () => {
+  it('clicking edit on a row opens the drawer and keeps the row in the list', async () => {
     const user = userEvent.setup();
     renderNew();
     await expandTraining(user);
 
     await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
 
-    expect(
-      await screen.findByRole('button', { name: /Salvar alterações/i })
-    ).toBeInTheDocument();
-    // The edited row itself is gone
-    expect(screen.queryByRole('button', { name: /Editar Supino reto/i })).not.toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog', { name: 'Editar exercício' });
+    expect(within(dialog).getByRole('button', { name: /Salvar alterações/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Editar Supino reto/i })).toBeInTheDocument();
   });
 
   it('the other exercise rows remain visible while one is being edited', async () => {
@@ -1509,41 +1500,39 @@ describe('RoutineBuilder — inline edit composer replaces the row in place', ()
 
     await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
 
-    await screen.findByRole('button', { name: /Salvar alterações/i });
-    // The untouched row is still present
+    await screen.findByRole('dialog', { name: 'Editar exercício' });
     expect(screen.getByRole('button', { name: /Editar Rosca direta/i })).toBeInTheDocument();
   });
 
-  it('cancel in edit mode restores the row and removes the composer', async () => {
+  it('cancel in the drawer closes it and leaves the row in place', async () => {
     const user = userEvent.setup();
     renderNew();
     await expandTraining(user);
 
     await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
-    await screen.findByRole('button', { name: /Salvar alterações/i });
+    const dialog = await screen.findByRole('dialog', { name: 'Editar exercício' });
 
-    // Scope to the exercise list so we click the composer's cancel, not the page bottom bar's
-    const exerciseList = screen.getByRole('list', { name: /Exercícios/i });
-    await user.click(within(exerciseList).getByRole('button', { name: /Cancelar/i }));
+    await user.click(within(dialog).getByRole('button', { name: /^Cancelar$/ }));
 
-    expect(screen.queryByRole('button', { name: /Salvar alterações/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Editar exercício' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Editar Supino reto/i })).toBeInTheDocument();
   });
 
-  it('in edit mode the trailing "Adicionar exercício" button is hidden (inline composer takes focus)', async () => {
+  it('the exercise list never renders a composer inline while editing', async () => {
     const user = userEvent.setup();
     renderNew();
     await expandTraining(user);
 
     await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
-    await screen.findByRole('button', { name: /Salvar alterações/i });
+    await screen.findByRole('dialog', { name: 'Editar exercício' });
 
-    // The trailing add button is suppressed while editing inline — avoids dual-action confusion
-    expect(screen.queryByRole('button', { name: /Adicionar exercício/i })).not.toBeInTheDocument();
+    const exerciseList = screen.getByRole('list', { name: /Exercícios/i });
+    expect(within(exerciseList).queryByRole('button', { name: /Salvar alterações/i })).not.toBeInTheDocument();
+    expect(within(exerciseList).queryByLabelText(/Nome/i)).not.toBeInTheDocument();
   });
 });
 
-// ─── Tests — inline composer does NOT render EditExerciseSheet ────────────────
+// ─── Tests — single drawer for exercise editing (no EditExerciseSheet) ───────
 
 describe('RoutineBuilder — no EditExerciseSheet', () => {
   beforeEach(() => {
@@ -1551,23 +1540,18 @@ describe('RoutineBuilder — no EditExerciseSheet', () => {
     useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
   });
 
-  it('does not render EditExerciseSheet at any point', async () => {
+  it('editing an exercise opens exactly one dialog (the drawer)', async () => {
     const user = userEvent.setup();
     renderNew();
 
-    // Expand and click the exercise row to edit
     const chevron = screen.getByRole('button', { name: /Expandir treino/i });
     await user.click(chevron);
     await screen.findByRole('list', { name: /Exercícios/i });
 
     await user.click(screen.getByRole('button', { name: /Editar Supino reto/i }));
 
-    // No bottom-sheet / overlay sheet present
-    expect(
-      screen.queryByRole('heading', { name: /Editar exercício/i })
-    ).not.toBeInTheDocument();
-    // The inline composer title (not a heading) IS present
-    expect(screen.getByText('Editar exercício')).toBeInTheDocument();
+    expect(await screen.findAllByRole('dialog')).toHaveLength(1);
+    expect(screen.getByRole('dialog', { name: 'Editar exercício' })).toBeInTheDocument();
   });
 });
 
@@ -1607,58 +1591,36 @@ describe('RoutineBuilder — exercise row menu right-alignment', () => {
   });
 });
 
-// ─── Tests — week overview reflects trainings ─────────────────────────────────
+// ─── Tests — summary strip day pills reflect trainings ───────────────────────
 
-describe('RoutineBuilder — week overview reflects training count', () => {
-  it('shows count 1 for monday when a training has weekDay monday', () => {
+describe('RoutineBuilder — summary strip day pills reflect trainings', () => {
+  const getStrip = () => screen.getByRole('region', { name: 'Resumo da rotina' });
+
+  it('makes the monday pill interactive when a training has weekDay monday', () => {
     useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
     renderNew();
 
-    // "Seg" cell should show "1" not "–"
-    const segCell = screen.getByText('Seg').closest('[class*="week-overview-cell"]');
-    expect(segCell).toHaveClass('week-overview-cell--active');
+    expect(within(getStrip()).getByRole('button', { name: /^Seg/ })).toBeInTheDocument();
   });
 
-  it('shows "–" for days with no training assigned', () => {
+  it('leaves the 6 days without a training non-interactive', () => {
     useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
     renderNew();
 
-    // 6 days should still show "–" (only monday is set)
-    const dashes = screen.getAllByText('–');
-    expect(dashes.length).toBe(6);
+    ['Dom', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].forEach((label) => {
+      expect(within(getStrip()).getByText(label)).toBeInTheDocument();
+      expect(within(getStrip()).queryByRole('button', { name: new RegExp(`^${label}`) })).not.toBeInTheDocument();
+    });
   });
 
-  it('all 7 cells show "–" in empty state', () => {
+  it('has no interactive pill in empty state', () => {
     useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
     renderNew();
 
-    const dashes = screen.getAllByText('–');
-    expect(dashes.length).toBe(7);
+    expect(within(getStrip()).queryAllByRole('button')).toHaveLength(0);
   });
 
-  it('shows "1 treino" sub-label on active day and "Sem treino" on empty days', () => {
-    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
-    renderNew();
-
-    // monday cell (Seg) has one training → sub-label must be "1 treino"
-    const segCell = screen.getByText('Seg').closest('[class*="week-overview-cell"]');
-    expect(segCell).toHaveTextContent('1 treino');
-    expect(segCell).not.toHaveTextContent('Sem treino');
-
-    // remaining 6 days have no training → sub-label must be "Sem treino"
-    const semTreinos = screen.getAllByText('Sem treino');
-    expect(semTreinos).toHaveLength(6);
-  });
-
-  it('shows "Sem treino" on all days in empty state', () => {
-    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
-    renderNew();
-
-    const semTreinos = screen.getAllByText('Sem treino');
-    expect(semTreinos).toHaveLength(7);
-  });
-
-  it('shows plural "X treinos" sub-label when a day has more than one training', () => {
+  it('keeps a single monday pill when a day has more than one training', () => {
     const twoMondayTrainings = {
       ...POPULATED_HOOK_STATE,
       data: {
@@ -1672,45 +1634,74 @@ describe('RoutineBuilder — week overview reflects training count', () => {
     useRoutineBuilder.mockReturnValue(twoMondayTrainings);
     renderNew();
 
-    const segCell = screen.getByText('Seg').closest('[class*="week-overview-cell"]');
-    expect(segCell).toHaveTextContent('2 treinos');
-    expect(segCell).not.toHaveTextContent('Sem treino');
+    expect(within(getStrip()).getAllByRole('button', { name: /^Seg/ })).toHaveLength(1);
   });
 });
 
-// ─── Tests — stats row reflects totals ───────────────────────────────────────
+// ─── Tests — summary strip shows correct totals (criterion 1) ────────────────
 
-describe('RoutineBuilder — stats row shows correct totals', () => {
+// why: 6 trainings / 41 exercises / 3 with a day, matching acceptance criterion 1.
+const buildSixTrainingRoutine = () => {
+  const days = ['monday', 'wednesday', 'friday', null, null, null];
+  const sizes = [8, 7, 7, 7, 6, 6];
+  return days.map((weekDay, i) => ({
+    id: `t${i + 1}`,
+    name: `Treino ${String.fromCharCode(65 + i)}`,
+    weekDay,
+    exercises: Array.from({ length: sizes[i] }, (_, j) => ({
+      id: `t${i + 1}-e${j}`,
+      name: `Exercício ${i + 1}.${j}`,
+      type: 'strength',
+      sets: 3,
+      repetitions: { min: 8, max: 12 },
+      restInterval: 60,
+      hasLoad: true,
+    })),
+  }));
+};
+
+const SIX_TRAININGS_HOOK_STATE = {
+  ...EMPTY_HOOK_STATE,
+  data: { ...EMPTY_HOOK_STATE.data, name: 'Rotina grande', trainings: buildSixTrainingRoutine() },
+};
+
+describe('RoutineBuilder — summary strip shows correct totals', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('all 3 stat card labels render regardless of viewport', () => {
-    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  it('shows "6 treinos", "41 exercícios" and "3 de 6 com dia" in one labelled region', () => {
+    useRoutineBuilder.mockReturnValue(SIX_TRAININGS_HOOK_STATE);
     renderNew();
 
-    expect(screen.getByText('Treinos')).toBeInTheDocument();
-    expect(screen.getByText('Exercícios')).toBeInTheDocument();
-    expect(screen.getByText('Dias atribuídos')).toBeInTheDocument();
+    const strip = screen.getByRole('region', { name: 'Resumo da rotina' });
+    expect(within(strip).getByText('6 treinos')).toBeInTheDocument();
+    expect(within(strip).getByText('41 exercícios')).toBeInTheDocument();
+    expect(within(strip).getByText('3 de 6 com dia')).toBeInTheDocument();
   });
 
-  it('card "Treinos" uses the brand tone when trainings > 0', () => {
-    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  it('renders the 7 day pills with the 3 assigned days interactive', () => {
+    useRoutineBuilder.mockReturnValue(SIX_TRAININGS_HOOK_STATE);
     renderNew();
 
-    const label = screen.getByText('Treinos');
-    expect(label.closest('.metric-card')).toHaveClass('metric-card--brand');
+    const strip = screen.getByRole('region', { name: 'Resumo da rotina' });
+    ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].forEach((label) => {
+      expect(within(strip).getByText(label)).toBeInTheDocument();
+    });
+    expect(within(strip).getAllByRole('button')).toHaveLength(3);
   });
 
-  it('card "Treinos" uses the neutral tone in empty state', () => {
-    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
+  it('does not render MetricCards or the old stat labels', () => {
+    useRoutineBuilder.mockReturnValue(SIX_TRAININGS_HOOK_STATE);
     renderNew();
 
-    const label = screen.getByText('Treinos');
-    expect(label.closest('.metric-card')).toHaveClass('metric-card--neutral');
+    // why: the absence of the MetricCard component can only be asserted on its class.
+    expect(document.querySelector('.metric-card')).toBeNull();
+    expect(screen.queryByText('Dias atribuídos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sem treino')).not.toBeInTheDocument();
   });
 
-  it('card "Dias atribuídos" shows "X sem dia" when some trainings lack weekDay', () => {
+  it('shows "1 de 3 com dia" when some trainings lack weekDay', () => {
     useRoutineBuilder.mockReturnValue({
       ...EMPTY_HOOK_STATE,
       data: {
@@ -1725,10 +1716,10 @@ describe('RoutineBuilder — stats row shows correct totals', () => {
     });
     renderNew();
 
-    expect(screen.getByText('2 sem dia')).toBeInTheDocument();
+    expect(screen.getByText('1 de 3 com dia')).toBeInTheDocument();
   });
 
-  it('card "Dias atribuídos" shows "todos com dia" when all trainings have weekDay', () => {
+  it('shows "2 de 2 com dia" when all trainings have weekDay', () => {
     useRoutineBuilder.mockReturnValue({
       ...EMPTY_HOOK_STATE,
       data: {
@@ -1742,36 +1733,20 @@ describe('RoutineBuilder — stats row shows correct totals', () => {
     });
     renderNew();
 
-    expect(screen.getByText('todos com dia')).toBeInTheDocument();
+    expect(screen.getByText('2 de 2 com dia')).toBeInTheDocument();
   });
 
-  it('card "Dias atribuídos" shows "—" as sub when no trainings', () => {
-    useRoutineBuilder.mockReturnValue({ ...EMPTY_HOOK_STATE });
-    renderNew();
-
-    // The sub text inside the Dias atribuídos card
-    const label = screen.getByText('Dias atribuídos');
-    const card = label.closest('.metric-card');
-    expect(card.querySelector('.metric-card-support')).toHaveTextContent('—');
-  });
-
-  it('card "Dias atribuídos" uses the warning tone when unassigned trainings exist', () => {
-    useRoutineBuilder.mockReturnValue({
-      ...EMPTY_HOOK_STATE,
-      data: {
-        ...EMPTY_HOOK_STATE.data,
-        name: 'Rotina',
-        trainings: [
-          { id: 't1', weekDay: null, exercises: [] },
-        ],
-      },
+  it('is also shown in view mode (/trainer/protocols/:id)', () => {
+    useProtocolBuilder.mockReturnValue({ ...SIX_TRAININGS_HOOK_STATE });
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1',
+      path: '/trainer/protocols/:id',
     });
-    renderNew();
 
-    const label = screen.getByText('Dias atribuídos');
-    expect(label.closest('.metric-card')).toHaveClass('metric-card--warning');
+    const strip = screen.getByRole('region', { name: 'Resumo da rotina' });
+    expect(within(strip).getByText('6 treinos')).toBeInTheDocument();
+    expect(within(strip).getByText('41 exercícios')).toBeInTheDocument();
   });
-
 });
 
 // ─── Tests — training item menu (edit/delete) ────────────────────────────────
@@ -2342,7 +2317,7 @@ describe('RoutineBuilder — edit training sheet from menu', () => {
     // Re-open via "Adicionar treino" CTA — should be create mode
     await user.click(screen.getByRole('button', { name: /Adicionar treino/i }));
     expect(
-      await screen.findByRole('heading', { name: /Adicionar treino/i })
+      await screen.findByRole('dialog', { name: 'Novo treino' })
     ).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Da biblioteca/i })).toBeInTheDocument();
   });
@@ -3378,21 +3353,11 @@ describe('RoutineBuilder — Routine Summary Sheet', () => {
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
-  it('renders the Resumo FAB with the routine-summary-fab class', () => {
+  it('does not render the fixed routine-summary-fab', () => {
     useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
     renderNew();
-    // The FAB renders unconditionally; CSS controls visibility per breakpoint.
-    // Verify the element is in the DOM with the correct class.
-    const fab = document.querySelector('.routine-summary-fab');
-    expect(fab).toBeInTheDocument();
-  });
-
-  it('Resumo FAB shows correct exercise count', () => {
-    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
-    renderNew();
-    // POPULATED_HOOK_STATE has 1 exercise in training-1
-    const fab = document.querySelector('.routine-summary-fab');
-    expect(fab).toHaveTextContent('1 ex');
+    // why: the FAB class is removed from the DOM entirely; absence can only be asserted by class.
+    expect(document.querySelector('.routine-summary-fab')).toBeNull();
   });
 
   it('renders the mobile Resumo trigger button in the topbar', () => {
@@ -3421,15 +3386,21 @@ describe('RoutineBuilder — Routine Summary Sheet', () => {
     expect(screen.getByText('Exercícios da rotina')).toBeInTheDocument();
   });
 
-  it('clicking the Resumo FAB opens the summary sheet', async () => {
+  it('at >=768px a "Resumo" button in the topbar opens the summary sheet', async () => {
+    vi.stubGlobal('matchMedia', vi.fn((query) => ({
+      matches: query.includes('min-width'),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })));
     useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
     const user = userEvent.setup();
     renderNew();
 
-    const fab = document.querySelector('.routine-summary-fab');
-    await user.click(fab);
+    await user.click(screen.getByRole('button', { name: /^Resumo$/ }));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Exercícios da rotina')).toBeInTheDocument();
   });
 
   it('sheet passes correct trainings to the sheet component', async () => {
@@ -3661,7 +3632,7 @@ describe('RoutineBuilder — smooth scroll after exercise creation', () => {
     // Open the add-exercise composer
     await user.click(screen.getByRole('button', { name: /Adicionar exercício/i }));
 
-    // Composer opens on the "Da biblioteca" tab by default — switch to "Criar novo"
+    // Composer opens on the "Adicionar exercício" tab by default — switch to "Criar novo"
     await user.click(await screen.findByRole('tab', { name: /Criar novo/i }));
 
     // Fill minimum required fields and submit
@@ -3697,7 +3668,7 @@ describe('RoutineBuilder — smooth scroll after exercise creation', () => {
     await screen.findByRole('list', { name: /Exercícios/i });
     await user.click(screen.getByRole('button', { name: /Adicionar exercício/i }));
 
-    // Composer opens on the "Da biblioteca" tab by default — switch to "Criar novo"
+    // Composer opens on the "Adicionar exercício" tab by default — switch to "Criar novo"
     await user.click(await screen.findByRole('tab', { name: /Criar novo/i }));
 
     const nameInput = await screen.findByLabelText(/Nome/i);
@@ -4217,10 +4188,11 @@ const createDeferredAdd = () => {
   return { addExerciseFromTemplate, resolvers, completed };
 };
 
-// Opens the composer and imports A, C, B from the library in that click order.
+// Opens the composer, switches to the batch list and imports A, C, B in that click order.
 const selectAndImport = async (user) => {
   await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
   await user.click(await screen.findByRole('button', { name: /Adicionar exercício/i }));
+  await user.click(await screen.findByRole('button', { name: /Adicionar em lote/i }));
   await user.click(await screen.findByText('Alfa agachamento'));
   await user.click(screen.getByText('Charlie corrida'));
   await user.click(screen.getByText('Bravo barra'));
@@ -4320,5 +4292,532 @@ describe('RoutineBuilder — library import keeps selection order (A, C, B)', ()
     renderProtocolEditForOrder(addExerciseFromTemplate);
     await selectAndImport(user);
     await expectCompletionOrder(addExerciseFromTemplate, resolvers, completed);
+  });
+});
+
+
+// ─── Tests — routine editor UX: day pill navigation (criterion 2) ────────────
+
+describe('RoutineBuilder — summary strip day pill navigation', () => {
+  const TRAINING_WEDNESDAY = { id: 'training-wed', name: 'Costas & Bíceps', category: 'strength', weekDay: 'wednesday', exercises: [EXERCISE_2] };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+    useRoutineBuilder.mockReturnValue({
+      ...POPULATED_HOOK_STATE,
+      data: { ...POPULATED_HOOK_STATE.data, trainings: [TRAINING_WITH_EXERCISES, TRAINING_WEDNESDAY] },
+    });
+  });
+
+  it('clicking a day pill expands that training and scrolls it into view', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    expect(screen.queryByRole('list', { name: /Exercícios/i })).not.toBeInTheDocument();
+
+    const strip = screen.getByRole('region', { name: 'Resumo da rotina' });
+    await user.click(within(strip).getByRole('button', { name: /^Qua/ }));
+
+    expect(await screen.findByRole('list', { name: /Exercícios/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { expanded: true, name: /Costas & Bíceps/ }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByRole('button', { expanded: true, name: /Peito & Tríceps/ })).not.toBeInTheDocument();
+    await waitFor(() => {
+      const { contexts } = window.HTMLElement.prototype.scrollIntoView.mock;
+      expect(contexts.some((el) => el.textContent.includes('Costas & Bíceps'))).toBe(true);
+    });
+  });
+
+  it('days without a training have no pill button to click', () => {
+    renderNew();
+    const strip = screen.getByRole('region', { name: 'Resumo da rotina' });
+    expect(within(strip).queryByRole('button', { name: /^Ter/ })).not.toBeInTheDocument();
+  });
+});
+
+// ─── Tests — routine editor UX: add exercise drawer (criteria 4, 7) ──────────
+
+describe('RoutineBuilder — add exercise opens in a drawer', () => {
+  const CREATED_EXERCISE = { id: 'ex-new', name: 'Leg press', type: 'strength', sets: 3, repetitions: { min: 10, max: 15 }, restInterval: 60, hasLoad: true };
+
+  const openAddExerciseDrawer = async (user) => {
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await user.click(await screen.findByRole('button', { name: /Adicionar exercício/i }));
+    return screen.findByRole('dialog', { name: 'Novo exercício' });
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockResolvedValue({ data: { data: [], total: 0 } });
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  });
+
+  it('opens a "Novo exercício" dialog with the Adicionar exercício and Criar novo tabs and the batch button', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    const dialog = await openAddExerciseDrawer(user);
+
+    expect(within(dialog).getByRole('tab', { name: /Adicionar exercício/i })).toHaveAttribute('aria-selected', 'true');
+    expect(within(dialog).getByRole('button', { name: /Adicionar em lote/i })).toBeInTheDocument();
+    expect(within(dialog).getByRole('tab', { name: /Criar novo/i })).toBeInTheDocument();
+  });
+
+  it('does not render any composer inside the exercise list', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    await openAddExerciseDrawer(user);
+
+    const exerciseList = screen.getByRole('list', { name: /Exercícios/i });
+    expect(within(exerciseList).queryByRole('tab')).not.toBeInTheDocument();
+    expect(within(exerciseList).queryByRole('button', { name: /Cancelar/i })).not.toBeInTheDocument();
+  });
+
+  it('saving the create tab calls addExercise for the training and closes the drawer', async () => {
+    const addExercise = vi.fn().mockResolvedValue(CREATED_EXERCISE);
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE, addExercise });
+    const user = userEvent.setup();
+    renderNew();
+
+    const dialog = await openAddExerciseDrawer(user);
+    await user.click(within(dialog).getByRole('tab', { name: /Criar novo/i }));
+    await user.type(within(dialog).getByLabelText(/Nome/i), 'Leg press');
+    await user.type(within(dialog).getByLabelText(/Repetições mínimas/i), '10');
+    await user.type(within(dialog).getByLabelText(/Repetições máximas/i), '15');
+    await user.click(within(dialog).getByRole('button', { name: /Salvar exercício/i }));
+
+    await waitFor(() => {
+      expect(addExercise).toHaveBeenCalledWith('training-1', expect.objectContaining({ name: 'Leg press' }));
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Novo exercício' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('Cancelar on a pristine drawer closes it without calling addExercise', async () => {
+    const addExercise = vi.fn();
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE, addExercise });
+    const user = userEvent.setup();
+    renderNew();
+
+    const dialog = await openAddExerciseDrawer(user);
+    await user.click(within(dialog).getByRole('button', { name: /^Cancelar$/ }));
+
+    expect(screen.queryByRole('dialog', { name: 'Novo exercício' })).not.toBeInTheDocument();
+    expect(addExercise).not.toHaveBeenCalled();
+  });
+
+  it('keeps Cancelar and Salvar exercício in the footer, outside the scroll body (create tab)', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    const dialog = await openAddExerciseDrawer(user);
+    await user.click(within(dialog).getByRole('tab', { name: /Criar novo/i }));
+
+    // why: Drawer contract — body is role="region" named by the title; footer is outside it.
+    const body = screen.getByRole('region', { name: 'Novo exercício' });
+    expect(within(body).queryByRole('button', { name: /Salvar exercício/i })).not.toBeInTheDocument();
+    expect(within(body).queryByRole('button', { name: /^Cancelar$/ })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /Salvar exercício/i })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /^Cancelar$/ })).toBeInTheDocument();
+  });
+
+  it('keeps Cancelar and Importar in the footer on the batch list', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    const dialog = await openAddExerciseDrawer(user);
+    await user.click(within(dialog).getByRole('button', { name: /Adicionar em lote/i }));
+
+    const body = screen.getByRole('region', { name: 'Novo exercício' });
+    expect(within(body).queryByRole('button', { name: /^Importar/ })).not.toBeInTheDocument();
+    expect(within(body).queryByRole('button', { name: /^Cancelar$/ })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /^Importar/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /^Cancelar$/ })).toBeInTheDocument();
+  });
+
+  it('works the same in protocol edit mode', async () => {
+    useProtocolBuilder.mockReturnValue({
+      ...PROTOCOL_HOOK_EMPTY,
+      data: { ...PROTOCOL_HOOK_EMPTY.data, id: 'protocol-123', name: 'Protocolo', trainings: [TRAINING_EMPTY] },
+    });
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/protocol-123/edit',
+      path: '/trainer/protocols/:id/edit',
+    });
+    const user = userEvent.setup();
+
+    expect(await openAddExerciseDrawer(user)).toBeInTheDocument();
+  });
+});
+
+// ─── Tests — routine editor UX: edit exercise drawer (criteria 5, 7) ─────────
+
+describe('RoutineBuilder — edit exercise opens in a drawer', () => {
+  const openEditExerciseDrawer = async (user) => {
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await user.click(await screen.findByRole('button', { name: /Editar Supino reto/i }));
+    return screen.findByRole('dialog', { name: 'Editar exercício' });
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  });
+
+  it('opens "Editar exercício" prefilled with the exercise', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    const dialog = await openEditExerciseDrawer(user);
+
+    expect(within(dialog).getByLabelText(/Nome/i)).toHaveValue('Supino reto');
+  });
+
+  it('saving calls updateExercise and closes the drawer', async () => {
+    const updateExercise = vi.fn().mockResolvedValue({});
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE, updateExercise });
+    const user = userEvent.setup();
+    renderNew();
+
+    const dialog = await openEditExerciseDrawer(user);
+    const nameInput = within(dialog).getByLabelText(/Nome/i);
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Supino inclinado');
+    await user.click(within(dialog).getByRole('button', { name: /Salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(updateExercise).toHaveBeenCalledWith('training-1', 'ex-1', expect.objectContaining({ name: 'Supino inclinado' }));
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Editar exercício' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('keeps Cancelar and Salvar alterações in the footer, outside the scroll body', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    const dialog = await openEditExerciseDrawer(user);
+
+    const body = screen.getByRole('region', { name: 'Editar exercício' });
+    expect(within(body).queryByRole('button', { name: /Salvar alterações/i })).not.toBeInTheDocument();
+    expect(within(body).queryByRole('button', { name: /^Cancelar$/ })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /Salvar alterações/i })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /^Cancelar$/ })).toBeInTheDocument();
+  });
+
+  it('the row menu "Editar" item opens the same drawer', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await user.click(await screen.findByRole('button', { name: /Ações de Supino reto/i }));
+    await user.click(await screen.findByRole('menuitem', { name: /Editar/i }));
+
+    expect(await screen.findByRole('dialog', { name: 'Editar exercício' })).toBeInTheDocument();
+  });
+});
+
+// ─── Tests — routine editor UX: training drawer (criterion 6) ────────────────
+
+describe('RoutineBuilder — training add/edit use the drawer', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  });
+
+  it('"Adicionar treino" opens a single dialog named "Novo treino"', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    await user.click(screen.getByRole('button', { name: /Adicionar treino/i }));
+
+    expect(await screen.findAllByRole('dialog')).toHaveLength(1);
+    expect(screen.getByRole('dialog', { name: 'Novo treino' })).toBeInTheDocument();
+  });
+
+  it('the training menu "Editar" opens a dialog named "Editar treino"', async () => {
+    const user = userEvent.setup();
+    renderNew();
+
+    await user.click(screen.getByRole('button', { name: /Opções do treino Peito & Tríceps/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Editar treino' })).toBeInTheDocument();
+  });
+});
+
+// ─── Tests — routine editor UX: discard guard (criterion 8) ──────────────────
+
+describe('RoutineBuilder — discard guard on drawers', () => {
+  const DISCARD_MESSAGE = 'Descartar alterações?';
+
+  const getKeepEditingButton = (alert) =>
+    within(alert).getAllByRole('button').find((btn) => !/Descartar/i.test(btn.textContent));
+
+  const openDirtyAddExerciseDrawer = async (user) => {
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await user.click(await screen.findByRole('button', { name: /Adicionar exercício/i }));
+    const dialog = await screen.findByRole('dialog', { name: 'Novo exercício' });
+    await user.click(within(dialog).getByRole('tab', { name: /Criar novo/i }));
+    await user.type(within(dialog).getByLabelText(/Nome/i), 'Leg');
+    return dialog;
+  };
+
+  const openDirtyAddTrainingDrawer = async (user) => {
+    await user.click(screen.getByRole('button', { name: /Adicionar treino/i }));
+    const dialog = await screen.findByRole('dialog', { name: 'Novo treino' });
+    await user.type(within(dialog).getByLabelText(/Nome do treino/i), 'Pernas');
+    return dialog;
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.get.mockResolvedValue({ data: { data: [], total: 0 } });
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  });
+
+  it('Esc on a dirty exercise drawer asks "Descartar alterações?" and keeps the drawer', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await openDirtyAddExerciseDrawer(user);
+
+    await user.keyboard('{Escape}');
+
+    expect(await screen.findByRole('alertdialog', { name: DISCARD_MESSAGE })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Novo exercício' })).toBeInTheDocument();
+  });
+
+  it('✕ on a dirty exercise drawer asks for confirmation', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    const dialog = await openDirtyAddExerciseDrawer(user);
+
+    await user.click(within(dialog).getByRole('button', { name: 'Fechar' }));
+
+    expect(await screen.findByRole('alertdialog', { name: DISCARD_MESSAGE })).toBeInTheDocument();
+  });
+
+  it('Cancelar on a dirty exercise drawer asks for confirmation', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    const dialog = await openDirtyAddExerciseDrawer(user);
+
+    await user.click(within(dialog).getByRole('button', { name: /^Cancelar$/ }));
+
+    expect(await screen.findByRole('alertdialog', { name: DISCARD_MESSAGE })).toBeInTheDocument();
+  });
+
+  it('confirming the discard closes the drawer and the confirm dialog', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await openDirtyAddExerciseDrawer(user);
+    await user.keyboard('{Escape}');
+
+    const alert = await screen.findByRole('alertdialog', { name: DISCARD_MESSAGE });
+    await user.click(within(alert).getByRole('button', { name: /Descartar/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Novo exercício' })).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('declining the discard keeps the drawer open with the typed value', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    const dialog = await openDirtyAddExerciseDrawer(user);
+    await user.keyboard('{Escape}');
+
+    const alert = await screen.findByRole('alertdialog', { name: DISCARD_MESSAGE });
+    await user.click(getKeepEditingButton(alert));
+
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('dialog', { name: 'Novo exercício' })).getByLabelText(/Nome/i)).toHaveValue('Leg');
+    expect(dialog).toBeInTheDocument();
+  });
+
+  it.each([
+    ['Esc', async (user) => { await user.keyboard('{Escape}'); }],
+    ['✕', async (user) => { await user.click(screen.getByRole('button', { name: 'Fechar' })); }],
+    ['Cancelar', async (user) => { await user.click(screen.getByRole('button', { name: /^Cancelar$/ })); }],
+  ])('%s on a pristine exercise drawer closes it without asking', async (_label, closeAction) => {
+    const user = userEvent.setup();
+    renderNew();
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await user.click(await screen.findByRole('button', { name: /Adicionar exercício/i }));
+    await screen.findByRole('dialog', { name: 'Novo exercício' });
+
+    await closeAction(user);
+
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Novo exercício' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('Esc on a dirty training drawer asks "Descartar alterações?"', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await openDirtyAddTrainingDrawer(user);
+
+    await user.keyboard('{Escape}');
+
+    expect(await screen.findByRole('alertdialog', { name: DISCARD_MESSAGE })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Novo treino' })).toBeInTheDocument();
+  });
+
+  it('Cancelar on a dirty training drawer asks and confirming closes it', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    const dialog = await openDirtyAddTrainingDrawer(user);
+
+    await user.click(within(dialog).getByRole('button', { name: /^Cancelar$/ }));
+    const alert = await screen.findByRole('alertdialog', { name: DISCARD_MESSAGE });
+    await user.click(within(alert).getByRole('button', { name: /Descartar/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Novo treino' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('Cancelar on a pristine training drawer closes it without asking', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await user.click(screen.getByRole('button', { name: /Adicionar treino/i }));
+    const dialog = await screen.findByRole('dialog', { name: 'Novo treino' });
+
+    await user.click(within(dialog).getByRole('button', { name: /^Cancelar$/ }));
+
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Novo treino' })).not.toBeInTheDocument();
+  });
+
+  it('✕ on a dirty edit-exercise drawer asks for confirmation', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await user.click(await screen.findByRole('button', { name: /Editar Supino reto/i }));
+    const dialog = await screen.findByRole('dialog', { name: 'Editar exercício' });
+    await user.type(within(dialog).getByLabelText(/Nome/i), ' X');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Fechar' }));
+
+    expect(await screen.findByRole('alertdialog', { name: DISCARD_MESSAGE })).toBeInTheDocument();
+  });
+
+  it('Esc on a dirty edit-training drawer asks for confirmation', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await user.click(screen.getByRole('button', { name: /Opções do treino Peito & Tríceps/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Editar treino' });
+    await user.type(within(dialog).getByLabelText(/Nome do treino/i), ' B');
+
+    await user.keyboard('{Escape}');
+
+    expect(await screen.findByRole('alertdialog', { name: DISCARD_MESSAGE })).toBeInTheDocument();
+  });
+});
+
+// ─── Tests — routine editor UX: add buttons at the top (criterion 9) ─────────
+
+describe('RoutineBuilder — add buttons at the top', () => {
+  const isBefore = (first, second) =>
+    Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  });
+
+  it('"Adicionar treino" sits in the "Treinos da rotina" header, before the first training', () => {
+    renderNew();
+
+    const sectionTitle = screen.getByText(/Treinos da rotina/);
+    const addTraining = screen.getByRole('button', { name: /Adicionar treino/i });
+    const firstTraining = screen.getByRole('button', { name: /Expandir treino/i });
+    expect(isBefore(sectionTitle, addTraining)).toBe(true);
+    expect(isBefore(addTraining, firstTraining)).toBe(true);
+  });
+
+  it('an expanded training shows "Adicionar exercício" in its header, above the exercise list', async () => {
+    const user = userEvent.setup();
+    renderNew();
+    expect(screen.queryByRole('button', { name: /Adicionar exercício/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    const list = await screen.findByRole('list', { name: /Exercícios/i });
+
+    const addExercise = screen.getByRole('button', { name: /Adicionar exercício/i });
+    expect(isBefore(addExercise, list)).toBe(true);
+  });
+});
+
+// ─── Tests — routine editor UX: Resumo without overlap (criterion 10) ────────
+
+describe('RoutineBuilder — Resumo button on desktop', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal('matchMedia', vi.fn((query) => ({
+      matches: query.includes('min-width'),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })));
+    useRoutineBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  });
+
+  it('shows "Resumo" as a topbar button and no fixed routine-summary-fab', () => {
+    renderNew();
+
+    expect(screen.getByRole('button', { name: /^Resumo$/ })).toBeInTheDocument();
+    // why: the FAB class is removed from the DOM entirely; absence can only be asserted by class.
+    expect(document.querySelector('.routine-summary-fab')).toBeNull();
+  });
+
+  it('keeps the mobile "Ver resumo" topbar icon', () => {
+    renderNew();
+
+    expect(screen.getByRole('button', { name: /^Ver resumo$/ })).toBeInTheDocument();
+  });
+});
+
+// ─── Tests — routine editor UX: view mode (criterion 11) ─────────────────────
+
+describe('RoutineBuilder — view mode has no add/edit entry points', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useProtocolBuilder.mockReturnValue({ ...POPULATED_HOOK_STATE });
+  });
+
+  it('renders the summary strip but no add buttons or dialogs', async () => {
+    const user = userEvent.setup();
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1',
+      path: '/trainer/protocols/:id',
+    });
+
+    expect(screen.getByRole('region', { name: 'Resumo da rotina' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
+    await screen.findByRole('list', { name: /Exercícios/i });
+
+    expect(screen.queryByRole('button', { name: /Adicionar treino/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Adicionar exercício/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Editar Supino reto/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('clicking a day pill still expands the training in view mode', async () => {
+    const user = userEvent.setup();
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1',
+      path: '/trainer/protocols/:id',
+    });
+
+    const strip = screen.getByRole('region', { name: 'Resumo da rotina' });
+    await user.click(within(strip).getByRole('button', { name: /^Seg/ }));
+
+    expect(await screen.findByRole('list', { name: /Exercícios/i })).toBeInTheDocument();
   });
 });

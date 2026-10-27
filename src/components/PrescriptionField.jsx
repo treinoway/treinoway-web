@@ -1,10 +1,20 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Repeat, Timer } from 'lucide-react';
 import { t } from '../i18n';
 import Segmented from './ds/Segmented';
+import DurationUnitToggle from './DurationUnitToggle';
 
-const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
+const DURATION_PRESETS = [15, 30, 60, 90, 120];
+const DURATION_PRESETS_MINUTES = [10, 15, 20, 30, 45];
+const SECONDS_PER_MINUTE = 60;
+
+// Default duration unit: minutes for cardio (new, or an existing duration in whole minutes), seconds otherwise.
+const getDefaultUnit = (type, initialDuration) => {
+  if (type !== 'cardio') return 'seg';
+  const seconds = Number(initialDuration);
+  return !seconds || seconds % SECONDS_PER_MINUTE === 0 ? 'min' : 'seg';
+};
 const LONG_DURATION_THRESHOLD_SECONDS = 600;
 const MAX_DURATION_SECONDS = 9999;
 const MAX_REPS = 999;
@@ -23,7 +33,15 @@ const PrescriptionField = ({
   onClearDurationError,
   repsError,
   onClearRepsError,
+  exerciseType = '',
+  trailing = null,
 }) => {
+  const [initialDuration] = useState(formData.duration);
+  const [chosenUnit, setChosenUnit] = useState(null);
+  const durationUnit = chosenUnit ?? getDefaultUnit(exerciseType, initialDuration);
+  const isMinutes = durationUnit === 'min';
+  const unitFactor = isMinutes ? SECONDS_PER_MINUTE : 1;
+  const durationPresets = isMinutes ? DURATION_PRESETS_MINUTES : DURATION_PRESETS;
   const durationInputRef = useRef(null);
   const repsMinInputRef = useRef(null);
   const focusAfterSwitchRef = useRef(false);
@@ -64,13 +82,13 @@ const PrescriptionField = ({
     }
     const numeric = Number(rawValue);
     if (!Number.isFinite(numeric)) return;
-    const clamped = Math.min(numeric, MAX_DURATION_SECONDS);
+    const clamped = Math.min(Math.round(numeric * unitFactor), MAX_DURATION_SECONDS);
     onChange({ duration: String(clamped) });
     onClearDurationError?.();
   };
 
-  const handleDurationChipClick = (seconds) => {
-    onChange({ duration: String(seconds) });
+  const handleDurationChipClick = (amount) => {
+    onChange({ duration: String(amount * unitFactor) });
     onClearDurationError?.();
     durationInputRef.current?.blur();
   };
@@ -108,8 +126,28 @@ const PrescriptionField = ({
     durationValueNumber != null &&
     durationValueNumber >= LONG_DURATION_THRESHOLD_SECONDS;
   const activeChip = isDurationMode
-    ? DURATION_PRESETS.find((p) => p === durationValueNumber) ?? null
+    ? durationPresets.find((p) => p * unitFactor === durationValueNumber) ?? null
     : null;
+  const durationDisplayValue = formData.duration === '' ? '' : String(durationValueNumber / unitFactor);
+
+  const renderDurationChips = () => (
+    <div className="chip-group" role="group" aria-label="Atalhos de duração">
+      {durationPresets.map((amount) => {
+        const isActive = activeChip === amount;
+        return (
+          <button
+            key={amount}
+            type="button"
+            className={`chip${isActive ? ' chip--active' : ''}`}
+            onClick={() => handleDurationChipClick(amount)}
+            aria-pressed={isActive}
+          >
+            {amount}{isMinutes ? 'min' : 's'}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   const setsId = `${idPrefix}-sets`;
   const durationId = `${idPrefix}-duration`;
@@ -148,22 +186,27 @@ const PrescriptionField = ({
 
         {isDurationMode ? (
           <div>
-            <label className="field-label type-caption-strong" htmlFor={durationId}>Duração</label>
+            <div className="field-label-row">
+              <label className="field-label type-caption-strong" htmlFor={durationId}>Duração</label>
+              <DurationUnitToggle value={durationUnit} onChange={setChosenUnit} />
+            </div>
             <div className="form-input-with-suffix">
               <input
                 ref={durationInputRef}
                 id={durationId}
                 type="number"
                 min="1"
-                max={MAX_DURATION_SECONDS}
-                value={formData.duration}
+                max={MAX_DURATION_SECONDS / unitFactor}
+                step={isMinutes ? 'any' : undefined}
+                value={durationDisplayValue}
                 onChange={(e) => handleDurationInputChange(e.target.value)}
                 className={`input${durationError ? ' input--error' : ''}`}
                 placeholder="ex: 45"
                 aria-describedby={durationError ? `${durationId}-error` : undefined}
               />
-              <span className="form-input-suffix" aria-hidden="true">s</span>
+              <span className="form-input-suffix" aria-hidden="true">{durationUnit}</span>
             </div>
+            {renderDurationChips()}
             {durationError && (
               <span id={`${durationId}-error`} className="field-error type-caption" role="alert">
                 {durationError}
@@ -211,32 +254,8 @@ const PrescriptionField = ({
             )}
           </div>
         )}
+        {trailing}
       </div>
-
-      {/* Duration preset chips — only in duration mode */}
-      {isDurationMode && (
-        <div
-          className="chip-group"
-          role="group"
-          aria-label="Atalhos de duração"
-        >
-          {DURATION_PRESETS.map((seconds) => {
-            const isActive = activeChip === seconds;
-            return (
-              <button
-                key={seconds}
-                type="button"
-                className={`chip${isActive ? ' chip--active' : ''}`}
-                onClick={() => handleDurationChipClick(seconds)}
-                aria-pressed={isActive}
-              >
-                {seconds}s
-              </button>
-            );
-          })}
-        </div>
-      )}
-
     </div>
   );
 };
@@ -255,6 +274,10 @@ PrescriptionField.propTypes = {
   onClearDurationError: PropTypes.func,
   repsError: PropTypes.string,
   onClearRepsError: PropTypes.func,
+  /** Drives the default duration unit (cardio defaults to minutes); the stored value is always seconds. */
+  exerciseType: PropTypes.string,
+  /** Extra grid cell rendered after the reps/duration field (e.g. the rest interval). */
+  trailing: PropTypes.node,
 };
 
 export default PrescriptionField;

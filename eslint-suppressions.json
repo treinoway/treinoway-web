@@ -240,7 +240,7 @@
       "count": 4
     },
     "local/no-comments-in-function": {
-      "count": 28
+      "count": 21
     }
   },
   "src/components/ExerciseComposer.test.jsx": {
@@ -527,7 +527,7 @@
       "count": 1
     },
     "local/no-comments-in-function": {
-      "count": 4
+      "count": 3
     }
   },
   "src/components/PrescriptionField.test.jsx": {
@@ -2581,10 +2581,10 @@
       "count": 1
     },
     "local/function-header-comment": {
-      "count": 24
+      "count": 22
     },
     "local/no-comments-in-function": {
-      "count": 117
+      "count": 110
     }
   },
   "src/pages/trainer/RoutineBuilder.test.jsx": {
@@ -2592,7 +2592,7 @@
       "count": 7
     },
     "local/no-comments-in-function": {
-      "count": 149
+      "count": 133
     }
   },
   "src/pages/trainer/SessionDetail.jsx": {

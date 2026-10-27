@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useState } from 'react';
+import { vi } from 'vitest';
 import { render, screen } from '../test/test-utils';
 import userEvent from '@testing-library/user-event';
 import PrescriptionField from './PrescriptionField';
@@ -71,8 +72,10 @@ describe('PrescriptionField', () => {
     it('renders duration input and chips', () => {
       render(<Harness initial={{ prescriptionMode: 'duration' }} />);
       expect(screen.getByLabelText(/^duração$/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: '45s' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '30s' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: '120s' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '45s' })).not.toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: /^\d+s$/ })).toHaveLength(5);
     });
 
     it('marks the Tempo tab as selected in duration mode', () => {
@@ -84,8 +87,8 @@ describe('PrescriptionField', () => {
     it('clicking a chip fills the duration input', async () => {
       const user = userEvent.setup();
       render(<Harness initial={{ prescriptionMode: 'duration' }} />);
-      await user.click(screen.getByRole('button', { name: '45s' }));
-      expect(screen.getByLabelText(/^duração$/i)).toHaveValue(45);
+      await user.click(screen.getByRole('button', { name: '30s' }));
+      expect(screen.getByLabelText(/^duração$/i)).toHaveValue(30);
     });
 
     it('marks the chip active when input equals the chip value', async () => {
@@ -195,3 +198,119 @@ describe('PrescriptionField', () => {
     });
   });
 });
+
+// Duration harness exposing exerciseType and a spy for the stored seconds.
+const DurationHarness = ({ exerciseType, duration = '', onValue }) => {
+  const [formData, setFormData] = useState({
+    prescriptionMode: 'duration',
+    sets: '',
+    repetitionsMin: '',
+    repetitionsMax: '',
+    duration,
+  });
+  onValue?.(formData.duration);
+  return (
+    <PrescriptionField
+      idPrefix="unit"
+      exerciseType={exerciseType}
+      formData={formData}
+      onChange={(patch) => setFormData((prev) => ({ ...prev, ...patch }))}
+    />
+  );
+};
+
+describe('PrescriptionField — duration group and unit', () => {
+  it('renders the chips inside the Duração field, after its input', () => {
+    render(<DurationHarness />);
+    const input = screen.getByLabelText(/^Duração$/);
+    const chips = screen.getByRole('group', { name: /atalhos de duração/i });
+    expect(input.closest('.prescription-row > div')).toContainElement(chips);
+    expect(Boolean(input.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+  });
+
+  it('defaults to seconds for non-cardio and to minutes for cardio', () => {
+    const { unmount } = render(<DurationHarness exerciseType="strength" />);
+    expect(screen.getByRole('radio', { name: 'seg' })).toBeChecked();
+    expect(screen.getByRole('button', { name: '30s' })).toBeInTheDocument();
+    unmount();
+    render(<DurationHarness exerciseType="cardio" />);
+    expect(screen.getByRole('radio', { name: 'min' })).toBeChecked();
+    expect(screen.getByRole('button', { name: '45min' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '15s' })).not.toBeInTheDocument();
+  });
+
+  it('prefills cardio in minutes only for whole minutes', () => {
+    const { unmount } = render(<DurationHarness exerciseType="cardio" duration="1800" />);
+    expect(screen.getByRole('radio', { name: 'min' })).toBeChecked();
+    expect(screen.getByLabelText(/^Duração$/)).toHaveValue(30);
+    unmount();
+    render(<DurationHarness exerciseType="cardio" duration="90" />);
+    expect(screen.getByRole('radio', { name: 'seg' })).toBeChecked();
+    expect(screen.getByLabelText(/^Duração$/)).toHaveValue(90);
+  });
+
+  it('converts the typed value when the unit changes, both ways, keeping whole seconds stored', async () => {
+    const user = userEvent.setup();
+    const onValue = vi.fn();
+    render(<DurationHarness exerciseType="strength" duration="90" onValue={onValue} />);
+
+    await user.click(screen.getByRole('radio', { name: 'min' }));
+    expect(screen.getByLabelText(/^Duração$/)).toHaveValue(1.5);
+    expect(screen.getByRole('button', { name: '10min' })).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText(/^Duração$/));
+    await user.type(screen.getByLabelText(/^Duração$/), '2');
+    await user.click(screen.getByRole('radio', { name: 'seg' }));
+    expect(screen.getByLabelText(/^Duração$/)).toHaveValue(120);
+    expect(onValue).toHaveBeenLastCalledWith('120');
+  });
+
+  it('rounds decimal minutes to whole seconds', async () => {
+    const user = userEvent.setup();
+    const onValue = vi.fn();
+    render(<DurationHarness exerciseType="cardio" onValue={onValue} />);
+    await user.type(screen.getByLabelText(/^Duração$/), '0.51');
+    expect(onValue).toHaveBeenLastCalledWith('31');
+  });
+
+  it('shows the active unit as the input suffix', async () => {
+    const user = userEvent.setup();
+    render(<DurationHarness exerciseType="strength" />);
+    expect(screen.getByLabelText(/^Duração$/).parentElement).toHaveTextContent('seg');
+    await user.click(screen.getByRole('radio', { name: 'min' }));
+    expect(screen.getByLabelText(/^Duração$/).parentElement).toHaveTextContent('min');
+  });
+
+  it('keeps a user-chosen unit when the type changes', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<DurationHarness exerciseType="strength" />);
+    await user.click(screen.getByRole('radio', { name: 'min' }));
+    rerender(<DurationHarness exerciseType="mobility" />);
+    expect(screen.getByRole('radio', { name: 'min' })).toBeChecked();
+  });
+
+  it('follows the type default while the unit is untouched', () => {
+    const { rerender } = render(<DurationHarness exerciseType="strength" />);
+    expect(screen.getByRole('radio', { name: 'seg' })).toBeChecked();
+    rerender(<DurationHarness exerciseType="cardio" />);
+    expect(screen.getByRole('radio', { name: 'min' })).toBeChecked();
+  });
+
+  it('unit radiogroup: roving tabindex and arrow keys with wraparound', async () => {
+    const user = userEvent.setup();
+    render(<DurationHarness exerciseType="strength" />);
+    expect(screen.getByRole('radiogroup', { name: 'Unidade da duração' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'seg' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('radio', { name: 'min' })).toHaveAttribute('tabindex', '-1');
+
+    screen.getByRole('radio', { name: 'seg' }).focus();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('radio', { name: 'min' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'min' })).toHaveFocus();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('radio', { name: 'seg' })).toBeChecked();
+    await user.keyboard('{ArrowLeft}');
+    expect(screen.getByRole('radio', { name: 'min' })).toBeChecked();
+  });
+});
+

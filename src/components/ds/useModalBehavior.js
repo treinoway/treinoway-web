@@ -2,15 +2,29 @@ import { useEffect, useRef } from 'react';
 
 const FOCUSABLE = 'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
 
+// True when `el` is a real, still-mounted focus target (not the body fallback).
+const isUsableFocusTarget = (el) => Boolean(el) && el !== document.body && el.isConnected;
+
+// Restores focus to the opener, or to the element matching `fallbackSelector` when the opener unmounted.
+const restoreFocus = (previouslyFocused, fallbackSelector) => {
+  const target = isUsableFocusTarget(previouslyFocused)
+    ? previouslyFocused
+    : fallbackSelector && document.querySelector(fallbackSelector);
+  if (target && typeof target.focus === 'function') target.focus();
+};
+
 /**
- * Modal a11y: close on Escape, trap Tab inside `containerRef`,
- * focus the container on open and restore focus to the trigger on close.
+ * Modal a11y: close on Escape (only while focus is inside `containerRef`, so stacked
+ * dialogs do not close each other), trap Tab inside `containerRef`, focus the container
+ * on open and restore focus on close (to the opener, else to `returnFocusSelector`).
  */
-const useModalBehavior = (containerRef, onClose) => {
+const useModalBehavior = (containerRef, onClose, { returnFocusSelector } = {}) => {
   // Keep the latest handler without re-running the effect (which would steal focus on every render).
   const onCloseRef = useRef(onClose);
+  const returnFocusSelectorRef = useRef(returnFocusSelector);
   useEffect(() => {
     onCloseRef.current = onClose;
+    returnFocusSelectorRef.current = returnFocusSelector;
   });
 
   useEffect(() => {
@@ -20,6 +34,7 @@ const useModalBehavior = (containerRef, onClose) => {
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
+        if (container && !container.contains(document.activeElement)) return;
         onCloseRef.current();
         return;
       }
@@ -42,7 +57,7 @@ const useModalBehavior = (containerRef, onClose) => {
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      if (previouslyFocused && typeof previouslyFocused.focus === 'function') previouslyFocused.focus();
+      restoreFocus(previouslyFocused, returnFocusSelectorRef.current);
     };
   }, [containerRef]);
 };
