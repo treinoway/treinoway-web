@@ -185,6 +185,7 @@ describe('ExerciseComposer — single add save errors', () => {
 });
 
 const YT = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+const OTHER_YT = 'https://www.youtube.com/watch?v=aqz-KE-bpKQ';
 const VIDEO_TEMPLATE = { id: 'tmpl-video', name: 'Agachamento livre', type: 'strength', videoUrl: YT, gifUrl: '' };
 
 // Picks the template, fills reps and saves.
@@ -201,12 +202,24 @@ describe('ExerciseComposer — single add video section', () => {
     api.get.mockResolvedValue({ data: { data: [], total: 0 } });
   });
 
-  it('shows no video section before a template is picked and shows it after', async () => {
+  it('shows the video section before and after a template is picked', async () => {
     const user = userEvent.setup();
     renderComposer();
-    expect(screen.queryByText('Vídeo de demonstração')).not.toBeInTheDocument();
+    expect(screen.getByText('Vídeo de demonstração')).toBeInTheDocument();
     await pickBare(user);
     expect(screen.getByText('Vídeo de demonstração')).toBeInTheDocument();
+  });
+
+  it('keeps a URL typed before picking and sends it as an override', async () => {
+    const onSubmitFromTemplate = vi.fn().mockResolvedValue({});
+    const user = userEvent.setup();
+    renderComposer({ exerciseTemplates: [VIDEO_TEMPLATE], onSubmitFromTemplate });
+    await user.click(screen.getByLabelText('URL do YouTube'));
+    await user.paste(OTHER_YT);
+    await pickFillSave(user);
+
+    await waitFor(() => expect(onSubmitFromTemplate).toHaveBeenCalledTimes(1));
+    expect(onSubmitFromTemplate.mock.calls[0][1]).toEqual(expect.objectContaining({ videoUrl: OTHER_YT }));
   });
 
   it('prefills the video from the template and omits it when unchanged', async () => {

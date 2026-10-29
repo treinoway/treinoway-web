@@ -61,9 +61,6 @@ import NutritionistRoute from './components/NutritionistRoute';
 import RequireRole from './components/RequireRole';
 
 // Admin pages
-import VideosList from './pages/admin/VideosList';
-import VideoCreate from './pages/admin/VideoCreate';
-import VideoEdit from './pages/admin/VideoEdit';
 import InvitesList from './pages/admin/InvitesList';
 import TrainersList from './pages/admin/TrainersList';
 import AiUsage from './pages/admin/AiUsage';
@@ -649,36 +646,6 @@ function App() {
             }
           />
 
-          <Route
-            path="/admin/videos"
-            element={
-              <RequireRole roles={['admin']}>
-                <Layout>
-                  <VideosList />
-                </Layout>
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/videos/new"
-            element={
-              <RequireRole roles={['admin']}>
-                <Layout>
-                  <VideoCreate />
-                </Layout>
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/videos/:videoId"
-            element={
-              <RequireRole roles={['admin']}>
-                <Layout>
-                  <VideoEdit />
-                </Layout>
-              </RequireRole>
-            }
-          />
           <Route
             path="/admin/invites"
             element={

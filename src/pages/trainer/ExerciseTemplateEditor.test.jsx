@@ -221,14 +221,13 @@ describe('ExerciseTemplateEditor', () => {
   });
 
   describe('admin-only controls', () => {
-    it('shows visibility and library picker to admins', async () => {
+    it('shows visibility to admins', async () => {
       renderEditor('/trainer/exercise-templates/new');
 
       expect(await screen.findByRole('switch', { name: /tornar este modelo público/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /escolher da biblioteca/i })).toBeInTheDocument();
     });
 
-    it('hides visibility and library picker from non-admins and omits isPublic on create', async () => {
+    it('hides visibility from non-admins and omits isPublic on create', async () => {
       const user = userEvent.setup();
       authState.isAdmin = false;
       api.post.mockResolvedValue({ data: { id: 1 } });
@@ -236,7 +235,6 @@ describe('ExerciseTemplateEditor', () => {
 
       await user.type(await screen.findByLabelText(/nome/i), 'Remada');
       expect(screen.queryByRole('switch', { name: /tornar este modelo público/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /escolher da biblioteca/i })).not.toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: /^salvar$/i }));
       await waitFor(() => {

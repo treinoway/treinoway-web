@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import VideoLibraryPicker from './VideoLibraryPicker';
 import ConfirmDialog from './ds/ConfirmDialog';
 import ExerciseIdentitySection from './exerciseTemplate/ExerciseIdentitySection';
 import ExerciseVideoSection from './exerciseTemplate/ExerciseVideoSection';
@@ -57,7 +56,6 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
   const [formData, setFormData] = useState(initialForm);
   const [nameError, setNameError] = useState('');
   const [gifUrlError, setGifUrlError] = useState(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [publicConfirmedThisSession, setPublicConfirmedThisSession] = useState(false);
 
@@ -169,7 +167,6 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
             gifUrl={formData.gifUrl}
             onGifUrlChange={(value) => { setGifUrlError(null); updateField('gifUrl', value); }}
             gifError={gifUrlError}
-            onPickFromLibrary={isAdmin ? () => setPickerOpen(true) : undefined}
             onRemoveVideo={handleRemoveVideo}
           />
           <ExerciseTechniquesSection
@@ -189,14 +186,6 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
           </button>
         </div>
       </form>
-
-      {isAdmin && (
-        <VideoLibraryPicker
-          isOpen={pickerOpen}
-          onClose={() => setPickerOpen(false)}
-          onSelect={(video) => updateField('videoUrl', video.url)}
-        />
-      )}
 
       {confirmDialog && (
         <ConfirmDialog
@@ -218,7 +207,7 @@ ExerciseTemplateForm.propTypes = {
   onNameChange: PropTypes.func,
   onDirtyChange: PropTypes.func,
   variant: PropTypes.oneOf(['sheet', 'page']),
-  /** Only admins set visibility (`isPublic`) and pick from the video library. */
+  /** Only admins set visibility (`isPublic`). */
   isAdmin: PropTypes.bool,
 };
 

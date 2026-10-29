@@ -117,7 +117,7 @@ const snapshotToForm = (snapshot) => ({
 });
 
 // Form fields a library template actually defines (real templates often define none), to fill without clobbering typed values.
-const templatePrescriptionPatch = (template) => ({
+const templatePrescriptionPatch = (template, current = {}) => ({
   ...(template.prescriptionMode != null && { prescriptionMode: template.prescriptionMode }),
   ...(template.sets != null && { sets: template.sets }),
   ...(template.repetitions && { repetitionsMin: template.repetitions.min ?? '', repetitionsMax: template.repetitions.max ?? '' }),
@@ -126,8 +126,8 @@ const templatePrescriptionPatch = (template) => ({
   ...(template.hasLoad != null && { hasLoad: template.hasLoad }),
   ...(template.suggestedLoad != null && { suggestedLoad: template.suggestedLoad }),
   ...(template.notes && { notes: template.notes }),
-  videoUrl: template.videoUrl ?? '',
-  gifUrl: template.gifUrl ?? '',
+  videoUrl: current.videoUrl?.trim() ? current.videoUrl : template.videoUrl ?? '',
+  gifUrl: current.gifUrl?.trim() ? current.gifUrl : template.gifUrl ?? '',
   intensity: template.type === 'cardio' ? template.intensity ?? null : null,
   advancedTechniques: sortTechniquesByOrder(template.advancedTechniques),
 });
@@ -322,7 +322,6 @@ const ExerciseComposer = ({
   onSubmitFromTemplate,
   onCancel,
   onRequestDelete,
-  canUseVideoLibrary = false,
   footerTarget,
   onDirtyChange,
 }) => {
@@ -474,14 +473,21 @@ const ExerciseComposer = ({
     setForm((prev) => ({
       ...prev,
       ...(!loadManuallySet && { hasLoad: getLoadDefault(template.type) }),
-      ...templatePrescriptionPatch(template),
+      ...templatePrescriptionPatch(template, prev),
     }));
   };
 
   const handleChangeTemplate = () => {
     setPickedTemplate(null);
     setSubmitError(null);
-    setForm((prev) => ({ ...prev, intensity: null, advancedTechniques: [], videoUrl: '', gifUrl: '' }));
+    // why: only template-inherited media is cleared; a URL the trainer typed themselves stays
+    setForm((prev) => ({
+      ...prev,
+      intensity: null,
+      advancedTechniques: [],
+      videoUrl: prev.videoUrl === (pickedTemplate?.videoUrl ?? '') ? '' : prev.videoUrl,
+      gifUrl: prev.gifUrl === (pickedTemplate?.gifUrl ?? '') ? '' : prev.gifUrl,
+    }));
   };
 
   const saveFromTemplate = async () => {
@@ -631,7 +637,6 @@ const ExerciseComposer = ({
           onGifChange={(url) => handleFieldChange('gifUrl', url)}
           label="Vídeo de demonstração"
           gifError={errors.gifUrl}
-          canUseLibrary={canUseVideoLibrary}
         />
 
         {/* Observações — uncapped */}
@@ -685,20 +690,17 @@ const ExerciseComposer = ({
         error={errors.reps}
       />
       {pickedTemplate && <TechniquesBand value={form.advancedTechniques} onChange={handleTechniquesChange} />}
-      {pickedTemplate && (
-        <div className="composer-band">
-          <span className="composer-band-label type-h4">Detalhes</span>
-          <VideoField
-            value={form.videoUrl}
-            onChange={(url) => handleFieldChange('videoUrl', url)}
-            gifValue={form.gifUrl}
-            onGifChange={(url) => handleFieldChange('gifUrl', url)}
-            label="Vídeo de demonstração"
-            gifError={errors.gifUrl}
-            canUseLibrary={canUseVideoLibrary}
-          />
-        </div>
-      )}
+      <div className="composer-band">
+        <span className="composer-band-label type-h4">Detalhes</span>
+        <VideoField
+          value={form.videoUrl}
+          onChange={(url) => handleFieldChange('videoUrl', url)}
+          gifValue={form.gifUrl}
+          onGifChange={(url) => handleFieldChange('gifUrl', url)}
+          label="Vídeo de demonstração"
+          gifError={errors.gifUrl}
+        />
+      </div>
       <div className="composer-band">
         <NotesField value={form.notes} onChange={(value) => handleFieldChange('notes', value)} />
       </div>
@@ -835,8 +837,6 @@ ExerciseComposer.propTypes = {
   onSubmitFromTemplate: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
   onRequestDelete: PropTypes.func,
-  /** Admin-only: offers the video library picker next to the YouTube link. */
-  canUseVideoLibrary: PropTypes.bool,
   /** Drawer footer node to portal the action buttons into (null while mounting). Omit for inline actions. */
   footerTarget: PropTypes.instanceOf(Element),
   /** Called with true/false whenever unsaved edits appear or disappear. */
