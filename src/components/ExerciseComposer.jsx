@@ -116,6 +116,16 @@ const snapshotToForm = (snapshot) => ({
   advancedTechniques: sortTechniquesByOrder(snapshot.advancedTechniques),
 });
 
+// Create-form starting point for a substitute: the principal's prescription with an empty name and no media or techniques.
+const substitutePrefill = (principal) => ({
+  ...snapshotToForm(principal),
+  name: '',
+  videoUrl: '',
+  gifUrl: '',
+  notes: '',
+  advancedTechniques: [],
+});
+
 // Form fields a library template actually defines (real templates often define none), to fill without clobbering typed values.
 const templatePrescriptionPatch = (template) => ({
   ...(template.prescriptionMode != null && { prescriptionMode: template.prescriptionMode }),
@@ -325,8 +335,10 @@ const ExerciseComposer = ({
   canUseVideoLibrary = false,
   footerTarget,
   onDirtyChange,
+  substituteFor,
 }) => {
   const isEditMode = snapshot != null;
+  const baseForm = substituteFor ? substitutePrefill(substituteFor) : EMPTY_FORM;
   const isInDrawer = footerTarget !== undefined;
 
   const [tab, setTab] = useState('single');
@@ -334,7 +346,7 @@ const ExerciseComposer = ({
   const [pickedTemplate, setPickedTemplate] = useState(null);
   const [submitError, setSubmitError] = useState(null);
   const [form, setForm] = useState(() =>
-    isEditMode ? snapshotToForm(snapshot) : { ...EMPTY_FORM }
+    isEditMode ? snapshotToForm(snapshot) : { ...baseForm }
   );
   // Tracks whether the user has manually toggled carga (overrides type-derived default)
   const [loadManuallySet, setLoadManuallySet] = useState(false);
@@ -347,7 +359,7 @@ const ExerciseComposer = ({
   const [errors, setErrors] = useState({});
   const [confirmDialog, setConfirmDialog] = useState(null);
 
-  const initialForm = isEditMode ? snapshotToForm(snapshot) : EMPTY_FORM;
+  const initialForm = isEditMode ? snapshotToForm(snapshot) : baseForm;
   const isDirty = isFormChanged(form, initialForm) || selectedTemplateIds.length > 0 || pickedTemplate !== null;
 
   useEffect(() => {
@@ -416,16 +428,25 @@ const ExerciseComposer = ({
     );
   };
 
+  const submitGuarded = async (submit) => {
+    setSubmitError(null);
+    try {
+      await submit();
+    } catch (error) {
+      setSubmitError(describeSaveError(error));
+    }
+  };
+
   const doSaveCreate = () => {
     setConfirmDialog(null);
     setErrors({});
-    onSubmitCreate(buildPayload(form, { isEdit: false }));
+    submitGuarded(() => onSubmitCreate(buildPayload(form, { isEdit: false })));
   };
 
   const doSaveEdit = () => {
     setConfirmDialog(null);
     setErrors({});
-    onSubmitEdit(snapshot.id, buildPayload(form, { isEdit: true }));
+    submitGuarded(() => onSubmitEdit(snapshot.id, buildPayload(form, { isEdit: true })));
   };
 
   const handleSubmitCreate = (e) => {
@@ -441,7 +462,7 @@ const ExerciseComposer = ({
       return;
     }
     setErrors({});
-    onSubmitCreate(buildPayload(form, { isEdit: false }));
+    submitGuarded(() => onSubmitCreate(buildPayload(form, { isEdit: false })));
   };
 
   const handleSubmitEdit = (e) => {
@@ -457,14 +478,15 @@ const ExerciseComposer = ({
       return;
     }
     setErrors({});
-    onSubmitEdit(snapshot.id, buildPayload(form, { isEdit: true }));
+    submitGuarded(() => onSubmitEdit(snapshot.id, buildPayload(form, { isEdit: true })));
   };
 
   const handleTabChange = (nextTab) => {
     setTab(nextTab);
     setBatchMode(false);
     setPickedTemplate(null);
-    setForm({ ...EMPTY_FORM });
+    setForm({ ...baseForm });
+    setSubmitError(null);
     setErrors({});
   };
 
@@ -537,6 +559,8 @@ const ExerciseComposer = ({
       setSelectedTemplatesById((prev) => ({ ...prev, [id]: resolved }));
     }
   };
+
+  const saveLabel = substituteFor ? 'Salvar substituto' : 'Salvar exercício';
 
   let importLabel = `Importar ${selectedTemplateIds.length}`;
   if (saving) importLabel = 'Adicionando…';
@@ -651,6 +675,7 @@ const ExerciseComposer = ({
 
       {renderActions(
         <>
+          {submitError && <p className="composer-footer-error field-error type-body" role="alert">{submitError}</p>}
           {isEditMode && onRequestDelete && (
             <button
               type="button"
@@ -705,7 +730,7 @@ const ExerciseComposer = ({
     </>
   );
 
-  const renderSingleActions = () => renderActions(
+  const renderSingleActions = (submitLabel) => renderActions(
     <>
       {submitError && <p className="composer-footer-error field-error type-body" role="alert">{submitError}</p>}
       <button type="button" className="btn btn--secondary" onClick={onCancel}>Cancelar</button>
@@ -715,7 +740,7 @@ const ExerciseComposer = ({
         onClick={handleSubmitFromTemplate}
         disabled={saving || !pickedTemplate}
       >
-        {saving ? 'Salvando…' : 'Salvar exercício'}
+        {saving ? 'Salvando…' : submitLabel}
       </button>
     </>
   );
@@ -737,7 +762,7 @@ const ExerciseComposer = ({
         />
       </div>
       {renderPrescriptionFields()}
-      {renderSingleActions()}
+      {renderSingleActions(saveLabel)}
     </div>
   );
 
@@ -793,7 +818,7 @@ const ExerciseComposer = ({
             value={tab}
             onChange={handleTabChange}
           />
-          {tab === 'single' && !batchMode && (
+          {tab === 'single' && !batchMode && !substituteFor && (
             <button type="button" className="btn btn--ghost" onClick={() => setBatchMode(true)}>
               Adicionar em lote
             </button>
@@ -803,7 +828,7 @@ const ExerciseComposer = ({
 
       {isEditMode && renderCreateForm(handleSubmitEdit, 'Salvar alterações')}
 
-      {!isEditMode && tab === 'create' && renderCreateForm(handleSubmitCreate, 'Salvar exercício')}
+      {!isEditMode && tab === 'create' && renderCreateForm(handleSubmitCreate, saveLabel)}
 
       {!isEditMode && tab === 'single' && !batchMode && renderSingleAdd()}
 
@@ -841,6 +866,8 @@ ExerciseComposer.propTypes = {
   footerTarget: PropTypes.instanceOf(Element),
   /** Called with true/false whenever unsaved edits appear or disappear. */
   onDirtyChange: PropTypes.func,
+  /** Principal exercise when composing a substitute: prefills the create form from it. */
+  substituteFor: PropTypes.object,
 };
 
 ExerciseComposer.defaultProps = {
@@ -848,6 +875,7 @@ ExerciseComposer.defaultProps = {
   onRequestDelete: null,
   footerTarget: undefined,
   onDirtyChange: null,
+  substituteFor: null,
 };
 
 export default ExerciseComposer;

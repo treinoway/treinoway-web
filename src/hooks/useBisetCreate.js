@@ -17,7 +17,7 @@ import { t } from '../i18n';
  * @param {(trainingId: string) => ({ create: (ids: string[]) => Promise, dissolve: (groupId: string) => Promise })} [options.endpointBuilder]
  *   Override transport for non-standard contexts. The default wires the
  *   protocol endpoints. Template support is deferred.
- * @returns {{ createBiset, dissolveBiset, saving, error }}
+ * @returns {{ createBiset, dissolveBiset, updateRest, saving, error }}
  */
 const useBisetCreate = ({ endpointBuilder } = {}) => {
   const [saving, setSaving] = useState(false);
@@ -27,10 +27,10 @@ const useBisetCreate = ({ endpointBuilder } = {}) => {
    * Create a new bi-set grouping from an ordered list of exercise IDs.
    *
    * @param {string[]} memberIds - Ordered list of exercise IDs (2–6)
-   * @param {{ trainingId: string }} context
+   * @param {{ trainingId: string, restInterval?: number }} context
    * @returns {Promise<{ supersetGroupId: string, members: object[] }>}
    */
-  const createBiset = useCallback(async (memberIds, { trainingId } = {}) => {
+  const createBiset = useCallback(async (memberIds, { trainingId, restInterval } = {}) => {
     if (!Array.isArray(memberIds) || memberIds.length < 2) {
       const e = new Error(t('exerciseGroup.selectionInstruction'));
       setError(e);
@@ -57,7 +57,7 @@ const useBisetCreate = ({ endpointBuilder } = {}) => {
       } else {
         response = await api.post(
           `/trainer/trainings/${trainingId}/supersets`,
-          { exerciseIds: memberIds },
+          restInterval == null ? { exerciseIds: memberIds } : { exerciseIds: memberIds, restInterval },
         );
       }
       setSaving(false);
@@ -115,7 +115,35 @@ const useBisetCreate = ({ endpointBuilder } = {}) => {
     }
   }, [endpointBuilder]);
 
-  return { createBiset, dissolveBiset, saving, error };
+  const updateRest = useCallback(async (groupId, restInterval, { trainingId } = {}) => {
+    if (!trainingId) {
+      const e = new Error('trainingId is required');
+      setError(e);
+      throw e;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await api.patch(
+        `/trainer/trainings/${trainingId}/supersets/${groupId}`,
+        { restInterval },
+      );
+      setSaving(false);
+      return response.data;
+    } catch (err) {
+      setSaving(false);
+      const wrapped = new Error(
+        err.userMessage || 'Não foi possível atualizar o descanso da rodada. Tente novamente.',
+      );
+      wrapped.cause = err;
+      setError(wrapped);
+      throw wrapped;
+    }
+  }, []);
+
+  return { createBiset, dissolveBiset, updateRest, saving, error };
 };
 
 export default useBisetCreate;

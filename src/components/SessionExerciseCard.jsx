@@ -46,9 +46,10 @@ const buildMetaText = (exercise, skipped) => {
  * @param {object}  props
  * @param {number}  props.index        - 1-based display index
  * @param {object}  props.exerciseLog  - Full exerciseLog object from API
+ * @param {string}  props.replacedExerciseName - Principal name when the student swapped it for this exercise
  * @param {boolean} props.defaultOpen  - Whether to start expanded (default false)
  */
-const SessionExerciseCard = ({ index, exerciseLog, defaultOpen }) => {
+const SessionExerciseCard = ({ index, exerciseLog, replacedExerciseName, defaultOpen }) => {
   const [open, setOpen] = useState(defaultOpen ?? false);
   const bodyId = useId();
 
@@ -73,6 +74,10 @@ const SessionExerciseCard = ({ index, exerciseLog, defaultOpen }) => {
 
         <span className="accordion-heading session-exercise__heading">
           <span className="accordion-title type-body-lg">{exercise.name ?? '-'}</span>
+          {replacedExerciseName && <Badge tone="brand" variant="tag">Substituto</Badge>}
+          {replacedExerciseName && (
+            <span className="accordion-meta type-caption">no lugar de {replacedExerciseName}</span>
+          )}
           {metaText && <span className="accordion-meta type-caption">{metaText}</span>}
         </span>
 
@@ -119,6 +124,7 @@ SessionExerciseCard.propTypes = {
     }),
     setLogs: PropTypes.array,
   }).isRequired,
+  replacedExerciseName: PropTypes.string,
   defaultOpen: PropTypes.bool,
 };
 

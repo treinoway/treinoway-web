@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import {
@@ -26,6 +26,7 @@ import {
   Edit3,
   FileDown,
   GripVertical,
+  Layers,
   MoreVertical,
   Pencil,
   Plus,
@@ -54,8 +55,6 @@ import useAnchoredPopoverPosition, {
 import formatRelativeTime from '../../utils/relativeTime';
 import AddTrainingSheet from '../../components/AddTrainingSheet';
 import BiSetBadge from '../../components/BiSetBadge';
-import BiSetActionSheet from '../../components/BiSetActionSheet';
-import SubstituteComposerSheet from '../../components/SubstituteComposerSheet';
 import SubstitutesInline from '../../components/SubstitutesInline';
 import IntensityBadge from '../../components/IntensityBadge';
 import SelectionActionBar, { SelectionInstructionStrip } from '../../components/SelectionActionBar';
@@ -67,7 +66,7 @@ import api from '../../api/axios';
 import { t, translateError } from '../../i18n';
 import { WEEK_DAY_OPTIONS_SHORT } from '../../constants/weekDays';
 import { sortTrainingsByWeekDay } from '../../utils/sortTrainingsByWeekDay';
-import { formatExerciseMeta } from '../../utils/exerciseMeta';
+import { formatExerciseMeta, formatRestDuration } from '../../utils/exerciseMeta';
 import DurationLabel from '../../components/DurationLabel';
 import DescriptionChipEditor from '../../components/routineBuilder/DescriptionChipEditor';
 import RoutineSummaryStrip from '../../components/routineBuilder/RoutineSummaryStrip';
@@ -562,7 +561,7 @@ const ExerciseRow = ({
   // Prescription lives on the exercise itself; the nested exerciseTemplate is
   // identity-only. Fall back to the type label from the template only when the
   // exercise has no type of its own.
-  const meta = formatExerciseMeta(ex) || formatExerciseMeta(ex.exerciseTemplate);
+  const meta = formatExerciseMeta(ex, { hideRest: isBisetMember }) || formatExerciseMeta(ex.exerciseTemplate, { hideRest: isBisetMember });
   const techniques = ex.advancedTechniques ?? [];
   const intensity = ex.intensity ?? ex.exerciseTemplate?.intensity ?? null;
   const intensityLabel = ex.intensityLabel ?? ex.exerciseTemplate?.intensityLabel ?? null;
@@ -570,6 +569,7 @@ const ExerciseRow = ({
   const isInteractive = !readOnly && !selectionMode && onEdit;
 
   const handleRowKeyDown = (e) => {
+    if (e.target !== e.currentTarget) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       if (selectionMode) {
@@ -748,42 +748,72 @@ const smoothScrollTo = (el, block = 'start') => {
 // ─── Row menu items builder (kebab) ───────────────────────────────────────────
 
 /**
- * Builds the grouped row-menu entries for an exercise row. Sections are
- * rendered as `caption` items (small-caps; no horizontal lines). The same
- * builder serves bi-set members and standalone rows — entries are filtered
- * based on flags.
+ * Builds the kebab entries for an exercise row. Editing is not listed: the row
+ * itself is the edit affordance. The same builder serves bi-set members and
+ * standalone rows.
  */
-const buildExerciseRowMenu = ({
-  ex,
-  isBisetMember,
-  onEnterSelection,
-  onAddSubstitute,
-  onDissolveBiset,
-  onEdit,
-  onDelete,
-}) => {
-  const items = [{ kind: 'caption', label: 'Estrutura' }];
-  items.push({
-    label: t('exerciseGroup.select') || 'Selecionar',
-    onClick: () => onEnterSelection?.(),
-  });
-  if (isBisetMember && onDissolveBiset) {
-    items.push({
-      label: t('exerciseGroup.dissolveBiset') || 'Desfazer bi-set',
-      onClick: () => onDissolveBiset(),
-    });
-  }
+const buildExerciseRowMenu = ({ ex, onAddSubstitute, onDelete }) => {
+  const items = [];
   if (onAddSubstitute) {
     items.push({
       label: t('substitute.add') || 'Adicionar substituto',
       onClick: () => onAddSubstitute(ex),
     });
   }
-  items.push({ kind: 'caption', label: 'Editar' });
-  if (onEdit) items.push({ label: 'Editar', onClick: () => onEdit(ex) });
   if (onDelete) items.push({ label: 'Remover', danger: true, onClick: () => onDelete(ex) });
   return items;
 };
+
+// ─── SubstituteRow ────────────────────────────────────────────────────────────
+
+// One substitute in the expanded list: the body opens the edit drawer, the trash button deletes.
+const SubstituteRow = ({ substitute, principal, readOnly, onEdit, onDelete }) => {
+  const meta = formatExerciseMeta(substitute);
+  const canEdit = !readOnly && onEdit;
+  const body = (
+    <>
+      <span className="substitute-row-name">{substitute.name || '—'}</span>
+      {meta && <span className="substitute-row-meta">{meta}</span>}
+    </>
+  );
+  // deviation: RULE 5 — row body opens edit (locked AC #29 test needs button "Editar substituto X"); trash stays visible like the existing substitute list
+  return (
+    <div className="substitute-row" role="listitem" data-substitute-id={substitute.id}>
+      {canEdit ? (
+        <button
+          type="button"
+          className="substitute-row-edit"
+          aria-label={(t('substitute.editAria') || 'Editar substituto {name}').replace('{name}', substitute.name || '')}
+          onClick={() => onEdit(substitute, principal)}
+        >
+          {body}
+        </button>
+      ) : (
+        <div className="substitute-row-body">{body}</div>
+      )}
+      {!readOnly && onDelete && (
+        <button
+          type="button"
+          className="icon-button"
+          aria-label={(t('substitute.deleteAria') || 'Excluir substituto {name}').replace('{name}', substitute.name || '')}
+          onClick={() => onDelete(substitute, principal.id)}
+        >
+          <Trash2 size={20} strokeWidth={2} aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
+};
+
+SubstituteRow.propTypes = {
+  substitute: PropTypes.object.isRequired,
+  principal: PropTypes.object.isRequired,
+  readOnly: PropTypes.bool,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+};
+
+SubstituteRow.defaultProps = { readOnly: false, onEdit: null, onDelete: null };
 
 // ─── ExerciseRowWithSubstitutes ───────────────────────────────────────────────
 
@@ -803,11 +833,11 @@ const ExerciseRowWithSubstitutes = ({
   onToggleSelect,
   onEdit,
   onDelete,
-  onEnterSelection,
   onAddSubstitute,
   substitutesExpanded,
   onToggleSubstitutes,
   onDeleteSubstitute,
+  onEditSubstitute,
   dragHandle,
 }) => {
   const substitutes = Array.isArray(ex.substitutes) ? ex.substitutes : [];
@@ -816,15 +846,7 @@ const ExerciseRowWithSubstitutes = ({
 
   const menuItems = readOnly || selectionMode
     ? null
-    : buildExerciseRowMenu({
-        ex,
-        isBisetMember: false,
-        onEnterSelection,
-        onAddSubstitute,
-        onDissolveBiset: null,
-        onEdit,
-        onDelete,
-      });
+    : buildExerciseRowMenu({ ex, onAddSubstitute, onDelete });
 
   const selectionDisabled =
     selectionMode && !selected && (atSelectionLimit || !!ex.supersetGroupId);
@@ -858,24 +880,14 @@ const ExerciseRowWithSubstitutes = ({
           {substitutesExpanded && (
             <div className="substitutes-expanded-list" role="list" aria-label={`Substitutos de ${ex.name}`}>
               {substitutes.map((sub) => (
-                <div key={sub.id} className="substitute-row" role="listitem">
-                  <div className="substitute-row-body">
-                    <span className="substitute-row-name">{sub.name || '—'}</span>
-                    {formatExerciseMeta(sub) && (
-                      <span className="substitute-row-meta">{formatExerciseMeta(sub)}</span>
-                    )}
-                  </div>
-                  {!readOnly && onDeleteSubstitute && (
-                    <button
-                      type="button"
-                      className="icon-button"
-                      aria-label={(t('substitute.deleteAria') || 'Excluir substituto {name}').replace('{name}', sub.name || '')}
-                      onClick={() => onDeleteSubstitute(sub, ex.id)}
-                    >
-                      <Trash2 size={20} strokeWidth={2} aria-hidden="true" />
-                    </button>
-                  )}
-                </div>
+                <SubstituteRow
+                  key={sub.id}
+                  substitute={sub}
+                  principal={ex}
+                  readOnly={readOnly}
+                  onEdit={onEditSubstitute}
+                  onDelete={onDeleteSubstitute}
+                />
               ))}
             </div>
           )}
@@ -896,11 +908,11 @@ ExerciseRowWithSubstitutes.propTypes = {
   onToggleSelect: PropTypes.func,
   onEdit: PropTypes.func,
   onDelete: PropTypes.func,
-  onEnterSelection: PropTypes.func,
   onAddSubstitute: PropTypes.func,
   substitutesExpanded: PropTypes.bool,
   onToggleSubstitutes: PropTypes.func,
   onDeleteSubstitute: PropTypes.func,
+  onEditSubstitute: PropTypes.func,
   dragHandle: PropTypes.node,
 };
 
@@ -912,20 +924,77 @@ ExerciseRowWithSubstitutes.defaultProps = {
   onToggleSelect: null,
   onEdit: null,
   onDelete: null,
-  onEnterSelection: null,
   onAddSubstitute: null,
   substitutesExpanded: false,
   onToggleSubstitutes: null,
   onDeleteSubstitute: null,
+  onEditSubstitute: null,
   dragHandle: null,
 };
 
 // ─── BisetGroupBlock ──────────────────────────────────────────────────────────
 
+// Round-rest control of a bi-set: editable seconds input (commits on blur) or read-only text.
+const BisetRoundRest = ({ value, readOnly, onCommit }) => {
+  const inputId = useId();
+  const [draft, setDraft] = useState(value == null ? '' : String(value));
+
+  const label = t('exerciseGroup.roundRest') || 'Descanso da rodada';
+
+  if (readOnly) {
+    const duration = formatRestDuration(value);
+    if (!duration) return null;
+    return <span className="biset-round-rest type-caption">{label}: {duration}</span>;
+  }
+
+  const handleBlur = () => {
+    const seconds = parseInt(draft, 10);
+    if (Number.isNaN(seconds) || seconds < 0 || seconds === value) {
+      setDraft(value == null ? '' : String(value));
+      return;
+    }
+    onCommit(seconds);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') e.currentTarget.blur();
+  };
+
+  return (
+    <span className="biset-round-rest">
+      <label htmlFor={inputId} className="type-caption-strong">{label}</label>
+      <input
+        id={inputId}
+        type="number"
+        min="0"
+        inputMode="numeric"
+        className="input biset-round-rest__input"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+      />
+      <span className="type-caption">s</span>
+    </span>
+  );
+};
+
+BisetRoundRest.propTypes = {
+  value: PropTypes.number,
+  readOnly: PropTypes.bool,
+  onCommit: PropTypes.func,
+};
+
+BisetRoundRest.defaultProps = {
+  value: null,
+  readOnly: false,
+  onCommit: () => {},
+};
+
 /**
- * Renders a bi-set group container — accent left border + tint background,
- * BiSetBadge on top, and one ExerciseRow per member. Non-last members show
- * the "sem descanso" muted label in the rest slot per design.
+ * Renders a bi-set group container — static "Bi-set" badge, round-rest control
+ * and a trash button on the head, then one ExerciseRow per member. Non-last
+ * members show "sem descanso" and hide their own rest (the round rest applies).
  */
 const BisetGroupBlock = ({
   groupId,
@@ -937,26 +1006,42 @@ const BisetGroupBlock = ({
   selectedIds,
   atSelectionLimit,
   onToggleSelect,
-  onOpenBisetSheet,
+  onChangeRest,
   onDissolveBiset,
   onEdit,
   onDelete,
-  onEnterSelection,
   onAddSubstitute,
   expandedSubstituteIds,
   onToggleSubstitutes,
   onDeleteSubstitute,
+  onEditSubstitute,
   dragHandle,
 }) => {
-  void groupId; // groupId implied by members[*].supersetGroupId
+  const roundRest = members[0]?.supersetRestInterval ?? members[members.length - 1]?.restInterval ?? null;
+  const canEditGroup = !readOnly && !selectionMode;
+
   return (
     <div className="biset-group-section" role="group" aria-label="Bi-set">
       <div className="biset-group-section-head">
         {dragHandle}
-        <BiSetBadge
-          onClick={readOnly ? undefined : onOpenBisetSheet}
-          ariaLabel={readOnly ? undefined : 'Abrir ações do bi-set'}
+        <BiSetBadge />
+        <BisetRoundRest
+          key={roundRest ?? 'none'}
+          value={roundRest}
+          readOnly={!canEditGroup}
+          onCommit={(seconds) => onChangeRest?.(groupId, seconds)}
         />
+        {canEditGroup && onDissolveBiset && (
+          <button
+            type="button"
+            className="icon-button biset-group-trash"
+            aria-label={t('exerciseGroup.dissolveBiset') || 'Desfazer bi-set'}
+            title={t('exerciseGroup.dissolveBiset') || 'Desfazer bi-set'}
+            onClick={onDissolveBiset}
+          >
+            <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
+          </button>
+        )}
       </div>
       {members.map((member, mIdx) => {
         const isLast = mIdx === members.length - 1;
@@ -965,15 +1050,7 @@ const BisetGroupBlock = ({
         const expanded = expandedSubstituteIds?.has(member.id);
         const menuItems = readOnly || selectionMode
           ? null
-          : buildExerciseRowMenu({
-              ex: member,
-              isBisetMember: true,
-              onEnterSelection,
-              onAddSubstitute,
-              onDissolveBiset,
-              onEdit,
-              onDelete,
-            });
+          : buildExerciseRowMenu({ ex: member, onAddSubstitute, onDelete });
 
         const selected = selectedIds?.includes(member.id) || false;
         // Members already in a group are disabled in selection mode unless
@@ -1016,24 +1093,14 @@ const BisetGroupBlock = ({
                     aria-label={`Substitutos de ${member.name}`}
                   >
                     {substitutes.map((sub) => (
-                      <div key={sub.id} className="substitute-row" role="listitem">
-                        <div className="substitute-row-body">
-                          <span className="substitute-row-name">{sub.name || '—'}</span>
-                          {formatExerciseMeta(sub) && (
-                            <span className="substitute-row-meta">{formatExerciseMeta(sub)}</span>
-                          )}
-                        </div>
-                        {!readOnly && onDeleteSubstitute && (
-                          <button
-                            type="button"
-                            className="icon-button"
-                            aria-label={(t('substitute.deleteAria') || 'Excluir substituto {name}').replace('{name}', sub.name || '')}
-                            onClick={() => onDeleteSubstitute(sub, member.id)}
-                          >
-                            <Trash2 size={20} strokeWidth={2} aria-hidden="true" />
-                          </button>
-                        )}
-                      </div>
+                      <SubstituteRow
+                        key={sub.id}
+                        substitute={sub}
+                        principal={member}
+                        readOnly={readOnly}
+                        onEdit={onEditSubstitute}
+                        onDelete={onDeleteSubstitute}
+                      />
                     ))}
                   </div>
                 )}
@@ -1056,14 +1123,14 @@ BisetGroupBlock.propTypes = {
   selectedIds: PropTypes.arrayOf(PropTypes.string),
   atSelectionLimit: PropTypes.bool,
   onToggleSelect: PropTypes.func,
-  onOpenBisetSheet: PropTypes.func,
+  onChangeRest: PropTypes.func,
   onDissolveBiset: PropTypes.func,
   onEdit: PropTypes.func,
   onDelete: PropTypes.func,
-  onEnterSelection: PropTypes.func,
   onAddSubstitute: PropTypes.func,
   expandedSubstituteIds: PropTypes.instanceOf(Set),
   onDeleteSubstitute: PropTypes.func,
+  onEditSubstitute: PropTypes.func,
   onToggleSubstitutes: PropTypes.func,
   dragHandle: PropTypes.node,
 };
@@ -1074,37 +1141,19 @@ BisetGroupBlock.defaultProps = {
   selectedIds: [],
   atSelectionLimit: false,
   onToggleSelect: null,
-  onOpenBisetSheet: null,
+  onChangeRest: null,
   onDissolveBiset: null,
   onEdit: null,
   onDelete: null,
-  onEnterSelection: null,
   onAddSubstitute: null,
   expandedSubstituteIds: null,
   onToggleSubstitutes: null,
   onDeleteSubstitute: null,
+  onEditSubstitute: null,
   dragHandle: null,
 };
 
 // ─── TrainingItem ─────────────────────────────────────────────────────────────
-
-/**
- * Builds the endpointBuilder for useBisetCreate. Returns null for protocol
- * mode (hook defaults to transactional /trainer/trainings/:id/supersets).
- * Template mode is deferred until TrainingTemplates page is refactored.
- */
-const buildBisetEndpointBuilder = (mode) => {
-  if (mode === 'template') {
-    // Template support deferred — TrainingTemplates page persists junctions
-    // only on form submit, so there is no stable id to address. Returning a
-    // builder that throws makes it obvious if template-mode tries to group.
-    return () => ({
-      create: () => Promise.reject(new Error('Bi-set em templates ainda não suportado.')),
-      dissolve: () => Promise.reject(new Error('Bi-set em templates ainda não suportado.')),
-    });
-  }
-  return null;
-};
 
 const MAX_BISET_MEMBERS = 6;
 
@@ -1204,7 +1253,6 @@ const getTrainingReadiness = (exerciseCount) => {
 const TrainingItem = ({
   training,
   index,
-  exerciseTemplates,
   expanded,
   readOnly,
   mode,
@@ -1214,20 +1262,22 @@ const TrainingItem = ({
   onDeleteTraining,
   onOpenAddExercise,
   onOpenEditExercise,
+  onOpenAddSubstitute,
+  onOpenEditSubstitute,
   onDeleteExercise,
   onReorder,
   onRefetchTraining,
+  localOps,
 }) => {
   const { showToast } = useToast();
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [bisetSheetGroupId, setBisetSheetGroupId] = useState(null);
-  const [substituteComposerPrincipal, setSubstituteComposerPrincipal] = useState(null);
   const [expandedSubstituteIds, setExpandedSubstituteIds] = useState(() => new Set());
   const [pendingNonAdjacentConfirm, setPendingNonAdjacentConfirm] = useState(null);
 
   const supportsSubstitutes = mode === 'protocol';
+  const supportsBiset = supportsSubstitutes && !readOnly;
 
   // Canonical exercises from the training prop (used only as the source of
   // truth fed into useExerciseReorder; do NOT use directly for rendering).
@@ -1270,12 +1320,7 @@ const TrainingItem = ({
 
   const letter = TRAINING_LETTERS[index] || String(index + 1);
 
-  const endpointBuilder = useMemo(
-    () => buildBisetEndpointBuilder(mode),
-    [mode]
-  );
-
-  const biset = useBisetCreate({ endpointBuilder });
+  const biset = useBisetCreate();
 
   const readiness = getTrainingReadiness(exercises.length);
 
@@ -1324,7 +1369,6 @@ const TrainingItem = ({
   };
 
   const trainingMenuItems = readOnly ? [] : [
-    { label: t('exerciseGroup.select') || 'Selecionar', onClick: enterSelectionMode },
     { kind: 'caption', label: 'Editar' },
     { label: 'Editar', onClick: () => onEditTraining(training) },
     { label: 'Excluir', danger: true, onClick: handleRequestDeleteTraining },
@@ -1332,99 +1376,110 @@ const TrainingItem = ({
 
   // ── Bi-set actions ───────────────────────────────────────────────────────
 
+  const ungroupedCount = exercises.filter((e) => !e.supersetGroupId).length;
+
   const findGroupMembers = useCallback(
     (groupId) => exercises.filter((e) => e.supersetGroupId === groupId),
     [exercises]
   );
 
+  const refetchWhenPersisted = useCallback(async () => {
+    if (!localOps && onRefetchTraining) await onRefetchTraining();
+  }, [localOps, onRefetchTraining]);
+
   const handleConfirmBisetCreate = useCallback(
     async (memberIds) => {
       try {
-        await biset.createBiset(memberIds, { trainingId: training.id });
+        if (localOps) await localOps.createSuperset(training.id, memberIds);
+        else await biset.createBiset(memberIds, { trainingId: training.id });
         showToast(t('exerciseGroup.bisetCreated') || 'Bi-set criado.', 'success');
         exitSelectionMode();
-        if (onRefetchTraining) await onRefetchTraining();
+        await refetchWhenPersisted();
       } catch (err) {
         showToast(err.message || 'Erro ao criar bi-set.', 'error');
       }
     },
-    [biset, training.id, exitSelectionMode, showToast, onRefetchTraining]
+    [biset, localOps, training.id, exitSelectionMode, showToast, refetchWhenPersisted]
   );
 
   const handleGroupSelected = useCallback(() => {
     if (selectedIds.length < 2) return;
-    // Determine if the selection is contiguous in the current exercise list.
     const positions = selectedIds
       .map((id) => exercises.findIndex((e) => e.id === id))
       .sort((a, b) => a - b);
-    const contiguous =
-      positions.every((p, idx) => idx === 0 || p === positions[idx - 1] + 1);
+    const ordered = positions.map((p) => exercises[p].id);
+    const contiguous = positions.every((p, idx) => idx === 0 || p === positions[idx - 1] + 1);
     if (contiguous) {
-      // Preserve list order when calling create.
-      const ordered = positions.map((p) => exercises[p].id);
       handleConfirmBisetCreate(ordered);
       return;
     }
-    // Non-adjacent selection — the transactional POST /supersets endpoint
-    // handles contiguity rearrangement server-side, so we can pass the
-    // selection in list order and let the backend place them contiguously.
-    const ordered = positions.map((p) => exercises[p].id);
-    setPendingNonAdjacentConfirm({
-      memberIds: ordered,
-    });
+    setPendingNonAdjacentConfirm({ memberIds: ordered });
   }, [selectedIds, exercises, handleConfirmBisetCreate]);
+
+  const dissolveGroup = useCallback(
+    async (groupId) => {
+      try {
+        if (localOps) await localOps.dissolveSuperset(training.id, groupId);
+        else await biset.dissolveBiset(groupId, { trainingId: training.id });
+        showToast(t('exerciseGroup.bisetDissolved') || 'Bi-set desfeito.', 'success');
+        await refetchWhenPersisted();
+      } catch (err) {
+        showToast(err.message || 'Erro ao desfazer bi-set.', 'error');
+      }
+    },
+    [biset, localOps, training.id, showToast, refetchWhenPersisted]
+  );
 
   const handleDissolveBiset = useCallback(
     (groupId) => {
-      const members = findGroupMembers(groupId);
-      if (members.length === 0) return;
+      if (findGroupMembers(groupId).length === 0) return;
       setConfirmDialog({
         message: t('exerciseGroup.confirmDissolve')
           || 'Desfazer bi-set? Os exercícios serão mantidos como individuais.',
         confirmLabel: 'Desfazer bi-set',
         onConfirm: async () => {
           setConfirmDialog(null);
-          setBisetSheetGroupId(null);
-          try {
-            await biset.dissolveBiset(groupId, { trainingId: training.id });
-            showToast(
-              t('exerciseGroup.bisetDissolved') || 'Bi-set desfeito.',
-              'success'
-            );
-            if (onRefetchTraining) await onRefetchTraining();
-          } catch (err) {
-            showToast(err.message || 'Erro ao desfazer bi-set.', 'error');
-          }
+          await dissolveGroup(groupId);
         },
       });
     },
-    [biset, training.id, findGroupMembers, showToast, onRefetchTraining]
+    [findGroupMembers, dissolveGroup]
+  );
+
+  const handleChangeBisetRest = useCallback(
+    async (groupId, seconds) => {
+      try {
+        if (localOps) await localOps.setSupersetRest(training.id, groupId, seconds);
+        else await biset.updateRest(groupId, seconds, { trainingId: training.id });
+        await refetchWhenPersisted();
+      } catch (err) {
+        showToast(err.message || 'Erro ao atualizar o descanso da rodada.', 'error');
+      }
+    },
+    [biset, localOps, training.id, showToast, refetchWhenPersisted]
   );
 
   // ── Substitute actions (protocol mode only) ──────────────────────────────
 
-  const handleAddSubstitute = useCallback((principal) => {
-    setSubstituteComposerPrincipal(principal);
-  }, []);
+  const expandSubstitutesOf = useCallback(
+    (principalId) => setExpandedSubstituteIds((prev) => new Set(prev).add(principalId)),
+    []
+  );
 
-  const handleSubstituteCreated = useCallback(
-    async (created) => {
-      // Auto-expand the substitutes accordion ONLY on FIRST add.
-      const principal = substituteComposerPrincipal;
-      const wasFirstAdd =
-        principal && (principal.substitutes?.length || 0) === 0;
-      if (wasFirstAdd && principal) {
-        setExpandedSubstituteIds((prev) => {
-          const next = new Set(prev);
-          next.add(principal.id);
-          return next;
-        });
-      }
-      if (onRefetchTraining) await onRefetchTraining();
-      // created intentionally unused (refetch supplies authoritative state)
-      void created;
+  const handleAddSubstitute = useCallback(
+    (principal) => {
+      const wasEmpty = (principal.substitutes?.length || 0) === 0;
+      onOpenAddSubstitute(training.id, principal, () => {
+        if (wasEmpty) expandSubstitutesOf(principal.id);
+        showToast(t('substitute.addedToast') || 'Substituto adicionado.', 'success');
+      });
     },
-    [substituteComposerPrincipal, onRefetchTraining]
+    [onOpenAddSubstitute, training.id, expandSubstitutesOf, showToast]
+  );
+
+  const handleEditSubstitute = useCallback(
+    (substitute, principal) => onOpenEditSubstitute(training.id, principal, substitute),
+    [onOpenEditSubstitute, training.id]
   );
 
   const handleToggleSubstitutes = useCallback((principalId) => {
@@ -1435,6 +1490,25 @@ const TrainingItem = ({
       return next;
     });
   }, []);
+
+  const removeSubstitute = useCallback(
+    async (substitute, principalId) => {
+      if (localOps) await localOps.removeSubstitute(training.id, principalId, substitute.id);
+      else await api.delete(`/trainer/exercises/${substitute.id}`);
+      showToast(t('substitute.deletedToast') || 'Substituto removido.', 'success');
+      const principal = exercises.find((e) => e.id === principalId);
+      const remaining = (principal?.substitutes || []).filter((s) => s.id !== substitute.id);
+      if (remaining.length === 0) {
+        setExpandedSubstituteIds((prev) => {
+          const next = new Set(prev);
+          next.delete(principalId);
+          return next;
+        });
+      }
+      await refetchWhenPersisted();
+    },
+    [localOps, training.id, exercises, showToast, refetchWhenPersisted]
+  );
 
   const handleDeleteSubstitute = useCallback(
     (substitute, principalId) => {
@@ -1447,26 +1521,14 @@ const TrainingItem = ({
         onConfirm: async () => {
           setConfirmDialog(null);
           try {
-            await api.delete(`/trainer/exercises/${substitute.id}`);
-            showToast(t('substitute.deletedToast') || 'Substituto removido.', 'success');
-            // Collapse accordion if this was the last substitute of this principal.
-            const principal = exercises.find((e) => e.id === principalId);
-            const remaining = (principal?.substitutes || []).filter((s) => s.id !== substitute.id);
-            if (remaining.length === 0) {
-              setExpandedSubstituteIds((prev) => {
-                const next = new Set(prev);
-                next.delete(principalId);
-                return next;
-              });
-            }
-            if (onRefetchTraining) await onRefetchTraining();
+            await removeSubstitute(substitute, principalId);
           } catch (err) {
-            showToast(err.userMessage || t('substitute.deletedToast') || 'Erro ao remover substituto.', 'error');
+            showToast(err.userMessage || translateError(err), 'error');
           }
         },
       });
     },
-    [exercises, showToast, onRefetchTraining]
+    [removeSubstitute, showToast]
   );
 
   return (
@@ -1548,9 +1610,20 @@ const TrainingItem = ({
           <div className="training-item-body accordion-body" id={`training-body-${training.id}`}>
             {!readOnly && (
               <div className="training-item-toolbar">
+                {supportsBiset && !selectionMode && (
+                  <button
+                    type="button"
+                    className="btn btn--secondary"
+                    onClick={enterSelectionMode}
+                    disabled={ungroupedCount < 2}
+                  >
+                    <Layers size={16} strokeWidth={2} aria-hidden="true" />
+                    {t('exerciseGroup.createBiset') || 'Criar bi-set'}
+                  </button>
+                )}
                 <button
                   type="button"
-                  className="btn btn--secondary"
+                  className="btn btn--secondary training-item-toolbar__add"
                   onClick={() => onOpenAddExercise(training.id)}
                 >
                   <Plus size={16} strokeWidth={2} aria-hidden="true" />
@@ -1612,7 +1685,6 @@ const TrainingItem = ({
                                 onToggleSelect={handleToggleSelect}
                                 onEdit={(exercise) => onOpenEditExercise(training.id, exercise)}
                                 onDelete={handleRequestDeleteExercise}
-                                onEnterSelection={enterSelectionMode}
                                 onAddSubstitute={
                                   supportsSubstitutes ? handleAddSubstitute : null
                                 }
@@ -1621,6 +1693,7 @@ const TrainingItem = ({
                                 onDeleteSubstitute={
                                   supportsSubstitutes ? handleDeleteSubstitute : null
                                 }
+                                onEditSubstitute={supportsSubstitutes ? handleEditSubstitute : null}
                               />
                             </SortableExerciseEntry>
                           );
@@ -1646,11 +1719,10 @@ const TrainingItem = ({
                               selectedIds={selectedIds}
                               atSelectionLimit={selectedIds.length >= MAX_BISET_MEMBERS}
                               onToggleSelect={handleToggleSelect}
-                              onOpenBisetSheet={() => setBisetSheetGroupId(entry.groupId)}
+                              onChangeRest={handleChangeBisetRest}
                               onDissolveBiset={() => handleDissolveBiset(entry.groupId)}
                               onEdit={(exercise) => onOpenEditExercise(training.id, exercise)}
                               onDelete={handleRequestDeleteExercise}
-                              onEnterSelection={enterSelectionMode}
                               onAddSubstitute={
                                 supportsSubstitutes ? handleAddSubstitute : null
                               }
@@ -1659,6 +1731,7 @@ const TrainingItem = ({
                               onDeleteSubstitute={
                                 supportsSubstitutes ? handleDeleteSubstitute : null
                               }
+                              onEditSubstitute={supportsSubstitutes ? handleEditSubstitute : null}
                             />
                           </SortableExerciseEntry>
                         );
@@ -1710,24 +1783,6 @@ const TrainingItem = ({
         />
       )}
 
-      {/* Bi-set action sheet (per-group dissolve / order edit) */}
-      <BiSetActionSheet
-        open={!!bisetSheetGroupId}
-        onDissolve={() => bisetSheetGroupId && handleDissolveBiset(bisetSheetGroupId)}
-        onClose={() => setBisetSheetGroupId(null)}
-      />
-
-      {/* Substitute composer (protocol mode) */}
-      {supportsSubstitutes && (
-        <SubstituteComposerSheet
-          open={!!substituteComposerPrincipal}
-          principal={substituteComposerPrincipal}
-          onClose={() => setSubstituteComposerPrincipal(null)}
-          onCreated={handleSubstituteCreated}
-          exerciseTemplates={exerciseTemplates}
-        />
-      )}
-
       {pendingNonAdjacentConfirm && (
         <ConfirmDialog
           message={
@@ -1757,7 +1812,6 @@ TrainingItem.propTypes = {
     estimatedDurationSeconds: PropTypes.number,
   }).isRequired,
   index: PropTypes.number.isRequired,
-  exerciseTemplates: PropTypes.arrayOf(PropTypes.object).isRequired,
   expanded: PropTypes.bool.isRequired,
   readOnly: PropTypes.bool,
   mode: PropTypes.oneOf(['template', 'protocol']),
@@ -1767,9 +1821,18 @@ TrainingItem.propTypes = {
   onDeleteTraining: PropTypes.func,
   onOpenAddExercise: PropTypes.func,
   onOpenEditExercise: PropTypes.func,
+  onOpenAddSubstitute: PropTypes.func,
+  onOpenEditSubstitute: PropTypes.func,
   onDeleteExercise: PropTypes.func,
   onReorder: PropTypes.func,
   onRefetchTraining: PropTypes.func,
+  localOps: PropTypes.shape({
+    createSuperset: PropTypes.func.isRequired,
+    dissolveSuperset: PropTypes.func.isRequired,
+    setSupersetRest: PropTypes.func.isRequired,
+    addSubstitute: PropTypes.func.isRequired,
+    removeSubstitute: PropTypes.func.isRequired,
+  }),
 };
 
 TrainingItem.defaultProps = {
@@ -1780,9 +1843,12 @@ TrainingItem.defaultProps = {
   onDeleteTraining: null,
   onOpenAddExercise: null,
   onOpenEditExercise: null,
+  onOpenAddSubstitute: null,
+  onOpenEditSubstitute: null,
   onDeleteExercise: null,
   onReorder: null,
   onRefetchTraining: null,
+  localOps: null,
 };
 
 // ─── BuilderTopbar ────────────────────────────────────────────────────────────
@@ -2692,6 +2758,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
     routine,
     onMutate: markTouched,
     onExerciseCreated: handleExerciseCreated,
+    localSubstitutes: isProtocol && !editProtocolId && !readOnly,
   });
   const { dialogProps: deleteDialogProps, requestConfirm: requestDeleteConfirm } = useConfirmDialog();
 
@@ -2856,21 +2923,33 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
           const unassignedTrainings = sortedTrainings.filter((t) => !t.weekDay);
           const showUnassignedHeader = assignedTrainings.length > 0 && unassignedTrainings.length > 0;
 
+          const localOps = isProtocol && !editProtocolId && !readOnly
+            ? {
+                createSuperset: (...args) => { markTouched(); return routine.createLocalSuperset(...args); },
+                dissolveSuperset: (...args) => { markTouched(); return routine.dissolveLocalSuperset(...args); },
+                setSupersetRest: (...args) => { markTouched(); return routine.setLocalSupersetRest(...args); },
+                addSubstitute: (...args) => { markTouched(); return routine.addLocalSubstitute(...args); },
+                removeSubstitute: (...args) => { markTouched(); return routine.removeLocalSubstitute(...args); },
+              }
+            : null;
+
           const renderTrainingItem = (t, i) => (
             <TrainingItem
               key={t.id}
               training={t}
               index={i}
-              exerciseTemplates={routine.exerciseTemplates}
               expanded={expandedId === t.id}
               readOnly={readOnly}
               mode={mode}
+              localOps={localOps}
               onToggleExpand={() => handleToggleExpand(t.id)}
               onEditTraining={readOnly ? null : handleOpenEditTraining}
               onChangeWeekDay={readOnly ? null : (weekDay) => { markTouched(); routine.updateTrainingWeekDay(t.id, weekDay); }}
               onDeleteTraining={readOnly ? null : () => handleDeleteTraining(t.id)}
               onOpenAddExercise={readOnly ? null : exerciseDrawer.openAdd}
               onOpenEditExercise={readOnly ? null : exerciseDrawer.openEdit}
+              onOpenAddSubstitute={readOnly ? null : exerciseDrawer.openAddSubstitute}
+              onOpenEditSubstitute={readOnly ? null : exerciseDrawer.openEditSubstitute}
               onDeleteExercise={readOnly ? null : (exId) => { markTouched(); return routine.deleteExercise(t.id, exId); }}
               onReorder={
                 readOnly
@@ -2937,17 +3016,18 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
 
       {!readOnly && exerciseDrawer.target && (
         <ExerciseDrawer
-          key={exerciseDrawer.target.exercise?.id ?? `new-${exerciseDrawer.target.trainingId}`}
+          key={exerciseDrawer.target.exercise?.id ?? `new-${exerciseDrawer.target.principal?.id ?? exerciseDrawer.target.trainingId}`}
           exercise={exerciseDrawer.target.exercise}
+          principal={exerciseDrawer.target.principal}
           exerciseTemplates={routine.exerciseTemplates}
-          saving={routine.saving}
+          saving={routine.saving || exerciseDrawer.submitting}
           canUseVideoLibrary={isAdmin}
           layout={formLayout}
           onCreate={exerciseDrawer.handleCreate}
           onEdit={exerciseDrawer.handleEdit}
           onImport={exerciseDrawer.handleImport}
           onAddFromTemplate={exerciseDrawer.handleAddFromTemplate}
-          onRequestDelete={exerciseDrawer.target.exercise ? handleRequestDeleteDrawerExercise : null}
+          onRequestDelete={exerciseDrawer.target.exercise && !exerciseDrawer.target.principal ? handleRequestDeleteDrawerExercise : null}
           onClose={exerciseDrawer.close}
         />
       )}

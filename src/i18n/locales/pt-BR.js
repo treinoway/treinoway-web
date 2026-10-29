@@ -1140,13 +1140,15 @@ const ptBR = {
 
   exerciseGroup: {
     select: "Selecionar",
-    cancelSelection: "Cancelar seleção",
-    groupAsBiset: "Agrupar em bi-set",
+    cancelSelection: "Cancelar",
+    createBiset: "Criar bi-set",
+    roundRest: "Descanso da rodada",
+    groupAsBiset: "Criar bi-set",
     biset: "Bi-set",
     dissolveBiset: "Desfazer bi-set",
     bisetCreated: "Bi-set criado.",
     bisetDissolved: "Bi-set desfeito.",
-    selectionCount: "{selected}/6 selecionados",
+    selectionCount: "{selected} selecionados",
     selectionInstruction:
       "Selecione 2 a 6 exercícios para agrupar em bi-set.",
     selectionInstructionLong:
@@ -1487,6 +1489,7 @@ const ptBR = {
     deleteConfirm: 'Excluir "{name}"? Esta ação não pode ser desfeita.',
     deletedToast: "Substituto removido.",
     deleteAria: "Excluir substituto {name}",
+    editAria: "Editar substituto {name}",
   },
   students: {
     viewProfileAria: "Ver perfil de {name}.",

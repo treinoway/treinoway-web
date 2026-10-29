@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import { X } from 'lucide-react';
 import { t } from '../i18n';
 
 const interpolate = (template, values) =>
@@ -9,40 +8,34 @@ const interpolate = (template, values) =>
 
 /**
  * Sticky action bar shown at the top of the trainer's training detail
- * when selection mode is active. Shows the current count, a cancel
- * button, and the primary "Agrupar em bi-set" CTA (enabled at ≥ 2).
+ * when selection mode is active. Shows "N selecionados", a "Cancelar"
+ * button and the primary "Criar bi-set" CTA (enabled at ≥ 2).
  *
  * Pair with `<SelectionInstructionStrip />` directly underneath for
  * the "Selecione 2 a 6 exercícios…" copy.
  */
 const SelectionActionBar = ({ selectedCount, maxCount = 6, onCancel, onConfirm, saving = false }) => {
   const countLabel = interpolate(
-    t('exerciseGroup.selectionCount') || '{selected}/{max} selecionados',
+    t('exerciseGroup.selectionCount') || '{selected} selecionados',
     { selected: selectedCount, max: maxCount }
   );
   const canConfirm = selectedCount >= 2 && selectedCount <= maxCount && !saving;
 
   return (
     <div className="selection-action-bar" role="toolbar" aria-label="Seleção de exercícios">
-      <button
-        type="button"
-        className="icon-button"
-        onClick={onCancel}
-        aria-label={t('exerciseGroup.cancelSelection') || 'Cancelar seleção'}
-        title={t('exerciseGroup.cancelSelection') || 'Cancelar seleção'}
-      >
-        <X size={20} strokeWidth={2} aria-hidden="true" />
-      </button>
       <span className="selection-action-bar-count type-body-strong" aria-live="polite">
         {countLabel}
       </span>
+      <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={saving}>
+        {t('exerciseGroup.cancelSelection') || 'Cancelar'}
+      </button>
       <button
         type="button"
         className="btn btn--primary selection-action-bar-cta"
         onClick={onConfirm}
         disabled={!canConfirm}
       >
-        {saving ? 'Carregando...' : t('exerciseGroup.groupAsBiset') || 'Agrupar em bi-set'}
+        {saving ? 'Carregando...' : t('exerciseGroup.createBiset') || 'Criar bi-set'}
       </button>
     </div>
   );

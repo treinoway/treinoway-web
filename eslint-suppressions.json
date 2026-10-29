@@ -101,11 +101,6 @@
       "count": 1
     }
   },
-  "src/components/BiSetActionSheet.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    }
-  },
   "src/components/BiSetBadge.jsx": {
     "local/function-header-comment": {
       "count": 1
@@ -461,14 +456,6 @@
   "src/components/OnboardingChecklistCard/OnboardingAllDoneState.jsx": {
     "local/function-header-comment": {
       "count": 1
-    }
-  },
-  "src/components/OnboardingChecklistCard/OnboardingChecklistCard.jsx": {
-    "local/function-header-comment": {
-      "count": 4
-    },
-    "local/no-comments-in-function": {
-      "count": 12
     }
   },
   "src/components/OnboardingChecklistCard/OnboardingChecklistCard.test.jsx": {
@@ -839,22 +826,6 @@
   "src/components/StudentIntensityBand.jsx": {
     "local/function-header-comment": {
       "count": 1
-    }
-  },
-  "src/components/SubstituteComposerSheet.jsx": {
-    "local/function-header-comment": {
-      "count": 6
-    },
-    "local/no-comments-in-function": {
-      "count": 11
-    }
-  },
-  "src/components/SubstituteComposerSheet.test.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    },
-    "local/no-comments-in-function": {
-      "count": 7
     }
   },
   "src/components/SubstitutedLogLine.jsx": {
@@ -1994,18 +1965,18 @@
   },
   "src/hooks/useTrainerDashboard.js": {
     "local/function-header-comment": {
-      "count": 6
+      "count": 4
     },
     "local/no-comments-in-function": {
-      "count": 4
+      "count": 3
     }
   },
   "src/hooks/useTrainerRoster.js": {
     "local/function-header-comment": {
-      "count": 5
+      "count": 3
     },
     "local/no-comments-in-function": {
-      "count": 4
+      "count": 3
     }
   },
   "src/hooks/useTrainingTemplateEditor.js": {
@@ -2565,10 +2536,10 @@
       "count": 1
     },
     "local/function-header-comment": {
-      "count": 22
+      "count": 21
     },
     "local/no-comments-in-function": {
-      "count": 110
+      "count": 96
     }
   },
   "src/pages/trainer/RoutineBuilder.test.jsx": {
@@ -2576,7 +2547,7 @@
       "count": 7
     },
     "local/no-comments-in-function": {
-      "count": 133
+      "count": 131
     }
   },
   "src/pages/trainer/SessionDetail.jsx": {
