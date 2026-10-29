@@ -56,11 +56,20 @@ export const formatExpiryHint = (expirationDate, today) => {
   return td('routines.expiredAgo', { days: pluralizeDays(Math.abs(days)) });
 };
 
+/** Day after a "YYYY-MM-DD" date, as "YYYY-MM-DD"; null when invalid. */
+const nextDay = (dateOnly) => {
+  const day = toUtcDay(dateOnly);
+  if (day === null) return null;
+  return new Date(day + DAY_MS).toISOString().slice(0, 10);
+};
+
 /**
- * Renewal metric for the subscription's current charge. Whether it is overdue
- * (and for how many days) comes from the API (`effectiveStatus`, `daysOverdue`,
- * 3-day grace) — never from the dates. Otherwise the cycle end (or due date) is
- * when the next charge happens.
+ * Renewal metric for the subscription's current charge. Charges fall due at
+ * their cycle start, so: an open charge renews on its `dueDate` (fallback
+ * `cycleStartDate`); a paid charge renews on the next cycle start (the day after
+ * `cycleEndDate`); a cancelled charge has no renewal (null). Whether a charge is
+ * overdue (and for how many days) comes from the API (`effectiveStatus`,
+ * `daysOverdue`, 3-day grace) — never from the dates.
  */
 export const getRenewalInfo = (payment, today) => {
   if (!payment) return null;
@@ -68,7 +77,10 @@ export const getRenewalInfo = (payment, today) => {
     const date = formatDateForDisplay(payment.dueDate);
     return { label: td('metrics.overdueSince'), value: pluralizeDays(payment.daysOverdue || 0), date, overdue: true };
   }
-  const reference = payment.cycleEndDate || payment.dueDate;
+  if (payment.effectiveStatus === PAYMENT_STATUS.CANCELLED) return null;
+  const reference = payment.effectiveStatus === PAYMENT_STATUS.PAID
+    ? nextDay(payment.cycleEndDate)
+    : payment.dueDate || payment.cycleStartDate;
   const days = daysUntil(reference, today);
   if (days === null) return null;
   const date = formatDateForDisplay(reference);

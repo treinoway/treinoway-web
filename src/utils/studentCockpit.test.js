@@ -69,9 +69,9 @@ describe('formatExpiryHint', () => {
 });
 
 describe('getRenewalInfo', () => {
-  it('uses the cycle end as the renewal date', () => {
-    expect(getRenewalInfo({ cycleEndDate: '2026-11-15', dueDate: '2026-10-20' }, TODAY)).toEqual({
-      label: 'Renova em', value: '42 dias', date: '15/11/2026', overdue: false,
+  it('uses the due date of an open charge as the renewal date', () => {
+    expect(getRenewalInfo({ effectiveStatus: 'pending', cycleEndDate: '2026-11-15', dueDate: '2026-10-20' }, TODAY)).toEqual({
+      label: 'Renova em', value: '16 dias', date: '20/10/2026', overdue: false,
     });
   });
 
@@ -89,7 +89,7 @@ describe('getRenewalInfo', () => {
 
   it('never derives overdue from a past cycle end (grace window stays pending)', () => {
     expect(getRenewalInfo({ effectiveStatus: 'pending', cycleEndDate: '2026-10-03', dueDate: '2026-10-02' }, TODAY)).toEqual({
-      label: 'Renova', value: 'Hoje', date: '03/10/2026', overdue: false,
+      label: 'Renova', value: 'Hoje', date: '02/10/2026', overdue: false,
     });
   });
 

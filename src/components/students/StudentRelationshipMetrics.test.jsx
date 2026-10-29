@@ -20,7 +20,7 @@ const renderMetrics = (props = {}) => {
       loading={false}
       summary={summary}
       subscription={{ id: 'sub-1', planId: 'plan-1' }}
-      nextPayment={{ cycleEndDate: '2026-11-15', status: 'pending' }}
+      nextPayment={{ cycleStartDate: '2026-11-15', dueDate: '2026-11-15', cycleEndDate: '2026-12-14', effectiveStatus: 'pending' }}
       planName="Plano trimestral"
       lastWorkoutAt="2026-09-25T12:00:00"
       onAssignPlan={onAssignPlan}
