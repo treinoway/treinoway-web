@@ -71,7 +71,8 @@ const getRow = (name) => screen.getByRole('row', { name: new RegExp(name, 'i') }
 
 // Opens the change-plan dialog for a trainer and returns the dialog element.
 const openChangeDialog = async (user, trainerName) => {
-  await user.click(await screen.findByRole('button', { name: `Alterar plano de ${trainerName}` }));
+  await user.click(await screen.findByRole('button', { name: `Ações de ${trainerName}` }));
+  await user.click(screen.getByRole('button', { name: 'Alterar plano' }));
   return screen.findByRole('dialog');
 };
 

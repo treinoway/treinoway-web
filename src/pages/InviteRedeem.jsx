@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
 import { normalizeInviteCode } from '../utils/inviteCode';
+import useInvitePreview from '../hooks/useInvitePreview';
 
 const SUPPORT_EMAIL = 'suporte@teufit.com.br';
 const SUCCESS_REDIRECT_MS = 900;
@@ -25,9 +26,9 @@ const InviteRedeem = () => {
   const [searchParams] = useSearchParams();
 
   const prefilledCode = normalizeInviteCode(searchParams.get('code') || '');
-  // Arriving from an invite link (usually straight after signup/login) there
-  // is nothing left to decide — redeem once, without a second click.
-  const shouldAutoRedeem = isAuthenticated && user?.betaAccess !== true && prefilledCode.length > 0;
+  // why: betaAccess is true for every trainer, so existing trainers must still redeem to receive the Beta plan
+  const shouldAutoRedeem = isAuthenticated && prefilledCode.length > 0;
+  const preview = useInvitePreview(isAuthenticated ? '' : prefilledCode);
   const autoRedeemStartedRef = useRef(false);
   const [code, setCode] = useState(prefilledCode);
   const [fieldError, setFieldError] = useState('');
@@ -35,20 +36,8 @@ const InviteRedeem = () => {
   const [errorCode, setErrorCode] = useState(null);
   const [loading, setLoading] = useState(shouldAutoRedeem);
   const [succeeded, setSucceeded] = useState(false);
-  // Tracks specifically "the automatic, effect-driven redeem is in flight" —
-  // distinct from `loading`, which also covers a manual submit. Only this
-  // state hides the form in favor of the minimal loading card; a manual
-  // retry after an auto-redeem failure must still show the form with its
-  // normal inline button spinner, never the full-card swap.
   const [autoRedeeming, setAutoRedeeming] = useState(shouldAutoRedeem);
 
-  // Setters only run in promise callbacks (never synchronously), so this is
-  // safe to start from an effect. Callers reset form state beforehand; the
-  // auto path starts already clean with loading=true.
-  //
-  // `minDurationMs` is only ever passed by the auto-redeem effect below — a
-  // manual submit (handleSubmit) always resolves as fast as the API allows,
-  // matching the pre-existing inline-spinner behavior on that path.
   const redeem = useCallback((codeToRedeem, { minDurationMs = 0 } = {}) => {
     const startedAt = Date.now();
 
@@ -57,15 +46,8 @@ const InviteRedeem = () => {
         const newAccessToken = response.data.token?.accessToken || response.data.accessToken;
         updateTokens(newAccessToken, response.data.refreshToken);
 
-        // A 200 from /invite/redeem is itself authoritative proof that
-        // betaAccess is now true — refreshUser() exists to sync the rest of
-        // the profile (name, roles, etc.), not to re-decide whether the
-        // redemption worked. If the backend's read path (this /me call) is
-        // even briefly behind its own write (or refreshUser fails outright),
-        // trusting its betaAccess verbatim would silently bounce the user
-        // from the success screen back to a bare, empty /invite form once
-        // the redirect below fires — exactly the bug this guards against.
         const refreshedUser = await refreshUser();
+        // why: /me can lag behind the redeem, so betaAccess is forced or the success card would bounce to the empty form
         updateUser({ ...(refreshedUser || user), betaAccess: true });
 
         const elapsed = Date.now() - startedAt;
@@ -84,14 +66,13 @@ const InviteRedeem = () => {
       });
   }, [updateTokens, refreshUser, updateUser, user]);
 
-  // Ref guard: StrictMode double-invokes effects; the redeem must POST once.
   useEffect(() => {
+    // why: StrictMode double-invokes effects and the redeem must POST once
     if (!shouldAutoRedeem || autoRedeemStartedRef.current) return;
     autoRedeemStartedRef.current = true;
     redeem(prefilledCode, { minDurationMs: MIN_AUTO_REDEEM_LOADING_MS });
   }, [shouldAutoRedeem, prefilledCode, redeem]);
 
-  // Brief success confirmation before routing into the app.
   useEffect(() => {
     if (!succeeded) return undefined;
     const timer = setTimeout(() => navigate('/', { replace: true }), SUCCESS_REDIRECT_MS);
@@ -99,33 +80,27 @@ const InviteRedeem = () => {
   }, [succeeded, navigate]);
 
   if (!isAuthenticated) {
-    const rawCodeFromQuery = searchParams.get('code');
-    if (rawCodeFromQuery) {
-      return <Navigate to={`/signup?code=${encodeURIComponent(rawCodeFromQuery)}`} replace />;
+    if (!prefilledCode) return <Navigate to="/login" replace />;
+    const encodedCode = encodeURIComponent(searchParams.get('code'));
+    if (preview.status === 'idle' || preview.status === 'loading') {
+      return (
+        <div className="auth-page">
+          <div className="auth-card">
+            <Loader2 size={24} strokeWidth={2} className="invite-spin invite-spin--standalone" aria-hidden="true" />
+            <p className="auth-subtitle" role="status">Verificando seu convite…</p>
+          </div>
+        </div>
+      );
     }
-    return <Navigate to="/login" replace />;
+    const accountExists = preview.status === 'valid' && preview.data?.accountExists === true;
+    return <Navigate to={`/${accountExists ? 'login' : 'signup'}?code=${encodedCode}`} replace />;
   }
 
-  // A user who already has access never sits on /invite — but let the
-  // auto-redeem loading card finish its minimum duration and the success
-  // micro-state render, even after updateUser() flips betaAccess to true
-  // partway through that sequence (see redeem() above: betaAccess is set
-  // true before the minimum-duration wait so the rest of the app is never
-  // stale, but that means this guard would otherwise fire mid-sequence and
-  // skip straight to "/", defeating the whole point of the loading/success
-  // cards).
-  if (user?.betaAccess === true && !succeeded && !autoRedeeming) {
+  // why: betaAccess flips mid-redeem, so the guard waits for !succeeded && !autoRedeeming; only an already-accepted invite is sent home silently
+  if (user?.betaAccess === true && !succeeded && !autoRedeeming && (!serverError || errorCode === ALREADY_ACCEPTED)) {
     return <Navigate to="/" replace />;
   }
 
-  // Auto-redeem in flight: a minimal card, nothing resembling the
-  // manual-entry UI. The form must never render here — there is nothing for
-  // the user to do, and briefly showing it (pre-filled code, disabled
-  // inputs, "Verificando…") is exactly the flash this guards against. Same
-  // .auth-page/.auth-card wrapper shape as the success and form branches
-  // below, so React reconciles it as the same element rather than
-  // remounting (see the success branch for the full note on why that
-  // matters for the entrance animation).
   if (autoRedeeming) {
     return (
       <div className="auth-page">
@@ -139,14 +114,6 @@ const InviteRedeem = () => {
     );
   }
 
-  // Success micro-state. Renders through the *same* .auth-page > .auth-card
-  // wrapper (same element type, same tree position, no key) as the
-  // auto-redeeming and form branches, so React reconciles this in place
-  // instead of unmounting/remounting .auth-card — the auth-enter CSS
-  // animation on .auth-card therefore plays once, on the initial /invite
-  // mount, not again on this transition. Verified by reading React's
-  // reconciliation rules (same type + position + no key ⇒ same fiber, DOM
-  // node preserved); not visually confirmed in a browser.
   if (succeeded) {
     return (
       <div className="auth-page">

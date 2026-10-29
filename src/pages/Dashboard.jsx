@@ -3,11 +3,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Sparkles, Trophy, HeartPulse } from 'lucide-react';
+import { UserPlus, Sparkles } from 'lucide-react';
 import api from '../api/axios';
 import NoStudentsModal from '../components/NoStudentsModal';
 import { OnboardingChecklistView } from '../components/OnboardingChecklistCard';
-import NutritionistActivationSheet from '../components/NutritionistActivationSheet';
 import NutritionistOnboardingCard from '../components/NutritionistOnboardingCard';
 import WelcomeHero from '../components/WelcomeHero';
 import ControlTower from '../components/ControlTower';
@@ -37,7 +36,6 @@ const Dashboard = () => {
   const [becomingTrainer, setBecomingTrainer] = useState(false);
   const [checkingStudents, setCheckingStudents] = useState(false);
   const [showNoStudentsModal, setShowNoStudentsModal] = useState(false);
-  const [showNutritionistSheet, setShowNutritionistSheet] = useState(false);
   const [nutritionistIncomplete, setNutritionistIncomplete] = useState(false);
 
   const roster = useTrainerRoster(showTrainerCards);
@@ -99,14 +97,6 @@ const Dashboard = () => {
     } finally {
       setCheckingStudents(false);
     }
-  };
-
-  const handleNutritionistActivationSuccess = (data) => {
-    const newAccessToken = data.token?.accessToken || data.accessToken;
-    const newRefreshToken = data.refreshToken;
-    updateTokens(newAccessToken, newRefreshToken);
-    setShowNutritionistSheet(false);
-    navigate('/nutritionist/onboarding');
   };
 
   const handleBecomeTrainer = async () => {
@@ -179,52 +169,23 @@ const Dashboard = () => {
               loading={becomingTrainer}
               variant="primary"
             />
-            {!hasRole('NUTRITIONIST') && (
-              <ActionCard
-                icon={HeartPulse}
-                title="Seja um Nutricionista"
-                description="Ative seu perfil de nutricionista e comece a atender clientes na plataforma"
-                onClick={() => setShowNutritionistSheet(true)}
-              />
-            )}
           </ActionGrid>
         </section>
       )}
 
-      {showTrainerCards && (
+      {showTrainerCards && canUseAi && (
         <section>
           <div className="section-header">
             <h2 className="dashboard-section-title">Ações</h2>
           </div>
           <ActionGrid>
-            {canUseAi && (
-              <ActionCard
-                icon={Sparkles}
-                title="iArnold"
-                description="Crie rotinas e treinos, aplique rotinas e analise o desempenho dos alunos com linguagem natural"
-                to="/trainer/ai-assistant"
-                variant="ai"
-              />
-            )}
-
-            {showTrainerCards && (
-              <ActionCard
-                icon={Trophy}
-                title="Campeonatos"
-                description="Veja os campeonatos e desafios dos seus alunos"
-                to="/trainer/challenges"
-              />
-            )}
-
-            {showTrainerCards && !hasRole('NUTRITIONIST') && (
-              <ActionCard
-                icon={HeartPulse}
-                title="Seja um Nutricionista"
-                description="Ative seu perfil de nutricionista e comece a atender clientes na plataforma"
-                onClick={() => setShowNutritionistSheet(true)}
-              />
-            )}
-
+            <ActionCard
+              icon={Sparkles}
+              title="iArnold"
+              description="Crie rotinas e treinos, aplique rotinas e analise o desempenho dos alunos com linguagem natural"
+              to="/trainer/ai-assistant"
+              variant="ai"
+            />
           </ActionGrid>
         </section>
       )}
@@ -237,13 +198,6 @@ const Dashboard = () => {
           navigate('/trainer/students');
         }}
       />
-
-      {showNutritionistSheet && (
-        <NutritionistActivationSheet
-          onClose={() => setShowNutritionistSheet(false)}
-          onSuccess={handleNutritionistActivationSuccess}
-        />
-      )}
     </div>
   );
 };

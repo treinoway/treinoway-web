@@ -38,7 +38,8 @@ const hint = 'Beta indisponível: o treinador tem assinatura paga ativa no Asaas
 
 // Opens the change-plan dialog for the given trainer and returns the dialog element.
 const openDialog = async (user, name) => {
-  await user.click(await screen.findByRole('button', { name: `Alterar plano de ${name}` }));
+  await user.click(await screen.findByRole('button', { name: `Ações de ${name}` }));
+  await user.click(screen.getByRole('button', { name: 'Alterar plano' }));
   return screen.findByRole('dialog');
 };
 

@@ -16,7 +16,7 @@ const NutritionistRoute = ({ children }) => {
   useEffect(() => {
     if (isAuthenticated && !blocked && !isNutritionist && !toastShownRef.current) {
       toastShownRef.current = true;
-      showToast('Este perfil não está ativo. Ative em Painel → Seja um Nutricionista.', 'error');
+      showToast('Este perfil não está ativo.', 'error');
     }
   }, [isAuthenticated, blocked, isNutritionist, showToast]);
 

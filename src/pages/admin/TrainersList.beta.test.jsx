@@ -39,7 +39,8 @@ const downgradeWarning = 'Alunos acima do limite do novo plano serão bloqueados
 
 // Opens the change-plan dialog for the BETA trainer and returns the dialog element.
 const openBetaDialog = async (user) => {
-  await user.click(await screen.findByRole('button', { name: 'Alterar plano de Beto Beta' }));
+  await user.click(await screen.findByRole('button', { name: 'Ações de Beto Beta' }));
+  await user.click(screen.getByRole('button', { name: 'Alterar plano' }));
   return screen.findByRole('dialog');
 };
 

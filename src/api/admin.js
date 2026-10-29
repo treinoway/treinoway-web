@@ -2,9 +2,11 @@ import api from './axios';
 
 // ─── Trainers & platform plan ───────────────────────────────────────────────
 
-/** Paginated trainers with tier, subscription status and student usage. */
-export const listTrainers = async ({ search, page, pageSize }) => {
-  const response = await api.get('/admin/trainers', { params: { search, page, pageSize } });
+/** Paginated trainers (plus signups without invite when `includeSignups`), optionally filtered by invite state. */
+export const listTrainers = async ({ search, includeSignups, inviteStatus, page, pageSize }) => {
+  const response = await api.get('/admin/trainers', {
+    params: { search, includeSignups, inviteStatus, page, pageSize },
+  });
   return response.data;
 };
 

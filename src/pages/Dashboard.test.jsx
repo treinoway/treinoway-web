@@ -179,7 +179,7 @@ describe('Dashboard', () => {
 
     it('shows trainer quick actions', async () => {
       renderWithRouter(<Dashboard />);
-      expect(screen.getByText('Campeonatos')).toBeInTheDocument();
+      expect(screen.getByText('iArnold')).toBeInTheDocument();
       expect(screen.queryByText('Sua marca')).not.toBeInTheDocument();
     });
 
@@ -192,11 +192,6 @@ describe('Dashboard', () => {
     it('shows the "Ações" section heading', () => {
       renderWithRouter(<Dashboard />);
       expect(screen.getByRole('heading', { name: 'Ações' })).toBeInTheDocument();
-    });
-
-    it('shows Campeonatos card linking to /trainer/challenges', () => {
-      renderWithRouter(<Dashboard />);
-      expect(screen.getByRole('link', { name: /campeonatos/i })).toHaveAttribute('href', '/trainer/challenges');
     });
 
     it('shows the iArnold AI card', () => {
@@ -250,35 +245,6 @@ describe('Dashboard', () => {
       expect(screen.queryByRole('link', { name: /sua marca/i })).not.toBeInTheDocument();
       expect(document.querySelector('a[href="/trainer/branding"]')).toBeNull();
     });
-
-    it('shows "Seja um Nutricionista" for a trainer-only user (missing NUTRITIONIST role)', () => {
-      renderWithRouter(<Dashboard />);
-      expect(screen.getByText('Seja um Nutricionista')).toBeInTheDocument();
-    });
-
-    it('hides "Seja um Nutricionista" for a user who already has the NUTRITIONIST role', () => {
-      mockHasRole.mockImplementation((role) => role === 'TRAINER' || role === 'NUTRITIONIST');
-      renderWithRouter(<Dashboard />);
-      expect(screen.queryByText('Seja um Nutricionista')).not.toBeInTheDocument();
-    });
-
-    it('opens the NutritionistActivationSheet when "Seja um Nutricionista" is clicked', async () => {
-      const user = userEvent.setup();
-      renderWithRouter(<Dashboard />);
-
-      await user.click(screen.getByRole('button', { name: /Seja um Nutricionista/ }));
-      expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    });
-
-    it('never ranks "Seja um Nutricionista" above iArnold in the "Ações" grid', () => {
-      renderWithRouter(<Dashboard />);
-      const labels = screen.getAllByText(/iArnold|Seja um Nutricionista/, { exact: false })
-        .map((el) => el.textContent);
-      const aiIndex = labels.findIndex((t) => t.includes('iArnold'));
-      const nutritionistIndex = labels.findIndex((t) => t.includes('Seja um Nutricionista'));
-      expect(aiIndex).toBeGreaterThanOrEqual(0);
-      expect(nutritionistIndex).toBeGreaterThan(aiIndex);
-    });
   });
 
   describe('Non-trainer users', () => {
@@ -308,11 +274,6 @@ describe('Dashboard', () => {
     it('shows "Seja um Treinador" as the primary activation action', () => {
       renderWithRouter(<Dashboard />);
       expect(screen.getByText('Seja um Treinador')).toBeInTheDocument();
-    });
-
-    it('shows "Seja um Nutricionista" when the user lacks the NUTRITIONIST role', () => {
-      renderWithRouter(<Dashboard />);
-      expect(screen.getByText('Seja um Nutricionista')).toBeInTheDocument();
     });
 
     it('hides "Seja um Nutricionista" when the user already is a nutritionist', () => {
