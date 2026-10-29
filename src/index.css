@@ -20267,3 +20267,196 @@ select.input { cursor: pointer; }
 }
 
 .routine-exercise__meta { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+/* ============================================
+   Tutorials ("Como usar") — cards, player, admin form, upload progress
+   ============================================ */
+.tutorials-intro .ds-page-header { margin-bottom: var(--spacing-xs); }
+
+.tutorials-intro__subtitle {
+  margin-bottom: var(--spacing-xl);
+  color: var(--text-secondary);
+}
+
+@media (min-width: 768px) {
+  .tutorials-intro__subtitle { margin-bottom: var(--spacing-2xl); }
+}
+
+.tutorials-grid { gap: var(--spacing-lg); }
+
+@media (min-width: 768px) {
+  .tutorials-grid { gap: var(--spacing-xl); }
+}
+
+.tutorial-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  background: var(--background-surface);
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: var(--font-family-brand);
+  transition: transform var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+
+.tutorial-card:hover { transform: translateY(calc(-1 * var(--spacing-xs))); border-color: var(--border-strong); }
+.tutorial-card:active { transform: translateY(0); }
+.tutorial-card:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.tutorial-card__thumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--background-brand-subtle);
+  color: var(--text-brand);
+}
+
+.tutorial-card__thumb img,
+.tutorial-card__thumb video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tutorial-card__thumb video { pointer-events: none; }
+
+.tutorial-card__thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, var(--background-overlay));
+  pointer-events: none;
+}
+
+.tutorial-card__play {
+  position: relative;
+  z-index: var(--z-base);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--spacing-5xl);
+  height: var(--spacing-5xl);
+  border-radius: var(--radius-full);
+  background: var(--action-primary-default);
+  color: var(--text-inverse);
+  transition: transform var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
+}
+
+.tutorial-card__play svg { fill: currentColor; }
+
+.tutorial-card:hover .tutorial-card__play {
+  transform: scale(1.1);
+  background: var(--action-primary-hover);
+}
+
+.tutorial-card__duration {
+  position: absolute;
+  right: var(--spacing-sm);
+  bottom: var(--spacing-sm);
+  z-index: var(--z-base);
+  padding: var(--spacing-2xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background: var(--background-overlay);
+  color: var(--text-inverse);
+  font-variant-numeric: tabular-nums;
+}
+
+.tutorial-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+}
+
+.tutorial-card__title,
+.tutorial-card__description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.tutorial-card__title { color: var(--text-primary); font-weight: 600; }
+.tutorial-card:hover .tutorial-card__title { color: var(--text-brand); }
+.tutorial-card__description { color: var(--text-secondary); }
+
+.tutorial-card__meta { margin-top: auto; padding-top: var(--spacing-xs); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-card, .tutorial-card__play { transition: none; }
+  .tutorial-card:hover, .tutorial-card:hover .tutorial-card__play { transform: none; }
+}
+
+.tutorial-player-body { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.tutorial-player-body__description { color: var(--text-secondary); }
+
+.tutorial-player {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--background-inverse);
+}
+
+.tutorial-player iframe,
+.tutorial-player video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.tutorial-form { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+
+.tutorial-source {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  border: 0;
+  padding: 0;
+}
+
+.tutorial-source__option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.tutorial-progress {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--spacing-xs) var(--spacing-md);
+  align-items: center;
+}
+
+.tutorial-progress__label { color: var(--text-secondary); }
+.tutorial-progress__value { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+.tutorial-progress__track {
+  grid-column: 1 / -1;
+  height: var(--spacing-sm);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--background-brand-subtle);
+}
+
+.tutorial-progress__bar {
+  height: 100%;
+  background: var(--action-primary-default);
+  transition: width var(--duration-fast) var(--ease-standard);
+}

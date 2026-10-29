@@ -29,6 +29,8 @@ import ExerciseTemplates from './pages/trainer/ExerciseTemplates';
 import TrainingTemplateEditor from './pages/trainer/TrainingTemplateEditor';
 import ExerciseTemplateEditor from './pages/trainer/ExerciseTemplateEditor';
 import AdvancedTechniques from './pages/trainer/AdvancedTechniques';
+import Tutorials from './pages/trainer/Tutorials';
+import TutorialsList from './pages/admin/TutorialsList';
 import AdvancedTechniqueEditor from './pages/trainer/AdvancedTechniqueEditor';
 import ProtocolTemplateView from './pages/trainer/ProtocolTemplateView';
 import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
@@ -202,6 +204,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <AdvancedTechniques />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/tutorials"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Tutorials />
                 </Layout>
               </ProtectedRoute>
             }
@@ -672,6 +684,16 @@ function App() {
               <RequireRole roles={['admin']}>
                 <Layout>
                   <AiUsage />
+                </Layout>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/tutorials"
+            element={
+              <RequireRole roles={['admin']}>
+                <Layout>
+                  <TutorialsList />
                 </Layout>
               </RequireRole>
             }

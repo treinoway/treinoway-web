@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
@@ -15,6 +15,7 @@ const ADMIN_LINKS = [
   { path: '/admin/invites', labelKey: 'adminNav.invites', Icon: Mail },
   { path: '/admin/trainers', labelKey: 'adminNav.trainers', Icon: UsersRound },
   { path: '/admin/ai-usage', labelKey: 'adminNav.aiUsage', Icon: BarChart3 },
+  { path: '/admin/tutorials', labelKey: 'adminNav.tutorials', Icon: Video },
 ];
 
 const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/advanced-techniques', '/trainer/anamneses'];
@@ -23,12 +24,14 @@ const Layout = ({ children, noPadding = false }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [bibliotecaOpen, setBibliotecaOpen] = useState(false); // closed by default; auto-opens on active route via useEffect
   const [bibliotecaPopover, setBibliotecaPopover] = useState(false);
+  const [profilePopover, setProfilePopover] = useState(false);
   const { user, logout, hasRole } = useAuth();
   const { loading: aiLoading, hasNewResponse: aiHasNewResponse } = useAiChat();
   const showAi = useAiAccess();
   const location = useLocation();
   const navigate = useNavigate();
   const popoverRef = useRef(null);
+  const profilePopoverRef = useRef(null);
   const [, setActiveMode] = useActiveMode();
   const financeOverdueCount = useFinanceOverdueCount();
   const financeBadge = financeOverdueCount > SIDEBAR_BADGE_MAX ? `${SIDEBAR_BADGE_MAX}+` : String(financeOverdueCount);
@@ -79,12 +82,28 @@ const Layout = ({ children, noPadding = false }) => {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [bibliotecaPopover]);
 
+  useEffect(() => {
+    if (!profilePopover) return;
+    const handleClick = (e) => {
+      if (profilePopoverRef.current && !profilePopoverRef.current.contains(e.target)) {
+        setProfilePopover(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [profilePopover]);
+
   const bibliotecaChildren = [
     { path: '/trainer/routines', label: 'Rotinas', Icon: ClipboardList },
     { path: '/trainer/training-templates', label: 'Treinos únicos', Icon: Dumbbell },
     { path: '/trainer/exercise-templates', label: 'Exercícios', Icon: Activity },
     { path: '/trainer/advanced-techniques', label: 'Técnicas avançadas', Icon: Zap },
     { path: '/trainer/anamneses', label: 'Anamneses', Icon: FileText },
+  ];
+
+  const profileMenuItems = [
+    { path: '/profile', label: 'Meu Perfil', Icon: User },
+    { path: '/trainer/tutorials', label: t('tutorials.navLabel'), Icon: CirclePlay },
   ];
 
   const getPlanBadgeClass = (tier) => {
@@ -260,6 +279,17 @@ const Layout = ({ children, noPadding = false }) => {
                   ))}
                 </div>
               )}
+
+              <Link
+                to="/trainer/tutorials"
+                className={`sidebar-link ${isActive('/trainer/tutorials') ? 'sidebar-link--active' : ''}`}
+                aria-label={t('tutorials.navLabel')}
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <CirclePlay size={20} strokeWidth={1.6} />
+                </span>
+                <span className="sidebar-link-label">{t('tutorials.navLabel')}</span>
+              </Link>
             </>
           )}
 
@@ -364,16 +394,51 @@ const Layout = ({ children, noPadding = false }) => {
           </div>
         )}
 
-        <Link
-          to="/profile"
-          className={`bottom-nav-item ${isActive('/profile') ? 'bottom-nav-item--active' : ''}`}
-          aria-label="Meu Perfil"
-        >
-          <span className="bottom-nav-item-icon" aria-hidden="true">
-            <User size={22} strokeWidth={1.6} />
-          </span>
-          <span>Perfil</span>
-        </Link>
+        {hasRole('TRAINER') ? (
+          <div className="bottom-nav-popover-wrapper" ref={profilePopoverRef}>
+            <button
+              type="button"
+              onClick={() => setProfilePopover(o => !o)}
+              className={`bottom-nav-item ${isActive('/profile') || isActive('/trainer/tutorials') ? 'bottom-nav-item--active' : ''}`}
+              aria-label="Perfil"
+              aria-haspopup="true"
+              aria-expanded={profilePopover}
+            >
+              <span className="bottom-nav-item-icon" aria-hidden="true">
+                <User size={22} strokeWidth={1.6} />
+              </span>
+              <span>Perfil</span>
+            </button>
+
+            {profilePopover && (
+              <div className="bottom-nav-popover" role="menu">
+                {profileMenuItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`bottom-nav-popover-item ${isActive(item.path) ? 'bottom-nav-popover-item--active' : ''}`}
+                    onClick={() => setProfilePopover(false)}
+                    role="menuitem"
+                  >
+                    <item.Icon size={16} strokeWidth={1.6} />
+                    <span>{item.label}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link
+            to="/profile"
+            className={`bottom-nav-item ${isActive('/profile') ? 'bottom-nav-item--active' : ''}`}
+            aria-label="Meu Perfil"
+          >
+            <span className="bottom-nav-item-icon" aria-hidden="true">
+              <User size={22} strokeWidth={1.6} />
+            </span>
+            <span>Perfil</span>
+          </Link>
+        )}
       </nav>
 
       {/* AI floating action button — visible when AI is working or has a new response, and user is not on the AI page */}

@@ -1,3 +1,8 @@
+const VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{6,20}$/;
+
+// Returns the id only when it looks like a YouTube video id.
+const validId = (id) => (id && VIDEO_ID_PATTERN.test(id) ? id : null);
+
 /**
  * Extracts a YouTube video ID from common YouTube URL formats:
  * - https://www.youtube.com/watch?v=VIDEO_ID
@@ -17,17 +22,17 @@ export const getYoutubeVideoId = (url) => {
 
     if (host === 'youtube.com' || host === 'm.youtube.com') {
       if (parsed.pathname === '/watch') {
-        return parsed.searchParams.get('v') || null;
+        return validId(parsed.searchParams.get('v'));
       }
       const embedMatch = parsed.pathname.match(/^\/embed\/([A-Za-z0-9_-]+)/);
-      if (embedMatch) return embedMatch[1];
+      if (embedMatch) return validId(embedMatch[1]);
       const shortsMatch = parsed.pathname.match(/^\/shorts\/([A-Za-z0-9_-]+)/);
-      if (shortsMatch) return shortsMatch[1];
+      if (shortsMatch) return validId(shortsMatch[1]);
     }
 
     if (host === 'youtu.be') {
       const id = parsed.pathname.replace(/^\//, '').split('/')[0];
-      return id || null;
+      return validId(id);
     }
   } catch {
     return null;
