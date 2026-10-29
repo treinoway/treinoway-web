@@ -834,7 +834,7 @@ describe('Layout', () => {
       });
     };
 
-    it('shows the Administração section with its three links for admins', () => {
+    it('shows the Administração section with its four links for admins', () => {
       setupRoles(['ADMIN']);
       renderWithRouter(<Layout><span>Content</span></Layout>);
 
@@ -843,6 +843,7 @@ describe('Layout', () => {
       expect(within(sidebar).getByRole('link', { name: 'Convites do beta' })).toHaveAttribute('href', '/admin/invites');
       expect(within(sidebar).getByRole('link', { name: 'Trainers e planos' })).toHaveAttribute('href', '/admin/trainers');
       expect(within(sidebar).getByRole('link', { name: 'Uso do iArnold' })).toHaveAttribute('href', '/admin/ai-usage');
+      expect(within(sidebar).getByRole('link', { name: 'Tutoriais' })).toHaveAttribute('href', '/admin/tutorials');
     });
 
     it('renders Administração before Treinador for an admin trainer', () => {
@@ -861,6 +862,67 @@ describe('Layout', () => {
 
       expect(screen.queryByText('Administração')).not.toBeInTheDocument();
       expect(screen.queryByRole('link', { name: 'Convites do beta' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Tutoriais' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Como usar (trainer tutorials)', () => {
+    const setupRoles = (roles) => {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' },
+        logout: mockLogout,
+        hasRole: (role) => roles.includes(role),
+      });
+    };
+
+    it('shows a Como usar link to /trainer/tutorials in the sidebar for trainers', () => {
+      setupRoles(['TRAINER']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const sidebar = document.querySelector('.sidebar');
+      expect(within(sidebar).getByRole('link', { name: 'Como usar' })).toHaveAttribute('href', '/trainer/tutorials');
+    });
+
+    it('does not show Como usar in the sidebar for non-trainers', () => {
+      setupRoles(['ADMIN']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      expect(screen.queryByRole('link', { name: 'Como usar' })).not.toBeInTheDocument();
+    });
+
+    it('turns the mobile Perfil item into a menu with Meu Perfil and Como usar for trainers', async () => {
+      setupRoles(['TRAINER']);
+      const user = userEvent.setup();
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const bottomNav = document.querySelector('.bottom-nav');
+      expect(within(bottomNav).queryByRole('menuitem', { name: 'Como usar' })).not.toBeInTheDocument();
+
+      await user.click(within(bottomNav).getByRole('button', { name: 'Perfil' }));
+
+      expect(within(bottomNav).getByRole('menuitem', { name: 'Meu Perfil' })).toHaveAttribute('href', '/profile');
+      expect(within(bottomNav).getByRole('menuitem', { name: 'Como usar' })).toHaveAttribute('href', '/trainer/tutorials');
+    });
+
+    it('closes the mobile Perfil menu after choosing Como usar', async () => {
+      setupRoles(['TRAINER']);
+      const user = userEvent.setup();
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const bottomNav = document.querySelector('.bottom-nav');
+      await user.click(within(bottomNav).getByRole('button', { name: 'Perfil' }));
+      await user.click(within(bottomNav).getByRole('menuitem', { name: 'Como usar' }));
+
+      expect(within(bottomNav).queryByRole('menuitem', { name: 'Como usar' })).not.toBeInTheDocument();
+    });
+
+    it('keeps the mobile Perfil item a plain link to /profile for non-trainers', () => {
+      setupRoles([]);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const bottomNav = document.querySelector('.bottom-nav');
+      expect(within(bottomNav).getByRole('link', { name: 'Meu Perfil' })).toHaveAttribute('href', '/profile');
+      expect(within(bottomNav).queryByRole('button', { name: 'Perfil' })).not.toBeInTheDocument();
     });
   });
 
