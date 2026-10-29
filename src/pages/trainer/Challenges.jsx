@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trophy, Calendar } from 'lucide-react';
+import { Trophy, Calendar } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import InfoBanner from '../../components/InfoBanner';
-import CreateChampionshipModal from '../../components/CreateChampionshipModal';
 import {
   CHALLENGE_STATUS,
   CHALLENGE_STATUS_LABEL,
@@ -83,7 +81,6 @@ const Challenges = () => {
   const [allChallenges, setAllChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState(CHALLENGE_STATUS.ACTIVE);
-  const [showQuickCreate, setShowQuickCreate] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -109,7 +106,6 @@ const Challenges = () => {
     [CHALLENGE_STATUS.COMPLETED]: allChallenges.filter((c) => c.status === CHALLENGE_STATUS.COMPLETED).length,
     [CHALLENGE_STATUS.CANCELLED]: allChallenges.filter((c) => c.status === CHALLENGE_STATUS.CANCELLED).length,
   };
-  const hasAnyChallenges = allChallenges.length > 0;
 
   const renderActiveCard = (c) => {
     const progress = getProgressInfo(c);
@@ -281,18 +277,7 @@ const Challenges = () => {
           <Trophy size={24} className="page-header-title-icon" />
           <h1 className="page-title">Campeonatos</h1>
         </div>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => setShowQuickCreate(true)}
-        >
-          <Plus size={16} strokeWidth={1.6} /> Criar
-        </button>
       </div>
-
-      {!hasAnyChallenges && !loading && (
-        <InfoBanner text="Crie campeonatos com ranking e pontuação para engajar seus alunos. Cada treino concluído, sequência mantida ou check-in diário gera pontos automaticamente." />
-      )}
 
       <div className="tabs-container" role="tablist" aria-label="Filtrar por status">
         {FILTER_OPTIONS.map((f) => (
@@ -325,16 +310,11 @@ const Challenges = () => {
             Nenhum campeonato {CHALLENGE_STATUS_LABEL[statusFilter]?.toLowerCase() || ''}.
           </p>
           <p className="text-sm text-muted">
-            {statusFilter === CHALLENGE_STATUS.ACTIVE && 'Crie um campeonato para engajar seus alunos com ranking e pontos.'}
+            {statusFilter === CHALLENGE_STATUS.ACTIVE && 'Seus campeonatos ativos aparecerão aqui.'}
             {statusFilter === CHALLENGE_STATUS.SCHEDULED && 'Campeonatos agendados para o futuro aparecerão aqui.'}
             {statusFilter === CHALLENGE_STATUS.COMPLETED && 'Seus campeonatos encerrados ficarão registrados aqui.'}
             {statusFilter === CHALLENGE_STATUS.CANCELLED && 'Campeonatos que foram cancelados aparecerão aqui.'}
           </p>
-          {statusFilter === CHALLENGE_STATUS.ACTIVE && (
-            <button type="button" className="btn-primary" onClick={() => setShowQuickCreate(true)}>
-              Criar meu primeiro campeonato
-            </button>
-          )}
         </div>
       )}
 
@@ -343,12 +323,6 @@ const Challenges = () => {
           {challenges.map(renderCard)}
         </div>
       )}
-
-      <CreateChampionshipModal
-        isOpen={showQuickCreate}
-        onClose={() => setShowQuickCreate(false)}
-        onCreated={(newId) => navigate(`/trainer/challenges/${newId}`)}
-      />
     </div>
   );
 };

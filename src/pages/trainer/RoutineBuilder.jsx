@@ -2361,7 +2361,7 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
   // into state — it only activates after the first explicit change.
   const touchedRef = useRef(false);
 
-  const { user: authUser, isAdmin } = useAuth();
+  const { user: authUser } = useAuth();
   const [formLayout, setFormLayout] = useFormLayoutPreference();
   const isProtocol = mode === 'protocol';
   const isTemplateEdit = !isProtocol && !!routineId;
@@ -3021,7 +3021,6 @@ const RoutineBuilderCore = ({ routine, mode, studentId, readOnly, editProtocolId
           principal={exerciseDrawer.target.principal}
           exerciseTemplates={routine.exerciseTemplates}
           saving={routine.saving || exerciseDrawer.submitting}
-          canUseVideoLibrary={isAdmin}
           layout={formLayout}
           onCreate={exerciseDrawer.handleCreate}
           onEdit={exerciseDrawer.handleEdit}

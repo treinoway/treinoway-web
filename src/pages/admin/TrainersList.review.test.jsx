@@ -20,7 +20,7 @@ describe('TrainersList review fixes', () => {
       page([{ ...base, trainerId: 't1', firstName: null, lastName: null, email: null, subscriptionStatus: null }])
     );
     render(<TrainersList />);
-    expect(await screen.findByRole('button', { name: 'Alterar plano de —' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Ações de —' })).toBeInTheDocument();
     expect(screen.queryByText(/null/)).not.toBeInTheDocument();
   });
 

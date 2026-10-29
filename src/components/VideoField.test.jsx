@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '../test/test-utils';
 import userEvent from '@testing-library/user-event';
@@ -24,50 +25,22 @@ vi.mock('../api/axios', () => ({
 const renderField = (props = {}) => {
   const onChange = props.onChange ?? vi.fn();
   const value = props.value ?? '';
-  const utils = render(<VideoField value={value} onChange={onChange} canUseLibrary {...props} />);
+  const utils = render(<VideoField value={value} onChange={onChange} {...props} />);
   return { ...utils, onChange };
 };
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('VideoField — empty state', () => {
-  it('renders the library CTA button', () => {
+  it('shows the URL input right away', () => {
     renderField();
-    expect(
-      screen.getByRole('button', { name: /escolher da biblioteca/i })
-    ).toBeInTheDocument();
-  });
-
-  it('renders the URL toggle link', () => {
-    renderField();
-    expect(
-      screen.getByRole('button', { name: /cole uma url do youtube/i })
-    ).toBeInTheDocument();
-  });
-
-  it('does not show the URL input before the toggle is clicked', () => {
-    renderField();
-    expect(screen.queryByRole('textbox', { name: /url do youtube/i })).not.toBeInTheDocument();
-  });
-
-  it('reveals the URL input when the toggle link is clicked', async () => {
-    const user = userEvent.setup();
-    renderField();
-
-    await user.click(screen.getByRole('button', { name: /cole uma url do youtube/i }));
-
     expect(screen.getByRole('textbox', { name: /url do youtube/i })).toBeInTheDocument();
   });
 
-  it('hides the URL toggle after revealing the input', async () => {
-    const user = userEvent.setup();
+  it('does not offer the video library or a URL toggle', () => {
     renderField();
-
-    await user.click(screen.getByRole('button', { name: /cole uma url do youtube/i }));
-
-    expect(
-      screen.queryByRole('button', { name: /cole uma url do youtube/i })
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /escolher da biblioteca/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /cole uma url do youtube/i })).not.toBeInTheDocument();
   });
 
   it('renders the label "Vídeo de demonstração" by default', () => {
@@ -81,49 +54,6 @@ describe('VideoField — empty state', () => {
   });
 });
 
-describe('VideoField — library picker', () => {
-  it('opens the picker when the CTA is clicked', async () => {
-    const user = userEvent.setup();
-    renderField();
-
-    await user.click(screen.getByRole('button', { name: /escolher da biblioteca/i }));
-
-    expect(
-      screen.getByRole('dialog', { name: /selecionar vídeo da biblioteca/i })
-    ).toBeInTheDocument();
-  });
-
-  it('calls onChange with the video URL when a video is selected from the picker', async () => {
-    const user = userEvent.setup();
-    const onChange = vi.fn();
-    const apiModule = await import('../api/axios');
-    apiModule.default.get.mockResolvedValue({
-      data: {
-        items: [
-          {
-            id: 'v1',
-            title: 'Supino tutorial',
-            url: 'https://youtube.com/watch?v=abc123',
-            thumbnailUrl: null,
-            category: null,
-            bodySegment: null,
-          },
-        ],
-        total: 1,
-      },
-    });
-
-    renderField({ onChange });
-
-    await user.click(screen.getByRole('button', { name: /escolher da biblioteca/i }));
-
-    const videoItem = await screen.findByRole('button', { name: /selecionar vídeo supino tutorial/i });
-    await user.click(videoItem);
-
-    expect(onChange).toHaveBeenCalledWith('https://youtube.com/watch?v=abc123');
-  });
-});
-
 describe('VideoField — valid YouTube URL', () => {
   it('renders the iframe when value is a valid YouTube URL', () => {
     renderField({ value: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
@@ -133,10 +63,10 @@ describe('VideoField — valid YouTube URL', () => {
     expect(iframe).toHaveAttribute('src', expect.stringContaining('dQw4w9WgXcQ'));
   });
 
-  it('renders "Trocar" and "Remover" action buttons when video is valid', () => {
+  it('renders only the "Remover" action when video is valid', () => {
     renderField({ value: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
 
-    expect(screen.getByRole('button', { name: /trocar/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /trocar/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /remover/i })).toBeInTheDocument();
   });
 
@@ -148,17 +78,6 @@ describe('VideoField — valid YouTube URL', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('"Trocar" reopens the picker', async () => {
-    const user = userEvent.setup();
-    renderField({ value: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
-
-    await user.click(screen.getByRole('button', { name: /trocar/i }));
-
-    expect(
-      screen.getByRole('dialog', { name: /selecionar vídeo da biblioteca/i })
-    ).toBeInTheDocument();
-  });
-
   it('"Remover" calls onChange with empty string', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
@@ -167,6 +86,20 @@ describe('VideoField — valid YouTube URL', () => {
     await user.click(screen.getByRole('button', { name: /remover/i }));
 
     expect(onChange).toHaveBeenCalledWith('');
+  });
+
+  it('shows the URL input again after "Remover"', async () => {
+    const user = userEvent.setup();
+    const Harness = () => {
+      const [value, setValue] = useState('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+      return <VideoField value={value} onChange={setValue} />;
+    };
+    render(<Harness />);
+
+    await user.click(screen.getByRole('button', { name: /remover/i }));
+
+    expect(screen.getByRole('textbox', { name: /url do youtube/i })).toBeInTheDocument();
+    expect(screen.queryByTitle('Vídeo de demonstração do exercício')).not.toBeInTheDocument();
   });
 
   it('handles YouTube Shorts URLs', () => {
@@ -186,11 +119,8 @@ describe('VideoField — valid YouTube URL', () => {
 
 describe('VideoField — invalid / non-YouTube URL', () => {
   it('shows a hint when a non-YouTube URL is typed', async () => {
-    const user = userEvent.setup();
     const onChange = vi.fn();
     const { rerender } = renderField({ onChange });
-
-    await user.click(screen.getByRole('button', { name: /cole uma url do youtube/i }));
 
     // Simulate parent updating value after onChange fires
     rerender(<VideoField value="https://vimeo.com/123" onChange={onChange} />);
@@ -217,30 +147,12 @@ describe('VideoField — invalid / non-YouTube URL', () => {
 describe('VideoField — null/undefined value safety', () => {
   it('renders without crashing when value is undefined', () => {
     renderField({ value: undefined });
-    expect(
-      screen.getByRole('button', { name: /escolher da biblioteca/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /url do youtube/i })).toBeInTheDocument();
   });
 
   it('renders without crashing when value is null', () => {
     renderField({ value: null });
-    expect(
-      screen.getByRole('button', { name: /escolher da biblioteca/i })
-    ).toBeInTheDocument();
-  });
-});
-
-describe('VideoField — without library access', () => {
-  it('hides the library CTA and shows the URL input right away', () => {
-    renderField({ canUseLibrary: false });
-    expect(screen.queryByRole('button', { name: /escolher da biblioteca/i })).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/url do youtube/i)).toBeInTheDocument();
-  });
-
-  it('hides "Trocar" but keeps "Remover" for a valid video', () => {
-    renderField({ canUseLibrary: false, value: 'https://www.youtube.com/watch?v=abc123XYZ' });
-    expect(screen.queryByRole('button', { name: /trocar/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /remover/i })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /url do youtube/i })).toBeInTheDocument();
   });
 });
 

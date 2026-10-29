@@ -67,6 +67,7 @@ const RowMenu = ({
               className={`row-menu-item${item.danger ? ' row-menu-item--danger' : ''}`}
               onClick={(e) => handleItemClick(e, item.onClick)}
               disabled={item.disabled}
+              title={item.title}
             >
               {item.label}
             </button>
@@ -100,6 +101,7 @@ RowMenu.propTypes = {
     onClick: PropTypes.func.isRequired,
     danger: PropTypes.bool,
     disabled: PropTypes.bool,
+    title: PropTypes.string,
   })),
   triggerDisabled: PropTypes.bool,
 };

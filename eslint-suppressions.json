@@ -12,9 +12,6 @@
   "src/App.jsx": {
     "local/function-header-comment": {
       "count": 2
-    },
-    "local/no-comments-in-function": {
-      "count": 12
     }
   },
   "src/api/axios.js": {
@@ -243,7 +240,7 @@
       "count": 2
     },
     "local/no-comments-in-function": {
-      "count": 27
+      "count": 25
     }
   },
   "src/components/ExerciseRowCard.jsx": {
@@ -261,7 +258,7 @@
       "count": 2
     },
     "local/no-comments-in-function": {
-      "count": 22
+      "count": 21
     }
   },
   "src/components/FoodSearchDrawer.jsx": {
@@ -893,19 +890,6 @@
     },
     "local/no-comments-in-function": {
       "count": 1
-    }
-  },
-  "src/components/VideoLibraryPicker.jsx": {
-    "local/function-header-comment": {
-      "count": 4
-    },
-    "local/no-comments-in-function": {
-      "count": 3
-    }
-  },
-  "src/components/VideoLibraryPicker.test.jsx": {
-    "local/function-header-comment": {
-      "count": 3
     }
   },
   "src/components/WelcomeHero.jsx": {
@@ -2061,9 +2045,6 @@
   "src/pages/InviteRedeem.jsx": {
     "local/function-header-comment": {
       "count": 2
-    },
-    "local/no-comments-in-function": {
-      "count": 48
     }
   },
   "src/pages/InviteRedeem.test.jsx": {
@@ -2158,42 +2139,6 @@
       "count": 1
     },
     "local/no-comments-in-function": {
-      "count": 1
-    }
-  },
-  "src/pages/admin/VideoCreate.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    }
-  },
-  "src/pages/admin/VideoEdit.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    }
-  },
-  "src/pages/admin/VideoEdit.test.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    },
-    "local/no-comments-in-function": {
-      "count": 2
-    }
-  },
-  "src/pages/admin/VideoForm.jsx": {
-    "local/function-header-comment": {
-      "count": 3
-    }
-  },
-  "src/pages/admin/VideosList.jsx": {
-    "local/function-header-comment": {
-      "count": 2
-    },
-    "local/no-comments-in-function": {
-      "count": 2
-    }
-  },
-  "src/pages/admin/VideosList.test.jsx": {
-    "local/function-header-comment": {
       "count": 1
     }
   },

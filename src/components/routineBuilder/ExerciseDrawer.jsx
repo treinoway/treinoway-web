@@ -24,7 +24,6 @@ const ExerciseDrawer = ({
   principal,
   exerciseTemplates,
   saving,
-  canUseVideoLibrary,
   onCreate,
   onEdit,
   onImport,
@@ -60,7 +59,6 @@ const ExerciseDrawer = ({
           onSubmitFromTemplate={onAddFromTemplate}
           onCancel={requestClose}
           onRequestDelete={onRequestDelete}
-          canUseVideoLibrary={canUseVideoLibrary}
           footerTarget={footerNode}
           onDirtyChange={setDirty}
         />
@@ -75,7 +73,6 @@ ExerciseDrawer.propTypes = {
   principal: PropTypes.object,
   exerciseTemplates: PropTypes.arrayOf(PropTypes.object).isRequired,
   saving: PropTypes.bool.isRequired,
-  canUseVideoLibrary: PropTypes.bool,
   onCreate: PropTypes.func.isRequired,
   onEdit: PropTypes.func.isRequired,
   onImport: PropTypes.func.isRequired,
@@ -88,7 +85,6 @@ ExerciseDrawer.propTypes = {
 ExerciseDrawer.defaultProps = {
   exercise: null,
   principal: null,
-  canUseVideoLibrary: false,
   onRequestDelete: null,
   layout: 'side',
 };

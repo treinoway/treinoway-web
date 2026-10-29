@@ -17,7 +17,7 @@ vi.mock('../contexts/AuthContext', () => ({
 }));
 
 vi.mock('../api/axios', () => ({
-  default: { post: vi.fn() },
+  default: { post: vi.fn(), get: vi.fn() },
 }));
 
 const mockNavigate = vi.fn();
@@ -69,8 +69,9 @@ describe('InviteRedeem', () => {
     expect(screen.getByTestId('redirected')).toBeInTheDocument();
   });
 
-  it('redirects to /signup carrying the code when not authenticated and a code is present', () => {
+  it('redirects to /signup carrying the code when not authenticated and a code is present', async () => {
     setAuth({ isAuthenticated: false, user: null });
+    api.get.mockResolvedValue({ data: { email: 'novo@example.com', accountExists: false } });
 
     render(
       <MemoryRouter initialEntries={['/invite?code=TF-8F3K-2Q7M-04']}>
@@ -81,7 +82,7 @@ describe('InviteRedeem', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId('signup-code')).toHaveTextContent('TF-8F3K-2Q7M-04');
+    expect(await screen.findByTestId('signup-code')).toHaveTextContent('TF-8F3K-2Q7M-04');
   });
 
   it('redirects to / when the user already has beta access', () => {
@@ -148,6 +149,7 @@ describe('InviteRedeem', () => {
 
   it('does not auto-redeem when the user is not authenticated', () => {
     setAuth({ isAuthenticated: false, user: null });
+    api.get.mockResolvedValue({ data: { email: 'novo@example.com', accountExists: false } });
 
     renderWithRoute(<InviteRedeem />, { route: '/invite?code=TF-8F3K-2Q7M-04', path: '/invite' });
 

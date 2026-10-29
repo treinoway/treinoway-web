@@ -3,7 +3,7 @@ import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 
 /**
- * Drives a `ds/ConfirmDialog`. `requestConfirm({ message, onConfirm, confirmLabel?, busyLabel? })`
+ * Drives a `ds/ConfirmDialog`. `requestConfirm({ message, onConfirm, confirmLabel?, confirmTone?, busyLabel? })`
  * opens it; the dialog stays open (busy) while `onConfirm` runs and closes afterwards.
  * A rejected `onConfirm` surfaces as an error toast.
  *
@@ -33,6 +33,7 @@ const useConfirmDialog = () => {
     ? {
         message: pending.message,
         confirmLabel: pending.confirmLabel,
+        confirmTone: pending.confirmTone,
         busyLabel: pending.busyLabel ?? 'Excluindo…',
         busy,
         onConfirm: handleConfirm,

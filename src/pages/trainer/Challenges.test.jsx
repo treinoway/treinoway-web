@@ -11,16 +11,6 @@ vi.mock('../../api/axios', () => ({
   default: { get: vi.fn(), post: vi.fn() },
   onNetworkError: vi.fn(() => vi.fn()),
 }));
-vi.mock('../../components/CreateChampionshipModal', () => ({
-  default: ({ isOpen, onClose }) => {
-    if (!isOpen) return null;
-    return (
-      <div data-testid="championship-modal">
-        <button onClick={onClose}>Fechar</button>
-      </div>
-    );
-  },
-}));
 
 const mockShowToast = vi.fn();
 
@@ -148,7 +138,7 @@ describe('Challenges', () => {
   it('shows empty state subtitle for active filter', async () => {
     api.get.mockResolvedValue({ data: [] });
     renderWithRouter(<Challenges />);
-    expect(await screen.findByText(/Crie um campeonato para engajar seus alunos/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Seus campeonatos ativos aparecerão aqui/i)).toBeInTheDocument();
   });
 
   it('switches to scheduled tab and shows scheduled challenges client-side', async () => {
@@ -217,33 +207,6 @@ describe('Challenges', () => {
       expect(screen.getByRole('tab', { name: /Encerrados/i })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /Cancelados/i })).toBeInTheDocument();
     });
-  });
-
-  it('renders Criar button', async () => {
-    api.get.mockResolvedValue({ data: [] });
-    renderWithRouter(<Challenges />);
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Criar/i })).toBeInTheDocument();
-    });
-  });
-
-  it('opens championship modal when clicking Criar button', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: [activeChallenge] });
-    renderWithRouter(<Challenges />);
-    await screen.findByText('Verao 2026');
-
-    const createButton = screen.getByRole('button', { name: /Criar/i });
-    await user.click(createButton);
-    await waitFor(() => {
-      expect(screen.getByTestId('championship-modal')).toBeInTheDocument();
-    });
-  });
-
-  it('shows info banner when trainer has no challenges', async () => {
-    api.get.mockResolvedValue({ data: [] });
-    renderWithRouter(<Challenges />);
-    expect(await screen.findByRole('note')).toBeInTheDocument();
   });
 
   it('hides info banner when trainer has at least one challenge', async () => {

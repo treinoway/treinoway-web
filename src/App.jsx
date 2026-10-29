@@ -43,13 +43,10 @@ import AssignAnamnesis from './pages/trainer/AssignAnamnesis';
 import AnamnesisResponseDetail from './pages/trainer/AnamnesisResponseDetail';
 import TrainerAnamnesisFill from './pages/trainer/TrainerAnamnesisFill';
 import AiAssistant from './pages/trainer/AiAssistant';
-import TrainerBranding from './pages/trainer/TrainerBranding';
 import RoutineBuilder from './pages/trainer/RoutineBuilder';
 import StudentPoints from './pages/trainer/StudentPoints';
 import Challenges from './pages/trainer/Challenges';
-import CreateChallenge from './pages/trainer/CreateChallenge';
 import ChallengeDetail from './pages/trainer/ChallengeDetail';
-import CreateChampionship from './pages/trainer/CreateChampionship';
 import SessionDetail from './pages/trainer/SessionDetail';
 import Financeiro from './pages/trainer/Financeiro';
 import SubscriptionHistory from './pages/trainer/SubscriptionHistory';
@@ -64,9 +61,6 @@ import NutritionistRoute from './components/NutritionistRoute';
 import RequireRole from './components/RequireRole';
 
 // Admin pages
-import VideosList from './pages/admin/VideosList';
-import VideoCreate from './pages/admin/VideoCreate';
-import VideoEdit from './pages/admin/VideoEdit';
 import InvitesList from './pages/admin/InvitesList';
 import TrainersList from './pages/admin/TrainersList';
 import AiUsage from './pages/admin/AiUsage';
@@ -101,18 +95,15 @@ function App() {
           <AuthProvider>
             <AiChatProvider>
             <Routes>
-          {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          {/* Beta gate redemption — self-guards auth; NOT wrapped in the
-              beta-gated ProtectedRoute to avoid a redirect loop. */}
+          {/* why: self-guards auth; wrapping in the beta-gated ProtectedRoute would loop */}
           <Route path="/invite" element={<InviteRedeem />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/account-deletion" element={<AccountDeletion />} />
 
-          {/* Protected routes */}
           <Route
             path="/"
             element={
@@ -145,7 +136,6 @@ function App() {
             }
           />
 
-          {/* Trainer routes */}
           <Route
             path="/trainer/training-templates"
             element={
@@ -236,7 +226,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* ── Routines ── */}
           <Route
             path="/trainer/routines"
             element={
@@ -277,7 +266,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* ── Backwards-compat redirects from legacy /trainer/protocol-templates URLs ── */}
           <Route path="/trainer/protocol-templates" element={<Navigate to="/trainer/routines" replace />} />
           <Route path="/trainer/protocol-templates/new" element={<Navigate to="/trainer/routines/new" replace />} />
           <Route path="/trainer/protocol-templates/:id" element={<RedirectWithId to="/trainer/routines/:id" />} />
@@ -448,16 +436,8 @@ function App() {
             }
           />
 
-          <Route
-            path="/trainer/branding"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <TrainerBranding />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
+          {/* why: branding and championship creation are hidden for all trainers during the beta */}
+          <Route path="/trainer/branding" element={<Navigate to="/" replace />} />
 
           <Route
             path="/trainer/financeiro"
@@ -483,7 +463,6 @@ function App() {
 
           <Route path="/trainer/gamification" element={<Navigate to="/trainer/challenges" replace />} />
 
-          {/* Redirects for removed pages */}
           <Route path="/trainer/competition" element={<Navigate to="/trainer/challenges" replace />} />
           <Route path="/trainer/ranking" element={<Navigate to="/trainer/challenges" replace />} />
           <Route path="/my/ranking" element={<Navigate to="/my/challenges" replace />} />
@@ -509,16 +488,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/trainer/challenges/new"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <CreateChallenge />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/trainer/challenges/new" element={<Navigate to="/" replace />} />
           <Route
             path="/trainer/challenges/:id"
             element={
@@ -529,18 +499,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/trainer/championships/create"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <CreateChampionship />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/trainer/championships/create" element={<Navigate to="/" replace />} />
 
-          {/* Nutritionist routes */}
           <Route
             path="/nutritionist/onboarding"
             element={
@@ -591,10 +551,8 @@ function App() {
               </NutritionistRoute>
             }
           />
-          {/* Redirect removed nutritionist profile page to unified profile */}
           <Route path="/nutritionist/profile" element={<Navigate to="/profile" replace />} />
 
-          {/* Student routes */}
           <Route
             path="/my/protocols"
             element={
@@ -688,37 +646,6 @@ function App() {
             }
           />
 
-          {/* Admin routes */}
-          <Route
-            path="/admin/videos"
-            element={
-              <RequireRole roles={['admin']}>
-                <Layout>
-                  <VideosList />
-                </Layout>
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/videos/new"
-            element={
-              <RequireRole roles={['admin']}>
-                <Layout>
-                  <VideoCreate />
-                </Layout>
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/videos/:videoId"
-            element={
-              <RequireRole roles={['admin']}>
-                <Layout>
-                  <VideoEdit />
-                </Layout>
-              </RequireRole>
-            }
-          />
           <Route
             path="/admin/invites"
             element={
@@ -750,7 +677,6 @@ function App() {
             }
           />
 
-          {/* Catch all - redirect to dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
             </AiChatProvider>

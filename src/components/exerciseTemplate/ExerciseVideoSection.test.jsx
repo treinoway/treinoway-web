@@ -5,7 +5,7 @@ import ExerciseVideoSection from './ExerciseVideoSection';
 const VALID_URL = 'https://www.youtube.com/watch?v=abc123XYZ';
 
 const renderSection = (props = {}) => {
-  const handlers = { onVideoUrlChange: vi.fn(), onPickFromLibrary: vi.fn(), onRemoveVideo: vi.fn() };
+  const handlers = { onVideoUrlChange: vi.fn(), onRemoveVideo: vi.fn() };
   render(<ExerciseVideoSection className="section-card" videoUrl="" {...handlers} {...props} />);
   return handlers;
 };
@@ -32,12 +32,10 @@ describe('ExerciseVideoSection', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Link de YouTube inválido');
   });
 
-  it('forwards the library and remove actions', async () => {
+  it('forwards the remove action', async () => {
     const user = userEvent.setup();
-    const { onPickFromLibrary, onRemoveVideo } = renderSection({ videoUrl: VALID_URL });
-    await user.click(screen.getByRole('button', { name: /escolher da biblioteca/i }));
+    const { onRemoveVideo } = renderSection({ videoUrl: VALID_URL });
     await user.click(screen.getByRole('button', { name: /remover vídeo/i }));
-    expect(onPickFromLibrary).toHaveBeenCalled();
     expect(onRemoveVideo).toHaveBeenCalled();
   });
 
@@ -48,11 +46,10 @@ describe('ExerciseVideoSection', () => {
       expect(screen.getByLabelText(/link do gif/i)).toBeEnabled();
     });
 
-    it('disables both inputs and hides the library and remove actions', () => {
+    it('disables both inputs and hides the remove action', () => {
       renderSection({ videoUrl: VALID_URL, gifUrl: '', onGifUrlChange: vi.fn(), disabled: true });
       expect(screen.getByLabelText(/url do vídeo/i)).toBeDisabled();
       expect(screen.getByLabelText(/link do gif/i)).toBeDisabled();
-      expect(screen.queryByRole('button', { name: /escolher da biblioteca/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /remover vídeo/i })).not.toBeInTheDocument();
     });
   });
