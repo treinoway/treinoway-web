@@ -5,9 +5,23 @@ import ConfirmDialog from '../ds/ConfirmDialog';
 import ExerciseComposer from '../ExerciseComposer';
 import useDiscardGuard from '../../hooks/useDiscardGuard';
 
+// Drawer title for adding or editing an exercise or a substitute.
+const drawerTitle = (exercise, principal) => {
+  if (principal) return exercise ? 'Editar substituto' : 'Novo substituto';
+  return exercise ? 'Editar exercício' : 'Novo exercício';
+};
+
+// Selector of the element that opened the drawer, so focus returns there on close.
+const getReturnFocusSelector = (exercise, principal) => {
+  if (!principal) return exercise ? `[data-exercise-id="${exercise.id}"] .row-menu-trigger` : undefined;
+  if (exercise) return `[data-substitute-id="${exercise.id}"] .substitute-row-edit`;
+  return `[data-exercise-id="${principal.id}"] .row-menu-trigger`;
+};
+
 // Drawer that hosts the exercise composer (add or edit) with a discard guard on close.
 const ExerciseDrawer = ({
   exercise,
+  principal,
   exerciseTemplates,
   saving,
   onCreate,
@@ -18,7 +32,7 @@ const ExerciseDrawer = ({
   onClose,
   layout,
 }) => {
-  const returnFocusSelector = exercise ? `[data-exercise-id="${exercise.id}"] .row-menu-trigger` : undefined;
+  const returnFocusSelector = getReturnFocusSelector(exercise, principal);
   const [footerNode, setFooterNode] = useState(null);
   const [dirty, setDirty] = useState(false);
   const { requestClose, dialogProps } = useDiscardGuard(onClose, dirty);
@@ -26,14 +40,16 @@ const ExerciseDrawer = ({
   return (
     <>
       <Drawer
-        title={exercise ? 'Editar exercício' : 'Novo exercício'}
+        title={drawerTitle(exercise, principal)}
         onClose={requestClose}
         busy={saving}
         layout={layout}
         returnFocusSelector={returnFocusSelector}
         footer={<div ref={setFooterNode} className="composer-footer-slot" />}
       >
+        {principal && <p className="type-body text-light drawer-substitute-caption">{`no lugar de ${principal.name}`}</p>}
         <ExerciseComposer
+          substituteFor={principal}
           snapshot={exercise}
           exerciseTemplates={exerciseTemplates}
           saving={saving}
@@ -54,6 +70,7 @@ const ExerciseDrawer = ({
 
 ExerciseDrawer.propTypes = {
   exercise: PropTypes.object,
+  principal: PropTypes.object,
   exerciseTemplates: PropTypes.arrayOf(PropTypes.object).isRequired,
   saving: PropTypes.bool.isRequired,
   onCreate: PropTypes.func.isRequired,
@@ -67,6 +84,7 @@ ExerciseDrawer.propTypes = {
 
 ExerciseDrawer.defaultProps = {
   exercise: null,
+  principal: null,
   onRequestDelete: null,
   layout: 'side',
 };

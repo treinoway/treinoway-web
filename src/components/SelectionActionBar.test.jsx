@@ -12,9 +12,9 @@ describe('SelectionActionBar', () => {
         onConfirm={vi.fn()}
       />
     );
-    expect(screen.getByText('1/6 selecionados')).toBeInTheDocument();
+    expect(screen.getByText('1 selecionados')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Agrupar em bi-set' })
+      screen.getByRole('button', { name: 'Criar bi-set' })
     ).toBeDisabled();
   });
 
@@ -27,7 +27,7 @@ describe('SelectionActionBar', () => {
       />
     );
     expect(
-      screen.getByRole('button', { name: 'Agrupar em bi-set' })
+      screen.getByRole('button', { name: 'Criar bi-set' })
     ).toBeEnabled();
   });
 
@@ -40,7 +40,7 @@ describe('SelectionActionBar', () => {
       />
     );
     expect(
-      screen.getByRole('button', { name: 'Agrupar em bi-set' })
+      screen.getByRole('button', { name: 'Criar bi-set' })
     ).toBeEnabled();
   });
 
@@ -58,7 +58,7 @@ describe('SelectionActionBar', () => {
     ).toBeDisabled();
   });
 
-  it('calls onCancel when the close button is clicked', async () => {
+  it('calls onCancel when the "Cancelar" button is clicked', async () => {
     const user = userEvent.setup();
     const onCancel = vi.fn();
     render(
@@ -68,7 +68,7 @@ describe('SelectionActionBar', () => {
         onConfirm={vi.fn()}
       />
     );
-    await user.click(screen.getByRole('button', { name: 'Cancelar seleção' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(onCancel).toHaveBeenCalledOnce();
   });
 
@@ -82,7 +82,7 @@ describe('SelectionActionBar', () => {
         onConfirm={onConfirm}
       />
     );
-    await user.click(screen.getByRole('button', { name: 'Agrupar em bi-set' }));
+    await user.click(screen.getByRole('button', { name: 'Criar bi-set' }));
     expect(onConfirm).toHaveBeenCalledOnce();
   });
 });

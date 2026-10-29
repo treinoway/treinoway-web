@@ -1443,16 +1443,18 @@ describe('RoutineBuilder — drag handle affordance', () => {
   });
 
   it('drag handle is NOT present as an interactive button in selectionMode', async () => {
+    useProtocolBuilder.mockReturnValue({
+      ...POPULATED_HOOK_STATE,
+      data: { ...POPULATED_HOOK_STATE.data, trainings: [TRAINING_WITH_TWO_EXERCISES] },
+    });
     const user = userEvent.setup();
-    renderNew();
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1/edit',
+      path: '/trainer/protocols/:id/edit',
+    });
     await expandTraining(user);
 
-    // Enter selection mode via the training menu ("Opções do treino <name>")
-    const trainingMenu = screen.getByRole('button', {
-      name: /Opções do treino/i,
-    });
-    await user.click(trainingMenu);
-    await user.click(await screen.findByRole('menuitem', { name: /Selecionar/i }));
+    await user.click(screen.getByRole('button', { name: /^Criar bi-set$/i }));
 
     // Handle should no longer be an interactive button
     expect(
@@ -3718,7 +3720,7 @@ describe('RoutineBuilder — bi-set selection mode', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    useRoutineBuilder.mockReturnValue({ ...HOOK_STATE_TWO_EX });
+    useProtocolBuilder.mockReturnValue({ ...HOOK_STATE_TWO_EX });
     useBisetCreate.mockReturnValue({
       createBiset: vi.fn().mockResolvedValue({ groupId: 'g1', members: [] }),
       dissolveBiset: vi.fn().mockResolvedValue(undefined),
@@ -3727,25 +3729,30 @@ describe('RoutineBuilder — bi-set selection mode', () => {
     });
   });
 
+  const renderProtocolEdit = () =>
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1/edit',
+      path: '/trainer/protocols/:id/edit',
+    });
+
   const expand = async (user) => {
     await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
     await screen.findByRole('list', { name: /Exercícios/i });
   };
 
-  it('Selecionar item in the training menu enters selection mode and shows the action bar', async () => {
+  it('the "Criar bi-set" toolbar button enters selection mode and shows the action bar', async () => {
     const user = userEvent.setup();
-    renderNew();
+    renderProtocolEdit();
     await expand(user);
 
-    await user.click(screen.getByRole('button', { name: /Opções do treino/i }));
-    await user.click(await screen.findByRole('menuitem', { name: /^Selecionar$/i }));
+    await user.click(screen.getByRole('button', { name: /^Criar bi-set$/i }));
 
-    expect(screen.getByRole('toolbar', { name: /Seleção de exercícios/i })).toBeInTheDocument();
-    // CTA disabled at 0 selected
-    expect(screen.getByRole('button', { name: /Agrupar em bi-set/i })).toBeDisabled();
+    const bar = screen.getByRole('toolbar', { name: /Seleção de exercícios/i });
+    expect(within(bar).getByText(/0 selecionados/i)).toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: /^Criar bi-set$/i })).toBeDisabled();
   });
 
-  it('selecting two exercises and clicking Agrupar calls createBiset with the ordered members', async () => {
+  it('selecting two exercises and confirming in the bar calls createBiset with the ordered members', async () => {
     const createBiset = vi.fn().mockResolvedValue({ groupId: 'g1', members: [] });
     useBisetCreate.mockReturnValue({
       createBiset,
@@ -3755,11 +3762,10 @@ describe('RoutineBuilder — bi-set selection mode', () => {
     });
 
     const user = userEvent.setup();
-    renderNew();
+    renderProtocolEdit();
     await expand(user);
 
-    await user.click(screen.getByRole('button', { name: /Opções do treino/i }));
-    await user.click(await screen.findByRole('menuitem', { name: /^Selecionar$/i }));
+    await user.click(screen.getByRole('button', { name: /^Criar bi-set$/i }));
 
     // Select both rows. The selectable row exposes the same aria-label on
     // both the row wrapper and the inner checkbox button — clicking the
@@ -3769,9 +3775,10 @@ describe('RoutineBuilder — bi-set selection mode', () => {
     const roscaTargets = screen.getAllByRole('button', { name: /Selecionar Rosca direta/i });
     await user.click(roscaTargets[0]);
 
-    expect(screen.getByRole('button', { name: /Agrupar em bi-set/i })).toBeEnabled();
+    const bar = screen.getByRole('toolbar', { name: /Seleção de exercícios/i });
+    expect(within(bar).getByRole('button', { name: /^Criar bi-set$/i })).toBeEnabled();
 
-    await user.click(screen.getByRole('button', { name: /Agrupar em bi-set/i }));
+    await user.click(within(bar).getByRole('button', { name: /^Criar bi-set$/i }));
 
     await waitFor(() => {
       expect(createBiset).toHaveBeenCalledTimes(1);
@@ -3783,15 +3790,15 @@ describe('RoutineBuilder — bi-set selection mode', () => {
 
   it('cancelling selection mode clears the action bar', async () => {
     const user = userEvent.setup();
-    renderNew();
+    renderProtocolEdit();
     await expand(user);
 
-    await user.click(screen.getByRole('button', { name: /Opções do treino/i }));
-    await user.click(await screen.findByRole('menuitem', { name: /^Selecionar$/i }));
+    await user.click(screen.getByRole('button', { name: /^Criar bi-set$/i }));
 
     expect(screen.getByRole('toolbar', { name: /Seleção de exercícios/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Cancelar seleção/i }));
+    const bar = screen.getByRole('toolbar', { name: /Seleção de exercícios/i });
+    await user.click(within(bar).getByRole('button', { name: /^Cancelar$/i }));
 
     expect(
       screen.queryByRole('toolbar', { name: /Seleção de exercícios/i })
@@ -3836,8 +3843,14 @@ describe('RoutineBuilder — bi-set rendering and dissolve', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    useRoutineBuilder.mockReturnValue({ ...HOOK_STATE });
+    useProtocolBuilder.mockReturnValue({ ...HOOK_STATE });
   });
+
+  const renderProtocolEdit = () =>
+    renderWithRoute(<RoutineBuilder />, {
+      route: '/trainer/protocols/proto-1/edit',
+      path: '/trainer/protocols/:id/edit',
+    });
 
   const expand = async (user) => {
     await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
@@ -3846,27 +3859,29 @@ describe('RoutineBuilder — bi-set rendering and dissolve', () => {
 
   it('renders a Bi-set badge and groups members into a single block', async () => {
     const user = userEvent.setup();
-    renderNew();
+    renderProtocolEdit();
     await expand(user);
 
-    expect(screen.getByRole('button', { name: /ações do bi-set/i })).toBeInTheDocument();
+    const group = screen.getByRole('group', { name: 'Bi-set' });
+    expect(within(group).getByText('Bi-set')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ações do bi-set/i })).not.toBeInTheDocument();
     // Both members visible
     expect(screen.getByText('Supino A')).toBeInTheDocument();
     expect(screen.getByText('Rosca B')).toBeInTheDocument();
   });
 
-  it('tapping the Bi-set badge opens the action sheet with Desfazer entry', async () => {
+  it('the trash button next to the badge opens exactly one confirm dialog', async () => {
     const user = userEvent.setup();
-    renderNew();
+    renderProtocolEdit();
     await expand(user);
 
-    await user.click(screen.getByRole('button', { name: /ações do bi-set/i }));
-    expect(
-      await screen.findByRole('button', { name: /Desfazer bi-set/i })
-    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Desfazer bi-set$/i }));
+
+    expect(await screen.findAllByRole('alertdialog')).toHaveLength(1);
+    expect(screen.queryAllByRole('dialog')).toHaveLength(0);
   });
 
-  it('confirming dissolve from the action sheet calls dissolveBiset with the members', async () => {
+  it('confirming dissolve from the trash confirm calls dissolveBiset with the members', async () => {
     const dissolveBiset = vi.fn().mockResolvedValue(undefined);
     useBisetCreate.mockReturnValue({
       createBiset: vi.fn(),
@@ -3876,11 +3891,10 @@ describe('RoutineBuilder — bi-set rendering and dissolve', () => {
     });
 
     const user = userEvent.setup();
-    renderNew();
+    renderProtocolEdit();
     await expand(user);
 
-    await user.click(screen.getByRole('button', { name: /ações do bi-set/i }));
-    await user.click(await screen.findByRole('button', { name: /Desfazer bi-set/i }));
+    await user.click(screen.getByRole('button', { name: /^Desfazer bi-set$/i }));
     await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /Desfazer bi-set/i }));
 
     await waitFor(() => {
@@ -3935,7 +3949,7 @@ describe('RoutineBuilder — substitute composer (protocol mode)', () => {
     ).toBeInTheDocument();
   });
 
-  it('clicking "Adicionar substituto" opens the SubstituteComposerSheet', async () => {
+  it('clicking "Adicionar substituto" opens the exercise drawer in substitute mode', async () => {
     const user = userEvent.setup();
     renderProtocolEdit();
 
@@ -3948,7 +3962,7 @@ describe('RoutineBuilder — substitute composer (protocol mode)', () => {
     );
 
     expect(
-      await screen.findByRole('dialog', { name: /Adicionar substituto/i })
+      await screen.findByRole('dialog', { name: 'Novo substituto' })
     ).toBeInTheDocument();
   });
 
@@ -4507,12 +4521,11 @@ describe('RoutineBuilder — edit exercise opens in a drawer', () => {
     expect(within(dialog).getByRole('button', { name: /^Cancelar$/ })).toBeInTheDocument();
   });
 
-  it('the row menu "Editar" item opens the same drawer', async () => {
+  it('clicking the exercise card opens the same drawer', async () => {
     const user = userEvent.setup();
     renderNew();
     await user.click(screen.getByRole('button', { name: /Expandir treino/i }));
-    await user.click(await screen.findByRole('button', { name: /Ações de Supino reto/i }));
-    await user.click(await screen.findByRole('menuitem', { name: /Editar/i }));
+    await user.click(await screen.findByRole('button', { name: 'Editar Supino reto' }));
 
     expect(await screen.findByRole('dialog', { name: 'Editar exercício' })).toBeInTheDocument();
   });

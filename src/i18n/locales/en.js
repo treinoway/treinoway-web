@@ -326,13 +326,15 @@ const en = {
 
   exerciseGroup: {
     select: 'Select',
-    cancelSelection: 'Cancel selection',
-    groupAsBiset: 'Group as bi-set',
+    cancelSelection: 'Cancel',
+    createBiset: 'Create bi-set',
+    roundRest: 'Round rest',
+    groupAsBiset: 'Create bi-set',
     biset: 'Bi-set',
     dissolveBiset: 'Undo bi-set',
     bisetCreated: 'Bi-set created.',
     bisetDissolved: 'Bi-set undone.',
-    selectionCount: '{selected}/6 selected',
+    selectionCount: '{selected} selected',
     selectionInstruction: 'Select 2 to 6 exercises to group as a bi-set.',
     selectionInstructionLong:
       'Select 2 to 6 exercises. They do not have to be in sequence.',
@@ -388,6 +390,7 @@ const en = {
     deleteConfirm: 'Delete "{name}"? This action cannot be undone.',
     deletedToast: 'Substitute removed.',
     deleteAria: 'Delete substitute {name}',
+    editAria: 'Edit substitute {name}',
   },
 
   trainerBriefing: {

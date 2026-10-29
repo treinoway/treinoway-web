@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api/axios';
 import { useToast } from '../contexts/ToastContext';
 import { getLoadDefault } from '../constants/exerciseTypes';
@@ -16,6 +16,17 @@ const extractTechniqueFields = (junction) => {
     : { advancedTechniques: display };
 };
 
+// Carries superset grouping from a junction, remapping the template group id to a fresh client uuid.
+const extractSupersetFields = (junction, groupIdMap) => {
+  if (!junction.supersetGroupId) return {};
+  if (!groupIdMap.has(junction.supersetGroupId)) groupIdMap.set(junction.supersetGroupId, crypto.randomUUID());
+  return {
+    supersetGroupId: groupIdMap.get(junction.supersetGroupId),
+    supersetOrder: junction.supersetOrder ?? 0,
+    supersetRestInterval: junction.supersetRestInterval ?? null,
+  };
+};
+
 /**
  * Extracts a flat exercises array from a protocol-template training payload.
  * Handles both junction format (trainingTemplateExerciseTemplates) and legacy.
@@ -28,9 +39,11 @@ const extractExercisesFromTemplate = (raw) => {
     raw.trainingTemplate?.exerciseTemplates ||
     raw.exerciseTemplates ||
     [];
+  const groupIdMap = new Map();
   return junctions
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((j) => ({
+      ...extractSupersetFields(j, groupIdMap),
       id: j.id,
       _templateId: j.exerciseTemplate?.id || j.exerciseTemplateId || null,
       name: j.exerciseTemplate?.name || j.name || '',
@@ -57,6 +70,27 @@ const makeTempId = () => `tmp_${crypto.randomUUID()}`;
 // The POST /trainer/protocols/with-trainings endpoint uses
 // `additionalProperties: false`, so any unknown field (frontend-only flags, temp
 // ids, *Label siblings) triggers a 400. These mappers build explicit allow-lists.
+
+const BULK_SUBSTITUTE_FIELDS = [
+  'name', 'type', 'videoUrl', 'gifUrl', 'sets', 'repetitions', 'duration', 'prescriptionMode',
+  'hasLoad', 'suggestedLoad', 'restInterval', 'notes', 'intensity', 'exerciseTemplateId', 'advancedTechniqueIds',
+];
+
+// Maps a local substitute to the bulk allow-list (no row ids or display fields).
+const toBulkSubstitute = (substitute) =>
+  BULK_SUBSTITUTE_FIELDS.reduce((payload, key) => {
+    const value = substitute[key];
+    if (value != null && value !== '') payload[key] = value;
+    return payload;
+  }, {});
+
+// Superset fields for a grouped member; empty object for singles.
+const toBulkSupersetFields = (exercise) => {
+  if (!exercise.supersetGroupId) return {};
+  const fields = { supersetGroupId: exercise.supersetGroupId, supersetOrder: exercise.supersetOrder ?? 0 };
+  if (exercise.supersetRestInterval != null) fields.supersetRestInterval = exercise.supersetRestInterval;
+  return fields;
+};
 
 /**
  * Maps a local-state exercise to the bulk-create exercise shape.
@@ -85,6 +119,8 @@ const toBulkExercise = (exercise, index) => {
   if (exercise.videoUrl != null && exercise.videoUrl !== '') payload.videoUrl = exercise.videoUrl;
   if (exercise.gifUrl != null && exercise.gifUrl !== '') payload.gifUrl = exercise.gifUrl;
   if (Array.isArray(exercise.advancedTechniqueIds)) payload.advancedTechniqueIds = getLiveTechniqueIds(exercise);
+  Object.assign(payload, toBulkSupersetFields(exercise));
+  if (exercise.substitutes?.length) payload.substitutes = exercise.substitutes.map(toBulkSubstitute);
 
   return payload;
 };
@@ -110,6 +146,45 @@ const toBulkTraining = (training, index) => {
   payload.exercises = (training.exercises || []).map(toBulkExercise);
 
   return payload;
+};
+
+const CLEARED_SUPERSET = { supersetGroupId: null, supersetOrder: null, supersetRestInterval: null };
+
+// Moves the group members next to the first member (in the given order) and stamps the superset fields.
+const groupExercises = (exercises, memberIds, restInterval) => {
+  const members = memberIds.map((id) => exercises.find((ex) => ex.id === id)).filter(Boolean);
+  const rest = restInterval ?? members[members.length - 1]?.restInterval ?? null;
+  const groupId = crypto.randomUUID();
+  const stamped = members.map((ex, order) => ({
+    ...ex, supersetGroupId: groupId, supersetOrder: order, supersetRestInterval: rest,
+  }));
+  const result = [];
+  exercises.forEach((ex) => {
+    if (ex.id === memberIds[0]) result.push(...stamped);
+    else if (!memberIds.includes(ex.id)) result.push(ex);
+  });
+  return result;
+};
+
+// Renumbers supersetOrder 0..n-1 per group following the array order.
+const renumberSupersetOrder = (exercises) => {
+  const counters = new Map();
+  return exercises.map((ex) => {
+    if (!ex.supersetGroupId) return ex;
+    const order = counters.get(ex.supersetGroupId) ?? 0;
+    counters.set(ex.supersetGroupId, order + 1);
+    return ex.supersetOrder === order ? ex : { ...ex, supersetOrder: order };
+  });
+};
+
+// Clears a group when fewer than two members remain, otherwise renumbers the survivors.
+const normalizeGroup = (exercises, groupId) => {
+  if (!groupId) return exercises;
+  const survivors = exercises.filter((ex) => ex.supersetGroupId === groupId);
+  if (survivors.length >= 2) {
+    return exercises.map((ex) => (ex.supersetGroupId === groupId ? { ...ex, supersetOrder: survivors.indexOf(ex) } : ex));
+  }
+  return exercises.map((ex) => (ex.supersetGroupId === groupId ? { ...ex, ...CLEARED_SUPERSET } : ex));
 };
 
 // ─── useProtocolBuilder ───────────────────────────────────────────────────────
@@ -151,6 +226,11 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     assigneeId: studentId || null,
     trainings: [],
   });
+
+  const dataRef = useRef(data);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   const [trainingTemplates, setTrainingTemplates] = useState([]);
   const [exerciseTemplates, setExerciseTemplates] = useState([]);
@@ -630,6 +710,32 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     [mutate, isEditMode]
   );
 
+  // ── refetchTrainingExercises ──────────────────────────────────────────────
+
+  /**
+   * Re-fetch a single training's exercises and merge into local state. Used
+   * after structural mutations the hook itself does not perform (bi-set
+   * create/dissolve, substitute add/remove) so the UI converges with the
+   * server without a full page reload.
+   */
+  const refetchTrainingExercises = useCallback(
+    async (trainingId) => {
+      if (!isEditMode) return;
+      try {
+        const res = await api.get(`/trainer/trainings/${trainingId}/exercises`);
+        setData((prev) => ({
+          ...prev,
+          trainings: prev.trainings.map((t) =>
+            t.id === trainingId ? { ...t, exercises: res.data || [] } : t
+          ),
+        }));
+      } catch {
+        // Surface via the next saving call. Silent fallback keeps the UI usable.
+      }
+    },
+    [isEditMode]
+  );
+
   // ── deleteExercise ─────────────────────────────────────────────────────────
 
   const deleteExercise = useCallback(
@@ -638,16 +744,82 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
         if (isEditMode) {
           await api.delete(`/trainer/exercises/${exerciseId}`);
         }
+        const groupId = dataRef.current.trainings
+          .find((t) => t.id === trainingId)?.exercises.find((ex) => ex.id === exerciseId)?.supersetGroupId ?? null;
         setData((prev) => ({
           ...prev,
-          trainings: prev.trainings.map((t) =>
-            t.id === trainingId
-              ? { ...t, exercises: t.exercises.filter((ex) => ex.id !== exerciseId) }
-              : t
-          ),
+          trainings: prev.trainings.map((t) => (t.id === trainingId
+            ? { ...t, exercises: normalizeGroup(t.exercises.filter((ex) => ex.id !== exerciseId), groupId) }
+            : t)),
         }));
+        if (isEditMode && groupId) await refetchTrainingExercises(trainingId);
       }),
-    [mutate, isEditMode]
+    [mutate, isEditMode, refetchTrainingExercises]
+  );
+
+  const mapTrainingExercises = useCallback((trainingId, fn) => {
+    setData((prev) => ({
+      ...prev,
+      trainings: prev.trainings.map((t) => (t.id === trainingId ? { ...t, exercises: fn(t.exercises) } : t)),
+    }));
+  }, []);
+
+  const createLocalSuperset = useCallback(
+    async (trainingId, memberIds, restInterval) => {
+      if (!Array.isArray(memberIds) || memberIds.length < 2 || memberIds.length > 6) {
+        throw new Error('Um bi-set precisa de 2 a 6 exercícios.');
+      }
+      mapTrainingExercises(trainingId, (list) => groupExercises(list, memberIds, restInterval));
+    },
+    [mapTrainingExercises]
+  );
+
+  const dissolveLocalSuperset = useCallback(
+    async (trainingId, groupId) => {
+      mapTrainingExercises(trainingId, (list) =>
+        list.map((ex) => (ex.supersetGroupId === groupId ? { ...ex, ...CLEARED_SUPERSET } : ex)));
+    },
+    [mapTrainingExercises]
+  );
+
+  const setLocalSupersetRest = useCallback(
+    async (trainingId, groupId, restInterval) => {
+      mapTrainingExercises(trainingId, (list) =>
+        list.map((ex) => (ex.supersetGroupId === groupId ? { ...ex, supersetRestInterval: restInterval } : ex)));
+    },
+    [mapTrainingExercises]
+  );
+
+  const addLocalSubstitute = useCallback(
+    async (trainingId, principalId, body) => {
+      const substitute = { ...body, id: makeTempId() };
+      mapTrainingExercises(trainingId, (list) =>
+        list.map((ex) => (ex.id === principalId
+          ? { ...ex, substitutes: [...(ex.substitutes || []), { ...substitute, substituteOrder: (ex.substitutes || []).length }] }
+          : ex)));
+      return substitute;
+    },
+    [mapTrainingExercises]
+  );
+
+  const updateLocalSubstitute = useCallback(
+    async (trainingId, principalId, substituteId, body) => {
+      mapTrainingExercises(trainingId, (list) =>
+        list.map((ex) => (ex.id === principalId
+          ? { ...ex, substitutes: (ex.substitutes || []).map((s) => (s.id === substituteId ? { ...s, ...body } : s)) }
+          : ex)));
+    },
+    [mapTrainingExercises]
+  );
+
+  const removeLocalSubstitute = useCallback(
+    async (trainingId, principalId, substituteId) => {
+      mapTrainingExercises(trainingId, (list) =>
+        list.map((ex) => (ex.id === principalId
+          ? { ...ex, substitutes: (ex.substitutes || []).filter((s) => s.id !== substituteId) }
+          : ex)));
+    },
+    [mapTrainingExercises]
   );
 
   // ── reorderExercises ───────────────────────────────────────────────────────
@@ -670,7 +842,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
         setData((prev) => ({
           ...prev,
           trainings: prev.trainings.map((t) =>
-            t.id === trainingId ? { ...t, exercises: reorderedExercises } : t
+            t.id === trainingId ? { ...t, exercises: renumberSupersetOrder(reorderedExercises) } : t
           ),
         }));
 
@@ -826,32 +998,6 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     [isEditMode]
   );
 
-  // ── refetchTrainingExercises ──────────────────────────────────────────────
-
-  /**
-   * Re-fetch a single training's exercises and merge into local state. Used
-   * after structural mutations the hook itself does not perform (bi-set
-   * create/dissolve, substitute add/remove) so the UI converges with the
-   * server without a full page reload.
-   */
-  const refetchTrainingExercises = useCallback(
-    async (trainingId) => {
-      if (!isEditMode) return;
-      try {
-        const res = await api.get(`/trainer/trainings/${trainingId}/exercises`);
-        setData((prev) => ({
-          ...prev,
-          trainings: prev.trainings.map((t) =>
-            t.id === trainingId ? { ...t, exercises: res.data || [] } : t
-          ),
-        }));
-      } catch {
-        // Surface via the next saving call. Silent fallback keeps the UI usable.
-      }
-    },
-    [isEditMode]
-  );
-
   // ─────────────────────────────────────────────────────────────────────────
 
   return {
@@ -884,6 +1030,12 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
     hydrateFromDraft,
     loadFromTemplate,
     refetchTrainingExercises,
+    createLocalSuperset,
+    dissolveLocalSuperset,
+    setLocalSupersetRest,
+    addLocalSubstitute,
+    updateLocalSubstitute,
+    removeLocalSubstitute,
   };
 };
 

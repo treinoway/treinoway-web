@@ -160,7 +160,7 @@ const PrescriptionField = ({
       <div className="field">
         <span className="field-label type-caption-strong">{t('exercise.prescriptionMode.label')}</span>
         <Segmented
-          ariaLabel="Tipo de prescrição"
+          ariaLabel="Modo de prescrição"
           items={[
             { id: 'reps', label: 'Repetições', icon: Repeat },
             { id: 'duration', label: 'Tempo', icon: Timer },

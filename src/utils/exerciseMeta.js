@@ -13,24 +13,28 @@ export function formatRepetitions(repetitions) {
 }
 
 /**
+ * Formats a rest duration in seconds ("1min 30s", "30s"); null for non-positive values.
+ * @param {number|null|undefined} seconds
+ * @returns {string|null}
+ */
+export function formatRestDuration(seconds) {
+  if (seconds == null || seconds <= 0) return null;
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  if (minutes === 0) return `${remaining}s`;
+  if (remaining === 0) return `${minutes}min`;
+  return `${minutes}min ${remaining}s`;
+}
+
+/**
  * Formats a rest interval in seconds to a human-readable string.
  * Returns null for null/undefined/0 values (only positive values are displayed).
  * @param {number|null|undefined} seconds
  * @returns {string|null} e.g. "Descanso: 1min 30s", "Descanso: 30s", or null
  */
 export function formatRestInterval(seconds) {
-  if (seconds == null || seconds <= 0) return null;
-  const minutes = Math.floor(seconds / 60);
-  const remaining = seconds % 60;
-  let formatted;
-  if (minutes === 0) {
-    formatted = `${remaining}s`;
-  } else if (remaining === 0) {
-    formatted = `${minutes}min`;
-  } else {
-    formatted = `${minutes}min ${remaining}s`;
-  }
-  return `Descanso: ${formatted}`;
+  const duration = formatRestDuration(seconds);
+  return duration ? `Descanso: ${duration}` : null;
 }
 
 /**
@@ -41,10 +45,11 @@ export function formatRestInterval(seconds) {
  * Uses `prescriptionMode` when available; falls back to a field-presence
  * heuristic. Missing prescription fields are tolerated: returns just the type
  * label, or null when nothing is present.
+ * @param {{ hideRest?: boolean }} [options] - `hideRest` omits the rest interval (bi-set members share the round rest)
  * @param {Object} template - Exercise/junction snapshot with prescriptionMode, type, sets, repetitions, duration, hasLoad, suggestedLoad, restInterval
  * @returns {string|null} e.g. "Força · 4x10–12 · 60 kg · Descanso: 1min 30s" or "45 seg", or null if nothing to show
  */
-export function formatExerciseMeta(template) {
+export function formatExerciseMeta(template, { hideRest = false } = {}) {
   if (!template) return null;
   const parts = [];
   if (template.type) parts.push(getExerciseTypeLabel(template.type));
@@ -69,7 +74,7 @@ export function formatExerciseMeta(template) {
   if (template.hasLoad && template.suggestedLoad != null) {
     parts.push(`${template.suggestedLoad} kg`);
   }
-  const restLabel = formatRestInterval(template.restInterval);
+  const restLabel = hideRest ? null : formatRestInterval(template.restInterval);
   if (restLabel) {
     parts.push(restLabel);
   }

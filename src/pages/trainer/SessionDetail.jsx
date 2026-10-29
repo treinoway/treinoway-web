@@ -10,6 +10,8 @@ import SessionNotesGrid from '../../components/SessionNotesGrid';
 import SessionExerciseCard from '../../components/SessionExerciseCard';
 import EmptyBlock from '../../components/ds/EmptyBlock';
 import IArnoldFAB from '../../components/IArnoldFAB';
+import BiSetBadge from '../../components/BiSetBadge';
+import buildSessionExerciseEntries from '../../utils/sessionExerciseEntries';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -19,6 +21,37 @@ const getStudentName = (student) => {
     return [student.firstName, student.lastName].filter(Boolean).join(' ');
   }
   return student.email ?? null;
+};
+
+// Renders one exercise row of the session list.
+const renderExerciseRow = ({ log, replacedName }, index) => (
+  <SessionExerciseCard
+    key={log.id}
+    index={index}
+    exerciseLog={log}
+    replacedExerciseName={replacedName}
+    defaultOpen={index === 1}
+  />
+);
+
+// Renders the entries (singles and bi-set groups) with a running 1-based index.
+const renderExerciseEntries = (entries) => {
+  let index = 0;
+  return entries.map((entry) => {
+    if (entry.kind === 'single') {
+      index += 1;
+      return renderExerciseRow(entry.ex, index);
+    }
+    return (
+      <div key={entry.groupId} className="session-biset" role="group" aria-label="Bi-set">
+        <div className="session-biset__header"><BiSetBadge /></div>
+        {entry.members.map((member) => {
+          index += 1;
+          return renderExerciseRow(member, index);
+        })}
+      </div>
+    );
+  });
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -134,14 +167,7 @@ const SessionDetail = () => {
             Exercícios da sessão
           </h2>
           <div className="session-exercises">
-            {exerciseLogs.map((log, idx) => (
-              <SessionExerciseCard
-                key={log.id}
-                index={idx + 1}
-                exerciseLog={log}
-                defaultOpen={idx === 0}
-              />
-            ))}
+            {renderExerciseEntries(buildSessionExerciseEntries(exerciseLogs))}
           </div>
         </section>
       )}
