@@ -52,4 +52,21 @@ describe('useConfirmDialog', () => {
     expect(showToast).toHaveBeenCalledWith('Falhou', 'error');
     expect(result.current.dialogProps).toBeNull();
   });
+
+  it('forwards confirmTone to the dialog props when given', () => {
+    const { result } = renderHook(() => useConfirmDialog());
+
+    act(() => result.current.requestConfirm({ message: 'Convidar?', onConfirm: vi.fn(), confirmTone: 'primary' }));
+
+    expect(result.current.dialogProps.confirmTone).toBe('primary');
+  });
+
+  it('leaves confirmTone undefined when not given, keeping the default tone', () => {
+    const { result } = renderHook(() => useConfirmDialog());
+
+    act(() => result.current.requestConfirm({ message: 'Excluir?', onConfirm: vi.fn() }));
+
+    expect(result.current.dialogProps.confirmTone).toBeUndefined();
+    expect(result.current.dialogProps.busyLabel).toBe('Excluindo…');
+  });
 });

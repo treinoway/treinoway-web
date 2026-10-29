@@ -248,4 +248,13 @@ describe('RowMenu triggerDisabled', () => {
     await user.click(screen.getByRole('button', { name: 'Item' }));
     expect(screen.getByRole('button', { name: 'Ações' })).toHaveFocus();
   });
+
+  it('exposes the title of an extra item as its tooltip', async () => {
+    const user = userEvent.setup();
+    render(<RowMenu ariaLabel="Ações" extraItems={[{ label: 'Item', onClick: vi.fn(), disabled: true, title: 'Motivo' }]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Ações' }));
+
+    expect(screen.getByRole('button', { name: 'Item' })).toHaveAttribute('title', 'Motivo');
+  });
 });

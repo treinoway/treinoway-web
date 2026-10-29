@@ -12,9 +12,6 @@
   "src/App.jsx": {
     "local/function-header-comment": {
       "count": 2
-    },
-    "local/no-comments-in-function": {
-      "count": 12
     }
   },
   "src/api/axios.js": {
@@ -2090,9 +2087,6 @@
   "src/pages/InviteRedeem.jsx": {
     "local/function-header-comment": {
       "count": 2
-    },
-    "local/no-comments-in-function": {
-      "count": 48
     }
   },
   "src/pages/InviteRedeem.test.jsx": {
