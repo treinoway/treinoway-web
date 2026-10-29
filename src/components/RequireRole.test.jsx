@@ -18,7 +18,7 @@ const LoginPage = () => <div>Login Page</div>;
 const DashboardPage = () => <div>Dashboard Page</div>;
 const InvitePage = () => <div>Invite Page</div>;
 
-const renderWithRoutes = (initialPath = '/admin/videos', requiredRoles = ['admin']) =>
+const renderWithRoutes = (initialPath = '/admin/invites', requiredRoles = ['admin']) =>
   render(
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
@@ -26,7 +26,7 @@ const renderWithRoutes = (initialPath = '/admin/videos', requiredRoles = ['admin
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/invite" element={<InvitePage />} />
         <Route
-          path="/admin/videos"
+          path="/admin/invites"
           element={
             <RequireRole roles={requiredRoles}>
               <ProtectedContent />
@@ -99,7 +99,7 @@ describe('RequireRole', () => {
       hasRole: (role) => role === 'admin',
     });
 
-    renderWithRoutes('/admin/videos', ['trainer', 'admin']);
+    renderWithRoutes('/admin/invites', ['trainer', 'admin']);
 
     expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
   });

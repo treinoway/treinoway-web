@@ -4,7 +4,7 @@ import { Film, Play, X, Link } from 'lucide-react';
 import { getYoutubeVideoId } from '../../utils/youtube';
 import { isHttpUrl } from '../../utils/gif';
 
-const VideoStage = ({ youtubeId, gifUrl, gifFailed, onGifError, thumbError, playing, canPickFromLibrary, onPlay, onThumbError }) => {
+const VideoStage = ({ youtubeId, gifUrl, gifFailed, onGifError, thumbError, playing, onPlay, onThumbError }) => {
   if (youtubeId && !thumbError) {
     return (
       <div className="video-hero-stage" role="img" aria-label="Pré-visualização do vídeo de demonstração">
@@ -48,9 +48,7 @@ const VideoStage = ({ youtubeId, gifUrl, gifFailed, onGifError, thumbError, play
 
   const hint = thumbError
     ? 'Vídeo indisponível. Verifique o link ou escolha outro vídeo.'
-    : canPickFromLibrary
-      ? 'Cole o link do YouTube abaixo ou escolha um vídeo da sua biblioteca.'
-      : 'Cole o link do YouTube abaixo.';
+    : 'Cole o link do YouTube abaixo.';
   return (
     <div className="video-hero-stage video-hero-stage--empty">
       <span className="video-hero-empty-icon" aria-hidden="true">
@@ -68,15 +66,13 @@ VideoStage.propTypes = {
   onGifError: PropTypes.func.isRequired,
   thumbError: PropTypes.bool.isRequired,
   playing: PropTypes.bool.isRequired,
-  canPickFromLibrary: PropTypes.bool.isRequired,
   onPlay: PropTypes.func.isRequired,
   onThumbError: PropTypes.func.isRequired,
 };
 
-/** "Demonstração" section: 16:9 preview stage, YouTube URL field, library picker (only when `onPickFromLibrary` is given) and removal. */
-const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = '', onGifUrlChange, gifError = null, onPickFromLibrary, onRemoveVideo, disabled = false }) => {
+/** "Demonstração" section: 16:9 preview stage, YouTube URL field and removal. */
+const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = '', onGifUrlChange, gifError = null, onRemoveVideo, disabled = false }) => {
   const youtubeId = getYoutubeVideoId(videoUrl);
-  const canPickFromLibrary = !!onPickFromLibrary;
   const previewGifUrl = isHttpUrl(gifUrl) ? gifUrl.trim() : null;
   const hasInvalidGifUrl = gifUrl.trim() !== '' && !previewGifUrl;
   const hasInvalidUrl = videoUrl.trim() !== '' && !youtubeId;
@@ -99,7 +95,6 @@ const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = 
           onGifError={() => setFailedGif(previewGifUrl)}
           thumbError={thumbError}
           playing={playing}
-          canPickFromLibrary={canPickFromLibrary}
           onPlay={() => updatePlayback({ playing: true })}
           onThumbError={() => updatePlayback({ thumbError: true })}
         />
@@ -144,20 +139,12 @@ const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = 
           )}
         </div>
 
-        {!disabled && (canPickFromLibrary || youtubeId) && (
+        {!disabled && youtubeId && (
           <div className="video-hero-actions">
-            {canPickFromLibrary && (
-              <button type="button" className="btn btn--ghost" onClick={onPickFromLibrary}>
-                <Film size={16} strokeWidth={2} aria-hidden="true" />
-                Escolher da biblioteca
-              </button>
-            )}
-            {youtubeId && (
-              <button type="button" className="btn btn--ghost" onClick={onRemoveVideo}>
-                <X size={16} strokeWidth={2} aria-hidden="true" />
-                Remover vídeo
-              </button>
-            )}
+            <button type="button" className="btn btn--ghost" onClick={onRemoveVideo}>
+              <X size={16} strokeWidth={2} aria-hidden="true" />
+              Remover vídeo
+            </button>
           </div>
         )}
       </div>
@@ -172,7 +159,6 @@ ExerciseVideoSection.propTypes = {
   gifUrl: PropTypes.string,
   onGifUrlChange: PropTypes.func,
   gifError: PropTypes.string,
-  onPickFromLibrary: PropTypes.func,
   onRemoveVideo: PropTypes.func.isRequired,
   disabled: PropTypes.bool,
 };

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Film, X } from 'lucide-react';
-import VideoLibraryPicker from './VideoLibraryPicker';
+import { X } from 'lucide-react';
 import { getYoutubeVideoId } from '../utils/youtube';
 import { isHttpUrl } from '../utils/gif';
 
@@ -9,15 +8,13 @@ import { isHttpUrl } from '../utils/gif';
  * VideoField — shared video input for ExerciseForm and ExerciseComposer.
  *
  * States:
- *   - Empty: CTA "Escolher da biblioteca" + link to reveal URL input
- *   - Valid YouTube URL: 16:9 iframe preview + Trocar / Remover actions
+ *   - Empty: YouTube URL input always visible
+ *   - Valid YouTube URL: 16:9 iframe preview + Remover action
  *   - Non-YouTube URL typed: URL input visible + hint (non-blocking)
  *   - GIF link (optional): 16:9 image preview when there is no valid video
  */
-const VideoField = ({ value, onChange, gifValue = '', onGifChange, label = 'Vídeo de demonstração', canUseLibrary = false, gifError = null }) => {
-  const [pickerOpen, setPickerOpen] = useState(false);
+const VideoField = ({ value, onChange, gifValue = '', onGifChange, label = 'Vídeo de demonstração', gifError = null }) => {
   const [failedGif, setFailedGif] = useState(null);
-  const [urlInputVisible, setUrlInputVisible] = useState(!canUseLibrary);
 
   const trimmedValue = value?.trim() ?? '';
   const youtubeId = getYoutubeVideoId(trimmedValue);
@@ -29,13 +26,6 @@ const VideoField = ({ value, onChange, gifValue = '', onGifChange, label = 'Víd
 
   const handleRemove = () => {
     onChange('');
-    setUrlInputVisible(false);
-  };
-
-  const handlePickerSelect = (video) => {
-    onChange(video.url);
-    setPickerOpen(false);
-    setUrlInputVisible(false);
   };
 
   return (
@@ -54,16 +44,6 @@ const VideoField = ({ value, onChange, gifValue = '', onGifChange, label = 'Víd
             />
           </div>
           <div className="video-field-actions">
-            {canUseLibrary && (
-              <button
-                type="button"
-                className="btn btn--secondary"
-                onClick={() => setPickerOpen(true)}
-              >
-                <Film size={16} strokeWidth={2} aria-hidden="true" />
-                Trocar
-              </button>
-            )}
             <button
               type="button"
               className="btn btn--secondary"
@@ -78,44 +58,21 @@ const VideoField = ({ value, onChange, gifValue = '', onGifChange, label = 'Víd
 
       {!hasValidVideo && (
         <div className="video-field-empty">
-          {canUseLibrary && (
-            <button
-              type="button"
-              className="btn btn--primary video-field-cta"
-              onClick={() => setPickerOpen(true)}
-            >
-              <Film size={16} strokeWidth={2} aria-hidden="true" />
-              Escolher da biblioteca
-            </button>
-          )}
-
-          {!urlInputVisible && (
-            <button
-              type="button"
-              className="btn btn--ghost video-field-url-toggle"
-              onClick={() => setUrlInputVisible(true)}
-            >
-              ou cole uma URL do YouTube
-            </button>
-          )}
-
-          {urlInputVisible && (
-            <div className="video-field-input-wrap">
-              <input
-                type="url"
-                className="input"
-                placeholder="https://youtube.com/watch?v=..."
-                value={value ?? ''}
-                onChange={(e) => onChange(e.target.value)}
-                aria-label="URL do YouTube"
-              />
-              {hasInvalidUrl && (
-                <p className="video-field-hint type-caption" role="status">
-                  Use um link do YouTube para pré-visualizar o vídeo.
-                </p>
-              )}
-            </div>
-          )}
+          <div className="video-field-input-wrap">
+            <input
+              type="url"
+              className="input"
+              placeholder="https://youtube.com/watch?v=..."
+              value={value ?? ''}
+              onChange={(e) => onChange(e.target.value)}
+              aria-label="URL do YouTube"
+            />
+            {hasInvalidUrl && (
+              <p className="video-field-hint type-caption" role="status">
+                Use um link do YouTube para pré-visualizar o vídeo.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -147,14 +104,6 @@ const VideoField = ({ value, onChange, gifValue = '', onGifChange, label = 'Víd
           )}
         </div>
       )}
-
-      {canUseLibrary && (
-        <VideoLibraryPicker
-          isOpen={pickerOpen}
-          onClose={() => setPickerOpen(false)}
-          onSelect={handlePickerSelect}
-        />
-      )}
     </section>
   );
 };
@@ -165,8 +114,6 @@ VideoField.propTypes = {
   gifValue: PropTypes.string,
   onGifChange: PropTypes.func,
   label: PropTypes.string,
-  /** Library picker is admin-only; everyone else pastes a YouTube link. */
-  canUseLibrary: PropTypes.bool,
   gifError: PropTypes.string,
 };
 

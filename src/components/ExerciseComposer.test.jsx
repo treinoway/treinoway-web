@@ -25,21 +25,6 @@ vi.mock('../api/axios', () => ({
 
 import api from '../api/axios';
 
-// VideoLibraryPicker makes real API calls — stub it out entirely.
-vi.mock('./VideoLibraryPicker', () => ({
-  default: ({ isOpen, onClose, onSelect }) => {
-    if (!isOpen) return null;
-    return (
-      <div role="dialog" aria-label="Selecionar vídeo da biblioteca">
-        <button type="button" onClick={() => onSelect({ url: 'https://www.youtube.com/watch?v=stub123' })}>
-          Selecionar vídeo stub
-        </button>
-        <button type="button" onClick={onClose}>Fechar</button>
-      </div>
-    );
-  },
-}));
-
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 const EXERCISE_TEMPLATES = [
@@ -96,7 +81,7 @@ const defaultProps = {
 };
 
 const renderComposer = (props = {}) =>
-  render(<ExerciseComposer {...defaultProps} canUseVideoLibrary {...props} />);
+  render(<ExerciseComposer {...defaultProps} {...props} />);
 
 const switchToCreateTab = async (user) => {
   await user.click(screen.getByRole('tab', { name: /Criar novo/i }));
@@ -147,13 +132,13 @@ describe('ExerciseComposer — create mode', () => {
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 
-  it('carga switch, vídeo library CTA and observações are visible immediately without any toggle', async () => {
+  it('carga switch, vídeo URL input and observações are visible immediately without any toggle', async () => {
     const user = userEvent.setup();
     renderComposer();
     await switchToCreateTab(user);
 
     expect(screen.getByRole('switch', { name: /Exercício com carga/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Escolher da biblioteca/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/URL do YouTube/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Observações/i)).toBeInTheDocument();
   });
 
@@ -380,25 +365,14 @@ describe('ExerciseComposer — VideoField integration', () => {
     vi.clearAllMocks();
   });
 
-  it('renders "Escolher da biblioteca" CTA and URL toggle when no video is set', async () => {
+  it('shows the URL input right away, without library CTA or toggle', async () => {
     const user = userEvent.setup();
     renderComposer();
     await switchToCreateTab(user);
-
-    expect(screen.getByRole('button', { name: /Escolher da biblioteca/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /ou cole uma URL do YouTube/i })).toBeInTheDocument();
-  });
-
-  it('URL input is hidden until the "ou cole uma URL" toggle is clicked', async () => {
-    const user = userEvent.setup();
-    renderComposer();
-    await switchToCreateTab(user);
-
-    expect(screen.queryByLabelText(/URL do YouTube/i)).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /ou cole uma URL do YouTube/i }));
 
     expect(screen.getByLabelText(/URL do YouTube/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Escolher da biblioteca/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ou cole uma URL do YouTube/i })).not.toBeInTheDocument();
   });
 
   it('typing a valid YouTube URL into the revealed input is accepted without error', async () => {
@@ -406,7 +380,6 @@ describe('ExerciseComposer — VideoField integration', () => {
     renderComposer();
     await switchToCreateTab(user);
 
-    await user.click(screen.getByRole('button', { name: /ou cole uma URL do YouTube/i }));
     await user.type(
       screen.getByLabelText(/URL do YouTube/i),
       'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
@@ -420,25 +393,12 @@ describe('ExerciseComposer — VideoField integration', () => {
     renderComposer();
     await switchToCreateTab(user);
 
-    await user.click(screen.getByRole('button', { name: /ou cole uma URL do YouTube/i }));
     await user.type(screen.getByLabelText(/URL do YouTube/i), 'https://vimeo.com/123456');
 
     expect(await screen.findByText(/Use um link do YouTube/i)).toBeInTheDocument();
   });
 
-  it('opening the library picker renders the stub dialog', async () => {
-    const user = userEvent.setup();
-    renderComposer();
-    await switchToCreateTab(user);
-
-    await user.click(screen.getByRole('button', { name: /Escolher da biblioteca/i }));
-
-    expect(
-      screen.getByRole('dialog', { name: /Selecionar vídeo da biblioteca/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('selecting a video from the picker closes the dialog and wires videoUrl into the payload', async () => {
+  it('typed YouTube URL is wired into the payload as videoUrl', async () => {
     const onSubmitCreate = vi.fn();
     const user = userEvent.setup();
     renderComposer({ onSubmitCreate });
@@ -449,14 +409,8 @@ describe('ExerciseComposer — VideoField integration', () => {
     await user.type(screen.getByLabelText(/Repetições mínimas/i), '8');
     await user.type(screen.getByLabelText(/Repetições máximas/i), '12');
 
-    // Open picker and select the stub video
-    await user.click(screen.getByRole('button', { name: /Escolher da biblioteca/i }));
-    await user.click(screen.getByRole('button', { name: /Selecionar vídeo stub/i }));
-
-    // Dialog closed
-    expect(
-      screen.queryByRole('dialog', { name: /Selecionar vídeo da biblioteca/i }),
-    ).not.toBeInTheDocument();
+    await user.click(screen.getByLabelText(/URL do YouTube/i));
+    await user.paste('https://www.youtube.com/watch?v=stub123');
 
     // Submit and verify videoUrl in payload
     await user.click(screen.getByRole('button', { name: /Salvar exercício/i }));
@@ -594,10 +548,10 @@ describe('ExerciseComposer — edit mode (snapshot)', () => {
     expect(screen.getByRole('button', { name: /Salvar alterações/i })).toBeInTheDocument();
   });
 
-  it('carga, vídeo library CTA and observações are visible immediately in edit mode', () => {
+  it('carga, vídeo URL input and observações are visible immediately in edit mode', () => {
     renderComposer({ snapshot: EXERCISE_SNAPSHOT });
     expect(screen.getByRole('switch', { name: /Exercício com carga/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Escolher da biblioteca/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/URL do YouTube/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Observações/i)).toBeInTheDocument();
   });
 
@@ -1104,14 +1058,14 @@ describe('ExerciseComposer — clearing fields', () => {
   });
 });
 
-describe('ExerciseComposer — video library gating', () => {
+describe('ExerciseComposer — no video library', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('does not offer the video library when canUseVideoLibrary is false', async () => {
+  it('never offers the video library', async () => {
     const user = userEvent.setup();
-    renderComposer({ canUseVideoLibrary: false });
+    renderComposer();
     await switchToCreateTab(user);
 
     expect(screen.queryByRole('button', { name: /Escolher da biblioteca/i })).not.toBeInTheDocument();

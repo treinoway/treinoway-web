@@ -626,44 +626,6 @@ describe('ExerciseTemplateForm', () => {
     });
   });
 
-  // ── Video library picker ──────────────────────────────────────────────
-
-  describe('video library picker', () => {
-    const sampleVideo = {
-      id: 'video-1',
-      title: 'Agachamento livre',
-      url: 'https://video.example.com/squat',
-      thumbnailUrl: null,
-      duration: 90,
-      category: 'strength',
-      categoryLabel: 'Força',
-      bodySegment: 'lower',
-      bodySegmentLabel: 'Inferior',
-      tags: ['forca'],
-      createdById: 'admin-1',
-      createdAt: '2025-04-01T12:00:00.000Z',
-    };
-
-    it('opens the picker, selects a video and populates videoUrl', async () => {
-      const user = userEvent.setup();
-      api.get.mockResolvedValue({
-        data: { items: [sampleVideo], total: 1, page: 1, pageSize: 10 },
-      });
-      renderForm();
-
-      await user.click(screen.getByRole('button', { name: /escolher da biblioteca/i }));
-      await waitFor(() => screen.getByText('Agachamento livre'));
-      await user.click(screen.getByRole('button', { name: /selecionar vídeo agachamento livre/i }));
-
-      expect(screen.getByLabelText(/url do vídeo/i)).toHaveValue(
-        'https://video.example.com/squat'
-      );
-      expect(
-        screen.queryByRole('dialog', { name: /selecionar vídeo da biblioteca/i })
-      ).not.toBeInTheDocument();
-    });
-  });
-
   // ── Edit mode ─────────────────────────────────────────────────────────
 
   describe('edit mode', () => {
@@ -766,11 +728,10 @@ describe('ExerciseTemplateForm', () => {
   describe('non-admin trainer', () => {
     const ownedTemplate = { id: 10, name: 'Supino', type: 'strength', videoUrl: '', isPublic: true };
 
-    it('does not render the visibility section nor the library picker entry', () => {
+    it('does not render the visibility section', () => {
       renderForm({ isAdmin: false });
       expect(screen.queryByRole('switch', { name: /tornar este modelo público/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: /visibilidade/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /escolher da biblioteca/i })).not.toBeInTheDocument();
       expect(screen.getByLabelText(/url do vídeo/i)).toBeInTheDocument();
     });
 
@@ -802,10 +763,9 @@ describe('ExerciseTemplateForm', () => {
   });
 
   describe('admin', () => {
-    it('renders the visibility switch and the library picker entry', () => {
+    it('renders the visibility switch', () => {
       renderForm({ isAdmin: true });
       expect(screen.getByRole('switch', { name: /tornar este modelo público/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /escolher da biblioteca/i })).toBeInTheDocument();
     });
   });
 });
