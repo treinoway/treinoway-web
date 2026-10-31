@@ -137,3 +137,10 @@ src/
 - Avatar upload not implemented (requires multipart/form-data handling)
 - Backend must be running on `http://localhost:3000`
 - CORS is enabled in the backend for development
+
+## App nativo (Teufit Coach, Capacitor)
+
+- `npm run build:app` gera o bundle do app (modo Vite `app`, que não carrega `.env.production`). Variáveis do processo vencem; veja `.env.app.example`.
+- **Release só sai por `npm run build:app:release`**: build, `cap sync` com `CAP_DEV_*` removidas e `check:native-release` encadeados. Ele exige `VITE_API_BASE_URL` definido e https (lido como o Vite lê, inclusive `.env` e `.env.local`), sem cleartext, sem mixed content, sem depuração remota e sem URL de LAN no bundle. O CI roda esse caminho (passo "Native release guard" em `.github/workflows/test.yml`). Não gere builds de loja com `cap sync` solto.
+- Build de debug em LAN (só para teste): `VITE_API_BASE_URL=http://<ip>:3000 npm run build:app`, depois `CAP_DEV_ALLOW_LAN_HTTP=true CAP_DEV_WEB_DEBUGGING=true npm run cap:sync` e `CAP_DEV_ALLOW_LAN_HTTP=true ./gradlew assembleDebug` em `android/`. Depois, volte os projetos ao estado de release com `npm run build:app:release`.
+- Critério 7 (larguras da bottom nav): `E2E_PORT=5199 npx playwright test e2e/bottom-nav.spec.js`.

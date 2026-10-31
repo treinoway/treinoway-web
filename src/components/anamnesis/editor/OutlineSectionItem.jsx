@@ -36,8 +36,10 @@ const OutlineSectionItem = ({
   isActive,
   isGeneral,
   isDragOver,
+  isDragging,
   selectedQuestionId,
-  dragHandlers,
+  gripProps,
+  rowProps,
   onSelectSection,
   onSelectQuestion,
   onDeleteSection,
@@ -57,7 +59,8 @@ const OutlineSectionItem = ({
   }
 
   const handleKeyDown = (event) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if (!isGeneral) rowProps?.onKeyDown?.(event);
+    if (event.defaultPrevented || (event.key !== 'Enter' && event.key !== ' ')) return;
     event.preventDefault();
     onSelectSection(section.id);
   };
@@ -65,6 +68,7 @@ const OutlineSectionItem = ({
     'outline-section-btn',
     isActive && 'outline-section-btn--active',
     isDragOver && 'outline-section-btn--drag-over',
+    isDragging && 'outline-section-btn--dragging',
   ].filter(Boolean).join(' ');
 
   return (
@@ -74,11 +78,15 @@ const OutlineSectionItem = ({
         tabIndex={0}
         className={buttonClasses}
         onClick={() => onSelectSection(section.id)}
-        onKeyDown={handleKeyDown}
         aria-expanded={isActive}
-        {...(isGeneral ? {} : dragHandlers)}
+        {...(isGeneral ? {} : rowProps)}
+        onKeyDown={handleKeyDown}
       >
-        <span className={isGeneral ? 'outline-grip--inert' : 'outline-grip'} aria-hidden="true">
+        <span
+          className={isGeneral ? 'outline-grip--inert' : 'outline-grip'}
+          aria-hidden="true"
+          {...(isGeneral ? {} : gripProps)}
+        >
           <GripVertical size={16} strokeWidth={2} />
         </span>
         <span className="outline-label type-body-strong">{section.title}</span>
@@ -115,8 +123,10 @@ OutlineSectionItem.propTypes = {
   isActive: PropTypes.bool,
   isGeneral: PropTypes.bool,
   isDragOver: PropTypes.bool,
+  isDragging: PropTypes.bool,
   selectedQuestionId: PropTypes.string,
-  dragHandlers: PropTypes.object,
+  gripProps: PropTypes.object,
+  rowProps: PropTypes.object,
   onSelectSection: PropTypes.func.isRequired,
   onSelectQuestion: PropTypes.func.isRequired,
   onDeleteSection: PropTypes.func.isRequired,

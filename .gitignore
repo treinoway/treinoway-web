@@ -34,3 +34,7 @@ test-results/
 
 # Mockups (design exploration, not shipped)
 mockups/
+
+# Native app: Firebase files come from the Firebase console (per environment), never committed
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist

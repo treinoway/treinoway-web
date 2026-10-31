@@ -8,6 +8,10 @@
     "build": "vite build",
     "build:staging": "vite build --mode staging",
     "build:production": "vite build --mode production",
+    "build:app": "APP_BUILD=true vite build --mode app && rm -rf dist/mockups",
+    "cap:sync": "cap sync",
+    "check:native-release": "node scripts/check-native-release.mjs",
+    "build:app:release": "npm run build:app && env -u CAP_DEV_ALLOW_LAN_HTTP -u CAP_DEV_WEB_DEBUGGING cap sync && npm run check:native-release",
     "start": "serve -s dist -l ${PORT:-3000}",
     "lint": "eslint . --pass-on-unpruned-suppressions",
     "preview": "vite preview",
@@ -21,9 +25,19 @@
     "*.{js,jsx}": "eslint --fix --pass-on-unpruned-suppressions"
   },
   "dependencies": {
+    "@aparajita/capacitor-secure-storage": "^8.0.1",
+    "@capacitor-firebase/messaging": "^8.5.2",
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
+    "@capacitor/keyboard": "^8.0.6",
+    "@capgo/capacitor-social-login": "^8.7.5",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
+    "@fontsource-variable/nunito-sans": "^5.3.0",
     "@sentry/react": "^10.57.0",
     "axios": "1.13.5",
     "firebase": "^12.9.0",
@@ -36,6 +50,7 @@
     "serve": "^14.2.5"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
@@ -52,6 +67,7 @@
     "husky": "^9.1.7",
     "jsdom": "^28.1.0",
     "lint-staged": "^16.2.7",
+    "typescript": "^7.0.2",
     "vite": "^7.3.1",
     "vitest": "^4.0.18"
   }

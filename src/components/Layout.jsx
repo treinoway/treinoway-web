@@ -10,6 +10,7 @@ import useAiAccess from '../hooks/useAiAccess';
 import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
 import { SIDEBAR_BADGE_MAX } from '../constants/finance';
 import { t, tCount, tf } from '../i18n';
+import { isNative } from '../platform';
 
 const ADMIN_LINKS = [
   { path: '/admin/invites', labelKey: 'adminNav.invites', Icon: Mail },
@@ -39,8 +40,8 @@ const Layout = ({ children, noPadding = false }) => {
     ? tf('finance.sidebar.overdueAria', { count: tCount('finance.count.overdueCharge', financeOverdueCount) })
     : t('finance.sidebar.label');
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -48,6 +49,9 @@ const Layout = ({ children, noPadding = false }) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
+
+  const isProfileMenuActive = () =>
+    ['/profile', '/trainer/tutorials', '/trainer/financeiro'].some((p) => isActive(p));
 
   const isBibliotecaActive = () =>
     BIBLIOTECA_PATHS.some((p) => isActive(p));
@@ -103,6 +107,7 @@ const Layout = ({ children, noPadding = false }) => {
 
   const profileMenuItems = [
     { path: '/profile', label: 'Meu Perfil', Icon: User },
+    { path: '/trainer/financeiro', label: t('finance.sidebar.label'), Icon: Wallet },
     { path: '/trainer/tutorials', label: t('tutorials.navLabel'), Icon: CirclePlay },
   ];
 
@@ -303,7 +308,7 @@ const Layout = ({ children, noPadding = false }) => {
             <div>
               <div className="sidebar-user-name">{user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : ''}</div>
               <div className="sidebar-user-email">{user?.email}</div>
-              {user?.platformPlan?.tier && (
+              {!isNative() && user?.platformPlan?.tier && (
                 <span className={`${getPlanBadgeClass(user.platformPlan.tier)} sidebar-plan-badge`}>
                   {t(`platformPlan.tier.${user.platformPlan.tier}`) || user.platformPlan.tier}
                 </span>
@@ -399,7 +404,7 @@ const Layout = ({ children, noPadding = false }) => {
             <button
               type="button"
               onClick={() => setProfilePopover(o => !o)}
-              className={`bottom-nav-item ${isActive('/profile') || isActive('/trainer/tutorials') ? 'bottom-nav-item--active' : ''}`}
+              className={`bottom-nav-item ${isProfileMenuActive() ? 'bottom-nav-item--active' : ''}`}
               aria-label="Perfil"
               aria-haspopup="true"
               aria-expanded={profilePopover}

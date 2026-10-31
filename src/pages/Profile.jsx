@@ -11,6 +11,8 @@ import TrainerProfileSection from '../components/TrainerProfileSection';
 import NutritionistProfileSection from '../components/NutritionistProfileSection';
 import ProfileAvatarField, { ProfileAvatar } from '../components/ProfileAvatarField';
 import Select from '../components/Select';
+import DeleteAccountSection from '../components/DeleteAccountSection';
+import { isNative } from '../platform';
 import { computeMissingProfileFields } from '../utils/onboardingProfile';
 import { markOnboardingStepOptimistic } from '../hooks/useOnboardingStatus';
 
@@ -290,8 +292,8 @@ useEffect(() => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -684,6 +686,7 @@ useEffect(() => {
           <LogOut size={18} strokeWidth={1.6} className="account-action-row__icon" />
           Sair da conta
         </button>
+        {isNative() && <DeleteAccountSection />}
       </div>
 
     </div>

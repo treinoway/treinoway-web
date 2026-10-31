@@ -6,6 +6,8 @@ import { isBetaGateEnabled } from '../hooks/useBetaGate';
 import useGoogleAuth from '../hooks/useGoogleAuth';
 import useInviteAuthFlow from '../hooks/useInviteAuthFlow';
 import GoogleIcon from '../components/GoogleIcon';
+import AppleIcon from '../components/AppleIcon';
+import { getPlatform, isNative } from '../platform';
 import AuthEmailField from '../components/AuthEmailField';
 import InviteContext from '../components/InviteContext';
 import InviteStatusCard from '../components/InviteStatusCard';
@@ -22,7 +24,8 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, loginWithGoogle, isAuthenticated, user } = useAuth();
+  const { login, loginWithGoogle, loginWithApple, isAuthenticated, user } = useAuth();
+  const showAppleSignIn = isNative() && getPlatform() === 'ios';
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -83,9 +86,22 @@ const Login = () => {
     startGoogleAuth();
   };
 
+  const handleAppleLogin = async () => {
+    setError('');
+    setLoading(true);
+    const result = await loginWithApple();
+    if (result.success) {
+      navigate(resolveDestination(result.user), { replace: true });
+      return;
+    }
+    setLoading(false);
+    if (result.error) setError(result.error);
+  };
+
   const isBusy = loading || isExchanging;
-  const showSignupNudge = invite.isValid && !invite.accountExists;
-  const showFooter = !invite.isInvalid && !showSignupNudge;
+  const canSignUp = !isNative();
+  const showSignupNudge = canSignUp && invite.isValid && !invite.accountExists;
+  const showFooter = canSignUp && !invite.isInvalid && !showSignupNudge;
 
   const header = invite.isInviteFlow ? (
     <InviteContext
@@ -117,6 +133,18 @@ const Login = () => {
         <GoogleIcon />
         {isExchanging ? 'Conectando...' : 'Continuar com Google'}
       </button>
+
+      {showAppleSignIn && (
+        <button
+          type="button"
+          onClick={handleAppleLogin}
+          disabled={isBusy}
+          className="btn-google"
+        >
+          <AppleIcon />
+          Continuar com Apple
+        </button>
+      )}
 
       <div className="auth-divider"><span>ou</span></div>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ROUTINE_DRAFT_KEY, ROUTINE_DRAFT_VERSION } from '../utils/routineDraft';
+import { onPageLeave } from '../utils/pageLeave';
 
 /** Builds a structural signature from the training-id sets. */
 const structuralSignature = (trainingIds, createdIds) =>
@@ -217,7 +218,7 @@ const useRoutineDraft = ({
     };
   }, [enabled]);
 
-  // ── Synchronous flush on hard browser close (beforeunload) ───────────────────
+  // ── Synchronous flush when the page or app is suspended (unload, hidden, background) ───────────────────
 
   useEffect(() => {
     if (!enabled) return;
@@ -246,8 +247,7 @@ const useRoutineDraft = ({
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    return onPageLeave(handleBeforeUnload);
   }, [enabled]);
 
   // ── Periodic label refresh (every 30s while a saved timestamp exists) ────────

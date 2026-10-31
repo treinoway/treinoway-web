@@ -34,28 +34,28 @@ describe('App routes: /trainer/ai-assistant', () => {
     window.history.pushState({}, '', '/trainer/ai-assistant');
   });
 
-  it('redirects a FREE trainer to the dashboard (the route is wrapped by AiRouteGuard)', () => {
+  it('redirects a FREE trainer to the dashboard (the route is wrapped by AiRouteGuard)', async () => {
     mockUser({ aiActionsPerStudent: 0 });
 
     render(<App />);
 
-    expect(screen.getByText('Dashboard Page')).toBeInTheDocument();
+    expect(await screen.findByText('Dashboard Page')).toBeInTheDocument();
     expect(screen.queryByText('iArnold Page')).not.toBeInTheDocument();
   });
 
-  it('redirects a non-trainer to the dashboard', () => {
+  it('redirects a non-trainer to the dashboard', async () => {
     mockUser({ aiActionsPerStudent: 3, roles: ['STUDENT'] });
 
     render(<App />);
 
-    expect(screen.getByText('Dashboard Page')).toBeInTheDocument();
+    expect(await screen.findByText('Dashboard Page')).toBeInTheDocument();
   });
 
-  it('renders the assistant for a trainer whose plan allows AI', () => {
+  it('renders the assistant for a trainer whose plan allows AI', async () => {
     mockUser({ aiActionsPerStudent: 3 });
 
     render(<App />);
 
-    expect(screen.getByText('iArnold Page')).toBeInTheDocument();
+    expect(await screen.findByText('iArnold Page')).toBeInTheDocument();
   });
 });

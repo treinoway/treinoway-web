@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { openChatStream, readChatEvents } from './aiChatStream';
 import { clearAuthAndRedirect, refreshAccessToken } from './axios';
 
-vi.mock('./axios', () => ({ refreshAccessToken: vi.fn(), clearAuthAndRedirect: vi.fn() }));
+vi.mock('./axios', () => ({
+  refreshAccessToken: vi.fn(),
+  clearAuthAndRedirect: vi.fn(),
+  isRefreshRejected: (error) => error?.response?.status === 401,
+}));
 
 const encoder = new TextEncoder();
 
@@ -91,13 +95,22 @@ describe('aiChatStream', () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
-    it('ends the session when the refresh request itself fails', async () => {
-      vi.mocked(refreshAccessToken).mockRejectedValue(new Error('nope'));
+    it('ends the session when the server rejects the refresh token', async () => {
+      vi.mocked(refreshAccessToken).mockRejectedValue(Object.assign(new Error('nope'), { response: { status: 401 } }));
       global.fetch.mockResolvedValue(failure(401, {}));
 
       await expect(openChatStream({ payload: {}, token: 'old' })).rejects.toMatchObject({ response: { status: 401 } });
 
       expect(clearAuthAndRedirect).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the session when the refresh fails for a network reason', async () => {
+      vi.mocked(refreshAccessToken).mockRejectedValue(new Error('Network Error'));
+      global.fetch.mockResolvedValue(failure(401, {}));
+
+      await expect(openChatStream({ payload: {}, token: 'old' })).rejects.toMatchObject({ response: { status: 401 } });
+
+      expect(clearAuthAndRedirect).not.toHaveBeenCalled();
     });
 
     it('keeps the session when the refresh succeeds', async () => {

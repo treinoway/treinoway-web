@@ -271,7 +271,14 @@
   --opacity-muted: 0.6;
   --scale-press: 0.96;
   /* Layout — bottom navigation height (mobile only; .bottom-nav is display:none ≥768px) */
-  --bottom-nav-height: 72px;
+  --bottom-nav-height: calc(var(--bottom-nav-content-height) + var(--inset-bottom));
+  --bottom-nav-content-height: 72px;
+  --top-app-bar-content-height: 56px;
+  /* Safe-area insets: env() on iOS and recent WebViews, Capacitor's injected --safe-area-inset-* on older Android WebViews. */
+  --inset-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --inset-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --inset-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+  --inset-right: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
 
   /* ============================================================
      TeuFit Design System tokens (SKILL.md §2) — Figma "TeuFit"
@@ -410,6 +417,8 @@
   --size-avatar-lg: 56px;
   --size-control: 40px;
   --size-control-touch: 44px;
+  --size-icon-handle: 16px;
+  --size-nav-pill-width: 64px;
   --size-toggle-track-width: 36px;
   --size-toggle-track-height: 20px;
   --size-index-chip: 24px;
@@ -476,7 +485,7 @@ html:has(.auth-page) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-lg);
+  padding: calc(var(--spacing-lg) + var(--inset-top)) calc(var(--spacing-lg) + var(--inset-right)) calc(var(--spacing-lg) + var(--inset-bottom)) calc(var(--spacing-lg) + var(--inset-left));
   background: linear-gradient(160deg, var(--color-primary), var(--color-tertiary));
   overflow-y: auto;
   overscroll-behavior: none;
@@ -1304,6 +1313,9 @@ button.auth-forgot-link:disabled {
     display: flex;
     overflow-y: auto;
     flex-shrink: 0;
+    padding-top: var(--inset-top);
+    padding-bottom: var(--inset-bottom);
+    padding-left: var(--inset-left);
   }
 }
 
@@ -1667,7 +1679,7 @@ button.auth-forgot-link:disabled {
      The child .builder-shell fills height:100% of the content-box, which
      excludes this padding — leaving the bar visible above the nav.
      Desktop: .bottom-nav is display:none so no padding needed there. */
-  padding-bottom: 72px;
+  padding-bottom: var(--bottom-nav-height);
 }
 
 @media (min-width: 768px) {
@@ -1678,12 +1690,16 @@ button.auth-forgot-link:disabled {
 
 .main-content-inner {
   padding: var(--spacing-lg);
-  padding-bottom: calc(var(--spacing-lg) + 72px);
+  padding-left: calc(var(--spacing-lg) + var(--inset-left));
+  padding-right: calc(var(--spacing-lg) + var(--inset-right));
+  padding-bottom: calc(var(--spacing-lg) + var(--bottom-nav-height));
 }
 
 @media (min-width: 768px) {
   .main-content-inner {
     padding: var(--spacing-2xl);
+    padding-left: calc(var(--spacing-2xl) + var(--inset-left));
+    padding-right: calc(var(--spacing-2xl) + var(--inset-right));
   }
 }
 
@@ -1694,8 +1710,9 @@ button.auth-forgot-link:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  height: 56px;
+  padding: var(--spacing-sm) max(var(--spacing-lg), var(--inset-right)) var(--spacing-sm) max(var(--spacing-lg), var(--inset-left));
+  padding-top: calc(var(--spacing-sm) + var(--inset-top));
+  height: calc(var(--top-app-bar-content-height) + var(--inset-top));
   background: linear-gradient(135deg, var(--color-primary), var(--color-tertiary));
   color: var(--color-on-primary);
   position: sticky;
@@ -1715,6 +1732,8 @@ button.auth-forgot-link:disabled {
   object-fit: contain;
   display: block;
   flex-shrink: 0;
+  /* The logo asset is blue; the bar is a blue gradient, so it is rendered white to stay visible. */
+  filter: brightness(0) invert(1);
 }
 
 .top-app-bar-user {
@@ -1730,14 +1749,16 @@ button.auth-forgot-link:disabled {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 72px;
+  height: var(--bottom-nav-height);
   background: var(--color-surface);
   border-top: 1px solid var(--color-outline-variant);
   display: flex;
   align-items: center;
   justify-content: space-around;
+  padding-left: var(--inset-left);
+  padding-right: var(--inset-right);
   z-index: calc(var(--z-sticky) + 1);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--inset-bottom);
 }
 
 @media (min-width: 768px) {
@@ -1751,12 +1772,15 @@ button.auth-forgot-link:disabled {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: var(--spacing-xs) var(--spacing-lg);
+  padding: var(--spacing-xs) 0;
   border-radius: var(--radius-lg);
   color: var(--color-on-surface-variant);
   font-size: var(--font-caption-size);
+  white-space: nowrap;
   transition: color 0.2s;
-  min-width: 64px;
+  box-sizing: border-box;
+  flex: 1 1 0;
+  min-width: 0;
   background: none;
   border: none;
   cursor: pointer;
@@ -1772,7 +1796,7 @@ button.auth-forgot-link:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
+  width: min(var(--size-nav-pill-width), 100%);
   height: 32px;
   border-radius: var(--radius-full);
   transition: background-color 0.2s;
@@ -1786,12 +1810,21 @@ button.auth-forgot-link:disabled {
   color: var(--color-on-surface-variant);
 }
 
+/* Inside a popover wrapper the wrapper takes the equal share; the button just fills it. */
+.bottom-nav-popover-wrapper > .bottom-nav-item {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
 /* Bottom Nav Popover (mobile Biblioteca submenu) */
 .bottom-nav-popover-wrapper {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
+  box-sizing: border-box;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .bottom-nav-popover {
@@ -4007,7 +4040,7 @@ button.auth-forgot-link:disabled {
 /* Profile form sticky actions (mobile) */
 .profile-form-actions {
   position: sticky;
-  bottom: calc(var(--spacing-lg) + 72px);
+  bottom: calc(var(--spacing-lg) + var(--bottom-nav-height));
   z-index: 10;
   background: var(--color-surface);
   padding: var(--spacing-lg) 0;
@@ -4066,6 +4099,62 @@ button.auth-forgot-link:disabled {
 .account-action-row__icon {
   color: var(--md-error);
   flex-shrink: 0;
+}
+
+.account-action-row--danger { color: var(--feedback-error-text); }
+
+/* Native app gates (unsupported account, update required) reuse the auth card, centred. */
+.native-notice { text-align: center; }
+.native-notice .btn { width: 100%; }
+
+/* Offline notice, overlaid at the top edge (below the status bar) so it never shifts the layout. */
+.offline-banner {
+  position: fixed;
+  top: var(--inset-top);
+  left: 0;
+  right: 0;
+  z-index: var(--z-toast);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: var(--feedback-warning-bg);
+  color: var(--feedback-warning-text);
+  text-align: center;
+}
+
+/* iArnold stream interrupted while the app was in the background: recoverable, never shown as a final answer. */
+.ai-interrupted {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: var(--feedback-warning-bg);
+  color: var(--feedback-warning-text);
+}
+
+/* Soft keyboard open (native app): the bottom bar steps aside and sheet footers stay on one row, so the focused field and its action both fit above the keyboard. */
+html.keyboard-open {
+  --bottom-nav-height: 0px;
+}
+
+html.keyboard-open .bottom-nav { display: none; }
+
+html.keyboard-open .ds-drawer,
+html.keyboard-open .ds-modal {
+  max-height: 100dvh;
+}
+
+html.keyboard-open .ds-drawer__footer,
+html.keyboard-open .ds-modal__footer {
+  flex-direction: row;
+  justify-content: flex-end;
+  padding-bottom: var(--spacing-md);
+}
+
+html.keyboard-open .ds-drawer__footer .btn,
+html.keyboard-open .ds-modal__footer .btn {
+  width: auto;
 }
 
 /* ============================================
@@ -8458,7 +8547,7 @@ button.auth-forgot-link:disabled {
 .fab {
   position: fixed;
   right: var(--spacing-lg);
-  bottom: calc(var(--spacing-lg) + 72px);
+  bottom: calc(var(--spacing-lg) + var(--bottom-nav-height));
   background: var(--md-primary);
   color: var(--md-on-primary);
   border: none;
@@ -8556,7 +8645,7 @@ button.auth-forgot-link:disabled {
 /* ─── Undo toast ─────────────────────────────────────────────────────────── */
 .undo-toast {
   position: fixed;
-  bottom: calc(var(--spacing-lg) + 72px);
+  bottom: calc(var(--spacing-lg) + var(--bottom-nav-height));
   left: var(--spacing-lg);
   right: var(--spacing-lg);
   background: var(--md-inverse-surface, #333);
@@ -12318,6 +12407,12 @@ nav.onboarding-steps {
 .outline-section-btn--active:hover,
 .outline-question-btn--active:hover { background: var(--background-brand-subtle); }
 
+.outline-section-btn--dragging {
+  opacity: var(--opacity-muted);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .outline-section-btn--drag-over {
   outline: 1px dashed var(--border-focus);
   outline-offset: calc(-1 * var(--spacing-2xs));
@@ -12347,7 +12442,16 @@ nav.onboarding-steps {
   color: var(--icon-disabled);
 }
 
-.outline-grip { cursor: grab; }
+.outline-grip {
+  align-self: stretch;
+  padding: 0 var(--spacing-sm);
+  margin: 0 calc(-1 * var(--spacing-sm));
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
 .outline-grip:active { cursor: grabbing; }
 .outline-grip--inert { cursor: default; }
 
@@ -12869,7 +12973,7 @@ nav.onboarding-steps {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  padding-bottom: max(var(--spacing-lg), env(safe-area-inset-bottom));
+  padding-bottom: max(var(--spacing-lg), var(--inset-bottom));
 }
 
 .assign-footer__counter { color: var(--text-secondary); }
@@ -13302,7 +13406,7 @@ nav.onboarding-steps {
   bottom: var(--bottom-nav-height);
   z-index: var(--z-sticky);
   padding: var(--spacing-sm) var(--spacing-lg);
-  padding-bottom: max(var(--spacing-sm), env(safe-area-inset-bottom));
+  padding-bottom: max(var(--spacing-sm), var(--inset-bottom));
   background: var(--md-surface);
   border-top: 1px solid var(--brand-divider);
 }
@@ -17025,7 +17129,7 @@ textarea.input {
   display: flex;
   flex-direction: column-reverse;
   gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-xl) max(var(--spacing-xl), env(safe-area-inset-bottom));
+  padding: var(--spacing-md) var(--spacing-xl) max(var(--spacing-xl), var(--inset-bottom));
 }
 
 .ds-modal__footer .btn { width: 100%; }
@@ -17103,7 +17207,7 @@ textarea.input {
   display: flex;
   flex-direction: column-reverse;
   gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-xl) max(var(--spacing-xl), env(safe-area-inset-bottom));
+  padding: var(--spacing-md) var(--spacing-xl) max(var(--spacing-xl), var(--inset-bottom));
   border-top: 1px solid var(--border-subtle);
   background: var(--background-surface);
 }
@@ -17942,20 +18046,45 @@ select.input { cursor: pointer; }
 
 .exercise-sortable-entry { position: relative; }
 .exercise-sortable-entry--dragging { opacity: var(--opacity-muted); }
+.exercise-sortable-entry--dragging {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
 
+/* The grip icon keeps its 16px footprint; the 44px touch target grows around it through the negative margin, so the row layout does not change. */
 .exercise-drag-handle {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  min-width: var(--size-control-touch);
+  min-height: var(--size-control-touch);
+  margin: calc((var(--size-icon-handle) - var(--size-control-touch)) / 2);
   color: var(--icon-default);
   cursor: grab;
   touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   border-radius: var(--radius-sm);
 }
 
 .exercise-drag-handle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .exercise-drag-handle--grabbing { cursor: grabbing; }
-.exercise-drag-handle--disabled { color: var(--icon-disabled); cursor: default; }
+
+/* Disabled grips are inert: no touch target, no grab cursor, scroll passes through. */
+.exercise-drag-handle--disabled {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  color: var(--icon-disabled);
+  cursor: default;
+  touch-action: auto;
+  pointer-events: none;
+}
 
 .exercise-drag-overlay {
   padding: var(--spacing-md) var(--spacing-lg);
@@ -19861,8 +19990,13 @@ select.input { cursor: pointer; }
 }
 
 .technique-row--dragging { opacity: var(--opacity-muted); }
-.technique-row .exercise-drag-handle { padding: var(--spacing-xs); border: 0; background: transparent; }
-.technique-row .exercise-drag-handle:disabled { color: var(--icon-disabled); cursor: default; }
+.technique-row .exercise-drag-handle {
+  padding: var(--spacing-xs);
+  margin: calc((var(--size-icon-handle) + var(--spacing-xs) * 2 - var(--size-control-touch)) / 2);
+  border: 0;
+  background: transparent;
+}
+.technique-row .exercise-drag-handle:disabled { color: var(--icon-disabled); cursor: default; touch-action: auto; }
 
 .technique-row__order {
   display: inline-flex;

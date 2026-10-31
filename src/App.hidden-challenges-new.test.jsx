@@ -28,11 +28,11 @@ describe('App routes: hidden challenge creation', () => {
     });
   });
 
-  it('redirects /trainer/challenges/new to /', () => {
+  it('redirects /trainer/challenges/new to /', async () => {
     window.history.pushState({}, '', '/trainer/challenges/new');
 
     render(<App />);
 
-    expect(screen.getByText('Dashboard Page')).toBeInTheDocument();
+    expect(await screen.findByText('Dashboard Page')).toBeInTheDocument();
   });
 });

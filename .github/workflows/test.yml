@@ -28,3 +28,10 @@ jobs:
 
       - name: Run unit tests
         run: npm run test:run
+
+      - name: Native release guard
+        run: npm run build:app:release
+        env:
+          # Deterministic, credential-free: the check only validates the release shape (https, no cleartext, no debugging), never talks to the API.
+          VITE_API_BASE_URL: https://api.release-check.invalid
+          VITE_SENTRY_DSN: ''

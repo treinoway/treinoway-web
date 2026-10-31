@@ -4,6 +4,8 @@ import { extractErrorInfo } from '../i18n';
 import { getDeviceTimezone } from '../utils/timezone';
 import { reportApiError } from '../lib/sentry';
 import API_BASE_URL from './baseUrl';
+import { isNative } from '../platform';
+import { clearStoredSession, currentSessionGeneration, didSecureReadFail, readSessionValue, whenSessionReady, writeSessionValue } from '../utils/sessionStore';
 
 const BASE_URL = API_BASE_URL;
 
@@ -30,8 +32,9 @@ const api = axios.create({
 
 // Request interceptor to attach access token
 api.interceptors.request.use(
-  (config) => {
-    const accessToken = localStorage.getItem('accessToken');
+  async (config) => {
+    await whenSessionReady();
+    const accessToken = readSessionValue('accessToken');
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -50,7 +53,7 @@ api.interceptors.request.use(
   (config) => {
     if (!SEND_TIMEZONE_HEADER) return config;
 
-    const accessToken = localStorage.getItem('accessToken');
+    const accessToken = readSessionValue('accessToken');
     if (!accessToken) return config;
 
     const requestBaseURL = config.baseURL || api.defaults.baseURL;
@@ -79,27 +82,41 @@ api.interceptors.request.use(
 // Single in-flight refresh (token rotation: only one refresh token use at a time)
 let refreshPromise = null;
 
-// Drops the stored session and sends the user to the login screen.
+// Drops the stored session and sends the user to the login screen; the native app signals the provider instead of reloading the WebView.
 export function clearAuthAndRedirect() {
+  if (isNative()) {
+    clearStoredSession().finally(() => {
+      window.dispatchEvent(new CustomEvent('treinoway:sessionExpired'));
+    });
+    return;
+  }
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
   window.location.href = '/login';
 }
 
+// Tells whether a failed refresh means the server rejected the refresh token (the only case that ends the session); network errors and 5xx keep it.
+export function isRefreshRejected(error) {
+  return error?.response?.status === 401;
+}
+
 async function performRefresh() {
-  const refreshToken = localStorage.getItem('refreshToken');
+  await whenSessionReady();
+  const generation = currentSessionGeneration();
+  const refreshToken = readSessionValue('refreshToken');
   if (!refreshToken) return null;
   const response = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
   const newAccessToken = response.data.token?.accessToken || response.data.accessToken;
   const newRefreshToken = response.data.refreshToken;
-  localStorage.setItem('accessToken', newAccessToken);
-  if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('treinoway:tokensRefreshed', {
-      detail: { newAccessToken, newRefreshToken },
-    }));
-  }
+  if (generation !== currentSessionGeneration()) return null;
+  // why: the refresh token rotates, so it is written first; if the app dies between the writes the newest refresh token survives.
+  if (newRefreshToken) await writeSessionValue('refreshToken', newRefreshToken, generation);
+  const stored = await writeSessionValue('accessToken', newAccessToken, generation);
+  if (!stored) return null;
+  window.dispatchEvent(new CustomEvent('treinoway:tokensRefreshed', {
+    detail: { newAccessToken, newRefreshToken, generation },
+  }));
   return newAccessToken;
 }
 
@@ -134,7 +151,8 @@ api.interceptors.response.use(
     // Don't intercept auth endpoints (login/signup)
     if (originalRequest.url?.includes('/auth/login') ||
         originalRequest.url?.includes('/auth/signup') ||
-        originalRequest.url?.includes('/auth/google')) {
+        originalRequest.url?.includes('/auth/google') ||
+        originalRequest.url?.includes('/auth/apple')) {
       error.userMessage = getErrorMessage(error);
       error.errorInfo = extractErrorInfo(error);
       return Promise.reject(error);
@@ -144,9 +162,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refreshToken = localStorage.getItem('refreshToken');
+      await whenSessionReady();
+      const refreshToken = readSessionValue('refreshToken');
       if (!refreshToken) {
-        clearAuthAndRedirect();
+        if (!didSecureReadFail()) clearAuthAndRedirect();
         return Promise.reject(error);
       }
 
@@ -155,14 +174,14 @@ api.interceptors.response.use(
         const newAccessToken = await refreshAccessToken();
 
         if (!newAccessToken) {
-          clearAuthAndRedirect();
           return Promise.reject(error);
         }
 
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        clearAuthAndRedirect();
+        if (isRefreshRejected(refreshError)) clearAuthAndRedirect();
+        refreshError.userMessage = refreshError.userMessage || getErrorMessage(refreshError);
         return Promise.reject(refreshError);
       }
     }

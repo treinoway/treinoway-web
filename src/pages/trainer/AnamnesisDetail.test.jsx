@@ -144,6 +144,12 @@ describe('AnamnesisDetail', () => {
     api.post.mockReset();
     api.patch.mockReset();
     api.delete.mockReset();
+    // why: jsdom lacks elementFromPoint; the outline's pointerup drag-finish calls it, null means no reorder
+    document.elementFromPoint = vi.fn(() => null);
+  });
+
+  afterEach(() => {
+    delete document.elementFromPoint;
   });
 
   // ── Loading ──────────────────────────────────────────────
@@ -867,18 +873,15 @@ describe('AnamnesisDetail', () => {
 
   // ── Section drag-reorder ─────────────────────────────────
 
-  it('dragging section A over section B and dropping calls PATCH reorder with new order', async () => {
+  it('Alt + ArrowDown on section A moves it below section B and calls PATCH reorder with the new order', async () => {
     api.get.mockResolvedValue({ data: mockAnamnesis });
     api.patch.mockResolvedValue({ data: {} });
     renderAnamnesisDetail();
     await waitFor(() => expect(screen.getByText('Histórico de Saúde')).toBeInTheDocument());
 
     const sectionABtn = screen.getAllByRole('button', { name: /histórico de saúde/i })[0];
-    const sectionBBtn = screen.getAllByRole('button', { name: /rotina de treino/i })[0];
 
-    fireEvent.dragStart(sectionABtn);
-    fireEvent.dragOver(sectionBBtn);
-    fireEvent.drop(sectionBBtn);
+    fireEvent.keyDown(sectionABtn, { key: 'ArrowDown', altKey: true });
 
     await waitFor(() => {
       expect(api.patch).toHaveBeenCalledWith(

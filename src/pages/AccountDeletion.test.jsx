@@ -42,8 +42,10 @@ describe('AccountDeletion', () => {
   it('describes the in-app deletion path', () => {
     const { container } = renderWithRouter(<AccountDeletion />);
 
-    expect(container.textContent).toMatch(/Perfil → Segurança → Excluir conta/);
-    expect(container.textContent).toMatch(/processada imediatamente após a confirmação/i);
+    expect(container.textContent).toMatch(/Perfil → Excluir conta/);
+    expect(container.textContent).not.toMatch(/Segurança/);
+    expect(container.textContent).toMatch(/Contas de treinador:.*ainda não está disponível pelo aplicativo/i);
+    expect(container.textContent).toMatch(/Solicite por e-mail/i);
   });
 
   it('provides a prominent e-mail path with a prefilled mailto link, for users without the app installed', () => {

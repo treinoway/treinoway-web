@@ -1,3 +1,4 @@
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { AuthProvider } from './contexts/AuthContext';
@@ -8,76 +9,88 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 import Layout from './components/Layout';
 import AiRouteGuard from './components/AiRouteGuard';
+import AppVersionGate from './components/AppVersionGate';
+import TrainerOnlyGate from './components/TrainerOnlyGate';
+import NativeBootGate from './components/NativeBootGate';
+import NativeIntegrations from './components/NativeIntegrations';
+import RouteFallback from './components/RouteFallback';
+import WebOnlyRoute from './components/WebOnlyRoute';
+import { installPreloadErrorHandler } from './utils/chunkReload';
+
+const PAGE_LOADERS = import.meta.glob(['./pages/**/*.jsx', '!./pages/**/*.test.jsx']);
+
+// Creates a lazily loaded route component for a page path under ./pages (no extension); each page becomes its own chunk.
+const lazyPage = (pagePath) => lazy(PAGE_LOADERS[`./pages/${pagePath}.jsx`]);
 
 // Public pages
 import Login from './pages/Login';
-import Signup from './pages/Signup';
-import ForgotPassword from './pages/ForgotPassword';
-import InviteRedeem from './pages/InviteRedeem';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import Terms from './pages/Terms';
-import AccountDeletion from './pages/AccountDeletion';
+const Signup = lazyPage('Signup');
+const ForgotPassword = lazyPage('ForgotPassword');
+const InviteRedeem = lazyPage('InviteRedeem');
+const PrivacyPolicy = lazyPage('PrivacyPolicy');
+const Terms = lazyPage('Terms');
+const AccountDeletion = lazyPage('AccountDeletion');
 
 // Protected pages
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
-import Trainers from './pages/Trainers';
+const Dashboard = lazyPage('Dashboard');
+const Profile = lazyPage('Profile');
+const Trainers = lazyPage('Trainers');
 
 // Trainer pages
-import TrainingTemplates from './pages/trainer/TrainingTemplates';
-import ExerciseTemplates from './pages/trainer/ExerciseTemplates';
-import TrainingTemplateEditor from './pages/trainer/TrainingTemplateEditor';
-import ExerciseTemplateEditor from './pages/trainer/ExerciseTemplateEditor';
-import AdvancedTechniques from './pages/trainer/AdvancedTechniques';
-import Tutorials from './pages/trainer/Tutorials';
-import TutorialsList from './pages/admin/TutorialsList';
-import AdvancedTechniqueEditor from './pages/trainer/AdvancedTechniqueEditor';
-import ProtocolTemplateView from './pages/trainer/ProtocolTemplateView';
-import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
-import Students from './pages/trainer/Students';
-import StudentDetail from './pages/trainer/StudentDetail';
-import StudentProtocols from './pages/trainer/StudentProtocols';
-import StudentAnamneses from './pages/trainer/StudentAnamneses';
-import ExerciseProgressionDetail from './pages/trainer/ExerciseProgressionDetail';
-import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
-import AnamnesisDetail from './pages/trainer/AnamnesisDetail';
-import AssignAnamnesis from './pages/trainer/AssignAnamnesis';
-import AnamnesisResponseDetail from './pages/trainer/AnamnesisResponseDetail';
-import TrainerAnamnesisFill from './pages/trainer/TrainerAnamnesisFill';
-import AiAssistant from './pages/trainer/AiAssistant';
-import RoutineBuilder from './pages/trainer/RoutineBuilder';
-import StudentPoints from './pages/trainer/StudentPoints';
-import Challenges from './pages/trainer/Challenges';
-import ChallengeDetail from './pages/trainer/ChallengeDetail';
-import SessionDetail from './pages/trainer/SessionDetail';
-import Financeiro from './pages/trainer/Financeiro';
-import SubscriptionHistory from './pages/trainer/SubscriptionHistory';
+const TrainingTemplates = lazyPage('trainer/TrainingTemplates');
+const ExerciseTemplates = lazyPage('trainer/ExerciseTemplates');
+const TrainingTemplateEditor = lazyPage('trainer/TrainingTemplateEditor');
+const ExerciseTemplateEditor = lazyPage('trainer/ExerciseTemplateEditor');
+const AdvancedTechniques = lazyPage('trainer/AdvancedTechniques');
+const Tutorials = lazyPage('trainer/Tutorials');
+const TutorialsList = lazyPage('admin/TutorialsList');
+const AdvancedTechniqueEditor = lazyPage('trainer/AdvancedTechniqueEditor');
+const ProtocolTemplateView = lazyPage('trainer/ProtocolTemplateView');
+const ProtocolTemplates = lazyPage('trainer/ProtocolTemplates');
+const Students = lazyPage('trainer/Students');
+const StudentDetail = lazyPage('trainer/StudentDetail');
+const StudentProtocols = lazyPage('trainer/StudentProtocols');
+const StudentAnamneses = lazyPage('trainer/StudentAnamneses');
+const ExerciseProgressionDetail = lazyPage('trainer/ExerciseProgressionDetail');
+const TrainerAnamneses = lazyPage('trainer/TrainerAnamneses');
+const AnamnesisDetail = lazyPage('trainer/AnamnesisDetail');
+const AssignAnamnesis = lazyPage('trainer/AssignAnamnesis');
+const AnamnesisResponseDetail = lazyPage('trainer/AnamnesisResponseDetail');
+const TrainerAnamnesisFill = lazyPage('trainer/TrainerAnamnesisFill');
+const AiAssistant = lazyPage('trainer/AiAssistant');
+const RoutineBuilder = lazyPage('trainer/RoutineBuilder');
+const StudentPoints = lazyPage('trainer/StudentPoints');
+const Challenges = lazyPage('trainer/Challenges');
+const ChallengeDetail = lazyPage('trainer/ChallengeDetail');
+const SessionDetail = lazyPage('trainer/SessionDetail');
+const Financeiro = lazyPage('trainer/Financeiro');
+const SubscriptionHistory = lazyPage('trainer/SubscriptionHistory');
 
 // Nutritionist pages
-import NutritionistOnboardingPage from './pages/nutritionist/NutritionistOnboardingPage';
-import NutritionistPatients from './pages/nutritionist/NutritionistPatients';
-import DietTemplates from './pages/nutritionist/DietTemplates';
-import DietProtocols from './pages/nutritionist/DietProtocols';
-import DietProtocolEditor from './pages/nutritionist/DietProtocolEditor';
+const NutritionistOnboardingPage = lazyPage('nutritionist/NutritionistOnboardingPage');
+const NutritionistPatients = lazyPage('nutritionist/NutritionistPatients');
+const DietTemplates = lazyPage('nutritionist/DietTemplates');
+const DietProtocols = lazyPage('nutritionist/DietProtocols');
+const DietProtocolEditor = lazyPage('nutritionist/DietProtocolEditor');
 import NutritionistRoute from './components/NutritionistRoute';
 import RequireRole from './components/RequireRole';
 
 // Admin pages
-import InvitesList from './pages/admin/InvitesList';
-import TrainersList from './pages/admin/TrainersList';
-import AiUsage from './pages/admin/AiUsage';
+const InvitesList = lazyPage('admin/InvitesList');
+const TrainersList = lazyPage('admin/TrainersList');
+const AiUsage = lazyPage('admin/AiUsage');
 
 // Student pages (diet)
-import MyDietProtocol from './pages/my/MyDietProtocol';
+const MyDietProtocol = lazyPage('my/MyDietProtocol');
 
-import MyProtocols from './pages/my/MyProtocols';
-import MyAnamneses from './pages/my/MyAnamneses';
-import AnamnesisWizard from './pages/my/AnamnesisWizard';
-import MyProtocolDetail from './pages/my/MyProtocolDetail';
-import WorkoutSessions from './pages/my/WorkoutSessions';
-import WorkoutSession from './pages/my/WorkoutSession';
-import MyChallenges from './pages/my/MyChallenges';
-import MyChallengeDetail from './pages/my/MyChallengeDetail';
+const MyProtocols = lazyPage('my/MyProtocols');
+const MyAnamneses = lazyPage('my/MyAnamneses');
+const AnamnesisWizard = lazyPage('my/AnamnesisWizard');
+const MyProtocolDetail = lazyPage('my/MyProtocolDetail');
+const WorkoutSessions = lazyPage('my/WorkoutSessions');
+const WorkoutSession = lazyPage('my/WorkoutSession');
+const MyChallenges = lazyPage('my/MyChallenges');
+const MyChallengeDetail = lazyPage('my/MyChallengeDetail');
 
 const RedirectWithId = ({ to }) => {
   const { id } = useParams();
@@ -89,16 +102,23 @@ RedirectWithId.propTypes = {
 };
 
 function App() {
+  useEffect(installPreloadErrorHandler, []);
+
   return (
     <BrowserRouter>
       <ScrollToTop />
       <ToastProvider>
         <ErrorBoundary>
+          <AppVersionGate>
           <AuthProvider>
+            <NativeBootGate>
+            <TrainerOnlyGate>
+            <NativeIntegrations />
             <AiChatProvider>
+            <Suspense fallback={<RouteFallback />}>
             <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/signup" element={<WebOnlyRoute><Signup /></WebOnlyRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           {/* why: self-guards auth; wrapping in the beta-gated ProtectedRoute would loop */}
           <Route path="/invite" element={<InviteRedeem />} />
@@ -701,8 +721,12 @@ function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+            </Suspense>
             </AiChatProvider>
+            </TrainerOnlyGate>
+            </NativeBootGate>
           </AuthProvider>
+          </AppVersionGate>
         </ErrorBoundary>
       </ToastProvider>
     </BrowserRouter>

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { isNative } from '../platform';
 
 const STORAGE_KEY = 'treinoway.activeMode';
 const VALID_MODES = ['trainer', 'nutritionist'];
 const DEFAULT_MODE = 'trainer';
 
 const readStoredMode = () => {
+  if (isNative()) return DEFAULT_MODE;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     return VALID_MODES.includes(stored) ? stored : DEFAULT_MODE;
@@ -23,6 +25,7 @@ const writeStoredMode = (mode) => {
 
 /**
  * Persists the user's active role mode (trainer | nutritionist) in localStorage.
+ * The native app is trainer-only, so there the mode is always 'trainer' (a trainer who is also a student enters as trainer).
  * Listens for `storage` events so changes in one tab propagate to others.
  *
  * @returns {[string, Function]} Tuple of [activeMode, setActiveMode].
@@ -31,7 +34,7 @@ const useActiveMode = () => {
   const [activeMode, setActiveModeState] = useState(readStoredMode);
 
   const setActiveMode = (mode) => {
-    if (!VALID_MODES.includes(mode)) return;
+    if (isNative() || !VALID_MODES.includes(mode)) return;
     writeStoredMode(mode);
     setActiveModeState(mode);
   };

@@ -1170,7 +1170,7 @@ const MAX_BISET_MEMBERS = 6;
  * The handle ReactNode is injected into children as the `dragHandle` prop so
  * the row/block can place it at the leading edge.
  */
-const SortableExerciseEntry = ({ id, disabled, children }) => {
+const SortableExerciseEntry = ({ id, disabled, hideHandle, children }) => {
   const {
     attributes,
     listeners,
@@ -1200,8 +1200,8 @@ const SortableExerciseEntry = ({ id, disabled, children }) => {
     .join(' ');
 
   // The handle is the sole drag-activation target. When disabled it renders
-  // as a non-interactive visual indicator (aria-hidden).
-  const dragHandle = disabled ? (
+  // as a non-interactive visual indicator (aria-hidden); read-only views omit it.
+  const handleNode = disabled ? (
     <span
       className="exercise-drag-handle exercise-drag-handle--disabled"
       aria-hidden="true"
@@ -1221,6 +1221,7 @@ const SortableExerciseEntry = ({ id, disabled, children }) => {
       <GripVertical size={16} strokeWidth={2} />
     </span>
   );
+  const dragHandle = hideHandle ? null : handleNode;
 
   return (
     <div
@@ -1236,11 +1237,13 @@ const SortableExerciseEntry = ({ id, disabled, children }) => {
 SortableExerciseEntry.propTypes = {
   id: PropTypes.string.isRequired,
   disabled: PropTypes.bool,
+  hideHandle: PropTypes.bool,
   children: PropTypes.node.isRequired,
 };
 
 SortableExerciseEntry.defaultProps = {
   disabled: false,
+  hideHandle: false,
 };
 
 // Status of a training card: empty / partial (< 3 exercises) / ready. Shown as a Tag badge.
@@ -1673,6 +1676,7 @@ const TrainingItem = ({
                               key={ex.id}
                               id={ex.id}
                               disabled={dragDisabled}
+                              hideHandle={readOnly}
                             >
                               <ExerciseRowWithSubstitutes
                                 ex={ex}
@@ -1708,6 +1712,7 @@ const TrainingItem = ({
                             key={entry.groupId}
                             id={groupSortableId}
                             disabled={dragDisabled}
+                            hideHandle={readOnly}
                           >
                             <BisetGroupBlock
                               groupId={entry.groupId}

@@ -11,8 +11,11 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
+// why: getAuth throws auth/invalid-api-key on an empty key and that crash happens before React mounts (blank screen in the app build, where sign-in is native and Firebase web auth is unused).
+const isConfigured = Boolean(firebaseConfig.apiKey);
+
+const app = isConfigured ? initializeApp(firebaseConfig) : null;
+const auth = isConfigured ? getAuth(app) : null;
+const googleProvider = isConfigured ? new GoogleAuthProvider() : null;
 
 export { auth, googleProvider };

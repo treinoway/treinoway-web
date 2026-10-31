@@ -1,5 +1,6 @@
 import API_BASE_URL from './baseUrl';
-import { clearAuthAndRedirect, refreshAccessToken } from './axios';
+import { clearAuthAndRedirect, isRefreshRejected, refreshAccessToken } from './axios';
+import { readSessionValue } from '../utils/sessionStore';
 import { createSseParser } from '../utils/sseParser';
 import { getLocale } from '../i18n';
 
@@ -27,16 +28,16 @@ const readErrorBody = async (response) => {
   }
 };
 
-// Refreshes the session through the shared axios helper; a failed refresh ends the session like the axios interceptor does.
+// Refreshes the session through the shared axios helper; only a rejected refresh token (or no token at all) ends the session, like the axios interceptor.
 const tryRefreshToken = async () => {
-  let freshToken = null;
   try {
-    freshToken = await refreshAccessToken();
-  } catch {
-    freshToken = null;
+    const freshToken = await refreshAccessToken();
+    if (!freshToken && !readSessionValue('refreshToken')) clearAuthAndRedirect();
+    return freshToken;
+  } catch (error) {
+    if (isRefreshRejected(error)) clearAuthAndRedirect();
+    return null;
   }
-  if (!freshToken) clearAuthAndRedirect();
-  return freshToken;
 };
 
 // Opens the chat stream, retrying once with a refreshed token on 401; rejects with an axios-like error otherwise.

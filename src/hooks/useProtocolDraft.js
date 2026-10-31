@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getProtocolDraftKey, PROTOCOL_DRAFT_VERSION } from '../utils/protocolDraft';
+import { onPageLeave } from '../utils/pageLeave';
 
 const DEBOUNCE_MS = 1500;
 const LABEL_REFRESH_MS = 30000;
@@ -161,7 +162,7 @@ const useProtocolDraft = ({ enabled, studentId, name, meta, trainings, onRestore
     };
   }, [enabled, studentId]);
 
-  // ── Synchronous flush on hard browser close (beforeunload) ────────────────
+  // ── Synchronous flush when the page or app is suspended (unload, hidden, background) ────────────────
 
   useEffect(() => {
     if (!enabled || !studentId) return;
@@ -190,8 +191,7 @@ const useProtocolDraft = ({ enabled, studentId, name, meta, trainings, onRestore
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    return onPageLeave(handleBeforeUnload);
   }, [enabled, studentId]);
 
   // ── Periodic label refresh (every 30s while a saved timestamp exists) ─────

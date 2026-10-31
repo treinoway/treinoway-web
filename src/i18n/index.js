@@ -1,4 +1,5 @@
 import ptBR from './locales/pt-BR';
+import { isNative } from '../platform';
 
 const locales = {
   'pt-BR': ptBR,
@@ -43,6 +44,13 @@ export function tCount(path, count, params = {}) {
   return tf(`${path}.${form}`, { ...params, n: count });
 }
 
+const PLAN_MESSAGE_CODE_PREFIX = 'platformPlan.';
+
+// Tells whether a backend messageCode belongs to the platform plan (quota, tier) family.
+function isPlanMessageCode(messageCode) {
+  return typeof messageCode === 'string' && messageCode.startsWith(PLAN_MESSAGE_CODE_PREFIX);
+}
+
 /**
  * Translates a backend error response into a user-friendly message.
  *
@@ -51,6 +59,9 @@ export function tCount(path, count, params = {}) {
  *   2. `messageCodes[messageCode]` — stable i18n code (e.g., auth.unauthorized)
  *   3. `httpStatus[status]` — HTTP status fallback
  *   4. `fallback` — generic message
+ *
+ * In the native app every `platformPlan.*` code resolves to neutral text (no upgrade, price or
+ * checkout), whatever the server message says.
  *
  * Validation errors (messageCode === 'validation.failed') are handled
  * separately by translating each field-level detail.
@@ -69,6 +80,10 @@ export function translateError(error, fallbackMessage) {
   const errorCode = data?.error;
   const messageCode = data?.messageCode;
   const details = data?.details;
+
+  if (isNative() && isPlanMessageCode(messageCode)) {
+    return translations.nativePlanMessages[messageCode] || translations.nativePlanMessages.default;
+  }
 
   if (messageCode === 'validation.failed' && Array.isArray(details) && details.length > 0) {
     return translateValidationDetails(details);
