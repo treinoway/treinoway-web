@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { t, translateError, extractErrorInfo } from '../../i18n';
 import api from '../../api/axios';
+import { isNative } from '../../platform';
 import { inviteStudent } from '../../api/studentInvites';
 import { STUDENTS_PAGE_SIZE } from '../../constants/student';
 import { StudentInviteOutcome, StudentInviteMessageCode } from '../../constants/studentInvite';
@@ -62,24 +63,33 @@ const getLinkErrorMessage = (error) => {
 
 /* ─── Quota banner ──────────────────────────────────────────────────────── */
 /* Surfaces the platform seat-quota problem once, at list level, with a single
-   upgrade CTA — never per row. Shown only when ≥1 student is blocked_on_plan. */
+   upgrade CTA — never per row. Shown only when ≥1 student is blocked_on_plan.
+   The native app keeps the notice but drops the CTA and any upgrade wording. */
+
+// Picks the banner body translation key for the count and the platform.
+const quotaBodyKey = (count, native) => {
+  const form = count === 1 ? 'One' : 'Other';
+  return `students.quotaBanner.body${form}${native ? 'Native' : ''}`;
+};
 
 const QuotaBanner = ({ count, onUpgrade }) => {
-  const bodyKey = count === 1 ? 'students.quotaBanner.bodyOne' : 'students.quotaBanner.bodyOther';
-  const body = (t(bodyKey) || '').replace('{count}', String(count));
+  const native = isNative();
+  const body = (t(quotaBodyKey(count, native)) || '').replace('{count}', String(count));
 
   return (
     <div className="ds-banner" role="status">
       <span className="ds-banner__icon" aria-hidden="true">
-        <ArrowUp size={20} strokeWidth={2} />
+        {native ? <CircleAlert size={20} strokeWidth={2} /> : <ArrowUp size={20} strokeWidth={2} />}
       </span>
       <div className="ds-banner__text">
         <strong className="type-body-strong">{t('students.quotaBanner.title')}</strong>
         <span className="type-body">{body}</span>
       </div>
-      <button type="button" className="btn btn--primary" onClick={onUpgrade}>
-        {t('students.quotaBanner.cta')}
-      </button>
+      {!native && (
+        <button type="button" className="btn btn--primary" onClick={onUpgrade}>
+          {t('students.quotaBanner.cta')}
+        </button>
+      )}
     </div>
   );
 };

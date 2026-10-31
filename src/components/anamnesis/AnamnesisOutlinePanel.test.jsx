@@ -36,7 +36,7 @@ const buildProps = (overrides = {}) => ({
     handleDeleteSection: vi.fn(),
     handleEditSection: vi.fn().mockResolvedValue(true),
   },
-  reorder: { dragOverId: null, getDragHandlers: () => ({ draggable: true }) },
+  reorder: { dragOverId: null, draggingId: null, getGripProps: () => ({}), getRowProps: () => ({}) },
   onDeleteQuestion: vi.fn(),
   ...overrides,
 });
@@ -111,7 +111,7 @@ describe('AnamnesisOutlinePanel', () => {
   });
 
   it('marks the section being dragged over', () => {
-    const props = buildProps({ reorder: { dragOverId: 's2', getDragHandlers: () => ({}) } });
+    const props = buildProps({ reorder: { dragOverId: 's2', draggingId: null, getGripProps: () => ({}), getRowProps: () => ({}) } });
     render(<AnamnesisOutlinePanel {...props} />);
     const target = screen.getByText('Treino').closest('[role="button"]');
     expect(target).toHaveClass('outline-section-btn--drag-over');

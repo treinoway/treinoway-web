@@ -344,6 +344,31 @@ describe('useAnamnesisDraft', () => {
       expect(save).toHaveBeenCalledTimes(1);
     });
 
+    it('flushes pending answers on pagehide', async () => {
+      const { save, answer } = setup();
+      answer({ q1: 'b' });
+      act(() => { window.dispatchEvent(new Event('pagehide')); });
+      await settle();
+      expect(save).toHaveBeenCalledTimes(1);
+      expect(save).toHaveBeenCalledWith([{ questionId: 'q1', value: 'b' }]);
+    });
+
+    it('does not flush on beforeunload, which only warns', async () => {
+      const { save, answer } = setup();
+      answer({ q1: 'b' });
+      act(() => { window.dispatchEvent(new Event('beforeunload', { cancelable: true })); });
+      await settle();
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    it('stops listening to pagehide after unmount', async () => {
+      const { save, unmount } = setup();
+      unmount();
+      act(() => { window.dispatchEvent(new Event('pagehide')); });
+      await settle();
+      expect(save).not.toHaveBeenCalled();
+    });
+
     it('flushes pending answers on unmount', async () => {
       const { save, answer, unmount } = setup();
       answer({ q1: 'b' });

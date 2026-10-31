@@ -4,6 +4,7 @@ import { translateError } from '../i18n';
 import useUnsavedChangesWarning from './useUnsavedChangesWarning';
 import { DRAFT_SAVE_STATUS } from '../constants/anamnesis';
 import { isAnswerEmpty } from '../utils/anamnesisAnswers';
+import { onPageLeave } from '../utils/pageLeave';
 
 export const DRAFT_DEBOUNCE_MS = 1500;
 export const DRAFT_RETRY_DELAYS_MS = [2000, 5000, 10000];
@@ -165,11 +166,7 @@ const useAnamnesisDraft = ({ enabled, answers, stepIndex, hasChanges, save, onCo
 
   useEffect(() => {
     if (!enabled) return undefined;
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') flush();
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return onPageLeave(flush, { includeUnload: false });
   }, [enabled, flush]);
 
   useEffect(() => {

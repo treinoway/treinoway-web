@@ -2,6 +2,7 @@ import { Component } from 'react';
 import PropTypes from 'prop-types';
 import * as Sentry from '@sentry/react';
 import { isSentryEnabled } from '../lib/sentry';
+import { isStaleChunkError, reloadForStaleChunk } from '../utils/chunkReload';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -14,6 +15,7 @@ class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
+    if (isStaleChunkError(error) && reloadForStaleChunk()) return;
     console.error('ErrorBoundary caught:', error, errorInfo);
     // Capture render-time crashes (no-op when DSN is unset).
     if (isSentryEnabled) {

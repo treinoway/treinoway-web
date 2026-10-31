@@ -45,7 +45,7 @@ const OutlineFooter = ({ sectionsEditor }) => (
 
 OutlineFooter.propTypes = { sectionsEditor: PropTypes.object.isRequired };
 
-/** Left panel: sections (draggable) with their questions, plus the "Nova seção" form. */
+/** Left panel: sections (reorderable by grip or Alt + arrows) with their questions, plus the "Nova seção" form. */
 const AnamnesisOutlinePanel = ({
   sections,
   isGeneral,
@@ -63,8 +63,10 @@ const AnamnesisOutlinePanel = ({
         isActive={selection.selectedSectionId === section.id}
         isGeneral={isGeneral}
         isDragOver={reorder.dragOverId === section.id}
+        isDragging={reorder.draggingId === section.id}
         selectedQuestionId={selection.selectedQuestionId}
-        dragHandlers={reorder.getDragHandlers(section.id)}
+        gripProps={reorder.getGripProps(section.id)}
+        rowProps={reorder.getRowProps(section.id)}
         onSelectSection={selection.handleSelectSection}
         onSelectQuestion={selection.handleSelectQuestion}
         onDeleteSection={sectionsEditor.handleDeleteSection}
@@ -83,7 +85,9 @@ AnamnesisOutlinePanel.propTypes = {
   sectionsEditor: PropTypes.object.isRequired,
   reorder: PropTypes.shape({
     dragOverId: PropTypes.string,
-    getDragHandlers: PropTypes.func.isRequired,
+    draggingId: PropTypes.string,
+    getGripProps: PropTypes.func.isRequired,
+    getRowProps: PropTypes.func.isRequired,
   }).isRequired,
   onDeleteQuestion: PropTypes.func.isRequired,
 };

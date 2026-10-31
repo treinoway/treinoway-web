@@ -4,10 +4,14 @@ import { useAuth } from './AuthContext';
 import api from '../api/axios';
 import { openChatStream, readChatEvents } from '../api/aiChatStream';
 import { t, translateError } from '../i18n';
+import { isNative } from '../platform';
 
 const AiChatContext = createContext(null);
 
 let messageSequence = 0;
+
+// A stream whose app stayed in the background this long is treated as lost: the OS may have frozen the connection without an error.
+const BACKGROUND_STREAM_LOSS_MS = 5000;
 
 // Returns the next stable key for a locally created message.
 const nextMessageId = () => {
@@ -126,6 +130,7 @@ export const AiChatProvider = ({ children }) => {
   const loadSequenceRef = useRef(0);
   const lastTurnRef = useRef(null);
   const conversationStudentIdRef = useRef(null);
+  const interruptTurnRef = useRef(null);
 
   const setConversationId = useCallback((id) => {
     conversationIdRef.current = id;
@@ -169,6 +174,23 @@ export const AiChatProvider = ({ children }) => {
     return () => controllerRef.current?.abort();
   }, []);
 
+  // why: native only; after a long background stay with a turn still streaming, the connection may be frozen, so the half answer is dropped and a retry offered.
+  useEffect(() => {
+    if (!isNative()) return undefined;
+    let hiddenAt = null;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = streamControllerRef.current ? Date.now() : null;
+        return;
+      }
+      const wasLost = hiddenAt !== null && Date.now() - hiddenAt >= BACKGROUND_STREAM_LOSS_MS;
+      hiddenAt = null;
+      if (wasLost && streamControllerRef.current) interruptTurnRef.current?.();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const runTurn = useCallback(async (text, { studentId: requestedStudentId, appendUser }) => {
     const studentId = requestedStudentId ?? conversationStudentIdRef.current;
     conversationStudentIdRef.current = studentId ?? null;
@@ -183,6 +205,10 @@ export const AiChatProvider = ({ children }) => {
     };
     const setters = { setMessages, setStatusMessage, setChatError, setConversationId, setHasNewResponse };
     const { handleEvent, fail, interrupted } = createTurnHandlers({ text, isCurrent, finish, setters });
+    interruptTurnRef.current = () => {
+      controller.abort();
+      interrupted();
+    };
     const payload = {
       message: text,
       ...(conversationIdRef.current && { conversationId: conversationIdRef.current }),

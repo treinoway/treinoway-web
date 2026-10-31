@@ -9,6 +9,11 @@ import { setSentryUser } from '../lib/sentry';
 import { clearOnboardingSessionState } from '../hooks/useOnboardingStatus';
 import { clearTrainerCaches } from '../utils/trainerCaches';
 import { GOOGLE_POPUP_CANCEL_CODES } from '../constants/googleAuth';
+import { NATIVE_AUTH_CANCELLED, NATIVE_AUTH_UNAVAILABLE, NATIVE_AUTH_UNAVAILABLE_MESSAGE } from '../constants/nativeAuth';
+import { isNative, nativeAuth } from '../platform';
+import { unregisterDevice } from '../utils/deviceRegistration';
+import { discardLocalPushToken } from '../utils/pushToken';
+import { bumpSessionGeneration, clearStoredSession, currentSessionGeneration, readWebSession, restoreStoredSession, writeSessionValue } from '../utils/sessionStore';
 
 const AuthContext = createContext(null);
 
@@ -29,22 +34,37 @@ export const useAuth = () => {
   return context;
 };
 
-function loadStoredToken() {
-  try {
-    return localStorage.getItem('accessToken') || null;
-  } catch {
-    return null;
-  }
+// Initial session state: synchronous from localStorage on the website, empty until the secure store is read in the native app.
+function initialSession() {
+  return isNative() ? { accessToken: null, user: null } : readWebSession();
 }
 
-function loadStoredUser() {
-  try {
-    const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) : null;
-  } catch {
-    return null;
-  }
+// Maps a failed native sign-in to the result shape the login screens read.
+function nativeSignInFailure(error, fallbackMessage) {
+  if (error?.code === NATIVE_AUTH_CANCELLED) return { success: false, error: null };
+  if (error?.code === NATIVE_AUTH_UNAVAILABLE) return { success: false, error: NATIVE_AUTH_UNAVAILABLE_MESSAGE };
+  return { success: false, error: translateError(error, fallbackMessage) };
 }
+
+// Gives the session cleanup at most this long to remove the push device before logout continues.
+const DEVICE_REMOVAL_TIMEOUT_MS = 3000;
+
+// Removes the push device on the server, giving up (and aborting the request) after the timeout so logout never hangs offline.
+const removeDeviceWithTimeout = async () => {
+  const controller = new AbortController();
+  let timer;
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      resolve();
+    }, DEVICE_REMOVAL_TIMEOUT_MS);
+  });
+  try {
+    await Promise.race([unregisterDevice({ signal: controller.signal }), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
 
 function extractAuthData(data) {
   // API format: { token: { accessToken: "..." }, refreshToken: "..." }
@@ -97,8 +117,25 @@ function extractAuthData(data) {
 }
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(loadStoredUser);
-  const [accessToken, setAccessToken] = useState(loadStoredToken);
+  const [initial] = useState(initialSession);
+  const [user, setUser] = useState(initial.user);
+  const [accessToken, setAccessToken] = useState(initial.accessToken);
+  const [isRestoring, setIsRestoring] = useState(isNative);
+
+  // why: the Keychain/Keystore is async, so the native session is restored before any screen decides who is signed in.
+  useEffect(() => {
+    if (!isNative()) return undefined;
+    let cancelled = false;
+    restoreStoredSession().then((stored) => {
+      if (cancelled) return;
+      setUser(stored.user);
+      setAccessToken(stored.accessToken && stored.user ? stored.accessToken : null);
+      setIsRestoring(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Shared post-authentication sequence used by login, verifySignup, loginWithGoogle,
   // and resetPassword: persist tokens, clear stale per-user session state,
@@ -112,9 +149,11 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: 'Resposta da API sem token de acesso.' };
     }
 
-    // Save token to localStorage early so the interceptor can use it for /me
-    localStorage.setItem('accessToken', token);
-    if (refresh) localStorage.setItem('refreshToken', refresh);
+    // Persist the token early so the interceptor can use it for /me
+    bumpSessionGeneration();
+    // why: the refresh token is written first, so a crash between the writes never leaves a new access token with an old refresh token.
+    if (refresh) await writeSessionValue('refreshToken', refresh);
+    await writeSessionValue('accessToken', token);
 
     // Clear per-user session state before fetching /me so optimistic flags
     // from a previous account don't bleed into the new session.
@@ -124,7 +163,7 @@ export const AuthProvider = ({ children }) => {
     const meResponse = await api.get('/me?include=address,socials');
     const userData = userPatch ? { ...meResponse.data, ...userPatch } : meResponse.data;
 
-    localStorage.setItem('user', JSON.stringify(userData));
+    await writeSessionValue('user', JSON.stringify(userData));
     // Batch setUser and setAccessToken together so React renders once with
     // both isAuthenticated=true and user already populated (prevents flash).
     setUser(userData);
@@ -207,7 +246,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithNativeProvider = async ({ signIn, endpoint, fallbackMessage }) => {
+    try {
+      const credentials = await signIn();
+      const response = await api.post(endpoint, credentials);
+      return await establishSession(response.data);
+    } catch (error) {
+      return nativeSignInFailure(error, fallbackMessage);
+    }
+  };
+
   const loginWithGoogle = async ({ loginHint, onPopupResolved } = {}) => {
+    if (isNative()) {
+      return loginWithNativeProvider({
+        signIn: nativeAuth.signInWithGoogle,
+        endpoint: '/auth/google/mobile',
+        fallbackMessage: 'Falha na autenticação com Google.',
+      });
+    }
     try {
       const result = await signInWithPopup(auth, buildGoogleProvider(loginHint));
       onPopupResolved?.();
@@ -228,6 +284,12 @@ export const AuthProvider = ({ children }) => {
       };
     }
   };
+
+  const loginWithApple = () => loginWithNativeProvider({
+    signIn: nativeAuth.signInWithApple,
+    endpoint: '/auth/apple/mobile',
+    fallbackMessage: 'Falha na autenticação com Apple.',
+  });
 
   const forgotPassword = async (email) => {
     try {
@@ -258,19 +320,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const clearSession = () => {
     setAccessToken(null);
     setUser(null);
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
     clearOnboardingSessionState();
     clearTrainerCaches();
   };
 
+  // why: in the native app the push device is removed before the tokens are cleared, while the token is still valid.
+  const logout = async ({ skipDeviceRemoval = false } = {}) => {
+    if (isNative() && !skipDeviceRemoval) await removeDeviceWithTimeout();
+    discardLocalPushToken();
+    const storedSessionCleared = clearStoredSession();
+    clearSession();
+    await storedSessionCleared;
+  };
+
   const updateUser = (updatedUser) => {
     setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    writeSessionValue('user', JSON.stringify(updatedUser));
   };
 
   const refreshUser = async () => {
@@ -291,13 +359,14 @@ export const AuthProvider = ({ children }) => {
     return user.roles.some(r => r.toUpperCase() === role.toUpperCase());
   };
 
-  const updateTokens = (newAccessToken, newRefreshToken) => {
-    if (newAccessToken) {
-      localStorage.setItem('accessToken', newAccessToken);
-      setAccessToken(newAccessToken);
-    }
+  const updateTokens = (newAccessToken, newRefreshToken, generation = currentSessionGeneration()) => {
+    if (generation !== currentSessionGeneration()) return;
     if (newRefreshToken) {
-      localStorage.setItem('refreshToken', newRefreshToken);
+      writeSessionValue('refreshToken', newRefreshToken, generation);
+    }
+    if (newAccessToken) {
+      writeSessionValue('accessToken', newAccessToken, generation);
+      setAccessToken(newAccessToken);
     }
   };
 
@@ -310,11 +379,21 @@ export const AuthProvider = ({ children }) => {
   // Keep React state in sync when axios interceptor refreshes the token
   useEffect(() => {
     const handleTokensRefreshed = (e) => {
-      const { newAccessToken, newRefreshToken } = e.detail || {};
-      updateTokens(newAccessToken, newRefreshToken);
+      const { newAccessToken, newRefreshToken, generation } = e.detail || {};
+      updateTokens(newAccessToken, newRefreshToken, generation);
     };
     window.addEventListener('treinoway:tokensRefreshed', handleTokensRefreshed);
     return () => window.removeEventListener('treinoway:tokensRefreshed', handleTokensRefreshed);
+  }, []);
+
+  // why: the axios layer cannot reload the native WebView, so it announces an ended session and the provider signs out.
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      discardLocalPushToken();
+      clearSession();
+    };
+    window.addEventListener('treinoway:sessionExpired', handleSessionExpired);
+    return () => window.removeEventListener('treinoway:sessionExpired', handleSessionExpired);
   }, []);
 
   const isAdmin = Array.isArray(user?.roles)
@@ -325,6 +404,7 @@ export const AuthProvider = ({ children }) => {
     accessToken,
     login,
     loginWithGoogle,
+    loginWithApple,
     signup,
     verifySignup,
     signupWithInvite,
@@ -338,6 +418,7 @@ export const AuthProvider = ({ children }) => {
     hasRole,
     isAdmin,
     isAuthenticated: !!accessToken,
+    isRestoring,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

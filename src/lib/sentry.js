@@ -12,6 +12,28 @@ const dsn = import.meta.env.VITE_SENTRY_DSN;
 
 export const isSentryEnabled = Boolean(dsn);
 
+const DEVICE_TOKEN_PATH = /(\/me\/devices\/)[^\s"'?#\\]+/g;
+
+// Replaces the FCM token in any `/me/devices/<token>` path with a placeholder.
+export function scrubDeviceToken(text) {
+  return typeof text === 'string' ? text.replace(DEVICE_TOKEN_PATH, '$1:token') : text;
+}
+
+// Drops breadcrumbs of requests to /me/devices/<token> (the token is a credential for push).
+export function filterBreadcrumb(breadcrumb) {
+  const target = `${breadcrumb?.data?.url ?? ''} ${breadcrumb?.message ?? ''}`;
+  return target.includes('/me/devices/') ? null : breadcrumb;
+}
+
+// Removes the FCM token from every string of an event by round-tripping it through JSON.
+export function scrubEvent(event) {
+  try {
+    return JSON.parse(scrubDeviceToken(JSON.stringify(event)));
+  } catch {
+    return event;
+  }
+}
+
 export function initSentry() {
   if (!isSentryEnabled) return;
 
@@ -20,6 +42,8 @@ export function initSentry() {
     environment: import.meta.env.VITE_SENTRY_ENVIRONMENT ?? 'beta',
     tracesSampleRate: 0,
     replaysSessionSampleRate: 0,
+    beforeBreadcrumb: filterBreadcrumb,
+    beforeSend: scrubEvent,
   });
 }
 
@@ -82,7 +106,7 @@ export function reportApiError(error) {
   if (!isServerError && !isTransportError) return;
 
   const config = error?.config ?? {};
-  const route = config.url ?? 'unknown';
+  const route = scrubDeviceToken(config.url ?? 'unknown');
   const method = (config.method ?? 'unknown').toUpperCase();
   const requestId = extractRequestId(error);
 

@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import local from './eslint-rules/index.js'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'android', 'ios']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -63,7 +63,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['playwright.config.js', 'e2e/**/*.{js,jsx}'],
+    files: ['playwright.config.js', 'e2e/**/*.{js,jsx}', 'scripts/**/*.{js,mjs}', 'vite.config.js'],
     languageOptions: {
       globals: {
         ...globals.browser,

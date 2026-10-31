@@ -50,8 +50,12 @@ const AccountDeletion = () => {
                 <div className="legal-action-card">
                   <h3 className="legal-action-card-title">Pelo aplicativo</h3>
                   <p>
-                    Acesse <strong>Perfil → Segurança → Excluir conta</strong> dentro do
-                    aplicativo TeuFit. A exclusão é processada imediatamente após a confirmação.
+                    No aplicativo, acesse <strong>Perfil → Excluir conta</strong>. A exclusão é
+                    processada após a confirmação.
+                  </p>
+                  <p>
+                    <strong>Contas de treinador:</strong> a exclusão ainda não está disponível pelo
+                    aplicativo. Solicite por e-mail, no canal ao lado.
                   </p>
                 </div>
 

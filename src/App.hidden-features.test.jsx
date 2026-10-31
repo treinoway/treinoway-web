@@ -30,21 +30,21 @@ describe('App routes: hidden branding and championship creation', () => {
     });
   });
 
-  it('redirects /trainer/branding to /', () => {
+  it('redirects /trainer/branding to /', async () => {
     window.history.pushState({}, '', '/trainer/branding');
 
     render(<App />);
 
-    expect(screen.getByText('Dashboard Page')).toBeInTheDocument();
+    expect(await screen.findByText('Dashboard Page')).toBeInTheDocument();
     expect(screen.queryByText('Branding Page')).not.toBeInTheDocument();
   });
 
-  it('redirects /trainer/championships/create to /', () => {
+  it('redirects /trainer/championships/create to /', async () => {
     window.history.pushState({}, '', '/trainer/championships/create');
 
     render(<App />);
 
-    expect(screen.getByText('Dashboard Page')).toBeInTheDocument();
+    expect(await screen.findByText('Dashboard Page')).toBeInTheDocument();
     expect(screen.queryByText('Create Championship Page')).not.toBeInTheDocument();
   });
 });

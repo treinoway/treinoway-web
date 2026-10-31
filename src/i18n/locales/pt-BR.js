@@ -1,6 +1,8 @@
 const ptBR = {
   errors: {
     INVALID_CREDENTIALS: "E-mail ou senha incorretos.",
+    PROFESSIONAL_ACCOUNT_DELETION_UNSUPPORTED:
+      "Contas de treinador ainda não podem ser excluídas pelo aplicativo. Fale com o suporte em suporte@teufit.com.br.",
     INVALID_REFRESH_TOKEN: "Sessão expirada. Faça login novamente.",
     EMAIL_IN_USE: "Este e-mail já está cadastrado.",
     PASSWORD_MISMATCH: "As senhas não conferem.",
@@ -354,6 +356,39 @@ const ptBR = {
   },
 
   fallback: "Ocorreu um erro inesperado. Tente novamente.",
+
+  nativeApp: {
+    trainerOnly: {
+      title: "Acesso restrito",
+      body: "Este aplicativo é exclusivo para treinadores. Sua conta não tem perfil de treinador. Saia para entrar com outra conta.",
+      signOut: "Sair",
+    },
+    update: {
+      title: "Atualização necessária",
+      body: "Esta versão do Teufit Coach não é mais compatível. Atualize para continuar.",
+      cta: "Atualizar aplicativo",
+    },
+    offline: "Sem conexão com a internet. Algumas ações podem falhar até a conexão voltar.",
+    deleteAccount: {
+      action: "Excluir conta",
+      message: "Excluir sua conta apaga seus dados de acesso e não pode ser desfeito. Deseja continuar?",
+      confirm: "Excluir conta",
+      busy: "Excluindo…",
+    },
+    routeLoading: "Carregando...",
+    aiInterrupted: {
+      message: "A conexão com o iArnold foi interrompida e a resposta ficou incompleta.",
+      retry: "Tentar de novo",
+    },
+  },
+
+  nativePlanMessages: {
+    default: "Esta ação não está disponível para a sua conta no momento.",
+    "platformPlan.aiNotAvailable": "O iArnold não está disponível para a sua conta.",
+    "platformPlan.aiActionsExceeded": "Você atingiu o limite de ações do iArnold deste aluno.",
+    "platformPlan.studentBlockedOnPlan": "Este aluno está bloqueado pela sua cota atual.",
+    "platformPlan.studentCapExceeded": "Você atingiu o limite de alunos da sua cota.",
+  },
 
   platformPlan: {
     tier: {
@@ -1504,6 +1539,8 @@ const ptBR = {
       bodyOne: "{count} aluno está bloqueado pela sua cota. Faça upgrade para liberá-lo.",
       bodyOther: "{count} alunos estão bloqueados pela sua cota. Faça upgrade para liberá-los.",
       cta: "Fazer upgrade",
+      bodyOneNative: "{count} aluno está bloqueado pela sua cota.",
+      bodyOtherNative: "{count} alunos estão bloqueados pela sua cota.",
     },
   },
 

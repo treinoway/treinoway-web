@@ -445,11 +445,6 @@
       "count": 1
     }
   },
-  "src/components/NutritionistRoute.test.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    }
-  },
   "src/components/OnboardingChecklistCard/OnboardingAllDoneState.jsx": {
     "local/function-header-comment": {
       "count": 1
@@ -1473,7 +1468,7 @@
   },
   "src/contexts/AuthContext.jsx": {
     "local/function-header-comment": {
-      "count": 6
+      "count": 4
     },
     "local/no-comments-in-function": {
       "count": 33
