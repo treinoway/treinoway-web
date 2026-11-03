@@ -239,6 +239,21 @@ const en = {
     },
   },
 
+  exerciseVideo: {
+    upload: 'Upload video from gallery',
+    inputLabel: 'Select video',
+    cancel: 'Cancel upload',
+    remove: 'Remove uploaded video',
+    preview: 'Uploaded video preview',
+    attached: 'Video attached',
+    progress: 'Video upload progress',
+    uploading: 'Uploading…',
+    hint: 'MP4, MOV or WEBM, up to 100 MB. Recommended: up to 30 s at 720p/1080p (~30 MB) for a fast upload.',
+    invalidType: 'Unsupported format. Use MP4, MOV or WEBM.',
+    tooLarge: 'The video must be at most 100 MB.',
+    failed: 'Could not upload the video. Please try again.',
+  },
+
   profile: {
     avatar: {
       label: 'Profile photo',

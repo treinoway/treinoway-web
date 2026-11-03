@@ -57,6 +57,8 @@ const extractExercisesFromTemplate = (raw) => {
       restInterval: j.restInterval ?? j.exerciseTemplate?.restInterval ?? null,
       videoUrl: j.videoUrl ?? j.exerciseTemplate?.videoUrl ?? null,
       gifUrl: j.gifUrl ?? j.exerciseTemplate?.gifUrl ?? null,
+      videoFileKey: j.videoFileKey ?? j.exerciseTemplate?.videoFileKey ?? null,
+      videoFileUrl: j.videoFileUrl ?? j.exerciseTemplate?.videoFileUrl ?? null,
       intensity: j.intensity ?? j.exerciseTemplate?.intensity ?? null,
       notes: j.notes ?? j.exerciseTemplate?.notes ?? null,
       ...extractTechniqueFields(j),
@@ -66,13 +68,19 @@ const extractExercisesFromTemplate = (raw) => {
 
 const makeTempId = () => `tmp_${crypto.randomUUID()}`;
 
+// Applies edited fields to a local exercise; a replaced video file drops the stale signed preview URL.
+const mergeExerciseFields = (exercise, fields) => {
+  const replacedFile = 'videoFileKey' in fields && fields.videoFileKey !== exercise.videoFileKey;
+  return { ...exercise, ...fields, ...(replacedFile && { videoFileUrl: null }) };
+};
+
 // ─── Bulk-create payload mappers ────────────────────────────────────────────────
 // The POST /trainer/protocols/with-trainings endpoint uses
 // `additionalProperties: false`, so any unknown field (frontend-only flags, temp
 // ids, *Label siblings) triggers a 400. These mappers build explicit allow-lists.
 
 const BULK_SUBSTITUTE_FIELDS = [
-  'name', 'type', 'videoUrl', 'gifUrl', 'sets', 'repetitions', 'duration', 'prescriptionMode',
+  'name', 'type', 'videoUrl', 'gifUrl', 'videoFileKey', 'sets', 'repetitions', 'duration', 'prescriptionMode',
   'hasLoad', 'suggestedLoad', 'restInterval', 'notes', 'intensity', 'exerciseTemplateId', 'advancedTechniqueIds',
 ];
 
@@ -118,6 +126,7 @@ const toBulkExercise = (exercise, index) => {
   if (exercise.intensity != null && exercise.intensity !== '') payload.intensity = exercise.intensity;
   if (exercise.videoUrl != null && exercise.videoUrl !== '') payload.videoUrl = exercise.videoUrl;
   if (exercise.gifUrl != null && exercise.gifUrl !== '') payload.gifUrl = exercise.gifUrl;
+  if (exercise.videoFileKey != null && exercise.videoFileKey !== '') payload.videoFileKey = exercise.videoFileKey;
   if (Array.isArray(exercise.advancedTechniqueIds)) payload.advancedTechniqueIds = getLiveTechniqueIds(exercise);
   Object.assign(payload, toBulkSupersetFields(exercise));
   if (exercise.substitutes?.length) payload.substitutes = exercise.substitutes.map(toBulkSubstitute);
@@ -666,6 +675,8 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
           restInterval: template?.restInterval ?? null,
           videoUrl: template?.videoUrl ?? null,
           gifUrl: template?.gifUrl ?? null,
+          videoFileKey: template?.videoFileKey ?? null,
+          videoFileUrl: template?.videoFileUrl ?? null,
           intensity: template?.intensity ?? null,
           notes: template?.notes ?? null,
           advancedTechniques: overrides.advancedTechniques ?? sortTechniquesByOrder(template?.advancedTechniques),
@@ -700,7 +711,7 @@ const useProtocolBuilder = (studentId, { protocolId = null } = {}) => {
               ? {
                   ...t,
                   exercises: t.exercises.map((ex) =>
-                    ex.id === exerciseId ? { ...ex, ...fields } : ex
+                    ex.id === exerciseId ? mergeExerciseFields(ex, fields) : ex
                   ),
                 }
               : t

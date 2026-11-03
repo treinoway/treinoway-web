@@ -676,6 +676,21 @@ const ptBR = {
     },
   },
 
+  exerciseVideo: {
+    upload: "Enviar vídeo da galeria",
+    inputLabel: "Selecionar vídeo",
+    cancel: "Cancelar envio",
+    remove: "Remover vídeo enviado",
+    preview: "Prévia do vídeo enviado",
+    attached: "Vídeo anexado",
+    progress: "Progresso do envio do vídeo",
+    uploading: "Enviando…",
+    hint: "MP4, MOV ou WEBM, até 100 MB. Recomendado: até 30 s em 720p/1080p (~30 MB) para envio rápido.",
+    invalidType: "Formato não suportado. Use MP4, MOV ou WEBM.",
+    tooLarge: "O vídeo deve ter no máximo 100 MB.",
+    failed: "Não foi possível enviar o vídeo. Tente novamente.",
+  },
+
   profile: {
     avatar: {
       label: "Foto de perfil",
