@@ -3568,6 +3568,7 @@ button.auth-forgot-link:disabled {
 }
 
 .video-embed-wrapper .video-embed-gif,
+.video-embed-wrapper .video-embed-file,
 .video-embed-wrapper iframe {
   position: absolute;
   top: 0;
@@ -3577,7 +3578,8 @@ button.auth-forgot-link:disabled {
   border: none;
 }
 
-.video-embed-wrapper .video-embed-gif {
+.video-embed-wrapper .video-embed-gif,
+.video-embed-wrapper .video-embed-file {
   object-fit: contain;
   display: block;
   background: var(--background-inverse);
@@ -20527,3 +20529,14 @@ select.input { cursor: pointer; }
   background: var(--action-primary-default);
   transition: width var(--duration-fast) var(--ease-standard);
 }
+
+/* ── Video file upload (ds/VideoFileUpload) ───────────────── */
+.video-upload { display: flex; flex-direction: column; gap: var(--spacing-sm); min-width: 0; }
+.video-upload__preview { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--radius-lg); background: var(--background-inverse); }
+.video-upload__player { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; background: var(--background-inverse); }
+.video-upload__placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--spacing-sm); margin: 0; color: var(--text-inverse); }
+.video-upload__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); }
+.video-upload__progress { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+.video-upload__bar { height: var(--spacing-sm); overflow: hidden; border-radius: var(--radius-full); background: var(--background-surface-elevated); }
+.video-upload__bar-fill { height: 100%; border-radius: var(--radius-full); background: var(--action-primary-default); transition: width var(--duration-fast) var(--ease-brand); }
+.video-upload__percent { color: var(--text-secondary); font-variant-numeric: tabular-nums; }

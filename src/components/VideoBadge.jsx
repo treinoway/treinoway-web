@@ -18,7 +18,7 @@ const VideoBadge = ({ exercise }) => {
 };
 
 VideoBadge.propTypes = {
-  exercise: PropTypes.shape({ videoUrl: PropTypes.string, gifUrl: PropTypes.string }),
+  exercise: PropTypes.shape({ videoUrl: PropTypes.string, gifUrl: PropTypes.string, videoFileKey: PropTypes.string, videoFileUrl: PropTypes.string }),
 };
 
 export default VideoBadge;

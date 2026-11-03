@@ -16,17 +16,21 @@ const EMPTY_FORM = {
   type: 'strength',
   videoUrl: '',
   gifUrl: '',
+  videoFileKey: null,
+  videoFilePreviewUrl: null,
   isPublic: false,
   advancedTechniques: [],
 };
 
-const buildPayload = (data, { includeVisibility, hadGif, initialTechniques }) => {
+const buildPayload = (data, { includeVisibility, hadGif, initialTechniques, initialVideoFileKey }) => {
   const payload = { name: data.name, type: data.type };
   if (includeVisibility) payload.isPublic = data.isPublic;
   if (data.videoUrl?.trim()) payload.videoUrl = data.videoUrl.trim();
   const gifUrl = data.gifUrl?.trim();
   if (gifUrl) payload.gifUrl = gifUrl;
   else if (hadGif) payload.gifUrl = null;
+  // why: an untouched uploaded video is left out so the API keeps it; a removal sends null
+  if ((data.videoFileKey ?? null) !== (initialVideoFileKey ?? null)) payload.videoFileKey = data.videoFileKey ?? null;
   // why: comparing the live list to the raw initial one also resends when only deleted techniques were dropped
   if (!haveSameTechniqueIds(withoutDeletedTechniques(data.advancedTechniques), initialTechniques)) payload.advancedTechniqueIds = toTechniqueIds(data.advancedTechniques);
   return payload;
@@ -39,6 +43,8 @@ const buildInitialForm = (template) => {
     type: template.type || '',
     videoUrl: template.videoUrl || '',
     gifUrl: template.gifUrl || '',
+    videoFileKey: template.videoFileKey ?? null,
+    videoFilePreviewUrl: template.videoFileUrl ?? null,
     isPublic: template.isPublic || false,
     advancedTechniques: sortTechniquesByOrder(template.advancedTechniques),
   };
@@ -53,6 +59,7 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
   const { showToast } = useToast();
   const initialForm = useMemo(() => buildInitialForm(exerciseTemplate), [exerciseTemplate]);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState(initialForm);
   const [nameError, setNameError] = useState('');
   const [gifUrlError, setGifUrlError] = useState(null);
@@ -130,9 +137,10 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
     const gifError = getGifUrlError(formData.gifUrl);
     setGifUrlError(gifError);
     if (gifError) return;
+    if (uploading) return;
     setSaving(true);
     try {
-      const response = await persist(buildPayload(formData, { includeVisibility: isAdmin, hadGif: !!initialForm.gifUrl, initialTechniques: initialForm.advancedTechniques }));
+      const response = await persist(buildPayload(formData, { includeVisibility: isAdmin, hadGif: !!initialForm.gifUrl, initialTechniques: initialForm.advancedTechniques, initialVideoFileKey: initialForm.videoFileKey }));
       onSuccess?.(response.data);
     } catch (error) {
       showToast(error.userMessage || translateError(error), 'error');
@@ -168,6 +176,10 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
             onGifUrlChange={(value) => { setGifUrlError(null); updateField('gifUrl', value); }}
             gifError={gifUrlError}
             onRemoveVideo={handleRemoveVideo}
+            videoFileKey={formData.videoFileKey}
+            videoFilePreviewUrl={formData.videoFilePreviewUrl}
+            onVideoFileChange={(key, previewUrl) => setFormData((prev) => ({ ...prev, videoFileKey: key, videoFilePreviewUrl: previewUrl }))}
+            onUploadingChange={setUploading}
           />
           <ExerciseTechniquesSection
             className={sectionClass}
@@ -181,7 +193,7 @@ const ExerciseTemplateForm = ({ exerciseTemplate, onSuccess, onCancel, onNameCha
           <button type="button" onClick={onCancel} className="btn btn--secondary" disabled={saving}>
             Cancelar
           </button>
-          <button type="submit" disabled={saving} className="btn btn--primary">
+          <button type="submit" disabled={saving || uploading} className="btn btn--primary">
             {saving ? 'Salvando…' : 'Salvar'}
           </button>
         </div>

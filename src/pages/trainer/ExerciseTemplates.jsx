@@ -26,7 +26,7 @@ const TYPE_FILTERS = [
 ];
 
 const buildBadges = (template) => {
-  const hasVideo = !!getYoutubeVideoId(template.videoUrl);
+  const hasVideo = !!template.videoFileUrl || !!getYoutubeVideoId(template.videoUrl);
   const typeLabel = template.type ? getExerciseTypeLabel(template.type) : null;
   return [
     typeLabel && { label: typeLabel, tone: 'brand' },
