@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { AuthProvider } from './contexts/AuthContext';
@@ -61,6 +62,7 @@ import DietProtocols from './pages/nutritionist/DietProtocols';
 import DietProtocolEditor from './pages/nutritionist/DietProtocolEditor';
 import NutritionistRoute from './components/NutritionistRoute';
 import RequireRole from './components/RequireRole';
+import { t } from './i18n';
 
 // Admin pages
 import InvitesList from './pages/admin/InvitesList';
@@ -87,6 +89,9 @@ const RedirectWithId = ({ to }) => {
 RedirectWithId.propTypes = {
   to: PropTypes.string.isRequired,
 };
+
+// Backoffice route subtree, split into its own chunk.
+const ManagerApp = lazy(() => import('./manager/ManagerApp'));
 
 function App() {
   return (
@@ -695,6 +700,23 @@ function App() {
                 <Layout>
                   <TutorialsList />
                 </Layout>
+              </RequireRole>
+            }
+          />
+
+          <Route
+            path="/manager/*"
+            element={
+              <RequireRole roles={['admin']}>
+                <Suspense
+                  fallback={
+                    <div className="loading-screen">
+                      <span className="loading-text type-body">{t('manager.loading')}</span>
+                    </div>
+                  }
+                >
+                  <ManagerApp />
+                </Suspense>
               </RequireRole>
             }
           />

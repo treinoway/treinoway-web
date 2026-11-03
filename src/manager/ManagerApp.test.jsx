@@ -1,0 +1,43 @@
+import { screen, render } from '../test/test-utils';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import ManagerApp from './ManagerApp';
+import api from '../api/axios';
+
+vi.mock('../api/axios', () => ({
+  default: { get: vi.fn() },
+  onNetworkError: vi.fn(() => vi.fn()),
+}));
+
+describe('ManagerApp', () => {
+  beforeEach(() => {
+    api.get.mockReset();
+    api.get.mockResolvedValue({ data: { items: [], total: 0, page: 1, pageSize: 20 } });
+  });
+
+  it('renders the users list at the index inside the manager layout', async () => {
+    render(
+      <MemoryRouter initialEntries={['/manager']}>
+        <Routes>
+          <Route path="/manager/*" element={<ManagerApp />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Teufit Manager')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(api.get.mock.calls[0][0]).toBe('/admin/manager/users');
+  });
+
+  it('redirects unknown paths to the users list', async () => {
+    render(
+      <MemoryRouter initialEntries={['/manager/nope']}>
+        <Routes>
+          <Route path="/manager/*" element={<ManagerApp />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('heading', { level: 1 });
+    expect(api.get.mock.calls[0][0]).toBe('/admin/manager/users');
+  });
+});

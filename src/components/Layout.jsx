@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
@@ -16,6 +16,7 @@ const ADMIN_LINKS = [
   { path: '/admin/trainers', labelKey: 'adminNav.trainers', Icon: UsersRound },
   { path: '/admin/ai-usage', labelKey: 'adminNav.aiUsage', Icon: BarChart3 },
   { path: '/admin/tutorials', labelKey: 'adminNav.tutorials', Icon: Video },
+  { path: '/manager', labelKey: 'adminNav.manager', Icon: DatabaseZap },
 ];
 
 const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/advanced-techniques', '/trainer/anamneses'];
