@@ -882,6 +882,7 @@ const en = {
     trainers: 'Trainers and plans',
     aiUsage: 'iArnold usage',
     tutorials: 'Tutorials',
+    manager: 'Manager',
   },
   tutorials: {
     navLabel: 'How to use',
