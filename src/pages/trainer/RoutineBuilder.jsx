@@ -932,6 +932,20 @@ ExerciseRowWithSubstitutes.defaultProps = {
   dragHandle: null,
 };
 
+// Template-context bi-set transport; module-level so the hook identity is stable.
+const templateBisetEndpoints = (trainingId) => {
+  const base = `/trainer/training-templates/${trainingId}`;
+  return {
+    create: (exerciseIds, restInterval) =>
+      api.post(
+        `${base}/supersets`,
+        restInterval == null ? { exerciseIds } : { exerciseIds, restInterval },
+      ),
+    dissolve: (groupId) => api.delete(`${base}/supersets/${groupId}`),
+    updateRest: (groupId, restInterval) => api.patch(`${base}/supersets/${groupId}`, { restInterval }),
+  };
+};
+
 // ─── BisetGroupBlock ──────────────────────────────────────────────────────────
 
 // Round-rest control of a bi-set: editable seconds input (commits on blur) or read-only text.
@@ -1277,7 +1291,7 @@ const TrainingItem = ({
   const [pendingNonAdjacentConfirm, setPendingNonAdjacentConfirm] = useState(null);
 
   const supportsSubstitutes = mode === 'protocol';
-  const supportsBiset = supportsSubstitutes && !readOnly;
+  const supportsBiset = (supportsSubstitutes || mode === 'template') && !readOnly;
 
   // Canonical exercises from the training prop (used only as the source of
   // truth fed into useExerciseReorder; do NOT use directly for rendering).
@@ -1320,7 +1334,7 @@ const TrainingItem = ({
 
   const letter = TRAINING_LETTERS[index] || String(index + 1);
 
-  const biset = useBisetCreate();
+  const biset = useBisetCreate(mode === 'template' ? { endpointBuilder: templateBisetEndpoints } : undefined);
 
   const readiness = getTrainingReadiness(exercises.length);
 
@@ -1353,6 +1367,8 @@ const TrainingItem = ({
       onConfirm: async () => {
         setConfirmDialog(null);
         await onDeleteExercise(ex.id);
+        // why: the server auto-dissolves a bi-set left with a single member.
+        if (mode === 'template' && onRefetchTraining) await onRefetchTraining();
       },
     });
   };
