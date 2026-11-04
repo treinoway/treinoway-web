@@ -55,11 +55,12 @@ import Financeiro from './pages/trainer/Financeiro';
 import SubscriptionHistory from './pages/trainer/SubscriptionHistory';
 
 // Nutritionist pages
-import NutritionistOnboardingPage from './pages/nutritionist/NutritionistOnboardingPage';
-import NutritionistPatients from './pages/nutritionist/NutritionistPatients';
-import DietTemplates from './pages/nutritionist/DietTemplates';
-import DietProtocols from './pages/nutritionist/DietProtocols';
-import DietProtocolEditor from './pages/nutritionist/DietProtocolEditor';
+import Patients from './pages/nutritionist/Patients';
+import PlanSummary from './pages/nutritionist/PlanSummary';
+import PrescriptionGoals from './pages/nutritionist/PrescriptionGoals';
+import PrescriptionMenu from './pages/nutritionist/PrescriptionMenu';
+import PrescriptionGuidance from './pages/nutritionist/PrescriptionGuidance';
+import MyFoods from './pages/nutritionist/MyFoods';
 import NutritionistRoute from './components/NutritionistRoute';
 import RequireRole from './components/RequireRole';
 import { t } from './i18n';
@@ -69,8 +70,7 @@ import InvitesList from './pages/admin/InvitesList';
 import TrainersList from './pages/admin/TrainersList';
 import AiUsage from './pages/admin/AiUsage';
 
-// Student pages (diet)
-import MyDietProtocol from './pages/my/MyDietProtocol';
+// Student pages
 
 import MyProtocols from './pages/my/MyProtocols';
 import MyAnamneses from './pages/my/MyAnamneses';
@@ -519,56 +519,65 @@ function App() {
           <Route path="/trainer/championships/create" element={<Navigate to="/" replace />} />
 
           <Route
-            path="/nutritionist/onboarding"
-            element={
-              <NutritionistRoute>
-                <Layout>
-                  <NutritionistOnboardingPage />
-                </Layout>
-              </NutritionistRoute>
-            }
-          />
-          <Route
             path="/nutritionist/patients"
             element={
               <NutritionistRoute>
                 <Layout>
-                  <NutritionistPatients />
+                  <Patients />
                 </Layout>
               </NutritionistRoute>
             }
           />
           <Route
-            path="/nutritionist/diet-templates"
+            path="/nutritionist/patients/:patientId/plan"
             element={
               <NutritionistRoute>
                 <Layout>
-                  <DietTemplates />
+                  <PlanSummary />
                 </Layout>
               </NutritionistRoute>
             }
           />
           <Route
-            path="/nutritionist/diet-protocols"
+            path="/nutritionist/patients/:patientId/plan/goals"
             element={
               <NutritionistRoute>
                 <Layout>
-                  <DietProtocols />
+                  <PrescriptionGoals />
                 </Layout>
               </NutritionistRoute>
             }
           />
           <Route
-            path="/nutritionist/diet-protocols/:id/edit"
+            path="/nutritionist/patients/:patientId/plan/menu"
             element={
               <NutritionistRoute>
                 <Layout>
-                  <DietProtocolEditor />
+                  <PrescriptionMenu />
                 </Layout>
               </NutritionistRoute>
             }
           />
-          <Route path="/nutritionist/profile" element={<Navigate to="/profile" replace />} />
+          <Route
+            path="/nutritionist/patients/:patientId/plan/guidance"
+            element={
+              <NutritionistRoute>
+                <Layout>
+                  <PrescriptionGuidance />
+                </Layout>
+              </NutritionistRoute>
+            }
+          />
+          <Route
+            path="/nutritionist/foods"
+            element={
+              <NutritionistRoute>
+                <Layout>
+                  <MyFoods />
+                </Layout>
+              </NutritionistRoute>
+            }
+          />
 
           <Route
             path="/my/protocols"
@@ -637,16 +646,6 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <MyChallengeDetail />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/my/diet"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <MyDietProtocol />
                 </Layout>
               </ProtectedRoute>
             }

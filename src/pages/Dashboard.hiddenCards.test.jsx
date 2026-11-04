@@ -19,16 +19,15 @@ const mockHasRole = vi.fn();
 const expectCardsHidden = () => {
   expect(screen.queryByText('Campeonatos')).not.toBeInTheDocument();
   expect(screen.queryByRole('link', { name: /campeonatos/i })).not.toBeInTheDocument();
-  expect(screen.queryByText('Seja um Nutricionista')).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: /Seja um Nutricionista/ })).not.toBeInTheDocument();
+  expect(screen.queryByText('Seja nutricionista')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Seja nutricionista/ })).not.toBeInTheDocument();
 };
 
-describe('Dashboard hidden cards (Campeonatos, Seja um Nutricionista)', () => {
+describe('Dashboard hidden cards (Campeonatos, Seja nutricionista without beta access)', () => {
   beforeEach(() => {
     mockHasRole.mockReset();
     api.get.mockReset();
     api.get.mockImplementation((url) => {
-      if (url === '/nutritionist') return Promise.resolve({ data: { profileCompletedAt: '2026-01-01' } });
       if (url === '/trainer/students') return Promise.resolve({ data: [] });
       return Promise.resolve({ data: {} });
     });
@@ -58,17 +57,6 @@ describe('Dashboard hidden cards (Campeonatos, Seja um Nutricionista)', () => {
     renderWithRouter(<Dashboard />);
     expectCardsHidden();
     expect(screen.getByText('Seja um Treinador')).toBeInTheDocument();
-  });
-
-  it('keeps the nutritionist onboarding card for a nutritionist with an incomplete profile', async () => {
-    mockHasRole.mockImplementation((role) => role === 'NUTRITIONIST');
-    api.get.mockImplementation((url) => {
-      if (url === '/nutritionist') return Promise.resolve({ data: { profileCompletedAt: null } });
-      return Promise.resolve({ data: {} });
-    });
-    renderWithRouter(<Dashboard />);
-    expectCardsHidden();
-    expect(await screen.findByRole('link', { name: /completar cadastro/i })).toBeInTheDocument();
   });
 
   it('renders no empty "Ações" section when the user has no AI access', () => {

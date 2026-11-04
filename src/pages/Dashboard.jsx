@@ -3,16 +3,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Sparkles } from 'lucide-react';
+import { UserPlus, Sparkles, Salad, Users } from 'lucide-react';
 import api from '../api/axios';
+import { becomeNutritionist } from '../api/nutrition';
 import NoStudentsModal from '../components/NoStudentsModal';
 import { OnboardingChecklistView } from '../components/OnboardingChecklistCard';
-import NutritionistOnboardingCard from '../components/NutritionistOnboardingCard';
 import WelcomeHero from '../components/WelcomeHero';
 import ControlTower from '../components/ControlTower';
 import ActionGrid from '../components/ActionGrid';
 import ActionCard from '../components/ActionCard';
-import useActiveMode from '../hooks/useActiveMode';
 import useAiAccess from '../hooks/useAiAccess';
 import useTrainerRoster from '../hooks/useTrainerRoster';
 import useTrainerDashboard from '../hooks/useTrainerDashboard';
@@ -26,17 +25,16 @@ const Dashboard = () => {
   const { user, hasRole, refreshUser, updateTokens } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const [activeMode] = useActiveMode();
   const canUseAi = useAiAccess();
-  const isDualRole = hasRole('TRAINER') && hasRole('NUTRITIONIST');
-  const showTrainerCards = hasRole('TRAINER') && (!isDualRole || activeMode === 'trainer');
-  const showNutritionistOnboarding = hasRole('NUTRITIONIST') && (!isDualRole || activeMode === 'nutritionist');
-  const isActivationMode = !hasRole('TRAINER');
+  const showTrainerCards = hasRole('TRAINER');
+  const isNutritionist = hasRole('NUTRITIONIST');
+  const showBecomeTrainer = !hasRole('TRAINER');
+  const showBecomeNutritionist = Boolean(user?.betaAccess) && !isNutritionist;
 
   const [becomingTrainer, setBecomingTrainer] = useState(false);
   const [checkingStudents, setCheckingStudents] = useState(false);
   const [showNoStudentsModal, setShowNoStudentsModal] = useState(false);
-  const [nutritionistIncomplete, setNutritionistIncomplete] = useState(false);
+  const [becomingNutritionist, setBecomingNutritionist] = useState(false);
 
   const roster = useTrainerRoster(showTrainerCards);
   const controlTower = useTrainerDashboard(showTrainerCards);
@@ -47,16 +45,6 @@ const Dashboard = () => {
     if (refreshUser) {
       refreshUser();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!hasRole('NUTRITIONIST')) return;
-    api.get('/nutritionist').then((res) => {
-      setNutritionistIncomplete(!res.data.profileCompletedAt);
-    }).catch(() => {
-      // silently ignore — the card simply won't show
-    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -120,6 +108,22 @@ const Dashboard = () => {
     }
   };
 
+  const handleBecomeNutritionist = async () => {
+    setBecomingNutritionist(true);
+
+    try {
+      const body = await becomeNutritionist();
+      updateTokens(body.token?.accessToken || body.accessToken, body.refreshToken);
+      showToast('Conta de nutricionista ativada.', 'success');
+      await refreshUser();
+      navigate('/nutritionist/patients');
+    } catch (error) {
+      showToast(error.userMessage || translateError(error), 'error');
+    } finally {
+      setBecomingNutritionist(false);
+    }
+  };
+
   const dateLabel = formatHeroDateLabel();
   const greeting = getGreeting();
 
@@ -153,22 +157,48 @@ const Dashboard = () => {
       )}
 
       {showTrainerCards && <OnboardingChecklistView checklist={onboardingChecklist} placement="bottom" />}
-      {showNutritionistOnboarding && nutritionistIncomplete && <NutritionistOnboardingCard />}
+      {isNutritionist && (
+        <section>
+          <div className="section-header">
+            <h2 className="dashboard-section-title">Nutrição</h2>
+          </div>
+          <ActionGrid>
+            <ActionCard
+              icon={Users}
+              title="Meus pacientes"
+              description="Monte e publique o plano alimentar dos seus pacientes"
+              to="/nutritionist/patients"
+            />
+          </ActionGrid>
+        </section>
+      )}
 
-      {isActivationMode && (
+      {(showBecomeTrainer || showBecomeNutritionist) && (
         <section>
           <div className="section-header">
             <h2 className="dashboard-section-title">Comece a atender</h2>
           </div>
           <ActionGrid>
-            <ActionCard
-              icon={UserPlus}
-              title="Seja um Treinador"
-              description="Habilite sua conta para criar rotinas, gerenciar alunos e muito mais"
-              onClick={handleBecomeTrainer}
-              loading={becomingTrainer}
-              variant="primary"
-            />
+            {showBecomeTrainer && (
+              <ActionCard
+                icon={UserPlus}
+                title="Seja um Treinador"
+                description="Habilite sua conta para criar rotinas, gerenciar alunos e muito mais"
+                onClick={handleBecomeTrainer}
+                loading={becomingTrainer}
+                variant="primary"
+              />
+            )}
+            {showBecomeNutritionist && (
+              <ActionCard
+                icon={Salad}
+                title="Seja nutricionista"
+                description="Habilite sua conta para montar planos alimentares e acompanhar seus pacientes"
+                onClick={handleBecomeNutritionist}
+                loading={becomingNutritionist}
+                variant="primary"
+              />
+            )}
           </ActionGrid>
         </section>
       )}

@@ -261,14 +261,6 @@
       "count": 21
     }
   },
-  "src/components/FoodSearchDrawer.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    },
-    "local/no-comments-in-function": {
-      "count": 3
-    }
-  },
   "src/components/GoogleIcon.jsx": {
     "local/function-header-comment": {
       "count": 1
@@ -329,13 +321,13 @@
   },
   "src/components/Layout.jsx": {
     "local/disable-requires-reason": {
-      "count": 2
+      "count": 1
     },
     "local/function-header-comment": {
       "count": 1
     },
     "local/no-comments-in-function": {
-      "count": 14
+      "count": 13
     }
   },
   "src/components/Layout.test.jsx": {
@@ -389,19 +381,6 @@
       "count": 1
     }
   },
-  "src/components/MacroBar.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    },
-    "local/no-comments-in-function": {
-      "count": 2
-    }
-  },
-  "src/components/MacroBar.test.jsx": {
-    "local/no-comments-in-function": {
-      "count": 1
-    }
-  },
   "src/components/MonthSelector.jsx": {
     "local/function-header-comment": {
       "count": 1
@@ -425,27 +404,7 @@
       "count": 2
     }
   },
-  "src/components/NutritionistActivationSheet.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    }
-  },
-  "src/components/NutritionistOnboardingCard.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    }
-  },
-  "src/components/NutritionistProfileSection.jsx": {
-    "local/function-header-comment": {
-      "count": 2
-    }
-  },
   "src/components/NutritionistRoute.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    }
-  },
-  "src/components/NutritionistRoute.test.jsx": {
     "local/function-header-comment": {
       "count": 1
     }
@@ -1492,14 +1451,6 @@
       "count": 3
     }
   },
-  "src/hooks/useActiveMode.js": {
-    "local/function-header-comment": {
-      "count": 3
-    },
-    "local/no-comments-in-function": {
-      "count": 2
-    }
-  },
   "src/hooks/useAiAccess.js": {
     "local/function-header-comment": {
       "count": 1
@@ -2015,13 +1966,13 @@
   },
   "src/pages/Dashboard.jsx": {
     "local/disable-requires-reason": {
-      "count": 2
+      "count": 1
     },
     "local/function-header-comment": {
       "count": 1
     },
     "local/no-comments-in-function": {
-      "count": 4
+      "count": 3
     }
   },
   "src/pages/Dashboard.test.jsx": {
@@ -2181,19 +2132,6 @@
       "count": 3
     }
   },
-  "src/pages/my/MyDietProtocol.jsx": {
-    "local/function-header-comment": {
-      "count": 3
-    },
-    "local/no-comments-in-function": {
-      "count": 2
-    }
-  },
-  "src/pages/my/MyDietProtocol.test.jsx": {
-    "local/no-comments-in-function": {
-      "count": 10
-    }
-  },
   "src/pages/my/MyProtocolDetail.jsx": {
     "local/disable-requires-reason": {
       "count": 1
@@ -2236,55 +2174,6 @@
   "src/pages/my/WorkoutSessions.test.jsx": {
     "local/no-comments-in-function": {
       "count": 1
-    }
-  },
-  "src/pages/nutritionist/DietProtocolEditor.jsx": {
-    "local/function-header-comment": {
-      "count": 6
-    },
-    "local/no-comments-in-function": {
-      "count": 4
-    }
-  },
-  "src/pages/nutritionist/DietProtocols.jsx": {
-    "local/function-header-comment": {
-      "count": 3
-    },
-    "local/no-comments-in-function": {
-      "count": 6
-    }
-  },
-  "src/pages/nutritionist/DietProtocols.test.jsx": {
-    "local/no-comments-in-function": {
-      "count": 4
-    }
-  },
-  "src/pages/nutritionist/DietTemplates.jsx": {
-    "local/function-header-comment": {
-      "count": 2
-    }
-  },
-  "src/pages/nutritionist/DietTemplates.test.jsx": {
-    "local/no-comments-in-function": {
-      "count": 5
-    }
-  },
-  "src/pages/nutritionist/NutritionistOnboardingPage.jsx": {
-    "local/function-header-comment": {
-      "count": 1
-    },
-    "local/no-comments-in-function": {
-      "count": 3
-    }
-  },
-  "src/pages/nutritionist/NutritionistPatients.jsx": {
-    "local/function-header-comment": {
-      "count": 4
-    }
-  },
-  "src/pages/nutritionist/NutritionistPatients.test.jsx": {
-    "local/no-comments-in-function": {
-      "count": 7
     }
   },
   "src/pages/trainer/AiAssistant.jsx": {
@@ -2759,16 +2648,6 @@
     }
   },
   "src/utils/dateFormat.test.js": {
-    "local/no-comments-in-function": {
-      "count": 1
-    }
-  },
-  "src/utils/dietMacros.js": {
-    "local/function-header-comment": {
-      "count": 6
-    }
-  },
-  "src/utils/dietMacros.test.js": {
     "local/no-comments-in-function": {
       "count": 1
     }
