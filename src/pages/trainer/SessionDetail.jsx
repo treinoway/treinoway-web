@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, SearchX } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useAiChat } from '../../contexts/AiChatContext';
@@ -54,11 +54,21 @@ const renderExerciseEntries = (entries) => {
   });
 };
 
+// Returns the list path the trainer came from, only when it is this student's sessions list.
+const getListReturnPath = (state, studentId) => {
+  const path = state?.returnTo;
+  const listPath = `/trainer/students/${studentId}/sessions`;
+  if (typeof path !== 'string') return null;
+  const isList = path === listPath || path.startsWith(`${listPath}?`);
+  return isList ? path : null;
+};
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const SessionDetail = () => {
   const { studentId, sessionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { showToast } = useToast();
   const { startConversation } = useAiChat();
 
@@ -111,6 +121,10 @@ const SessionDetail = () => {
   }, [iArnoldSubmitting, navigate, startConversation, session, student, studentId]);
 
   const handleBack = () => {
+    navigate(getListReturnPath(location.state, studentId) ?? `/trainer/students/${studentId}`);
+  };
+
+  const handleBackToStudent = () => {
     navigate(`/trainer/students/${studentId}`);
   };
 
@@ -132,7 +146,7 @@ const SessionDetail = () => {
           title="Sessão não encontrada"
           description="A sessão pode ter sido excluída ou não pertence a este aluno."
         />
-        <button type="button" className="btn btn--secondary" onClick={handleBack}>
+        <button type="button" className="btn btn--secondary" onClick={handleBackToStudent}>
           Voltar para o aluno
         </button>
       </div>

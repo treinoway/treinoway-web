@@ -1661,6 +1661,9 @@ const ptBR = {
       abandoned: "Abandonado",
       error: "Falha ao carregar sessões",
       empty: "Sem sessões no período.",
+      listTitle: "Sessões",
+      limitNote: "Mostrando as {count} sessões mais recentes do período.",
+      backAria: "Voltar para o aluno",
     },
     progression: {
       title: "Progressão de carga",

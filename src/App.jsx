@@ -38,6 +38,7 @@ import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
 import Students from './pages/trainer/Students';
 import StudentDetail from './pages/trainer/StudentDetail';
 import StudentProtocols from './pages/trainer/StudentProtocols';
+import StudentSessions from './pages/trainer/StudentSessions';
 import StudentAnamneses from './pages/trainer/StudentAnamneses';
 import ExerciseProgressionDetail from './pages/trainer/ExerciseProgressionDetail';
 import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
@@ -358,6 +359,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <StudentProtocols />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainer/students/:id/sessions"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <StudentSessions />
                 </Layout>
               </ProtectedRoute>
             }
