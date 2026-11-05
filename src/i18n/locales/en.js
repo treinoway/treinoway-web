@@ -719,6 +719,9 @@ const en = {
       abandoned: 'Abandoned',
       error: 'Failed to load sessions',
       empty: 'No sessions in the period.',
+      listTitle: 'Sessions',
+      limitNote: 'Showing the {count} most recent sessions in the period.',
+      backAria: 'Back to the student',
     },
     progression: {
       title: 'Load progression',

@@ -645,11 +645,6 @@
       "count": 4
     }
   },
-  "src/components/RecentSessionsPanel.jsx": {
-    "local/function-header-comment": {
-      "count": 4
-    }
-  },
   "src/components/RecentSessionsPanel.test.jsx": {
     "local/function-header-comment": {
       "count": 1

@@ -19004,6 +19004,13 @@ select.input { cursor: pointer; }
   gap: var(--spacing-xl);
 }
 
+.student-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.student-sessions__back.btn--ghost,
 .session-detail__back.btn--ghost,
 .progression-detail__back.btn--ghost {
   align-self: flex-start;

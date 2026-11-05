@@ -83,9 +83,9 @@ const makeStudentList = () => [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const renderPage = () =>
+const renderPage = (state) =>
   renderWithRoute(<SessionDetail />, {
-    route: '/trainer/students/student-1/sessions/session-1',
+    route: { pathname: '/trainer/students/student-1/sessions/session-1', state },
     path: '/trainer/students/:studentId/sessions/:sessionId',
   });
 
@@ -173,6 +173,28 @@ describe('SessionDetail', () => {
       expect(screen.getByRole('button', { name: /voltar para o perfil do aluno/i })).toBeInTheDocument();
     });
     await user.click(screen.getByRole('button', { name: /voltar para o perfil do aluno/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1');
+  });
+
+  const clickBack = async (state) => {
+    const user = userEvent.setup();
+    renderPage(state);
+    await user.click(await screen.findByRole('button', { name: /voltar para o perfil do aluno/i }));
+  };
+
+  it('navigates back to the sessions list preserving its query when coming from it', async () => {
+    const listPath = '/trainer/students/student-1/sessions?from=2026-01-01&to=2026-01-31';
+    await clickBack({ returnTo: listPath });
+    expect(mockNavigate).toHaveBeenCalledWith(listPath);
+  });
+
+  it('falls back to the student when the return state is invalid', async () => {
+    await clickBack({ returnTo: '/trainer/students/other/sessions?from=x' });
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1');
+  });
+
+  it('falls back to the student when the return state is not a string', async () => {
+    await clickBack({ returnTo: { evil: true } });
     expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1');
   });
 

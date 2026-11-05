@@ -81,7 +81,9 @@ describe('RecentSessionsPanel', () => {
   it('hides the empty state while loading', () => {
     renderPanel({ sessions: [], loading: true });
     expect(screen.getByRole('heading', { name: 'Sessões recentes' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.queryByText('Sem sessões no período.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver todas as sessões' })).not.toBeInTheDocument();
   });
 
   it('shows an error with retry', async () => {

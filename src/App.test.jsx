@@ -19,6 +19,7 @@ vi.mock('./components/ProtectedRoute', () => ({ default: ({ children }) => child
 vi.mock('./components/Layout', () => ({ default: ({ children }) => children }));
 vi.mock('./pages/Dashboard', () => ({ default: () => <div>Dashboard Page</div> }));
 vi.mock('./pages/trainer/AiAssistant', () => ({ default: () => <div>iArnold Page</div> }));
+vi.mock('./pages/trainer/StudentSessions', () => ({ default: () => <div>Student Sessions Page</div> }));
 
 // Mocks the authenticated user with the given AI quota and roles.
 const mockUser = ({ aiActionsPerStudent, roles = ['TRAINER'] }) => {
@@ -57,5 +58,16 @@ describe('App routes: /trainer/ai-assistant', () => {
     render(<App />);
 
     expect(screen.getByText('iArnold Page')).toBeInTheDocument();
+  });
+});
+
+describe('App routes: /trainer/students/:id/sessions', () => {
+  it('renders the student sessions page instead of redirecting', () => {
+    mockUser({ aiActionsPerStudent: 0 });
+    window.history.pushState({}, '', '/trainer/students/s-1/sessions');
+
+    render(<App />);
+
+    expect(screen.getByText('Student Sessions Page')).toBeInTheDocument();
   });
 });
