@@ -351,7 +351,7 @@ describe('PlanSummary (tela A)', () => {
       });
       const row = within(table).getByText('Arroz integral cozido').closest('tr');
       expect(within(row).getByText('4 col. de sopa')).toBeInTheDocument();
-      expect(within(row).getByText('100 g')).toBeInTheDocument();
+      expect(within(row).getByRole('spinbutton', { name: 'Quantidade de arroz integral cozido' })).toHaveValue(100);
       expect(within(row).getByText('124')).toBeInTheDocument();
       expect(within(row).getByText('2,6 g')).toBeInTheDocument();
 
