@@ -53,3 +53,17 @@ export const revokeTrainerInvite = async (inviteId) => {
   const response = await api.post(`/admin/trainer-invites/${inviteId}/revoke`);
   return response.data;
 };
+
+// ─── Trainer feedbacks ──────────────────────────────────────────────────────
+
+// Paginated trainer feedbacks, newest first; `params` may carry status, category, page, pageSize.
+export const listFeedbacks = async (params) => {
+  const response = await api.get('/admin/feedbacks', { params });
+  return response.data;
+};
+
+// Marks a feedback as READ or back to NEW; returns the updated item.
+export const updateFeedbackStatus = async (feedbackId, status) => {
+  const response = await api.patch(`/admin/feedbacks/${feedbackId}`, { status });
+  return response.data;
+};

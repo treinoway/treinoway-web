@@ -67,6 +67,7 @@ import { t } from './i18n';
 
 // Admin pages
 import InvitesList from './pages/admin/InvitesList';
+import FeedbackList from './pages/admin/FeedbackList';
 import TrainersList from './pages/admin/TrainersList';
 import AiUsage from './pages/admin/AiUsage';
 
@@ -681,6 +682,16 @@ function App() {
               <RequireRole roles={['admin']}>
                 <Layout>
                   <InvitesList />
+                </Layout>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/feedbacks"
+            element={
+              <RequireRole roles={['admin']}>
+                <Layout>
+                  <FeedbackList />
                 </Layout>
               </RequireRole>
             }
