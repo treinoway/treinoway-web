@@ -31,7 +31,7 @@ const toTypedQuantities = (drafts, knownIds) => Object.fromEntries(
 export const sortByOrder = (meals) => [...meals].sort((a, b) => a.order - b.order);
 
 // Draft quantities of the menu plus their autosave; invalid quantities make the save fail instead of reporting "Salvo".
-const useQuantityDrafts = (plan, runMutation) => {
+export const useQuantityDrafts = (plan, runMutation) => {
   const [drafts, setDrafts] = useState({});
   const savedQuantities = useRef(quantityMap(plan));
   const knownIds = useRef(itemIdsOf(plan));
