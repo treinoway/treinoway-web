@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
 import FoodSourceBadge from '../ds/FoodSourceBadge';
+import QuantityField from './QuantityField';
 import { formatDecimal, formatInteger } from '../../utils/nutritionFormat';
 
 // Cells with the nutrients of one item or total (kcal as integer, the rest with one decimal); data-label feeds the stacked mobile layout.
@@ -16,14 +17,9 @@ export const NutrientCells = ({ nutrients }) => (
 
 NutrientCells.propTypes = { nutrients: PropTypes.object.isRequired };
 
-// Whether the typed quantity can be saved (greater than zero).
-const isValidQuantity = (text) => Number(text) > 0;
-
 // One item of a meal option: identity with source, editable quantity, recalculated nutrients and remove.
 const MealItemRow = ({ item, quantityText, onQuantityChange, onRemove }) => {
   const label = item.name.toLowerCase();
-  const quantityInvalid = !isValidQuantity(quantityText);
-  const errorId = `quantity-error-${item.id}`;
   return (
     <tr className="menu-table__item">
       <td className="menu-table__food">
@@ -34,21 +30,7 @@ const MealItemRow = ({ item, quantityText, onQuantityChange, onRemove }) => {
         </span>
       </td>
       <td className="menu-table__qty">
-        <div className="quantity-field">
-          <input
-            type="number"
-            min="0"
-            step="1"
-            className="input"
-            aria-label={`Quantidade de ${label}`}
-            value={quantityText}
-            onChange={(event) => onQuantityChange(item.id, event.target.value)}
-            aria-invalid={quantityInvalid || undefined}
-            aria-describedby={quantityInvalid ? errorId : undefined}
-          />
-          <span className="quantity-field__unit">{item.unit}</span>
-        </div>
-        {quantityInvalid && <span id={errorId} className="form-error">Informe uma quantidade maior que zero.</span>}
+        <QuantityField item={item} quantityText={quantityText} onQuantityChange={onQuantityChange} />
       </td>
       <NutrientCells nutrients={item.nutrients} />
       <td className="menu-table__remove">
