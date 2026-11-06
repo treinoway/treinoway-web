@@ -3,10 +3,14 @@ import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import RowMenu from '../RowMenu';
-import { countLabel, formatDecimal, formatFlexible, formatInteger } from '../../utils/nutritionFormat';
+import { countLabel, formatDecimal, formatInteger } from '../../utils/nutritionFormat';
 import { itemsSummary, shortName } from '../../utils/nutritionSummary';
 import FoodSearchPanel from './FoodSearchPanel';
+import QuantityField from './QuantityField';
 import SwapEditor from './SwapEditor';
+
+// Stable empty drafts: items show their saved quantity.
+const NO_DRAFTS = {};
 
 // Total number of substitutes of the items.
 const countSwaps = (items) => items.reduce((sum, item) => sum + item.substitutes.length, 0);
@@ -34,13 +38,15 @@ SwapPill.propTypes = {
 };
 
 // One row of the items table: food, quantity, kcal, protein, swap pill and the row menu.
-const ItemRow = ({ item, open, onToggleSwaps, onEditInMenu, onRemoveItem }) => (
+const ItemRow = ({ item, quantityText, open, onToggleSwaps, onEditInMenu, handlers }) => (
   <tr className={open ? 'nutri-items__row nutri-items__row--open' : 'nutri-items__row'}>
     <td className="nutri-items__food">
       <span className="nutri-items__name" title={item.name}>{item.name}</span>
       {item.householdMeasure && <span className="nutri-items__measure">{item.householdMeasure}</span>}
     </td>
-    <td data-label="Qtd">{`${formatFlexible(item.quantity)} ${item.unit}`}</td>
+    <td data-label="Qtd">
+      <QuantityField item={item} quantityText={quantityText} onQuantityChange={handlers.onQuantityChange} />
+    </td>
     <td data-label="Kcal">{formatInteger(item.nutrients.kcal)}</td>
     <td data-label="PTN">{`${formatDecimal(item.nutrients.protein)} g`}</td>
     <td className="nutri-items__swaps"><SwapPill item={item} open={open} onToggle={onToggleSwaps} /></td>
@@ -48,7 +54,7 @@ const ItemRow = ({ item, open, onToggleSwaps, onEditInMenu, onRemoveItem }) => (
       <RowMenu
         ariaLabel={`Ações de ${shortName(item.name)}`}
         extraItems={[{ label: 'Editar no cardápio', onClick: onEditInMenu }]}
-        onDelete={() => onRemoveItem(item)}
+        onDelete={() => handlers.onRemoveItem(item)}
         deleteLabel="Remover alimento"
       />
     </td>
@@ -57,10 +63,11 @@ const ItemRow = ({ item, open, onToggleSwaps, onEditInMenu, onRemoveItem }) => (
 
 ItemRow.propTypes = {
   item: PropTypes.object.isRequired,
+  quantityText: PropTypes.string.isRequired,
   open: PropTypes.bool.isRequired,
   onToggleSwaps: PropTypes.func.isRequired,
   onEditInMenu: PropTypes.func.isRequired,
-  onRemoveItem: PropTypes.func.isRequired,
+  handlers: PropTypes.object.isRequired,
 };
 
 // Footer of an expanded meal: add a food (search) with its hint.
@@ -88,7 +95,7 @@ const AddFoodFooter = ({ option, onAddItem }) => {
 AddFoodFooter.propTypes = { option: PropTypes.object.isRequired, onAddItem: PropTypes.func.isRequired };
 
 // Items table of an expanded meal, with the swap editor opened under its row.
-const ItemsTable = ({ items, handlers, onEditInMenu }) => {
+const ItemsTable = ({ items, quantityTexts, handlers, onEditInMenu }) => {
   const [openItemId, setOpenItemId] = useState(null);
   const toggleSwaps = (itemId) => setOpenItemId((current) => (current === itemId ? null : itemId));
   return (
@@ -102,7 +109,7 @@ const ItemsTable = ({ items, handlers, onEditInMenu }) => {
       <tbody>
         {items.flatMap((item) => {
           const open = openItemId === item.id;
-          const rows = [<ItemRow key={item.id} item={item} open={open} onToggleSwaps={toggleSwaps} onEditInMenu={onEditInMenu} onRemoveItem={handlers.onRemoveItem} />];
+          const rows = [<ItemRow key={item.id} item={item} quantityText={quantityTexts[item.id] ?? String(item.quantity)} open={open} onToggleSwaps={toggleSwaps} onEditInMenu={onEditInMenu} handlers={handlers} />];
           if (open) {
             rows.push(
               <tr key={`${item.id}-swaps`} className="nutri-items__editor">
@@ -119,6 +126,7 @@ const ItemsTable = ({ items, handlers, onEditInMenu }) => {
 
 ItemsTable.propTypes = {
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
+  quantityTexts: PropTypes.objectOf(PropTypes.string).isRequired,
   handlers: PropTypes.object.isRequired,
   onEditInMenu: PropTypes.func.isRequired,
 };
@@ -129,7 +137,7 @@ const describeMeal = (option, expanded) => (expanded
   : itemsSummary(option.items));
 
 // One meal of the plan summary: accordion card with the items table, swaps and add food.
-const SummaryMeal = ({ meal, patientId, handlers }) => {
+const SummaryMeal = ({ meal, patientId, handlers, quantityTexts = NO_DRAFTS }) => {
   const [expanded, setExpanded] = useState(false);
   const navigate = useNavigate();
   const panelId = useId();
@@ -151,7 +159,7 @@ const SummaryMeal = ({ meal, patientId, handlers }) => {
       </button>
       {expanded && (
         <div id={panelId} className="nutri-meal__body">
-          <ItemsTable items={option.items} handlers={handlers} onEditInMenu={() => navigate(`/nutritionist/patients/${patientId}/plan/menu`)} />
+          <ItemsTable items={option.items} quantityTexts={quantityTexts} handlers={handlers} onEditInMenu={() => navigate(`/nutritionist/patients/${patientId}/plan/menu`)} />
           <AddFoodFooter option={option} onAddItem={handlers.onAddItem} />
         </div>
       )}
@@ -168,7 +176,9 @@ SummaryMeal.propTypes = {
     onAdd: PropTypes.func,
     onAddItem: PropTypes.func,
     onRemoveItem: PropTypes.func,
+    onQuantityChange: PropTypes.func,
   }).isRequired,
+  quantityTexts: PropTypes.objectOf(PropTypes.string),
 };
 
 export default SummaryMeal;
