@@ -19,11 +19,13 @@ import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useLoadResource from '../../hooks/useLoadResource';
 import usePlanAutosave, { AUTOSAVE_STATUS } from '../../hooks/usePlanAutosave';
 import usePlanMutation from '../../hooks/usePlanMutation';
+import { useQuantityDrafts } from '../../hooks/useMenuEditor';
 import ConfirmDialog from '../../components/ds/ConfirmDialog';
 import AddMealModal from '../../components/nutrition/AddMealModal';
 import AdherenceKpis from '../../components/nutrition/AdherenceKpis';
 import AppPreview from '../../components/nutrition/AppPreview';
 import DayVsGoals from '../../components/nutrition/DayVsGoals';
+import { WaterSection } from '../../components/nutrition/GuidanceSections';
 import LoadState from '../../components/nutrition/LoadState';
 import PatientTabs from '../../components/nutrition/PatientTabs';
 import PlanBreadcrumb from '../../components/nutrition/PlanBreadcrumb';
@@ -34,7 +36,7 @@ import TrainerCard from '../../components/nutrition/TrainerCard';
 import { dayTotals } from '../../utils/nutritionCalc';
 import { countLabel, formatInteger, personName } from '../../utils/nutritionFormat';
 import { pickNextMeal, shortName } from '../../utils/nutritionSummary';
-import { buildDayGoals } from '../../utils/planView';
+import { buildDayGoals, withDraftQuantities } from '../../utils/planView';
 
 const MESSAGE_LIMIT = 500;
 const TABS = [
@@ -60,6 +62,20 @@ const planStateText = (plan) => {
   return plan.hasUnpublishedChanges ? 'Alterações não publicadas' : '';
 };
 
+// Error line of an autosave with the retry action (nothing while it has no error).
+const AutosaveError = ({ autosave }) => {
+  if (autosave.status !== AUTOSAVE_STATUS.ERROR) return null;
+  return (
+    <p className="nutri-card__error" role="alert">
+      {autosave.statusText}
+      {' '}
+      <button type="button" className="nutri-link-btn" onClick={autosave.retry}>Tentar novamente</button>
+    </p>
+  );
+};
+
+AutosaveError.propTypes = { autosave: PropTypes.object.isRequired };
+
 // Free-text message the patient reads in the app, saved automatically.
 const PatientMessage = ({ firstName, value, onChange, autosave }) => (
   <section className="nutri-card" aria-label="Recado">
@@ -74,13 +90,7 @@ const PatientMessage = ({ firstName, value, onChange, autosave }) => (
       onChange={(event) => onChange(event.target.value)}
     />
     <span className="nutri-card__counter">{value.length}/{MESSAGE_LIMIT}</span>
-    {autosave.status === AUTOSAVE_STATUS.ERROR && (
-      <p className="nutri-card__error" role="alert">
-        {autosave.statusText}
-        {' '}
-        <button type="button" className="nutri-link-btn" onClick={autosave.retry}>Tentar novamente</button>
-      </p>
-    )}
+    <AutosaveError autosave={autosave} />
   </section>
 );
 
@@ -92,7 +102,7 @@ PatientMessage.propTypes = {
 };
 
 // Meals column: title with totals, the Editor / Prescrição switch, the accordion and the add-meal action.
-const MealsColumn = ({ meals, totalKcal, patientId, handlers, onAddMeal }) => {
+const MealsColumn = ({ meals, totalKcal, patientId, handlers, quantityTexts, quantityAutosave, onAddMeal }) => {
   const navigate = useNavigate();
   const handleView = (view) => {
     if (view === 'detailed') navigate(`/nutritionist/patients/${patientId}/plan/menu`);
@@ -110,9 +120,10 @@ const MealsColumn = ({ meals, totalKcal, patientId, handlers, onAddMeal }) => {
       {meals.length === 0 && <p className="nutri-meals__empty">Nenhuma refeição no plano. Adicione a primeira refeição.</p>}
       {meals.length > 0 && (
         <ul className="nutri-meals__list">
-          {meals.map((meal) => <SummaryMeal key={meal.id} meal={meal} patientId={patientId} handlers={handlers} />)}
+          {meals.map((meal) => <SummaryMeal key={meal.id} meal={meal} patientId={patientId} handlers={handlers} quantityTexts={quantityTexts} />)}
         </ul>
       )}
+      <AutosaveError autosave={quantityAutosave} />
       <button type="button" className="nutri-add-meal" onClick={onAddMeal}>
         + Adicionar refeição
       </button>
@@ -125,6 +136,8 @@ MealsColumn.propTypes = {
   totalKcal: PropTypes.number.isRequired,
   patientId: PropTypes.string.isRequired,
   handlers: PropTypes.object.isRequired,
+  quantityTexts: PropTypes.objectOf(PropTypes.string).isRequired,
+  quantityAutosave: PropTypes.object.isRequired,
   onAddMeal: PropTypes.func.isRequired,
 };
 
@@ -141,9 +154,11 @@ ComingSoon.propTypes = { label: PropTypes.string.isRequired };
 // Mutations of the summary (swaps, foods, meals) bound to the plan state.
 const useSummaryActions = ({ plan, setPlan, requestConfirm }) => {
   const runMutation = usePlanMutation(setPlan);
+  const quantities = useQuantityDrafts(plan, runMutation);
   const [savingMeal, setSavingMeal] = useState(false);
 
   const handlers = {
+    onQuantityChange: quantities.setQuantity,
     onChangeBasis: (item, swapBasis) => runMutation(() => patchItem(item.id, { swapBasis })),
     onRemove: (substitute) => runMutation(() => deleteSubstitute(substitute.id)),
     onAdd: async (item, food) => Boolean(await runMutation(() => addSubstitute(item.id, food.id))),
@@ -152,7 +167,10 @@ const useSummaryActions = ({ plan, setPlan, requestConfirm }) => {
       message: `Remover "${shortName(item.name)}" da refeição?`,
       confirmLabel: 'Remover',
       busyLabel: 'Removendo…',
-      onConfirm: () => runMutation.applyLatest(() => deleteItem(item.id)),
+      onConfirm: async () => {
+        await runMutation.applyLatest(() => deleteItem(item.id));
+        quantities.dropDraft(item.id);
+      },
     }),
   };
 
@@ -163,23 +181,23 @@ const useSummaryActions = ({ plan, setPlan, requestConfirm }) => {
     return Boolean(added);
   };
 
-  return { runMutation, handlers, addNewMeal, savingMeal };
+  return { runMutation, handlers, addNewMeal, savingMeal, quantities };
 };
 
-// Save-draft and publish actions: both flush the pending autosave first and publish only when it succeeded.
-const usePlanActions = ({ autosave, runMutation, plan, message }) => {
+// Save-draft and publish actions: both flush the pending autosaves first and publish only when it succeeded.
+const usePlanActions = ({ flushAll, runMutation, plan, savedKey }) => {
   const { showToast } = useToast();
   const [publishing, setPublishing] = useState(false);
   const [savedMessage, setSavedMessage] = useState(null);
 
   const saveDraft = async () => {
-    if (await autosave.flush()) setSavedMessage(message);
+    if (await flushAll()) setSavedMessage(savedKey);
   };
 
   const publish = async () => {
     setPublishing(true);
     try {
-      if (!(await autosave.flush())) return;
+      if (!(await flushAll())) return;
       await runMutation.applyLatest(() => publishPlan(plan.id));
       showToast('Plano publicado.', 'success');
     } catch (error) {
@@ -189,7 +207,7 @@ const usePlanActions = ({ autosave, runMutation, plan, message }) => {
     }
   };
 
-  return { publishing, saveDraft, publish, justSaved: savedMessage === message };
+  return { publishing, saveDraft, publish, justSaved: savedMessage === savedKey };
 };
 
 // Summary of the plan: hero with KPIs and tabs, meals with swaps, day vs goals, app preview, message and publish.
@@ -197,15 +215,19 @@ const SummaryContent = ({ patientId, initialPlan, overview }) => {
   const [plan, setPlan] = useState(initialPlan);
   const [tab, setTab] = useState('plan');
   const [message, setMessage] = useState(initialPlan.guidance.patientMessage ?? '');
+  const [waterTargetMl, setWaterTargetMl] = useState(initialPlan.guidance.waterTargetMl ?? null);
   const [addingMeal, setAddingMeal] = useState(false);
   const { dialogProps, requestConfirm } = useConfirmDialog();
-  const { runMutation, handlers, addNewMeal, savingMeal } = useSummaryActions({ plan, setPlan, requestConfirm });
-  const autosave = usePlanAutosave({ value: { patientMessage: message }, save: (payload) => runMutation.applyLatest(() => patchGuidance(plan.id, payload)) });
-  const actions = usePlanActions({ autosave, runMutation, plan, message });
+  const { runMutation, handlers, addNewMeal, savingMeal, quantities } = useSummaryActions({ plan, setPlan, requestConfirm });
+  const guidance = { patientMessage: message, waterTargetMl };
+  const autosave = usePlanAutosave({ value: guidance, save: (payload) => runMutation.applyLatest(() => patchGuidance(plan.id, payload)) });
+  const flushAll = async () => (await quantities.autosave.flush()) && (await autosave.flush());
+  const actions = usePlanActions({ flushAll, runMutation, plan, savedKey: JSON.stringify([guidance, quantities.drafts]) });
   const { patient } = overview;
-  const meals = [...plan.meals].sort((a, b) => a.order - b.order);
-  const totals = plan.computed?.dayTotals ?? dayTotals(meals);
-  const savedText = autosave.status === AUTOSAVE_STATUS.ERROR ? '' : autosave.statusText;
+  const hasDrafts = Object.keys(quantities.drafts).length > 0;
+  const meals = withDraftQuantities([...plan.meals].sort((a, b) => a.order - b.order), quantities.drafts);
+  const totals = (!hasDrafts && plan.computed?.dayTotals) || dayTotals(meals);
+  const savedText = [autosave, quantities.autosave].filter((item) => item.status !== AUTOSAVE_STATUS.ERROR).map((item) => item.statusText).find(Boolean) ?? '';
   const statusLines = [planStateText(plan), savedText || (actions.justSaved ? 'Salvo' : '')].filter(Boolean);
 
   const handleAddMeal = async (body) => {
@@ -226,9 +248,10 @@ const SummaryContent = ({ patientId, initialPlan, overview }) => {
         <ComingSoon label={TABS.find((item) => item.id === tab).label} />
       ) : (
         <div className="nutri-columns">
-          <MealsColumn meals={meals} totalKcal={totals.kcal} patientId={patientId} handlers={handlers} onAddMeal={() => setAddingMeal(true)} />
+          <MealsColumn meals={meals} totalKcal={totals.kcal} patientId={patientId} handlers={handlers} quantityTexts={quantities.drafts} quantityAutosave={quantities.autosave} onAddMeal={() => setAddingMeal(true)} />
           <aside className="nutri-aside" aria-label="Resumo do plano">
             <DayVsGoals totals={totals} goals={buildDayGoals(plan)} weightKg={patient.weightKg ?? undefined} />
+            <WaterSection waterTargetMl={waterTargetMl} weightKg={patient.weightKg ?? undefined} onChange={setWaterTargetMl} />
             <AppPreview firstName={patient.firstName} meal={pickNextMeal(meals)} />
             <PatientMessage firstName={patient.firstName} value={message} onChange={setMessage} autosave={autosave} />
           </aside>
