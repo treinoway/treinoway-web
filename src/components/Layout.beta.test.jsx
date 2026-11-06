@@ -4,6 +4,7 @@ import { renderWithRouter } from '../test/test-utils';
 import Layout from './Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
+import { useToast } from '../contexts/ToastContext';
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
@@ -13,9 +14,12 @@ vi.mock('../contexts/AiChatContext', () => ({
   useAiChat: vi.fn(),
 }));
 
+vi.mock('../contexts/ToastContext', () => ({ useToast: vi.fn() }));
+
 beforeEach(() => {
   vi.clearAllMocks();
   useAiChat.mockReturnValue({ loading: false, hasNewResponse: false });
+  useToast.mockReturnValue({ showToast: vi.fn() });
 });
 
 // Mocks an authenticated trainer with the given platform plan tier.

@@ -272,6 +272,10 @@
   --scale-press: 0.96;
   /* Layout — bottom navigation height (mobile only; .bottom-nav is display:none ≥768px) */
   --bottom-nav-height: 72px;
+  /* Layout — sidebar widths (desktop) and floating popover width */
+  --sidebar-width-open: 16rem;
+  --sidebar-width-collapsed: 5rem;
+  --popover-width: 22rem;
 
   /* ============================================================
      TeuFit Design System tokens (SKILL.md §2) — Figma "TeuFit"
@@ -1308,11 +1312,11 @@ button.auth-forgot-link:disabled {
 }
 
 .sidebar--open {
-  width: 16rem;
+  width: var(--sidebar-width-open);
 }
 
 .sidebar--collapsed {
-  width: 5rem;
+  width: var(--sidebar-width-collapsed);
   overflow: hidden;
 }
 
@@ -17137,6 +17141,191 @@ textarea.input {
 .ds-overlay--center { align-items: center; }
 .ds-dialog__message { color: var(--text-primary); margin-bottom: var(--spacing-xl); }
 .ds-dialog .ds-actions { justify-content: flex-end; }
+
+/* ── Popover: bottom sheet below 768px, card anchored above its positioned parent at >=768px ── */
+.ds-popover {
+  position: fixed;
+  right: 0;
+  bottom: var(--bottom-nav-height);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  max-height: 80dvh;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: var(--background-surface);
+  box-shadow: var(--shadow-overlay);
+  z-index: var(--z-modal);
+  animation: ds-sheet-up var(--duration-slow) var(--ease-standard);
+}
+
+.ds-popover__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-sm) var(--spacing-xl);
+}
+
+.ds-popover__title { color: var(--text-primary); }
+.ds-popover__body { flex: 1; overflow-y: auto; padding: var(--spacing-sm) var(--spacing-xl); }
+
+.ds-popover__footer {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md) var(--spacing-xl) var(--spacing-xl);
+}
+
+.ds-popover__footer .btn { width: 100%; }
+
+@media (min-width: 768px) {
+  .ds-popover {
+    position: absolute;
+    right: auto;
+    bottom: calc(100% + var(--spacing-sm));
+    left: 0;
+    width: var(--popover-width);
+    border-radius: var(--radius-xl);
+    animation: none;
+  }
+
+  .ds-popover__footer { flex-direction: row; justify-content: flex-end; padding-bottom: var(--spacing-lg); }
+  .ds-popover__footer .btn { width: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-popover { animation: none; }
+}
+
+/* ── Callout: dismissible hint card with a down arrow; parent supplies positioning ── */
+.ds-callout {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-sm) var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-xl);
+  background: var(--background-surface);
+  box-shadow: var(--shadow-overlay);
+  animation: ds-sheet-up var(--duration-slow) var(--ease-standard);
+}
+
+.ds-callout::after {
+  content: '';
+  position: absolute;
+  bottom: calc(var(--spacing-sm) * -1);
+  left: var(--spacing-xl);
+  width: var(--spacing-lg);
+  height: var(--spacing-lg);
+  background: var(--background-surface);
+  transform: rotate(45deg);
+  border-radius: 0 0 var(--radius-sm) 0;
+  z-index: -1;
+}
+
+.ds-callout__content { flex: 1; min-width: 0; }
+.ds-callout__title { color: var(--text-primary); margin: 0; }
+.ds-callout__body { color: var(--text-secondary); }
+.ds-callout__body--with-title { margin-top: var(--spacing-xs); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-callout { animation: none; }
+}
+
+/* ── Feedback widget: round icon bubble, bottom-right, stacked above .ai-fab / .iarnold-fab ── */
+.feedback-widget {
+  position: fixed;
+  right: var(--spacing-lg);
+  bottom: calc(var(--bottom-nav-height) + var(--spacing-xl));
+  z-index: var(--z-sticky);
+}
+
+/* Round primary bubble floating over content */
+.feedback-widget__trigger {
+  width: var(--spacing-4xl);
+  height: var(--spacing-4xl);
+  padding: 0;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-overlay);
+}
+
+/* First-visit hint above the bubble; arrow points down at it; stays inside 16px gutters on mobile */
+.feedback-widget__callout {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--spacing-md));
+  width: max-content;
+  max-width: min(var(--popover-width), calc(100vw - var(--spacing-lg) * 2));
+}
+
+.feedback-widget__callout::after {
+  right: calc((var(--spacing-4xl) - var(--spacing-lg)) / 2);
+  left: auto;
+}
+
+.feedback-widget__form { display: flex; flex-direction: column; gap: var(--spacing-md); }
+
+/* Open sheet must clear .ai-fab (same z-index, later in DOM); it ends at the bottom nav so the nav stays visible */
+.feedback-widget:has(.ds-popover) { z-index: var(--z-modal); }
+
+/* Stack above the AI FAB, and above the sticky iArnold FAB (which itself sits above the AI FAB) */
+.app-layout:has(.ai-fab) .feedback-widget {
+  bottom: calc(var(--spacing-5xl) + var(--spacing-xl) + var(--spacing-4xl) + var(--spacing-sm));
+}
+
+.app-layout:has(.iarnold-fab) .feedback-widget {
+  bottom: calc(var(--spacing-5xl) + var(--spacing-lg) + var(--spacing-4xl) + var(--spacing-sm));
+}
+
+.app-layout:has(.ai-fab):has(.iarnold-fab) .feedback-widget {
+  bottom: calc(var(--spacing-5xl) + var(--spacing-xl) + (var(--spacing-4xl) + var(--spacing-sm)) * 2);
+}
+
+/* Reserve room under page content for the bubble */
+.app-layout:has(.feedback-widget) .main-content-inner {
+  padding-bottom: calc(var(--bottom-nav-height) + var(--spacing-xl) + var(--spacing-4xl) + var(--spacing-lg));
+}
+
+/* Hide the bubble (unless its sheet is open) where a bottom action bar would sit under it */
+.app-layout:has(.sticky-footer, .assign-footer, .branding-sticky-footer) .feedback-widget:not(:has(.ds-popover)) {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .app-layout:has(.profile-form-actions, .anamnesis-wizard-actions, .builder-edit-fab) .feedback-widget:not(:has(.ds-popover)) {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .app-layout:has(.feedback-widget) .main-content-inner {
+    padding-bottom: calc(var(--spacing-2xl) + var(--spacing-4xl));
+  }
+  .feedback-widget { bottom: var(--spacing-xl); }
+  .app-layout:has(.ai-fab) .feedback-widget {
+    bottom: calc(var(--spacing-2xl) + var(--spacing-4xl) + var(--spacing-sm));
+  }
+  .app-layout:has(.iarnold-fab) .feedback-widget {
+    bottom: calc(var(--spacing-lg) + var(--spacing-4xl) + var(--spacing-sm));
+  }
+  .app-layout:has(.ai-fab):has(.iarnold-fab) .feedback-widget {
+    bottom: calc(var(--spacing-2xl) + (var(--spacing-4xl) + var(--spacing-sm)) * 2);
+  }
+  /* Card anchors above the bubble, right-aligned so it never overflows the viewport */
+  .feedback-widget--right .ds-popover { right: 0; left: auto; }
+}
+
+@media (min-width: 1024px) {
+  .app-layout:has(.iarnold-fab) .feedback-widget {
+    bottom: calc(var(--spacing-xl) + var(--spacing-4xl) + var(--spacing-sm));
+  }
+  .app-layout:has(.ai-fab):has(.iarnold-fab) .feedback-widget {
+    bottom: calc(var(--spacing-2xl) + (var(--spacing-4xl) + var(--spacing-sm)) * 2);
+  }
+}
+
+/* Admin feedback list: keep long messages readable without stretching the row */
+.admin-feedback__message { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* ── Drawer: right panel at >=1024px, bottom sheet below ── */
 .ds-drawer-overlay {
