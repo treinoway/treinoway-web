@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, Salad } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
 import FeedbackWidget from './FeedbackWidget';
-import useActiveMode from '../hooks/useActiveMode';
 import useAiAccess from '../hooks/useAiAccess';
 import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
 import { SIDEBAR_BADGE_MAX } from '../constants/finance';
@@ -19,6 +18,11 @@ const ADMIN_LINKS = [
   { path: '/admin/ai-usage', labelKey: 'adminNav.aiUsage', Icon: BarChart3 },
   { path: '/admin/tutorials', labelKey: 'adminNav.tutorials', Icon: Video },
   { path: '/manager', labelKey: 'adminNav.manager', Icon: DatabaseZap },
+];
+
+const NUTRITIONIST_LINKS = [
+  { path: '/nutritionist/patients', label: 'Meus Pacientes', Icon: Users },
+  { path: '/nutritionist/foods', label: 'Meus alimentos', Icon: Salad },
 ];
 
 const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/advanced-techniques', '/trainer/anamneses'];
@@ -35,7 +39,6 @@ const Layout = ({ children, noPadding = false }) => {
   const navigate = useNavigate();
   const popoverRef = useRef(null);
   const profilePopoverRef = useRef(null);
-  const [, setActiveMode] = useActiveMode();
   const financeOverdueCount = useFinanceOverdueCount();
   const financeBadge = financeOverdueCount > SIDEBAR_BADGE_MAX ? `${SIDEBAR_BADGE_MAX}+` : String(financeOverdueCount);
   const financeAriaLabel = financeOverdueCount > 0
@@ -59,16 +62,6 @@ const Layout = ({ children, noPadding = false }) => {
   useEffect(() => {
     if (isBibliotecaActive()) {
       setBibliotecaOpen(true);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
-
-  // Auto-switch mode based on current path
-  useEffect(() => {
-    if (location.pathname.startsWith('/nutritionist/')) {
-      setActiveMode('nutritionist');
-    } else if (location.pathname.startsWith('/trainer/')) {
-      setActiveMode('trainer');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
@@ -296,6 +289,26 @@ const Layout = ({ children, noPadding = false }) => {
             </>
           )}
 
+
+          {hasRole('NUTRITIONIST') && (
+            <>
+              <div className="sidebar-section-label">Nutricionista</div>
+              {NUTRITIONIST_LINKS.map(({ path, label, Icon }) => (
+                <Link
+                  key={path}
+                  to={path}
+                  className={`sidebar-link ${isActive(path) ? 'sidebar-link--active' : ''}`}
+                  aria-label={label}
+                >
+                  <span className="sidebar-link-icon" aria-hidden="true">
+                    <Icon size={20} strokeWidth={1.6} />
+                  </span>
+                  <span className="sidebar-link-label">{label}</span>
+                </Link>
+              ))}
+            </>
+          )}
+
         </nav>
 
         <div className="sidebar-footer">
@@ -349,6 +362,19 @@ const Layout = ({ children, noPadding = false }) => {
               <Users size={22} strokeWidth={1.6} />
             </span>
             <span>Alunos</span>
+          </Link>
+        )}
+
+        {hasRole('NUTRITIONIST') && (
+          <Link
+            to="/nutritionist/patients"
+            className={`bottom-nav-item ${isActive('/nutritionist') ? 'bottom-nav-item--active' : ''}`}
+            aria-label="Pacientes"
+          >
+            <span className="bottom-nav-item-icon" aria-hidden="true">
+              <Users size={22} strokeWidth={1.6} />
+            </span>
+            <span>Pacientes</span>
           </Link>
         )}
 

@@ -785,7 +785,7 @@ describe('Layout', () => {
 
   // ---------------------------------------------------------------------------
   // Hidden navigation items — features not yet available to users
-  // (Campeonatos, Sua Marca, Nutricionista section + mode switcher)
+  // (Campeonatos, Sua Marca). The Nutricionista section is live: see 'nutritionist section'.
   // ---------------------------------------------------------------------------
 
   describe('hidden navigation items', () => {
@@ -797,7 +797,7 @@ describe('Layout', () => {
       expect(screen.queryByText('Sua Marca')).not.toBeInTheDocument();
     });
 
-    it('does not render the Nutricionista section or the mode switcher for dual-role users', () => {
+    it('never renders the mode switcher, even for dual-role users', () => {
       useAuth.mockReturnValue({
         user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' },
         logout: mockLogout,
@@ -805,10 +805,8 @@ describe('Layout', () => {
       });
       renderWithRouter(<Layout><span>Content</span></Layout>);
 
-      expect(screen.queryByText('Nutricionista')).not.toBeInTheDocument();
-      expect(screen.queryByText('Pacientes')).not.toBeInTheDocument();
-      expect(screen.queryByText('Protocolos')).not.toBeInTheDocument();
       expect(screen.queryByRole('group', { name: 'Alternar modo' })).not.toBeInTheDocument();
+      expect(screen.queryByText('Protocolos')).not.toBeInTheDocument();
     });
 
     it('still renders the Treinador section for dual-role users now that the mode switcher is gone', () => {
@@ -822,6 +820,72 @@ describe('Layout', () => {
       const sidebar = document.querySelector('.sidebar');
       expect(within(sidebar).getByText('Treinador')).toBeInTheDocument();
       expect(within(sidebar).getByRole('link', { name: 'Meus Alunos' })).toBeInTheDocument();
+    });
+  });
+
+  describe('nutritionist section (criterion: sidebar Nutricionista › Meus Pacientes)', () => {
+    const setupRoles = (roles) => {
+      useAuth.mockReturnValue({
+        user: { firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' },
+        logout: mockLogout,
+        hasRole: (role) => roles.includes(role),
+      });
+    };
+
+    it('shows the Nutricionista section with a Meus Pacientes link for a nutritionist', () => {
+      setupRoles(['NUTRITIONIST']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const sidebar = document.querySelector('.sidebar');
+      expect(within(sidebar).getByText('Nutricionista')).toBeInTheDocument();
+      expect(within(sidebar).getByRole('link', { name: 'Meus Pacientes' })).toHaveAttribute('href', '/nutritionist/patients');
+    });
+
+    it('lists Meus alimentos under Nutricionista, linking to /nutritionist/foods', () => {
+      setupRoles(['NUTRITIONIST']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const sidebar = document.querySelector('.sidebar');
+      expect(within(sidebar).getByRole('link', { name: 'Meus alimentos' })).toHaveAttribute('href', '/nutritionist/foods');
+    });
+
+    it('shows both Treinador and Nutricionista sections for a dual-role user, Treinador first, with no switcher', () => {
+      setupRoles(['TRAINER', 'NUTRITIONIST']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const sidebar = document.querySelector('.sidebar');
+      const trainer = within(sidebar).getByText('Treinador');
+      const nutritionist = within(sidebar).getByText('Nutricionista');
+      expect(trainer.compareDocumentPosition(nutritionist) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(within(sidebar).getByRole('link', { name: 'Meus Alunos' })).toBeInTheDocument();
+      expect(within(sidebar).getByRole('link', { name: 'Meus Pacientes' })).toBeInTheDocument();
+      expect(screen.queryByRole('group', { name: 'Alternar modo' })).not.toBeInTheDocument();
+    });
+
+    it('does not show the Treinador section to a nutritionist-only user', () => {
+      setupRoles(['NUTRITIONIST']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const sidebar = document.querySelector('.sidebar');
+      expect(within(sidebar).queryByText('Treinador')).not.toBeInTheDocument();
+      expect(within(sidebar).queryByRole('link', { name: 'Meus Alunos' })).not.toBeInTheDocument();
+    });
+
+    it('hides the section for a trainer without the nutritionist role', () => {
+      setupRoles(['TRAINER']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const sidebar = document.querySelector('.sidebar');
+      expect(within(sidebar).queryByText('Nutricionista')).not.toBeInTheDocument();
+      expect(within(sidebar).queryByRole('link', { name: 'Meus Pacientes' })).not.toBeInTheDocument();
+    });
+
+    it('marks Meus Pacientes active on any nested patient route', () => {
+      setupRoles(['NUTRITIONIST']);
+      renderWithRouter(<Layout><span>Content</span></Layout>, { route: '/nutritionist/patients/p1/plan/menu' });
+
+      const sidebar = document.querySelector('.sidebar');
+      expect(within(sidebar).getByRole('link', { name: 'Meus Pacientes' })).toHaveClass('sidebar-link--active');
     });
   });
 
