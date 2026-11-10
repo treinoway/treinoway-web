@@ -39,6 +39,14 @@ describe('WeekHistoryChart', () => {
     expect(screen.getByRole('img', { name: 'Semana 3: 100%' })).not.toHaveClass('week-chart__bar--warning');
   });
 
+  it('PAN-21 draws the dashed limit line at the risk limit in every week column', () => {
+    const { container } = render(<WeekHistoryChart weeks={WEEKS} riskLimit={70} seasonNumber={3} />);
+
+    const lines = container.querySelectorAll('.week-chart__limit');
+    expect(lines).toHaveLength(WEEKS.length);
+    lines.forEach((line) => expect(line.style.bottom).toBe('70%'));
+  });
+
   it('PAN-21 shows the limit configured for the trainer in the legend', () => {
     render(<WeekHistoryChart weeks={WEEKS} riskLimit={80} seasonNumber={3} />);
     expect(screen.getByText('linha = limite de risco 80%')).toBeInTheDocument();

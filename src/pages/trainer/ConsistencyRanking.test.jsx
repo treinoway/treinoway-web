@@ -200,6 +200,36 @@ describe('ConsistencyRanking', () => {
     expect(screen.getByRole('button', { name: /Em risco/ })).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('PAN-27 keeps the scroll position of the table after closing the panel', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForRows();
+    const scroller = screen.getByRole('region', { name: 'Classificação do time' });
+    scroller.scrollLeft = 120;
+    scroller.scrollTop = 80;
+
+    await user.click(screen.getByRole('button', { name: 'João V.' }));
+    await screen.findByRole('dialog', { name: 'João V.' });
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const after = screen.getByRole('region', { name: 'Classificação do time' });
+    expect(after).toBe(scroller);
+    expect(after.scrollLeft).toBe(120);
+    expect(after.scrollTop).toBe(80);
+  });
+
+  it('PAN-57 scrolls only the table: header, cards and filters stay outside the scrolling region', async () => {
+    renderPage();
+    await waitForRows();
+    const scroller = screen.getByRole('region', { name: 'Classificação do time' });
+
+    expect(within(scroller).queryByRole('searchbox', { name: 'Buscar aluno' })).not.toBeInTheDocument();
+    expect(within(scroller).queryByRole('region', { name: 'Resumo do time' })).not.toBeInTheDocument();
+    expect(within(scroller).queryByRole('button', { name: /Em risco/ })).not.toBeInTheDocument();
+    expect(within(scroller).getByRole('table')).toBeInTheDocument();
+  });
+
   it('PAN-04 opens the panel of a student from the WhatsApp action of the row', async () => {
     const user = userEvent.setup();
     renderPage();
