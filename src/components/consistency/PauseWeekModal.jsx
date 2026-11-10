@@ -59,8 +59,8 @@ const PauseWeekModal = ({ currentWeekStart, scope = SCOPE.STUDENT, studentName, 
 
   return (
     <Modal title={title} eyebrow={studentName} onClose={handleClose} closeDisabled={busy} footer={footer}>
-      <form id={formId} className="pause-week-form" onSubmit={handleSubmit}>
-        {isTeam && <p className="type-body pause-week-form__note">Pausa a semana de todos os alunos ativos.</p>}
+      <form id={formId} className="consistency-form" onSubmit={handleSubmit}>
+        {isTeam && <p className="type-body consistency-form__note">Pausa a semana de todos os alunos ativos.</p>}
         <div className="field">
           <label className="field-label type-caption-strong" htmlFor={`${formId}-week`}>Semana</label>
           <select id={`${formId}-week`} className="input" value={weekStart} disabled={busy} onChange={(event) => setWeekStart(event.target.value)}>
@@ -80,7 +80,7 @@ const PauseWeekModal = ({ currentWeekStart, scope = SCOPE.STUDENT, studentName, 
             disabled={busy}
             onChange={(event) => setReason(event.target.value)}
           />
-          <span className="field-hint type-caption pause-week-form__counter">{`${reason.length}/${PAUSE_REASON_MAX_LENGTH}`}</span>
+          <span className="field-hint type-caption consistency-form__counter">{`${reason.length}/${PAUSE_REASON_MAX_LENGTH}`}</span>
         </div>
         {error && <Banner tone="error">{error}</Banner>}
       </form>

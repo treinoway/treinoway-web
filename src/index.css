@@ -21022,6 +21022,6 @@ select.input { cursor: pointer; }
 .ready-message__send { flex: 1; }
 
 /* ── Consistency ranking: pause week modal ───────────────── */
-.pause-week-form { display: flex; flex-direction: column; gap: var(--spacing-lg); }
-.pause-week-form__note { margin: 0; color: var(--text-secondary); }
-.pause-week-form__counter { align-self: flex-end; margin-top: var(--spacing-xs); font-variant-numeric: tabular-nums; }
+.consistency-form { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.consistency-form__note { margin: 0; color: var(--text-secondary); }
+.consistency-form__counter { align-self: flex-end; margin-top: var(--spacing-xs); font-variant-numeric: tabular-nums; }
