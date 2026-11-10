@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+  pull_request:
 
 jobs:
   test:
@@ -28,3 +29,60 @@ jobs:
 
       - name: Run unit tests
         run: npm run test:run
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  e2e:
+    name: Playwright smoke specs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Skip when there are no specs yet
+        id: specs
+        run: |
+          if compgen -G "e2e/*.spec.*" > /dev/null; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No Playwright specs in e2e/ yet; nothing to run."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node.js
+        if: steps.specs.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.specs.outputs.present == 'true'
+        run: npm ci
+
+      - name: Install browser
+        if: steps.specs.outputs.present == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright
+        if: steps.specs.outputs.present == 'true'
+        run: npm run test:e2e
