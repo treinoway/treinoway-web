@@ -21,7 +21,7 @@ describe('StudentSignals', () => {
     expect(screen.getByText('Entrando na temporada · 1 de 2 semanas')).toBeInTheDocument();
   });
 
-  it('PAN-08 shows the badge of a closed paused week when the running week is not paused', () => {
+  it('PAN-58 shows the badge of a closed paused week when the running week is not paused', () => {
     render(<StudentSignals row={{ pause: null, closedPause: { weekStart: '2026-10-26', reason: 'viagem' }, signals: [], risk: null, entering: null }} season={SEASON} />);
 
     expect(screen.getByText('Semana 2 pausada (viagem)')).toBeInTheDocument();
