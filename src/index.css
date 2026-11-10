@@ -21020,3 +21020,8 @@ select.input { cursor: pointer; }
 .ready-message__field { min-height: calc(var(--spacing-5xl) * 2); resize: vertical; }
 .ready-message__actions { flex-wrap: nowrap; }
 .ready-message__send { flex: 1; }
+
+/* ── Consistency ranking: pause week modal ───────────────── */
+.pause-week-form { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.pause-week-form__note { margin: 0; color: var(--text-secondary); }
+.pause-week-form__counter { align-self: flex-end; margin-top: var(--spacing-xs); font-variant-numeric: tabular-nums; }
