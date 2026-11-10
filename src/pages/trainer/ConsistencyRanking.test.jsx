@@ -312,6 +312,16 @@ describe('ConsistencyRanking', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
+  it('PAN-53 shows the table, not the no-student state, when every active student is still without a closed week', async () => {
+    const joined = buildRow({ studentId: 'student-9', displayName: 'Carla N.', position: null, faixa: 'entering', average: null, currentWeekScore: null, weeks100: 0, streak: 0, seasonPillars: [], entering: { validWeeks: 0, required: 2 } });
+    mockApi({ standings: { ...buildStandings([], { all: 1, risk: 0, entering: 1 }), entering: [joined] } });
+    renderPage();
+
+    expect(await screen.findByText('Carla N.')).toBeInTheDocument();
+    expect(screen.getByText('Sem semana fechada')).toBeInTheDocument();
+    expect(screen.queryByText('Teu ranking aparece quando um aluno tiver plano ativo.')).not.toBeInTheDocument();
+  });
+
   it('PAN-54 shows skeletons while loading', () => {
     api.get.mockImplementation(() => new Promise(() => {}));
     renderPage();
