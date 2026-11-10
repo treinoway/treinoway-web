@@ -276,11 +276,17 @@ describe('Dashboard', () => {
       expect(screen.getByText('Seja um Treinador')).toBeInTheDocument();
     });
 
-    it('hides "Seja um Nutricionista" when the user already is a nutritionist', () => {
+    it('hides "Seja nutricionista" when the user already is a nutritionist', () => {
       mockHasRole.mockImplementation((role) => role === 'NUTRITIONIST');
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 1, firstName: 'João', status: 'active', roles: ['NUTRITIONIST'], betaAccess: true },
+        hasRole: mockHasRole,
+        refreshUser: mockRefreshUser,
+        updateTokens: mockUpdateTokens,
+      });
       mockApiGet();
       renderWithRouter(<Dashboard />);
-      expect(screen.queryByText('Seja um Nutricionista')).not.toBeInTheDocument();
+      expect(screen.queryByText('Seja nutricionista')).not.toBeInTheDocument();
       expect(screen.getByText('Seja um Treinador')).toBeInTheDocument();
     });
 
@@ -340,44 +346,25 @@ describe('Dashboard', () => {
     });
   });
 
-  describe('Dual-role mode switching (TRAINER + NUTRITIONIST)', () => {
+  describe('Dual-role users (TRAINER + NUTRITIONIST) — no mode switching', () => {
     beforeEach(() => {
       mockHasRole.mockImplementation((role) => role === 'TRAINER' || role === 'NUTRITIONIST');
       mockApiGet();
     });
 
-    it('hides trainer quick actions and the Control Tower when activeMode is nutritionist', () => {
+    it('shows trainer quick actions and the Control Tower regardless of any stored mode', () => {
       localStorage.setItem(ACTIVE_MODE_KEY, 'nutritionist');
-      renderWithRouter(<Dashboard />);
-
-      expect(screen.queryByRole('button', { name: 'Criar rotina' })).not.toBeInTheDocument();
-      expect(screen.queryByText('Sua marca')).not.toBeInTheDocument();
-      expect(screen.queryByRole('heading', { name: 'Tua semana em foco' })).not.toBeInTheDocument();
-    });
-
-    it('shows trainer quick actions and the Control Tower when activeMode is trainer (default)', () => {
-      localStorage.setItem(ACTIVE_MODE_KEY, 'trainer');
       renderWithRouter(<Dashboard />);
 
       expect(screen.getByRole('button', { name: 'Criar rotina' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Tua semana em foco' })).toBeInTheDocument();
     });
 
-    it('shows NutritionistOnboardingCard when activeMode is nutritionist and profile is incomplete', async () => {
-      localStorage.setItem(ACTIVE_MODE_KEY, 'nutritionist');
-      mockApiGet({
-        '/nutritionist': () => Promise.resolve({ data: { profileCompletedAt: null } }),
-      });
-
+    it('never asks the nutritionist API for the removed onboarding card', async () => {
       renderWithRouter(<Dashboard />);
 
-      await waitFor(() => expect(api.get).toHaveBeenCalledWith('/nutritionist'));
-      expect(await screen.findByText('Perfil de nutricionista incompleto')).toBeInTheDocument();
-    });
-
-    it('hides NutritionistOnboardingCard when activeMode is trainer', () => {
-      localStorage.setItem(ACTIVE_MODE_KEY, 'trainer');
-      renderWithRouter(<Dashboard />);
+      await waitFor(() => expect(api.get).toHaveBeenCalled());
+      expect(api.get).not.toHaveBeenCalledWith('/nutritionist');
       expect(screen.queryByText('Perfil de nutricionista incompleto')).not.toBeInTheDocument();
     });
   });
