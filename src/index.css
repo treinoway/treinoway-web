@@ -20948,6 +20948,29 @@ select.input { cursor: pointer; }
 .consistency-table--compact { min-width: calc(var(--spacing-5xl) * 8); }
 .consistency-table--compact th:last-child { text-align: left; }
 
+.seasons-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.seasons-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.seasons-list__item:last-child { border-bottom: 0; }
+.seasons-list__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--spacing-2xl);
+  height: var(--spacing-2xl);
+  border-radius: var(--radius-md);
+  background: var(--background-brand-subtle);
+  color: var(--icon-brand);
+}
+.seasons-list__identity { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.seasons-list__summary { color: var(--text-secondary); }
+
 /* ── Consistency ranking: student panel sections and week chart ───────────────── */
 .student-panel__section {
   display: flex;
