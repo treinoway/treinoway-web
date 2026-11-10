@@ -4,6 +4,7 @@ const HOURS_PER_DAY = 24;
 const MS_PER_DAY = MS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY;
 const DAYS_PER_WEEK = 7;
 const NEUTRAL_PLACEHOLDER = '—';
+const BAND_EDGES = [100, 70];
 
 // "DD/MM" of a "YYYY-MM-DD" date shifted by some days
 export const dayMonthOf = (dateKey, shiftDays = 0) => {
@@ -14,12 +15,12 @@ export const dayMonthOf = (dateKey, shiftDays = 0) => {
 // Sunday that closes a season: the service sends the Monday of its last week
 export const seasonEndDateOf = (endWeek) => dayMonthOf(endWeek, DAYS_PER_WEEK - 1);
 
-// Whole-percent label of a score; 100 only when the score is 100, a dash for a neutral week
+// Whole-percent label of a score; rounding never crosses a band edge (100 and the 70 warning limit), so 69.6 reads 69% like its bar and band, a dash for a neutral week
 export const formatScore = (score) => {
   if (score === null || score === undefined) return NEUTRAL_PLACEHOLDER;
   const rounded = Math.round(score);
-  const capped = score < 100 && rounded >= 100 ? 99 : rounded;
-  return `${capped}%`;
+  const crossedEdge = BAND_EDGES.find((edge) => score < edge && rounded >= edge);
+  return `${crossedEdge ? crossedEdge - 1 : rounded}%`;
 };
 
 // Time left until the close as "4d 7h", "7h 20min" or "45min"; "0min" once passed
@@ -48,6 +49,12 @@ const closeHourOf = (parts) => `${parts.hour}h${parts.minute === '00' ? '' : par
 export const formatCloseLabel = (closesAt, timeZone) => {
   const parts = closePartsOf(closesAt, timeZone);
   return `${parts.weekday} às ${closeHourOf(parts)}`;
+};
+
+// "domingo 20h48" of an instant in the time zone
+export const formatWeekdayTime = (instant, timeZone) => {
+  const parts = closePartsOf(instant, timeZone);
+  return `${parts.weekday} ${closeHourOf(parts)}`;
 };
 
 // "domingo, 08/11, às 21h" of the close instant in the time zone

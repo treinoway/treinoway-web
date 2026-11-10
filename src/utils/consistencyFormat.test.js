@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dayMonthOf, seasonEndDateOf, formatScore, formatCountdown, weekLabel, formatCloseLabel, formatCloseDateLabel, currentWeekStartOf } from './consistencyFormat';
+import { dayMonthOf, seasonEndDateOf, formatScore, formatCountdown, weekLabel, formatCloseLabel, formatCloseDateLabel, formatWeekdayTime, currentWeekStartOf } from './consistencyFormat';
 
 describe('formatScore', () => {
   it('PAN-06 rounds to a whole percent', () => {
@@ -12,6 +12,13 @@ describe('formatScore', () => {
     expect(formatScore(99.6)).toBe('99%');
     expect(formatScore(99.99)).toBe('99%');
     expect(formatScore(100)).toBe('100%');
+  });
+
+  it('PAN-07 never shows 70 before 70, so the label agrees with the warning color', () => {
+    expect(formatScore(69.6)).toBe('69%');
+    expect(formatScore(69.4)).toBe('69%');
+    expect(formatScore(70)).toBe('70%');
+    expect(formatScore(70.4)).toBe('70%');
   });
 
   it('PAN-06 shows a dash for a neutral week', () => {
@@ -81,5 +88,12 @@ describe('season dates', () => {
   it('PAN-02 ends a season on the Sunday after the Monday of its last week, so list and header agree', () => {
     expect(seasonEndDateOf('2026-10-19')).toBe('25/10');
     expect(seasonEndDateOf('2026-12-28')).toBe('03/01');
+  });
+});
+
+describe('formatWeekdayTime', () => {
+  it('PAN-49 writes the weekday and time of an instant in the time zone', () => {
+    expect(formatWeekdayTime('2026-11-08T23:48:00.000Z', 'America/Sao_Paulo')).toBe('domingo 20h48');
+    expect(formatWeekdayTime('2026-11-09T00:00:00.000Z', 'America/Sao_Paulo')).toBe('domingo 21h');
   });
 });
