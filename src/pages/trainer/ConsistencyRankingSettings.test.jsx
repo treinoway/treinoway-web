@@ -190,7 +190,7 @@ describe('ConsistencyRankingSettings', () => {
     renderPage();
     await waitForPage();
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Hora do fechamento' }), '20:00');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Fechamento da semana' }), 'Domingo · 20:00');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(api.put).toHaveBeenCalledWith(`${BASE_URL}/config`, { closeHour: 20 }));

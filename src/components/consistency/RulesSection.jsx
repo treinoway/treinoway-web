@@ -31,6 +31,9 @@ const batchLabelOf = (count, minutes) => `${count} registros em ${minutes} min`;
 // "HH:00" label of a close hour
 const hourLabelOf = (hour) => `${String(hour).padStart(2, '0')}:00`;
 
+// "Domingo · 21:00" label of a close weekday and hour
+const closeLabelOf = (weekday, hour) => `${WEEKDAY_LABELS[weekday]} · ${hourLabelOf(hour)}`;
+
 // Select of one numeric rule; the change goes up as a number
 const RuleSelect = ({ id, label, value, options, onChange }) => (
   <select id={id} className="input" aria-label={label} value={value} onChange={(event) => onChange(Number(event.target.value))}>
@@ -112,19 +115,12 @@ const RulesSection = ({ config, onChange }) => {
         />
       </RuleField>
       <RuleField title="Fechamento da semana" hint={`Fuso ${config.timeZone}. Registros depois ficam no histórico.`}>
-        <RuleSelect
-          id="rule-close-weekday"
-          label="Dia do fechamento"
-          value={config.closeWeekday}
-          options={WEEKDAY_LABELS.map((label, index) => ({ value: index, label }))}
-          onChange={set('closeWeekday')}
-        />
-        <RuleSelect
-          id="rule-close-hour"
-          label="Hora do fechamento"
-          value={config.closeHour}
-          options={rangeOf(CONFIG_LIMITS.closeHour).map((hour) => ({ value: hour, label: hourLabelOf(hour) }))}
-          onChange={set('closeHour')}
+        <PairSelect
+          id="rule-close"
+          label="Fechamento da semana"
+          pair={[config.closeWeekday, config.closeHour]}
+          options={pairOptions(rangeOf({ min: 0, max: WEEKDAY_LABELS.length - 1 }), rangeOf(CONFIG_LIMITS.closeHour), [config.closeWeekday, config.closeHour], closeLabelOf)}
+          onChange={setPair('closeWeekday', 'closeHour')}
         />
       </RuleField>
       <RuleField title="Tempo mínimo de treino" hint="Abaixo disso o treino aparece sinalizado. Não tira ponto.">

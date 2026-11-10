@@ -38,9 +38,8 @@ describe('RulesSection', () => {
   it('PAN-41 renders all fairness rules with the values of the configuration', () => {
     render(<Harness />);
     expect(selectOf('Mínimo para o pódio')).toHaveDisplayValue('2 semanas válidas');
-    expect(within(screen.getByRole('group', { name: 'Fechamento da semana' })).getAllByRole('combobox')).toHaveLength(2);
-    expect(selectOf('Dia do fechamento')).toHaveDisplayValue('Domingo');
-    expect(selectOf('Hora do fechamento')).toHaveDisplayValue('21:00');
+    expect(within(screen.getByRole('group', { name: 'Fechamento da semana' })).getAllByRole('combobox')).toHaveLength(1);
+    expect(selectOf('Fechamento da semana')).toHaveDisplayValue('Domingo · 21:00');
     expect(selectOf('Tempo mínimo de treino')).toHaveDisplayValue('10 minutos');
     expect(selectOf('Alerta de risco')).toHaveDisplayValue('Abaixo de 70% por 2 semanas');
     expect(selectOf('Registro em lote')).toHaveDisplayValue('5 registros em 30 min');
@@ -71,12 +70,17 @@ describe('RulesSection', () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
-    await user.selectOptions(selectOf('Dia do fechamento'), 'Segunda');
-    await user.selectOptions(selectOf('Hora do fechamento'), '18:00');
-    expect(selectOf('Dia do fechamento')).toHaveDisplayValue('Segunda');
-    expect(selectOf('Hora do fechamento')).toHaveDisplayValue('18:00');
+    await user.selectOptions(selectOf('Fechamento da semana'), 'Segunda · 18:00');
+    expect(selectOf('Fechamento da semana')).toHaveDisplayValue('Segunda · 18:00');
     expect(onChange).toHaveBeenCalledWith('closeWeekday', 1);
     expect(onChange).toHaveBeenCalledWith('closeHour', 18);
+  });
+
+  it('PAN-41 offers every weekday and hour of the close as one "Dia · HH:00" choice', () => {
+    render(<Harness />);
+    const options = within(selectOf('Fechamento da semana')).getAllByRole('option').map((option) => option.textContent);
+    expect(options).toHaveLength(7 * 24);
+    expect(options).toEqual(expect.arrayContaining(['Domingo · 21:00', 'Sábado · 00:00', 'Quarta · 07:00']));
   });
 
   it('PAN-41 changes the minimum workout time', async () => {
