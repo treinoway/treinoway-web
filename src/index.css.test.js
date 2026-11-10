@@ -77,4 +77,9 @@ describe('index.css: wide pages scroll inside their card', () => {
   it('scrolls the standings table inside its own container', () => {
     expect(ruleBody('.consistency-table__scroll')).toContain('overflow-x: auto');
   });
+
+  it('caps the student column so the standings fit 1440 with Sequência visible beside the sticky Ações column', () => {
+    expect(ruleBody('.consistency-row__identity')).toContain('max-width: calc(var(--spacing-5xl) * 3)');
+    expect(ruleBody('.consistency-table .score-bar')).toContain('min-width: calc(var(--spacing-5xl) * 1.25)');
+  });
 });
