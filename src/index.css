@@ -21145,3 +21145,36 @@ select.input { cursor: pointer; }
 .consistency-page__heading .type-overline { color: var(--text-secondary); }
 .consistency-page__subtitle { margin: 0; color: var(--text-secondary); }
 .consistency-board { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+
+.settings-header__heading { display: flex; align-items: flex-start; gap: var(--spacing-md); }
+.settings-section { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.settings-section__head { display: flex; flex-direction: column; gap: var(--spacing-2xs); }
+.settings-section__head h2 { margin: 0; color: var(--text-primary); }
+.settings-section__eyebrow { color: var(--text-secondary); }
+.settings-card { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.settings-card__help { margin: 0; color: var(--text-secondary); }
+.settings-season { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.settings-season__duration { display: flex; flex-direction: column; gap: var(--spacing-md); padding-top: var(--spacing-lg); border-top: 1px solid var(--border-subtle); }
+.settings-season__field { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-xs); }
+.settings-season__field .field-hint { color: var(--text-secondary); }
+.settings-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: var(--feedback-warning-bg);
+  color: var(--feedback-warning-text);
+}
+.settings-weights { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.weights-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.weights-summary__head { display: flex; justify-content: space-between; color: var(--text-primary); }
+.weights-summary__total--invalid { color: var(--feedback-error-text); }
+.weights-summary__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-xs) var(--spacing-md); color: var(--text-secondary); }
+
+@media (min-width: 768px) {
+  .settings-season { flex-direction: row; align-items: center; }
+  .settings-season .season-header__identity { flex: 1; }
+  .settings-season__duration { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+  .settings-season__duration .student-panel__note { flex: 1; max-width: 50%; }
+}
