@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
 import useModalBehavior from './useModalBehavior';
 
-// Dialog with a scrollable body and a sticky footer: layout 'side' is a right panel and 'modal' a centred dialog at >=1024px, both a bottom sheet below that.
-const Drawer = ({ title, onClose, children, footer, busy = false, layout = 'side', returnFocusSelector, closeLabel = 'Fechar' }) => {
+// Dialog with a scrollable body and a sticky footer: layout 'side' is a right panel and 'modal' a centred dialog at >=1024px, both a bottom sheet below that; 'fullscreen' fills the screen. Optional leading node and subtitle sit beside and under the title.
+const Drawer = ({ title, subtitle, leading, onClose, children, footer, busy = false, layout = 'side', returnFocusSelector, closeLabel = 'Fechar' }) => {
   const titleId = useId();
   const dialogRef = useRef(null);
   const handleClose = () => {
@@ -25,7 +25,11 @@ const Drawer = ({ title, onClose, children, footer, busy = false, layout = 'side
         onClick={(e) => e.stopPropagation()}
       >
         <div className="ds-drawer__header">
-          <h2 id={titleId} className="ds-drawer__title type-h3">{title}</h2>
+          {leading}
+          <div className="ds-drawer__heading">
+            <h2 id={titleId} className="ds-drawer__title type-h3">{title}</h2>
+            {subtitle}
+          </div>
           <button
             type="button"
             className="icon-button"
@@ -46,11 +50,13 @@ const Drawer = ({ title, onClose, children, footer, busy = false, layout = 'side
 
 Drawer.propTypes = {
   title: PropTypes.string.isRequired,
+  subtitle: PropTypes.node,
+  leading: PropTypes.node,
   onClose: PropTypes.func.isRequired,
   children: PropTypes.node,
   footer: PropTypes.node,
   busy: PropTypes.bool,
-  layout: PropTypes.oneOf(['modal', 'side']),
+  layout: PropTypes.oneOf(['modal', 'side', 'fullscreen']),
   returnFocusSelector: PropTypes.string,
   closeLabel: PropTypes.string,
 };
