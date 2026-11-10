@@ -64,3 +64,13 @@ describe('index.css: onboarding checklist card', () => {
     expect(css).toMatch(new RegExp(`\\.${name}[\\s,:.{]`));
   });
 });
+
+describe('index.css: wide pages scroll inside their card', () => {
+  it('lets .main-content shrink below its content so the flex row never outgrows the window', () => {
+    expect(ruleBody('.main-content')).toContain('min-width: 0');
+  });
+
+  it('scrolls the standings table inside its own container', () => {
+    expect(ruleBody('.consistency-table__scroll')).toContain('overflow-x: auto');
+  });
+});

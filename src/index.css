@@ -1654,6 +1654,7 @@ button.auth-forgot-link:disabled {
 /* Main Content */
 .main-content {
   flex: 1;
+  min-width: 0;
   overflow: auto;
   /* clip prevents negative-margin children from painting
      outside the main-content boundary and over the sidebar. overflow-x: clip
