@@ -14,6 +14,7 @@ import PreviousSeasonsList from '../../components/consistency/PreviousSeasonsLis
 import RulesSection from '../../components/consistency/RulesSection';
 import WeightRow from '../../components/consistency/WeightRow';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
+import useInternalLinkGuard from '../../hooks/useInternalLinkGuard';
 import useConsistencyConfig from '../../hooks/useConsistencyConfig';
 import { formatCloseDateLabel, formatCloseLabel } from '../../utils/consistencyFormat';
 import { effectivePercents, effectiveWeightsPhrase } from '../../utils/consistencyWeights';
@@ -269,6 +270,8 @@ const ConsistencyRankingSettings = () => {
     }
     requestConfirm({ message: 'Há mudanças não salvas. Descartar e sair?', confirmLabel: 'Descartar', busyLabel: 'Saindo...', onConfirm: () => navigate(path) });
   }, [isDirty, navigate, requestConfirm]);
+
+  useInternalLinkGuard(isDirty, leaveTo);
 
   const handleSave = async () => {
     try {

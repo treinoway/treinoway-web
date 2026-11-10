@@ -1,5 +1,5 @@
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { render, screen, waitFor, within } from '../../test/test-utils';
 
 vi.mock('../../api/axios', () => ({
@@ -69,9 +69,11 @@ const mockApi = ({ config = CONFIG } = {}) => {
 const renderPage = () =>
   render(
     <MemoryRouter initialEntries={['/trainer/consistency-ranking/settings']}>
+      <Link to="/trainer/students">Menu Alunos</Link>
       <Routes>
         <Route path="/trainer/consistency-ranking/settings" element={<ConsistencyRankingSettings />} />
         <Route path="/trainer/consistency-ranking" element={<LocationProbe />} />
+        <Route path="/trainer/students" element={<div>Página de alunos</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -254,6 +256,35 @@ describe('ConsistencyRankingSettings', () => {
     await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Descartar' }));
 
     expect(await screen.findByText('Ranking: /trainer/consistency-ranking')).toBeInTheDocument();
+  });
+
+  it('PAN-44 also asks when the personal leaves through a menu link, and navigates once confirmed', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForPage();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Limite do alerta de risco' }), 'Abaixo de 80%');
+
+    await user.click(screen.getByRole('link', { name: 'Menu Alunos' }));
+    expect(screen.getByRole('alertdialog')).toHaveAccessibleName(/mudanças não salvas/);
+    expect(screen.queryByText('Página de alunos')).not.toBeInTheDocument();
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancelar' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Configuração do ranking' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('link', { name: 'Menu Alunos' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Descartar' }));
+
+    expect(await screen.findByText('Página de alunos')).toBeInTheDocument();
+  });
+
+  it('PAN-44 lets a menu link navigate at once when nothing changed', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForPage();
+
+    await user.click(screen.getByRole('link', { name: 'Menu Alunos' }));
+
+    expect(await screen.findByText('Página de alunos')).toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
   it('PAN-44 leaves at once when nothing changed', async () => {
