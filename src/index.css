@@ -20971,6 +20971,45 @@ select.input { cursor: pointer; }
 .seasons-list__identity { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .seasons-list__summary { color: var(--text-secondary); }
 
+/* ── Consistency ranking: weight row ───────────────── */
+.weight-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface);
+}
+.weight-row--off { background: var(--background-surface-elevated); }
+.weight-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  grid-row: 1;
+  width: var(--spacing-2xl);
+  height: var(--spacing-2xl);
+  border-radius: var(--radius-md);
+  background: var(--background-brand-subtle);
+  color: var(--icon-brand);
+}
+.weight-row--off .weight-row__icon { background: var(--background-default); color: var(--icon-disabled); }
+.weight-row__identity { display: flex; flex-direction: column; min-width: 0; }
+.weight-row__description { color: var(--text-secondary); }
+.weight-row__note { color: var(--feedback-warning-text); }
+.weight-row__slider { grid-column: 1 / -1; width: 100%; min-height: var(--size-control-touch); accent-color: var(--action-primary-default); }
+.weight-row__slider:disabled { accent-color: var(--text-disabled); }
+.weight-row__slider:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.weight-row__number { width: calc(var(--spacing-5xl) + var(--spacing-xs)); text-align: center; font-variant-numeric: tabular-nums; }
+.weight-row__effective { min-width: calc(var(--spacing-3xl) + var(--spacing-md)); text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+.weight-row--off .weight-row__effective { color: var(--text-tertiary); }
+
+@media (min-width: 768px) {
+  .weight-row { grid-template-columns: auto minmax(0, 1.2fr) minmax(0, 2fr) auto auto auto; }
+  .weight-row__slider { grid-column: auto; }
+}
+
 /* ── Consistency ranking: student panel sections and week chart ───────────────── */
 .student-panel__section {
   display: flex;
