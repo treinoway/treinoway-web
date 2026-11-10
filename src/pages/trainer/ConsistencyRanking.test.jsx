@@ -74,6 +74,11 @@ const buildStandings = (rows, counts = {}) => ({
   entering: [],
 });
 
+const NO_STUDENT_MESSAGE = 'Teu ranking aparece quando um aluno tiver plano ativo.';
+
+// Standings payload of the service while no season runs, with the reason it gives
+const buildNotStarted = (notStarted) => ({ season: null, rows: [], entering: [], notStarted });
+
 const PANEL = {
   studentId: 'student-3',
   firstName: 'João',
@@ -350,6 +355,61 @@ describe('ConsistencyRanking', () => {
     expect(await screen.findByText('Carla N.')).toBeInTheDocument();
     expect(screen.getByText('Sem semana fechada')).toBeInTheDocument();
     expect(screen.queryByText('Teu ranking aparece quando um aluno tiver plano ativo.')).not.toBeInTheDocument();
+  });
+
+  it('PAN-60 announces the launch Monday when the ranking is not released yet', async () => {
+    mockApi({ standings: buildNotStarted({ reason: 'launchPending', startsOn: '2026-11-16' }) });
+    renderPage();
+
+    expect(await screen.findByText('O Ranking de Constância começa na segunda, 16/11.')).toBeInTheDocument();
+    expect(screen.queryByText(NO_STUDENT_MESSAGE)).not.toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('PAN-60 says the ranking is not released for the account when the launch has no date', async () => {
+    mockApi({ standings: buildNotStarted({ reason: 'launchPending', startsOn: null }) });
+    renderPage();
+
+    expect(await screen.findByText('O Ranking de Constância ainda não foi liberado para a tua conta.')).toBeInTheDocument();
+    expect(screen.queryByText(NO_STUDENT_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('PAN-60 asks for a student with an active plan when the trainer has none', async () => {
+    mockApi({ standings: buildNotStarted({ reason: 'noActiveStudent', startsOn: null }) });
+    renderPage();
+
+    expect(await screen.findByText(NO_STUDENT_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(/começa na segunda/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('PAN-60 announces the Monday of the next season between seasons', async () => {
+    mockApi({ standings: buildNotStarted({ reason: 'betweenSeasons', startsOn: '2026-11-23' }) });
+    renderPage();
+
+    expect(await screen.findByText('A próxima temporada começa na segunda, 23/11.')).toBeInTheDocument();
+    expect(screen.queryByText(NO_STUDENT_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('PAN-60 keeps the start date of a date-only field in a time zone behind UTC', async () => {
+    const previousTimeZone = process.env.TZ;
+    process.env.TZ = 'America/Sao_Paulo';
+    try {
+      mockApi({ standings: buildNotStarted({ reason: 'launchPending', startsOn: '2026-11-16' }) });
+      renderPage();
+
+      expect(await screen.findByText('O Ranking de Constância começa na segunda, 16/11.')).toBeInTheDocument();
+    } finally {
+      process.env.TZ = previousTimeZone;
+    }
+  });
+
+  it('PAN-60 falls back to the no-student message when an older API sends no reason', async () => {
+    mockApi({ standings: { season: null, rows: [], entering: [] } });
+    renderPage();
+
+    expect(await screen.findByText(NO_STUDENT_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('PAN-54 shows skeletons while loading', () => {
