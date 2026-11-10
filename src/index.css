@@ -20771,3 +20771,29 @@ select.input { cursor: pointer; }
   color: var(--text-primary);
 }
 .consistency-position--empty { color: var(--text-tertiary); }
+
+.score-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: calc(var(--spacing-5xl) * 2);
+}
+.score-bar__value {
+  min-width: calc(var(--spacing-2xl) + var(--spacing-sm));
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.score-bar__track {
+  flex: 1;
+  height: var(--spacing-sm);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--chart-track);
+}
+.score-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--chart-sv-full);
+}
+.score-bar__track--warning .score-bar__fill { background: var(--feedback-warning); }
