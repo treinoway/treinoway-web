@@ -12,6 +12,9 @@ const sumWeights = (weights) => Object.values(weights).reduce((total, weight) =>
 const changedFields = (draft, saved) =>
   Object.fromEntries(Object.entries(draft).filter(([field, value]) => JSON.stringify(value) !== JSON.stringify(saved[field])));
 
+// Whether the saved fields include a weight change, the only one the "new weights apply from Monday" notice speaks of
+const changesWeights = (changes) => 'weights' in changes || 'activePillars' in changes;
+
 // Ranking configuration: local draft, weight sum check, defaults restore, unsaved-change flag and save of only the changed fields
 const useConsistencyConfig = () => {
   const [saved, setSaved] = useState(null);
@@ -64,9 +67,10 @@ const useConsistencyConfig = () => {
   const save = useCallback(async () => {
     setSaving(true);
     try {
-      const response = await api.put(CONFIG_URL, changedFields(draft, saved));
+      const changes = changedFields(draft, saved);
+      const response = await api.put(CONFIG_URL, changes);
       setSaved(draft);
-      setEffectiveFrom(response.data.effectiveFrom ?? null);
+      setEffectiveFrom(changesWeights(changes) ? (response.data.effectiveFrom ?? null) : null);
       return response.data;
     } finally {
       setSaving(false);

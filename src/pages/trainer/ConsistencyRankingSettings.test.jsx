@@ -16,6 +16,7 @@ import api from '../../api/axios';
 import ConsistencyRankingSettings from './ConsistencyRankingSettings';
 
 const BASE_URL = '/trainer/consistency-ranking';
+const RULE_FIELDS = ['weights', 'activePillars', 'closeWeekday', 'closeHour', 'timeZone'];
 
 const CONFIG = {
   weights: { workouts: 30, diet: 30, cardio: 15, feedback: 15, hydration: 10 },
@@ -61,7 +62,7 @@ const mockApi = ({ config = CONFIG } = {}) => {
     if (url === `${BASE_URL}/seasons`) return Promise.resolve({ data: SEASONS });
     return Promise.reject(new Error(`unexpected GET ${url}`));
   });
-  api.put.mockImplementation((url, body) => Promise.resolve({ data: { ...config, ...body, effectiveFrom: body.weights ? '2026-11-09' : null } }));
+  api.put.mockImplementation((url, body) => Promise.resolve({ data: { ...config, ...body, effectiveFrom: RULE_FIELDS.some((field) => field in body) ? '2026-11-09' : null } }));
   api.post.mockResolvedValue({ data: { number: 3, status: 'active', closeRequestedAt: '2026-11-05T12:00:00.000Z' } });
 };
 
@@ -182,6 +183,19 @@ describe('ConsistencyRankingSettings', () => {
     expect(await screen.findByText('Pesos novos valem a partir de segunda, 09/11. A Temporada 3 continua e as semanas fechadas mantêm o score.')).toBeInTheDocument();
     expect(api.put).toHaveBeenCalledWith(`${BASE_URL}/config`, { weights: { workouts: 25, diet: 30, cardio: 20, feedback: 15, hydration: 10 } });
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+  });
+
+  it('PAN-40 shows no new-weights notice after saving only the closing hour, although the service returns effectiveFrom', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForPage();
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Hora do fechamento' }), '20:00');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith(`${BASE_URL}/config`, { closeHour: 20 }));
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith('Configuração salva.', 'success'));
+    expect(screen.queryByText(/Pesos novos valem/)).not.toBeInTheDocument();
   });
 
   it('PAN-41 saves only the fairness rule that changed', async () => {
