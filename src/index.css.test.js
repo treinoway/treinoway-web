@@ -74,6 +74,10 @@ describe('index.css: wide pages scroll inside their card', () => {
     expect(ruleBody('.ds-drawer-overlay--wide')).toContain('--drawer-width: calc(var(--spacing-5xl) * 8.75)');
   });
 
+  it('paints the "Ver lista" pill with a visible light-red background, not the near-white error token alone', () => {
+    expect(ruleBody('.badge.badge--error.consistency-summary__pill-button')).toContain('color-mix(in srgb, var(--feedback-error) 10%, var(--feedback-error-bg))');
+  });
+
   it('scrolls the standings table inside its own container', () => {
     expect(ruleBody('.consistency-table__scroll')).toContain('overflow-x: auto');
   });

@@ -21192,6 +21192,7 @@ select.input { cursor: pointer; }
 .metric-card-suffix { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .metric-card-pill { display: flex; align-items: center; }
 .consistency-summary__pill-button { cursor: pointer; font-family: var(--font-family-brand); }
+.badge.badge--error.consistency-summary__pill-button { background: color-mix(in srgb, var(--feedback-error) 10%, var(--feedback-error-bg)); }
 .consistency-summary__pill-button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
 .consistency-table th {
