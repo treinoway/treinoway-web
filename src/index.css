@@ -21007,3 +21007,16 @@ select.input { cursor: pointer; }
 .pillar-progress__figures { display: inline-flex; gap: var(--spacing-xs); font-variant-numeric: tabular-nums; }
 .pillar-progress__count { color: var(--text-secondary); }
 .pillar-progress__empty { margin: 0; color: var(--text-secondary); }
+
+/* ── Consistency ranking: ready message card ───────────────── */
+.ready-message__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-sm); }
+.ready-message__text {
+  margin: 0;
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface-elevated);
+  color: var(--text-primary);
+}
+.ready-message__field { min-height: calc(var(--spacing-5xl) * 2); resize: vertical; }
+.ready-message__actions { flex-wrap: nowrap; }
+.ready-message__send { flex: 1; }
