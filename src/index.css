@@ -20971,6 +20971,17 @@ select.input { cursor: pointer; }
 .seasons-list__identity { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .seasons-list__summary { color: var(--text-secondary); }
 
+/* ── Consistency ranking: fairness rules ───────────────── */
+.rules-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-lg); }
+.rules-section__field { display: flex; flex-direction: column; gap: var(--spacing-xs); min-width: 0; margin: 0; padding: 0; border: 0; }
+.rules-section__field legend { padding: 0; margin-bottom: var(--spacing-xs); }
+.rules-section__controls { display: flex; gap: var(--spacing-sm); }
+.rules-section__hint { margin: 0; }
+
+@media (min-width: 768px) {
+  .rules-section { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 /* ── Consistency ranking: weight row ───────────────── */
 .weight-row {
   display: grid;
