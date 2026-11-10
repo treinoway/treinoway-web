@@ -118,3 +118,8 @@ export const CONFIG_DEFAULTS = Object.freeze({
 
 /** Scores and pillar adherences below this value are drawn with the warning color */
 export const WARNING_SCORE_THRESHOLD = 70;
+
+export const SEASON_STATUS = Object.freeze({
+  ACTIVE: 'active',
+  CLOSED: 'closed',
+});

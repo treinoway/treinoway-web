@@ -20822,3 +20822,40 @@ select.input { cursor: pointer; }
   gap: var(--spacing-xs);
   margin-top: var(--spacing-xs);
 }
+
+.season-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+.season-header__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: calc(var(--spacing-2xl) + var(--spacing-lg));
+  height: calc(var(--spacing-2xl) + var(--spacing-lg));
+  border-radius: var(--radius-lg);
+  background: var(--background-brand-subtle);
+  color: var(--icon-brand);
+}
+.season-header__identity { display: flex; flex-direction: column; gap: var(--spacing-2xs); }
+.season-header__title { display: flex; align-items: center; gap: var(--spacing-sm); }
+.season-header__title h2 { margin: 0; color: var(--text-primary); }
+.season-header__dates { color: var(--text-secondary); }
+.season-header__progress { display: flex; flex-direction: column; gap: var(--spacing-sm); flex: 1; min-width: 0; }
+.season-header__progress-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-xs) var(--spacing-lg);
+  color: var(--text-primary);
+}
+.season-header__countdown { display: inline-flex; align-items: center; gap: var(--spacing-xs); color: var(--text-secondary); }
+.season-header__bars { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--spacing-xs); }
+
+@media (min-width: 1024px) {
+  .season-header { flex-direction: row; align-items: center; gap: var(--spacing-xl); }
+  .season-header__identity { flex: 1; }
+  .season-header__progress { flex: 2; }
+}
