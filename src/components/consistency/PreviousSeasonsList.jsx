@@ -1,18 +1,12 @@
 import PropTypes from 'prop-types';
 import { ChevronRight, Flag } from 'lucide-react';
 import EmptyBlock from '../ds/EmptyBlock';
-import { formatScore } from '../../utils/consistencyFormat';
-
-// "DD/MM" of a "YYYY-MM-DD" date
-const dayMonthOf = (dateKey) => {
-  const [, month, day] = dateKey.split('-');
-  return `${day}/${month}`;
-};
+import { dayMonthOf, formatScore, seasonEndDateOf } from '../../utils/consistencyFormat';
 
 // "21/09 a 18/10 · 17 participantes · média 82%" of a closed season
 const seasonSummaryOf = (season) => {
   const participants = `${season.participants} ${season.participants === 1 ? 'participante' : 'participantes'}`;
-  return `${dayMonthOf(season.startWeek)} a ${dayMonthOf(season.endWeek)} · ${participants} · média ${formatScore(season.average)}`;
+  return `${dayMonthOf(season.startWeek)} a ${seasonEndDateOf(season.endWeek)} · ${participants} · média ${formatScore(season.average)}`;
 };
 
 // One closed season with its summary and the button that opens its frozen standings

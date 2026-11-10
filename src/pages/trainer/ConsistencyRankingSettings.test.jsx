@@ -42,8 +42,8 @@ const STANDINGS = {
 
 const SEASONS = {
   seasons: [
-    { number: 2, startWeek: '2026-09-21', endWeek: '2026-10-18', participants: 17, average: 82 },
-    { number: 1, startWeek: '2026-08-24', endWeek: '2026-09-20', participants: 15, average: 79 },
+    { number: 2, startWeek: '2026-09-21', endWeek: '2026-10-12', participants: 17, average: 82 },
+    { number: 1, startWeek: '2026-08-24', endWeek: '2026-09-14', participants: 15, average: 79 },
   ],
 };
 

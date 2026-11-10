@@ -5,6 +5,15 @@ const MS_PER_DAY = MS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY;
 const DAYS_PER_WEEK = 7;
 const NEUTRAL_PLACEHOLDER = '—';
 
+// "DD/MM" of a "YYYY-MM-DD" date shifted by some days
+export const dayMonthOf = (dateKey, shiftDays = 0) => {
+  const date = new Date(Date.parse(dateKey) + shiftDays * MS_PER_DAY);
+  return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+};
+
+// Sunday that closes a season: the service sends the Monday of its last week
+export const seasonEndDateOf = (endWeek) => dayMonthOf(endWeek, DAYS_PER_WEEK - 1);
+
 // Whole-percent label of a score; 100 only when the score is 100, a dash for a neutral week
 export const formatScore = (score) => {
   if (score === null || score === undefined) return NEUTRAL_PLACEHOLDER;

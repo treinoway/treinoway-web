@@ -3,9 +3,9 @@ import { render, screen, within } from '../../test/test-utils';
 import PreviousSeasonsList from './PreviousSeasonsList';
 
 const SEASONS = [
-  { number: 2, startWeek: '2026-09-21', endWeek: '2026-10-18', weeks: 4, participants: 17, average: 82 },
-  { number: 1, startWeek: '2026-08-24', endWeek: '2026-09-20', weeks: 4, participants: 1, average: 79.4 },
-  { number: 0, startWeek: '2026-07-27', endWeek: '2026-08-23', weeks: 4, participants: 3, average: null },
+  { number: 2, startWeek: '2026-09-21', endWeek: '2026-10-12', weeks: 4, participants: 17, average: 82 },
+  { number: 1, startWeek: '2026-08-24', endWeek: '2026-09-14', weeks: 4, participants: 1, average: 79.4 },
+  { number: 0, startWeek: '2026-07-27', endWeek: '2026-08-17', weeks: 4, participants: 3, average: null },
 ];
 
 // The list item of a season

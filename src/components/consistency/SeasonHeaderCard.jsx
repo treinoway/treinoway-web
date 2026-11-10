@@ -1,21 +1,13 @@
 import PropTypes from 'prop-types';
 import { Clock, Trophy } from 'lucide-react';
 import Badge from '../ds/Badge';
-import { formatCountdown, weekLabel } from '../../utils/consistencyFormat';
+import { dayMonthOf, formatCountdown, seasonEndDateOf, weekLabel } from '../../utils/consistencyFormat';
 import { SEASON_STATUS } from '../../constants/consistencyRanking';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const DAYS_PER_WEEK = 7;
 const MS_PER_WEEK = DAYS_PER_WEEK * MS_PER_DAY;
 const PERCENT = 100;
-
-// "DD/MM" of a "YYYY-MM-DD" date shifted by some days
-const dayMonthOf = (dateKey, shiftDays = 0) => {
-  const date = new Date(Date.parse(dateKey) + shiftDays * MS_PER_DAY);
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  return `${day}/${month}`;
-};
 
 // "domingo, 08/11, às 21h" of the close instant in the given time zone
 const closeLabelOf = (closesAt, timeZone) => {
@@ -64,7 +56,7 @@ WeekBars.propTypes = {
 // Season card: number, status, dates, "Semana X de Y", countdown to the close and a bar per week
 const SeasonHeaderCard = ({ season, now = new Date(), timeZone }) => {
   const isActive = season.status === SEASON_STATUS.ACTIVE;
-  const dates = `${dayMonthOf(season.startWeek)} a ${dayMonthOf(season.endWeek, DAYS_PER_WEEK - 1)} · ${season.weeks} semanas`;
+  const dates = `${dayMonthOf(season.startWeek)} a ${seasonEndDateOf(season.endWeek)} · ${season.weeks} semanas`;
   return (
     <section className="section-card season-header" aria-label="Temporada atual">
       <span className="season-header__icon" aria-hidden="true">

@@ -16,13 +16,12 @@ import WeightRow from '../../components/consistency/WeightRow';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useInternalLinkGuard from '../../hooks/useInternalLinkGuard';
 import useConsistencyConfig from '../../hooks/useConsistencyConfig';
-import { formatCloseDateLabel, formatCloseLabel } from '../../utils/consistencyFormat';
+import { dayMonthOf, formatCloseDateLabel, formatCloseLabel, seasonEndDateOf } from '../../utils/consistencyFormat';
 import { effectivePercents, effectiveWeightsPhrase } from '../../utils/consistencyWeights';
 import { CONFIG_DEFAULTS, PILLAR_ORDER, SEASON_WEEK_OPTIONS, WEIGHT_TOTAL } from '../../constants/consistencyRanking';
 
 const BASE_URL = '/trainer/consistency-ranking';
 const RANKING_PATH = '/trainer/consistency-ranking';
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const DAYS_PER_WEEK = 7;
 const DEFAULT_WEIGHTS_TEXT = Object.values(CONFIG_DEFAULTS.weights).join(' · ');
 const WEIGHTS_HELP = 'Defina a importância de cada pilar. Cada pilar vale no máximo 100% por semana; fazer a mais não soma. Pilar sem meta para um aluno numa semana fica fora da conta dele.';
@@ -30,12 +29,6 @@ const COMMUNITY_NOTE = 'Login e participação na comunidade ficam fora do ranki
 
 // Option of the season duration control
 const durationItemOf = (weeks) => ({ id: weeks, label: `${weeks} semanas` });
-
-// "DD/MM" of a "YYYY-MM-DD" date shifted by some days
-const dayMonthOf = (dateKey, shiftDays = 0) => {
-  const date = new Date(Date.parse(dateKey) + shiftDays * MS_PER_DAY);
-  return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-};
 
 // Current season and closed seasons of the trainer, loaded once when the page opens
 const useSeasonOverview = () => {
@@ -97,7 +90,7 @@ SettingsHeader.propTypes = {
 
 // Current season: title, dates, early close, duration of the next seasons and the close note
 const SeasonBlock = ({ season, config, closeRequested, onDurationChange, onEndSeason }) => {
-  const dates = `${dayMonthOf(season.startWeek)} a ${dayMonthOf(season.endWeek, DAYS_PER_WEEK - 1)} · semana ${season.currentWeek} de ${season.weeks} · fecha ${formatCloseDateLabel(season.closesAt, config.timeZone)}`;
+  const dates = `${dayMonthOf(season.startWeek)} a ${seasonEndDateOf(season.endWeek)} · semana ${season.currentWeek} de ${season.weeks} · fecha ${formatCloseDateLabel(season.closesAt, config.timeZone)}`;
   return (
     <div className="section-card settings-card">
       <div className="settings-season">

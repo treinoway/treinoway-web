@@ -116,7 +116,7 @@ const CONFIG = {
 };
 
 const HISTORY = { rows: [{ studentId: 'student-1', displayName: 'Ana Beatriz S.', validWeeks: 6, average: 97, weeks100: 4, longestStreak: 9 }] };
-const SEASONS = { seasons: [{ number: 2, startWeek: '2026-09-21', endWeek: '2026-10-18', participants: 17, average: 82 }] };
+const SEASONS = { seasons: [{ number: 2, startWeek: '2026-09-21', endWeek: '2026-10-12', participants: 17, average: 82 }] };
 
 // Routes every GET of the page by URL; `standings` may be a payload or a function of the request params
 const mockApi = ({ standings = buildStandings([ANA, MARCOS, JOAO]), panel = PANEL } = {}) => {

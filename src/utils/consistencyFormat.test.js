@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatScore, formatCountdown, weekLabel, formatCloseLabel, formatCloseDateLabel, currentWeekStartOf } from './consistencyFormat';
+import { dayMonthOf, seasonEndDateOf, formatScore, formatCountdown, weekLabel, formatCloseLabel, formatCloseDateLabel, currentWeekStartOf } from './consistencyFormat';
 
 describe('formatScore', () => {
   it('PAN-06 rounds to a whole percent', () => {
@@ -69,5 +69,17 @@ describe('currentWeekStartOf', () => {
 
   it('PAN-30 returns the season start in its first week', () => {
     expect(currentWeekStartOf({ startWeek: '2026-10-19', currentWeek: 1 })).toBe('2026-10-19');
+  });
+});
+
+describe('season dates', () => {
+  it('shifts a date key by days', () => {
+    expect(dayMonthOf('2026-10-26')).toBe('26/10');
+    expect(dayMonthOf('2026-10-26', 6)).toBe('01/11');
+  });
+
+  it('PAN-02 ends a season on the Sunday after the Monday of its last week, so list and header agree', () => {
+    expect(seasonEndDateOf('2026-10-19')).toBe('25/10');
+    expect(seasonEndDateOf('2026-12-28')).toBe('03/01');
   });
 });
