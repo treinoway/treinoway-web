@@ -20823,6 +20823,13 @@ select.input { cursor: pointer; }
   gap: var(--spacing-xs);
   margin-top: var(--spacing-xs);
 }
+.consistency-row__identity .student-signals { max-width: 100%; }
+.consistency-row__identity .student-signals .badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: var(--line-height-tight);
+}
 
 .season-header {
   display: flex;

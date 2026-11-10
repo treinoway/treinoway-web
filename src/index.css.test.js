@@ -86,4 +86,11 @@ describe('index.css: wide pages scroll inside their card', () => {
     expect(ruleBody('.consistency-row__identity')).toContain('max-width: calc(var(--spacing-5xl) * 3)');
     expect(ruleBody('.consistency-table .score-bar')).toContain('min-width: calc(var(--spacing-5xl) * 1.25)');
   });
+
+  it('wraps long signal badges inside the capped student column instead of drawing over Faixa', () => {
+    const badge = ruleBody('.consistency-row__identity .student-signals .badge');
+    expect(badge).toContain('white-space: normal');
+    expect(badge).toContain('max-width: 100%');
+    expect(badge).toContain('line-height: var(--line-height-tight)');
+  });
 });
