@@ -20797,3 +20797,21 @@ select.input { cursor: pointer; }
   background: var(--chart-sv-full);
 }
 .score-bar__track--warning .score-bar__fill { background: var(--feedback-warning); }
+
+.pillar-mini {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
+}
+.pillar-mini__item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-2xs);
+  width: var(--spacing-2xl);
+}
+.pillar-mini__label {
+  color: var(--text-secondary);
+  text-align: center;
+}
+.pillar-mini__track { flex: none; height: var(--spacing-xs); }
