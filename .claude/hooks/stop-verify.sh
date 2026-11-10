@@ -1,51 +1,92 @@
 #!/usr/bin/env bash
-# Stop hook: gate the end of a turn on lint + affected unit tests, and flag
-# changed source files that have no accompanying test change.
+# Stop hook: gate the end of a turn on lint + affected unit tests, intact test
+# locks, and a test change for every logic change.
 #
-# Runs eslint on changed JS/JSX files under src/ and `vitest related` on them
-# (Playwright e2e is excluded — too slow for a per-turn gate). On failure it
-# exits 2, which blocks Claude from stopping and feeds the output back.
+# Scope: everything this branch changed against its base (committed or not), so
+# committing does not hide work from the gate. Runs eslint on changed JS/JSX
+# files under src/ and `vitest related` on them (Playwright runs in CI only).
+#
+# Exit 2 blocks the stop and feeds stderr back to Claude. Any other exit lets it
+# stop, so every error path below exits 2 itself (fail closed).
 #
 # Loop guards:
-#   - stop_hook_active=true → let it stop, so an unfixable failure never traps it.
-#   - working-tree fingerprint stored per worktree; unchanged tree → skip, so a
-#     known failure is reported once, not on every turn.
+#   - a pass is remembered per working-tree fingerprint, a failure is not: the
+#     gate keeps blocking while the tree is red.
+#   - after MAX_BLOCKS consecutive failing runs the gate lets the turn end and
+#     tells the user it is still red; that tree is then waived until it changes.
 #
 # Also invoked by the treinoway/ root dispatcher (verify-dispatch.sh) with
 # CLAUDE_PROJECT_DIR pointing at this repo.
 set -uo pipefail
 
-input=$(cat)
-[[ "$(jq -r '.stop_hook_active // false' <<< "$input")" == "true" ]] && exit 0
+BASE_BRANCH=master
+MAX_BLOCKS=3
 
-cd "${CLAUDE_PROJECT_DIR:-$(pwd)}" 2>/dev/null || exit 0
-git rev-parse --git-dir >/dev/null 2>&1 || exit 0
+input=$(cat)
+
+# Block the stop with a reason; the only way out of this script on failure.
+block() {
+  printf '%s\n' "$1" >&2
+  exit 2
+}
+
+command -v jq >/dev/null 2>&1 || block "[stop-verify] jq is not installed, so the gate cannot run. Install jq."
+cd "${CLAUDE_PROJECT_DIR:-$(pwd)}" 2>/dev/null || block "[stop-verify] cannot enter ${CLAUDE_PROJECT_DIR:-$(pwd)}."
+top=$(git rev-parse --show-toplevel 2>/dev/null) || block "[stop-verify] ${PWD} is not a git working tree."
 
 paths=(src)
 
+base_ref="origin/$BASE_BRANCH"
+git rev-parse --verify --quiet "$base_ref" >/dev/null || base_ref=HEAD
+mb=$(git merge-base "$base_ref" HEAD 2>/dev/null || git rev-parse HEAD)
+
+state_pass=$(git rev-parse --git-path claude-stop-verify.sha)
+state_fails=$(git rev-parse --git-path claude-stop-verify.fails)
+state_waived=$(git rev-parse --git-path claude-stop-verify.waived)
+acked_file=$(git rev-parse --git-path claude-deviations-alerted)
+
+workspace=$(dirname "$top")
+lock_tool="$workspace/.claude/bin/test-lock"
+gate_log="$workspace/.claude/state/gate-log.jsonl"
+
+# Append one JSON line per gate run for the harness feedback loop.
+log_run() { # <result> <detail>
+  [[ -d "$(dirname "$gate_log")" ]] || return 0
+  jq -cn --arg repo "$(basename "$top")" --arg result "$1" --arg detail "$2" --arg at "$(date -u +%FT%TZ)" \
+    '{at:$at,repo:$repo,result:$result,detail:$detail}' >> "$gate_log" 2>/dev/null || true
+}
+
 changed=$(
   {
-    git diff --name-only HEAD -- "${paths[@]}"
+    git diff --name-only "$mb" -- "${paths[@]}"
     git ls-files --others --exclude-standard -- "${paths[@]}"
   } | grep -E '\.(js|jsx)$' | sort -u | while IFS= read -r f; do
     [[ -f "$f" ]] && printf '%s\n' "$f"
   done
 )
-[[ -z "$changed" ]] && exit 0
 
-state_file=$(git rev-parse --git-path claude-stop-verify.sha)
+lock_report=""
+if [[ -x "$lock_tool" ]]; then
+  lock_report=$("$lock_tool" verify "$top" 2>&1) || true
+  [[ "$lock_report" == "locks intact" ]] && lock_report=""
+fi
+
+[[ -z "$changed" && -z "$lock_report" ]] && exit 0
+
 fingerprint=$(
   {
-    git diff HEAD -- "${paths[@]}"
+    git diff "$mb" -- "${paths[@]}"
     printf '%s\n' "$changed" | while IFS= read -r f; do cat "$f"; done
+    printf '%s' "$lock_report"
   } | shasum | cut -d' ' -f1
 )
-[[ -f "$state_file" && "$(cat "$state_file")" == "$fingerprint" ]] && exit 0
-printf '%s' "$fingerprint" > "$state_file"
+[[ -f "$state_pass" && "$(cat "$state_pass")" == "$fingerprint" ]] && exit 0
+[[ -f "$state_waived" && "$(cat "$state_waived")" == "$fingerprint" ]] && exit 0
 
 files=()
 changed_tests=()
 while IFS= read -r f; do
+  [[ -n "$f" ]] || continue
   files+=("$f")
   [[ "$f" == *.test.js || "$f" == *.test.jsx ]] && changed_tests+=("$f")
 done <<< "$changed"
@@ -53,30 +94,38 @@ done <<< "$changed"
 failed=0
 report=""
 
-# Fixing a frozen violation leaves an unused entry in eslint-suppressions.json,
-# which fails lint; prune it so the ratchet only ever moves down.
-lint_out=$(npx --no-install eslint "${files[@]}" 2>&1)
-lint_status=$?
-if grep -q 'do not occur anymore' <<< "$lint_out"; then
-  npx --no-install eslint --prune-suppressions "${files[@]}" >/dev/null 2>&1
-  lint_out=$(npx --no-install eslint "${files[@]}" 2>&1)
-  lint_status=$?
-fi
-if [[ $lint_status -ne 0 ]]; then
+if [[ -n "$lock_report" ]]; then
   failed=1
-  report+=$'## eslint\n'"$(tail -n 40 <<< "$lint_out")"$'\n\n'
+  report+=$'## locked tests changed\n'"$lock_report"$'\n'
+  report+=$'Locked tests are the spec: restore them (git checkout) and fix the implementation. If a test is wrong, stop and tell the user; only they can clear a lock.\n\n'
 fi
 
-test_out=$(npx --no-install vitest related "${files[@]}" --run --passWithNoTests 2>&1)
-if [[ $? -ne 0 ]]; then
-  failed=1
-  report+=$'## vitest related (unit)\n'"$(sed $'s/\x1b\\[[0-9;]*m//g' <<< "$test_out" | tail -n 60)"$'\n\n'
+if [[ ${#files[@]} -gt 0 ]]; then
+  # Fixing a frozen violation leaves an unused entry in eslint-suppressions.json,
+  # which fails lint; prune it so the ratchet only ever moves down.
+  lint_out=$(npx --no-install eslint "${files[@]}" 2>&1)
+  lint_status=$?
+  if grep -q 'do not occur anymore' <<< "$lint_out"; then
+    npx --no-install eslint --prune-suppressions "${files[@]}" >/dev/null 2>&1
+    lint_out=$(npx --no-install eslint "${files[@]}" 2>&1)
+    lint_status=$?
+  fi
+  if [[ $lint_status -ne 0 ]]; then
+    failed=1
+    report+=$'## eslint\n'"$(tail -n 40 <<< "$lint_out")"$'\n\n'
+  fi
+
+  test_out=$(npx --no-install vitest related "${files[@]}" --run --passWithNoTests 2>&1)
+  if [[ $? -ne 0 ]]; then
+    failed=1
+    report+=$'## vitest related (unit)\n'"$(sed $'s/\x1b\\[[0-9;]*m//g' <<< "$test_out" | tail -n 60)"$'\n\n'
+  fi
 fi
 
 # Source files changed with no test change: neither the sibling test
 # (Foo.jsx → Foo.test.jsx) nor any changed test mentioning the module name.
 untested=()
-for f in "${files[@]}"; do
+for f in ${files[@]+"${files[@]}"}; do
   case "$f" in
     *.test.js|*.test.jsx) continue ;;
     src/test/*|src/test-utils/*|src/i18n/locales/*|src/assets/*) continue ;;
@@ -96,15 +145,16 @@ if [[ ${#untested[@]} -gt 0 ]]; then
   failed=1
   report+=$'## changed without test changes\n'
   report+="$(printf -- '- %s\n' "${untested[@]}")"$'\n'
-  report+=$'Add or update tests for these (via the frontend-engineer agent), or tell the user why no test change is needed.\n'
+  report+=$'Add or update tests for these (via the frontend-test-writer agent), or tell the user why no test change is needed.\n\n'
 fi
 
-# Deviations from the code conventions must be visible to the user: list each
-# new `deviation:` note or eslint-disable added in this tree, once.
-alerted_file=$(git rev-parse --git-path claude-deviations-alerted)
+# Deviations from the code conventions must reach the user: every `deviation:`
+# note or eslint-disable on this branch has to be named in the final message
+# (matched by file name) once; the acknowledgement is stored only after that.
+last_message=$(jq -r '.last_assistant_message // empty' <<< "$input")
 deviations=$(
   {
-    git diff -U0 HEAD -- "${paths[@]}" | awk '/^\+\+\+ b\//{f=substr($0,7)} /^\+[^+]/{print f": "substr($0,2)}'
+    git diff -U0 "$mb" -- "${paths[@]}" | awk '/^\+\+\+ b\//{f=substr($0,7)} /^\+[^+]/{print f": "substr($0,2)}'
     git ls-files --others --exclude-standard -- "${paths[@]}" | while IFS= read -r f; do
       [[ -f "$f" ]] && sed "s|^|$f: |" "$f"
     done
@@ -113,21 +163,44 @@ deviations=$(
 new_deviations=""
 while IFS= read -r line; do
   [[ -z "$line" ]] && continue
-  grep -qxF "$line" "$alerted_file" 2>/dev/null && continue
+  grep -qxF "$line" "$acked_file" 2>/dev/null && continue
+  if [[ -n "$last_message" ]]; then
+    if grep -qF "$(basename "${line%%: *}")" <<< "$last_message"; then
+      printf '%s\n' "$line" >> "$acked_file"
+      continue
+    fi
+  else
+    printf '%s\n' "$line" >> "$acked_file"
+  fi
   new_deviations+="$line"$'\n'
-  printf '%s\n' "$line" >> "$alerted_file"
 done <<< "$deviations"
 
 if [[ -n "$new_deviations" ]]; then
   failed=1
-  report+=$'## new deviations from the code conventions\n'"$new_deviations"
-  report+=$'List each of these to the user in your final message, with its reason. A blanket `eslint-disable` (no rule list) or one without ` -- <reason>` must be replaced.\n'
+  report+=$'## deviations from the code conventions\n'"$new_deviations"
+  report+=$'Name each file above in your final message with its reason. A blanket `eslint-disable` (no rule list) or one without ` -- <reason>` must be replaced.\n\n'
 fi
 
-[[ $failed -eq 0 ]] && exit 0
+if [[ $failed -eq 0 ]]; then
+  printf '%s' "$fingerprint" > "$state_pass"
+  rm -f "$state_fails"
+  log_run pass ""
+  exit 0
+fi
+
+blocks=$(( $(cat "$state_fails" 2>/dev/null || echo 0) + 1 ))
+if (( blocks > MAX_BLOCKS )); then
+  rm -f "$state_fails"
+  printf '%s' "$fingerprint" > "$state_waived"
+  log_run waived "$(grep -E '^## ' <<< "$report" | tr '\n' ';')"
+  jq -cn --arg m "[stop-verify] $(basename "$top") is still failing after $MAX_BLOCKS attempts; the turn was allowed to end. Open items: $(grep -E '^## ' <<< "$report" | tr '\n' ' ')" '{systemMessage:$m}'
+  exit 0
+fi
+printf '%s' "$blocks" > "$state_fails"
+log_run block "$(grep -E '^## ' <<< "$report" | tr '\n' ';')"
 
 {
-  printf '[stop-verify] Verification failed for files changed in this working tree. '
+  printf '[stop-verify] Verification failed for %s (attempt %s of %s). ' "$(basename "$top")" "$blocks" "$MAX_BLOCKS"
   printf 'Fix it before finishing, or explain to the user why it cannot be fixed now.\n\n'
   printf '%s' "$report"
 } >&2
