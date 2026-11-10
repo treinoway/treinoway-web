@@ -20815,3 +20815,10 @@ select.input { cursor: pointer; }
   text-align: center;
 }
 .pillar-mini__track { flex: none; height: var(--spacing-xs); }
+
+.student-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
