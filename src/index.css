@@ -20903,3 +20903,45 @@ select.input { cursor: pointer; }
   .consistency-toolbar__head { flex-direction: row; align-items: center; justify-content: space-between; }
   .consistency-toolbar__search { flex: 0 1 calc(var(--spacing-5xl) * 5); }
 }
+
+.consistency-table__scroll { overflow-x: auto; }
+.consistency-table__scroll:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.consistency-table {
+  width: 100%;
+  min-width: calc(var(--spacing-5xl) * 15);
+  border-collapse: collapse;
+}
+.consistency-table th {
+  padding: var(--spacing-md) var(--spacing-md);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  text-align: left;
+  white-space: nowrap;
+}
+.consistency-table th:last-child { text-align: right; }
+.consistency-table td {
+  padding: var(--spacing-md) var(--spacing-md);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+.consistency-row { position: relative; transition: background-color var(--duration-fast) var(--ease-standard); }
+.consistency-row:hover { background: var(--background-surface-elevated); }
+.consistency-row__student { display: flex; align-items: center; gap: var(--spacing-md); }
+.consistency-row__identity { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.consistency-row__open {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-family-brand);
+  text-align: left;
+  cursor: pointer;
+}
+.consistency-row__open::after { content: ''; position: absolute; inset: 0; }
+.consistency-row__open:focus-visible { outline: none; }
+.consistency-row__open:focus-visible::after { box-shadow: var(--focus-ring); }
+.consistency-row__number { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.consistency-row__muted { color: var(--text-secondary); white-space: nowrap; }
+.consistency-row__actions { position: relative; z-index: var(--z-base); display: flex; justify-content: flex-end; gap: var(--spacing-xs); }
+.consistency-table__legend { margin: 0; padding: var(--spacing-md) var(--spacing-lg); color: var(--text-secondary); }
