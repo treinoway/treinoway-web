@@ -21,6 +21,20 @@ describe('StudentSignals', () => {
     expect(screen.getByText('Entrando na temporada · 1 de 2 semanas')).toBeInTheDocument();
   });
 
+  it('PAN-08 shows the badge of a closed paused week when the running week is not paused', () => {
+    render(<StudentSignals row={{ pause: null, closedPause: { weekStart: '2026-10-26', reason: 'viagem' }, signals: [], risk: null, entering: null }} season={SEASON} />);
+
+    expect(screen.getByText('Semana 2 pausada (viagem)')).toBeInTheDocument();
+  });
+
+  it('prefers the pause of the running week over a closed one', () => {
+    const row = { pause: { weekStart: '2026-11-09', reason: 'gripe' }, closedPause: { weekStart: '2026-10-26', reason: 'viagem' }, signals: [], risk: null, entering: null };
+    render(<StudentSignals row={row} season={SEASON} />);
+
+    expect(screen.getByText('Semana 4 pausada (gripe)')).toBeInTheDocument();
+    expect(screen.queryByText(/viagem/)).not.toBeInTheDocument();
+  });
+
   it('names the pause week without a reason in parentheses when none was given', () => {
     render(<StudentSignals row={{ pause: { weekStart: '2026-10-26', reason: null }, signals: [], risk: null, entering: null }} season={SEASON} />);
     expect(screen.getByText('Semana 2 pausada')).toBeInTheDocument();

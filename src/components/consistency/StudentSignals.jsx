@@ -33,17 +33,18 @@ const signalLabels = (signals) => {
   return [...(quickCount > 0 ? [quickLabel(quickCount)] : []), ...(hasBatch ? ['Registro em lote'] : [])];
 };
 
-// Badges under a student's name: paused week with reason, review signals, risk and entering progress
+// Badges under a student's name: paused week (running or already closed) with reason, review signals, risk and entering progress
 const StudentSignals = ({ row, season, riskLimit = DEFAULT_RISK_LIMIT }) => {
   const labels = signalLabels(row.signals ?? []);
-  const hasBadges = row.pause || labels.length > 0 || row.risk || row.entering;
+  const pause = row.pause ?? row.closedPause;
+  const hasBadges = pause || labels.length > 0 || row.risk || row.entering;
   if (!hasBadges) return null;
   return (
     <span className="student-signals">
-      {row.pause && (
+      {pause && (
         <Badge tone="neutral">
           <Pause size={12} strokeWidth={2} aria-hidden="true" />
-          {pauseLabel(row.pause, season)}
+          {pauseLabel(pause, season)}
         </Badge>
       )}
       {labels.map((label) => (
@@ -66,6 +67,7 @@ const StudentSignals = ({ row, season, riskLimit = DEFAULT_RISK_LIMIT }) => {
 StudentSignals.propTypes = {
   row: PropTypes.shape({
     pause: PropTypes.shape({ weekStart: PropTypes.string, reason: PropTypes.string }),
+    closedPause: PropTypes.shape({ weekStart: PropTypes.string, reason: PropTypes.string }),
     signals: PropTypes.arrayOf(PropTypes.shape({ type: PropTypes.string })),
     risk: PropTypes.shape({ weeks: PropTypes.number, scores: PropTypes.arrayOf(PropTypes.number) }),
     entering: PropTypes.shape({ validWeeks: PropTypes.number, required: PropTypes.number }),
