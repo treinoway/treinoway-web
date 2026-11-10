@@ -45,6 +45,22 @@ describe('StudentSignals', () => {
     expect(screen.getByText('2 conclusões rápidas')).toBeInTheDocument();
   });
 
+  it('PAN-48 names the quick completions with the threshold of the signal', () => {
+    const quick = { ...QUICK, thresholdMinutes: 10 };
+    const { rerender } = render(<StudentSignals row={{ pause: null, signals: [quick, { ...quick, sessionId: 's2' }], risk: null, entering: null }} season={SEASON} />);
+    expect(screen.getByText('2 treinos em menos de 10 min')).toHaveClass('badge--warning');
+
+    rerender(<StudentSignals row={{ pause: null, signals: [quick], risk: null, entering: null }} season={SEASON} />);
+    expect(screen.getByText('1 treino em menos de 10 min')).toBeInTheDocument();
+  });
+
+  it('PAN-49 names the batch logging with the weekday and time of its last session in the close time zone', () => {
+    const batch = { type: 'batch_logging', count: 5, windowMinutes: 30, lastFinishedAt: '2026-11-08T23:48:00.000Z' };
+    render(<StudentSignals row={{ pause: null, signals: [batch], risk: null, entering: null }} season={SEASON} timeZone="America/Sao_Paulo" />);
+
+    expect(screen.getByText('Registro em lote no domingo 20h48')).toBeInTheDocument();
+  });
+
   it('writes the configured risk limit and a singular week', () => {
     render(<StudentSignals row={{ pause: null, signals: [], risk: { weeks: 1, scores: [50] }, entering: null }} season={SEASON} riskLimit={60} />);
     expect(screen.getByText('1 semana abaixo de 60%')).toBeInTheDocument();

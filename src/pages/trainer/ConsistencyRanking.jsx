@@ -78,7 +78,7 @@ const RankingSkeleton = () => (
 );
 
 // Body of the tab chosen on the toolbar: standings table, general history or previous seasons
-const TabContent = ({ standings, riskLimit, actions }) => {
+const TabContent = ({ standings, riskLimit, timeZone, actions }) => {
   const { data, tab } = standings;
   if (!dataMatchesTab(data, tab)) return <SkeletonRows label="Carregando classificação" count={TABLE_SKELETON_COUNT} />;
   if (tab === STANDINGS_TAB.HISTORY) return <HistoryGeneralTable rows={data.rows} />;
@@ -89,6 +89,7 @@ const TabContent = ({ standings, riskLimit, actions }) => {
       entering={data.entering ?? []}
       season={data.season}
       riskLimit={riskLimit}
+      timeZone={timeZone}
       onOpenStudent={actions.onOpenStudent}
       onMessage={actions.onOpenStudent}
       onPause={actions.onPauseStudent}
@@ -100,6 +101,7 @@ const TabContent = ({ standings, riskLimit, actions }) => {
 TabContent.propTypes = {
   standings: PropTypes.object.isRequired,
   riskLimit: PropTypes.number,
+  timeZone: PropTypes.string,
   actions: PropTypes.object.isRequired,
 };
 
@@ -139,7 +141,7 @@ const RankingBoard = ({ standings, config, actions }) => (
       counts={standings.data.counts ?? {}}
       live={standings.data.season?.status !== SEASON_STATUS.CLOSED}
     />
-    <TabContent standings={standings} riskLimit={config?.riskLimit} actions={actions} />
+    <TabContent standings={standings} riskLimit={config?.riskLimit} timeZone={config?.timeZone} actions={actions} />
   </section>
 );
 

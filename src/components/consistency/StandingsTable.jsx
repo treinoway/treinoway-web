@@ -56,14 +56,14 @@ PillarsCell.propTypes = {
 };
 
 // Student cell: avatar, name that opens the panel, and the badges under it
-const StudentCell = ({ row, season, riskLimit, onOpenStudent }) => (
+const StudentCell = ({ row, season, riskLimit, timeZone, onOpenStudent }) => (
   <div className="consistency-row__student">
     <Avatar name={row.displayName} size="sm" />
     <div className="consistency-row__identity">
       <button type="button" className="consistency-row__open type-body-strong" onClick={() => onOpenStudent(row)}>
         {row.displayName}
       </button>
-      <StudentSignals row={row} season={season} riskLimit={riskLimit} />
+      <StudentSignals row={row} season={season} riskLimit={riskLimit} timeZone={timeZone} />
     </div>
   </div>
 );
@@ -72,14 +72,15 @@ StudentCell.propTypes = {
   row: PropTypes.object.isRequired,
   season: PropTypes.object.isRequired,
   riskLimit: PropTypes.number,
+  timeZone: PropTypes.string,
   onOpenStudent: PropTypes.func.isRequired,
 };
 
 // One student row of the standings
-const StandingsRow = ({ row, season, riskLimit, onOpenStudent, onMessage, onPause }) => (
-  <tr className="consistency-row">
+const StandingsRow = ({ row, season, riskLimit, timeZone, onOpenStudent, onMessage, onPause }) => (
+  <tr className={`consistency-row${row.risk ? ' consistency-row--risk' : ''}`}>
     <td><PositionMark position={row.position} /></td>
-    <td><StudentCell row={row} season={season} riskLimit={riskLimit} onOpenStudent={onOpenStudent} /></td>
+    <td><StudentCell row={row} season={season} riskLimit={riskLimit} timeZone={timeZone} onOpenStudent={onOpenStudent} /></td>
     <td><FaixaBadge faixa={row.faixa} /></td>
     <td><ScoreBar score={row.average} /></td>
     <td><PillarsCell pillars={row.seasonPillars} /></td>
@@ -94,13 +95,14 @@ StandingsRow.propTypes = {
   row: PropTypes.object.isRequired,
   season: PropTypes.object.isRequired,
   riskLimit: PropTypes.number,
+  timeZone: PropTypes.string,
   onOpenStudent: PropTypes.func.isRequired,
   onMessage: PropTypes.func.isRequired,
   onPause: PropTypes.func.isRequired,
 };
 
 // Standings table of the trainer's students: ranked rows first, students still entering last; empty filters offer to clear
-const StandingsTable = ({ rows, entering, season, riskLimit, onOpenStudent, onMessage, onPause, onClearFilters }) => {
+const StandingsTable = ({ rows, entering, season, riskLimit, timeZone, onOpenStudent, onMessage, onPause, onClearFilters }) => {
   const allRows = [...rows, ...entering];
   if (allRows.length === 0) {
     return (
@@ -120,7 +122,7 @@ const StandingsTable = ({ rows, entering, season, riskLimit, onOpenStudent, onMe
           </thead>
           <tbody>
             {allRows.map((row) => (
-              <StandingsRow key={row.studentId} row={row} season={season} riskLimit={riskLimit} onOpenStudent={onOpenStudent} onMessage={onMessage} onPause={onPause} />
+              <StandingsRow key={row.studentId} row={row} season={season} riskLimit={riskLimit} timeZone={timeZone} onOpenStudent={onOpenStudent} onMessage={onMessage} onPause={onPause} />
             ))}
           </tbody>
         </table>
@@ -135,6 +137,7 @@ StandingsTable.propTypes = {
   entering: PropTypes.array.isRequired,
   season: PropTypes.object.isRequired,
   riskLimit: PropTypes.number,
+  timeZone: PropTypes.string,
   onOpenStudent: PropTypes.func.isRequired,
   onMessage: PropTypes.func.isRequired,
   onPause: PropTypes.func.isRequired,

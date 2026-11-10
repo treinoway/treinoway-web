@@ -25,7 +25,8 @@ describe('TeamSummaryCards', () => {
     expect(within(average).getByText('85%')).toBeInTheDocument();
     expect(within(average).getByText('Ao vivo, 19 alunos. Semana 2 fechou em 84%.')).toBeInTheDocument();
     const full = cardOf('Fecharam 100% na semana 2');
-    expect(within(full).getByText('4 / 17')).toBeInTheDocument();
+    expect(within(full).getByText('4')).toBeInTheDocument();
+    expect(within(full).getByText('/ 17')).toBeInTheDocument();
     expect(within(full).getByText('de 17 alunos com semana válida')).toBeInTheDocument();
     const risk = cardOf('Em risco');
     expect(within(risk).getByText('3')).toBeInTheDocument();

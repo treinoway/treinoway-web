@@ -14,7 +14,7 @@ const FAIXA_TONES = Object.freeze({
 const FaixaBadge = ({ faixa }) => {
   const label = FAIXA_LABELS[faixa];
   if (!label) return null;
-  return <Badge tone={FAIXA_TONES[faixa]}>{label}</Badge>;
+  return <Badge tone={FAIXA_TONES[faixa]} className={faixa === FAIXA.FULL ? 'badge--solid' : ''}>{label}</Badge>;
 };
 
 FaixaBadge.propTypes = {

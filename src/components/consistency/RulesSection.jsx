@@ -4,7 +4,8 @@ import { CONFIG_LIMITS } from '../../constants/consistencyRanking';
 const WEEKDAY_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const WORKOUT_MINUTES_STEP = 5;
 const RISK_LIMIT_STEP = 5;
-const BATCH_MINUTES_STEP = 10;
+const BATCH_COUNT_CHOICES = [3, 5, 8, 10, 15, 20];
+const BATCH_MINUTES_CHOICES = [10, 20, 30, 45, 60, 90, 120];
 
 // Whole numbers from min to max, one every `step`
 const rangeOf = ({ min, max }, step = 1) => Array.from({ length: Math.floor((max - min) / step) + 1 }, (_, index) => min + index * step);
@@ -20,6 +21,12 @@ const podiumLabelOf = (weeks) => `${weeks} ${weeks === 1 ? 'semana válida' : 's
 
 // "N semana(s)" label
 const weeksLabelOf = (weeks) => `${weeks} ${weeks === 1 ? 'semana' : 'semanas'}`;
+
+// "Abaixo de 70% por 2 semanas" label of the risk alert rule
+const riskLabelOf = (limit, weeks) => `Abaixo de ${limit}% por ${weeksLabelOf(weeks)}`;
+
+// "5 registros em 30 min" label of the batch registration rule
+const batchLabelOf = (count, minutes) => `${count} registros em ${minutes} min`;
 
 // "HH:00" label of a close hour
 const hourLabelOf = (hour) => `${String(hour).padStart(2, '0')}:00`;
@@ -41,6 +48,36 @@ RuleSelect.propTypes = {
   onChange: PropTypes.func.isRequired,
 };
 
+// Every first x second pairing, plus the saved pair when it is not one of them, as options of a combined select
+const pairOptions = (firsts, seconds, current, labelOf) => {
+  const pairs = firsts.flatMap((first) => seconds.map((second) => [first, second]));
+  const saved = pairs.some(([first, second]) => first === current[0] && second === current[1]) ? pairs : [...pairs, current];
+  return saved.map(([first, second]) => ({ value: `${first}:${second}`, label: labelOf(first, second) }));
+};
+
+// One select that sets two numeric rules at once; its value is "first:second"
+const PairSelect = ({ id, label, pair, options, onChange }) => (
+  <select
+    id={id}
+    className="input"
+    aria-label={label}
+    value={`${pair[0]}:${pair[1]}`}
+    onChange={(event) => onChange(event.target.value.split(':').map(Number))}
+  >
+    {options.map((option) => (
+      <option key={option.value} value={option.value}>{option.label}</option>
+    ))}
+  </select>
+);
+
+PairSelect.propTypes = {
+  id: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  pair: PropTypes.arrayOf(PropTypes.number).isRequired,
+  options: PropTypes.arrayOf(PropTypes.shape({ value: PropTypes.string.isRequired, label: PropTypes.string.isRequired })).isRequired,
+  onChange: PropTypes.func.isRequired,
+};
+
 // One rule of the fairness block: a title, one or two selects and a support text
 const RuleField = ({ title, hint, children }) => (
   <fieldset className="rules-section__field">
@@ -59,6 +96,10 @@ RuleField.propTypes = {
 // Fairness rules of the ranking: podium minimum, close, minimum workout time, risk alert and batch registration
 const RulesSection = ({ config, onChange }) => {
   const set = (field) => (value) => onChange(field, value);
+  const setPair = (firstField, secondField) => ([first, second]) => {
+    onChange(firstField, first);
+    onChange(secondField, second);
+  };
   return (
     <div className="rules-section">
       <RuleField title="Mínimo para o pódio" hint="Para quem entra no meio da temporada. De 1 a 4.">
@@ -96,35 +137,21 @@ const RulesSection = ({ config, onChange }) => {
         />
       </RuleField>
       <RuleField title="Alerta de risco" hint="Entra no filtro Em risco e no resumo de segunda.">
-        <RuleSelect
-          id="rule-risk-limit"
-          label="Limite do alerta de risco"
-          value={config.riskLimit}
-          options={optionsFor(rangeOf(CONFIG_LIMITS.riskLimit, RISK_LIMIT_STEP), config.riskLimit, (limit) => `Abaixo de ${limit}%`)}
-          onChange={set('riskLimit')}
-        />
-        <RuleSelect
-          id="rule-risk-weeks"
-          label="Semanas do alerta de risco"
-          value={config.riskWeeks}
-          options={optionsFor(rangeOf(CONFIG_LIMITS.riskWeeks), config.riskWeeks, weeksLabelOf)}
-          onChange={set('riskWeeks')}
+        <PairSelect
+          id="rule-risk"
+          label="Alerta de risco"
+          pair={[config.riskLimit, config.riskWeeks]}
+          options={pairOptions(rangeOf(CONFIG_LIMITS.riskLimit, RISK_LIMIT_STEP), rangeOf(CONFIG_LIMITS.riskWeeks), [config.riskLimit, config.riskWeeks], riskLabelOf)}
+          onChange={setPair('riskLimit', 'riskWeeks')}
         />
       </RuleField>
       <RuleField title="Registro em lote" hint="Antes do fechamento. Só sinaliza para ti.">
-        <RuleSelect
-          id="rule-batch-count"
-          label="Registros do registro em lote"
-          value={config.batchCount}
-          options={optionsFor(rangeOf(CONFIG_LIMITS.batchCount), config.batchCount, (count) => `${count} registros`)}
-          onChange={set('batchCount')}
-        />
-        <RuleSelect
-          id="rule-batch-minutes"
-          label="Minutos do registro em lote"
-          value={config.batchMinutes}
-          options={optionsFor(rangeOf(CONFIG_LIMITS.batchMinutes, BATCH_MINUTES_STEP), config.batchMinutes, (minutes) => `${minutes} min`)}
-          onChange={set('batchMinutes')}
+        <PairSelect
+          id="rule-batch"
+          label="Registro em lote"
+          pair={[config.batchCount, config.batchMinutes]}
+          options={pairOptions(BATCH_COUNT_CHOICES, BATCH_MINUTES_CHOICES, [config.batchCount, config.batchMinutes], batchLabelOf)}
+          onChange={setPair('batchCount', 'batchMinutes')}
         />
       </RuleField>
     </div>

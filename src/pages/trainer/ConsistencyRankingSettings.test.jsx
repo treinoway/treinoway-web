@@ -198,12 +198,23 @@ describe('ConsistencyRankingSettings', () => {
     expect(screen.queryByText(/Pesos novos valem/)).not.toBeInTheDocument();
   });
 
+  it('PAN-41 saves the risk limit and weeks chosen in the one select', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForPage();
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Alerta de risco' }), 'Abaixo de 80% por 3 semanas');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith(`${BASE_URL}/config`, { riskLimit: 80, riskWeeks: 3 }));
+  });
+
   it('PAN-41 saves only the fairness rule that changed', async () => {
     const user = userEvent.setup();
     renderPage();
     await waitForPage();
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Limite do alerta de risco' }), 'Abaixo de 80%');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Alerta de risco' }), 'Abaixo de 80% por 2 semanas');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(api.put).toHaveBeenCalledWith(`${BASE_URL}/config`, { riskLimit: 80 }));
@@ -233,7 +244,7 @@ describe('ConsistencyRankingSettings', () => {
     await user.click(screen.getByRole('button', { name: 'Restaurar padrões' }));
 
     expect(screen.getByRole('combobox', { name: 'Mínimo para o pódio' })).toHaveValue('2');
-    expect(screen.getByRole('combobox', { name: 'Limite do alerta de risco' })).toHaveValue('70');
+    expect(screen.getByRole('combobox', { name: 'Alerta de risco' })).toHaveValue('70:2');
     expect(api.put).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(api.put).toHaveBeenCalledWith(`${BASE_URL}/config`, { minPodiumWeeks: 2, riskLimit: 70 }));
@@ -259,7 +270,7 @@ describe('ConsistencyRankingSettings', () => {
     const user = userEvent.setup();
     renderPage();
     await waitForPage();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Limite do alerta de risco' }), 'Abaixo de 80%');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Alerta de risco' }), 'Abaixo de 80% por 2 semanas');
 
     await user.click(screen.getByRole('button', { name: 'Voltar' }));
     expect(screen.getByRole('alertdialog')).toHaveAccessibleName(/mudanças não salvas/);
@@ -276,7 +287,7 @@ describe('ConsistencyRankingSettings', () => {
     const user = userEvent.setup();
     renderPage();
     await waitForPage();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Limite do alerta de risco' }), 'Abaixo de 80%');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Alerta de risco' }), 'Abaixo de 80% por 2 semanas');
 
     await user.click(screen.getByRole('link', { name: 'Menu Alunos' }));
     expect(screen.getByRole('alertdialog')).toHaveAccessibleName(/mudanças não salvas/);
@@ -294,14 +305,14 @@ describe('ConsistencyRankingSettings', () => {
     const user = userEvent.setup();
     renderPage();
     await waitForPage();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Limite do alerta de risco' }), 'Abaixo de 80%');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Alerta de risco' }), 'Abaixo de 80% por 2 semanas');
 
     window.dispatchEvent(new PopStateEvent('popstate'));
 
     expect(await screen.findByRole('alertdialog')).toHaveAccessibleName(/mudanças não salvas/);
     await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancelar' }));
     expect(screen.getByRole('heading', { level: 1, name: 'Configuração do ranking' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Limite do alerta de risco' })).toHaveValue('80');
+    expect(screen.getByRole('combobox', { name: 'Alerta de risco' })).toHaveValue('80:2');
   });
 
   it('PAN-44 lets a menu link navigate at once when nothing changed', async () => {
@@ -368,7 +379,7 @@ describe('ConsistencyRankingSettings', () => {
     const user = userEvent.setup();
     renderPage();
     await waitForPage();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Limite do alerta de risco' }), 'Abaixo de 80%');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Alerta de risco' }), 'Abaixo de 80% por 2 semanas');
 
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 

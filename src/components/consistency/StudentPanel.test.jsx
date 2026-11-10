@@ -118,6 +118,14 @@ describe('StudentPanel', () => {
     expect(screen.queryByText('Não foi possível carregar o aluno.')).not.toBeInTheDocument();
   });
 
+  it('PAN-19 draws the avatar of a student at risk in the risk tint', async () => {
+    await renderPanel();
+
+    const avatar = screen.getByText('JV').closest('.student-panel__avatar');
+
+    expect(avatar).toHaveClass('student-panel__avatar--risk');
+  });
+
   it('PAN-20 shows the risk alert with the scores of the weeks that caused it', async () => {
     await renderPanel();
     expect(screen.getByRole('alert')).toHaveTextContent('Abaixo de 70% há 2 semanas seguidas: 64% e 58%.');

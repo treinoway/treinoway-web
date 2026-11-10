@@ -182,7 +182,7 @@ const StudentPanel = ({ studentId, studentName, seasonNumber, closeLabel, onClos
   return (
     <Drawer
       title={title}
-      leading={<Avatar name={title} size="lg" />}
+      leading={<span className={data?.risk ? 'student-panel__avatar student-panel__avatar--risk' : 'student-panel__avatar'}><Avatar name={title} size="lg" /></span>}
       subtitle={data ? <PanelSubtitle data={data} /> : null}
       layout={isWide ? 'side' : 'fullscreen'}
       width="wide"

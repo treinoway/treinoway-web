@@ -42,10 +42,8 @@ describe('RulesSection', () => {
     expect(selectOf('Dia do fechamento')).toHaveDisplayValue('Domingo');
     expect(selectOf('Hora do fechamento')).toHaveDisplayValue('21:00');
     expect(selectOf('Tempo mínimo de treino')).toHaveDisplayValue('10 minutos');
-    expect(selectOf('Limite do alerta de risco')).toHaveDisplayValue('Abaixo de 70%');
-    expect(selectOf('Semanas do alerta de risco')).toHaveDisplayValue('2 semanas');
-    expect(selectOf('Registros do registro em lote')).toHaveDisplayValue('5 registros');
-    expect(selectOf('Minutos do registro em lote')).toHaveDisplayValue('30 min');
+    expect(selectOf('Alerta de risco')).toHaveDisplayValue('Abaixo de 70% por 2 semanas');
+    expect(selectOf('Registro em lote')).toHaveDisplayValue('5 registros em 30 min');
   });
 
   it('PAN-41 names the time zone in the support text of the close', () => {
@@ -90,37 +88,25 @@ describe('RulesSection', () => {
     expect(onChange).toHaveBeenCalledWith('minWorkoutMinutes', 20);
   });
 
-  it('PAN-41 changes the risk alert limit and weeks within 50 to 90 and 1 to 4', async () => {
+  it('PAN-41 changes the risk alert limit and weeks together from one select', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
-    const limits = within(selectOf('Limite do alerta de risco')).getAllByRole('option').map((option) => option.textContent);
-    expect(limits[0]).toBe('Abaixo de 50%');
-    expect(limits[limits.length - 1]).toBe('Abaixo de 90%');
-    const weeks = within(selectOf('Semanas do alerta de risco')).getAllByRole('option').map((option) => option.textContent);
-    expect(weeks).toEqual(['1 semana', '2 semanas', '3 semanas', '4 semanas']);
-    await user.selectOptions(selectOf('Limite do alerta de risco'), 'Abaixo de 80%');
-    await user.selectOptions(selectOf('Semanas do alerta de risco'), '3 semanas');
-    expect(selectOf('Limite do alerta de risco')).toHaveDisplayValue('Abaixo de 80%');
-    expect(selectOf('Semanas do alerta de risco')).toHaveDisplayValue('3 semanas');
+    const options = within(selectOf('Alerta de risco')).getAllByRole('option').map((option) => option.textContent);
+    expect(options[0]).toBe('Abaixo de 50% por 1 semana');
+    expect(options).toContain('Abaixo de 90% por 4 semanas');
+    await user.selectOptions(selectOf('Alerta de risco'), 'Abaixo de 80% por 3 semanas');
+    expect(selectOf('Alerta de risco')).toHaveDisplayValue('Abaixo de 80% por 3 semanas');
     expect(onChange).toHaveBeenCalledWith('riskLimit', 80);
     expect(onChange).toHaveBeenCalledWith('riskWeeks', 3);
   });
 
-  it('PAN-41 changes the batch registration count and minutes within 2 to 20 and 10 to 120', async () => {
+  it('PAN-41 changes the batch registration count and minutes together from one select', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
-    const counts = within(selectOf('Registros do registro em lote')).getAllByRole('option').map((option) => option.textContent);
-    expect(counts[0]).toBe('2 registros');
-    expect(counts[counts.length - 1]).toBe('20 registros');
-    const minutes = within(selectOf('Minutos do registro em lote')).getAllByRole('option').map((option) => option.textContent);
-    expect(minutes[0]).toBe('10 min');
-    expect(minutes[minutes.length - 1]).toBe('120 min');
-    await user.selectOptions(selectOf('Registros do registro em lote'), '8 registros');
-    await user.selectOptions(selectOf('Minutos do registro em lote'), '60 min');
-    expect(selectOf('Registros do registro em lote')).toHaveDisplayValue('8 registros');
-    expect(selectOf('Minutos do registro em lote')).toHaveDisplayValue('60 min');
+    await user.selectOptions(selectOf('Registro em lote'), '8 registros em 60 min');
+    expect(selectOf('Registro em lote')).toHaveDisplayValue('8 registros em 60 min');
     expect(onChange).toHaveBeenCalledWith('batchCount', 8);
     expect(onChange).toHaveBeenCalledWith('batchMinutes', 60);
   });
@@ -128,7 +114,7 @@ describe('RulesSection', () => {
   it('PAN-41 still shows a saved value that is not one of the usual steps', () => {
     render(<Harness initialConfig={{ ...DEFAULT_CONFIG, minWorkoutMinutes: 7, riskLimit: 73 }} />);
     expect(selectOf('Tempo mínimo de treino')).toHaveDisplayValue('7 minutos');
-    expect(selectOf('Limite do alerta de risco')).toHaveDisplayValue('Abaixo de 73%');
+    expect(selectOf('Alerta de risco')).toHaveDisplayValue('Abaixo de 73% por 2 semanas');
   });
 
   it('PAN-41 does not offer the streak start rule of a later feature', () => {

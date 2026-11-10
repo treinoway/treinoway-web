@@ -21180,3 +21180,45 @@ select.input { cursor: pointer; }
   .settings-season__duration { flex-direction: row; align-items: flex-start; justify-content: space-between; }
   .settings-season__duration .student-panel__note { flex: 1; max-width: 50%; }
 }
+
+/* ── Consistency ranking: capture fidelity (fix pass) ───────────────── */
+.consistency-summary .metric-card-label {
+  font-size: var(--font-size-12);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+.metric-card-line { display: flex; align-items: baseline; gap: var(--spacing-xs); }
+.metric-card-suffix { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.metric-card-pill { display: flex; align-items: center; }
+.consistency-summary__pill-button { cursor: pointer; font-family: var(--font-family-brand); }
+.consistency-summary__pill-button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.consistency-table th {
+  padding-inline: var(--spacing-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.consistency-table td { padding-inline: var(--spacing-sm); }
+.consistency-table .score-bar { min-width: calc(var(--spacing-5xl) * 1.5); }
+.consistency-table th:last-child,
+.consistency-table td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: var(--z-base);
+  background: var(--background-surface);
+}
+.consistency-row:hover td:last-child { background: var(--background-surface-elevated); }
+.consistency-row--risk td,
+.consistency-row--risk td:last-child { background: color-mix(in srgb, var(--feedback-error-bg) 45%, var(--background-surface)); }
+
+.badge.badge--solid { background: var(--action-primary-default); color: var(--text-inverse); }
+
+.pillar-progress__body .score-bar__track,
+.weights-summary .score-bar__track { flex: none; }
+
+.student-panel__avatar .avatar { background: var(--background-brand-subtle); }
+.student-panel__avatar--risk .avatar { background: var(--feedback-error-bg); color: var(--feedback-error-text); }
+.ds-drawer-overlay--wide .ds-drawer__header .icon-button { border: 1px solid var(--border-default); }
+.student-panel__actions .btn--secondary,
+.ready-message__actions .btn--secondary { border-color: var(--border-strong); }

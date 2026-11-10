@@ -20,7 +20,8 @@ const fullCardOf = ({ summary, season }) => {
   const hasClosedWeek = closedWeek >= 1 && summary.validLastWeek > 0;
   return {
     label: closedWeek >= 1 ? `Fecharam 100% na semana ${closedWeek}` : 'Fecharam 100% na última semana',
-    value: hasClosedWeek ? `${summary.fullLastWeek} / ${summary.validLastWeek}` : '—',
+    value: hasClosedWeek ? summary.fullLastWeek : '—',
+    suffix: hasClosedWeek ? `/ ${summary.validLastWeek}` : undefined,
     support: hasClosedWeek ? `de ${summary.validLastWeek} alunos com semana válida` : undefined,
   };
 };
@@ -29,21 +30,21 @@ const fullCardOf = ({ summary, season }) => {
 const TeamSummaryCards = ({ summary, counts, season, onSelectFilter, riskLimit = DEFAULT_RISK_LIMIT, riskWeeks = DEFAULT_RISK_WEEKS }) => {
   const full = fullCardOf({ summary, season });
   return (
-    <section className="metric-grid" aria-label="Resumo do time">
+    <section className="metric-grid consistency-summary" aria-label="Resumo do time">
       <MetricCard
         label="Constância média do time"
         value={formatScore(summary.teamAverage)}
         support={averageSupportOf({ summary, counts, season })}
         tone="brand"
       />
-      <MetricCard label={full.label} value={full.value} support={full.support} />
+      <MetricCard label={full.label} value={full.value} valueSuffix={full.suffix} support={full.support} />
       <MetricCard
         label="Em risco"
         value={summary.atRisk}
         support={`Abaixo de ${riskLimit}% há ${riskWeeks} semanas seguidas`}
         tone={summary.atRisk > 0 ? 'error' : 'neutral'}
-        action={
-          <button type="button" className="btn btn--ghost" onClick={() => onSelectFilter(STANDINGS_FILTER.RISK)}>
+        pill={
+          <button type="button" className="badge badge--status badge--error consistency-summary__pill-button" onClick={() => onSelectFilter(STANDINGS_FILTER.RISK)}>
             Ver lista
           </button>
         }
@@ -53,7 +54,7 @@ const TeamSummaryCards = ({ summary, counts, season, onSelectFilter, riskLimit =
         value={summary.withSignal}
         support="Conclusão rápida e registro em lote"
         tone={summary.withSignal > 0 ? 'warning' : 'neutral'}
-        action={<Badge variant="tag" tone="warning">Não tiram ponto</Badge>}
+        pill={<Badge tone="warning">Não tiram ponto</Badge>}
       />
     </section>
   );
