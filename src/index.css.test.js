@@ -70,6 +70,10 @@ describe('index.css: wide pages scroll inside their card', () => {
     expect(ruleBody('.main-content')).toContain('min-width: 0');
   });
 
+  it('draws the student panel drawer 560px wide, as in web-painel-aluno.png (8.75 x spacing-5xl = 64px)', () => {
+    expect(ruleBody('.ds-drawer-overlay--wide')).toContain('--drawer-width: calc(var(--spacing-5xl) * 8.75)');
+  });
+
   it('scrolls the standings table inside its own container', () => {
     expect(ruleBody('.consistency-table__scroll')).toContain('overflow-x: auto');
   });

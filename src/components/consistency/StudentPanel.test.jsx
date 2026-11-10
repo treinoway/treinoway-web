@@ -158,6 +158,7 @@ describe('StudentPanel', () => {
     mockMatchMedia(true);
     render(<StudentPanel studentId={STUDENT_ID} studentName="João V." seasonNumber={3} onClose={vi.fn()} />);
     expect(await screen.findByRole('dialog', { name: 'João V.' })).toHaveAttribute('data-layout', 'side');
+    expect(screen.getByRole('dialog', { name: 'João V.' }).parentElement).toHaveClass('ds-drawer-overlay--wide');
   });
 
   it('PAN-35 shows the pause and adjust note with the actions of the current week', async () => {

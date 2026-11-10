@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
 import useModalBehavior from './useModalBehavior';
 
-// Dialog with a scrollable body and a sticky footer: layout 'side' is a right panel and 'modal' a centred dialog at >=1024px, both a bottom sheet below that; 'fullscreen' fills the screen. Optional leading node and subtitle sit beside and under the title.
-const Drawer = ({ title, subtitle, leading, onClose, children, footer, busy = false, layout = 'side', returnFocusSelector, closeLabel = 'Fechar' }) => {
+// Dialog with a scrollable body and a sticky footer: layout 'side' is a right panel and 'modal' a centred dialog at >=1024px, both a bottom sheet below that; 'fullscreen' fills the screen; `width` 'wide' widens the side panel. Optional leading node and subtitle sit beside and under the title.
+const Drawer = ({ title, subtitle, leading, onClose, children, footer, busy = false, layout = 'side', width = 'default', returnFocusSelector, closeLabel = 'Fechar' }) => {
   const titleId = useId();
   const dialogRef = useRef(null);
   const handleClose = () => {
@@ -13,7 +13,7 @@ const Drawer = ({ title, subtitle, leading, onClose, children, footer, busy = fa
   useModalBehavior(dialogRef, handleClose, { returnFocusSelector });
 
   return (
-    <div className={`ds-overlay ds-drawer-overlay ds-drawer-overlay--${layout}`} onClick={handleClose}>
+    <div className={`ds-overlay ds-drawer-overlay ds-drawer-overlay--${layout} ds-drawer-overlay--${width}`} onClick={handleClose}>
       <div
         ref={dialogRef}
         className="ds-drawer"
@@ -57,6 +57,7 @@ Drawer.propTypes = {
   footer: PropTypes.node,
   busy: PropTypes.bool,
   layout: PropTypes.oneOf(['modal', 'side', 'fullscreen']),
+  width: PropTypes.oneOf(['default', 'wide']),
   returnFocusSelector: PropTypes.string,
   closeLabel: PropTypes.string,
 };

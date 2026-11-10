@@ -185,6 +185,7 @@ const StudentPanel = ({ studentId, studentName, seasonNumber, closeLabel, onClos
       leading={<Avatar name={title} size="lg" />}
       subtitle={data ? <PanelSubtitle data={data} /> : null}
       layout={isWide ? 'side' : 'fullscreen'}
+      width="wide"
       onClose={onClose}
     >
       <PanelBody panel={panel} seasonNumber={seasonNumber} closeLabel={closeLabel} onChanged={onChanged} />
