@@ -20945,6 +20945,8 @@ select.input { cursor: pointer; }
 .consistency-row__muted { color: var(--text-secondary); white-space: nowrap; }
 .consistency-row__actions { position: relative; z-index: var(--z-base); display: flex; justify-content: flex-end; gap: var(--spacing-xs); }
 .consistency-table__legend { margin: 0; padding: var(--spacing-md) var(--spacing-lg); color: var(--text-secondary); }
+.consistency-table--compact { min-width: calc(var(--spacing-5xl) * 8); }
+.consistency-table--compact th:last-child { text-align: left; }
 
 /* ── Consistency ranking: student panel sections and week chart ───────────────── */
 .student-panel__section {
