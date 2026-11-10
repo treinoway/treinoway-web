@@ -20987,3 +20987,23 @@ select.input { cursor: pointer; }
 .week-chart__bar--empty { height: var(--spacing-xs); border-radius: var(--radius-xs); background: var(--chart-track); }
 .week-chart__name { color: var(--text-secondary); }
 .week-chart__note { margin: 0; color: var(--text-secondary); }
+
+/* ── Consistency ranking: pillar progress list ───────────────── */
+.pillar-progress { display: flex; flex-direction: column; gap: var(--spacing-lg); margin: 0; padding: 0; list-style: none; }
+.pillar-progress__row { display: flex; align-items: center; gap: var(--spacing-md); }
+.pillar-progress__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--size-avatar-md);
+  height: var(--size-avatar-md);
+  border-radius: var(--radius-md);
+  background: var(--background-surface-elevated);
+  color: var(--icon-default);
+}
+.pillar-progress__body { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-xs); min-width: 0; }
+.pillar-progress__line { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-sm); color: var(--text-primary); }
+.pillar-progress__figures { display: inline-flex; gap: var(--spacing-xs); font-variant-numeric: tabular-nums; }
+.pillar-progress__count { color: var(--text-secondary); }
+.pillar-progress__empty { margin: 0; color: var(--text-secondary); }
