@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatScore, formatCountdown, weekLabel } from './consistencyFormat';
+import { formatScore, formatCountdown, weekLabel, formatCloseLabel, formatCloseDateLabel, currentWeekStartOf } from './consistencyFormat';
 
 describe('formatScore', () => {
   it('PAN-06 rounds to a whole percent', () => {
@@ -43,5 +43,31 @@ describe('formatCountdown', () => {
 describe('weekLabel', () => {
   it('PAN-02 reads "Semana X de Y"', () => {
     expect(weekLabel(3, 4)).toBe('Semana 3 de 4');
+  });
+});
+
+describe('close labels', () => {
+  const closesAt = '2026-11-09T00:00:00.000Z';
+
+  it('PAN-27 names the weekday and hour of the close in the trainer time zone', () => {
+    expect(formatCloseLabel(closesAt, 'America/Sao_Paulo')).toBe('domingo às 21h');
+  });
+
+  it('PAN-37 names the weekday, date and hour of the close', () => {
+    expect(formatCloseDateLabel(closesAt, 'America/Sao_Paulo')).toBe('domingo, 08/11, às 21h');
+  });
+
+  it('PAN-37 keeps the minutes when the close is not on the hour', () => {
+    expect(formatCloseLabel('2026-11-09T00:30:00.000Z', 'America/Sao_Paulo')).toBe('domingo às 21h30');
+  });
+});
+
+describe('currentWeekStartOf', () => {
+  it('PAN-30 returns the Monday of the running season week', () => {
+    expect(currentWeekStartOf({ startWeek: '2026-10-19', currentWeek: 3 })).toBe('2026-11-02');
+  });
+
+  it('PAN-30 returns the season start in its first week', () => {
+    expect(currentWeekStartOf({ startWeek: '2026-10-19', currentWeek: 1 })).toBe('2026-10-19');
   });
 });

@@ -934,6 +934,9 @@ const en = {
     next: 'Next',
     pageStatus: 'Page {page} of {total}',
   },
+  trainerNav: {
+    consistencyRanking: 'Consistency ranking',
+  },
   adminNav: {
     title: 'Administration',
     invites: 'Beta invites',

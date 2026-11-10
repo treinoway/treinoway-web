@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, Trophy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
@@ -207,6 +207,17 @@ const Layout = ({ children, noPadding = false }) => {
                   <Users size={20} strokeWidth={1.6} />
                 </span>
                 <span className="sidebar-link-label">Meus Alunos</span>
+              </Link>
+
+              <Link
+                to="/trainer/consistency-ranking"
+                className={`sidebar-link ${isActive('/trainer/consistency-ranking') ? 'sidebar-link--active' : ''}`}
+                aria-label={t('trainerNav.consistencyRanking')}
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <Trophy size={20} strokeWidth={1.6} />
+                </span>
+                <span className="sidebar-link-label">{t('trainerNav.consistencyRanking')}</span>
               </Link>
 
               {/* iArnold */}

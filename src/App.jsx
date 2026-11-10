@@ -54,6 +54,7 @@ import ChallengeDetail from './pages/trainer/ChallengeDetail';
 import SessionDetail from './pages/trainer/SessionDetail';
 import Financeiro from './pages/trainer/Financeiro';
 import SubscriptionHistory from './pages/trainer/SubscriptionHistory';
+import ConsistencyRanking from './pages/trainer/ConsistencyRanking';
 
 // Nutritionist pages
 import NutritionistOnboardingPage from './pages/nutritionist/NutritionistOnboardingPage';
@@ -514,6 +515,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Challenges />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/consistency-ranking"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ConsistencyRanking />
                 </Layout>
               </ProtectedRoute>
             }

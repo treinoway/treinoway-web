@@ -21137,3 +21137,11 @@ select.input { cursor: pointer; }
   padding: 0 var(--spacing-xs);
   color: var(--text-secondary);
 }
+
+/* ── Consistency ranking: pages ────────────────────── */
+.consistency-page { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.consistency-page .ds-page-header { margin-bottom: 0; }
+.consistency-page__heading { display: flex; flex-direction: column; gap: var(--spacing-2xs); }
+.consistency-page__heading .type-overline { color: var(--text-secondary); }
+.consistency-page__subtitle { margin: 0; color: var(--text-secondary); }
+.consistency-board { display: flex; flex-direction: column; gap: var(--spacing-lg); }

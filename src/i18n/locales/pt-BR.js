@@ -1877,6 +1877,9 @@ const ptBR = {
     next: "Próxima",
     pageStatus: "Página {page} de {total}",
   },
+  trainerNav: {
+    consistencyRanking: "Ranking de Constância",
+  },
   adminNav: {
     title: "Administração",
     invites: "Convites do beta",
