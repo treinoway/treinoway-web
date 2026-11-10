@@ -10,13 +10,13 @@ import { t } from '../i18n';
  *   POST   /trainer/trainings/:trainingId/supersets   { exerciseIds }
  *   DELETE /trainer/trainings/:trainingId/supersets/:groupId
  *
- * Template support: pass `endpointBuilder` to override the URL construction
- * for template-context endpoints when that page is refactored.
+ * Template support: pass a stable `endpointBuilder` to override the transport
+ * (create, dissolve and round rest) for template-context endpoints.
  *
  * @param {object} [options]
- * @param {(trainingId: string) => ({ create: (ids: string[]) => Promise, dissolve: (groupId: string) => Promise })} [options.endpointBuilder]
+ * @param {(trainingId: string) => ({ create: (ids: string[], restInterval?: number) => Promise, dissolve: (groupId: string) => Promise, updateRest: (groupId: string, restInterval: number) => Promise })} [options.endpointBuilder]
  *   Override transport for non-standard contexts. The default wires the
- *   protocol endpoints. Template support is deferred.
+ *   protocol endpoints.
  * @returns {{ createBiset, dissolveBiset, updateRest, saving, error }}
  */
 const useBisetCreate = ({ endpointBuilder } = {}) => {
@@ -53,7 +53,7 @@ const useBisetCreate = ({ endpointBuilder } = {}) => {
     try {
       let response;
       if (endpointBuilder) {
-        response = await endpointBuilder(trainingId).create(memberIds);
+        response = await endpointBuilder(trainingId).create(memberIds, restInterval);
       } else {
         response = await api.post(
           `/trainer/trainings/${trainingId}/supersets`,
@@ -126,10 +126,12 @@ const useBisetCreate = ({ endpointBuilder } = {}) => {
     setError(null);
 
     try {
-      const response = await api.patch(
-        `/trainer/trainings/${trainingId}/supersets/${groupId}`,
-        { restInterval },
-      );
+      const response = endpointBuilder
+        ? await endpointBuilder(trainingId).updateRest(groupId, restInterval)
+        : await api.patch(
+          `/trainer/trainings/${trainingId}/supersets/${groupId}`,
+          { restInterval },
+        );
       setSaving(false);
       return response.data;
     } catch (err) {
@@ -141,7 +143,7 @@ const useBisetCreate = ({ endpointBuilder } = {}) => {
       setError(wrapped);
       throw wrapped;
     }
-  }, []);
+  }, [endpointBuilder]);
 
   return { createBiset, dissolveBiset, updateRest, saving, error };
 };

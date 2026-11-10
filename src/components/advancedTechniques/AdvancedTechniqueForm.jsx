@@ -99,6 +99,7 @@ const AdvancedTechniqueForm = ({ technique, readOnly = false, saving = false, on
             gifError={errors.gifUrl}
             onRemoveVideo={() => updateField('videoUrl', '')}
             disabled={readOnly}
+            allowUpload={false}
           />
           {errors.videoUrl && <span className="field-error type-caption" role="alert">{errors.videoUrl}</span>}
         </div>

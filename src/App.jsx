@@ -38,6 +38,7 @@ import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
 import Students from './pages/trainer/Students';
 import StudentDetail from './pages/trainer/StudentDetail';
 import StudentProtocols from './pages/trainer/StudentProtocols';
+import StudentSessions from './pages/trainer/StudentSessions';
 import StudentAnamneses from './pages/trainer/StudentAnamneses';
 import ExerciseProgressionDetail from './pages/trainer/ExerciseProgressionDetail';
 import TrainerAnamneses from './pages/trainer/TrainerAnamneses';
@@ -53,6 +54,8 @@ import ChallengeDetail from './pages/trainer/ChallengeDetail';
 import SessionDetail from './pages/trainer/SessionDetail';
 import Financeiro from './pages/trainer/Financeiro';
 import SubscriptionHistory from './pages/trainer/SubscriptionHistory';
+import ConsistencyRanking from './pages/trainer/ConsistencyRanking';
+import ConsistencyRankingSettings from './pages/trainer/ConsistencyRankingSettings';
 
 // Nutritionist pages
 import Patients from './pages/nutritionist/Patients';
@@ -67,6 +70,7 @@ import { t } from './i18n';
 
 // Admin pages
 import InvitesList from './pages/admin/InvitesList';
+import FeedbackList from './pages/admin/FeedbackList';
 import TrainersList from './pages/admin/TrainersList';
 import AiUsage from './pages/admin/AiUsage';
 
@@ -364,6 +368,17 @@ function App() {
           />
 
           <Route
+            path="/trainer/students/:id/sessions"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <StudentSessions />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/trainer/students/:id/anamneses"
             element={
               <ProtectedRoute>
@@ -501,6 +516,26 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Challenges />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/consistency-ranking"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ConsistencyRanking />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/consistency-ranking/settings"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ConsistencyRankingSettings />
                 </Layout>
               </ProtectedRoute>
             }
@@ -668,6 +703,16 @@ function App() {
               <RequireRole roles={['admin']}>
                 <Layout>
                   <InvitesList />
+                </Layout>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/feedbacks"
+            element={
+              <RequireRole roles={['admin']}>
+                <Layout>
+                  <FeedbackList />
                 </Layout>
               </RequireRole>
             }

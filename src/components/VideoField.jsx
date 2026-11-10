@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
 import { getYoutubeVideoId } from '../utils/youtube';
 import { isHttpUrl } from '../utils/gif';
+import VideoFileUpload from './ds/VideoFileUpload';
 
 /**
  * VideoField — shared video input for ExerciseForm and ExerciseComposer.
@@ -12,16 +13,22 @@ import { isHttpUrl } from '../utils/gif';
  *   - Valid YouTube URL: 16:9 iframe preview + Remover action
  *   - Non-YouTube URL typed: URL input visible + hint (non-blocking)
  *   - GIF link (optional): 16:9 image preview when there is no valid video
+ *   - Uploaded file (optional): native `<video>` preview; wins over the YouTube link and the GIF
  */
-const VideoField = ({ value, onChange, gifValue = '', onGifChange, label = 'Vídeo de demonstração', gifError = null }) => {
+const VideoField = ({
+  value, onChange, gifValue = '', onGifChange, label = 'Vídeo de demonstração', gifError = null,
+  videoFileKey = null, videoFilePreviewUrl = null, onVideoFileChange, onUploadingChange, allowUpload = true,
+}) => {
   const [failedGif, setFailedGif] = useState(null);
 
   const trimmedValue = value?.trim() ?? '';
   const youtubeId = getYoutubeVideoId(trimmedValue);
-  const hasValidVideo = Boolean(youtubeId);
-  const hasInvalidUrl = trimmedValue.length > 0 && !hasValidVideo;
+  const canUpload = allowUpload && Boolean(onVideoFileChange);
+  const hasVideoFile = canUpload && Boolean(videoFileKey);
+  const hasValidVideo = Boolean(youtubeId) && !hasVideoFile;
+  const hasInvalidUrl = trimmedValue.length > 0 && !youtubeId;
   const trimmedGif = gifValue?.trim() ?? '';
-  const showGifPreview = !hasValidVideo && isHttpUrl(trimmedGif);
+  const showGifPreview = !youtubeId && !hasVideoFile && isHttpUrl(trimmedGif);
   const hasInvalidGif = trimmedGif.length > 0 && !isHttpUrl(trimmedGif);
 
   const handleRemove = () => {
@@ -31,6 +38,16 @@ const VideoField = ({ value, onChange, gifValue = '', onGifChange, label = 'Víd
   return (
     <section className="video-field">
       <span className="field-label type-caption-strong">{label}</span>
+
+      {canUpload && (
+        <VideoFileUpload
+          value={videoFileKey}
+          previewUrl={videoFilePreviewUrl}
+          onChange={onVideoFileChange}
+          onUploadingChange={onUploadingChange}
+          previewClassName="video-field-preview"
+        />
+      )}
 
       {hasValidVideo && (
         <>
@@ -115,6 +132,15 @@ VideoField.propTypes = {
   onGifChange: PropTypes.func,
   label: PropTypes.string,
   gifError: PropTypes.string,
+  /** Storage key of the uploaded video file. */
+  videoFileKey: PropTypes.string,
+  /** Playable URL for the uploaded video (signed URL or local object URL). */
+  videoFilePreviewUrl: PropTypes.string,
+  /** Called with `(key, previewUrl)` after an upload, `(null, null)` on removal. */
+  onVideoFileChange: PropTypes.func,
+  onUploadingChange: PropTypes.func,
+  /** Set false to hide the gallery upload. */
+  allowUpload: PropTypes.bool,
 };
 
 export default VideoField;

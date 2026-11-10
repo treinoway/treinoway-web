@@ -312,9 +312,9 @@ function ExerciseLogCard({ sessionId, exerciseLog, isSessionActive, onUpdated, o
               )}
             </p>
             {meta && <p className="text-sm text-muted">{meta}</p>}
-            {exerciseLog.exercise?.videoUrl && (
+            {(exerciseLog.exercise?.videoFileUrl || exerciseLog.exercise?.videoUrl) && (
               <a
-                href={exerciseLog.exercise.videoUrl}
+                href={exerciseLog.exercise.videoFileUrl || exerciseLog.exercise.videoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-link"
@@ -449,6 +449,7 @@ ExerciseLogCard.propTypes = {
       name: PropTypes.string,
       notes: PropTypes.string,
       videoUrl: PropTypes.string,
+      videoFileUrl: PropTypes.string,
       gifUrl: PropTypes.string,
       intensity: PropTypes.string,
       intensityLabel: PropTypes.string,

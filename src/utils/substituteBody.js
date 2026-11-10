@@ -1,7 +1,7 @@
 import { sortTechniquesByOrder, stripTechniqueDisplay } from './advancedTechniques';
 
 const TEMPLATE_DEFAULT_FIELDS = [
-  'prescriptionMode', 'sets', 'repetitions', 'duration', 'restInterval', 'hasLoad', 'suggestedLoad', 'notes', 'videoUrl', 'gifUrl',
+  'prescriptionMode', 'sets', 'repetitions', 'duration', 'restInterval', 'hasLoad', 'suggestedLoad', 'notes', 'videoUrl', 'gifUrl', 'videoFileKey', 'videoFileUrl',
 ];
 
 // Picks the prescription fields a library template defines.

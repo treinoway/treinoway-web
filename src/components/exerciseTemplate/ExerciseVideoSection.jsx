@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Film, Play, X, Link } from 'lucide-react';
 import { getYoutubeVideoId } from '../../utils/youtube';
 import { isHttpUrl } from '../../utils/gif';
+import VideoFileUpload from '../ds/VideoFileUpload';
 
 const VideoStage = ({ youtubeId, gifUrl, gifFailed, onGifError, thumbError, playing, onPlay, onThumbError }) => {
   if (youtubeId && !thumbError) {
@@ -70,8 +71,13 @@ VideoStage.propTypes = {
   onThumbError: PropTypes.func.isRequired,
 };
 
-/** "Demonstração" section: 16:9 preview stage, YouTube URL field and removal. */
-const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = '', onGifUrlChange, gifError = null, onRemoveVideo, disabled = false }) => {
+/** "Demonstração" section: 16:9 stage, gallery upload, YouTube URL field and removal; an uploaded video wins over YouTube and GIF. */
+const ExerciseVideoSection = ({
+  className, videoUrl, onVideoUrlChange, gifUrl = '', onGifUrlChange, gifError = null, onRemoveVideo, disabled = false,
+  videoFileKey = null, videoFilePreviewUrl = null, onVideoFileChange, onUploadingChange, allowUpload = true,
+}) => {
+  const canUpload = allowUpload && Boolean(onVideoFileChange);
+  const hasVideoFile = canUpload && Boolean(videoFileKey);
   const youtubeId = getYoutubeVideoId(videoUrl);
   const previewGifUrl = isHttpUrl(gifUrl) ? gifUrl.trim() : null;
   const hasInvalidGifUrl = gifUrl.trim() !== '' && !previewGifUrl;
@@ -88,16 +94,29 @@ const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = 
       <p className="editor-page__section-hint type-caption">Opcional. Aceita links do YouTube ou de GIF.</p>
 
       <div className="video-hero">
-        <VideoStage
-          youtubeId={youtubeId}
-          gifUrl={previewGifUrl}
-          gifFailed={failedGif === previewGifUrl}
-          onGifError={() => setFailedGif(previewGifUrl)}
-          thumbError={thumbError}
-          playing={playing}
-          onPlay={() => updatePlayback({ playing: true })}
-          onThumbError={() => updatePlayback({ thumbError: true })}
-        />
+        {!hasVideoFile && (
+          <VideoStage
+            youtubeId={youtubeId}
+            gifUrl={previewGifUrl}
+            gifFailed={failedGif === previewGifUrl}
+            onGifError={() => setFailedGif(previewGifUrl)}
+            thumbError={thumbError}
+            playing={playing}
+            onPlay={() => updatePlayback({ playing: true })}
+            onThumbError={() => updatePlayback({ thumbError: true })}
+          />
+        )}
+
+        {canUpload && (
+          <VideoFileUpload
+            value={videoFileKey}
+            previewUrl={videoFilePreviewUrl}
+            onChange={onVideoFileChange}
+            onUploadingChange={onUploadingChange}
+            disabled={disabled}
+            previewClassName="video-hero-stage"
+          />
+        )}
 
         <div className="field">
           <label className="field-label type-caption-strong" htmlFor="exercise-video-url">URL do vídeo</label>
@@ -134,7 +153,10 @@ const ExerciseVideoSection = ({ className, videoUrl, onVideoUrlChange, gifUrl = 
           {hasInvalidGifUrl && !gifError && (
             <span className="field-hint type-caption" role="status">Use um link http(s) para pré-visualizar o GIF.</span>
           )}
-          {previewGifUrl && youtubeId && (
+          {hasVideoFile && (youtubeId || previewGifUrl) && (
+            <span className="field-hint type-caption">O vídeo enviado tem prioridade sobre os links.</span>
+          )}
+          {previewGifUrl && youtubeId && !hasVideoFile && (
             <span className="field-hint type-caption">O vídeo tem prioridade sobre o GIF.</span>
           )}
         </div>
@@ -161,6 +183,15 @@ ExerciseVideoSection.propTypes = {
   gifError: PropTypes.string,
   onRemoveVideo: PropTypes.func.isRequired,
   disabled: PropTypes.bool,
+  /** Storage key of the uploaded video file. */
+  videoFileKey: PropTypes.string,
+  /** Playable URL for the uploaded video (signed URL or local object URL). */
+  videoFilePreviewUrl: PropTypes.string,
+  /** Called with `(key, previewUrl)` after an upload, `(null, null)` on removal. */
+  onVideoFileChange: PropTypes.func,
+  onUploadingChange: PropTypes.func,
+  /** Set false to hide the gallery upload (e.g. advanced techniques). */
+  allowUpload: PropTypes.bool,
 };
 
 export default ExerciseVideoSection;

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, Salad } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, Trophy, Salad } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
+import FeedbackWidget from './FeedbackWidget';
 import useAiAccess from '../hooks/useAiAccess';
 import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
 import { SIDEBAR_BADGE_MAX } from '../constants/finance';
@@ -12,6 +13,7 @@ import { t, tCount, tf } from '../i18n';
 
 const ADMIN_LINKS = [
   { path: '/admin/invites', labelKey: 'adminNav.invites', Icon: Mail },
+  { path: '/admin/feedbacks', labelKey: 'adminNav.feedbacks', Icon: MessageSquare },
   { path: '/admin/trainers', labelKey: 'adminNav.trainers', Icon: UsersRound },
   { path: '/admin/ai-usage', labelKey: 'adminNav.aiUsage', Icon: BarChart3 },
   { path: '/admin/tutorials', labelKey: 'adminNav.tutorials', Icon: Video },
@@ -200,6 +202,17 @@ const Layout = ({ children, noPadding = false }) => {
                 <span className="sidebar-link-label">Meus Alunos</span>
               </Link>
 
+              <Link
+                to="/trainer/consistency-ranking"
+                className={`sidebar-link ${isActive('/trainer/consistency-ranking') ? 'sidebar-link--active' : ''}`}
+                aria-label={t('trainerNav.consistencyRanking')}
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <Trophy size={20} strokeWidth={1.6} />
+                </span>
+                <span className="sidebar-link-label">{t('trainerNav.consistencyRanking')}</span>
+              </Link>
+
               {/* iArnold */}
               {showAi && (
                 <Link
@@ -334,6 +347,8 @@ const Layout = ({ children, noPadding = false }) => {
       <main className={`main-content${noPadding ? ' main-content--fullscreen' : ''}`}>
         {noPadding ? children : <div className="main-content-inner">{children}</div>}
       </main>
+
+      <FeedbackWidget />
 
       {/* Bottom Navigation — visible only on mobile */}
       <nav className="bottom-nav" aria-label="Navegação principal">

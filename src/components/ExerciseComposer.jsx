@@ -40,6 +40,8 @@ const EMPTY_FORM = {
   restInterval: '',
   videoUrl: '',
   gifUrl: '',
+  videoFileKey: null,
+  videoFilePreviewUrl: null,
   duration: '',
   hasLoad: true,
   suggestedLoad: '',
@@ -64,6 +66,7 @@ const buildPayload = (form, { isEdit } = {}) => {
   };
   payload.videoUrl = form.videoUrl?.trim() ? form.videoUrl.trim() : null;
   payload.gifUrl = form.gifUrl?.trim() ? form.gifUrl.trim() : null;
+  payload.videoFileKey = form.videoFileKey ?? null;
   if (form.sets !== '' && form.sets != null) {
     payload.sets = parseInt(form.sets, 10);
   } else if (isEdit) {
@@ -108,6 +111,8 @@ const snapshotToForm = (snapshot) => ({
   restInterval: snapshot.restInterval ?? snapshot.exerciseTemplate?.restInterval ?? '',
   videoUrl: snapshot.videoUrl ?? '',
   gifUrl: snapshot.gifUrl ?? snapshot.exerciseTemplate?.gifUrl ?? '',
+  videoFileKey: snapshot.videoFileKey ?? null,
+  videoFilePreviewUrl: snapshot.videoFileUrl ?? null,
   duration: snapshot.duration ?? snapshot.exerciseTemplate?.duration ?? '',
   hasLoad: snapshot.hasLoad ?? snapshot.exerciseTemplate?.hasLoad ?? false,
   suggestedLoad: snapshot.suggestedLoad ?? snapshot.exerciseTemplate?.suggestedLoad ?? '',
@@ -122,6 +127,8 @@ const substitutePrefill = (principal) => ({
   name: '',
   videoUrl: '',
   gifUrl: '',
+  videoFileKey: null,
+  videoFilePreviewUrl: null,
   notes: '',
   advancedTechniques: [],
 });
@@ -138,6 +145,8 @@ const templatePrescriptionPatch = (template, current = {}) => ({
   ...(template.notes && { notes: template.notes }),
   videoUrl: current.videoUrl?.trim() ? current.videoUrl : template.videoUrl ?? '',
   gifUrl: current.gifUrl?.trim() ? current.gifUrl : template.gifUrl ?? '',
+  videoFileKey: current.videoFileKey ?? template.videoFileKey ?? null,
+  videoFilePreviewUrl: current.videoFileKey ? current.videoFilePreviewUrl ?? null : template.videoFileUrl ?? null,
   intensity: template.type === 'cardio' ? template.intensity ?? null : null,
   advancedTechniques: sortTechniquesByOrder(template.advancedTechniques),
 });
@@ -181,6 +190,7 @@ const buildMediaOverrides = (form, template) => {
   return {
     ...(changed('videoUrl') && { videoUrl: toOverride(form.videoUrl ?? '') }),
     ...(changed('gifUrl') && { gifUrl: toOverride(form.gifUrl ?? '') }),
+    ...((form.videoFileKey ?? null) !== (template.videoFileKey ?? null) && { videoFileKey: form.videoFileKey ?? null }),
   };
 };
 
@@ -357,6 +367,7 @@ const ExerciseComposer = ({
   const [selectedTemplatesById, setSelectedTemplatesById] = useState({});
   const [errors, setErrors] = useState({});
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const initialForm = isEditMode ? snapshotToForm(snapshot) : baseForm;
   const isDirty = isFormChanged(form, initialForm) || selectedTemplateIds.length > 0 || pickedTemplate !== null;
@@ -377,6 +388,10 @@ const ExerciseComposer = ({
       return next;
     });
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const handleVideoFileChange = (key, previewUrl) => {
+    setForm((prev) => ({ ...prev, videoFileKey: key, videoFilePreviewUrl: previewUrl }));
   };
 
   const handleLoadToggle = (checked) => {
@@ -509,6 +524,7 @@ const ExerciseComposer = ({
       advancedTechniques: [],
       videoUrl: prev.videoUrl === (pickedTemplate?.videoUrl ?? '') ? '' : prev.videoUrl,
       gifUrl: prev.gifUrl === (pickedTemplate?.gifUrl ?? '') ? '' : prev.gifUrl,
+      ...(prev.videoFileKey === (pickedTemplate?.videoFileKey ?? null) && { videoFileKey: null, videoFilePreviewUrl: null }),
     }));
   };
 
@@ -661,6 +677,10 @@ const ExerciseComposer = ({
           onGifChange={(url) => handleFieldChange('gifUrl', url)}
           label="Vídeo de demonstração"
           gifError={errors.gifUrl}
+          videoFileKey={form.videoFileKey}
+          videoFilePreviewUrl={form.videoFilePreviewUrl}
+          onVideoFileChange={handleVideoFileChange}
+          onUploadingChange={setUploading}
         />
 
         {/* Observações — uncapped */}
@@ -695,7 +715,7 @@ const ExerciseComposer = ({
           <button type="button" className="btn btn--secondary" onClick={onCancel} disabled={saving}>
             Cancelar
           </button>
-          <button type="submit" form={COMPOSER_FORM_ID} className="btn btn--primary" disabled={saving}>
+          <button type="submit" form={COMPOSER_FORM_ID} className="btn btn--primary" disabled={saving || uploading}>
             {saving ? 'Salvando…' : submitLabel}
           </button>
         </>
@@ -724,6 +744,10 @@ const ExerciseComposer = ({
           onGifChange={(url) => handleFieldChange('gifUrl', url)}
           label="Vídeo de demonstração"
           gifError={errors.gifUrl}
+          videoFileKey={form.videoFileKey}
+          videoFilePreviewUrl={form.videoFilePreviewUrl}
+          onVideoFileChange={handleVideoFileChange}
+          onUploadingChange={setUploading}
         />
       </div>
       <div className="composer-band">
@@ -740,7 +764,7 @@ const ExerciseComposer = ({
         type="button"
         className="btn btn--primary"
         onClick={handleSubmitFromTemplate}
-        disabled={saving || !pickedTemplate}
+        disabled={saving || uploading || !pickedTemplate}
       >
         {saving ? 'Salvando…' : submitLabel}
       </button>

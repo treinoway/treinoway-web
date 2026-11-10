@@ -151,7 +151,7 @@ describe('useBisetCreate', () => {
       await result.current.createBiset(['a', 'b'], { trainingId: TRAINING_ID });
     });
     expect(endpointBuilder).toHaveBeenCalledWith(TRAINING_ID);
-    expect(mockCreate).toHaveBeenCalledWith(['a', 'b']);
+    expect(mockCreate).toHaveBeenCalledWith(['a', 'b'], undefined);
     expect(api.post).not.toHaveBeenCalled();
 
     await act(async () => {

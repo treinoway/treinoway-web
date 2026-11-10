@@ -64,3 +64,33 @@ describe('index.css: onboarding checklist card', () => {
     expect(css).toMatch(new RegExp(`\\.${name}[\\s,:.{]`));
   });
 });
+
+describe('index.css: wide pages scroll inside their card', () => {
+  it('lets .main-content shrink below its content so the flex row never outgrows the window', () => {
+    expect(ruleBody('.main-content')).toContain('min-width: 0');
+  });
+
+  it('draws the student panel drawer 560px wide, as in web-painel-aluno.png (8.75 x spacing-5xl = 64px)', () => {
+    expect(ruleBody('.ds-drawer-overlay--wide')).toContain('--drawer-width: calc(var(--spacing-5xl) * 8.75)');
+  });
+
+  it('paints the "Ver lista" pill with a visible light-red background, not the near-white error token alone', () => {
+    expect(ruleBody('.badge.badge--error.consistency-summary__pill-button')).toContain('color-mix(in srgb, var(--feedback-error) 10%, var(--feedback-error-bg))');
+  });
+
+  it('scrolls the standings table inside its own container', () => {
+    expect(ruleBody('.consistency-table__scroll')).toContain('overflow-x: auto');
+  });
+
+  it('caps the student column so the standings fit 1440 with Sequência visible beside the sticky Ações column', () => {
+    expect(ruleBody('.consistency-row__identity')).toContain('max-width: calc(var(--spacing-5xl) * 3)');
+    expect(ruleBody('.consistency-table .score-bar')).toContain('min-width: calc(var(--spacing-5xl) * 1.25)');
+  });
+
+  it('wraps long signal badges inside the capped student column instead of drawing over Faixa', () => {
+    const badge = ruleBody('.consistency-row__identity .student-signals .badge');
+    expect(badge).toContain('white-space: normal');
+    expect(badge).toContain('max-width: 100%');
+    expect(badge).toContain('line-height: var(--line-height-tight)');
+  });
+});

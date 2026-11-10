@@ -24,7 +24,7 @@ const MyProtocolDetail = () => {
   const [exercisesMap, setExercisesMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [startingTrainingId, setStartingTrainingId] = useState(null);
-  const [videoModal, setVideoModal] = useState({ open: false, videoId: null, gifUrl: null });
+  const [videoModal, setVideoModal] = useState({ open: false, videoId: null, gifUrl: null, fileUrl: null });
   const [gifFailed, setGifFailed] = useState(false);
 
   useEffect(() => {
@@ -91,7 +91,7 @@ const MyProtocolDetail = () => {
     || 'N/A';
 
   const isGifModal = !!videoModal.gifUrl;
-  const closeMedia = () => setVideoModal({ open: false, videoId: null, gifUrl: null });
+  const closeMedia = () => setVideoModal({ open: false, videoId: null, gifUrl: null, fileUrl: null });
 
   if (loading) {
     return (
@@ -248,13 +248,22 @@ const MyProtocolDetail = () => {
                               {exercise.notes && (
                                 <p className="training-card-exercise-notes">{exercise.notes}</p>
                               )}
-                              {exercise.videoUrl && (() => {
+                              {exercise.videoFileUrl && (
+                                <button
+                                  className="training-card-exercise-video-link"
+                                  onClick={() => setVideoModal({ open: true, videoId: null, gifUrl: null, fileUrl: exercise.videoFileUrl })}
+                                >
+                                  <Play size={14} strokeWidth={1.6} />
+                                  Ver vídeo
+                                </button>
+                              )}
+                              {!exercise.videoFileUrl && exercise.videoUrl && (() => {
                                 const videoId = getYoutubeVideoId(exercise.videoUrl);
                                 if (videoId) {
                                   return (
                                     <button
                                       className="training-card-exercise-video-link"
-                                      onClick={() => setVideoModal({ open: true, videoId, gifUrl: null })}
+                                      onClick={() => setVideoModal({ open: true, videoId, gifUrl: null, fileUrl: null })}
                                     >
                                       <Play size={14} strokeWidth={1.6} />
                                       Ver vídeo
@@ -276,7 +285,7 @@ const MyProtocolDetail = () => {
                               {shouldShowGif(exercise) && (
                                 <button
                                   className="training-card-exercise-video-link"
-                                  onClick={() => { setGifFailed(false); setVideoModal({ open: true, videoId: null, gifUrl: exercise.gifUrl }); }}
+                                  onClick={() => { setGifFailed(false); setVideoModal({ open: true, videoId: null, gifUrl: exercise.gifUrl, fileUrl: null }); }}
                                 >
                                   <Play size={14} strokeWidth={1.6} />
                                   Ver GIF
@@ -316,6 +325,10 @@ const MyProtocolDetail = () => {
                   ) : (
                     <img className="video-embed-gif" src={videoModal.gifUrl} alt="GIF do exercício" onError={() => setGifFailed(true)} />
                   )}
+                </div>
+              ) : videoModal.fileUrl ? (
+                <div className="video-embed-wrapper">
+                  <video className="video-embed-file" src={videoModal.fileUrl} controls playsInline preload="metadata" aria-label="Vídeo do exercício" />
                 </div>
               ) : (
                 <div className="video-embed-wrapper">

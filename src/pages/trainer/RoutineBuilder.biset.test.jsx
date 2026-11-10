@@ -272,15 +272,15 @@ describe('RoutineBuilder — "Criar bi-set" toolbar button (criterion 11)', () =
 
 // ─── 18. Template builder ────────────────────────────────────────────────────
 
-describe('RoutineBuilder — template builder (criterion 18)', () => {
-  it('hides "Criar bi-set" in the template builder', async () => {
+describe('RoutineBuilder — template builder (criterion 18, superseded by template-biset AC 9)', () => {
+  it('shows "Criar bi-set" in the template builder', async () => {
     useRoutineBuilder.mockReturnValue(hookStateWith([EX_A, EX_B]));
     const user = userEvent.setup();
     renderTemplate();
     await expand(user);
 
     expect(screen.getByRole('button', { name: /Adicionar exercício/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Criar bi-set/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Criar bi-set$/i })).toBeEnabled();
   });
 
   it('hides "Criar bi-set" in the read-only protocol view', async () => {

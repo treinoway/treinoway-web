@@ -18,5 +18,5 @@ export const getGifUrlError = (value) => {
   return trimmed !== '' && !isHttpUrl(trimmed) ? GIF_URL_ERROR : null;
 };
 
-/** A GIF is shown only when there is a GIF link and no playable (YouTube) video. */
-export const shouldShowGif = ({ videoUrl, gifUrl }) => !!gifUrl && !getYoutubeVideoId(videoUrl);
+/** A GIF is shown only when there is a GIF link and no playable video (uploaded file or YouTube). */
+export const shouldShowGif = ({ videoUrl, videoFileUrl, gifUrl }) => !!gifUrl && !videoFileUrl && !getYoutubeVideoId(videoUrl);

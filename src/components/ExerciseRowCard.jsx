@@ -68,7 +68,7 @@ ExerciseRowCard.propTypes = {
   summary: PropTypes.string,
   techniques: PropTypes.array,
   /** Object carrying videoUrl/gifUrl; drives the "Vídeo" badge. */
-  media: PropTypes.shape({ videoUrl: PropTypes.string, gifUrl: PropTypes.string }),
+  media: PropTypes.shape({ videoUrl: PropTypes.string, videoFileKey: PropTypes.string, videoFileUrl: PropTypes.string, gifUrl: PropTypes.string }),
   emptyHint: PropTypes.string,
   sourceDeleted: PropTypes.bool,
   sourceDeletedLabel: PropTypes.string,
