@@ -14,6 +14,7 @@ import PreviousSeasonsList from '../../components/consistency/PreviousSeasonsLis
 import RulesSection from '../../components/consistency/RulesSection';
 import WeightRow from '../../components/consistency/WeightRow';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
+import useHistoryBackGuard from '../../hooks/useHistoryBackGuard';
 import useInternalLinkGuard from '../../hooks/useInternalLinkGuard';
 import useConsistencyConfig from '../../hooks/useConsistencyConfig';
 import { dayMonthOf, formatCloseDateLabel, formatCloseLabel, seasonEndDateOf } from '../../utils/consistencyFormat';
@@ -265,6 +266,12 @@ const ConsistencyRankingSettings = () => {
   }, [isDirty, navigate, requestConfirm]);
 
   useInternalLinkGuard(isDirty, leaveTo);
+
+  const confirmHistoryLeave = useCallback((proceed) => {
+    requestConfirm({ message: 'Há mudanças não salvas. Descartar e sair?', confirmLabel: 'Descartar', busyLabel: 'Saindo...', onConfirm: proceed });
+  }, [requestConfirm]);
+
+  useHistoryBackGuard(isDirty, confirmHistoryLeave);
 
   const handleSave = async () => {
     try {

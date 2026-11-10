@@ -290,6 +290,20 @@ describe('ConsistencyRankingSettings', () => {
     expect(await screen.findByText('Página de alunos')).toBeInTheDocument();
   });
 
+  it('PAN-44 also asks when the personal presses the browser Back button with unsaved changes', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForPage();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Limite do alerta de risco' }), 'Abaixo de 80%');
+
+    window.dispatchEvent(new PopStateEvent('popstate'));
+
+    expect(await screen.findByRole('alertdialog')).toHaveAccessibleName(/mudanças não salvas/);
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancelar' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Configuração do ranking' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Limite do alerta de risco' })).toHaveValue('80');
+  });
+
   it('PAN-44 lets a menu link navigate at once when nothing changed', async () => {
     const user = userEvent.setup();
     renderPage();
