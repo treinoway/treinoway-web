@@ -391,6 +391,14 @@
   --toggle-track-off: var(--primitive-neutral-300);
   --badge-neutral-bg: var(--primitive-neutral-100);
 
+  /* Consistency ranking podium medals (design tokens of the ranking, AD-015) */
+  --ranking-medal-gold-bg: #FDF3DC;
+  --ranking-medal-gold-text: #7A4E0B;
+  --ranking-medal-silver-bg: #EEF1F5;
+  --ranking-medal-silver-text: #475569;
+  --ranking-medal-bronze-bg: #F8E8DC;
+  --ranking-medal-bronze-text: #7A3E14;
+
   /* Effects */
   --shadow-overlay: 0 8px 24px rgba(18, 20, 22, 0.12);
   --focus-ring: 0 0 0 2px var(--background-surface), 0 0 0 4px var(--border-focus);
@@ -20736,3 +20744,20 @@ select.input { cursor: pointer; }
 .video-upload__bar { height: var(--spacing-sm); overflow: hidden; border-radius: var(--radius-full); background: var(--background-surface-elevated); }
 .video-upload__bar-fill { height: 100%; border-radius: var(--radius-full); background: var(--action-primary-default); transition: width var(--duration-fast) var(--ease-brand); }
 .video-upload__percent { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+/* ── Consistency ranking: podium medal (PositionMark) ───────────────── */
+.consistency-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--size-index-chip);
+  height: var(--size-index-chip);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.consistency-medal--gold { background: var(--ranking-medal-gold-bg); color: var(--ranking-medal-gold-text); }
+.consistency-medal--silver { background: var(--ranking-medal-silver-bg); color: var(--ranking-medal-silver-text); }
+.consistency-medal--bronze { background: var(--ranking-medal-bronze-bg); color: var(--ranking-medal-bronze-text); }
