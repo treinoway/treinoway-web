@@ -20761,3 +20761,13 @@ select.input { cursor: pointer; }
 .consistency-medal--gold { background: var(--ranking-medal-gold-bg); color: var(--ranking-medal-gold-text); }
 .consistency-medal--silver { background: var(--ranking-medal-silver-bg); color: var(--ranking-medal-silver-text); }
 .consistency-medal--bronze { background: var(--ranking-medal-bronze-bg); color: var(--ranking-medal-bronze-text); }
+.consistency-position {
+  display: inline-block;
+  min-width: var(--size-index-chip);
+  text-align: center;
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.consistency-position--empty { color: var(--text-tertiary); }
