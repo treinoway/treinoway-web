@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dayMonthOf, seasonEndDateOf, formatScore, formatCountdown, weekLabel, formatCloseLabel, formatCloseDateLabel, formatWeekdayTime, currentWeekStartOf } from './consistencyFormat';
+import { dayMonthOf, seasonEndDateOf, formatScore, formatCountdown, weekLabel, formatCloseLabel, formatCloseDateLabel, formatWeekdayTime, currentWeekStartOf, formatNotStartedMessage } from './consistencyFormat';
 
 describe('formatScore', () => {
   it('PAN-06 rounds to a whole percent', () => {
@@ -95,5 +95,38 @@ describe('formatWeekdayTime', () => {
   it('PAN-49 writes the weekday and time of an instant in the time zone', () => {
     expect(formatWeekdayTime('2026-11-08T23:48:00.000Z', 'America/Sao_Paulo')).toBe('domingo 20h48');
     expect(formatWeekdayTime('2026-11-09T00:00:00.000Z', 'America/Sao_Paulo')).toBe('domingo 21h');
+  });
+});
+
+describe('formatNotStartedMessage', () => {
+  it('PAN-60 announces the launch Monday of the ranking', () => {
+    expect(formatNotStartedMessage({ reason: 'launchPending', startsOn: '2026-11-16' })).toBe('O Ranking de Constância começa na segunda, 16/11.');
+  });
+
+  it('PAN-60 says the ranking is not released for the account when the launch has no date', () => {
+    expect(formatNotStartedMessage({ reason: 'launchPending', startsOn: null })).toBe('O Ranking de Constância ainda não foi liberado para a tua conta.');
+  });
+
+  it('PAN-60 asks for a student with an active plan', () => {
+    expect(formatNotStartedMessage({ reason: 'noActiveStudent', startsOn: null })).toBe('Teu ranking aparece quando um aluno tiver plano ativo.');
+  });
+
+  it('PAN-60 announces the Monday of the next season', () => {
+    expect(formatNotStartedMessage({ reason: 'betweenSeasons', startsOn: '2026-11-23' })).toBe('A próxima temporada começa na segunda, 23/11.');
+  });
+
+  it('PAN-60 falls back to the no-student message without a reason from an older API', () => {
+    expect(formatNotStartedMessage(null)).toBe('Teu ranking aparece quando um aluno tiver plano ativo.');
+    expect(formatNotStartedMessage(undefined)).toBe('Teu ranking aparece quando um aluno tiver plano ativo.');
+  });
+
+  it('PAN-60 keeps the day of a date-only start in a time zone behind UTC', () => {
+    const previousTimeZone = process.env.TZ;
+    process.env.TZ = 'America/Sao_Paulo';
+    try {
+      expect(formatNotStartedMessage({ reason: 'betweenSeasons', startsOn: '2026-11-23' })).toBe('A próxima temporada começa na segunda, 23/11.');
+    } finally {
+      process.env.TZ = previousTimeZone;
+    }
   });
 });
