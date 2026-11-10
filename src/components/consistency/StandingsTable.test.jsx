@@ -53,6 +53,12 @@ const renderTable = (props = {}) => {
 const rowOf = (name) => screen.getByRole('row', { name: new RegExp(name) });
 
 describe('StandingsTable', () => {
+  it('PAN-17 keeps the WhatsApp button but offers no pause on a closed season', () => {
+    renderTable({ season: { ...SEASON, status: 'closed' } });
+    expect(screen.getByRole('button', { name: 'Mensagem no WhatsApp para Paula G.' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Pausar semana de/ })).not.toBeInTheDocument();
+  });
+
   it('PAN-04 renders every column of a row', () => {
     renderTable();
     ['Pos.', 'Aluno', 'Faixa', 'Temporada', 'Pilares', 'Semana atual', 'Sem. 100%', 'Sequência', 'Ações'].forEach((header) => {

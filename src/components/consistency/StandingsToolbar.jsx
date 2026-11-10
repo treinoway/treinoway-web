@@ -33,12 +33,12 @@ FilterChip.propTypes = {
 };
 
 // Filter chips with the live-average note, shown on the current-season tab
-const StandingsFilters = ({ filter, onFilterChange, counts }) => (
+const StandingsFilters = ({ filter, onFilterChange, counts, live }) => (
   <div className="consistency-toolbar__filters">
     {STANDINGS_FILTER_OPTIONS.map((option) => (
       <FilterChip key={option.value} option={option} count={counts[option.value] ?? 0} active={filter === option.value} onSelect={onFilterChange} />
     ))}
-    <p className="consistency-toolbar__note type-caption">Média ao vivo: durante a semana a média só sobe. Valor real entra no fechamento.</p>
+    {live && <p className="consistency-toolbar__note type-caption">Média ao vivo: durante a semana a média só sobe. Valor real entra no fechamento.</p>}
   </div>
 );
 
@@ -46,10 +46,11 @@ StandingsFilters.propTypes = {
   filter: PropTypes.string.isRequired,
   onFilterChange: PropTypes.func.isRequired,
   counts: PropTypes.object.isRequired,
+  live: PropTypes.bool.isRequired,
 };
 
 // Tabs of the ranking page, plus search and filter chips on the current season tab
-const StandingsToolbar = ({ tab, onTabChange, filter, onFilterChange, query, onQueryChange, counts }) => {
+const StandingsToolbar = ({ tab, onTabChange, filter, onFilterChange, query, onQueryChange, counts, live = true }) => {
   const isCurrentTab = tab === STANDINGS_TAB.CURRENT;
   return (
     <div className="consistency-toolbar">
@@ -69,7 +70,7 @@ const StandingsToolbar = ({ tab, onTabChange, filter, onFilterChange, query, onQ
           </div>
         )}
       </div>
-      {isCurrentTab && <StandingsFilters filter={filter} onFilterChange={onFilterChange} counts={counts} />}
+      {isCurrentTab && <StandingsFilters filter={filter} onFilterChange={onFilterChange} counts={counts} live={live} />}
     </div>
   );
 };
@@ -82,6 +83,7 @@ StandingsToolbar.propTypes = {
   query: PropTypes.string.isRequired,
   onQueryChange: PropTypes.func.isRequired,
   counts: PropTypes.object.isRequired,
+  live: PropTypes.bool,
 };
 
 export default StandingsToolbar;

@@ -8,7 +8,7 @@ import PositionMark from './PositionMark';
 import ScoreBar from './ScoreBar';
 import StudentSignals from './StudentSignals';
 import { formatScore } from '../../utils/consistencyFormat';
-import { PILLAR_ABBREVIATIONS, PILLAR_LABELS, PILLAR_ORDER, WARNING_SCORE_THRESHOLD } from '../../constants/consistencyRanking';
+import { PILLAR_ABBREVIATIONS, PILLAR_LABELS, PILLAR_ORDER, SEASON_STATUS, WARNING_SCORE_THRESHOLD } from '../../constants/consistencyRanking';
 
 const COLUMN_HEADERS = ['Pos.', 'Aluno', 'Faixa', 'Temporada', 'Pilares', 'Semana atual', 'Sem. 100%', 'Sequência', 'Ações'];
 const NO_STREAK_PLACEHOLDER = '—';
@@ -24,20 +24,23 @@ const legendOf = (allRows) => {
   return pillars.length > 0 ? `${pillars.join(' · ')}. ${bars}` : bars;
 };
 
-// WhatsApp and pause icon buttons of a row
-const RowActions = ({ row, onMessage, onPause }) => (
+// WhatsApp and pause icon buttons of a row; a closed season has no week left to pause
+const RowActions = ({ row, canPause, onMessage, onPause }) => (
   <div className="consistency-row__actions">
     <button type="button" className="icon-button" aria-label={`Mensagem no WhatsApp para ${row.displayName}`} onClick={() => onMessage(row)}>
       <MessageCircle size={20} strokeWidth={2} aria-hidden="true" />
     </button>
-    <button type="button" className="icon-button" aria-label={`Pausar semana de ${row.displayName}`} onClick={() => onPause(row)}>
-      <Pause size={20} strokeWidth={2} aria-hidden="true" />
-    </button>
+    {canPause && (
+      <button type="button" className="icon-button" aria-label={`Pausar semana de ${row.displayName}`} onClick={() => onPause(row)}>
+        <Pause size={20} strokeWidth={2} aria-hidden="true" />
+      </button>
+    )}
   </div>
 );
 
 RowActions.propTypes = {
   row: PropTypes.object.isRequired,
+  canPause: PropTypes.bool.isRequired,
   onMessage: PropTypes.func.isRequired,
   onPause: PropTypes.func.isRequired,
 };
@@ -83,7 +86,7 @@ const StandingsRow = ({ row, season, riskLimit, onOpenStudent, onMessage, onPaus
     <td className="consistency-row__number type-body-strong">{formatScore(row.currentWeekScore)}</td>
     <td className="consistency-row__number type-body-strong">{row.weeks100}</td>
     <td className="consistency-row__number type-body-strong">{streakLabelOf(row.streak)}</td>
-    <td><RowActions row={row} onMessage={onMessage} onPause={onPause} /></td>
+    <td><RowActions row={row} canPause={season.status !== SEASON_STATUS.CLOSED} onMessage={onMessage} onPause={onPause} /></td>
   </tr>
 );
 

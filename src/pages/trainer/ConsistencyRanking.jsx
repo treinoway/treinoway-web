@@ -137,6 +137,7 @@ const RankingBoard = ({ standings, config, actions }) => (
       query={standings.query}
       onQueryChange={standings.setQuery}
       counts={standings.data.counts ?? {}}
+      live={standings.data.season?.status !== SEASON_STATUS.CLOSED}
     />
     <TabContent standings={standings} riskLimit={config?.riskLimit} actions={actions} />
   </section>
@@ -220,7 +221,7 @@ const ConsistencyRanking = () => {
 
   return (
     <div className="consistency-page">
-      <PageHeader canPause={Boolean(season)} onPauseTeam={() => setPauseTarget({ scope: 'team' })} onConfigure={() => navigate(SETTINGS_PATH)} />
+      <PageHeader canPause={season?.status === SEASON_STATUS.ACTIVE} onPauseTeam={() => setPauseTarget({ scope: 'team' })} onConfigure={() => navigate(SETTINGS_PATH)} />
       <RankingContent standings={standings} config={config} actions={actions} />
       {openStudent && season && (
         <StudentPanel

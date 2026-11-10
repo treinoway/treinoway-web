@@ -14,6 +14,11 @@ const renderCards = (props = {}) =>
 const cardOf = (label) => screen.getByText(label).closest('.metric-card');
 
 describe('TeamSummaryCards', () => {
+  it('PAN-17 does not call a closed season live', () => {
+    renderCards({ season: { currentWeek: 4, status: 'closed' } });
+    expect(within(cardOf('Constância média do time')).getByText('19 alunos. Semana 3 fechou em 84%.')).toBeInTheDocument();
+  });
+
   it('PAN-03 shows the four summary numbers', () => {
     renderCards();
     const average = cardOf('Constância média do time');

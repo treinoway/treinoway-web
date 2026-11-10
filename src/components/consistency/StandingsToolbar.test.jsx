@@ -7,13 +7,13 @@ import StandingsToolbar from './StandingsToolbar';
 const COUNTS = { all: 19, risk: 3, signal: 2, entering: 1, paused: 1 };
 
 // Holds the tab, filter and search the way the page does, and echoes the search
-const ToolbarHarness = ({ initialTab = 'current' }) => {
+const ToolbarHarness = ({ initialTab = 'current', live = true }) => {
   const [tab, setTab] = useState(initialTab);
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
   return (
     <>
-      <StandingsToolbar tab={tab} onTabChange={setTab} filter={filter} onFilterChange={setFilter} query={query} onQueryChange={setQuery} counts={COUNTS} />
+      <StandingsToolbar tab={tab} onTabChange={setTab} filter={filter} onFilterChange={setFilter} query={query} onQueryChange={setQuery} counts={COUNTS} live={live} />
       <output aria-label="Busca atual">{query}</output>
     </>
   );
@@ -21,6 +21,7 @@ const ToolbarHarness = ({ initialTab = 'current' }) => {
 
 ToolbarHarness.propTypes = {
   initialTab: PropTypes.string,
+  live: PropTypes.bool,
 };
 
 describe('StandingsToolbar', () => {
@@ -59,6 +60,12 @@ describe('StandingsToolbar', () => {
   it('explains that the live average only goes up during the week', () => {
     render(<ToolbarHarness />);
     expect(screen.getByText('Média ao vivo: durante a semana a média só sobe. Valor real entra no fechamento.')).toBeInTheDocument();
+  });
+
+  it('PAN-17 drops the live-average note when the season is closed', () => {
+    render(<ToolbarHarness live={false} />);
+    expect(screen.queryByText(/Média ao vivo/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Todos/ })).toBeInTheDocument();
   });
 
   it('keeps search and filters only on the current season tab', () => {

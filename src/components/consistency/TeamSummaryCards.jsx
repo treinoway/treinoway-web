@@ -2,14 +2,14 @@ import PropTypes from 'prop-types';
 import MetricCard from '../ds/MetricCard';
 import Badge from '../ds/Badge';
 import { formatScore } from '../../utils/consistencyFormat';
-import { STANDINGS_FILTER } from '../../constants/consistencyRanking';
+import { SEASON_STATUS, STANDINGS_FILTER } from '../../constants/consistencyRanking';
 
 const DEFAULT_RISK_LIMIT = 70;
 const DEFAULT_RISK_WEEKS = 2;
 
-// "Ao vivo, N alunos." plus how the last closed week ended, when there is one
+// "Ao vivo, N alunos." (just "N alunos." once the season is closed) plus how the last closed week ended, when there is one
 const averageSupportOf = ({ summary, counts, season }) => {
-  const live = `Ao vivo, ${counts.all} alunos.`;
+  const live = season.status === SEASON_STATUS.CLOSED ? `${counts.all} alunos.` : `Ao vivo, ${counts.all} alunos.`;
   if (summary.lastClosedWeekAverage === null || summary.lastClosedWeekAverage === undefined) return live;
   return `${live} Semana ${season.currentWeek - 1} fechou em ${formatScore(summary.lastClosedWeekAverage)}.`;
 };

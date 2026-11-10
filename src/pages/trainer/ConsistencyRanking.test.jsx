@@ -286,6 +286,17 @@ describe('ConsistencyRanking', () => {
     expect(await screen.findByRole('button', { name: 'Ana Beatriz S.' })).toBeInTheDocument();
   });
 
+  it('PAN-17 shows a closed season without the live-only controls', async () => {
+    const closed = { ...buildStandings([ANA, MARCOS, JOAO]), season: { ...SEASON, number: 2, status: 'closed', closesAt: null } };
+    mockApi({ standings: closed });
+    renderPage('/trainer/consistency-ranking?season=2');
+    await waitForRows();
+
+    expect(screen.getByRole('button', { name: 'Pausar semana do time' })).toBeDisabled();
+    expect(screen.queryByText(/Média ao vivo/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Pausar semana de Ana/ })).not.toBeInTheDocument();
+  });
+
   it('PAN-17 opens the season named in the query string', async () => {
     renderPage('/trainer/consistency-ranking?season=2');
 
