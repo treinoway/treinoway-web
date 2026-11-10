@@ -148,7 +148,7 @@ const PanelContent = ({ data, panel, seasonNumber, closeLabel, onChanged }) => {
       {modal === 'pause' && (
         <PauseWeekModal currentWeekStart={currentWeek.weekStart} studentName={data.displayName} onSubmit={afterChange(panel.pauseWeek)} onClose={closeModal} />
       )}
-      {modal === 'adjust' && <AdjustTargetModal studentName={data.displayName} onSubmit={afterChange(panel.adjustTarget)} onClose={closeModal} />}
+      {modal === 'adjust' && <AdjustTargetModal targets={data.currentTargets} studentName={data.displayName} onSubmit={afterChange(panel.adjustTarget)} onClose={closeModal} />}
     </div>
   );
 };

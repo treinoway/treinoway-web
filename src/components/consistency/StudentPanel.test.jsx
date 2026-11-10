@@ -23,6 +23,10 @@ const buildPanel = (overrides = {}) => ({
   average: 61,
   faixa: 'restarting',
   risk: { weeks: 2, scores: [64, 58] },
+  currentTargets: [
+    { pillar: 'workouts', expected: 4, adjusted: null },
+    { pillar: 'cardio', expected: 3, adjusted: 1 },
+  ],
   pause: null,
   signals: [],
   seasonPillars: [
@@ -203,6 +207,18 @@ describe('StudentPanel', () => {
 
     await waitFor(() => expect(api.put).toHaveBeenCalledWith(`${BASE_URL}/students/${STUDENT_ID}/targets`, { pillar: 'workouts', value: 2 }));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
+  });
+
+  it('PAN-33 shows the frozen target of the week for the chosen pillar in the adjustment modal', async () => {
+    const user = userEvent.setup();
+    await renderPanel();
+
+    await user.click(screen.getByRole('button', { name: 'Ajustar meta' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Ajustar meta' });
+
+    expect(within(dialog).getByText('Meta da semana: 4')).toBeInTheDocument();
+    await user.selectOptions(within(dialog).getByRole('combobox', { name: 'Pilar' }), 'cardio');
+    expect(within(dialog).getByText('Meta da semana: 3')).toBeInTheDocument();
   });
 
   it('PAN-34 keeps the adjustment modal open with the API message when the target is refused', async () => {
