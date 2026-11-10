@@ -20945,3 +20945,45 @@ select.input { cursor: pointer; }
 .consistency-row__muted { color: var(--text-secondary); white-space: nowrap; }
 .consistency-row__actions { position: relative; z-index: var(--z-base); display: flex; justify-content: flex-end; gap: var(--spacing-xs); }
 .consistency-table__legend { margin: 0; padding: var(--spacing-md) var(--spacing-lg); color: var(--text-secondary); }
+
+/* ── Consistency ranking: student panel sections and week chart ───────────────── */
+.student-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface);
+}
+.student-panel__section-title { margin: 0; color: var(--text-secondary); }
+
+.week-chart__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-xs) var(--spacing-lg); }
+.week-chart__title { margin: 0; color: var(--text-secondary); }
+.week-chart__legend { color: var(--text-secondary); }
+.week-chart__columns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin: 0; padding: 0; list-style: none; }
+.week-chart__column { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-sm); }
+.week-chart__score { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.week-chart__plot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: calc(var(--spacing-5xl) * 2);
+}
+.week-chart__limit { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--feedback-error); }
+.week-chart__bar {
+  display: block;
+  width: 60%;
+  max-width: var(--spacing-4xl);
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-none) var(--radius-none);
+  background: var(--chart-sv-full);
+}
+.week-chart__bar--warning { background: var(--feedback-warning); }
+.week-chart__bar--current {
+  background: repeating-linear-gradient(135deg, var(--chart-sv-full) 0 var(--spacing-xs), var(--chart-sv-cut) var(--spacing-xs) var(--spacing-sm));
+}
+.week-chart__bar--empty { height: var(--spacing-xs); border-radius: var(--radius-xs); background: var(--chart-track); }
+.week-chart__name { color: var(--text-secondary); }
+.week-chart__note { margin: 0; color: var(--text-secondary); }
