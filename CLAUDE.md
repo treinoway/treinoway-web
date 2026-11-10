@@ -1,10 +1,10 @@
 # CLAUDE.md — Treinoway Web
 
-## RULE 0: Always Use the frontend-engineer Agent
+## RULE 0: Use the Frontend Agents
 
-**You MUST delegate ALL code writing to the `frontend-engineer` agent. No exceptions.**
+**All production code goes through the `frontend-engineer` agent; all tests through `frontend-test-writer`. In the /feature flow the orchestrator spawns them; in a single-repo session the main session does.**
 
-Never write frontend code directly. Every implementation task — components, pages, hooks, styles, tests, i18n — must go through the `frontend-engineer` agent. This is not a suggestion.
+Never write frontend code directly. Components, pages, hooks, styles and i18n go through `frontend-engineer`; test files go through `frontend-test-writer`. Subagents never spawn other agents. This is not a suggestion.
 
 ---
 
@@ -24,7 +24,7 @@ Never write frontend code directly. Every implementation task — components, pa
 - **Framework:** Vitest + React Testing Library + @testing-library/user-event
 - **Files:** `FileName.test.jsx` in the same directory as the component
 - **Utilities:** import from `../../test/test-utils` (never directly from @testing-library/react)
-- Queries by **role, label, placeholder** — never by CSS class or data-testid
+- Queries by **role, label, placeholder** — never by CSS class or data-testid. **Exception:** tests required by the design-system gate (`ds-check`) may assert DS classes/markup (`toHaveClass('btn--primary')`, `container.querySelector('.badge')`) for the plan's Design system rows; everything else still queries by role/label.
 - `userEvent.setup()` for interactions, `waitFor()` for async
 - Context mocks: `vi.mock('../contexts/ToastContext')`, `vi.mock('../contexts/AuthContext')`
 - API mock: `vi.mock('../api/axios')` with conditional responses by URL
@@ -195,9 +195,11 @@ The backend returns errors with an i18n-ready structure:
 { "error": "VALIDATION_ERROR", "messageCode": "validation.failed", "details": [{ "field": "email", "messageCode": "validation.email.format" }] }
 ```
 
-**Known `messageCode` values:** `auth.unauthorized`, `auth.forbidden`, `resource.notFound`, `resource.conflict`, `request.badRequest`, `validation.failed`
+**Example `messageCode` values:** `auth.unauthorized`, `auth.forbidden`, `resource.notFound`, `resource.conflict`, `request.badRequest`, `validation.failed`
 
-**Known error codes:** `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `EMAIL_IN_USE`, `PASSWORD_MISMATCH`, `VALIDATION_ERROR`, `FILE_REQUIRED`, `INVALID_FILE_TYPE`, `FILE_TOO_LARGE`
+**Example error codes:** `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `EMAIL_IN_USE`, `PASSWORD_MISMATCH`, `VALIDATION_ERROR`, `FILE_REQUIRED`, `INVALID_FILE_TYPE`, `FILE_TOO_LARGE`
+
+These lists are examples, not exhaustive. The source of truth is the backend `src/constants` and `src/i18n/locales/pt-BR.js` (service repo).
 
 New translations go in `src/i18n/locales/pt-BR.js` under the `errors`, `messageCodes`, `validation`, `fields` sections.
 
@@ -219,7 +221,7 @@ Enforced by `eslint-rules/` (lint errors, checked by the Stop hook):
 - **Header above every top-level function/component**: one-line summary — `// …`, or JSDoc whose summary is one line followed by `@param`/`@returns`.
 - **No comments inside functions** (JSX `{/* */}` included). Extract a well-named function or component instead. Only allowed inside a body: `// why: …` (non-obvious reason), `// deviation: …`, tool directives (`eslint-disable… -- <reason>`, `TODO`).
 - **Pattern rules as lint errors**: no `error.response.data.message` (use `error.userMessage`), no `window.confirm`, no direct `axios` import outside `src/api/axios.js`.
-- **Deviating**: follow the surrounding code's pattern; when you must break a convention, mark it `// deviation: <reason>` or `eslint-disable-next-line <rule> -- <reason>` (never a blanket `eslint-disable`) and tell the user in your final message. The Stop hook lists new deviations once and blocks until you do.
+- **Deviating**: follow the surrounding code's pattern; when you must break a convention, mark it `// deviation: <reason>` or `eslint-disable-next-line <rule> -- <reason>` (never a blanket `eslint-disable`) and tell the user in your final message. The Stop hook blocks until each new deviation is named in your final message.
 - **Ratchet**: pre-existing violations are frozen in `eslint-suppressions.json`; only new ones fail. After fixing a frozen one, `npx eslint --prune-suppressions` (the Stop hook does it). Never re-run `--suppress-*` to silence new code.
 
 ---

@@ -78,17 +78,19 @@ Evaluate the design against these dimensions:
 - Long text overflow?
 - Slow network / API failure?
 
-### 7. Brand Fidelity (Athletic-Tech DNA — CRITICAL)
-Treat brand drift as a **critical issue**, not cosmetic. Flag every violation:
-- Does every performance metric use `StatDisplay` (kg, %, reps, volume, aderência)? Raw numbers in `<span>` = critical fail.
-- Are buttons UPPERCASE with `--tracking-wide` weight 600? Sentence-case button = critical fail.
-- Are display titles on Space Grotesk (`--font-family-display`)? Body Inter? Body font on H1 = critical fail.
-- Does the design call out `.theme-stadium` for execution / stat-heavy / in-session surfaces? Missing on workout-execution = critical fail.
-- Are tokens canonical (`--brand-*`, `--radius-brand`, `--shadow-brand-*`, `--ease-brand`)? ANY legacy alias mentioned (`--color-*`, `--md-primary`, `--shadow-sm`, `--radius-sm`, `--radius-md`, `--ease-out`) = critical fail.
-- Is `--brand-accent` ever applied to a primary CTA? That = critical fail (accent is for PRs/achievements only).
-- Are kinetic moments (achievements, PRs) using `--ease-kinetic` + `--duration-achievement`?
-- Does spec end with a "Brand Application Notes" subsection? Missing = critical fail.
-- Does the spec read like generic Material 3 (tonal fills, surface elevation language)? That = critical fail — Treinoway uses ink shadows + hairlines, not tonal layers.
+### 7. Brand Fidelity (TeuFit design system — CRITICAL)
+The source of truth is `.claude/skills/apply-design/SKILL.md` (read it; quote its section numbers). Treat drift as a **critical issue**, not cosmetic. Flag every violation:
+- Typography: Nunito Sans only, weights 400/600/700 only, via the `.type-*` scale. Any other family or weight (300/500/800/900) = critical fail.
+- Buttons: sentence case ("Criar rotina"), no letter-spacing. UPPERCASE buttons, tabs or titles = critical fail. (Only Status badges and the OVERLINE style are uppercase.)
+- Tokens: semantic only (`--background-*`, `--text-*`, `--border-*`, `--action-*`, `--feedback-*`, `--icon-*`, `--chart-*`, `--spacing-*`, `--radius-*`). Hex, px literals, `--primitive-*` or legacy custom properties (`--color-*`, `--md-*`, `--brand-*`) = critical fail.
+- Orange (`action-secondary`) anywhere except the WhatsApp conversion CTA (badges, icons, decoration, charts) = critical fail.
+- Status: Badge with the `feedback-*-bg` + `feedback-*-text` pair. Colored text alone, or colored side bars/stripes/rings = critical fail.
+- Surfaces: shadow on cards = critical fail (shadow only on tooltip, dropdown, modal via `--shadow-overlay`). Whitespace is the main separator; border + background + shadow stacked without need = medium.
+- `--radius-full` on cards, containers, buttons or inputs = critical fail (only avatars, pills, badges, toggles).
+- Charts use only `--chart-*` tokens; status in charts is encoded by shape, not red x green.
+- Components: row with 2+ actions must use `RowMenu`; destructive confirmation must use `ds/ConfirmDialog`; no per-page variants of shared components; more than one primary button per view = critical fail.
+- Motion confirms, never decorates: hover scale/transform animations = medium.
+- Does the spec read like generic Material 3 (tonal fills, surface elevation language) or like a sports-app skin? TeuFit is light, calm, acolhedor ("menos é mais") — flag both.
 
 ---
 
@@ -120,10 +122,10 @@ Always respond using this exact structure:
 ---
 
 ### 🎨 Brand Fidelity
-*Athletic-Tech DNA enforcement. Drift goes here AND in Critical Issues if severe.*
+*TeuFit design-system enforcement. Drift goes here AND in Critical Issues if severe.*
 
 - [Violation]: [Which brand rule it breaks] → [Canonical fix — name the token/component]
-- Confirm presence of: `StatDisplay` on every metric, UPPERCASE buttons, Space Grotesk on titles, `.theme-stadium` on execution surfaces, canonical `--brand-*` / `--radius-brand` / `--shadow-brand-*` tokens only, `--brand-accent` reserved for PRs/achievements, "Brand Application Notes" section present.
+- Confirm: Nunito Sans 400/600/700 only, sentence-case buttons, semantic tokens only, orange only on the WhatsApp CTA, status as Badge (bg+text pair), no shadow on cards, `RowMenu` / `ds/ConfirmDialog` used where applicable, "Brand Application Notes" section present.
 
 ---
 
