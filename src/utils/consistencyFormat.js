@@ -63,6 +63,20 @@ export const formatCloseDateLabel = (closesAt, timeZone) => {
   return `${parts.weekday}, ${parts.day}/${parts.month}, às ${closeHourOf(parts)}`;
 };
 
+const NO_ACTIVE_STUDENT_MESSAGE = 'Teu ranking aparece quando um aluno tiver plano ativo.';
+
+// Message of why no season runs, by the reason the service gives; an unknown or missing reason reads as no active student
+export const formatNotStartedMessage = (notStarted) => {
+  const { reason, startsOn } = notStarted ?? {};
+  if (reason === 'launchPending') {
+    return startsOn
+      ? `O Ranking de Constância começa na segunda, ${dayMonthOf(startsOn)}.`
+      : 'O Ranking de Constância ainda não foi liberado para a tua conta.';
+  }
+  if (reason === 'betweenSeasons' && startsOn) return `A próxima temporada começa na segunda, ${dayMonthOf(startsOn)}.`;
+  return NO_ACTIVE_STUDENT_MESSAGE;
+};
+
 // "YYYY-MM-DD" Monday of the running week of a season
 export const currentWeekStartOf = (season) => {
   const start = Date.parse(season.startWeek) + (season.currentWeek - 1) * DAYS_PER_WEEK * MS_PER_DAY;

@@ -16,7 +16,7 @@ import StudentPanel from '../../components/consistency/StudentPanel';
 import TeamSummaryCards from '../../components/consistency/TeamSummaryCards';
 import useConsistencyConfig from '../../hooks/useConsistencyConfig';
 import useConsistencyStandings from '../../hooks/useConsistencyStandings';
-import { currentWeekStartOf, formatCloseLabel } from '../../utils/consistencyFormat';
+import { currentWeekStartOf, formatCloseLabel, formatNotStartedMessage } from '../../utils/consistencyFormat';
 import { SEASON_STATUS, STANDINGS_FILTER, STANDINGS_TAB } from '../../constants/consistencyRanking';
 
 const PAUSES_URL = '/trainer/consistency-ranking/pauses';
@@ -151,12 +151,14 @@ RankingBoard.propTypes = {
   actions: PropTypes.object.isRequired,
 };
 
-// Everything under the header: error, loading, the no-student state, or the season, cards and board
+// Everything under the header: error, loading, the not-started or no-student state, or the season, cards and board
 const RankingContent = ({ standings, config, actions }) => {
   const { data, error, tab, reload } = standings;
   const isCurrent = tab === STANDINGS_TAB.CURRENT;
   const showOverview = isCurrent && dataMatchesTab(data, tab);
-  const isEmptyTeam = showOverview && data.counts?.all === 0;
+  const isNotStarted = showOverview && !data.season;
+  const isEmptyTeam = showOverview && (isNotStarted || data.counts?.all === 0);
+  const emptyMessage = formatNotStartedMessage(isNotStarted ? data.notStarted : null);
   const retry = <button type="button" className="btn btn--secondary" onClick={reload}>Tentar de novo</button>;
 
   return (
@@ -164,7 +166,7 @@ const RankingContent = ({ standings, config, actions }) => {
       {error && <Banner tone="error" action={retry}>{error}</Banner>}
       {!data && !error && <RankingSkeleton />}
       {showOverview && data.season && <SeasonOverview data={data} config={config} onSelectFilter={standings.setFilter} />}
-      {isEmptyTeam && <EmptyBlock icon={Users} title="Teu ranking aparece quando um aluno tiver plano ativo." />}
+      {isEmptyTeam && <EmptyBlock icon={Users} title={emptyMessage} />}
       {data && !isEmptyTeam && <RankingBoard standings={standings} config={config} actions={actions} />}
     </>
   );
