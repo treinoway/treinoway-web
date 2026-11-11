@@ -129,6 +129,11 @@ const en = {
     'emailVerification.dailyLimit': 'You requested too many codes today. Try again later.',
     'emailVerification.sendFailed': 'Could not send the verification email. Please try again.',
     'passwordReset.invalidCode': 'Invalid or expired code. Request a new one.',
+    'trainer.notFound': 'Trainer profile not found.',
+    'consistencyRanking.config.invalid': 'Invalid ranking settings.',
+    'consistencyRanking.pause.weekNotEditable': 'This week has already closed or is more than 12 weeks ahead, so it cannot be paused or resumed.',
+    'consistencyRanking.season.notFound': 'Season not found.',
+    'consistencyRanking.target.notEditable': 'The target can only be lowered in the current week, from zero up to the original target.',
   },
   platformPlan: {
     tier: {
@@ -938,6 +943,9 @@ const en = {
     prev: 'Previous',
     next: 'Next',
     pageStatus: 'Page {page} of {total}',
+  },
+  trainerNav: {
+    consistencyRanking: 'Consistency ranking',
   },
   adminNav: {
     title: 'Administration',

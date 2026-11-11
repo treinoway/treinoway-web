@@ -54,6 +54,8 @@ import ChallengeDetail from './pages/trainer/ChallengeDetail';
 import SessionDetail from './pages/trainer/SessionDetail';
 import Financeiro from './pages/trainer/Financeiro';
 import SubscriptionHistory from './pages/trainer/SubscriptionHistory';
+import ConsistencyRanking from './pages/trainer/ConsistencyRanking';
+import ConsistencyRankingSettings from './pages/trainer/ConsistencyRankingSettings';
 
 // Nutritionist pages
 import Patients from './pages/nutritionist/Patients';
@@ -64,6 +66,7 @@ import PrescriptionGuidance from './pages/nutritionist/PrescriptionGuidance';
 import MyFoods from './pages/nutritionist/MyFoods';
 import NutritionistRoute from './components/NutritionistRoute';
 import RequireRole from './components/RequireRole';
+import useConsistencyRankingAccess from './hooks/useConsistencyRankingAccess';
 import { t } from './i18n';
 
 // Admin pages
@@ -90,6 +93,17 @@ const RedirectWithId = ({ to }) => {
 
 RedirectWithId.propTypes = {
   to: PropTypes.string.isRequired,
+};
+
+// Renders the Ranking de Constância route only when the rollout gate allows it, otherwise sends the user home.
+const ConsistencyRankingRoute = ({ children }) => {
+  const canSeeConsistencyRanking = useConsistencyRankingAccess();
+  if (!canSeeConsistencyRanking) return <Navigate to="/" replace />;
+  return children;
+};
+
+ConsistencyRankingRoute.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 // Backoffice route subtree, split into its own chunk.
@@ -515,6 +529,30 @@ function App() {
                 <Layout>
                   <Challenges />
                 </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/consistency-ranking"
+            element={
+              <ProtectedRoute>
+                <ConsistencyRankingRoute>
+                  <Layout>
+                    <ConsistencyRanking />
+                  </Layout>
+                </ConsistencyRankingRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/consistency-ranking/settings"
+            element={
+              <ProtectedRoute>
+                <ConsistencyRankingRoute>
+                  <Layout>
+                    <ConsistencyRankingSettings />
+                  </Layout>
+                </ConsistencyRankingRoute>
               </ProtectedRoute>
             }
           />

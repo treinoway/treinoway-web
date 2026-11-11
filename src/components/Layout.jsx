@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, Salad } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, Trophy, Salad } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
 import FeedbackWidget from './FeedbackWidget';
 import useAiAccess from '../hooks/useAiAccess';
+import useConsistencyRankingAccess from '../hooks/useConsistencyRankingAccess';
 import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
 import { SIDEBAR_BADGE_MAX } from '../constants/finance';
 import { t, tCount, tf } from '../i18n';
@@ -35,6 +36,7 @@ const Layout = ({ children, noPadding = false }) => {
   const { user, logout, hasRole } = useAuth();
   const { loading: aiLoading, hasNewResponse: aiHasNewResponse } = useAiChat();
   const showAi = useAiAccess();
+  const showConsistencyRanking = useConsistencyRankingAccess();
   const location = useLocation();
   const navigate = useNavigate();
   const popoverRef = useRef(null);
@@ -201,6 +203,19 @@ const Layout = ({ children, noPadding = false }) => {
                 </span>
                 <span className="sidebar-link-label">Meus Alunos</span>
               </Link>
+
+              {showConsistencyRanking && (
+                <Link
+                  to="/trainer/consistency-ranking"
+                  className={`sidebar-link ${isActive('/trainer/consistency-ranking') ? 'sidebar-link--active' : ''}`}
+                  aria-label={t('trainerNav.consistencyRanking')}
+                >
+                  <span className="sidebar-link-icon" aria-hidden="true">
+                    <Trophy size={20} strokeWidth={1.6} />
+                  </span>
+                  <span className="sidebar-link-label">{t('trainerNav.consistencyRanking')}</span>
+                </Link>
+              )}
 
               {/* iArnold */}
               {showAi && (

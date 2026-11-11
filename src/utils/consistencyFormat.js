@@ -1,0 +1,84 @@
+const MS_PER_MINUTE = 60 * 1000;
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+const MS_PER_DAY = MS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY;
+const DAYS_PER_WEEK = 7;
+const NEUTRAL_PLACEHOLDER = '—';
+const BAND_EDGES = [100, 70];
+
+// "DD/MM" of a "YYYY-MM-DD" date shifted by some days
+export const dayMonthOf = (dateKey, shiftDays = 0) => {
+  const date = new Date(Date.parse(dateKey) + shiftDays * MS_PER_DAY);
+  return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+};
+
+// Sunday that closes a season: the service sends the Monday of its last week
+export const seasonEndDateOf = (endWeek) => dayMonthOf(endWeek, DAYS_PER_WEEK - 1);
+
+// Whole-percent label of a score; rounding never crosses a band edge (100 and the 70 warning limit), so 69.6 reads 69% like its bar and band, a dash for a neutral week
+export const formatScore = (score) => {
+  if (score === null || score === undefined) return NEUTRAL_PLACEHOLDER;
+  const rounded = Math.round(score);
+  const crossedEdge = BAND_EDGES.find((edge) => score < edge && rounded >= edge);
+  return `${crossedEdge ? crossedEdge - 1 : rounded}%`;
+};
+
+// Time left until the close as "4d 7h", "7h 20min" or "45min"; "0min" once passed
+export const formatCountdown = (closesAt, now = new Date()) => {
+  const totalMinutes = Math.max(0, Math.floor((new Date(closesAt).getTime() - new Date(now).getTime()) / MS_PER_MINUTE));
+  const totalHours = Math.floor(totalMinutes / MINUTES_PER_HOUR);
+  const days = Math.floor(totalHours / HOURS_PER_DAY);
+  if (days > 0) return `${days}d ${totalHours % HOURS_PER_DAY}h`;
+  if (totalHours > 0) return `${totalHours}h ${totalMinutes % MINUTES_PER_HOUR}min`;
+  return `${totalMinutes}min`;
+};
+
+// "Semana X de Y" header label
+export const weekLabel = (current, total) => `Semana ${current} de ${total}`;
+
+// Parts (weekday, day, month, hour, minute) of an instant in a time zone, in pt-BR
+const closePartsOf = (closesAt, timeZone) => {
+  const formatter = new Intl.DateTimeFormat('pt-BR', { timeZone, weekday: 'long', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  return Object.fromEntries(formatter.formatToParts(new Date(closesAt)).map((part) => [part.type, part.value]));
+};
+
+// "21h" or "21h30" of the close hour
+const closeHourOf = (parts) => `${parts.hour}h${parts.minute === '00' ? '' : parts.minute}`;
+
+// "domingo às 21h" of the close instant in the time zone
+export const formatCloseLabel = (closesAt, timeZone) => {
+  const parts = closePartsOf(closesAt, timeZone);
+  return `${parts.weekday} às ${closeHourOf(parts)}`;
+};
+
+// "domingo 20h48" of an instant in the time zone
+export const formatWeekdayTime = (instant, timeZone) => {
+  const parts = closePartsOf(instant, timeZone);
+  return `${parts.weekday} ${closeHourOf(parts)}`;
+};
+
+// "domingo, 08/11, às 21h" of the close instant in the time zone
+export const formatCloseDateLabel = (closesAt, timeZone) => {
+  const parts = closePartsOf(closesAt, timeZone);
+  return `${parts.weekday}, ${parts.day}/${parts.month}, às ${closeHourOf(parts)}`;
+};
+
+const NO_ACTIVE_STUDENT_MESSAGE = 'Teu ranking aparece quando um aluno tiver plano ativo.';
+
+// Message of why no season runs, by the reason the service gives; an unknown or missing reason reads as no active student
+export const formatNotStartedMessage = (notStarted) => {
+  const { reason, startsOn } = notStarted ?? {};
+  if (reason === 'launchPending') {
+    return startsOn
+      ? `O Ranking de Constância começa na segunda, ${dayMonthOf(startsOn)}.`
+      : 'O Ranking de Constância ainda não foi liberado para a tua conta.';
+  }
+  if (reason === 'betweenSeasons' && startsOn) return `A próxima temporada começa na segunda, ${dayMonthOf(startsOn)}.`;
+  return NO_ACTIVE_STUDENT_MESSAGE;
+};
+
+// "YYYY-MM-DD" Monday of the running week of a season
+export const currentWeekStartOf = (season) => {
+  const start = Date.parse(season.startWeek) + (season.currentWeek - 1) * DAYS_PER_WEEK * MS_PER_DAY;
+  return new Date(start).toISOString().slice(0, 10);
+};

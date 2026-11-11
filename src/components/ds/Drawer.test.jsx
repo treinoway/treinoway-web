@@ -19,6 +19,14 @@ describe('Drawer', () => {
     expect(within(dialog).getByRole('button', { name: 'Salvar' })).toBeInTheDocument();
   });
 
+  it('widens the side panel only when asked for the wide width', () => {
+    const { rerender } = render(<Drawer title="Painel" onClose={vi.fn()}>x</Drawer>);
+    const overlay = () => screen.getByRole('dialog', { name: 'Painel' }).parentElement;
+    expect(overlay()).toHaveClass('ds-drawer-overlay--default');
+    rerender(<Drawer title="Painel" width="wide" onClose={vi.fn()}>x</Drawer>);
+    expect(overlay()).toHaveClass('ds-drawer-overlay--wide');
+  });
+
   it('renders the footer outside the scrollable body', () => {
     render(
       <Drawer title="Novo exercício" onClose={vi.fn()} footer={<button type="button">Salvar</button>}>

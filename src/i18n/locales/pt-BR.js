@@ -207,6 +207,10 @@ const ptBR = {
     "anamnesis.conditionalDepthExceeded":
       "Perguntas condicionais não podem ser encadeadas (apenas um nível).",
     "trainer.notFound": "Perfil de treinador não encontrado.",
+    "consistencyRanking.config.invalid": "Configuração do ranking inválida.",
+    "consistencyRanking.pause.weekNotEditable": "Esta semana já foi encerrada ou está a mais de 12 semanas à frente, e não pode ser pausada nem reativada.",
+    "consistencyRanking.season.notFound": "Temporada não encontrada.",
+    "consistencyRanking.target.notEditable": "A meta só pode ser reduzida na semana em andamento, de zero até a meta original.",
     "trainingTemplateExercise.notFound":
       "Exercício não encontrado neste template.",
     "branding.notFound":
@@ -1754,6 +1758,9 @@ const ptBR = {
     prev: "Anterior",
     next: "Próxima",
     pageStatus: "Página {page} de {total}",
+  },
+  trainerNav: {
+    consistencyRanking: "Ranking de Constância",
   },
   adminNav: {
     title: "Administração",
