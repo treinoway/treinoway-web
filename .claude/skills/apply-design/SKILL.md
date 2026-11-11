@@ -569,6 +569,8 @@ TeuFit: amigável & companheiro (constância sem neura), técnico & preciso, dir
 | Carga | Peso (em treino) |
 | Série / Rep / RPE / PR | Set / Repetição / Esforço percebido / Recorde pessoal |
 
+**Exceção — área da nutricionista (`/nutritionist/*`)**: ali o termo é **"paciente"** (nunca "aluno" nem "cliente"): Meus pacientes, Convidar paciente, "Recado para o paciente". "Aluno" continua valendo em todo o resto do app (treinador). "Plano alimentar" e "refeição" substituem "rotina" e "treino" nessa área; "Prescrição" nomeia as etapas Metas → Cardápio → Orientações.
+
 Templates: Confirm `Excluir [X]? Esta ação não pode ser desfeita.` · Empty `Sem [entidade] ainda` · Toast `[X] salvo.` · Loading `Carregando...`
 
 ---
