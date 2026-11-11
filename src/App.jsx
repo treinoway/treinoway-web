@@ -65,6 +65,7 @@ import DietProtocols from './pages/nutritionist/DietProtocols';
 import DietProtocolEditor from './pages/nutritionist/DietProtocolEditor';
 import NutritionistRoute from './components/NutritionistRoute';
 import RequireRole from './components/RequireRole';
+import useConsistencyRankingAccess from './hooks/useConsistencyRankingAccess';
 import { t } from './i18n';
 
 // Admin pages
@@ -92,6 +93,17 @@ const RedirectWithId = ({ to }) => {
 
 RedirectWithId.propTypes = {
   to: PropTypes.string.isRequired,
+};
+
+// Renders the Ranking de Constância route only when the rollout gate allows it, otherwise sends the user home.
+const ConsistencyRankingRoute = ({ children }) => {
+  const canSeeConsistencyRanking = useConsistencyRankingAccess();
+  if (!canSeeConsistencyRanking) return <Navigate to="/" replace />;
+  return children;
+};
+
+ConsistencyRankingRoute.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 // Backoffice route subtree, split into its own chunk.
@@ -524,9 +536,11 @@ function App() {
             path="/trainer/consistency-ranking"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <ConsistencyRanking />
-                </Layout>
+                <ConsistencyRankingRoute>
+                  <Layout>
+                    <ConsistencyRanking />
+                  </Layout>
+                </ConsistencyRankingRoute>
               </ProtectedRoute>
             }
           />
@@ -534,9 +548,11 @@ function App() {
             path="/trainer/consistency-ranking/settings"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <ConsistencyRankingSettings />
-                </Layout>
+                <ConsistencyRankingRoute>
+                  <Layout>
+                    <ConsistencyRankingSettings />
+                  </Layout>
+                </ConsistencyRankingRoute>
               </ProtectedRoute>
             }
           />

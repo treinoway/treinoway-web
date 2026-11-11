@@ -8,6 +8,7 @@ import Badge from './ds/Badge';
 import FeedbackWidget from './FeedbackWidget';
 import useActiveMode from '../hooks/useActiveMode';
 import useAiAccess from '../hooks/useAiAccess';
+import useConsistencyRankingAccess from '../hooks/useConsistencyRankingAccess';
 import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
 import { SIDEBAR_BADGE_MAX } from '../constants/finance';
 import { t, tCount, tf } from '../i18n';
@@ -31,6 +32,7 @@ const Layout = ({ children, noPadding = false }) => {
   const { user, logout, hasRole } = useAuth();
   const { loading: aiLoading, hasNewResponse: aiHasNewResponse } = useAiChat();
   const showAi = useAiAccess();
+  const showConsistencyRanking = useConsistencyRankingAccess();
   const location = useLocation();
   const navigate = useNavigate();
   const popoverRef = useRef(null);
@@ -209,16 +211,18 @@ const Layout = ({ children, noPadding = false }) => {
                 <span className="sidebar-link-label">Meus Alunos</span>
               </Link>
 
-              <Link
-                to="/trainer/consistency-ranking"
-                className={`sidebar-link ${isActive('/trainer/consistency-ranking') ? 'sidebar-link--active' : ''}`}
-                aria-label={t('trainerNav.consistencyRanking')}
-              >
-                <span className="sidebar-link-icon" aria-hidden="true">
-                  <Trophy size={20} strokeWidth={1.6} />
-                </span>
-                <span className="sidebar-link-label">{t('trainerNav.consistencyRanking')}</span>
-              </Link>
+              {showConsistencyRanking && (
+                <Link
+                  to="/trainer/consistency-ranking"
+                  className={`sidebar-link ${isActive('/trainer/consistency-ranking') ? 'sidebar-link--active' : ''}`}
+                  aria-label={t('trainerNav.consistencyRanking')}
+                >
+                  <span className="sidebar-link-icon" aria-hidden="true">
+                    <Trophy size={20} strokeWidth={1.6} />
+                  </span>
+                  <span className="sidebar-link-label">{t('trainerNav.consistencyRanking')}</span>
+                </Link>
+              )}
 
               {/* iArnold */}
               {showAi && (
