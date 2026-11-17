@@ -332,7 +332,7 @@ describe('ChallengeDetail', () => {
     renderWeekly();
 
     expect(await screen.findByRole('button', { name: 'Ana L.' })).toBeInTheDocument();
-    expect(tabLabels()).toEqual(['Classificação', 'Pontos', 'Participantes', 'Configurações']);
+    expect(tabLabels()).toEqual(['Classificação', 'Pontos', 'Participantes', 'Configuração']);
     expect(screen.getByRole('button', { name: 'Classificação' })).toHaveClass('segmented-toggle-btn--active');
     expect(screen.getByText('Semana 3 de 4')).toBeInTheDocument();
     expect(requested('/trainer/challenges/w-1/consistency')).toBe(true);
@@ -388,13 +388,13 @@ describe('ChallengeDetail', () => {
     expect(requested('/trainer/challenges/w-1/consistency')).toBe(false);
   });
 
-  it('CAMP-42 ends a running weekly championship early from Configurações', async () => {
+  it('CAMP-42 ends a running weekly championship early from Configuração', async () => {
     const user = userEvent.setup();
     api.post.mockResolvedValue({ data: { ...weeklyChallenge, closeRequestedAt: '2026-11-18T12:00:00Z', endDate: '2026-11-22', weeks: 3, closesAt: '2026-11-23T00:00:00Z' } });
     renderWeekly();
     await screen.findByRole('button', { name: 'Ana L.' });
 
-    await user.click(screen.getByRole('button', { name: 'Configurações' }));
+    await user.click(screen.getByRole('button', { name: 'Configuração' }));
     await user.click(screen.getByRole('button', { name: 'Encerrar campeonato' }));
     await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Encerrar campeonato' }));
 
@@ -403,11 +403,11 @@ describe('ChallengeDetail', () => {
     expect(screen.queryByRole('button', { name: 'Encerrar campeonato' })).not.toBeInTheDocument();
   });
 
-  it('CAMP-59 asks before leaving Configurações with unsaved changes', async () => {
+  it('CAMP-59 asks before leaving Configuração with unsaved changes', async () => {
     const user = userEvent.setup();
     renderWeekly();
     await screen.findByRole('button', { name: 'Ana L.' });
-    await user.click(screen.getByRole('button', { name: 'Configurações' }));
+    await user.click(screen.getByRole('button', { name: 'Configuração' }));
 
     await user.type(screen.getByLabelText('Nome'), ' editado');
     await user.click(screen.getByRole('button', { name: 'Pontos' }));

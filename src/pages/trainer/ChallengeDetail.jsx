@@ -40,7 +40,7 @@ const WEEKLY_TABS = [
   { key: STANDINGS_TAB, label: 'Classificação' },
   { key: 'ranking', label: 'Pontos' },
   { key: 'participants', label: 'Participantes' },
-  { key: 'config', label: 'Configurações' },
+  { key: 'config', label: 'Configuração' },
 ];
 const DISCARD_MESSAGE = 'Há mudanças não salvas. Descartar e sair?';
 
