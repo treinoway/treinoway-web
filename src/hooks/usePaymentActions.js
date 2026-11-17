@@ -1,6 +1,9 @@
 import { useCallback, useState } from 'react';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
+import { invalidateFinanceSummary } from '../utils/financeSummaryCache';
 import { t, tf } from '../i18n';
+import useFinanceCopy from './useFinanceCopy';
 import {
   markPaymentAsPaid,
   markPaymentAsPending,
@@ -17,18 +20,18 @@ import {
   timestampToBusinessDate,
 } from '../utils/subscriptionHelpers';
 
-const identityOf = (payment, isOverview) => (isOverview
-  ? payment.student?.name || t('finance.unnamedStudent')
+const identityOf = (payment, isOverview, unnamedLabel) => (isOverview
+  ? payment.student?.name || unnamedLabel
   : formatCyclePeriod(payment.cycleStartDate, payment.cycleEndDate));
 
 /** "{nome ou período} · {R$ valor} · venc. {DD/MM}" for sheets. */
-export const buildPaymentContextLabel = (payment, isOverview) =>
-  `${identityOf(payment, isOverview)} · ${formatMoneyBRL(payment.amount)} · venc. ${formatShortDate(payment.dueDate)}`;
+export const buildPaymentContextLabel = (payment, isOverview, unnamedLabel) =>
+  `${identityOf(payment, isOverview, unnamedLabel)} · ${formatMoneyBRL(payment.amount)} · venc. ${formatShortDate(payment.dueDate)}`;
 
-const buildVoidMessage = (payment, isOverview) => (isOverview
+const buildVoidMessage = (payment, isOverview, unnamedLabel) => (isOverview
   ? tf('finance.confirm.voidMessage', {
     amount: formatMoneyBRL(payment.amount),
-    name: identityOf(payment, true),
+    name: identityOf(payment, true, unnamedLabel),
     date: formatShortDate(payment.dueDate),
   })
   : tf('finance.confirm.voidMessageHistory', { period: identityOf(payment, false) }));
@@ -47,6 +50,9 @@ const buildRevertMessage = (payment) => {
  */
 const usePaymentActions = ({ onChanged, isOverview = true }) => {
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const { ft } = useFinanceCopy();
+  const unnamedLabel = ft('finance.unnamedStudent');
   const [mutatingId, setMutatingId] = useState(null);
   const [sheet, setSheet] = useState(null);
   const [confirm, setConfirm] = useState(null);
@@ -63,16 +69,18 @@ const usePaymentActions = ({ onChanged, isOverview = true }) => {
   const handleUndo = useCallback(async (paymentId) => {
     try {
       await markPaymentAsPending(paymentId);
+      invalidateFinanceSummary(user);
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
     }
     onChanged();
-  }, [onChanged, showToast]);
+  }, [onChanged, showToast, user]);
 
   const handleMarkPaid = useCallback(async (payment) => {
     setMutatingId(payment.id);
     try {
       await markPaymentAsPaid(payment.id);
+      invalidateFinanceSummary(user);
       showToast(t('finance.toast.paymentRegistered'), 'success', {
         actionLabel: t('finance.toast.undo'),
         duration: FINANCE_UNDO_TOAST_MS,
@@ -84,11 +92,12 @@ const usePaymentActions = ({ onChanged, isOverview = true }) => {
     } finally {
       setMutatingId(null);
     }
-  }, [handleUndo, onChanged, reportError, showToast]);
+  }, [handleUndo, onChanged, reportError, showToast, user]);
 
   const runSheetMutation = useCallback(async (request, successMessage) => {
     try {
       await request();
+      invalidateFinanceSummary(user);
       showToast(successMessage, 'success');
       setSheet(null);
       onChanged();
@@ -96,7 +105,7 @@ const usePaymentActions = ({ onChanged, isOverview = true }) => {
     } catch (err) {
       return reportError(err);
     }
-  }, [onChanged, reportError, showToast]);
+  }, [onChanged, reportError, showToast, user]);
 
   const submitMarkPaid = (paidAt) => runSheetMutation(
     () => markPaymentAsPaid(sheet.payment.id, { paidAt }),
@@ -112,6 +121,7 @@ const usePaymentActions = ({ onChanged, isOverview = true }) => {
     setConfirm((prev) => ({ ...prev, busy: true }));
     try {
       await request();
+      invalidateFinanceSummary(user);
       showToast(successMessage, 'success');
       onChanged();
     } catch (err) {
@@ -131,14 +141,14 @@ const usePaymentActions = ({ onChanged, isOverview = true }) => {
     onMarkPaid: handleMarkPaid,
     onMarkPaidOnDate: (payment) => setSheet({ type: PAYMENT_SHEET.MARK_PAID, payment }),
     onEdit: (payment) => setSheet({ type: PAYMENT_SHEET.EDIT, payment }),
-    onVoid: (payment) => setConfirm({ type: PAYMENT_CONFIRM.VOID, payment, message: buildVoidMessage(payment, isOverview) }),
+    onVoid: (payment) => setConfirm({ type: PAYMENT_CONFIRM.VOID, payment, message: buildVoidMessage(payment, isOverview, unnamedLabel) }),
     onRevert: (payment) => setConfirm({ type: PAYMENT_CONFIRM.REVERT, payment, message: buildRevertMessage(payment) }),
   };
 
   const layer = {
     sheet,
     confirm,
-    contextLabel: sheet ? buildPaymentContextLabel(sheet.payment, isOverview) : '',
+    contextLabel: sheet ? buildPaymentContextLabel(sheet.payment, isOverview, unnamedLabel) : '',
     onCloseSheet: () => setSheet(null),
     onSubmitMarkPaid: submitMarkPaid,
     onSubmitEdit: submitEdit,

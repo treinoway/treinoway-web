@@ -19,7 +19,7 @@ import {
 vi.mock('../../contexts/ToastContext', () => ({ useToast: vi.fn() }));
 
 vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 1 } }),
+  useAuth: () => ({ user: { id: 1 }, isAuthenticated: true, hasRole: (role) => role === 'TRAINER' }),
 }));
 
 vi.mock('../../api/axios', () => ({
@@ -48,9 +48,9 @@ let plansResponse;
 
 const mockApi = () => {
   api.get.mockImplementation((url) => {
-    if (url === '/trainer/finance/overview') return overviewResponse();
-    if (url === '/trainer/subscription-plans') return plansResponse();
-    return Promise.resolve({ data: [] });
+    if (url === '/professional/finance/overview') return overviewResponse();
+    if (url === '/professional/subscription-plans') return plansResponse();
+    return Promise.reject(new Error(`unexpected GET ${url}`));
   });
 };
 
@@ -64,12 +64,12 @@ const HistoryProbe = () => {
   return <output aria-label="history state">{location.state?.studentName}</output>;
 };
 
-const renderPage = (route = '/trainer/financeiro') => render(
+const renderPage = (route = '/financeiro') => render(
   <MemoryRouter initialEntries={[route]}>
     <Routes>
-      <Route path="/trainer/financeiro" element={<><Financeiro /><LocationProbe /></>} />
+      <Route path="/financeiro" element={<><Financeiro /><LocationProbe /></>} />
       <Route
-        path="/trainer/students/:studentId/subscription-history"
+        path="/financeiro/alunos/:studentId"
         element={<><LocationProbe /><HistoryProbe /></>}
       />
     </Routes>
@@ -96,7 +96,7 @@ describe('Financeiro', () => {
     await waitForRows();
 
     expect(api.get).toHaveBeenCalledTimes(1);
-    expect(api.get).toHaveBeenCalledWith('/trainer/finance/overview', expect.objectContaining({ params: { month: '2026-10' } }));
+    expect(api.get).toHaveBeenCalledWith('/professional/finance/overview', expect.objectContaining({ params: { month: '2026-10' } }));
     expect(screen.getByRole('heading', { level: 1, name: 'Financeiro' })).toBeInTheDocument();
   });
 
@@ -155,7 +155,7 @@ describe('Financeiro', () => {
   });
 
   it('opens pre-filtered from the dashboard link (?status=overdue)', async () => {
-    renderPage('/trainer/financeiro?status=overdue');
+    renderPage('/financeiro?status=overdue');
     await waitForRows();
     expect(screen.queryByText('João Pereira')).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Em atraso (1)' })).toHaveAttribute('aria-selected', 'true');
@@ -163,7 +163,7 @@ describe('Financeiro', () => {
 
   it('shows "Ninguém em atraso." when the overdue filter is empty', async () => {
     overviewResponse = () => Promise.resolve({ data: buildOverview({ payments: [pendingRow] }) });
-    renderPage('/trainer/financeiro?status=overdue');
+    renderPage('/financeiro?status=overdue');
     await screen.findByText('Ninguém em atraso.');
   });
 
@@ -194,7 +194,7 @@ describe('Financeiro', () => {
     await waitForRows();
 
     await user.click(screen.getByRole('button', { name: /Marcar pago: Maria Silva/ }));
-    expect(api.post).toHaveBeenCalledWith('/trainer/payments/pay-overdue/mark-paid', {});
+    expect(api.post).toHaveBeenCalledWith('/professional/payments/pay-overdue/mark-paid', {});
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith(
       'Pagamento registrado.',
       'success',
@@ -205,7 +205,7 @@ describe('Financeiro', () => {
 
     const { onAction } = mockShowToast.mock.calls[0][2];
     await onAction();
-    expect(api.post).toHaveBeenCalledWith('/trainer/payments/pay-overdue/mark-pending');
+    expect(api.post).toHaveBeenCalledWith('/professional/payments/pay-overdue/mark-pending');
   });
 
   it('maps a 409 conflict to an info toast and refetches', async () => {
@@ -239,7 +239,7 @@ describe('Financeiro', () => {
     await user.click(screen.getByRole('button', { name: 'Ações da cobrança de Maria Silva, vencimento 01/10' }));
     await user.click(screen.getByRole('button', { name: 'Anular cobrança' }));
     await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Anular cobrança' }));
-    expect(api.post).toHaveBeenCalledWith('/trainer/payments/pay-overdue/void');
+    expect(api.post).toHaveBeenCalledWith('/professional/payments/pay-overdue/void');
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Cobrança anulada.', 'success'));
   });
 
@@ -268,7 +268,7 @@ describe('Financeiro', () => {
     expect(within(sheet).getByText(/Maria Silva · R\$\s?99,90 · venc\. 01\/10/)).toBeInTheDocument();
 
     await user.click(within(sheet).getByRole('button', { name: 'Registrar pagamento' }));
-    expect(api.post).toHaveBeenCalledWith('/trainer/payments/pay-overdue/mark-paid', { paidAt: '2026-10-06' });
+    expect(api.post).toHaveBeenCalledWith('/professional/payments/pay-overdue/mark-paid', { paidAt: '2026-10-06' });
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Pagamento registrado em 06/10.', 'success'));
     expect(screen.queryByRole('dialog', { name: 'Registrar pagamento' })).not.toBeInTheDocument();
   });
@@ -279,10 +279,10 @@ describe('Financeiro', () => {
     await waitForRows();
 
     const link = screen.getByRole('link', { name: 'Ver histórico de Maria Silva' });
-    expect(link).toHaveAttribute('href', '/trainer/students/student-1/subscription-history');
+    expect(link).toHaveAttribute('href', '/financeiro/alunos/student-1');
     await user.click(link);
 
-    expect(screen.getByLabelText('location')).toHaveTextContent('/trainer/students/student-1/subscription-history');
+    expect(screen.getByLabelText('location')).toHaveTextContent('/financeiro/alunos/student-1');
     expect(screen.getByLabelText('history state')).toHaveTextContent('Maria Silva');
   });
 
@@ -316,7 +316,7 @@ describe('Financeiro', () => {
 
   describe('month navigation', () => {
     it('blocks future months and falls back to the current month for a future ?month', async () => {
-      renderPage('/trainer/financeiro?month=2027-01');
+      renderPage('/financeiro?month=2027-01');
       await waitForRows();
       expect(screen.getByText('outubro de 2026')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Próximo mês' })).toHaveAttribute('aria-disabled', 'true');
@@ -328,7 +328,7 @@ describe('Financeiro', () => {
       await waitForRows();
       await user.click(screen.getByRole('button', { name: 'Mês anterior' }));
       await waitFor(() => expect(api.get).toHaveBeenLastCalledWith(
-        '/trainer/finance/overview',
+        '/professional/finance/overview',
         expect.objectContaining({ params: { month: '2026-09' } }),
       ));
       expect(screen.getByLabelText('location')).toHaveTextContent('month=2026-09');
@@ -375,11 +375,11 @@ describe('Financeiro', () => {
       plansResponse = () => Promise.resolve({ data: [makePlan(), makePlan({ id: 'plan-9', name: 'Antigo', isArchived: true })] });
       renderPage();
       await waitForRows();
-      expect(api.get).not.toHaveBeenCalledWith('/trainer/subscription-plans', expect.anything());
+      expect(api.get).not.toHaveBeenCalledWith('/professional/subscription-plans', expect.anything());
 
       await user.click(screen.getByRole('tab', { name: 'Planos' }));
       await screen.findByRole('heading', { level: 3, name: 'Consultoria Mensal' });
-      expect(api.get).toHaveBeenCalledWith('/trainer/subscription-plans', { params: { includeArchived: true } });
+      expect(api.get).toHaveBeenCalledWith('/professional/subscription-plans', { params: { includeArchived: true } });
       expect(screen.queryByRole('heading', { level: 3, name: 'Antigo' })).not.toBeInTheDocument();
 
       await user.click(screen.getByRole('button', { name: 'Ver arquivados (1)' }));
@@ -389,7 +389,7 @@ describe('Financeiro', () => {
     it('creates a plan from NOVO PLANO and reloads the list', async () => {
       const user = userEvent.setup();
       api.post.mockResolvedValue({ data: makePlan({ id: 'plan-new' }) });
-      renderPage('/trainer/financeiro?tab=plans');
+      renderPage('/financeiro?tab=plans');
       await screen.findByRole('heading', { level: 3, name: 'Consultoria Mensal' });
 
       await user.click(screen.getByRole('button', { name: 'Novo plano' }));
@@ -397,7 +397,7 @@ describe('Financeiro', () => {
       await user.type(screen.getByLabelText('Valor por cobrança (R$)'), '270');
       await user.click(screen.getByRole('button', { name: 'Criar plano' }));
 
-      await waitFor(() => expect(api.post).toHaveBeenCalledWith('/trainer/subscription-plans', expect.objectContaining({ name: 'Trimestral', price: 270 })));
+      await waitFor(() => expect(api.post).toHaveBeenCalledWith('/professional/subscription-plans', expect.objectContaining({ name: 'Trimestral', price: 270 })));
       await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Plano criado.', 'success'));
       expect(screen.queryByRole('dialog', { name: 'Novo plano' })).not.toBeInTheDocument();
     });
@@ -405,18 +405,18 @@ describe('Financeiro', () => {
     it('archives a plan from the card menu', async () => {
       const user = userEvent.setup();
       api.post.mockResolvedValue({ data: {} });
-      renderPage('/trainer/financeiro?tab=plans');
+      renderPage('/financeiro?tab=plans');
       await screen.findByRole('heading', { level: 3, name: 'Consultoria Mensal' });
 
       await user.click(screen.getByRole('button', { name: 'Ações do plano Consultoria Mensal' }));
       await user.click(screen.getByRole('button', { name: 'Arquivar plano' }));
-      expect(api.post).toHaveBeenCalledWith('/trainer/subscription-plans/plan-1/archive');
+      expect(api.post).toHaveBeenCalledWith('/professional/subscription-plans/plan-1/archive');
       await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Plano arquivado.', 'success'));
     });
 
     it('shows the plans error state', async () => {
       plansResponse = () => Promise.reject(apiError(500, 'INTERNAL', 'server.error', 'Falhou.'));
-      renderPage('/trainer/financeiro?tab=plans');
+      renderPage('/financeiro?tab=plans');
       await screen.findByText('Não foi possível carregar os planos.');
     });
   });

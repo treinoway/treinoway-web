@@ -1,13 +1,14 @@
 import PropTypes from 'prop-types';
 import Kpi from '../ds/Kpi';
 import { t, tCount, tf } from '../../i18n';
+import useFinanceCopy from '../../hooks/useFinanceCopy';
 import { formatDelinquencyRate, formatMoneyBRL } from '../../utils/subscriptionHelpers';
 
-const buildDelinquency = (kpis) => {
+const buildDelinquency = (kpis, ft) => {
   if (!kpis.billedStudents) return { value: '—', support: t('finance.kpi.noBilled') };
   return {
     value: `${formatDelinquencyRate(kpis.delinquencyRate)}%`,
-    support: tf('finance.kpi.delinquencySub', { overdue: kpis.overdueStudents, billed: kpis.billedStudents }),
+    support: ft('finance.kpi.delinquencySub', { overdue: kpis.overdueStudents, billed: kpis.billedStudents }),
   };
 };
 
@@ -18,12 +19,13 @@ const buildDelinquency = (kpis) => {
  * strings — formatted for display only, never summed here.
  */
 const FinanceMetrics = ({ kpis, monthLabel, graceDays }) => {
-  const delinquency = buildDelinquency(kpis);
+  const { ft, ftCount } = useFinanceCopy();
+  const delinquency = buildDelinquency(kpis, ft);
   const liveSummary = tf('finance.kpi.liveSummary', {
     received: formatMoneyBRL(kpis.receivedAmount),
     pending: formatMoneyBRL(kpis.pendingAmount),
     overdue: formatMoneyBRL(kpis.overdueAmount),
-    students: tCount('finance.count.student', kpis.overdueStudents),
+    students: ftCount('finance.count.student', kpis.overdueStudents),
   });
 
   return (
@@ -43,7 +45,7 @@ const FinanceMetrics = ({ kpis, monthLabel, graceDays }) => {
         <Kpi
           label={t('finance.kpi.overdue')}
           value={formatMoneyBRL(kpis.overdueAmount)}
-          support={tCount('finance.count.student', kpis.overdueStudents)}
+          support={ftCount('finance.count.student', kpis.overdueStudents)}
           tone={kpis.overdueCount > 0 ? 'error' : undefined}
         />
         <Kpi

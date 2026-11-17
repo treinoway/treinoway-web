@@ -7,6 +7,7 @@ import FieldError from './FieldError';
 import PlanPreview from './PlanPreview';
 import SheetFooter from './SheetFooter';
 import QuickCreatePlanSheet from './QuickCreatePlanSheet';
+import useFinanceCopy from '../../hooks/useFinanceCopy';
 import { DiscountField, FirstCyclePreview, PlanOptions, StartDateField } from './AssignPlanFields';
 import { t, tf } from '../../i18n';
 import { ASSIGN_MODE, DISCOUNT_CHOICE, FINANCE_ERROR, START_MODE } from '../../constants/finance';
@@ -109,6 +110,7 @@ const AssignPlanSheet = ({
   onPlanArchived,
 }) => {
   const isReplace = mode === ASSIGN_MODE.REPLACE;
+  const { audience } = useFinanceCopy();
   const today = todayDateString();
   const formId = `${useId()}-form`;
   const [selectedPlanId, setSelectedPlanId] = useState(() => firstEligiblePlanId(plans, isReplace ? currentPlanId : null));
@@ -146,7 +148,7 @@ const AssignPlanSheet = ({
   };
 
   const handleAssignError = (err) => {
-    const outcome = classifyAssignError(err);
+    const outcome = classifyAssignError(err, audience);
     setErrors({ [outcome.field]: outcome.message });
     if (outcome.code === FINANCE_ERROR.ALREADY_ACTIVE) onAlreadyActive?.();
     if (outcome.code === FINANCE_ERROR.PLAN_ARCHIVED) onPlanArchived?.();
