@@ -232,6 +232,8 @@ const ptBR = {
       "A resposta ficou longa demais. Divida o pedido em partes menores e tente de novo.",
     "ai.confirmationRequired":
       "Confirme o pedido para que o iArnold execute a ação.",
+    "platformPlan.championshipsNotAvailable":
+      "Campeonatos não estão disponíveis no seu plano.",
     "platformPlan.aiNotAvailable":
       "O seu plano não inclui o iArnold. Faça upgrade para usar o assistente.",
     "platformPlan.aiActionsExceeded":

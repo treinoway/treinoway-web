@@ -409,6 +409,21 @@ describe('CreateChampionshipModal', () => {
     expect(screen.getByRole('tab', { name: 'Filtro' })).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('CAMP-10 shows the plan error when the plan has no championships and keeps the create button', async () => {
+    const user = userEvent.setup();
+    api.post.mockRejectedValue({
+      response: { status: 403, data: { error: 'CHAMPIONSHIPS_NOT_AVAILABLE', messageCode: 'platformPlan.championshipsNotAvailable', message: 'Championships are not available on your plan.' } },
+    });
+    renderModal();
+
+    await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Campeonatos não estão disponíveis no seu plano.');
+    expect(screen.queryByText('Você não tem permissão para esta ação.')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Criar campeonato' })).toBeEnabled();
+    expect(defaultProps.onCreated).not.toHaveBeenCalled();
+  });
+
   it('CAMP-69 keeps the dates form for non-admins in production', async () => {
     const user = userEvent.setup();
     signInOnProduction(['TRAINER']);
