@@ -6,6 +6,8 @@ import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
 import PointsBottomSheet from './PointsBottomSheet';
+import WeeklyChampionshipForm from './challenge/WeeklyChampionshipForm';
+import useConsistencyRankingAccess from '../hooks/useConsistencyRankingAccess';
 import { PARTICIPANT_MODE } from '../constants/challenge';
 import { DEFAULT_CONFIG } from '../constants/gamification';
 import { POINTS_FIELD_KEYS } from '../constants/points-fields';
@@ -130,6 +132,26 @@ ScoringCards.propTypes = {
   ptsValues: PropTypes.object.isRequired,
 };
 
+// Point rules fields of a create body (the anonymous ranking travels apart)
+const pointsBodyOf = (pts) =>
+  Object.fromEntries(POINTS_FIELD_KEYS.filter((key) => pts[key] !== undefined && pts[key] !== null).map((key) => [key, pts[key]]));
+
+// XP rules of the weekly form: the scoring cards and the button that opens the points editor
+const WeeklyPointsSummary = ({ ptsValues, onEdit }) => (
+  <div className="field" role="group" aria-labelledby="weekly-points-title">
+    <span className="field-label type-caption-strong" id="weekly-points-title">Regras de pontos (XP)</span>
+    <ScoringCards ptsValues={ptsValues} />
+    <div className="ds-actions">
+      <button type="button" className="btn btn--secondary" onClick={onEdit}>Editar pontuações</button>
+    </div>
+  </div>
+);
+
+WeeklyPointsSummary.propTypes = {
+  ptsValues: PropTypes.object.isRequired,
+  onEdit: PropTypes.func.isRequired,
+};
+
 const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -142,6 +164,7 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
   const [trainerTemplate, setTrainerTemplate] = useState(null);
   const [ptsValues, setPtsValues] = useState(null);
   const [showPointsEditor, setShowPointsEditor] = useState(false);
+  const weeklyFormat = useConsistencyRankingAccess();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -217,6 +240,13 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
     setShowPointsEditor(true);
   };
 
+  const handleCreateWeekly = async (body) => {
+    const response = await api.post('/trainer/challenges', body);
+    showToast('Campeonato criado!', 'success');
+    onCreated?.(response.data.id);
+    onClose();
+  };
+
   const handleCustomize = () => {
     onClose();
     navigate('/trainer/championships/create');
@@ -238,7 +268,15 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
             </button>
           </div>
           <div className="bottom-sheet-body">
-            <div className="championship-templates-list">
+            {weeklyFormat && (
+              <WeeklyChampionshipForm
+                pointsSummary={<WeeklyPointsSummary ptsValues={currentPts} onEdit={handleEditScoring} />}
+                pointsBody={pointsBodyOf(currentPts)}
+                onTemplateSelected={() => setPtsValues(null)}
+                onCreate={handleCreateWeekly}
+              />
+            )}
+            {!weeklyFormat && <div className="championship-templates-list">
               {TEMPLATES.map((template) => {
                 const isSelected = template.id === selectedTemplateId;
                 return (
@@ -322,16 +360,16 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
                   </div>
                 );
               })}
-            </div>
+            </div>}
 
-            <button
+            {!weeklyFormat && <button
               type="button"
               className="btn-customize-scratch"
               onClick={handleCustomize}
             >
               <Plus size={16} />
               Personalizar do zero
-            </button>
+            </button>}
           </div>
         </div>
       </div>
