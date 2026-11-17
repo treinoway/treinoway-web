@@ -287,7 +287,7 @@ const weeklyConsistency = {
   currentWeek: 3,
   closesAt: '2026-11-23T00:00:00Z',
   rows: [
-    { studentId: 's1', name: 'Ana Lima', displayName: 'Ana L.', initials: 'AL', position: 1, eligible: true, faixa: 'constant', average: 95, validWeeks: 2, weeks100: 1, streak: 3, currentWeekScore: 80, weekStatus: 'valida', entering: null, weeksMissing: 0 },
+    { studentId: 's1', name: 'Ana Lima', displayName: 'Ana L.', initials: 'AL', position: 1, eligible: true, faixa: 'constant', average: 95, validWeeks: 2, weeks100: 1, streak: 3, currentWeekScore: 80, weekStatus: 'valid', entering: null, weeksMissing: 0 },
   ],
   entering: [],
 };

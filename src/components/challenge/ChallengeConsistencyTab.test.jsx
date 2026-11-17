@@ -20,7 +20,7 @@ const row = (overrides = {}) => ({
   weeks100: 1,
   streak: 3,
   currentWeekScore: 84.4,
-  weekStatus: 'valida',
+  weekStatus: 'valid',
   entering: null,
   weeksMissing: 0,
   ...overrides,
