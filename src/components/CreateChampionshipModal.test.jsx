@@ -424,6 +424,44 @@ describe('CreateChampionshipModal', () => {
     expect(defaultProps.onCreated).not.toHaveBeenCalled();
   });
 
+  it('CAMP-59 asks before discarding the weekly form with changes on Escape, the close button or the overlay', async () => {
+    const user = userEvent.setup();
+    const nativeConfirm = vi.spyOn(window, 'confirm');
+    renderModal();
+    const overlay = screen.getByText('Criar Campeonato').closest('.bottom-sheet').parentElement;
+
+    await user.type(screen.getByLabelText('Descrição'), 'Prêmio');
+
+    await user.keyboard('{Escape}');
+    expect(within(screen.getByRole('alertdialog')).getByText('Há mudanças não salvas. Descartar e sair?')).toBeInTheDocument();
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Fechar' }));
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Há mudanças não salvas. Descartar e sair?');
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancelar' }));
+
+    await user.click(overlay);
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Há mudanças não salvas. Descartar e sair?');
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Descrição')).toHaveValue('Prêmio');
+
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Descartar' }));
+    await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledTimes(1));
+    expect(nativeConfirm).not.toHaveBeenCalled();
+    nativeConfirm.mockRestore();
+  });
+
+  it('CAMP-59 closes the weekly form without asking when nothing changed', async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    await user.keyboard('{Escape}');
+
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
   it('CAMP-69 keeps the dates form for non-admins in production', async () => {
     const user = userEvent.setup();
     signInOnProduction(['TRAINER']);

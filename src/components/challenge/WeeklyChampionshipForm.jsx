@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import Segmented from '../ds/Segmented';
 import Toggle from '../ds/Toggle';
@@ -208,9 +208,11 @@ const useWeeklySubmit = (draft, values, pointsBody, onCreate) => {
 };
 
 // Weekly championship form: template, name, description, start Monday, weeks, podium minimum, participants, anonymous ranking and the XP rules
-const WeeklyChampionshipForm = ({ pointsSummary, pointsBody, onTemplateSelected, onCreate }) => {
+const WeeklyChampionshipForm = ({ pointsSummary, pointsBody, onTemplateSelected, onCreate, onDirtyChange }) => {
   const sources = useWeeklyChampionshipSources(true);
   const { draft, setField, selectTemplate } = useWeeklyDraft(onTemplateSelected);
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(initialDraft());
+  useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
   const mondays = useMemo(() => startMondayOptions(new Date(), sources.timeZone), [sources.timeZone]);
   const values = {
     startWeek: draft.startWeek ?? mondays[0].value,
@@ -240,6 +242,7 @@ WeeklyChampionshipForm.propTypes = {
   pointsBody: PropTypes.object.isRequired,
   onTemplateSelected: PropTypes.func.isRequired,
   onCreate: PropTypes.func.isRequired,
+  onDirtyChange: PropTypes.func,
 };
 
 export default WeeklyChampionshipForm;
