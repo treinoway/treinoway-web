@@ -1761,6 +1761,7 @@ const ptBR = {
   },
   trainerNav: {
     consistencyRanking: "Ranking de Constância",
+    challenges: "Campeonatos",
   },
   adminNav: {
     title: "Administração",

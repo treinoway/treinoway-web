@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, Trophy, Salad } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, Trophy, Medal, Salad } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
@@ -216,6 +216,17 @@ const Layout = ({ children, noPadding = false }) => {
                   <span className="sidebar-link-label">{t('trainerNav.consistencyRanking')}</span>
                 </Link>
               )}
+
+              <Link
+                to="/trainer/challenges"
+                className={`sidebar-link ${isActive('/trainer/challenges') ? 'sidebar-link--active' : ''}`}
+                aria-label={t('trainerNav.challenges')}
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">
+                  <Medal size={20} strokeWidth={1.6} />
+                </span>
+                <span className="sidebar-link-label">{t('trainerNav.challenges')}</span>
+              </Link>
 
               {/* iArnold */}
               {showAi && (

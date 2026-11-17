@@ -785,15 +785,15 @@ describe('Layout', () => {
 
   // ---------------------------------------------------------------------------
   // Hidden navigation items — features not yet available to users
-  // (Campeonatos, Sua Marca). The Nutricionista section is live: see 'nutritionist section'.
+  // (Sua Marca). The Nutricionista section is live: see 'nutritionist section'; Campeonatos is live since CAMP-48.
   // ---------------------------------------------------------------------------
 
   describe('hidden navigation items', () => {
-    it('does not render Campeonatos or Sua Marca in the sidebar for trainers', () => {
+    it('does not render Sua Marca in the sidebar for trainers, and renders Campeonatos (CAMP-48)', () => {
       setupAuth({ isTrainer: true });
       renderWithRouter(<Layout><span>Content</span></Layout>);
 
-      expect(screen.queryByText('Campeonatos')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Campeonatos' })).toHaveAttribute('href', '/trainer/challenges');
       expect(screen.queryByText('Sua Marca')).not.toBeInTheDocument();
     });
 

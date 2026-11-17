@@ -946,6 +946,7 @@ const en = {
   },
   trainerNav: {
     consistencyRanking: 'Consistency ranking',
+    challenges: 'Championships',
   },
   adminNav: {
     title: 'Administration',
