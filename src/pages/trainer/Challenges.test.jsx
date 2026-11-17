@@ -1,12 +1,24 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { render } from '@testing-library/react';
 import { renderWithRouter } from '../../test/test-utils';
 import Challenges from './Challenges';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api/axios';
 import { CHALLENGE_STATUS } from '../../constants/challenge';
 
 vi.mock('../../contexts/ToastContext', () => ({ useToast: vi.fn() }));
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
+vi.mock('../../components/CreateChampionshipModal', () => ({
+  default: ({ isOpen, onCreated, onClose }) => (isOpen ? (
+    <div role="dialog" aria-label="Criar Campeonato">
+      <button type="button" onClick={() => onCreated('weekly-9')}>Confirmar criação</button>
+      <button type="button" onClick={onClose}>Fechar</button>
+    </div>
+  ) : null),
+}));
 vi.mock('../../api/axios', () => ({
   default: { get: vi.fn(), post: vi.fn() },
   onNetworkError: vi.fn(() => vi.fn()),
@@ -82,6 +94,7 @@ describe('Challenges', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+    vi.mocked(useAuth).mockReturnValue({ hasRole: () => false });
     api.get.mockReset();
   });
 
@@ -394,5 +407,46 @@ describe('getTemporalInfo logic (via rendered output)', () => {
     expect(screen.getByText('Progresso')).toBeInTheDocument();
     // Shows elapsed/total days label
     expect(screen.getByText(/de 365 dias/)).toBeInTheDocument();
+  });
+
+  it('CAMP-49 shows Semana X de Y and Começa DD/MM', async () => {
+    const user = userEvent.setup();
+    const weeklyActive = { ...activeChallenge, id: 'w-1', name: 'Verão Semanal', format: 'weeks', weeks: 8, currentWeek: 3 };
+    const weeklyScheduled = { ...scheduledChallenge, id: 'w-2', name: 'Inverno Semanal', format: 'weeks', weeks: 4, currentWeek: null, startDate: '2030-01-07', endDate: '2030-02-03' };
+    const datesActive = { ...activeChallenge, format: 'dates', weeks: null, currentWeek: null };
+    api.get.mockResolvedValue({ data: [weeklyActive, weeklyScheduled, datesActive] });
+    renderWithRouter(<Challenges />);
+
+    const weeklyCard = (await screen.findByText('Verão Semanal')).closest('button');
+    expect(within(weeklyCard).getByText('Semana 3 de 8')).toBeInTheDocument();
+    expect(within(weeklyCard).getByText('Progresso')).toBeInTheDocument();
+    const datesCard = screen.getByText('Verao 2026').closest('button');
+    expect(within(datesCard).queryByText(/Semana \d+ de \d+/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /Agendados/ }));
+
+    const scheduledCard = (await screen.findByText('Inverno Semanal')).closest('button');
+    expect(within(scheduledCard).getByText('Começa 07/01')).toBeInTheDocument();
+    expect(within(scheduledCard).getByText('5 participantes')).toBeInTheDocument();
+  });
+
+  it('CAMP-01 opens the create form from Criar campeonato and CAMP-04 opens the new championship', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [] });
+    render(
+      <MemoryRouter initialEntries={['/trainer/challenges']}>
+        <Routes>
+          <Route path="/trainer/challenges" element={<Challenges />} />
+          <Route path="/trainer/challenges/:id" element={<p>Detalhe do campeonato</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByText(/Nenhum campeonato/);
+
+    await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
+    expect(screen.getByRole('dialog', { name: 'Criar Campeonato' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Confirmar criação' }));
+
+    expect(await screen.findByText('Detalhe do campeonato')).toBeInTheDocument();
   });
 });
