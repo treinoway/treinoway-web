@@ -62,3 +62,13 @@ export const CHALLENGE_PRESETS = Object.freeze([
     defaultName: 'Campeonato do Mês',
   },
 ]);
+
+export const CHALLENGE_FORMAT = Object.freeze({
+  DATES: 'dates',
+  WEEKS: 'weeks',
+});
+
+export const CHALLENGE_MIN_WEEKS = 1;
+export const CHALLENGE_MAX_WEEKS = 12;
+export const CHALLENGE_START_MONDAY_COUNT = 12;
+export const CHALLENGE_DESCRIPTION_MAX_LENGTH = 280;
