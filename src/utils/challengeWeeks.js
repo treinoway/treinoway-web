@@ -45,3 +45,16 @@ export const challengeWeekLabel = (challenge) => {
   if (challenge.status === CHALLENGE_STATUS.SCHEDULED && challenge.startDate) return startsOnLabel(challenge.startDate);
   return null;
 };
+
+// "DD/MM" and "HH" of an instant in a time zone
+const closePartsOf = (closesAt, timeZone) => {
+  const formatter = new Intl.DateTimeFormat('pt-BR', { timeZone, day: '2-digit', month: '2-digit', hour: '2-digit', hourCycle: 'h23' });
+  return Object.fromEntries(formatter.formatToParts(new Date(closesAt)).map((part) => [part.type, part.value]));
+};
+
+// "Encerra no fechamento de DD/MM, às HHh." of the close instant; without it, the last Sunday only
+export const closeNoticeOf = (closesAt, timeZone, endDate) => {
+  if (!closesAt) return `Encerra no fechamento de ${dayMonthOf(endDate)}.`;
+  const parts = closePartsOf(closesAt, timeZone);
+  return `Encerra no fechamento de ${parts.day}/${parts.month}, às ${parts.hour}h.`;
+};
