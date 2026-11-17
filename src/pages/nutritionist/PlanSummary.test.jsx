@@ -1,8 +1,10 @@
 import userEvent from '@testing-library/user-event';
 import { renderWithRoute, screen, waitFor, within, fireEvent } from '../../test/test-utils';
 import PlanSummary from './PlanSummary';
+import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
+import { NUTRITIONIST_ONLY, authAs } from '../../test/financeFixtures';
 import {
   PATIENT_ID,
   PLAN_ID,
@@ -20,6 +22,7 @@ import {
 } from '../../test/nutritionFixtures';
 
 vi.mock('../../contexts/ToastContext', () => ({ useToast: vi.fn() }));
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../../api/axios', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn(), delete: vi.fn() },
   onNetworkError: vi.fn(() => vi.fn()),
@@ -127,6 +130,7 @@ describe('PlanSummary (tela A)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useToast).mockReturnValue({ showToast });
+    vi.mocked(useAuth).mockReturnValue(authAs(NUTRITIONIST_ONLY));
     mockApi();
   });
 
