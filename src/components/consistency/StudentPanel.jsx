@@ -156,7 +156,7 @@ const PanelContent = ({ data, panel, seasonNumber, closeLabel, onChanged }) => {
 PanelContent.propTypes = {
   data: PropTypes.object.isRequired,
   panel: PropTypes.object.isRequired,
-  seasonNumber: PropTypes.number.isRequired,
+  seasonNumber: PropTypes.number,
   closeLabel: PropTypes.string,
   onChanged: PropTypes.func,
 };
@@ -196,7 +196,7 @@ const StudentPanel = ({ studentId, studentName, seasonNumber, closeLabel, onClos
 StudentPanel.propTypes = {
   studentId: PropTypes.string.isRequired,
   studentName: PropTypes.string,
-  seasonNumber: PropTypes.number.isRequired,
+  seasonNumber: PropTypes.number,
   closeLabel: PropTypes.string,
   onClose: PropTypes.func.isRequired,
   onChanged: PropTypes.func,

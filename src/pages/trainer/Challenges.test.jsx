@@ -323,6 +323,47 @@ describe('Challenges', () => {
     await screen.findByText('Old Challenge');
     expect(screen.getByText(/Cancelado em 15\/01\/2025/)).toBeInTheDocument();
   });
+
+  it('CAMP-49 shows Semana X de Y and Começa DD/MM', async () => {
+    const user = userEvent.setup();
+    const weeklyActive = { ...activeChallenge, id: 'w-1', name: 'Verão Semanal', format: 'weeks', weeks: 8, currentWeek: 3 };
+    const weeklyScheduled = { ...scheduledChallenge, id: 'w-2', name: 'Inverno Semanal', format: 'weeks', weeks: 4, currentWeek: null, startDate: '2030-01-07', endDate: '2030-02-03' };
+    const datesActive = { ...activeChallenge, format: 'dates', weeks: null, currentWeek: null };
+    api.get.mockResolvedValue({ data: [weeklyActive, weeklyScheduled, datesActive] });
+    renderWithRouter(<Challenges />);
+
+    const weeklyCard = (await screen.findByText('Verão Semanal')).closest('button');
+    expect(within(weeklyCard).getByText('Semana 3 de 8')).toBeInTheDocument();
+    expect(within(weeklyCard).getByText('Progresso')).toBeInTheDocument();
+    const datesCard = screen.getByText('Verao 2026').closest('button');
+    expect(within(datesCard).queryByText(/Semana \d+ de \d+/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /Agendados/ }));
+
+    const scheduledCard = (await screen.findByText('Inverno Semanal')).closest('button');
+    expect(within(scheduledCard).getByText('Começa 07/01')).toBeInTheDocument();
+    expect(within(scheduledCard).getByText('5 participantes')).toBeInTheDocument();
+  });
+
+  it('CAMP-01 opens the create form from Criar campeonato and CAMP-04 opens the new championship', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [] });
+    render(
+      <MemoryRouter initialEntries={['/trainer/challenges']}>
+        <Routes>
+          <Route path="/trainer/challenges" element={<Challenges />} />
+          <Route path="/trainer/challenges/:id" element={<p>Detalhe do campeonato</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByText(/Nenhum campeonato/);
+
+    await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
+    expect(screen.getByRole('dialog', { name: 'Criar Campeonato' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Confirmar criação' }));
+
+    expect(await screen.findByText('Detalhe do campeonato')).toBeInTheDocument();
+  });
 });
 
 // ---- Unit tests for getTemporalInfo helper (via rendered output) ----
@@ -407,46 +448,5 @@ describe('getTemporalInfo logic (via rendered output)', () => {
     expect(screen.getByText('Progresso')).toBeInTheDocument();
     // Shows elapsed/total days label
     expect(screen.getByText(/de 365 dias/)).toBeInTheDocument();
-  });
-
-  it('CAMP-49 shows Semana X de Y and Começa DD/MM', async () => {
-    const user = userEvent.setup();
-    const weeklyActive = { ...activeChallenge, id: 'w-1', name: 'Verão Semanal', format: 'weeks', weeks: 8, currentWeek: 3 };
-    const weeklyScheduled = { ...scheduledChallenge, id: 'w-2', name: 'Inverno Semanal', format: 'weeks', weeks: 4, currentWeek: null, startDate: '2030-01-07', endDate: '2030-02-03' };
-    const datesActive = { ...activeChallenge, format: 'dates', weeks: null, currentWeek: null };
-    api.get.mockResolvedValue({ data: [weeklyActive, weeklyScheduled, datesActive] });
-    renderWithRouter(<Challenges />);
-
-    const weeklyCard = (await screen.findByText('Verão Semanal')).closest('button');
-    expect(within(weeklyCard).getByText('Semana 3 de 8')).toBeInTheDocument();
-    expect(within(weeklyCard).getByText('Progresso')).toBeInTheDocument();
-    const datesCard = screen.getByText('Verao 2026').closest('button');
-    expect(within(datesCard).queryByText(/Semana \d+ de \d+/)).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('tab', { name: /Agendados/ }));
-
-    const scheduledCard = (await screen.findByText('Inverno Semanal')).closest('button');
-    expect(within(scheduledCard).getByText('Começa 07/01')).toBeInTheDocument();
-    expect(within(scheduledCard).getByText('5 participantes')).toBeInTheDocument();
-  });
-
-  it('CAMP-01 opens the create form from Criar campeonato and CAMP-04 opens the new championship', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: [] });
-    render(
-      <MemoryRouter initialEntries={['/trainer/challenges']}>
-        <Routes>
-          <Route path="/trainer/challenges" element={<Challenges />} />
-          <Route path="/trainer/challenges/:id" element={<p>Detalhe do campeonato</p>} />
-        </Routes>
-      </MemoryRouter>,
-    );
-    await screen.findByText(/Nenhum campeonato/);
-
-    await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
-    expect(screen.getByRole('dialog', { name: 'Criar Campeonato' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Confirmar criação' }));
-
-    expect(await screen.findByText('Detalhe do campeonato')).toBeInTheDocument();
   });
 });

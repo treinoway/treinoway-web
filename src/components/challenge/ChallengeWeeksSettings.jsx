@@ -232,7 +232,7 @@ const ChallengeWeeksSettings = ({ challenge, timeZone, closesAt: knownClosesAt =
   useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
   useLeaveGuard(isDirty, requestConfirm);
 
-  const closeRequested = !!challenge.closeRequestedAt || !!closesAt;
+  const closeRequested = !!challenge.closeRequestedAt || !!requestedClosesAt;
   const fieldsDisabled = saving || !isEditable;
 
   return (

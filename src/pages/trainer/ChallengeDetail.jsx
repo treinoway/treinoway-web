@@ -11,12 +11,20 @@ import BonusChipGrid from '../../components/BonusChipGrid';
 import DateInput from '../../components/DateInput';
 import PointsSummaryCard from '../../components/PointsSummaryCard';
 import PointsBottomSheet from '../../components/PointsBottomSheet';
+import ChallengeConsistencyTab from '../../components/challenge/ChallengeConsistencyTab';
+import ChallengeWeeksSettings from '../../components/challenge/ChallengeWeeksSettings';
+import StudentPanel from '../../components/consistency/StudentPanel';
+import useChallengeConsistency from '../../hooks/useChallengeConsistency';
+import useConsistencyRankingAccess from '../../hooks/useConsistencyRankingAccess';
+import useWeeklyChampionshipSources from '../../hooks/useWeeklyChampionshipSources';
+import { formatCloseLabel } from '../../utils/consistencyFormat';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import {
   CHALLENGE_STATUS,
   CHALLENGE_STATUS_LABEL,
   CHALLENGE_STATUS_BADGE,
   CHALLENGE_NAME_MAX_LENGTH,
+  CHALLENGE_FORMAT,
 } from '../../constants/challenge';
 import { DEFAULT_CONFIG } from '../../constants/gamification';
 import { POINTS_FIELD_KEYS } from '../../constants/points-fields';
@@ -26,6 +34,15 @@ const TABS = [
   { key: 'participants', label: 'Participantes' },
   { key: 'config', label: 'Configurações' },
 ];
+
+const STANDINGS_TAB = 'standings';
+const WEEKLY_TABS = [
+  { key: STANDINGS_TAB, label: 'Classificação' },
+  { key: 'ranking', label: 'Pontos' },
+  { key: 'participants', label: 'Participantes' },
+  { key: 'config', label: 'Configurações' },
+];
+const DISCARD_MESSAGE = 'Há mudanças não salvas. Descartar e sair?';
 
 const getStudentFullName = (s) => {
   const full = `${s.firstName || ''} ${s.lastName || ''}`.trim();
@@ -56,8 +73,15 @@ const ChallengeDetail = () => {
 
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
-  const initialTab = searchParams.get('tab') || 'ranking';
-  const [tab, setTab] = useState(initialTab);
+  const [chosenTab, setTab] = useState(searchParams.get('tab'));
+  const weeklyAccess = useConsistencyRankingAccess();
+  const isWeekly = weeklyAccess && challenge?.format === CHALLENGE_FORMAT.WEEKS;
+  const tab = chosenTab ?? (isWeekly ? STANDINGS_TAB : 'ranking');
+  const consistency = useChallengeConsistency(id, { enabled: isWeekly && tab === STANDINGS_TAB });
+  const { timeZone } = useWeeklyChampionshipSources(isWeekly, { withStudents: false });
+  const [openStudent, setOpenStudent] = useState(null);
+  const [settingsDirty, setSettingsDirty] = useState(false);
+  const [closesAt, setClosesAt] = useState(null);
 
   // Ranking tab state
   const [ranking, setRanking] = useState([]);
@@ -144,7 +168,10 @@ const ChallengeDetail = () => {
     }
   }, [id, showToast]);
 
+  const challengeLoaded = Boolean(challenge);
+
   useEffect(() => {
+    if (!challengeLoaded) return;
     if (tab === 'ranking') loadRanking();
     if (tab === 'participants') {
       loadParticipants();
@@ -152,7 +179,7 @@ const ChallengeDetail = () => {
         api.get('/trainer/students').then((r) => setStudents(r.data || [])).catch(() => {});
       }
     }
-  }, [tab, loadRanking, loadParticipants, students.length]);
+  }, [challengeLoaded, tab, loadRanking, loadParticipants, students.length]);
 
   const handleRankingRowTap = (entry) => {
     setBonusStudent(entry);
@@ -260,6 +287,53 @@ const ChallengeDetail = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSaveWeekly = async (changes) => {
+    const response = await api.patch(`/trainer/challenges/${id}`, changes);
+    setChallenge(response.data);
+    showToast('Campeonato atualizado!', 'success');
+  };
+
+  const handleCloseEarly = async () => {
+    const { data } = await api.post(`/trainer/challenges/${id}/close`);
+    const { closesAt: closeInstant, ...updated } = data;
+    setChallenge(updated);
+    setClosesAt(closeInstant);
+    showToast('Campeonato vai encerrar no fechamento desta semana.', 'success');
+    return { closesAt: closeInstant };
+  };
+
+  const handleCancelWeekly = async () => {
+    await api.post(`/trainer/challenges/${id}/cancel`);
+    showToast('Campeonato cancelado.', 'success');
+    navigate('/trainer/challenges');
+  };
+
+  const handleDeleteWeekly = async () => {
+    await api.delete(`/trainer/challenges/${id}`);
+    showToast('Campeonato excluído.', 'success');
+    navigate('/trainer/challenges');
+  };
+
+  const handleTabChange = (next) => {
+    const leave = () => {
+      if (selectionMode) handleExitSelection();
+      setTab(next);
+    };
+    if (!(tab === 'config' && settingsDirty && next !== 'config')) {
+      leave();
+      return;
+    }
+    setConfirmDialog({ message: DISCARD_MESSAGE, onConfirm: () => { setConfirmDialog(null); setSettingsDirty(false); leave(); } });
+  };
+
+  const handleBack = () => {
+    if (!(tab === 'config' && settingsDirty)) {
+      navigate('/trainer/challenges');
+      return;
+    }
+    setConfirmDialog({ message: DISCARD_MESSAGE, onConfirm: () => { setConfirmDialog(null); navigate('/trainer/challenges'); } });
   };
 
   const handleSavePoints = async (newValues) => {
@@ -374,7 +448,7 @@ const ChallengeDetail = () => {
         <div className="page-header" style={{ marginBottom: 'var(--spacing-lg)' }}>
           <button
             type="button"
-            onClick={() => navigate('/trainer/challenges')}
+            onClick={handleBack}
             className="btn-back"
             aria-label="Voltar para campeonatos"
           >
@@ -400,23 +474,34 @@ const ChallengeDetail = () => {
       )}
 
       <div className="segmented-toggle">
-        {TABS.map((t) => (
+        {(isWeekly ? WEEKLY_TABS : TABS).map((t) => (
           <button
             key={t.key}
             type="button"
             className={`segmented-toggle-btn${tab === t.key ? ' segmented-toggle-btn--active' : ''}`}
-            onClick={() => { if (selectionMode) handleExitSelection(); setTab(t.key); }}
+            onClick={() => handleTabChange(t.key)}
           >
             {t.label}
           </button>
         ))}
       </div>
 
+      {tab === STANDINGS_TAB && isWeekly && (
+        <ChallengeConsistencyTab
+          data={consistency.data}
+          loading={consistency.loading}
+          error={consistency.error}
+          onRetry={consistency.reload}
+          onOpenStudent={setOpenStudent}
+          timeZone={timeZone}
+        />
+      )}
+
       {/* Ranking Tab */}
       {tab === 'ranking' && (
         rankingLoading
           ? <SkeletonRows />
-          : <RankingList entries={ranking} onRowTap={handleRankingRowTap} />
+          : <RankingList entries={ranking} onRowTap={handleRankingRowTap} showPodium={!isWeekly} />
       )}
 
       {/* Participants Tab */}
@@ -486,8 +571,28 @@ const ChallengeDetail = () => {
         </>
       )}
 
+      {tab === 'config' && isWeekly && (
+        <ChallengeWeeksSettings
+          challenge={challenge}
+          timeZone={timeZone}
+          closesAt={closesAt ?? consistency.data?.closesAt ?? null}
+          onSave={handleSaveWeekly}
+          onCloseEarly={handleCloseEarly}
+          onCancel={handleCancelWeekly}
+          onDelete={handleDeleteWeekly}
+          onDirtyChange={setSettingsDirty}
+        >
+          <PointsSummaryCard
+            values={challengePtsValues}
+            showDiff={false}
+            editable={canEditPoints}
+            onAction={() => setShowPointsSheet(true)}
+          />
+        </ChallengeWeeksSettings>
+      )}
+
       {/* Config Tab */}
-      {tab === 'config' && (
+      {tab === 'config' && !isWeekly && (
         <form onSubmit={handleSaveEdit} className="form">
           <div className="card card--mb">
             <div className="form-group">
@@ -576,6 +681,16 @@ const ChallengeDetail = () => {
           onClose={() => setShowPointsSheet(false)}
           saving={pointsSaving}
           bannerText={!canEditPoints ? getReadOnlyBanner() : undefined}
+        />
+      )}
+
+      {openStudent && (
+        <StudentPanel
+          studentId={openStudent.studentId}
+          studentName={openStudent.name}
+          closeLabel={consistency.data?.closesAt ? formatCloseLabel(consistency.data.closesAt, timeZone) : undefined}
+          onClose={() => setOpenStudent(null)}
+          onChanged={consistency.reload}
         />
       )}
 

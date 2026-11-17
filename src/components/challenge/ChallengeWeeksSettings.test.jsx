@@ -158,6 +158,19 @@ describe('ChallengeWeeksSettings', () => {
     expect(screen.queryByRole('button', { name: 'Encerrar campeonato' })).not.toBeInTheDocument();
   });
 
+  it('CAMP-42 offers to end early while running even when the close of the running week is known', () => {
+    renderSettings(challengeOf({ status: 'active', startDate: '2026-11-02', endDate: '2026-11-29' }), { closesAt: '2026-11-23T00:00:00Z' });
+
+    expect(screen.getByRole('button', { name: 'Encerrar campeonato' })).toBeInTheDocument();
+    expect(screen.queryByText(/Encerra no fechamento/)).not.toBeInTheDocument();
+  });
+
+  it('CAMP-42 shows the hour of the close of a championship already asked to end when the close is known', () => {
+    renderSettings(challengeOf({ status: 'active', startDate: '2026-11-02', endDate: '2026-11-22', closeRequestedAt: '2026-11-18T12:00:00Z' }), { closesAt: '2026-11-23T00:00:00Z' });
+
+    expect(screen.getByText('Encerra no fechamento de 22/11, às 21h.')).toBeInTheDocument();
+  });
+
   it('CAMP-43 cancels after confirming, and CAMP-44 deletes a scheduled one after confirming', async () => {
     const user = userEvent.setup();
     const { onCancel, onDelete } = renderSettings();
