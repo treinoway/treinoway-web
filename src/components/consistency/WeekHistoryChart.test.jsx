@@ -26,6 +26,13 @@ describe('WeekHistoryChart', () => {
     expect(screen.getByText('Semana 3 em andamento (listrada): 21% até agora, fecha domingo às 21h.')).toBeInTheDocument();
   });
 
+  it('CAMP-53 titles the chart without a season when opened from a championship', () => {
+    render(<WeekHistoryChart weeks={WEEKS} riskLimit={70} />);
+
+    expect(screen.getByRole('heading', { name: 'Semana a semana' })).toBeInTheDocument();
+    expect(screen.queryByText(/Temporada/)).not.toBeInTheDocument();
+  });
+
   it('PAN-21 paints closed weeks below the risk limit with the warning color and the others with the chart color', () => {
     const weeks = [
       { weekStart: '2026-10-19', number: 1, state: 'closed', status: 'valid', score: 64 },

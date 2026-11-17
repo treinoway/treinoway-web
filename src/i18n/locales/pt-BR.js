@@ -232,6 +232,8 @@ const ptBR = {
       "A resposta ficou longa demais. Divida o pedido em partes menores e tente de novo.",
     "ai.confirmationRequired":
       "Confirme o pedido para que o iArnold execute a ação.",
+    "platformPlan.championshipsNotAvailable":
+      "Campeonatos não estão disponíveis no seu plano.",
     "platformPlan.aiNotAvailable":
       "O seu plano não inclui o iArnold. Faça upgrade para usar o assistente.",
     "platformPlan.aiActionsExceeded":
@@ -262,6 +264,12 @@ const ptBR = {
     "challenge.durationExceeded":
       "A duração do campeonato não pode ultrapassar 365 dias.",
     "challenge.notActive": "Este campeonato não está ativo.",
+    "challenge.weeks.invalid":
+      "Início ou duração inválidos. Escolha uma segunda-feira a partir da semana atual e de 1 a 12 semanas.",
+    "challenge.minPodium.invalid":
+      "Mínimo de semanas para o pódio inválido. Use de 1 até o número de semanas do campeonato, no máximo 4.",
+    "challenge.notClosable": "Só um campeonato em semanas em andamento pode ser encerrado antes.",
+    "challenge.notWeekly": "Este campeonato não tem classificação de constância.",
     "gamification.globalRankingRemoved":
       "O ranking global foi descontinuado. Use os campeonatos.",
     "dashboard.invalidDateRange":
@@ -1761,6 +1769,7 @@ const ptBR = {
   },
   trainerNav: {
     consistencyRanking: "Ranking de Constância",
+    challenges: "Campeonatos",
   },
   adminNav: {
     title: "Administração",

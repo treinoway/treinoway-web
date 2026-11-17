@@ -55,13 +55,13 @@ const runningWeekNote = (week, closeLabel) => {
   return closeLabel ? `${base}, fecha ${closeLabel}.` : `${base}.`;
 };
 
-// Week-by-week bars of the season with the dashed risk-limit line, the running week striped and future weeks as a dash
+// Week-by-week bars of the season (titled with its number when known) with the dashed risk-limit line, the running week striped and future weeks as a dash
 const WeekHistoryChart = ({ weeks, riskLimit = DEFAULT_RISK_LIMIT, seasonNumber, closeLabel }) => {
   const runningWeek = weeks.find((week) => week.state === WEEK_STATE.CURRENT);
   return (
     <section className="student-panel__section week-chart" aria-label="Semana a semana">
       <div className="week-chart__head">
-        <h3 className="type-overline week-chart__title">{`Semana a semana · Temporada ${seasonNumber}`}</h3>
+        <h3 className="type-overline week-chart__title">{seasonNumber ? `Semana a semana · Temporada ${seasonNumber}` : 'Semana a semana'}</h3>
         <span className="type-caption week-chart__legend">{`linha = limite de risco ${riskLimit}%`}</span>
       </div>
       <ol className="week-chart__columns">
@@ -84,7 +84,7 @@ WeekHistoryChart.propTypes = {
     })
   ).isRequired,
   riskLimit: PropTypes.number,
-  seasonNumber: PropTypes.number.isRequired,
+  seasonNumber: PropTypes.number,
   closeLabel: PropTypes.string,
 };
 

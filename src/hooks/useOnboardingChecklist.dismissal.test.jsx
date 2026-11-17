@@ -69,7 +69,7 @@ describe('onboarding checklist dismissal', () => {
     renderWithRouter(<OnboardingChecklistCard />);
 
     expect(await screen.findByRole('region', { name: 'Primeiros passos' })).toBeInTheDocument();
-    expect(localStorage.getItem(getOnboardingDismissKey(1))).toBeNull();
+    await waitFor(() => expect(localStorage.getItem(getOnboardingDismissKey(1))).toBeNull());
   });
 
   it('without a stored snapshot, uses the cached status as the baseline for regressions', async () => {

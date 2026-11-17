@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { X, Dumbbell, MapPin, Flame, Plus } from 'lucide-react';
@@ -6,6 +6,10 @@ import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
 import PointsBottomSheet from './PointsBottomSheet';
+import ConfirmDialog from './ds/ConfirmDialog';
+import useConfirmDialog from '../hooks/useConfirmDialog';
+import WeeklyChampionshipForm from './challenge/WeeklyChampionshipForm';
+import useConsistencyRankingAccess from '../hooks/useConsistencyRankingAccess';
 import { PARTICIPANT_MODE } from '../constants/challenge';
 import { DEFAULT_CONFIG } from '../constants/gamification';
 import { POINTS_FIELD_KEYS } from '../constants/points-fields';
@@ -130,6 +134,52 @@ ScoringCards.propTypes = {
   ptsValues: PropTypes.object.isRequired,
 };
 
+// Point rules fields of a create body (the anonymous ranking travels apart)
+const pointsBodyOf = (pts) =>
+  Object.fromEntries(POINTS_FIELD_KEYS.filter((key) => pts[key] !== undefined && pts[key] !== null).map((key) => [key, pts[key]]));
+
+// XP rules of the weekly form: the scoring cards and the button that opens the points editor
+const WeeklyPointsSummary = ({ ptsValues, onEdit }) => (
+  <div className="field" role="group" aria-labelledby="weekly-points-title">
+    <span className="field-label type-caption-strong" id="weekly-points-title">Regras de pontos (XP)</span>
+    <ScoringCards ptsValues={ptsValues} />
+    <div className="ds-actions">
+      <button type="button" className="btn btn--secondary" onClick={onEdit}>Editar pontuações</button>
+    </div>
+  </div>
+);
+
+WeeklyPointsSummary.propTypes = {
+  ptsValues: PropTypes.object.isRequired,
+  onEdit: PropTypes.func.isRequired,
+};
+
+const DISCARD_MESSAGE = 'Há mudanças não salvas. Descartar e sair?';
+
+// Closing of the sheet (Escape, close button, overlay) that first asks before discarding unsaved changes
+const useDiscardGuard = (isOpen, hasChanges, onClose) => {
+  const { dialogProps, requestConfirm } = useConfirmDialog();
+  const asking = dialogProps !== null;
+  const handleRequestClose = useCallback(() => {
+    if (!hasChanges) {
+      onClose();
+      return;
+    }
+    requestConfirm({ message: DISCARD_MESSAGE, confirmLabel: 'Descartar', busyLabel: 'Saindo...', onConfirm: onClose });
+  }, [hasChanges, onClose, requestConfirm]);
+
+  useEffect(() => {
+    if (!isOpen || asking) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') handleRequestClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, asking, handleRequestClose]);
+
+  return { dialogProps, handleRequestClose };
+};
+
 const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -142,15 +192,10 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
   const [trainerTemplate, setTrainerTemplate] = useState(null);
   const [ptsValues, setPtsValues] = useState(null);
   const [showPointsEditor, setShowPointsEditor] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  const weeklyFormat = useConsistencyRankingAccess();
+  const [weeklyDirty, setWeeklyDirty] = useState(false);
+  const hasUnsavedWeekly = weeklyFormat && (weeklyDirty || ptsValues !== null);
+  const { dialogProps, handleRequestClose } = useDiscardGuard(isOpen, hasUnsavedWeekly, onClose);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -217,6 +262,13 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
     setShowPointsEditor(true);
   };
 
+  const handleCreateWeekly = async (body) => {
+    const response = await api.post('/trainer/challenges', body);
+    showToast('Campeonato criado!', 'success');
+    onCreated?.(response.data.id);
+    onClose();
+  };
+
   const handleCustomize = () => {
     onClose();
     navigate('/trainer/championships/create');
@@ -224,21 +276,30 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
 
   return (
     <>
-      <div className="overlay" onClick={onClose}>
+      <div className="overlay" onClick={handleRequestClose}>
         <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
           <div className="bottom-sheet-header">
             <h2 className="bottom-sheet-title">Criar Campeonato</h2>
             <button
               type="button"
               className="bottom-sheet-close"
-              onClick={onClose}
+              onClick={handleRequestClose}
               aria-label="Fechar"
             >
               <X size={20} />
             </button>
           </div>
           <div className="bottom-sheet-body">
-            <div className="championship-templates-list">
+            {weeklyFormat && (
+              <WeeklyChampionshipForm
+                pointsSummary={<WeeklyPointsSummary ptsValues={currentPts} onEdit={handleEditScoring} />}
+                pointsBody={pointsBodyOf(currentPts)}
+                onTemplateSelected={() => setPtsValues(null)}
+                onCreate={handleCreateWeekly}
+                onDirtyChange={setWeeklyDirty}
+              />
+            )}
+            {!weeklyFormat && <div className="championship-templates-list">
               {TEMPLATES.map((template) => {
                 const isSelected = template.id === selectedTemplateId;
                 return (
@@ -322,16 +383,16 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
                   </div>
                 );
               })}
-            </div>
+            </div>}
 
-            <button
+            {!weeklyFormat && <button
               type="button"
               className="btn-customize-scratch"
               onClick={handleCustomize}
             >
               <Plus size={16} />
               Personalizar do zero
-            </button>
+            </button>}
           </div>
         </div>
       </div>
@@ -349,6 +410,7 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
           onClose={() => setShowPointsEditor(false)}
         />
       )}
+      {dialogProps && <ConfirmDialog {...dialogProps} />}
     </>
   );
 };

@@ -110,6 +110,7 @@ const en = {
     'ai.unavailable': 'iArnold is unavailable right now. Please try again later.',
     'ai.responseTooLong': 'The response got too long. Split your request into smaller parts and try again.',
     'ai.confirmationRequired': 'Confirm your request so iArnold can run the action.',
+    'platformPlan.championshipsNotAvailable': 'Championships are not available on your plan.',
     'platformPlan.aiNotAvailable': 'Your plan does not include iArnold. Upgrade to use the assistant.',
     'platformPlan.aiActionsExceeded': 'You have reached iArnold’s action limit for this student on your plan.',
     'student.accountDeactivated': 'This student’s account is deactivated.',
@@ -946,6 +947,7 @@ const en = {
   },
   trainerNav: {
     consistencyRanking: 'Consistency ranking',
+    challenges: 'Championships',
   },
   adminNav: {
     title: 'Administration',

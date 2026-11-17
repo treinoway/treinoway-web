@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Calendar } from 'lucide-react';
+import { Trophy, Calendar, Plus } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import CreateChampionshipModal from '../../components/CreateChampionshipModal';
+import useConsistencyRankingAccess from '../../hooks/useConsistencyRankingAccess';
+import { challengeWeekLabel } from '../../utils/challengeWeeks';
 import {
   CHALLENGE_STATUS,
   CHALLENGE_STATUS_LABEL,
@@ -67,6 +71,17 @@ const formatFullDate = (dateStr) => {
   return `${d}/${m}/${y}`;
 };
 
+// "Semana X de Y" or "Começa DD/MM" of a weekly championship card; nothing for the dates format
+const WeekLine = ({ challenge }) => {
+  const label = challengeWeekLabel(challenge);
+  if (!label) return null;
+  return <p className="text-sm text-muted">{label}</p>;
+};
+
+WeekLine.propTypes = {
+  challenge: PropTypes.object.isRequired,
+};
+
 const SkeletonCards = () => (
   <div className="grid-cards">
     {[1, 2, 3].map((i) => (
@@ -81,6 +96,8 @@ const Challenges = () => {
   const [allChallenges, setAllChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState(CHALLENGE_STATUS.ACTIVE);
+  const [showCreate, setShowCreate] = useState(false);
+  const canCreateWeekly = useConsistencyRankingAccess();
 
   useEffect(() => {
     let mounted = true;
@@ -131,6 +148,7 @@ const Challenges = () => {
           <span className="date-display__divider">—</span>
           {formatFullDate(c.endDate)} · {progress.totalDays} dias
         </div>
+        <WeekLine challenge={c} />
 
         <div className="championship-progress">
           <div className="championship-progress-labels">
@@ -191,6 +209,7 @@ const Challenges = () => {
           <span className="date-display__divider">—</span>
           {formatFullDate(c.endDate)} · {progress.totalDays} dias
         </div>
+        <WeekLine challenge={c} />
         <div className="championship-card-footer">
           <span className="text-sm text-muted">{c.participantCount} participantes</span>
           {temporalInfo && <span className="text-sm text-muted">{temporalInfo}</span>}
@@ -277,6 +296,13 @@ const Challenges = () => {
           <Trophy size={24} className="page-header-title-icon" />
           <h1 className="page-title">Campeonatos</h1>
         </div>
+        {canCreateWeekly && (
+          <div className="page-header-actions">
+            <button type="button" className="btn btn--primary" onClick={() => setShowCreate(true)}>
+              <Plus size={16} strokeWidth={2} aria-hidden="true" /> Criar campeonato
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="tabs-container" role="tablist" aria-label="Filtrar por status">
@@ -323,6 +349,12 @@ const Challenges = () => {
           {challenges.map(renderCard)}
         </div>
       )}
+
+      <CreateChampionshipModal
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={(id) => navigate(`/trainer/challenges/${id}`)}
+      />
     </div>
   );
 };

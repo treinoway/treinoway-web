@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { translateError, extractErrorInfo, setLocale, tf, tCount } from './index';
+import en from './locales/en';
 
 // Helper to build a fake Axios error with a response body
 function makeAxiosError({ status, data, code, message } = {}) {
@@ -196,6 +197,16 @@ describe('translateError - platform plan', () => {
     expect(translateError(error)).toBe(
       'Este treinador tem assinatura paga ativa no Asaas. O plano Beta só pode ser aplicado depois que ela for encerrada.',
     );
+  });
+});
+
+describe('translateError - championships plan', () => {
+  it('CAMP-10 translates platformPlan.championshipsNotAvailable in pt-BR and en', () => {
+    const error = { response: { status: 403, data: { error: 'CHAMPIONSHIPS_NOT_AVAILABLE', messageCode: 'platformPlan.championshipsNotAvailable' } } };
+    setLocale('pt-BR');
+
+    expect(translateError(error)).toBe('Campeonatos não estão disponíveis no seu plano.');
+    expect(en.messageCodes['platformPlan.championshipsNotAvailable']).toBe('Championships are not available on your plan.');
   });
 });
 
