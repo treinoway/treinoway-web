@@ -200,8 +200,10 @@ const Financeiro = () => {
         </div>
       </header>
 
-      <FinanceTabs activeTab={tab} onChange={(nextTab) => updateUrl({ tab: nextTab })} />
-      {isDualRole && <ServiceTypeFilter value={typeFilter} onChange={setTypeFilter} />}
+      <div className="finance-tabs-row">
+        <FinanceTabs activeTab={tab} onChange={(nextTab) => updateUrl({ tab: nextTab })} />
+        {isDualRole && <ServiceTypeFilter value={typeFilter} onChange={setTypeFilter} />}
+      </div>
 
       <div
         role="tabpanel"

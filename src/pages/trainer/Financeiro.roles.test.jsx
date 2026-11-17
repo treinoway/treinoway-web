@@ -75,8 +75,14 @@ const planCard = (name) => screen.getByRole('heading', { level: 3, name }).close
 // Test helper: the tag badge of a plan card.
 const tagBadgeOf = (name) => planCard(name).querySelector('.badge.badge--tag');
 
-// Test helper: the type filter tab whose label starts with the given text.
-const typeTab = (label) => screen.getByRole('tab', { name: new RegExp(`^${label}`) });
+// Test helper: the "Tipo" select (custom Select trigger) of the service-type filter.
+const typeSelect = () => screen.getByRole('combobox', { name: 'Tipo' });
+
+// Test helper: opens the "Tipo" select and picks the option with the given label.
+const chooseType = async (user, label) => {
+  await user.click(typeSelect());
+  await user.click(within(screen.getByRole('listbox')).getByRole('option', { name: label }));
+};
 
 describe('Financeiro by professional role', () => {
   beforeEach(() => {
@@ -130,11 +136,13 @@ describe('Financeiro by professional role', () => {
       plansResponse = () => Promise.resolve({ data: [nutritionPlan()] });
       renderPage();
       await screen.findByText('Maria Silva');
+      expect(screen.queryByRole('combobox', { name: 'Tipo' })).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', { name: /^Treino/ })).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', { name: /^Nutrição/ })).not.toBeInTheDocument();
 
       await user.click(screen.getByRole('tab', { name: 'Planos' }));
       await screen.findByRole('heading', { level: 3, name: 'Acompanhamento Nutricional' });
+      expect(screen.queryByRole('combobox', { name: 'Tipo' })).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', { name: /^Nutrição/ })).not.toBeInTheDocument();
       expect(document.querySelector('.badge--tag')).toBeNull();
     });
@@ -177,11 +185,13 @@ describe('Financeiro by professional role', () => {
 
       expect(within(screen.getByRole('region', { name: 'Resumo de outubro de 2026' })).getByText('2 de 15 alunos')).toBeInTheDocument();
       expect(screen.getByRole('textbox', { name: 'Buscar cobranças por aluno' })).toHaveAttribute('placeholder', 'Buscar aluno…');
+      expect(screen.queryByRole('combobox', { name: 'Tipo' })).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', { name: /^Nutrição/ })).not.toBeInTheDocument();
       expect(document.body.textContent).not.toMatch(/paciente|cliente/i);
 
       await user.click(screen.getByRole('tab', { name: 'Planos' }));
       await screen.findByRole('heading', { level: 3, name: 'Consultoria Mensal' });
+      expect(screen.queryByRole('combobox', { name: 'Tipo' })).not.toBeInTheDocument();
       expect(screen.getByText('Mensal · 4 alunos')).toBeInTheDocument();
       expect(document.querySelector('.badge--tag')).toBeNull();
       expect(document.body.textContent).not.toMatch(/paciente|cliente/i);
@@ -204,30 +214,30 @@ describe('Financeiro by professional role', () => {
       expect(screen.queryByText(/Aluno sem nome|Paciente sem nome/)).not.toBeInTheDocument();
     });
 
-    it('narrows the charges with a Segmented type filter', async () => {
+    it('narrows the charges with the "Tipo" select', async () => {
       const user = userEvent.setup();
       renderPage();
       await screen.findByText('Maria Silva');
 
-      const nutritionTab = typeTab('Nutrição');
-      const filter = nutritionTab.closest('.segmented');
-      expect(filter).toHaveAttribute('role', 'tablist');
-      expect(within(filter).getByRole('tab', { name: /^Treino/ })).toBeInTheDocument();
-      expect(within(filter).getByRole('tab', { name: /^Ambos/ })).toBeInTheDocument();
+      expect(typeSelect().closest('.custom-select')).not.toBeNull();
+      await user.click(typeSelect());
+      const listbox = screen.getByRole('listbox');
+      expect(within(listbox).getByRole('option', { name: 'Treino' })).toBeInTheDocument();
+      expect(within(listbox).getByRole('option', { name: 'Ambos' })).toBeInTheDocument();
 
-      await user.click(nutritionTab);
-      expect(typeTab('Nutrição')).toHaveAttribute('aria-selected', 'true');
+      await user.click(within(listbox).getByRole('option', { name: 'Nutrição' }));
+      expect(typeSelect()).toHaveTextContent('Nutrição');
       expect(screen.getByText('João Pereira')).toBeInTheDocument();
       expect(screen.queryByText('Maria Silva')).not.toBeInTheDocument();
       expect(screen.queryByText('Ana Costa')).not.toBeInTheDocument();
 
-      await user.click(typeTab('Treino'));
+      await chooseType(user, 'Treino');
       expect(screen.getByText('Maria Silva')).toBeInTheDocument();
       expect(screen.getByText('Ana Costa')).toBeInTheDocument();
       expect(screen.queryByText('João Pereira')).not.toBeInTheDocument();
     });
 
-    it('tags every plan card with a tag Badge and narrows plans with the Segmented type filter', async () => {
+    it('tags every plan card with a tag Badge and narrows plans with the "Tipo" select', async () => {
       const user = userEvent.setup();
       plansResponse = () => Promise.resolve({ data: [makePlan(), nutritionPlan(), bothPlan()] });
       renderPage('/financeiro?tab=plans');
@@ -239,13 +249,12 @@ describe('Financeiro by professional role', () => {
       expect(tagBadgeOf('Treino e Dieta')).toHaveTextContent('Ambos');
       expect(tagBadgeOf('Consultoria Mensal')).toHaveClass('badge');
 
-      const nutritionTab = typeTab('Nutrição');
-      expect(nutritionTab.closest('.segmented')).toHaveAttribute('role', 'tablist');
-      await user.click(nutritionTab);
+      expect(typeSelect().closest('.custom-select')).not.toBeNull();
+      await chooseType(user, 'Nutrição');
       expect(screen.getByRole('heading', { level: 3, name: 'Acompanhamento Nutricional' })).toBeInTheDocument();
       expect(screen.queryByRole('heading', { level: 3, name: 'Consultoria Mensal' })).not.toBeInTheDocument();
 
-      await user.click(typeTab('Ambos'));
+      await chooseType(user, 'Ambos');
       expect(screen.getByRole('heading', { level: 3, name: 'Treino e Dieta' })).toBeInTheDocument();
       expect(screen.queryByRole('heading', { level: 3, name: 'Acompanhamento Nutricional' })).not.toBeInTheDocument();
     });

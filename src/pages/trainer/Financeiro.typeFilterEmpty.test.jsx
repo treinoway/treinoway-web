@@ -51,8 +51,11 @@ const renderPage = (route = '/financeiro') => render(
   </MemoryRouter>,
 );
 
-// Test helper: the type filter tab whose label starts with the given text.
-const typeTab = (label) => screen.getByRole('tab', { name: new RegExp(`^${label}`) });
+// Test helper: opens the "Tipo" select and picks the option with the given label.
+const chooseType = async (user, label) => {
+  await user.click(screen.getByRole('combobox', { name: 'Tipo' }));
+  await user.click(within(screen.getByRole('listbox')).getByRole('option', { name: label }));
+};
 
 // Test helper: the visible Planos/Cobranças tab panel.
 const tabPanel = () => screen.getByRole('tabpanel');
@@ -77,7 +80,7 @@ describe('Financeiro type filter that empties a non-empty list (dual-role)', () 
       renderPage('/financeiro?tab=plans');
       await screen.findByRole('heading', { level: 3, name: 'Consultoria Mensal' });
 
-      await user.click(typeTab('Nutrição'));
+      await chooseType(user, 'Nutrição');
 
       expect(within(tabPanel()).getByText(PLANS_NOTICE)).toBeInTheDocument();
       expect(screen.queryByText(FIRST_PLAN_TEXT)).not.toBeInTheDocument();
@@ -92,10 +95,10 @@ describe('Financeiro type filter that empties a non-empty list (dual-role)', () 
       renderPage('/financeiro?tab=plans');
       await screen.findByRole('heading', { level: 3, name: 'Consultoria Mensal' });
 
-      await user.click(typeTab('Ambos'));
+      await chooseType(user, 'Ambos');
       expect(within(tabPanel()).getByText(PLANS_NOTICE)).toBeInTheDocument();
 
-      await user.click(typeTab('Todos'));
+      await chooseType(user, 'Todos');
       expect(screen.queryByText(PLANS_NOTICE)).not.toBeInTheDocument();
       expect(screen.getByRole('heading', { level: 3, name: 'Consultoria Mensal' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { level: 3, name: 'Acompanhamento Nutricional' })).toBeInTheDocument();
@@ -108,7 +111,7 @@ describe('Financeiro type filter that empties a non-empty list (dual-role)', () 
       expect(await screen.findByText(FIRST_PLAN_TEXT)).toBeInTheDocument();
       expect(within(tabPanel()).getByRole('button', { name: 'Criar plano' })).toBeInTheDocument();
 
-      await user.click(typeTab('Nutrição'));
+      await chooseType(user, 'Nutrição');
       expect(screen.getByText(FIRST_PLAN_TEXT)).toBeInTheDocument();
       expect(screen.queryByText(PLANS_NOTICE)).not.toBeInTheDocument();
     });
@@ -121,7 +124,7 @@ describe('Financeiro type filter that empties a non-empty list (dual-role)', () 
       await screen.findByText('Maria Silva');
       expect(screen.queryByText(CHARGES_NOTICE)).not.toBeInTheDocument();
 
-      await user.click(typeTab('Nutrição'));
+      await chooseType(user, 'Nutrição');
 
       expect(within(tabPanel()).getByText(CHARGES_NOTICE)).toBeInTheDocument();
       expect(screen.queryByText('Maria Silva')).not.toBeInTheDocument();
@@ -133,10 +136,10 @@ describe('Financeiro type filter that empties a non-empty list (dual-role)', () 
       renderPage();
       await screen.findByText('Maria Silva');
 
-      await user.click(typeTab('Ambos'));
+      await chooseType(user, 'Ambos');
       expect(within(tabPanel()).getByText(CHARGES_NOTICE)).toBeInTheDocument();
 
-      await user.click(typeTab('Treino'));
+      await chooseType(user, 'Treino');
       expect(screen.queryByText(CHARGES_NOTICE)).not.toBeInTheDocument();
       expect(screen.getByText('Maria Silva')).toBeInTheDocument();
       expect(screen.getByText('Ana Costa')).toBeInTheDocument();
