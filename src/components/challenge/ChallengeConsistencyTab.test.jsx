@@ -63,6 +63,14 @@ describe('ChallengeConsistencyTab', () => {
     vi.clearAllMocks();
   });
 
+  it('CAMP-51 says 1 semana in the header of a one-week championship', () => {
+    renderTab({
+      data: payload({ currentWeek: 1, challenge: { ...payload().challenge, startDate: '2026-11-16', endDate: '2026-11-22', weeks: 1 } }),
+    });
+
+    expect(screen.getByText('16/11 a 22/11 · 1 semana')).toBeInTheDocument();
+  });
+
   it('CAMP-51 renders the header and every column of a row', () => {
     const { container } = render(
       <ChallengeConsistencyTab

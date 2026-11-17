@@ -130,7 +130,8 @@ HeaderProgress.propTypes = {
 // Championship header: description, dates and weeks, and the progress line
 const ChallengeHeader = ({ data, timeZone, now }) => {
   const { challenge } = data;
-  const dates = `${dayMonthOf(challenge.startDate)} a ${dayMonthOf(challenge.endDate)} · ${challenge.weeks} semanas`;
+  const weeksText = `${challenge.weeks} ${challenge.weeks === 1 ? 'semana' : 'semanas'}`;
+  const dates = `${dayMonthOf(challenge.startDate)} a ${dayMonthOf(challenge.endDate)} · ${weeksText}`;
   return (
     <section className="section-card season-header" aria-label="Campeonato">
       <span className="season-header__icon" aria-hidden="true">
