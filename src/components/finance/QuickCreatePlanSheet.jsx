@@ -5,6 +5,7 @@ import ChoiceGroup from './ChoiceGroup';
 import FieldError from './FieldError';
 import SheetFooter from './SheetFooter';
 import { t } from '../../i18n';
+import useFinanceCopy from '../../hooks/useFinanceCopy';
 import { getErrorMessage } from '../../utils/financeErrors';
 import { parsePositiveMoney } from '../../utils/financeForm';
 import {
@@ -32,6 +33,7 @@ const validate = ({ name, priceText }) => {
  * on failure.
  */
 const QuickCreatePlanSheet = ({ title, onClose, onSubmit }) => {
+  const { ft } = useFinanceCopy();
   const fieldId = useId();
   const formId = `${fieldId}-form`;
   const [name, setName] = useState('');
@@ -66,7 +68,7 @@ const QuickCreatePlanSheet = ({ title, onClose, onSubmit }) => {
       footer={<SheetFooter formId={formId} submitting={submitting} submitLabel={t('finance.assign.quickSubmit')} onCancel={handleClose} />}
     >
       <form id={formId} className="finance-form" onSubmit={handleSubmit} noValidate>
-        <p className="finance-form__context type-body">{t('finance.assign.quickIntro')}</p>
+        <p className="finance-form__context type-body">{ft('finance.assign.quickIntro')}</p>
         <div className="field">
           <label className="field-label type-caption-strong" htmlFor={`${fieldId}-name`}>{t('finance.planForm.nameLabel')}</label>
           <input

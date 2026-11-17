@@ -11,16 +11,19 @@ import FinanceMetrics from '../../components/finance/FinanceMetrics';
 import ChargesPanel from '../../components/finance/ChargesPanel';
 import PlansPanel from '../../components/finance/PlansPanel';
 import PlanFormSheet from '../../components/finance/PlanFormSheet';
+import ServiceTypeFilter from '../../components/finance/ServiceTypeFilter';
 import PaymentActionsLayer from '../../components/finance/PaymentActionsLayer';
 import useFinanceOverview from '../../hooks/useFinanceOverview';
 import useFinancePlans from '../../hooks/useFinancePlans';
 import usePaymentActions from '../../hooks/usePaymentActions';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
+import useFinanceCopy from '../../hooks/useFinanceCopy';
 import {
   CHARGE_FILTER,
   FINANCE_OVERDUE_GRACE_DAYS_FALLBACK,
   FINANCE_SEARCH_DEBOUNCE_MS,
   FINANCE_TAB,
+  SERVICE_TYPE_FILTER_ALL,
 } from '../../constants/finance';
 import { getErrorMessage } from '../../utils/financeErrors';
 import {
@@ -79,6 +82,8 @@ const ChargesLoading = () => (
 
 /** Body of the Cobranças tab: error → loading → empty variants → content. */
 const ChargesTabBody = ({ overview, plansState, month, graceDays, chargesProps, onRetry, onCreatePlan }) => {
+  const { ft } = useFinanceCopy();
+  const { filterPayments, ...panelProps } = chargesProps;
   if (overview.error) {
     return (
       <EmptyBlock icon={CircleAlert} role="alert" title={t('finance.empty.errorTitle')} description={overview.error}
@@ -87,10 +92,11 @@ const ChargesTabBody = ({ overview, plansState, month, graceDays, chargesProps, 
   }
   if (overview.loading || !overview.data) return <ChargesLoading />;
   const { kpis, payments } = overview.data;
+  const visiblePayments = filterPayments(payments);
   if (payments.length === 0 && plansState.loading) return <ChargesLoading />;
   if (payments.length === 0 && plansState.loaded && plansState.plans.length === 0) {
     return (
-      <EmptyBlock icon={Wallet} title={t('finance.empty.setupTitle')} description={t('finance.empty.setupText')}
+      <EmptyBlock icon={Wallet} title={t('finance.empty.setupTitle')} description={ft('finance.empty.setupText')}
         actionLabel={t('finance.plans.createPlan')} onAction={onCreatePlan} />
     );
   }
@@ -98,8 +104,10 @@ const ChargesTabBody = ({ overview, plansState, month, graceDays, chargesProps, 
     <>
       <FinanceMetrics kpis={kpis} monthLabel={formatMonthLabel(month)} graceDays={graceDays} />
       {payments.length === 0
-        ? <EmptyBlock icon={Wallet} title={tf('finance.empty.monthTitle', { month: formatMonthName(month) })} description={t('finance.empty.monthText')} />
-        : <ChargesPanel payments={payments} {...chargesProps} />}
+        ? <EmptyBlock icon={Wallet} title={tf('finance.empty.monthTitle', { month: formatMonthName(month) })} description={ft('finance.empty.monthText')} />
+        : visiblePayments.length === 0
+          ? <p className="finance-notice type-body">{t('finance.empty.noType')}</p>
+          : <ChargesPanel {...panelProps} payments={visiblePayments} />}
     </>
   );
 };
@@ -122,6 +130,8 @@ const Financeiro = () => {
   const [searchValue, setSearchValue] = useState('');
   const searchQuery = useDebouncedValue(searchValue, FINANCE_SEARCH_DEBOUNCE_MS);
   const [planSheet, setPlanSheet] = useState(null);
+  const [typeFilter, setTypeFilter] = useState(SERVICE_TYPE_FILTER_ALL);
+  const { isDualRole } = useFinanceCopy();
 
   const overview = useFinanceOverview(month);
   const isEmptyMonth = Boolean(overview.data) && overview.data.payments.length === 0;
@@ -159,7 +169,9 @@ const Financeiro = () => {
     }
   };
 
+  const matchesType = (item) => typeFilter === SERVICE_TYPE_FILTER_ALL || item.serviceType === typeFilter;
   const chargesProps = {
+    filterPayments: (payments) => payments.filter(matchesType),
     filter: status,
     onFilterChange: (nextStatus) => updateUrl({ status: nextStatus }),
     searchValue,
@@ -189,6 +201,7 @@ const Financeiro = () => {
       </header>
 
       <FinanceTabs activeTab={tab} onChange={(nextTab) => updateUrl({ tab: nextTab })} />
+      {isDualRole && <ServiceTypeFilter value={typeFilter} onChange={setTypeFilter} />}
 
       <div
         role="tabpanel"
@@ -208,7 +221,8 @@ const Financeiro = () => {
           />
         ) : (
           <PlansPanel
-            plans={plansState.plans}
+            plans={plansState.plans.filter(matchesType)}
+            hasPlansOfOtherTypes={plansState.plans.length > 0}
             loading={plansState.loading}
             error={plansState.error}
             onRetry={plansState.retry}

@@ -4,6 +4,7 @@ import Avatar from '../ds/Avatar';
 import RowMenu from '../RowMenu';
 import PaymentStatusBadge from './PaymentStatusBadge';
 import { t, tf } from '../../i18n';
+import useFinanceCopy from '../../hooks/useFinanceCopy';
 import { PAYMENT_ROW_VARIANT } from '../../constants/finance';
 import {
   PAYMENT_STATUS,
@@ -58,11 +59,11 @@ const buildMenuItems = (payment, handlers) => {
   }
 };
 
-const buildLabels = (payment, isOverview, today) => {
+const buildLabels = (payment, isOverview, today, unnamedLabel) => {
   const dueShort = formatShortDate(payment.dueDate, today);
   const amount = formatMoneyBRL(payment.amount);
   if (isOverview) {
-    const name = payment.student?.name || t('finance.unnamedStudent');
+    const name = payment.student?.name || unnamedLabel;
     return {
       title: name,
       studentLinkAria: tf('finance.row.studentLinkAria', { name }),
@@ -94,7 +95,7 @@ const StudentIdentityLink = ({ student, title, ariaLabel }) => {
   if (!student?.id) return <div className="charge-row__student">{avatar}{name}</div>;
   return (
     <Link
-      to={`/trainer/students/${student.id}/subscription-history`}
+      to={`/financeiro/alunos/${student.id}`}
       state={{ studentName: title }}
       className="charge-row__student charge-row__student--link"
       aria-label={ariaLabel}
@@ -130,7 +131,8 @@ const PaymentRow = ({
   const today = todayDateString();
   const isOverview = variant === PAYMENT_ROW_VARIANT.OVERVIEW;
   const isOpen = OPEN_STATUSES.includes(payment.effectiveStatus);
-  const labels = buildLabels(payment, isOverview, today);
+  const { ft } = useFinanceCopy();
+  const labels = buildLabels(payment, isOverview, today, ft('finance.unnamedStudent'));
   const menuItems = buildMenuItems(payment, { onMarkPaidOnDate, onEdit, onRevert, onVoid });
   const showNotes = !isOverview && Boolean(payment.notes);
 

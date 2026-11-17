@@ -21763,3 +21763,6 @@ a.prescription-stepper__pill:focus-visible { outline: none; box-shadow: var(--fo
   .nutri-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .nutri-columns { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--spacing-5xl) * 5); align-items: start; }
 }
+
+/* Finance: type filter (Todos / Treino / Nutrição / Ambos) for dual-role professionals */
+.finance-type-filter { margin-bottom: var(--spacing-xl); }

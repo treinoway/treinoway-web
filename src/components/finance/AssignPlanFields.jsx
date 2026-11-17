@@ -2,6 +2,8 @@ import { useId } from 'react';
 import PropTypes from 'prop-types';
 import ChoiceGroup from './ChoiceGroup';
 import FieldError from './FieldError';
+import ServiceTypeBadge from './ServiceTypeBadge';
+import useFinanceCopy from '../../hooks/useFinanceCopy';
 import { t, tf } from '../../i18n';
 import { DISCOUNT_MODE } from '../../utils/financeForm';
 import { DISCOUNT_CHOICE, START_MODE } from '../../constants/finance';
@@ -31,7 +33,9 @@ const inputClass = (error) => `input${error ? ' input--error' : ''}`;
 
 /* ─── Plan options (radio cards) ────────────────────────────────────────── */
 
-export const PlanOptions = ({ plans, selectedPlanId, currentPlanId, isReplace, disabled, error, onSelect }) => (
+export const PlanOptions = ({ plans, selectedPlanId, currentPlanId, isReplace, disabled, error, onSelect }) => {
+  const { isDualRole } = useFinanceCopy();
+  return (
   <div className="field">
     <span className="field-label type-caption-strong">{t('finance.assign.planLabel')}</span>
     <div className="plan-options" role="radiogroup" aria-label={t('finance.assign.planAria')}>
@@ -52,6 +56,7 @@ export const PlanOptions = ({ plans, selectedPlanId, currentPlanId, isReplace, d
             disabled={disabled || isCurrent}
           >
             <span className="plan-option__name type-body-strong">{plan.name}</span>
+            {isDualRole && <ServiceTypeBadge serviceType={plan.serviceType} label={plan.serviceTypeLabel} />}
             <span className="plan-option__meta type-caption">{meta}</span>
           </button>
         );
@@ -59,7 +64,8 @@ export const PlanOptions = ({ plans, selectedPlanId, currentPlanId, isReplace, d
     </div>
     <FieldError message={error} />
   </div>
-);
+  );
+};
 
 PlanOptions.propTypes = {
   plans: PropTypes.array.isRequired,

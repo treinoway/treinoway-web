@@ -8,7 +8,8 @@ import {
 } from '../api/subscriptions';
 import useStudentSubscription from './useStudentSubscription';
 import usePaymentActions from './usePaymentActions';
-import { ASSIGN_MODE, FINANCE_ERROR } from '../constants/finance';
+import useFinanceCopy from './useFinanceCopy';
+import { ASSIGN_MODE, FINANCE_ERROR, SERVICE_TYPE } from '../constants/finance';
 import { getErrorCode, getErrorMessage } from '../utils/financeErrors';
 import { pickCurrentCharge } from '../utils/financeCharges';
 import { formatShortDate } from '../utils/subscriptionHelpers';
@@ -27,6 +28,10 @@ const resolvePlanName = (subscription, payments, plans) => {
 const isPlanNameSettled = ({ subscription, payments, plansLoaded }) =>
   !subscription || Boolean(findPlanNameInPayments(subscription, payments)) || plansLoaded;
 
+/** Plans a person of this kind can be given: their own kind and `both`; everything when no kind is set. */
+const isAssignableKind = (plan, serviceKind) =>
+  !serviceKind || !plan.serviceType || plan.serviceType === SERVICE_TYPE.BOTH || plan.serviceType === serviceKind;
+
 const buildFirstPaymentPeriod = (created) => {
   const first = created?.firstPayment;
   if (!first) return '—';
@@ -36,10 +41,13 @@ const buildFirstPaymentPeriod = (created) => {
 /**
  * Everything the StudentDetail subscription UI needs: data, payment row
  * actions, assign/replace (ONE request — the backend replaces atomically, B1)
- * and cancel. API calls live here; components only render.
+ * and cancel. API calls live here; components only render. `serviceKind`
+ * (`training` on a student page, `nutrition` on a patient page) narrows the
+ * assignable plans to that kind + `both` and tags a quick-created plan.
  */
-const useStudentSubscriptionManager = (studentId, studentName) => {
+const useStudentSubscriptionManager = (studentId, studentName, serviceKind = null) => {
   const { showToast } = useToast();
+  const { ft } = useFinanceCopy();
   const data = useStudentSubscription(studentId);
   const paymentActions = usePaymentActions({ onChanged: data.reload, isOverview: false });
   const [assignMode, setAssignMode] = useState(null);
@@ -55,7 +63,7 @@ const useStudentSubscriptionManager = (studentId, studentName) => {
   };
 
   const handleCreatePlanAndAssign = async ({ planPayload, assignPayload }) => {
-    const createdPlan = await createSubscriptionPlan(planPayload);
+    const createdPlan = await createSubscriptionPlan(serviceKind ? { ...planPayload, serviceType: serviceKind } : planPayload);
     data.reloadPlans();
     await handleAssign({ ...assignPayload, planId: createdPlan.id });
   };
@@ -83,12 +91,15 @@ const useStudentSubscriptionManager = (studentId, studentName) => {
     ...data,
     // Billing reads as loading until the plan name is final, so it never swaps from the fallback.
     loading: data.loading || !isPlanNameSettled(data),
+    serviceKind,
+    hasAnyPlan: data.plans.some((plan) => !plan.isArchived),
+    plans: data.plans.filter((plan) => isAssignableKind(plan, serviceKind)),
     planName: resolvePlanName(data.subscription, data.payments, data.plans),
     currentCharge: pickCurrentCharge(data.payments, data.subscription?.id),
     paymentActions,
     assignMode,
     cancelState,
-    cancelMessage: tf('finance.confirm.cancelSubscription', { name: studentName || t('finance.block.fallbackStudent') }),
+    cancelMessage: tf('finance.confirm.cancelSubscription', { name: studentName || ft('finance.block.fallbackStudent') }),
     openAssign: () => setAssignMode(ASSIGN_MODE.ASSIGN),
     openReplace: () => setAssignMode(ASSIGN_MODE.REPLACE),
     closeAssign: () => setAssignMode(null),

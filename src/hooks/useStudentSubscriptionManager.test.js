@@ -2,9 +2,11 @@ import { act, renderHook, waitFor } from '../test/test-utils';
 import useStudentSubscriptionManager from './useStudentSubscriptionManager';
 import * as subscriptionsApi from '../api/subscriptions';
 import { useToast } from '../contexts/ToastContext';
-import { apiError, makePayment, overduePayment, pinFinanceClock } from '../test/financeFixtures';
+import { useAuth } from '../contexts/AuthContext';
+import { NUTRITIONIST_ONLY, TRAINER_ONLY, authAs, apiError, bothPlan, makePayment, makePlan, nutritionPlan, overduePayment, pinFinanceClock } from '../test/financeFixtures';
 
 vi.mock('../contexts/ToastContext', () => ({ useToast: vi.fn() }));
+vi.mock('../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
 
 vi.mock('../api/subscriptions', () => ({
   getActiveSubscriptionForStudent: vi.fn(),
@@ -33,6 +35,7 @@ describe('useStudentSubscriptionManager', () => {
     pinFinanceClock();
     vi.resetAllMocks();
     useToast.mockReturnValue({ showToast });
+    useAuth.mockReturnValue(authAs(TRAINER_ONLY));
     subscriptionsApi.getActiveSubscriptionForStudent.mockResolvedValue(subscription);
     subscriptionsApi.listStudentPayments.mockResolvedValue({
       payments: [makePayment({ id: 'pending' }), overduePayment({ id: 'late', plan: { id: 'plan-1', name: 'Plano arquivado' } })],
@@ -134,5 +137,33 @@ describe('useStudentSubscriptionManager', () => {
     act(() => result.current.requestCancel());
     await act(() => result.current.handleConfirmCancel());
     expect(showToast).toHaveBeenCalledWith('Esta assinatura já foi cancelada.', 'info');
+  });
+  describe('service kind', () => {
+    const plans = [makePlan(), nutritionPlan(), bothPlan()];
+
+    it('offers training and both plans on a student page and tags a quick-created plan training', async () => {
+      subscriptionsApi.listSubscriptionPlans.mockResolvedValue(plans);
+      subscriptionsApi.createSubscriptionPlan.mockResolvedValue({ id: 'plan-new' });
+      subscriptionsApi.assignPlanToStudent.mockResolvedValue({ firstPayment: null });
+      const hook = renderHook(() => useStudentSubscriptionManager('student-1', 'Maria Silva', 'training'));
+      await waitFor(() => expect(hook.result.current.plans).toHaveLength(2));
+      expect(hook.result.current.plans.map((plan) => plan.serviceType)).toEqual(['training', 'both']);
+
+      await act(() => hook.result.current.handleCreatePlanAndAssign({ planPayload: { name: 'X' }, assignPayload: { startDate: '2026-10-04' } }));
+      expect(subscriptionsApi.createSubscriptionPlan).toHaveBeenCalledWith({ name: 'X', serviceType: 'training' });
+    });
+
+    it('offers nutrition and both plans on a patient page and tags a quick-created plan nutrition', async () => {
+      useAuth.mockReturnValue(authAs(NUTRITIONIST_ONLY));
+      subscriptionsApi.listSubscriptionPlans.mockResolvedValue(plans);
+      subscriptionsApi.createSubscriptionPlan.mockResolvedValue({ id: 'plan-new' });
+      subscriptionsApi.assignPlanToStudent.mockResolvedValue({ firstPayment: null });
+      const hook = renderHook(() => useStudentSubscriptionManager('patient-1', 'Luiza', 'nutrition'));
+      await waitFor(() => expect(hook.result.current.plans).toHaveLength(2));
+      expect(hook.result.current.plans.map((plan) => plan.serviceType)).toEqual(['nutrition', 'both']);
+
+      await act(() => hook.result.current.handleCreatePlanAndAssign({ planPayload: { name: 'X' }, assignPayload: { startDate: '2026-10-04' } }));
+      expect(subscriptionsApi.createSubscriptionPlan).toHaveBeenCalledWith({ name: 'X', serviceType: 'nutrition' });
+    });
   });
 });

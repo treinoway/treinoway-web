@@ -8,6 +8,7 @@ import RowMenu from '../RowMenu';
 import PaymentRow from './PaymentRow';
 import PlanPrice from './PlanPrice';
 import { t, tf } from '../../i18n';
+import useFinanceCopy from '../../hooks/useFinanceCopy';
 import { PAYMENT_ROW_VARIANT, SUBSCRIPTION_OPEN_CHARGES_LIMIT } from '../../constants/finance';
 import { sortOpenCharges } from '../../utils/financeCharges';
 import {
@@ -147,6 +148,7 @@ const SubscriptionCardSkeleton = () => (
 );
 
 const BlockBody = ({ loading, error, subscription, openCharges, totalOpen, ...props }) => {
+  const { ft } = useFinanceCopy();
   if (loading) return <SubscriptionCardSkeleton />;
   if (error) {
     return (
@@ -167,7 +169,7 @@ const BlockBody = ({ loading, error, subscription, openCharges, totalOpen, ...pr
       <EmptyBlock
         icon={CreditCard}
         title={t('finance.block.noPlanTitle')}
-        description={t('finance.block.noPlanText')}
+        description={ft('finance.block.noPlanText')}
         actionLabel={t('finance.block.assignPlan')}
         onAction={props.onAssign}
       />

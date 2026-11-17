@@ -23,6 +23,7 @@ import IArnoldFAB from '../../components/IArnoldFAB';
 import StudentSubscriptionSection from '../../components/finance/StudentSubscriptionSection';
 import useStudentDashboard from '../../hooks/useStudentDashboard';
 import useStudentSubscriptionManager from '../../hooks/useStudentSubscriptionManager';
+import { SERVICE_TYPE } from '../../constants/finance';
 import useLinkedStudent from '../../hooks/useLinkedStudent';
 import usePeriodPersistence from '../../hooks/usePeriodPersistence';
 import { DASHBOARD_PERIOD_PRESETS, getPeriodPresetLabel } from '../../constants/dashboardPeriod';
@@ -208,7 +209,7 @@ const StudentDetail = () => {
   const { student, notFound: studentNotLinked, loading: studentLoading } = useLinkedStudent(id, location.state?.student ?? null, showToast);
   const studentName = student ? getStudentDisplayName(student) : null;
   const dashboard = useStudentDashboard(id, period);
-  const subscription = useStudentSubscriptionManager(id, studentName);
+  const subscription = useStudentSubscriptionManager(id, studentName, SERVICE_TYPE.TRAINING);
   const records = useStudentRecords(id, showToast);
 
   const summary = dashboard.summary.data;
@@ -279,7 +280,7 @@ const StudentDetail = () => {
   };
 
   const handleViewSubscriptionHistory = () => {
-    navigate(`/trainer/students/${id}/subscription-history`, { state: { studentName } });
+    navigate(`/financeiro/alunos/${id}`, { state: { studentName } });
   };
 
   const activePlanName = subscription.subscription ? subscription.planName : undefined;
