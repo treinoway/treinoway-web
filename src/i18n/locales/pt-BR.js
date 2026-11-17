@@ -1381,7 +1381,7 @@ const ptBR = {
       nutrition: 'Nutrição',
       both: 'Ambos',
       label: 'Tipo de plano',
-      filterAria: 'Filtrar por tipo',
+      filterLabel: 'Tipo',
       filterAll: 'Todos',
     },
     countByKind: {
