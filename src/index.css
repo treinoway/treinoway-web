@@ -16140,6 +16140,17 @@ textarea.input {
   font-weight: 600;
 }
 
+/* Wrapping variant: options that do not fit break into lines instead of scrolling out of view */
+.segmented--wrap {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.segmented--wrap .segmented-item {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
 /* ── Toggle (§4.7) ─────────────────────────────────────────── */
 .toggle {
   position: relative;

@@ -62,7 +62,7 @@ const TemplatePicker = ({ templateId, onSelect, disabled }) => {
   return (
     <div className="field">
       <span className="field-label type-caption-strong">Modelo</span>
-      <Segmented ariaLabel="Modelo" items={CHALLENGE_WEEKLY_TEMPLATES.map(({ id, name }) => ({ id, label: name }))} value={templateId} disabled={disabled} onChange={onSelect} />
+      <Segmented ariaLabel="Modelo" items={CHALLENGE_WEEKLY_TEMPLATES.map(({ id, name }) => ({ id, label: name }))} value={templateId} disabled={disabled} onChange={onSelect} wrap />
       {selected && <span className="field-hint type-caption">{selected.description}</span>}
     </div>
   );

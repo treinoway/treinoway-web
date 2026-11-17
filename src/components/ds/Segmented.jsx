@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 
-const Segmented = ({ ariaLabel, items, value, onChange, disabled = false }) => (
-  <div className="segmented" role="tablist" aria-label={ariaLabel}>
+const Segmented = ({ ariaLabel, items, value, onChange, disabled = false, wrap = false }) => (
+  <div className={`segmented${wrap ? ' segmented--wrap' : ''}`} role="tablist" aria-label={ariaLabel}>
     {items.map((item) => {
       const active = value === item.id;
       return (
@@ -45,6 +45,7 @@ Segmented.propTypes = {
   value: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
   disabled: PropTypes.bool,
+  wrap: PropTypes.bool,
 };
 
 export default Segmented;

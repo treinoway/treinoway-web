@@ -351,6 +351,14 @@ describe('CreateChampionshipModal', () => {
     await waitFor(() => expect(createBody()).toMatchObject({ format: 'weeks', weeks: 4, minPodiumWeeks: 2, participantMode: 'all', ...TRAINER_POINTS }));
   });
 
+  it('CAMP-02 wraps the three template options so none is cut at the modal width', () => {
+    renderModal();
+
+    const templates = screen.getByRole('tablist', { name: 'Modelo' });
+    expect(templates).toHaveClass('segmented', 'segmented--wrap');
+    expect(within(templates).getAllByRole('tab')).toHaveLength(3);
+  });
+
   it('CAMP-03 offers the current Monday and the next ones, and 1 to 12 weeks, in the form', () => {
     renderModal();
 
