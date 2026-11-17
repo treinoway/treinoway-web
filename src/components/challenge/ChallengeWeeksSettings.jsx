@@ -234,13 +234,14 @@ const ChallengeWeeksSettings = ({ challenge, timeZone, closesAt: knownClosesAt =
 
   const closeRequested = !!challenge.closeRequestedAt || !!requestedClosesAt;
   const fieldsDisabled = saving || !isEditable;
+  const showCloseNotice = closeRequested && isEditable && !!closesAt;
 
   return (
     <div className="stack-md">
-      {closeRequested && isEditable && (
+      {showCloseNotice && (
         <div className="settings-notice">
           <CalendarClock size={16} strokeWidth={2} aria-hidden="true" />
-          <span className="type-body">{closeNoticeOf(closesAt, timeZone, challenge.endDate)}</span>
+          <span className="type-body">{closeNoticeOf(closesAt, timeZone)}</span>
         </div>
       )}
       <form className="section-card settings-card" onSubmit={handleSubmit} aria-label="Configuração do campeonato" noValidate>

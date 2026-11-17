@@ -403,6 +403,15 @@ describe('ChallengeDetail', () => {
     expect(screen.queryByRole('button', { name: 'Encerrar campeonato' })).not.toBeInTheDocument();
   });
 
+  it('CAMP-42 shows the hour of the close when the detail opens on Configuração after an early close', async () => {
+    mockWeeklyApi({ ...weeklyChallenge, closeRequestedAt: '2026-11-18T12:00:00Z', endDate: '2026-11-22', weeks: 3 });
+    renderWithRoute(<ChallengeDetail />, { route: '/trainer/challenges/w-1?tab=config', path: '/trainer/challenges/:id' });
+
+    expect(await screen.findByText('Encerra no fechamento de 22/11, às 21h.')).toBeInTheDocument();
+    expect(screen.queryByText('Encerra no fechamento de 22/11.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Encerrar campeonato' })).not.toBeInTheDocument();
+  });
+
   it('CAMP-59 asks before leaving Configuração with unsaved changes', async () => {
     const user = userEvent.setup();
     renderWeekly();

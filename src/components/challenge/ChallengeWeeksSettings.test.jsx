@@ -151,10 +151,10 @@ describe('ChallengeWeeksSettings', () => {
     expect(screen.queryByRole('button', { name: 'Encerrar campeonato' })).not.toBeInTheDocument();
   });
 
-  it('CAMP-42 keeps showing the close of a championship already asked to end', () => {
+  it('CAMP-42 never shows the close of a championship already asked to end without its hour', () => {
     renderSettings(challengeOf({ status: 'active', startDate: '2026-11-02', endDate: '2026-11-22', closeRequestedAt: '2026-11-18T12:00:00Z' }));
 
-    expect(screen.getByText('Encerra no fechamento de 22/11.')).toBeInTheDocument();
+    expect(screen.queryByText(/Encerra no fechamento/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Encerrar campeonato' })).not.toBeInTheDocument();
   });
 

@@ -52,9 +52,8 @@ const closePartsOf = (closesAt, timeZone) => {
   return Object.fromEntries(formatter.formatToParts(new Date(closesAt)).map((part) => [part.type, part.value]));
 };
 
-// "Encerra no fechamento de DD/MM, às HHh." of the close instant; without it, the last Sunday only
-export const closeNoticeOf = (closesAt, timeZone, endDate) => {
-  if (!closesAt) return `Encerra no fechamento de ${dayMonthOf(endDate)}.`;
+// "Encerra no fechamento de DD/MM, às HHh." of the close instant
+export const closeNoticeOf = (closesAt, timeZone) => {
   const parts = closePartsOf(closesAt, timeZone);
   return `Encerra no fechamento de ${parts.day}/${parts.month}, às ${parts.hour}h.`;
 };

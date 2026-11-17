@@ -77,7 +77,8 @@ const ChallengeDetail = () => {
   const weeklyAccess = useConsistencyRankingAccess();
   const isWeekly = weeklyAccess && challenge?.format === CHALLENGE_FORMAT.WEEKS;
   const tab = chosenTab ?? (isWeekly ? STANDINGS_TAB : 'ranking');
-  const consistency = useChallengeConsistency(id, { enabled: isWeekly && tab === STANDINGS_TAB });
+  const needsCloseInstant = tab === 'config' && !!challenge?.closeRequestedAt;
+  const consistency = useChallengeConsistency(id, { enabled: isWeekly && (tab === STANDINGS_TAB || needsCloseInstant) });
   const { timeZone } = useWeeklyChampionshipSources(isWeekly, { withStudents: false });
   const [openStudent, setOpenStudent] = useState(null);
   const [settingsDirty, setSettingsDirty] = useState(false);
