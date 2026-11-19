@@ -492,6 +492,8 @@ const handleDelete = (item) => requestConfirm({
 
 The dialog stays open and busy (buttons disabled, `busyLabel`) while `onConfirm` runs, closes afterwards, and a rejection becomes an error toast. Optional `confirmLabel` (default "Excluir") and `busyLabel`; `confirmTone="primary"` for non-destructive confirms. Markup is `ds-overlay`/`ds-dialog` with `role="alertdialog"`; Escape/scrim cancel unless busy.
 
+Optional `children` render between the message and the actions (`.ds-dialog__body`), for the one field a confirmation depends on (e.g. the template select of the ad hoc feedback). Role, class and accessible name (the message) stay the same. `useConfirmDialog` keeps the `onConfirm` of the moment the dialog opened, so a value picked inside the dialog is read through a ref.
+
 ### 4.16b Biblioteca patterns
 
 - `LibraryListView` (`src/components/LibraryListView.jsx`): body of a Biblioteca list. Resolves loading → error → empty library (CTA) → toolbar + batch bar + list + footer, in that order; props `status`, `isEmptyLibrary`/`empty`, `toolbar`, `batch`, `footer`, `isNoResults`.
@@ -520,6 +522,14 @@ Tooltip: bg `--background-inverse`, text `--text-inverse` Caption, `--radius-md`
 ### 4.21 Charts
 
 Only `--chart-*` tokens (sv-full / sv-cut / abandoned / track). Never brand orange, never other hues. Labels Caption `--text-secondary`.
+
+### 4.22 Student app previews (ScoreScale, StarRating, PhoneFrame)
+
+Read-only presentation pieces that show the trainer what the student sees in the app. No state, no handlers; never use them as inputs.
+
+- `ds/ScoreScale` (`src/components/ds/ScoreScale.jsx`: `min` = 0, `max` = 10, `minLabel`, `maxLabel`) → `.score-scale`: one cell per value (Caption/Strong, `tabular-nums`, 1px `--border-default`, `--radius-sm`, bg `--background-surface`) in a single row, and the meaning of each end below in Caption `--text-secondary` when given.
+- `ds/StarRating` (`src/components/ds/StarRating.jsx`: `max` = 5, `label`) → `.star-rating`: `max` lucide `Star` icons 24px in `--icon-default`, `role="img"` named "`max` estrelas"; the icons are `aria-hidden`.
+- `ds/PhoneFrame` (`src/components/ds/PhoneFrame.jsx`: `label` required, `children`) → `.phone-frame`: bezel `--background-surface-elevated` + 1px `--border-default`, `--radius-xl`; screen `--background-surface`, `--radius-lg`, padding `--spacing-lg`. `role="group"` named by `label`. No shadow.
 
 ---
 

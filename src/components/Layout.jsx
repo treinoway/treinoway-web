@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, Trophy, Medal, Salad } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, MessagesSquare, Trophy, Medal, Salad } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
@@ -9,7 +9,10 @@ import FeedbackWidget from './FeedbackWidget';
 import useAiAccess from '../hooks/useAiAccess';
 import useConsistencyRankingAccess from '../hooks/useConsistencyRankingAccess';
 import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
+import useStudentFeedbackAccess from '../hooks/useStudentFeedbackAccess';
+import useStudentFeedbackUnreadCount from '../hooks/useStudentFeedbackUnreadCount';
 import { SIDEBAR_BADGE_MAX } from '../constants/finance';
+import { STUDENT_FEEDBACK_PATH } from '../constants/studentFeedback';
 import { t, tCount, tf } from '../i18n';
 
 const ADMIN_LINKS = [
@@ -28,6 +31,30 @@ const NUTRITIONIST_LINKS = [
 
 const BIBLIOTECA_PATHS = ['/trainer/routines', '/trainer/training-templates', '/trainer/exercise-templates', '/trainer/advanced-techniques', '/trainer/anamneses'];
 
+// Sidebar entry of the student feedback inbox with the unread count (bg + text pair, and a dot while collapsed)
+const StudentFeedbackNavLink = ({ active, unreadCount }) => {
+  const hasUnread = unreadCount > 0;
+  const badge = unreadCount > SIDEBAR_BADGE_MAX ? `${SIDEBAR_BADGE_MAX}+` : String(unreadCount);
+  const ariaLabel = hasUnread
+    ? tf('studentFeedback.sidebar.unreadAria', { count: tCount('studentFeedback.sidebar.unread', unreadCount) })
+    : t('studentFeedback.sidebar.label');
+  return (
+    <Link to={STUDENT_FEEDBACK_PATH} className={`sidebar-link ${active ? 'sidebar-link--active' : ''}`} aria-label={ariaLabel}>
+      <span className="sidebar-link-icon" aria-hidden="true">
+        <MessagesSquare size={20} strokeWidth={2} />
+        {hasUnread && <span className="sidebar-link-dot" />}
+      </span>
+      <span className="sidebar-link-label">{t('studentFeedback.sidebar.label')}</span>
+      {hasUnread && <span className="sidebar-link-badge sidebar-link-badge--count" aria-hidden="true">{badge}</span>}
+    </Link>
+  );
+};
+
+StudentFeedbackNavLink.propTypes = {
+  active: PropTypes.bool.isRequired,
+  unreadCount: PropTypes.number.isRequired,
+};
+
 const Layout = ({ children, noPadding = false }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [bibliotecaOpen, setBibliotecaOpen] = useState(false); // closed by default; auto-opens on active route via useEffect
@@ -37,6 +64,8 @@ const Layout = ({ children, noPadding = false }) => {
   const { loading: aiLoading, hasNewResponse: aiHasNewResponse } = useAiChat();
   const showAi = useAiAccess();
   const showConsistencyRanking = useConsistencyRankingAccess();
+  const showStudentFeedback = useStudentFeedbackAccess() && hasRole('TRAINER');
+  const studentFeedbackUnreadCount = useStudentFeedbackUnreadCount(showStudentFeedback);
   const location = useLocation();
   const navigate = useNavigate();
   const popoverRef = useRef(null);
@@ -227,6 +256,10 @@ const Layout = ({ children, noPadding = false }) => {
                 </span>
                 <span className="sidebar-link-label">{t('trainerNav.challenges')}</span>
               </Link>
+
+              {showStudentFeedback && (
+                <StudentFeedbackNavLink active={isActive(STUDENT_FEEDBACK_PATH)} unreadCount={studentFeedbackUnreadCount} />
+              )}
 
               {/* iArnold */}
               {showAi && (
