@@ -91,7 +91,7 @@ const mockStartConversation = vi.fn();
 
 function setupMocks(overrides = {}) {
   vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
-  vi.mocked(useAuth).mockReturnValue({ user: { id: 'trainer-1', firstName: 'João', lastName: 'Lucas' } });
+  vi.mocked(useAuth).mockReturnValue({ user: { id: 'trainer-1', firstName: 'João', lastName: 'Lucas' }, hasRole: (role) => role === 'TRAINER' });
   vi.mocked(useAiChat).mockReturnValue({ startConversation: mockStartConversation });
 
   const routes = {
@@ -100,9 +100,9 @@ function setupMocks(overrides = {}) {
     '/trainer/protocols': overrides.protocols ?? mockProtocols,
     '/trainer/students/student-1/anamneses': overrides.anamneses ?? [],
     '/trainer/anamneses': overrides.allAnamneses ?? [],
-    '/trainer/students/student-1/subscriptions/active': 'subscription' in overrides ? overrides.subscription : null,
-    '/trainer/students/student-1/payments': { student: { id: 'student-1', name: 'Aluno Exemplo' }, summary: null, payments: overrides.payments ?? [] },
-    '/trainer/subscription-plans': mockPlans,
+    '/professional/students/student-1/subscriptions/active': 'subscription' in overrides ? overrides.subscription : null,
+    '/professional/students/student-1/payments': { student: { id: 'student-1', name: 'Aluno Exemplo' }, summary: null, payments: overrides.payments ?? [] },
+    '/professional/subscription-plans': mockPlans,
   };
   api.get.mockImplementation((url) => Promise.resolve({ data: url in routes ? routes[url] : [] }));
 }
@@ -253,7 +253,7 @@ describe('StudentDetail (cockpit)', () => {
       await user.click(await within(section).findByRole('button', { name: 'Atribuir plano' }));
       await user.click(within(screen.getByRole('dialog', { name: 'Plano (assign)' })).getByRole('button', { name: 'Confirmar plano' }));
       await waitFor(() => expect(api.post).toHaveBeenCalledWith(
-        '/trainer/students/student-1/subscriptions',
+        '/professional/students/student-1/subscriptions',
         { planId: 'plan-1', startDate: '2026-10-04' },
       ));
       expect(mockShowToast).toHaveBeenCalledWith('Plano atribuído. Primeira cobrança: —.', 'success');
@@ -291,8 +291,8 @@ describe('StudentDetail (cockpit)', () => {
       await user.click(within(screen.getByRole('dialog', { name: 'Plano (replace)' })).getByRole('button', { name: 'Confirmar plano' }));
       await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Plano trocado. Primeira cobrança: —.', 'success'));
       expect(api.post).toHaveBeenCalledTimes(1);
-      expect(api.post).toHaveBeenCalledWith('/trainer/students/student-1/subscriptions', { planId: 'plan-1', startDate: '2026-10-04' });
-      expect(api.post).not.toHaveBeenCalledWith('/trainer/subscriptions/sub-1/cancel', expect.anything());
+      expect(api.post).toHaveBeenCalledWith('/professional/students/student-1/subscriptions', { planId: 'plan-1', startDate: '2026-10-04' });
+      expect(api.post).not.toHaveBeenCalledWith('/professional/subscriptions/sub-1/cancel', expect.anything());
     });
 
     it('cancels the subscription from the block after confirmation', async () => {
@@ -304,7 +304,7 @@ describe('StudentDetail (cockpit)', () => {
       await user.click(screen.getByRole('button', { name: 'Cancelar assinatura' }));
       const dialog = screen.getByRole('alertdialog');
       await user.click(within(dialog).getByRole('button', { name: 'Cancelar assinatura' }));
-      await waitFor(() => expect(api.post).toHaveBeenCalledWith('/trainer/subscriptions/sub-1/cancel', {}));
+      await waitFor(() => expect(api.post).toHaveBeenCalledWith('/professional/subscriptions/sub-1/cancel', {}));
       expect(mockShowToast).toHaveBeenCalledWith('Assinatura cancelada.', 'success');
     });
 
@@ -326,7 +326,7 @@ describe('StudentDetail (cockpit)', () => {
       const block = await screen.findByRole('region', { name: 'Assinatura' });
       await user.click(await within(block).findByRole('button', { name: 'Ações da assinatura' }));
       await user.click(within(block).getByRole('button', { name: 'Ver histórico' }));
-      expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1/subscription-history', {
+      expect(mockNavigate).toHaveBeenCalledWith('/financeiro/alunos/student-1', {
         state: { studentName: 'Aluno Exemplo' },
       });
       expect(screen.queryByRole('button', { name: 'Ver histórico' })).not.toBeInTheDocument();
@@ -338,8 +338,8 @@ describe('StudentDetail (cockpit)', () => {
       const block = await screen.findByRole('region', { name: 'Assinatura' });
       expect(within(block).getByRole('heading', { level: 3, name: 'Plano trimestral' })).toBeInTheDocument();
       expect(within(block).getByText('Atrasada · 5 dias')).toBeInTheDocument();
-      expect(api.get).toHaveBeenCalledWith('/trainer/students/student-1/payments');
-      expect(api.get).not.toHaveBeenCalledWith('/trainer/subscriptions/sub-1/payments');
+      expect(api.get).toHaveBeenCalledWith('/professional/students/student-1/payments');
+      expect(api.get).not.toHaveBeenCalledWith('/professional/subscriptions/sub-1/payments');
     });
 
     it('flags the renewal metric as overdue from the API status', async () => {
@@ -357,7 +357,7 @@ describe('StudentDetail (cockpit)', () => {
       await renderDetail();
       const block = await screen.findByRole('region', { name: 'Assinatura' });
       await user.click(within(block).getByRole('button', { name: /^Marcar pago: cobrança de/ }));
-      expect(api.post).toHaveBeenCalledWith('/trainer/payments/pay-late/mark-paid', {});
+      expect(api.post).toHaveBeenCalledWith('/professional/payments/pay-late/mark-paid', {});
       await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith(
         'Pagamento registrado.', 'success', expect.objectContaining({ actionLabel: 'Desfazer' }),
       ));
@@ -562,13 +562,13 @@ describe('StudentDetail (cockpit)', () => {
     const responsesFor = (student, routineName, subscription) => ({
       [`/trainer/students/${student.id}`]: student,
       [`/trainer/students/${student.id}/anamneses`]: [],
-      [`/trainer/students/${student.id}/subscriptions/active`]: subscription,
+      [`/professional/students/${student.id}/subscriptions/active`]: subscription,
       protocols: [{ id: `proto-${student.id}`, name: routineName, status: 'active', startDate: '2026-01-01', expirationDate: '2026-12-31' }],
     });
 
     const respond = (responses, url) => {
       if (url === '/trainer/protocols') return { data: responses.protocols };
-      if (url === '/trainer/subscription-plans') return { data: mockPlans };
+      if (url === '/professional/subscription-plans') return { data: mockPlans };
       return { data: url in responses ? responses[url] : [] };
     };
 
@@ -634,7 +634,7 @@ describe('StudentDetail (cockpit)', () => {
       expect(api.get).toHaveBeenCalledWith('/trainer/students/student-b');
       expect(api.get).toHaveBeenCalledWith('/trainer/protocols', { params: { assigneeId: 'student-b' } });
       expect(api.get).toHaveBeenCalledWith('/trainer/students/student-b/anamneses');
-      expect(api.get).toHaveBeenCalledWith('/trainer/students/student-b/subscriptions/active');
+      expect(api.get).toHaveBeenCalledWith('/professional/students/student-b/subscriptions/active');
     });
   });
 

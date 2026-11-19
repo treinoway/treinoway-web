@@ -3,8 +3,23 @@ import SubscriptionBlock from './SubscriptionBlock';
 import AssignPlanSheet from './AssignPlanSheet';
 import PaymentActionsLayer from './PaymentActionsLayer';
 import ConfirmDialog from '../ds/ConfirmDialog';
+import Modal from '../ds/Modal';
 import { t } from '../../i18n';
 import { FINANCE_OVERDUE_GRACE_DAYS_FALLBACK } from '../../constants/finance';
+
+/** Sheet shown when the user has plans, but none of the kind this page can assign. */
+const NoPlanOfKindSheet = ({ serviceKind, onClose }) => (
+  <Modal
+    title={t('finance.assign.titleAssign')}
+    onClose={onClose}
+    footer={<button type="button" className="btn btn--secondary" onClick={onClose}>{t('finance.assign.close')}</button>}
+  >
+    <p className="type-body">{t(`finance.assign.noPlanOfKind.${serviceKind}`)}</p>
+    <p className="type-body text-light">{t('finance.assign.noPlanOfKindHint')}</p>
+  </Modal>
+);
+
+NoPlanOfKindSheet.propTypes = { serviceKind: PropTypes.string.isRequired, onClose: PropTypes.func.isRequired };
 
 /**
  * StudentDetail "Assinatura" block plus its sheets and dialogs, rendered from
@@ -13,6 +28,7 @@ import { FINANCE_OVERDUE_GRACE_DAYS_FALLBACK } from '../../constants/finance';
 const StudentSubscriptionSection = ({ manager, onViewHistory }) => {
   const { paymentActions } = manager;
   const activePlans = manager.plans.filter((plan) => !plan.isArchived);
+  const isOtherKindOnly = activePlans.length === 0 && Boolean(manager.serviceKind) && Boolean(manager.hasAnyPlan);
 
   return (
     <>
@@ -31,7 +47,11 @@ const StudentSubscriptionSection = ({ manager, onViewHistory }) => {
         onViewHistory={onViewHistory}
       />
 
-      {manager.assignMode && (
+      {manager.assignMode && isOtherKindOnly && (
+        <NoPlanOfKindSheet serviceKind={manager.serviceKind} onClose={manager.closeAssign} />
+      )}
+
+      {manager.assignMode && !isOtherKindOnly && (
         <AssignPlanSheet
           mode={manager.assignMode}
           plans={activePlans}
@@ -70,6 +90,8 @@ StudentSubscriptionSection.propTypes = {
     planName: PropTypes.string.isRequired,
     payments: PropTypes.array.isRequired,
     plans: PropTypes.array.isRequired,
+    serviceKind: PropTypes.string,
+    hasAnyPlan: PropTypes.bool,
     paymentActions: PropTypes.object.isRequired,
     assignMode: PropTypes.string,
     cancelState: PropTypes.object,

@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Wallet, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, MessagesSquare, Trophy, Medal, Salad } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, MessagesSquare, Trophy, Medal, Salad } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
 import FeedbackWidget from './FeedbackWidget';
+import FinanceSidebarLink from './FinanceSidebarLink';
 import useAiAccess from '../hooks/useAiAccess';
 import useConsistencyRankingAccess from '../hooks/useConsistencyRankingAccess';
 import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
@@ -75,6 +76,16 @@ const Layout = ({ children, noPadding = false }) => {
   const financeAriaLabel = financeOverdueCount > 0
     ? tf('finance.sidebar.overdueAria', { count: tCount('finance.count.overdueCharge', financeOverdueCount) })
     : t('finance.sidebar.label');
+
+  const isFinanceActive = location.pathname === '/financeiro';
+  const financeLink = (
+    <FinanceSidebarLink
+      active={isFinanceActive}
+      overdueCount={financeOverdueCount}
+      badgeText={financeBadge}
+      ariaLabel={financeAriaLabel}
+    />
+  );
 
   const handleLogout = () => {
     logout();
@@ -278,21 +289,7 @@ const Layout = ({ children, noPadding = false }) => {
                 </Link>
               )}
 
-              {/* Financeiro — badge = overdue charges from the dashboard cache (no request here) */}
-              <Link
-                to="/trainer/financeiro"
-                className={`sidebar-link ${isActive('/trainer/financeiro') ? 'sidebar-link--active' : ''}`}
-                aria-label={financeAriaLabel}
-              >
-                <span className="sidebar-link-icon" aria-hidden="true">
-                  <Wallet size={20} strokeWidth={1.6} />
-                  {financeOverdueCount > 0 && <span className="sidebar-link-dot" />}
-                </span>
-                <span className="sidebar-link-label">{t('finance.sidebar.label')}</span>
-                {financeOverdueCount > 0 && (
-                  <span className="sidebar-link-badge sidebar-link-badge--count" aria-hidden="true">{financeBadge}</span>
-                )}
-              </Link>
+              {financeLink}
 
               {/* Biblioteca dropdown */}
               <button
@@ -352,6 +349,7 @@ const Layout = ({ children, noPadding = false }) => {
           {hasRole('NUTRITIONIST') && (
             <>
               <div className="sidebar-section-label">Nutricionista</div>
+              {!hasRole('TRAINER') && financeLink}
               {NUTRITIONIST_LINKS.map(({ path, label, Icon }) => (
                 <Link
                   key={path}

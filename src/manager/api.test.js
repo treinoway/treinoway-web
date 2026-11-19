@@ -8,6 +8,7 @@ import {
   listUserTemplates,
   listUserSessions,
   getProtocol,
+  getSession,
 } from './api';
 
 vi.mock('../api/axios', () => ({
@@ -94,6 +95,17 @@ describe('manager api', () => {
 
     expect(api.get.mock.calls[0][0]).toBe('/admin/manager/protocols/p1');
     expect(result).toBe(protocol);
+  });
+
+  it('getSession calls /admin/manager/sessions/:sessionId once and returns data', async () => {
+    const session = { id: 's1', exerciseLogs: [] };
+    api.get.mockResolvedValue({ data: session });
+
+    const result = await getSession('s1');
+
+    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(api.get.mock.calls[0][0]).toBe('/admin/manager/sessions/s1');
+    expect(result).toBe(session);
   });
 
   it('propagates request errors to the caller', async () => {

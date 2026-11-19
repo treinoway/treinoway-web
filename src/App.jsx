@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { AuthProvider } from './contexts/AuthContext';
 import { AiChatProvider } from './contexts/AiChatContext';
@@ -121,6 +121,18 @@ const StudentFeedbackRoute = ({ children }) => {
 
 StudentFeedbackRoute.propTypes = {
   children: PropTypes.node.isRequired,
+};
+
+// Old /trainer/financeiro URL: keeps the query string (?status=overdue from the dashboard link).
+const RedirectFinanceiro = () => {
+  const { search } = useLocation();
+  return <Navigate to={`/financeiro${search}`} replace />;
+};
+
+// Old trainer-only person history URL.
+const RedirectFinanceHistory = () => {
+  const { studentId } = useParams();
+  return <Navigate to={`/financeiro/alunos/${studentId}`} replace />;
 };
 
 // Backoffice route subtree, split into its own chunk.
@@ -500,24 +512,31 @@ function App() {
           {/* why: branding and championship creation are hidden for all trainers during the beta */}
           <Route path="/trainer/branding" element={<Navigate to="/" replace />} />
 
+          <Route path="/trainer/financeiro" element={<RedirectFinanceiro />} />
+          <Route path="/trainer/students/:studentId/subscription-history" element={<RedirectFinanceHistory />} />
+
           <Route
-            path="/trainer/financeiro"
+            path="/financeiro"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <Financeiro />
-                </Layout>
+                <RequireRole roles={['TRAINER', 'NUTRITIONIST']}>
+                  <Layout>
+                    <Financeiro />
+                  </Layout>
+                </RequireRole>
               </ProtectedRoute>
             }
           />
 
           <Route
-            path="/trainer/students/:studentId/subscription-history"
+            path="/financeiro/alunos/:studentId"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <SubscriptionHistory />
-                </Layout>
+                <RequireRole roles={['TRAINER', 'NUTRITIONIST']}>
+                  <Layout>
+                    <SubscriptionHistory />
+                  </Layout>
+                </RequireRole>
               </ProtectedRoute>
             }
           />

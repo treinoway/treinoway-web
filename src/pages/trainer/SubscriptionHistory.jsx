@@ -10,6 +10,7 @@ import PaymentRow from '../../components/finance/PaymentRow';
 import PaymentActionsLayer from '../../components/finance/PaymentActionsLayer';
 import useStudentPaymentHistory from '../../hooks/useStudentPaymentHistory';
 import usePaymentActions from '../../hooks/usePaymentActions';
+import useFinanceCopy from '../../hooks/useFinanceCopy';
 import {
   FINANCE_OVERDUE_GRACE_DAYS_FALLBACK,
   HISTORY_FILTER,
@@ -30,6 +31,7 @@ const HISTORY_FILTERS = [
 ];
 
 const HistoryStats = ({ summary, payments }) => {
+  const { ft } = useFinanceCopy();
   const openCount = filterHistoryPayments(payments, HISTORY_FILTER.OPEN).length;
   const overdueCount = payments.filter((payment) => payment.effectiveStatus === PAYMENT_STATUS.OVERDUE).length;
   return (
@@ -46,7 +48,7 @@ const HistoryStats = ({ summary, payments }) => {
           support={overdueCount > 0 ? tf('finance.history.openOverdueSub', { n: overdueCount }) : undefined}
           tone={overdueCount > 0 ? 'error' : undefined}
         />
-        <Kpi label={t('finance.history.studentSince')} value={formatMonthYearShort(summary?.customerSince)} />
+        <Kpi label={ft('finance.history.studentSince')} value={formatMonthYearShort(summary?.customerSince)} />
       </div>
     </section>
   );
@@ -111,6 +113,7 @@ const HistoryLoading = () => (
 );
 
 const HistoryBody = ({ history, filter, onFilterChange, paymentActions }) => {
+  const { ft } = useFinanceCopy();
   if (history.loading) return <HistoryLoading />;
   if (history.error) {
     return (
@@ -119,11 +122,11 @@ const HistoryBody = ({ history, filter, onFilterChange, paymentActions }) => {
     );
   }
   if (!history.data?.student) {
-    return <EmptyBlock icon={UserX} title={t('finance.history.notFoundTitle')} description={t('finance.history.notFoundText')} />;
+    return <EmptyBlock icon={UserX} title={ft('finance.history.notFoundTitle')} description={ft('finance.history.notFoundText')} />;
   }
   const payments = history.data.payments || [];
   if (payments.length === 0) {
-    return <EmptyBlock icon={ReceiptText} title={t('finance.history.emptyTitle')} description={t('finance.history.emptyText')} />;
+    return <EmptyBlock icon={ReceiptText} title={t('finance.history.emptyTitle')} description={ft('finance.history.emptyText')} />;
   }
   return (
     <>
@@ -145,15 +148,15 @@ HistoryBody.propTypes = {
   paymentActions: PropTypes.object.isRequired,
 };
 
-/** Router state first, then the API; "" from the API → "Aluno sem nome". null until known. */
-const resolveStudentName = (stateName, student) => {
+/** Router state first, then the API; "" from the API → the role's unnamed label. null until known. */
+const resolveStudentName = (stateName, student, unnamedLabel) => {
   if (stateName) return stateName;
   if (!student) return null;
-  return student.name || t('finance.unnamedStudent');
+  return student.name || unnamedLabel;
 };
 
 /**
- * Per-student billing history. One request; reachable after the student is
+ * Per-person (student or patient) billing history. One request; reachable after the student is
  * unlinked. The name comes from router state, else from the API.
  */
 const SubscriptionHistory = () => {
@@ -163,11 +166,12 @@ const SubscriptionHistory = () => {
   const [filter, setFilter] = useState(HISTORY_FILTER.ALL);
   const history = useStudentPaymentHistory(studentId);
   const paymentActions = usePaymentActions({ onChanged: history.reload, isOverview: false });
-  const studentName = resolveStudentName(location.state?.studentName, history.data?.student);
+  const { ft } = useFinanceCopy();
+  const studentName = resolveStudentName(location.state?.studentName, history.data?.student, ft('finance.unnamedStudent'));
 
   const handleBack = () => {
     if (location.key !== 'default') navigate(-1);
-    else navigate(`/trainer/students/${studentId}`);
+    else navigate('/financeiro');
   };
 
   return (

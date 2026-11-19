@@ -4,7 +4,7 @@ const BASE = '/admin/manager';
 
 // Performs a GET and returns the response body.
 const get = async (url, params) => {
-  const response = await api.get(url, params ? { params } : undefined);
+  const response = params ? await api.get(url, { params }) : await api.get(url);
   return response.data;
 };
 
@@ -37,3 +37,6 @@ export const listUserSessions = (userId, { page, pageSize }) =>
 
 // One protocol with its trainings and exercises.
 export const getProtocol = (protocolId) => get(`${BASE}/protocols/${protocolId}`);
+
+// One workout session with its exercise logs, set logs and previous logs.
+export const getSession = (sessionId) => get(`${BASE}/sessions/${sessionId}`);

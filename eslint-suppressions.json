@@ -327,7 +327,7 @@
       "count": 1
     },
     "local/no-comments-in-function": {
-      "count": 13
+      "count": 12
     }
   },
   "src/components/Layout.test.jsx": {
@@ -1175,7 +1175,7 @@
   },
   "src/components/finance/PlanCard.jsx": {
     "local/function-header-comment": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/finance/PlanFormSheet.jsx": {

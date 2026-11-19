@@ -5,6 +5,7 @@ import { renderWithRouter } from '../test/test-utils';
 import Layout from './Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
+import api from '../api/axios';
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
@@ -13,6 +14,13 @@ vi.mock('../contexts/AuthContext', () => ({
 vi.mock('../contexts/AiChatContext', () => ({
   useAiChat: vi.fn(),
 }));
+
+vi.mock('../api/axios', () => ({
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+  onNetworkError: vi.fn(() => vi.fn()),
+}));
+
+let mockFinanceSummary = { overdueCount: 0, overdueAmount: '0.00' };
 
 const mockLogout = vi.fn();
 const mockHasRole = vi.fn();
@@ -37,6 +45,10 @@ beforeEach(() => {
     loading: false,
     hasNewResponse: false,
   });
+  mockFinanceSummary = { overdueCount: 0, overdueAmount: '0.00' };
+  api.get.mockImplementation((url) => (url === '/professional/finance/summary'
+    ? Promise.resolve({ data: mockFinanceSummary })
+    : Promise.resolve({ data: {} })));
 });
 
 // ---------------------------------------------------------------------------
@@ -704,7 +716,9 @@ describe('Layout', () => {
 
   describe('Financeiro sidebar link', () => {
     const DASHBOARD_CACHE_KEY = 'treinoway.trainerDashboardData:1';
-    const seedDashboardCache = (overdueCount) => {
+    // why: the trainer badge may come from the dashboard cache or from /professional/finance/summary; both carry the same count
+    const seedOverdue = (overdueCount) => {
+      mockFinanceSummary = { overdueCount, overdueAmount: '10.00' };
       localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
         plans: { expiredCount: 0, renewingSoonCount: 0 },
         routines: { expiredCount: 0, expiringSoonCount: 0 },
@@ -713,73 +727,118 @@ describe('Layout', () => {
         generatedAt: new Date().toISOString(),
       }));
     };
+    const setupRoles = (roles) => {
+      useAuth.mockReturnValue({
+        user: { id: 1, firstName: 'Ana', lastName: 'Lima', email: 'ana@example.com' },
+        logout: mockLogout,
+        hasRole: (role) => roles.includes(role),
+      });
+    };
+    const financeLinks = () => within(screen.getByRole('complementary')).queryAllByRole('link', { name: /^Financeiro/ });
 
     afterEach(() => localStorage.removeItem(DASHBOARD_CACHE_KEY));
 
-    it('renders Financeiro between iArnold and Biblioteca, linking to /trainer/financeiro', () => {
-      setupTrainerWithAi();
+    it.each([
+      ['trainer-only', ['TRAINER']],
+      ['nutritionist-only', ['NUTRITIONIST']],
+      ['dual-role', ['TRAINER', 'NUTRITIONIST']],
+    ])('renders one Financeiro entry linking to /financeiro for a %s user', (_label, roles) => {
+      setupRoles(roles);
       renderWithRouter(<Layout><span>Content</span></Layout>);
-      const sidebar = screen.getByRole('complementary');
-
-      const link = within(sidebar).getByRole('link', { name: 'Financeiro' });
-      expect(link).toHaveAttribute('href', '/trainer/financeiro');
-      const iArnold = within(sidebar).getByRole('link', { name: 'iArnold' });
-      const biblioteca = within(sidebar).getByRole('button', { name: 'Biblioteca' });
-      expect(iArnold.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      expect(link.compareDocumentPosition(biblioteca) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      const links = financeLinks();
+      expect(links).toHaveLength(1);
+      expect(links[0]).toHaveAttribute('href', '/financeiro');
     });
 
-    it('does not render it for non-trainers', () => {
-      setupAuth({ isTrainer: false });
+    it('does not render it for a user who is neither trainer nor nutritionist', () => {
+      setupRoles([]);
       renderWithRouter(<Layout><span>Content</span></Layout>);
       expect(screen.queryByRole('link', { name: /^Financeiro/ })).not.toBeInTheDocument();
     });
 
-    it('is active on /trainer/financeiro but not on the student history page', () => {
-      setupAuth({ isTrainer: true });
-      const { unmount } = renderWithRouter(<Layout><span>Content</span></Layout>, { route: '/trainer/financeiro' });
+    it('never links the sidebar to the old /trainer/financeiro path', () => {
+      setupRoles(['TRAINER', 'NUTRITIONIST']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+      expect(document.querySelector('a[href="/trainer/financeiro"]')).toBeNull();
+    });
+
+    it('is active on /financeiro but not on the person history page', () => {
+      setupRoles(['TRAINER']);
+      const { unmount } = renderWithRouter(<Layout><span>Content</span></Layout>, { route: '/financeiro' });
       expect(screen.getByRole('link', { name: 'Financeiro' })).toHaveClass('sidebar-link--active');
       unmount();
-      renderWithRouter(<Layout><span>Content</span></Layout>, { route: '/trainer/students/s1/subscription-history' });
+      renderWithRouter(<Layout><span>Content</span></Layout>, { route: '/financeiro/alunos/s1' });
       expect(screen.getByRole('link', { name: 'Financeiro' })).not.toHaveClass('sidebar-link--active');
     });
 
-    it('hides the badge when nothing is overdue', () => {
-      seedDashboardCache(0);
-      setupAuth({ isTrainer: true });
+    it('hides the badge when nothing is overdue', async () => {
+      seedOverdue(0);
+      setupRoles(['TRAINER']);
       renderWithRouter(<Layout><span>Content</span></Layout>);
+      await act(async () => {});
       expect(screen.getByRole('link', { name: 'Financeiro' })).toBeInTheDocument();
     });
 
-    it('shows the overdue count in the badge and in the accessible name', () => {
-      seedDashboardCache(3);
-      setupAuth({ isTrainer: true });
+    it('shows the overdue count in the badge and in the accessible name (trainer)', async () => {
+      seedOverdue(3);
+      setupRoles(['TRAINER']);
       renderWithRouter(<Layout><span>Content</span></Layout>);
-      const link = screen.getByRole('link', { name: 'Financeiro, 3 cobranças em atraso' });
+      const link = await screen.findByRole('link', { name: 'Financeiro, 3 cobranças em atraso' });
       expect(within(link).getByText('3')).toHaveAttribute('aria-hidden', 'true');
     });
 
-    it('uses singular for one overdue charge and caps at 99+', () => {
-      seedDashboardCache(1);
-      setupAuth({ isTrainer: true });
+    it('uses singular for one overdue charge and caps at 99+', async () => {
+      seedOverdue(1);
+      setupRoles(['TRAINER']);
       const { unmount } = renderWithRouter(<Layout><span>Content</span></Layout>);
-      expect(screen.getByRole('link', { name: 'Financeiro, 1 cobrança em atraso' })).toBeInTheDocument();
+      expect(await screen.findByRole('link', { name: 'Financeiro, 1 cobrança em atraso' })).toBeInTheDocument();
       unmount();
 
-      seedDashboardCache(150);
+      seedOverdue(150);
       renderWithRouter(<Layout><span>Content</span></Layout>);
-      expect(within(screen.getByRole('link', { name: 'Financeiro, 150 cobranças em atraso' })).getByText('99+')).toBeInTheDocument();
+      expect(within(await screen.findByRole('link', { name: 'Financeiro, 150 cobranças em atraso' })).getByText('99+')).toBeInTheDocument();
     });
 
-    it('updates live from the Financeiro broadcast without any request', () => {
-      setupAuth({ isTrainer: true });
+    it('updates live from the Financeiro broadcast', async () => {
+      setupRoles(['TRAINER']);
       renderWithRouter(<Layout><span>Content</span></Layout>);
+      await act(async () => {});
       expect(screen.getByRole('link', { name: 'Financeiro' })).toBeInTheDocument();
 
       act(() => {
         window.dispatchEvent(new CustomEvent('treinoway:finance-overdue-changed', { detail: { overdueCount: 2, overdueAmount: '20.00' } }));
       });
       expect(screen.getByRole('link', { name: 'Financeiro, 2 cobranças em atraso' })).toBeInTheDocument();
+    });
+
+    it('shows the overdue badge for a nutritionist-only user from GET /professional/finance/summary', async () => {
+      mockFinanceSummary = { overdueCount: 4, overdueAmount: '40.00' };
+      setupRoles(['NUTRITIONIST']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+
+      const link = await screen.findByRole('link', { name: 'Financeiro, 4 cobranças em atraso' });
+      expect(link).toHaveAttribute('href', '/financeiro');
+      expect(within(link).getByText('4')).toHaveAttribute('aria-hidden', 'true');
+      expect(api.get.mock.calls.map(([url]) => url)).toContain('/professional/finance/summary');
+    });
+
+    it('updates the nutritionist-only badge live from the Financeiro broadcast', async () => {
+      mockFinanceSummary = { overdueCount: 4, overdueAmount: '40.00' };
+      setupRoles(['NUTRITIONIST']);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+      await screen.findByRole('link', { name: 'Financeiro, 4 cobranças em atraso' });
+
+      act(() => {
+        window.dispatchEvent(new CustomEvent('treinoway:finance-overdue-changed', { detail: { overdueCount: 0, overdueAmount: '0.00' } }));
+      });
+      expect(screen.getByRole('link', { name: 'Financeiro' })).toBeInTheDocument();
+    });
+
+    it('requests no finance summary for a user who is neither trainer nor nutritionist', async () => {
+      setupRoles([]);
+      renderWithRouter(<Layout><span>Content</span></Layout>);
+      await act(async () => {});
+      expect(api.get.mock.calls.map(([url]) => url)).not.toContain('/professional/finance/summary');
     });
   });
 

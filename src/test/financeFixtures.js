@@ -26,6 +26,8 @@ export const makePayment = (overrides = {}) => ({
   subscriptionStatus: 'active',
   student: { id: 'student-1', name: 'Maria Silva', avatarUrl: null },
   plan: { id: 'plan-1', name: 'Consultoria Mensal', recurrence: 'monthly' },
+  serviceType: 'training',
+  serviceTypeLabel: 'Treino',
   ...overrides,
 });
 
@@ -65,6 +67,30 @@ export const makePlan = (overrides = {}) => ({
   billingDay: null,
   isArchived: false,
   activeSubscriptionCount: 4,
+  serviceType: 'training',
+  serviceTypeLabel: 'Treino',
+  trainerId: 'trainer-1',
+  nutritionistId: null,
+  ...overrides,
+});
+
+/** A plan tagged "Nutrição", owned by the nutritionist row. */
+export const nutritionPlan = (overrides = {}) => makePlan({
+  id: 'plan-nutri',
+  name: 'Acompanhamento Nutricional',
+  serviceType: 'nutrition',
+  serviceTypeLabel: 'Nutrição',
+  trainerId: null,
+  nutritionistId: 'nutritionist-1',
+  ...overrides,
+});
+
+/** A plan tagged "Ambos" (training + nutrition), owned by the trainer row. */
+export const bothPlan = (overrides = {}) => makePlan({
+  id: 'plan-both',
+  name: 'Treino e Dieta',
+  serviceType: 'both',
+  serviceTypeLabel: 'Ambos',
   ...overrides,
 });
 
@@ -79,6 +105,17 @@ export const makeKpis = (overrides = {}) => ({
   billedStudents: 15,
   delinquencyRate: 13.33,
   ...overrides,
+});
+
+export const TRAINER_ONLY = ['TRAINER'];
+export const NUTRITIONIST_ONLY = ['NUTRITIONIST'];
+export const DUAL_ROLE = ['TRAINER', 'NUTRITIONIST'];
+
+/** `useAuth()` value for a professional holding the given roles. */
+export const authAs = (roles) => ({
+  user: { id: 1, roles },
+  isAuthenticated: true,
+  hasRole: (role) => roles.includes(role),
 });
 
 /** Axios-like error with the backend error contract. */

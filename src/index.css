@@ -2789,7 +2789,6 @@ button.auth-forgot-link:disabled {
 }
 
 .form-input,
-.form-select,
 .form-textarea {
   width: 100%;
   padding: 0.5rem 1rem;
@@ -2805,7 +2804,7 @@ button.auth-forgot-link:disabled {
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 
-/* ─── Custom Select ──────────────────────────────────────────────────────── */
+/* ─── Custom Select (src/components/Select.jsx) — DS Input §4.6 + dropdown §4.15 ─── */
 .custom-select {
   position: relative;
   width: 100%;
@@ -2815,57 +2814,71 @@ button.auth-forgot-link:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
-  padding: 0.5rem 0.75rem 0.5rem 1rem;
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius-lg);
-  font-size: 1rem;
-  font-family: inherit;
-  background-color: var(--color-surface);
-  color: var(--color-on-surface);
-  cursor: pointer;
-  text-align: left;
-  outline: none;
-  transition: box-shadow 0.2s, border-color 0.2s;
   gap: var(--spacing-sm);
+  width: 100%;
+  min-height: var(--size-control-touch);
+  padding: 0 var(--spacing-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--background-surface);
+  color: var(--text-primary);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  font-weight: 400;
+  line-height: var(--line-height-body);
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
 }
 
-.custom-select__trigger:focus,
+.custom-select__trigger:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+.custom-select__trigger:focus-visible,
 .custom-select__trigger--open {
-  box-shadow: 0 0 0 2px var(--color-primary);
-  border-color: transparent;
+  border-color: var(--border-focus);
+  box-shadow: var(--focus-ring);
 }
 
 .custom-select__trigger:disabled {
-  opacity: 0.5;
+  background-color: var(--background-surface-elevated);
+  color: var(--text-disabled);
   cursor: not-allowed;
 }
 
-.custom-select--error .custom-select__trigger {
-  border-color: var(--color-error);
-}
-
-.custom-select--error .custom-select__trigger:focus,
-.custom-select--error .custom-select__trigger.custom-select__trigger--open {
-  box-shadow: 0 0 0 2px var(--color-error);
-  border-color: transparent;
+.custom-select--error .custom-select__trigger,
+.custom-select--error .custom-select__trigger:hover:not(:disabled),
+.custom-select--error .custom-select__trigger:focus-visible,
+.custom-select--error .custom-select__trigger--open {
+  border-color: var(--border-error);
 }
 
 .custom-select__value {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .custom-select__value--placeholder {
-  color: var(--color-on-surface-variant);
+  color: var(--text-tertiary);
+}
+
+.custom-select__trigger:disabled .custom-select__value {
+  color: var(--text-disabled);
 }
 
 .custom-select__chevron {
   flex-shrink: 0;
-  color: var(--color-on-surface-variant);
-  transition: transform 0.2s ease;
+  color: var(--icon-default);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.custom-select__trigger:disabled .custom-select__chevron {
+  color: var(--icon-disabled);
 }
 
 .custom-select__chevron--open {
@@ -2873,22 +2886,21 @@ button.auth-forgot-link:disabled {
 }
 
 .custom-select__dropdown {
-  background: var(--color-surface);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  max-height: 260px;
+  max-height: calc(var(--spacing-5xl) * 4);
   overflow-y: auto;
-  list-style: none;
   margin: 0;
-  padding: var(--spacing-xs) 0;
-  animation: custom-select-open 0.15s ease-out;
+  padding: var(--spacing-xs);
+  list-style: none;
+  border-radius: var(--radius-lg);
+  background: var(--background-surface);
+  box-shadow: var(--shadow-overlay);
+  animation: custom-select-open var(--duration-fast) var(--ease-standard);
 }
 
 @keyframes custom-select-open {
   from {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(calc(var(--spacing-xs) * -1));
   }
   to {
     opacity: 1;
@@ -2896,40 +2908,52 @@ button.auth-forgot-link:disabled {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .custom-select__dropdown { animation: none; }
+  .custom-select__chevron { transition: none; }
+}
+
 .custom-select__option {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  font-size: 0.875rem;
-  font-family: inherit;
-  color: var(--color-on-surface);
+  display: flex;
+  align-items: center;
+  min-height: var(--size-control-touch);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  font-weight: 400;
+  line-height: var(--line-height-body);
+  color: var(--text-primary);
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
 }
 
 .custom-select__option:hover {
-  background: var(--color-surface-container);
+  background: var(--background-surface-elevated);
 }
 
-.custom-select__option--selected {
-  background: var(--color-primary-container);
-  color: var(--color-on-primary-container);
-  font-weight: 500;
-}
-
+.custom-select__option--selected,
 .custom-select__option--selected:hover {
-  background: var(--color-primary-container);
+  background: var(--background-brand-subtle);
+  color: var(--text-brand);
+  font-weight: 600;
 }
 
-.custom-select__option--disabled {
-  opacity: 0.4;
+.custom-select__option--disabled,
+.custom-select__option--disabled:hover {
+  background: none;
+  color: var(--text-disabled);
   cursor: not-allowed;
 }
 
-.custom-select__option--disabled:hover {
-  background: none;
+@media (min-width: 768px) {
+  .custom-select__trigger,
+  .custom-select__option {
+    min-height: var(--size-control);
+  }
 }
 
 .form-input:focus,
-.form-select:focus,
 .form-textarea:focus {
   box-shadow: 0 0 0 2px var(--color-primary);
   border-color: transparent;
@@ -2949,16 +2973,11 @@ button.auth-forgot-link:disabled {
    a concern. Base (375px) values are set on each control; this block reverts. ── */
 @media (min-width: 768px) {
   .form-input,
-.form-select,
-.form-textarea {
+  .form-textarea {
     font-size: 0.875rem;
   }
 
   .form-input--sm {
-    font-size: 0.875rem;
-  }
-
-  .custom-select__trigger {
     font-size: 0.875rem;
   }
 
@@ -4416,10 +4435,6 @@ button.auth-forgot-link:disabled {
     max-width: 80px;
     flex-shrink: 0;
   }
-}
-
-.form-select--error {
-  border-color: var(--color-error);
 }
 
 .schedule-template-error {
@@ -9503,7 +9518,6 @@ button.auth-forgot-link:disabled {
   margin-top: var(--spacing-sm);
 }
 
-.wizard-ex-picker-row .form-select,
 .wizard-ex-picker-row select {
   flex: 1;
 }
@@ -18845,7 +18859,20 @@ select.input { cursor: pointer; }
   .finance-page__actions .month-selector { width: auto; }
 }
 
-.finance-tabs { margin-bottom: var(--spacing-xl); }
+/* Tabs row: Cobranças/Planos tabs left, "Tipo" select right (dual-role only); the select wraps below on mobile. */
+.finance-tabs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.finance-tabs { min-width: 0; max-width: 100%; }
+
+@media (min-width: 768px) {
+  .finance-tabs-row { flex-wrap: nowrap; justify-content: space-between; }
+}
 
 /* ── Month selector ────────────────────────────────────────── */
 .month-selector {
@@ -21988,4 +22015,22 @@ a.prescription-stepper__pill:focus-visible { outline: none; box-shadow: var(--fo
   .feedback-builder { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
   .feedback-builder__side { flex-flow: row wrap; align-items: flex-start; }
   .feedback-builder__side > .feedback-builder__panel { flex: 1 1 calc(var(--spacing-5xl) * 5); }
+}
+
+/* Finance: "Tipo" select (Todos / Treino / Nutrição / Ambos) for dual-role professionals, on .finance-tabs-row.
+   Layout only — the trigger/dropdown styling comes from the shared .custom-select rules. */
+.finance-type-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.finance-type-filter__label { flex-shrink: 0; color: var(--text-secondary); }
+
+.finance-type-filter .custom-select { flex: 1; min-width: 0; }
+
+@media (min-width: 768px) {
+  .finance-type-filter { width: auto; flex-shrink: 0; }
+  .finance-type-filter .custom-select { flex: none; width: calc(var(--spacing-5xl) * 2.5); }
 }
