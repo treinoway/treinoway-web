@@ -18,4 +18,9 @@ describe('index.css: championship screens against the captures', () => {
     expect(body).toContain('color: var(--text-primary)');
     expect(css.indexOf('.btn.btn--neutral {')).toBeGreaterThan(css.indexOf('.btn:is(.btn--primary, .btn--secondary, .btn--neutral'));
   });
+
+  it('CPD-33 draws the 1st place avatar as a white circle on the blue leader card', () => {
+    expect(css).toContain('.championship-podium__place--leader { background: var(--background-brand-subtle); }');
+    expect(ruleBody('.championship-podium__place--leader .avatar')).toContain('background: var(--background-surface)');
+  });
 });
