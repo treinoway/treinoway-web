@@ -111,6 +111,11 @@ const useSettingsSave = (draft, changes, onSave) => {
     event.preventDefault();
     setNameError(draft.name.trim() ? null : NAME_REQUIRED_MESSAGE);
     if (!draft.name.trim()) return;
+    // why: the button stays enabled as the design system draws it; with nothing changed there is nothing to send
+    if (Object.keys(changes).length === 0) {
+      showToast('Configuração salva.', 'success');
+      return;
+    }
     setSaveError(null);
     setSaving(true);
     try {
@@ -298,7 +303,7 @@ const useSettingsForm = (challenge, isWeekly, onSave) => {
   const isDirty = editable && Object.keys(changes).length > 0;
   const ruleValid = !isWeekly || isScoringRuleValid(draft.rule.weights, draft.rule.activePillars);
   const save = useSettingsSave(draft, changes, onSave);
-  return { ...save, draft, setField, editable, isScheduled, isDirty, canSave: isDirty && ruleValid && !save.saving };
+  return { ...save, draft, setField, editable, isScheduled, isDirty, canSave: ruleValid && !save.saving };
 };
 
 // Settings tab: "Dados do campeonato" and "Regras de pontuação" side by side, saved together, then the "Zona de perigo"; asks before leaving with unsaved changes

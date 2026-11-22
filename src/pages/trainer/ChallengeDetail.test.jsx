@@ -112,14 +112,14 @@ describe('ChallengeDetail', () => {
     expect(screen.getByRole('heading', { name: 'Regras de pontuação' })).toBeInTheDocument();
   });
 
-  it('disables save button when no config changes have been made', async () => {
+  it('CPD-42 keeps the save button enabled before any config change, as the design system draws it', async () => {
     const user = userEvent.setup();
     renderDates();
     await screen.findByRole('heading', { level: 1, name: 'Verao 2026' });
 
     await user.click(screen.getByRole('tab', { name: 'Configurações' }));
 
-    expect(await screen.findByRole('button', { name: 'Salvar configuração' })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: 'Salvar configuração' })).toBeEnabled();
   });
 
   it('enables save button when name is changed', async () => {

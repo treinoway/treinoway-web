@@ -109,7 +109,7 @@ describe('ChallengeSettingsTab', () => {
   it('CPD-42 saves both cards with one Salvar configuração and shows "Configuração salva."', async () => {
     const user = userEvent.setup();
     const { onSave } = renderSettings();
-    expect(saveButton()).toBeDisabled();
+    expect(saveButton()).toBeEnabled();
 
     await user.clear(nameInput());
     await user.type(nameInput(), 'Inverno 2027');
@@ -127,6 +127,17 @@ describe('ChallengeSettingsTab', () => {
       ptsWorkoutCompleted: 12,
     });
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Configuração salva.', 'success'));
+  });
+
+  it('CPD-42 keeps Salvar configuração enabled without changes and saving shows "Configuração salva." without calling the API', async () => {
+    const user = userEvent.setup();
+    const { onSave } = renderSettings();
+
+    expect(saveButton()).toBeEnabled();
+    await user.click(saveButton());
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(mockShowToast).toHaveBeenCalledWith('Configuração salva.', 'success');
   });
 
   it('CPD-42 keeps Salvar configuração disabled while the weights do not sum 100', async () => {
