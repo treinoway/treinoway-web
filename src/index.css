@@ -20490,6 +20490,9 @@ select.input { cursor: pointer; }
 }
 .settings-weights { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .pillar-weights-editor { display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; margin: 0; padding: 0; border: 0; }
+/* Weekly championship form: start Monday and weeks side by side, actions on the right */
+.weekly-form__pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-md); }
+.weekly-form__actions { justify-content: flex-end; }
 /* Championship scoring section: summary against the general ranking and the pillar editor */
 .scoring-section { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .scoring-section__summary { display: flex; flex-direction: column; gap: var(--spacing-sm); padding: var(--spacing-md); border-radius: var(--radius-lg); background: var(--background-surface-elevated); }

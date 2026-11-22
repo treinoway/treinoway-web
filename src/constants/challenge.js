@@ -72,11 +72,3 @@ export const CHALLENGE_MIN_WEEKS = 1;
 export const CHALLENGE_MAX_WEEKS = 12;
 export const CHALLENGE_START_MONDAY_COUNT = 12;
 export const CHALLENGE_DESCRIPTION_MAX_LENGTH = 280;
-
-// Weekly-format templates: each fills the number of weeks and a default name; the XP rules come from the trainer configuration, as in the dates templates
-export const CHALLENGE_WEEKLY_TEMPLATES = Object.freeze([
-  { id: 'sprint_1w', name: 'Sprint de 1 semana', description: 'Uma semana para acender a constância do time.', weeks: 1, defaultName: 'Sprint Semanal' },
-  { id: 'challenge_2w', name: 'Desafio de 2 semanas', description: 'Duas semanas focadas em constância.', weeks: 2, defaultName: 'Desafio 2 Semanas' },
-  { id: 'championship_4w', name: 'Campeonato de 4 semanas', description: 'Um mês de constância com ranking acumulado.', weeks: 4, defaultName: 'Campeonato de 4 Semanas' },
-]);
-

@@ -134,26 +134,6 @@ ScoringCards.propTypes = {
   ptsValues: PropTypes.object.isRequired,
 };
 
-// Point rules fields of a create body (the anonymous ranking travels apart)
-const pointsBodyOf = (pts) =>
-  Object.fromEntries(POINTS_FIELD_KEYS.filter((key) => pts[key] !== undefined && pts[key] !== null).map((key) => [key, pts[key]]));
-
-// XP rules of the weekly form: the scoring cards and the button that opens the points editor
-const WeeklyPointsSummary = ({ ptsValues, onEdit }) => (
-  <div className="field" role="group" aria-labelledby="weekly-points-title">
-    <span className="field-label type-caption-strong" id="weekly-points-title">Regras de pontos (XP)</span>
-    <ScoringCards ptsValues={ptsValues} />
-    <div className="ds-actions">
-      <button type="button" className="btn btn--secondary" onClick={onEdit}>Editar pontuações</button>
-    </div>
-  </div>
-);
-
-WeeklyPointsSummary.propTypes = {
-  ptsValues: PropTypes.object.isRequired,
-  onEdit: PropTypes.func.isRequired,
-};
-
 const DISCARD_MESSAGE = 'Há mudanças não salvas. Descartar e sair?';
 
 // Closing of the sheet (Escape, close button, overlay) that first asks before discarding unsaved changes
@@ -194,7 +174,7 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
   const [showPointsEditor, setShowPointsEditor] = useState(false);
   const weeklyFormat = useConsistencyRankingAccess();
   const [weeklyDirty, setWeeklyDirty] = useState(false);
-  const hasUnsavedWeekly = weeklyFormat && (weeklyDirty || ptsValues !== null);
+  const hasUnsavedWeekly = weeklyFormat && weeklyDirty;
   const { dialogProps, handleRequestClose } = useDiscardGuard(isOpen, hasUnsavedWeekly, onClose);
 
   useEffect(() => {
@@ -292,10 +272,8 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
           <div className="bottom-sheet-body">
             {weeklyFormat && (
               <WeeklyChampionshipForm
-                pointsSummary={<WeeklyPointsSummary ptsValues={currentPts} onEdit={handleEditScoring} />}
-                pointsBody={pointsBodyOf(currentPts)}
-                onTemplateSelected={() => setPtsValues(null)}
                 onCreate={handleCreateWeekly}
+                onCancel={handleRequestClose}
                 onDirtyChange={setWeeklyDirty}
               />
             )}

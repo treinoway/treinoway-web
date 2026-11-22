@@ -231,17 +231,19 @@ const STUDENTS = [
   { id: '33333333-3333-3333-3333-333333333333', firstName: 'Caio', lastName: 'Reis', email: 'caio@x.com' },
 ];
 
+const RANKING_RULE = { weights: { workouts: 60, cardio: 40, feedback: 0, hydration: 0, diet: 0 }, activePillars: ['workouts', 'cardio'] };
+
 // GET responses of the weekly form: XP rules, ranking configuration and the trainer's students
 const mockWeeklySources = () => {
   api.get.mockImplementation((url) => {
-    if (url === '/trainer/consistency-ranking/config') return Promise.resolve({ data: { timeZone: 'America/Sao_Paulo', minPodiumWeeks: 2 } });
+    if (url === '/trainer/consistency-ranking/config') return Promise.resolve({ data: { timeZone: 'America/Sao_Paulo', minPodiumWeeks: 2, ...RANKING_RULE } });
     if (url === '/trainer/students') return Promise.resolve({ data: STUDENTS });
     return Promise.resolve({ data: TRAINER_POINTS });
   });
 };
 
-// Values shown on the XP rule cards of the weekly form
-const pointsRules = () => within(screen.getByRole('group', { name: 'Regras de pontos (XP)' }));
+// Types a championship name, which the weekly form now opens empty (CPD-23)
+const typeName = (user, name = 'Verão 2027') => user.type(screen.getByLabelText('Nome do campeonato'), name);
 
 // Body of the create request
 const createBody = () => api.post.mock.calls.find(([url]) => url === '/trainer/challenges')[1];
@@ -266,21 +268,19 @@ describe('CreateChampionshipModal', () => {
     const user = userEvent.setup();
     renderModal();
 
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('Sprint Semanal');
+    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('');
     expect(screen.getByLabelText('Descrição')).toBeInTheDocument();
     expect(screen.getByLabelText('Segunda de início')).toHaveValue('2026-11-16');
-    expect(screen.getByLabelText('Semanas')).toHaveValue('1');
-    expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('1');
+    expect(screen.getByLabelText('Semanas')).toHaveValue('4');
+    expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('2');
     const participants = screen.getByRole('tablist', { name: 'Participantes' });
     expect(within(participants).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Todos os alunos', 'Por filtro', 'Selecionar alunos']);
     expect(screen.getByRole('switch', { name: 'Ranking anônimo' })).toHaveAttribute('aria-checked', 'false');
-    expect(await pointsRules().findByText('50')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Editar pontuações' })).toBeInTheDocument();
+    expect(await screen.findByText('Igual ao ranking geral')).toBeInTheDocument();
+    expect(screen.queryByText('Regras de pontos (XP)')).not.toBeInTheDocument();
     expect(screen.queryByText('Sprint de 7 dias')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('tab', { name: 'Campeonato de 4 semanas' }));
-    await user.clear(screen.getByLabelText('Nome do campeonato'));
-    await user.type(screen.getByLabelText('Nome do campeonato'), 'Verão 2027');
+    await typeName(user);
     await user.type(screen.getByLabelText('Descrição'), 'Prêmio: camiseta');
     await user.selectOptions(screen.getByLabelText('Segunda de início'), '2026-11-23');
     await user.selectOptions(screen.getByLabelText('Semanas'), '8');
@@ -301,8 +301,8 @@ describe('CreateChampionshipModal', () => {
       minPodiumWeeks: 3,
       participantMode: 'explicit',
       studentIds: [STUDENTS[0].id, STUDENTS[2].id],
-      ...TRAINER_POINTS,
       anonymousRanking: true,
+      ...RANKING_RULE,
     });
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
@@ -311,6 +311,7 @@ describe('CreateChampionshipModal', () => {
     const user = userEvent.setup();
     renderModal();
 
+    await typeName(user);
     await user.click(screen.getByRole('tab', { name: 'Por filtro' }));
     await user.selectOptions(screen.getByLabelText('Gênero'), 'female');
     await user.type(screen.getByLabelText('Idade mínima'), '18');
@@ -320,43 +321,28 @@ describe('CreateChampionshipModal', () => {
     await waitFor(() => expect(createBody()).toMatchObject({ participantMode: 'filter', filter: { gender: 'female', minAge: 18, city: 'Porto Alegre' } }));
   });
 
-  it('CAMP-02 fills weeks and point rules from the 1, 2 and 4 week templates', async () => {
+  it('CAMP-02 sets the weeks directly and sends no XP rules, which the service copies from the trainer (CPD-22, CPD-26)', async () => {
     const user = userEvent.setup();
     renderModal();
-    const tabs = within(screen.getByRole('tablist', { name: 'Modelo' })).getAllByRole('tab').map((tab) => tab.textContent);
-    expect(tabs).toEqual(['Sprint de 1 semana', 'Desafio de 2 semanas', 'Campeonato de 4 semanas']);
-    expect(await pointsRules().findByText('10')).toBeInTheDocument();
+    await screen.findByText('Igual ao ranking geral');
 
-    await user.click(screen.getByRole('tab', { name: 'Desafio de 2 semanas' }));
-    expect(screen.getByLabelText('Semanas')).toHaveValue('2');
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('Desafio 2 Semanas');
-    expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('2');
-
-    await user.click(screen.getByRole('button', { name: 'Editar pontuações' }));
-    await user.click(screen.getByRole('button', { name: 'Salvar' }));
-    expect(pointsRules().getByText('20')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('tab', { name: 'Campeonato de 4 semanas' }));
-    expect(screen.getByLabelText('Semanas')).toHaveValue('4');
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('Campeonato de 4 Semanas');
-    expect(pointsRules().queryByText('20')).not.toBeInTheDocument();
-    expect(pointsRules().getByText('10')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('tab', { name: 'Sprint de 1 semana' }));
-    expect(screen.getByLabelText('Semanas')).toHaveValue('1');
+    await typeName(user);
+    await user.selectOptions(screen.getByLabelText('Semanas'), '1');
     expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('1');
-
-    await user.click(screen.getByRole('tab', { name: 'Campeonato de 4 semanas' }));
+    await user.selectOptions(screen.getByLabelText('Semanas'), '6');
+    expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('2');
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
-    await waitFor(() => expect(createBody()).toMatchObject({ format: 'weeks', weeks: 4, minPodiumWeeks: 2, participantMode: 'all', ...TRAINER_POINTS }));
+
+    await waitFor(() => expect(createBody()).toMatchObject({ format: 'weeks', weeks: 6, minPodiumWeeks: 2, participantMode: 'all', ...RANKING_RULE }));
+    Object.keys(TRAINER_POINTS).forEach((field) => expect(createBody()).not.toHaveProperty(field));
   });
 
-  it('CAMP-02 wraps the three template options so none is cut at the modal width', () => {
+  it('CAMP-02 shows no template options in the weekly form (CPD-22)', () => {
     renderModal();
 
-    const templates = screen.getByRole('tablist', { name: 'Modelo' });
-    expect(templates).toHaveClass('segmented', 'segmented--wrap');
-    expect(within(templates).getAllByRole('tab')).toHaveLength(3);
+    expect(screen.queryByRole('tablist', { name: 'Modelo' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Sprint de 1 semana')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Editar pontuações' })).not.toBeInTheDocument();
   });
 
   it('CAMP-03 offers the current Monday and the next ones, and 1 to 12 weeks, in the form', () => {
@@ -393,6 +379,7 @@ describe('CreateChampionshipModal', () => {
     });
     renderModal();
 
+    await typeName(user);
     await user.type(screen.getByLabelText('Descrição'), 'Prêmio');
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
 
@@ -410,6 +397,7 @@ describe('CreateChampionshipModal', () => {
     });
     renderModal();
 
+    await typeName(user);
     await user.click(screen.getByRole('tab', { name: 'Por filtro' }));
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
 
@@ -424,6 +412,7 @@ describe('CreateChampionshipModal', () => {
     });
     renderModal();
 
+    await typeName(user);
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Campeonatos não estão disponíveis no seu plano.');
