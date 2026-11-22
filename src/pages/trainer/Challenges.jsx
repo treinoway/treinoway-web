@@ -12,6 +12,8 @@ import Tabs from '../../components/ds/Tabs';
 import EmptyBlock from '../../components/ds/EmptyBlock';
 import SkeletonRows from '../../components/ds/SkeletonRows';
 import useConsistencyRankingAccess from '../../hooks/useConsistencyRankingAccess';
+import useWeeklyChampionshipSources from '../../hooks/useWeeklyChampionshipSources';
+import { todayIn } from '../../utils/challengeDisplay';
 import { CHALLENGE_STATUS, CHALLENGE_STATUS_LABEL } from '../../constants/challenge';
 
 const ALL_TAB = 'all';
@@ -33,9 +35,6 @@ const EMPTY_FILTER_DESCRIPTION = Object.freeze({
 
 const EMPTY_LIST_DESCRIPTION = 'Seus campeonatos ativos aparecerão aqui.';
 const TEMPLATE_SENTENCE = 'Crie a partir de um modelo pronto.';
-
-// "YYYY-MM-DD" civil date of today in the browser's time zone
-const todayKey = () => new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
 // Championships of a filter tab: every one on "Todos", the ones in that status otherwise
 const challengesOfTab = (challenges, tab) => (tab === ALL_TAB ? challenges : challenges.filter((c) => c.status === tab));
@@ -104,9 +103,9 @@ EmptyChallenges.propTypes = {
 };
 
 // Filter tabs over the grid of championship cards, or the empty message of the selected status
-const ChallengeTabs = ({ challenges, tab, onTabChange }) => {
+const ChallengeTabs = ({ challenges, tab, onTabChange, timeZone }) => {
   const visible = challengesOfTab(challenges, tab);
-  const today = todayKey();
+  const today = todayIn(timeZone);
   const emptyTitle = `Nenhum campeonato ${CHALLENGE_STATUS_LABEL[tab]?.toLowerCase() || ''}.`;
   return (
     <>
@@ -130,6 +129,7 @@ ChallengeTabs.propTypes = {
   challenges: PropTypes.arrayOf(PropTypes.object).isRequired,
   tab: PropTypes.string.isRequired,
   onTabChange: PropTypes.func.isRequired,
+  timeZone: PropTypes.string,
 };
 
 // Championships list: title with trophy, "+ Novo campeonato", status tabs with counts and the cards
@@ -139,6 +139,7 @@ const Challenges = () => {
   const [tab, setTab] = useState(ALL_TAB);
   const [showCreate, setShowCreate] = useState(false);
   const canCreateWeekly = useConsistencyRankingAccess();
+  const { timeZone } = useWeeklyChampionshipSources(canCreateWeekly, { withStudents: false });
   const openCreate = () => setShowCreate(true);
   const createAction = canCreateWeekly ? <NewChallengeButton onClick={openCreate} /> : null;
   const isEmpty = !loading && challenges.length === 0;
@@ -148,7 +149,7 @@ const Challenges = () => {
       <LibraryPageHeader icon={Trophy} title="Campeonatos" actions={createAction} />
       {loading && <SkeletonRows label="Carregando campeonatos" count={3} />}
       {isEmpty && <EmptyChallenges canCreateWeekly={canCreateWeekly} onCreate={openCreate} />}
-      {!loading && !isEmpty && <ChallengeTabs challenges={challenges} tab={tab} onTabChange={setTab} />}
+      {!loading && !isEmpty && <ChallengeTabs challenges={challenges} tab={tab} onTabChange={setTab} timeZone={timeZone} />}
       <CreateChampionshipModal
         isOpen={showCreate}
         onClose={() => setShowCreate(false)}

@@ -20,6 +20,7 @@ import useChallengeConsistency from '../../hooks/useChallengeConsistency';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useConsistencyRankingAccess from '../../hooks/useConsistencyRankingAccess';
 import useWeeklyChampionshipSources from '../../hooks/useWeeklyChampionshipSources';
+import { todayIn } from '../../utils/challengeDisplay';
 import { dayMonthOf, formatCloseLabel } from '../../utils/consistencyFormat';
 import { CHALLENGE_FORMAT, CHALLENGE_STATUS } from '../../constants/challenge';
 
@@ -36,9 +37,6 @@ const WEEKLY_TABS = Object.freeze([
 ]);
 const DATES_TABS = Object.freeze(WEEKLY_TABS.filter((tab) => tab.id !== TAB.POINTS));
 const READ_ONLY_STATUSES = Object.freeze([CHALLENGE_STATUS.COMPLETED, CHALLENGE_STATUS.CANCELLED]);
-
-// "YYYY-MM-DD" civil date of today in a time zone
-const todayIn = (timeZone) => new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
 // Full name of a participant, ranking entry or standings row
 const fullNameOf = (person) => `${person.firstName || ''} ${person.lastName || ''}`.trim() || person.name || 'Aluno';

@@ -3,6 +3,9 @@ import { normalizeForSearch } from './subscriptionHelpers';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+// "YYYY-MM-DD" civil date of today in a time zone (the trainer's, so the list and the detail tag the same day)
+export const todayIn = (timeZone) => new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+
 // "YYYY-MM-DD" of the day before a date key
 const dayBefore = (dateKey) => new Date(Date.parse(dateKey) - MS_PER_DAY).toISOString().slice(0, 10);
 

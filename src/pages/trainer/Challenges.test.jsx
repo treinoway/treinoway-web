@@ -92,6 +92,9 @@ const cancelledChallenge = {
   updatedAt: null,
 };
 
+// Reads of the championship list (the trainer's ranking config is read apart for the time zone)
+const challengeListCalls = () => api.get.mock.calls.filter(([url]) => url.startsWith('/trainer/challenges'));
+
 describe('Challenges', () => {
   beforeEach(() => {
     mockShowToast.mockReset();
@@ -151,8 +154,30 @@ describe('Challenges', () => {
     api.get.mockResolvedValue({ data: [activeChallenge] });
     renderWithRouter(<Challenges />);
     await screen.findByText('Verao 2026');
-    expect(api.get).toHaveBeenCalledTimes(1);
-    expect(api.get).toHaveBeenCalledWith('/trainer/challenges');
+    expect(challengeListCalls()).toEqual([['/trainer/challenges']]);
+  });
+
+  it("CPD-62 tags the cards on today's date in the trainer's time zone, not the browser's", async () => {
+    const user = userEvent.setup();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-22T12:00:00Z'));
+    const endsTomorrowHere = { ...activeChallenge, id: 'tz-1', name: 'Termina em Kiritimati', startDate: '2026-11-02', endDate: '2026-11-23' };
+    const startsInTwoDaysHere = { ...scheduledChallenge, id: 'tz-2', name: 'Começa em Kiritimati', startDate: '2026-11-24', endDate: '2026-12-21' };
+    api.get.mockImplementation((url) => Promise.resolve({
+      data: url === '/trainer/consistency-ranking/config' ? { timeZone: 'Pacific/Kiritimati' } : [endsTomorrowHere, startsInTwoDaysHere],
+    }));
+    try {
+      renderWithRouter(<Challenges />);
+
+      const activeCard = (await screen.findByText('Termina em Kiritimati')).closest('article');
+      await waitFor(() => expect(within(activeCard).getByText('Último dia')).toBeInTheDocument());
+      expect(within(activeCard).queryByText('Em andamento')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('tab', { name: /Agendados/ }));
+      const scheduledCard = screen.getByText('Começa em Kiritimati').closest('article');
+      expect(within(scheduledCard).getByText('Começa amanhã')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('shows skeleton then list of challenges', async () => {
@@ -215,7 +240,7 @@ describe('Challenges', () => {
     expect(screen.getByText('Desafio Futuro')).toBeInTheDocument();
     expect(screen.queryByText('Verao 2026')).not.toBeInTheDocument();
     // Only one API call, no second call on tab switch
-    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(challengeListCalls()).toHaveLength(1);
   });
 
   it('shows empty state subtitle for scheduled filter', async () => {
