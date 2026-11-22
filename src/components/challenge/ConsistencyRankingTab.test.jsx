@@ -142,7 +142,7 @@ describe('ConsistencyRankingTab', () => {
     renderTab({ data: payload({ rows: [row({ faixa: 'full', average: 100 })], entering: [] }) });
 
     const band = within(bodyRows()[0]).getByText('100%', { selector: '.badge' });
-    expect(band).toHaveClass('badge--tag', 'badge--brand');
+    expect(band).toHaveClass('badge--tag', 'badge--success');
     expect(band).not.toHaveClass('badge--solid');
   });
 

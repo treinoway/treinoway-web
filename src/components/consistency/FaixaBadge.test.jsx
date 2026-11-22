@@ -3,7 +3,7 @@ import FaixaBadge from './FaixaBadge';
 
 describe('FaixaBadge', () => {
   it.each([
-    ['full', '100%', 'badge--brand'],
+    ['full', '100%', 'badge--success'],
     ['constant', 'Constante', 'badge--brand'],
     ['steady', 'Em ritmo', 'badge--neutral'],
     ['restarting', 'Retomando', 'badge--warning'],
@@ -13,17 +13,16 @@ describe('FaixaBadge', () => {
     expect(screen.getByText(label)).toHaveClass('badge--status', toneClass);
   });
 
-  it('shows the 100% band as a solid badge and the other bands as light chips', () => {
-    const { rerender } = render(<FaixaBadge faixa="full" />);
-    expect(screen.getByText('100%')).toHaveClass('badge--solid');
-
-    rerender(<FaixaBadge faixa="constant" />);
-    expect(screen.getByText('Constante')).not.toHaveClass('badge--solid');
+  it('CPD-71 shows the 100% band on the team ranking as the light green DS tag, not a solid pill (AD-062)', () => {
+    render(<FaixaBadge faixa="full" />);
+    expect(screen.getByText('100%')).toHaveClass('badge', 'badge--success');
+    expect(screen.getByText('100%')).not.toHaveClass('badge--solid');
+    expect(screen.getByText('100%')).not.toHaveClass('badge--brand');
   });
 
   it('CPD-34 shows the 100% band as the light DS tag in a championship', () => {
     render(<FaixaBadge faixa="full" variant="tag" />);
-    expect(screen.getByText('100%')).toHaveClass('badge--tag', 'badge--brand');
+    expect(screen.getByText('100%')).toHaveClass('badge--tag', 'badge--success');
     expect(screen.getByText('100%')).not.toHaveClass('badge--solid');
   });
 

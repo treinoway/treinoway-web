@@ -20728,8 +20728,6 @@ select.input { cursor: pointer; }
 .consistency-row--risk td,
 .consistency-row--risk td:last-child { background: color-mix(in srgb, var(--feedback-error-bg) 45%, var(--background-surface)); }
 
-.badge.badge--solid { background: var(--action-primary-default); color: var(--text-inverse); }
-
 .pillar-progress__body .score-bar__track,
 .weights-summary .score-bar__track { flex: none; }
 

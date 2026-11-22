@@ -73,7 +73,7 @@ const SettingsHeader = ({ settings, onBack, onSave }) => (
       </div>
     </div>
     <div className="ds-page-header__actions">
-      <button type="button" className="btn btn--secondary" onClick={settings.restoreDefaults}>Restaurar padrões</button>
+      <button type="button" className="btn btn--neutral" onClick={settings.restoreDefaults}>Restaurar padrões</button>
       <button type="button" className="btn btn--primary" disabled={!settings.canSave} onClick={onSave}>
         <Check size={16} strokeWidth={2} aria-hidden="true" />
         {settings.saving ? 'Carregando...' : 'Salvar'}

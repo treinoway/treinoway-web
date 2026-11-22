@@ -61,7 +61,7 @@ RiskAlert.propTypes = {
 const PausedWeek = ({ pause, onResume }) => (
   <div className="student-panel__paused">
     <Badge tone="neutral">{pause.reason ? `Semana pausada (${pause.reason})` : 'Semana pausada'}</Badge>
-    <button type="button" className="btn btn--secondary" onClick={onResume}>Desfazer pausa</button>
+    <button type="button" className="btn btn--neutral" onClick={onResume}>Desfazer pausa</button>
   </div>
 );
 
@@ -78,11 +78,11 @@ const WeekActions = ({ pause, onPause, onAdjust, onResume }) => (
       <PausedWeek pause={pause} onResume={onResume} />
     ) : (
       <div className="ds-actions student-panel__actions">
-        <button type="button" className="btn btn--secondary" onClick={onPause}>
+        <button type="button" className="btn btn--neutral" onClick={onPause}>
           <Pause size={16} strokeWidth={2} aria-hidden="true" />
           Pausar semana
         </button>
-        <button type="button" className="btn btn--secondary" onClick={onAdjust}>
+        <button type="button" className="btn btn--neutral" onClick={onAdjust}>
           <Target size={16} strokeWidth={2} aria-hidden="true" />
           Ajustar meta
         </button>
@@ -163,7 +163,7 @@ PanelContent.propTypes = {
 
 // Body of the drawer: loading, error with retry, or the panel
 const PanelBody = ({ panel, ...contentProps }) => {
-  if (panel.error) return <Banner tone="error" action={<button type="button" className="btn btn--secondary" onClick={panel.reload}>Tentar de novo</button>}>{panel.error}</Banner>;
+  if (panel.error) return <Banner tone="error" action={<button type="button" className="btn btn--neutral" onClick={panel.reload}>Tentar de novo</button>}>{panel.error}</Banner>;
   if (panel.loading || !panel.data) return <div className="loading-screen loading-screen--inline">Carregando...</div>;
   return <PanelContent data={panel.data} panel={panel} {...contentProps} />;
 };

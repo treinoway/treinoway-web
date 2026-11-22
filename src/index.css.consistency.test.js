@@ -30,10 +30,11 @@ describe('index.css: consistency ranking layout', () => {
     expect(ruleBody('.consistency-row--risk td,\n.consistency-row--risk td:last-child')).toContain('--feedback-error-bg');
   });
 
-  it('PAN-10 paints the 100% band solid blue with white text', () => {
-    const body = ruleBody('.badge.badge--solid');
-    expect(body).toContain('var(--action-primary-default)');
-    expect(body).toContain('var(--text-inverse)');
+  it('CPD-71 paints the 100% band as the light green tag, with no solid badge variant (AD-062 supersedes PAN-10 style)', () => {
+    expect(css).not.toContain('.badge--solid');
+    const body = ruleBody('.badge.badge--success');
+    expect(body).toContain('var(--feedback-success-bg)');
+    expect(body).toContain('var(--feedback-success-text)');
   });
 
   it('PAN-21 draws the risk limit line dashed', () => {

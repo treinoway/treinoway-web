@@ -8,11 +8,12 @@ const PILLARS = [
 ];
 
 describe('PillarMini', () => {
-  it('draws a labeled bar for each pillar with a target', () => {
+  it('CPD-72 draws a labeled bar for each pillar with a target, abbreviated with only the first letter uppercase', () => {
     render(<PillarMini pillars={PILLARS} />);
-    expect(screen.getByText('TRE')).toBeInTheDocument();
-    expect(screen.getByText('CAR')).toBeInTheDocument();
-    expect(screen.getByText('FEE')).toBeInTheDocument();
+    expect(screen.getByText('Tre')).toBeInTheDocument();
+    expect(screen.getByText('Car')).toBeInTheDocument();
+    expect(screen.getByText('Fee')).toBeInTheDocument();
+    expect(screen.queryByText('TRE')).not.toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: 'Treinos' })).toHaveAttribute('aria-valuenow', '100');
     expect(screen.getByRole('progressbar', { name: 'Feedback' })).toHaveAttribute('aria-valuenow', '88');
   });
@@ -26,8 +27,8 @@ describe('PillarMini', () => {
 
   it('leaves out a pillar that had no target', () => {
     render(<PillarMini pillars={[...PILLARS, { pillar: 'diet', done: 0, expected: 0, adherence: 0 }]} />);
-    expect(screen.queryByText('DIE')).not.toBeInTheDocument();
-    expect(screen.queryByText('HID')).not.toBeInTheDocument();
+    expect(screen.queryByText('Die')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hid')).not.toBeInTheDocument();
     expect(screen.getAllByRole('progressbar')).toHaveLength(3);
   });
 });
