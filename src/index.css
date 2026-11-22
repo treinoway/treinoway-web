@@ -20612,6 +20612,50 @@ select.input { cursor: pointer; }
 .challenge-participant__identity { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
 .challenge-participant__meta { color: var(--text-secondary); }
 .challenge-participants__footer { justify-content: flex-end; }
+/* Championship list card: white rounded card, tag opposite the name, dates, progress bar, avatar stack and the stretched "Ver ranking →" */
+.challenge-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-xl);
+  background: var(--background-surface);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.challenge-card:hover { background: var(--background-surface-elevated); }
+.challenge-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--spacing-md); }
+.challenge-card__title { margin: 0; color: var(--text-primary); font-weight: 400; overflow-wrap: anywhere; }
+.challenge-card__dates { display: flex; align-items: center; gap: var(--spacing-xs); margin: 0; color: var(--text-secondary); }
+.challenge-card__dates svg { color: var(--icon-default); }
+.challenge-card__caption { margin: 0; color: var(--text-secondary); }
+.challenge-card__progress { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+.challenge-card__track { height: var(--spacing-xs); border-radius: var(--radius-full); background: var(--chart-track); overflow: hidden; }
+.challenge-card__fill { display: block; height: 100%; border-radius: var(--radius-full); background: var(--action-primary-default); }
+.challenge-card__footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-sm) var(--spacing-md); margin-top: auto; }
+.challenge-card__participants { display: inline-flex; align-items: center; gap: var(--spacing-sm); }
+.challenge-card__avatars { display: inline-flex; }
+.challenge-card__avatars .avatar { width: var(--spacing-xl); height: var(--spacing-xl); outline: var(--spacing-2xs) solid var(--background-surface); }
+.challenge-card__avatars .avatar + .avatar { margin-left: calc(var(--spacing-2xs) * -1); }
+.challenge-card__inactive { color: var(--feedback-warning-text); }
+.challenge-card__action {
+  min-height: var(--size-control-touch);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-link);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-16);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.challenge-card__action:hover { color: var(--action-primary-hover); }
+.challenge-card__action::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-xl); }
+.challenge-card__action:focus-visible { outline: none; }
+.challenge-card__action:focus-visible::after { box-shadow: var(--focus-ring); }
+@media (min-width: 768px) {
+  .challenge-card { padding: var(--spacing-xl); }
+}
 /* "Regras de pontuação" card: pillar editor, then each XP rule with its field on the right */
 .scoring-rules-card h2,
 .scoring-rules-card h3 { margin: 0; color: var(--text-primary); }
