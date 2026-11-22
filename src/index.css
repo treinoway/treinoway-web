@@ -20664,6 +20664,18 @@ select.input { cursor: pointer; }
 .scoring-rule-row__text { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
 .scoring-rule-row__helper { color: var(--text-secondary); }
 .scoring-rule-row__input { flex-shrink: 0; width: calc(var(--spacing-5xl) + var(--spacing-xl)); }
+/* In the card the XP rules are plain rows with a white bordered field, as ds-campeonato-config.png draws them, even while locked */
+.scoring-rules-card .scoring-rule-row { padding: 0; border-radius: 0; background: transparent; }
+.scoring-rules-card .scoring-rule-row__input { text-align: left; }
+.scoring-rules-card .scoring-rule-row__input:disabled { background: var(--background-surface); color: var(--text-primary); }
+/* Pillar rows inside the half-width card: name and switch on top, slider, weight and share below, so the description never breaks word by word */
+.scoring-rules-card .weight-row { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+.scoring-rules-card .weight-row__icon { grid-column: 1; grid-row: 1; }
+.scoring-rules-card .weight-row__identity { grid-column: 2 / span 2; grid-row: 1; }
+.scoring-rules-card .weight-row > .toggle { grid-column: 4; grid-row: 1; justify-self: end; }
+.scoring-rules-card .weight-row__slider { grid-column: 1 / span 2; grid-row: 2; }
+.scoring-rules-card .weight-row__number { grid-column: 3; grid-row: 2; }
+.scoring-rules-card .weight-row__effective { grid-column: 4; grid-row: 2; }
 /* Championship page: header, underline tabs and the panel of the selected tab */
 .challenge-detail__panel { margin-top: var(--spacing-xl); }
 /* Settings tab: "Dados do campeonato" and "Regras de pontuação" side by side from 1024px, "Zona de perigo" full width below */

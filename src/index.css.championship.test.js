@@ -42,6 +42,19 @@ describe('index.css: championship screens against the captures', () => {
     expect(selected).toContain('color: var(--text-inverse)');
   });
 
+  it('CPD-41 keeps the pillar rows of the rules card legible: identity over the slider row, never the six-column row', () => {
+    expect(ruleBody('.scoring-rules-card .weight-row')).toContain('grid-template-columns: auto minmax(0, 1fr) auto auto');
+    expect(ruleBody('.scoring-rules-card .weight-row__identity')).toContain('grid-column: 2 / span 2');
+    expect(ruleBody('.scoring-rules-card .weight-row__slider')).toContain('grid-row: 2');
+  });
+
+  it('CPD-41 draws the XP rules as plain rows with a white bordered field, also while locked', () => {
+    expect(ruleBody('.scoring-rules-card .scoring-rule-row')).toContain('background: transparent');
+    const locked = ruleBody('.scoring-rules-card .scoring-rule-row__input:disabled');
+    expect(locked).toContain('background: var(--background-surface)');
+    expect(locked).toContain('color: var(--text-primary)');
+  });
+
   it('CPD-33 draws the 1st place avatar as a white circle on the blue leader card', () => {
     expect(css).toContain('.championship-podium__place--leader { background: var(--background-brand-subtle); }');
     expect(ruleBody('.championship-podium__place--leader .avatar')).toContain('background: var(--background-surface)');
