@@ -34,14 +34,14 @@ export const challengeTagOf = (challenge, today, { detail = false } = {}) => {
   return scheduledTagOf(challenge, today);
 };
 
-// Display name of a standings or ranking row
-const rowNameOf = (row) => row.displayName || row.name || [row.firstName, row.lastName].filter(Boolean).join(' ');
+// Every name a standings or ranking row carries: the full name, the short display name and first plus last name
+const rowNamesOf = (row) => [row.name, row.displayName, [row.firstName, row.lastName].filter(Boolean).join(' ')].filter(Boolean);
 
-// Rows whose name contains the query, ignoring case and accents; an empty query keeps every row
+// Rows whose full or short name contains the query, ignoring case and accents; an empty query keeps every row
 export const filterParticipantsByName = (rows, query) => {
   const needle = normalizeForSearch(query);
   if (!needle) return rows;
-  return rows.filter((row) => normalizeForSearch(rowNameOf(row)).includes(needle));
+  return rows.filter((row) => rowNamesOf(row).some((name) => normalizeForSearch(name).includes(needle)));
 };
 
 // Sum of a numeric field over the entries

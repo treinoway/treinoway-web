@@ -27,15 +27,18 @@ describe('challengeDisplay', () => {
 
   it('CPD-35 filters participants by name ignoring case and accents', () => {
     const rows = [
-      { studentId: '1', displayName: 'Ana Júlia Souza' },
-      { studentId: '2', displayName: 'JOÃO Pedro' },
+      { studentId: '1', name: 'Ana Júlia Souza', displayName: 'Ana S.' },
+      { studentId: '2', name: 'JOÃO Pedro', displayName: 'JOÃO P.' },
       { studentId: '3', firstName: 'Lúcia', lastName: 'Ferraz' },
-      { studentId: '4', name: 'Marcos Silva' },
+      { studentId: '4', name: 'Marcos Silva', displayName: 'Marcos S.' },
+      { studentId: '5', name: 'Ana Lima', displayName: 'Ana L.' },
     ];
     expect(filterParticipantsByName(rows, 'julia').map((row) => row.studentId)).toEqual(['1']);
     expect(filterParticipantsByName(rows, 'joao').map((row) => row.studentId)).toEqual(['2']);
     expect(filterParticipantsByName(rows, 'LUCIA FER').map((row) => row.studentId)).toEqual(['3']);
     expect(filterParticipantsByName(rows, 'silva').map((row) => row.studentId)).toEqual(['4']);
+    expect(filterParticipantsByName(rows, 'Lima').map((row) => row.studentId)).toEqual(['5']);
+    expect(filterParticipantsByName(rows, 'ana l.').map((row) => row.studentId)).toEqual(['5']);
     expect(filterParticipantsByName(rows, 'zzz')).toEqual([]);
     expect(filterParticipantsByName(rows, '  ')).toEqual(rows);
   });

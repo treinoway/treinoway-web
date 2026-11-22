@@ -147,6 +147,12 @@ describe('ConsistencyRankingTab', () => {
     expect(screen.getByText('Mostrando 1 de 6 participantes')).toBeInTheDocument();
     expect(bodyRows()).toHaveLength(1);
     expect(within(bodyRows()[0]).getByText('Álvaro D.')).toBeInTheDocument();
+
+    await user.clear(screen.getByRole('searchbox', { name: 'Buscar aluno' }));
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar aluno' }), 'Lima');
+
+    expect(screen.getByText('Mostrando 1 de 6 participantes')).toBeInTheDocument();
+    expect(within(bodyRows()[0]).getByText('Ana L.')).toBeInTheDocument();
   });
 
   it('CPD-36 shows "Nenhum participante encontrado." when the search finds nobody', async () => {
