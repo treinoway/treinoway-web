@@ -20529,6 +20529,7 @@ select.input { cursor: pointer; }
 .championship-state__actions { justify-content: center; margin-top: var(--spacing-md); }
 .challenge-table { border-collapse: separate; border-spacing: 0 var(--spacing-sm); }
 .challenge-table th { border-bottom: 0; padding-top: 0; padding-bottom: 0; font-weight: 400; }
+.challenge-table thead th:last-child { background: transparent; text-align: left; }
 .challenge-table td { border-bottom: 0; background: var(--background-surface); }
 .challenge-table td:first-child { border-radius: var(--radius-lg) 0 0 var(--radius-lg); }
 .challenge-table td:last-child { border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }

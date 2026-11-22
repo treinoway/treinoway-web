@@ -19,6 +19,12 @@ describe('index.css: championship screens against the captures', () => {
     expect(css.indexOf('.btn.btn--neutral {')).toBeGreaterThan(css.indexOf('.btn:is(.btn--primary, .btn--secondary, .btn--neutral'));
   });
 
+  it('CPD-34 leaves the last header cell of the championship tables unpainted and aligned with its values', () => {
+    const body = ruleBody('.challenge-table thead th:last-child');
+    expect(body).toContain('background: transparent');
+    expect(body).toContain('text-align: left');
+  });
+
   it('CPD-33 draws the 1st place avatar as a white circle on the blue leader card', () => {
     expect(css).toContain('.championship-podium__place--leader { background: var(--background-brand-subtle); }');
     expect(ruleBody('.championship-podium__place--leader .avatar')).toContain('background: var(--background-surface)');
