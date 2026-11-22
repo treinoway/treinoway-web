@@ -296,17 +296,18 @@ StandingsBody.propTypes = {
   onAddParticipants: PropTypes.func,
 };
 
-// Ranking tab of a weekly championship: consistency cards, podium and classification with search, plus the loading, error, scheduled, empty and closed states
+// Ranking tab of a weekly championship: consistency cards, podium and classification with search, plus the loading, error, scheduled, empty and closed states (no participants wins over scheduled, CPD-47)
 const ConsistencyRankingTab = ({ data, loading, error, onRetry, timeZone, now = new Date(), onAdjustRules, onDelete, onAddParticipants, ...actions }) => {
   const { dialogProps, requestConfirm } = useConfirmDialog();
   if (error) return <Banner tone="error" action={<button type="button" className="btn btn--secondary" onClick={onRetry}>Tentar de novo</button>}>{error}</Banner>;
   if (loading && !data) return <SkeletonRows label="Carregando classificação" count={TABLE_SKELETON_COUNT} />;
   if (!data) return null;
   const handleDelete = () => requestConfirm({ message: `Excluir o campeonato "${data.challenge.name}"? Esta ação não pode ser desfeita.`, confirmLabel: 'Excluir', onConfirm: onDelete });
+  const showScheduled = data.status === CHALLENGE_STATUS.SCHEDULED && (data.challenge.participantCount ?? 0) > 0;
   return (
     <div className="championship-tab">
       {data.status === CHALLENGE_STATUS.COMPLETED && <LockedNotice>{closedNoticeOf(data.challenge, timeZone)}</LockedNotice>}
-      {data.status === CHALLENGE_STATUS.SCHEDULED
+      {showScheduled
         ? <ScheduledBlock challenge={data.challenge} onAdjustRules={onAdjustRules} onDelete={handleDelete} />
         : <StandingsBody data={data} timeZone={timeZone} now={now} actions={actions} onAddParticipants={onAddParticipants} />}
       {dialogProps && <ConfirmDialog {...dialogProps} />}

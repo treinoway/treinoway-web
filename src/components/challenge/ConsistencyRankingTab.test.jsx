@@ -245,6 +245,21 @@ describe('ConsistencyRankingTab', () => {
     expect(onAddParticipants).toHaveBeenCalledTimes(1);
   });
 
+  it('CPD-47 shows the empty block, not the scheduled one, for a scheduled championship without participants', async () => {
+    const user = userEvent.setup();
+    const { onAddParticipants } = renderTab({
+      data: payload({ status: 'scheduled', currentWeek: null, closesAt: null, rows: [], entering: [], summary: undefined, challenge: { ...payload().challenge, startDate: '2026-11-23', endDate: '2026-12-20', participantCount: 0 } }),
+    });
+
+    expect(screen.getByRole('heading', { name: 'Nenhum aluno no ranking ainda.' })).toBeInTheDocument();
+    expect(screen.getByText('Adicione participantes para o campeonato começar a contar pontos.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'O campeonato começa em 23/11' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ajustar regras' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Excluir campeonato' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Adicionar participantes' }));
+    expect(onAddParticipants).toHaveBeenCalledTimes(1);
+  });
+
   it('CPD-48 shows "Nenhum participante com semana válida ainda." without a button', () => {
     renderTab({ data: payload({ rows: [], entering: [], summary: { classified: 0, entering: 0, leaderAverage: null, leaderLead: null, championshipAverage: null } }) });
 
