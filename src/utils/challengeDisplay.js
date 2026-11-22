@@ -23,8 +23,14 @@ const scheduledTagOf = (challenge, today) => (
     : { label: 'Agendado', tone: 'neutral' }
 );
 
+// Tag of the detail header: "Ativo" in green and "Concluído" in the info style, as ds-campeonato-ranking.png and ds-campeonato-encerrado.png
+const DETAIL_TAGS = Object.freeze({
+  [CHALLENGE_STATUS.ACTIVE]: { label: 'Ativo', tone: 'success' },
+  [CHALLENGE_STATUS.COMPLETED]: { label: 'Concluído', tone: 'brand' },
+});
+
 /**
- * Status tag { label, tone } of a championship on a civil day ("YYYY-MM-DD"); the detail calls a closed one "Concluído".
+ * Status tag { label, tone } of a championship on a civil day ("YYYY-MM-DD"); the list cards tag by date (CPD-62), the detail header says "Ativo" and "Concluído".
  * @param {object} challenge - championship with status, startDate and endDate ("YYYY-MM-DD")
  * @param {string} today - civil date key of the trainer
  * @param {{ detail?: boolean }} [options]
@@ -32,7 +38,8 @@ const scheduledTagOf = (challenge, today) => (
  */
 export const challengeTagOf = (challenge, today, { detail = false } = {}) => {
   if (challenge.status === CHALLENGE_STATUS.CANCELLED) return { label: 'Cancelado', tone: 'error' };
-  if (challenge.status === CHALLENGE_STATUS.COMPLETED) return { label: detail ? 'Concluído' : 'Encerrado', tone: 'success' };
+  if (detail && DETAIL_TAGS[challenge.status]) return DETAIL_TAGS[challenge.status];
+  if (challenge.status === CHALLENGE_STATUS.COMPLETED) return { label: 'Encerrado', tone: 'success' };
   if (challenge.status === CHALLENGE_STATUS.ACTIVE) return activeTagOf(challenge, today);
   return scheduledTagOf(challenge, today);
 };

@@ -35,8 +35,8 @@ describe('ChallengePageHeader', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Verão 2027' })).toBeInTheDocument();
     const tag = container.querySelector('.badge');
-    expect(tag).toHaveTextContent('Em andamento');
-    expect(tag).toHaveClass('badge--tag');
+    expect(tag).toHaveTextContent('Ativo');
+    expect(tag).toHaveClass('badge--tag', 'badge--success');
     expect(screen.getByText('02/11 – 29/11/2026 · 18 participantes')).toBeInTheDocument();
     expect(screen.getByText('Prêmio: uma camiseta para o 1º lugar')).toBeInTheDocument();
     expect(container.querySelector('.card')).toBeNull();
@@ -59,6 +59,14 @@ describe('ChallengePageHeader', () => {
     const { container } = renderHeader(challengeOf({ status: 'completed' }));
 
     expect(container.querySelector('.badge')).toHaveTextContent('Concluído');
+    expect(container.querySelector('.badge')).toHaveClass('badge--tag', 'badge--brand');
+    expect(screen.queryByRole('button', { name: 'Dar bônus' })).not.toBeInTheDocument();
+  });
+
+  it('CPD-45 shows no Dar bônus in the header of a scheduled championship', () => {
+    const { container } = renderHeader(challengeOf({ status: 'scheduled', startDate: '2026-11-23', endDate: '2026-12-20' }));
+
+    expect(container.querySelector('.badge')).toHaveTextContent('Agendado');
     expect(screen.queryByRole('button', { name: 'Dar bônus' })).not.toBeInTheDocument();
   });
 

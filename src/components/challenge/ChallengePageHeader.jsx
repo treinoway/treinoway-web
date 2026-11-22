@@ -6,8 +6,6 @@ import { dayMonthOf } from '../../utils/consistencyFormat';
 import { formatDateForDisplay } from '../../utils/dateFormat';
 import { CHALLENGE_STATUS } from '../../constants/challenge';
 
-const READ_ONLY_STATUSES = Object.freeze([CHALLENGE_STATUS.COMPLETED, CHALLENGE_STATUS.CANCELLED]);
-
 // "1 participante" / "N participantes"
 const participantsLabelOf = (count) => `${count} ${count === 1 ? 'participante' : 'participantes'}`;
 
@@ -27,10 +25,10 @@ BackToChallenges.propTypes = {
   onBack: PropTypes.func.isRequired,
 };
 
-// Championship page header: back link, name as page title, status tag, dates with participants, the weekly description and "Dar bônus" while it can still score
+// Championship page header: back link, name as page title, status tag, dates with participants, the weekly description and "Dar bônus" while it runs
 const ChallengePageHeader = ({ challenge, today, showDescription = false, onBack, onBonus }) => {
   const tag = challengeTagOf(challenge, today, { detail: true });
-  const canGiveBonus = Boolean(onBonus) && !READ_ONLY_STATUSES.includes(challenge.status);
+  const canGiveBonus = Boolean(onBonus) && challenge.status === CHALLENGE_STATUS.ACTIVE;
   const description = showDescription ? challenge.description : null;
   return (
     <header className="challenge-header">

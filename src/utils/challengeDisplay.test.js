@@ -20,7 +20,11 @@ describe('challengeDisplay', () => {
 
   it('CPD-46 tags a closed championship Concluído in the detail', () => {
     const closed = { status: 'completed', startDate: '2026-08-01', endDate: '2026-08-31' };
-    expect(challengeTagOf(closed, TODAY, { detail: true })).toEqual({ label: 'Concluído', tone: 'success' });
+    expect(challengeTagOf(closed, TODAY, { detail: true })).toEqual({ label: 'Concluído', tone: 'brand' });
+    expect(challengeTagOf({ status: 'active', startDate: '2026-09-01', endDate: '2026-10-04' }, TODAY, { detail: true }))
+      .toEqual({ label: 'Ativo', tone: 'success' });
+    expect(challengeTagOf({ status: 'active', startDate: '2026-09-17', endDate: '2026-09-30' }, TODAY, { detail: true }))
+      .toEqual({ label: 'Ativo', tone: 'success' });
     expect(challengeTagOf({ status: 'cancelled', startDate: '2026-07-01', endDate: '2026-07-14' }, TODAY, { detail: true }))
       .toEqual({ label: 'Cancelado', tone: 'error' });
   });
