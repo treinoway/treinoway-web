@@ -50,6 +50,7 @@ describe('Challenges - no championship creation entry points for a non-admin in 
     await screen.findByText('Verao 2026');
 
     expect(screen.queryByRole('button', { name: /^criar$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /novo campeonato/i })).not.toBeInTheDocument();
   });
 
   it('has no create button in the empty state nor the create hint', async () => {
@@ -59,6 +60,7 @@ describe('Challenges - no championship creation entry points for a non-admin in 
     await screen.findByText(/nenhum campeonato/i);
 
     expect(screen.queryByRole('button', { name: /criar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /novo campeonato/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/crie campeonatos|crie um campeonato/i)).not.toBeInTheDocument();
   });
 });

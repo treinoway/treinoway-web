@@ -9030,73 +9030,6 @@ button.auth-forgot-link:disabled {
 }
 
 /* ============================================
-   Championship Cards
-   ============================================ */
-.championship-progress {
-  margin-top: var(--spacing-sm);
-}
-
-.championship-progress-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--font-caption-size);
-  color: var(--color-on-surface-variant);
-}
-
-.championship-progress-bar {
-  height: 4px;
-  margin-top: var(--spacing-xs);
-  border-radius: var(--radius-full);
-  background: var(--color-surface-container-high);
-  overflow: hidden;
-}
-
-.championship-progress-fill {
-  height: 100%;
-  border-radius: var(--radius-full);
-  background: var(--color-primary);
-  transition: width 0.3s ease;
-}
-
-.championship-alert {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  background: var(--color-error-container);
-}
-
-.championship-alert-text {
-  font-size: var(--font-caption-size);
-  color: var(--color-error);
-}
-
-.championship-alert-action {
-  font-size: var(--font-caption-size);
-  font-weight: 600;
-  color: var(--color-error);
-  background: none;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-  padding: 0;
-}
-
-.championship-alert-action:hover {
-  text-decoration: underline;
-}
-
-.championship-card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: var(--spacing-sm);
-}
-
-/* ============================================
    Protocol Template Wizard
    ============================================ */
 .wizard-shell {
@@ -16213,9 +16146,13 @@ textarea.input {
 }
 
 .ds-tabs__count {
+  display: inline-flex;
+  justify-content: center;
+  min-width: calc(var(--spacing-lg) + var(--spacing-xs));
   padding: 0 var(--spacing-xs);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-full);
-  background: var(--badge-neutral-bg);
+  background: var(--background-surface);
   color: var(--text-secondary);
   font-size: var(--font-size-12);
   line-height: var(--line-height-caption);
@@ -16223,6 +16160,7 @@ textarea.input {
 }
 
 .ds-tabs__item--active .ds-tabs__count {
+  border-color: transparent;
   background: var(--background-brand-subtle);
   color: var(--text-brand);
 }
@@ -20653,6 +20591,14 @@ select.input { cursor: pointer; }
 .challenge-card__action::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-xl); }
 .challenge-card__action:focus-visible { outline: none; }
 .challenge-card__action:focus-visible::after { box-shadow: var(--focus-ring); }
+/* Championships list page: status tabs over a two-column grid of cards; empty states on a white rounded card */
+.challenges-list { margin-top: var(--spacing-xl); }
+.challenges-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-lg); }
+.challenges-empty { border-radius: var(--radius-xl); background: var(--background-surface); }
+.challenges-empty .empty-block__icon { background: var(--background-brand-subtle); color: var(--icon-brand); }
+@media (min-width: 768px) {
+  .challenges-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (min-width: 768px) {
   .challenge-card { padding: var(--spacing-xl); }
 }

@@ -8,9 +8,11 @@ import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api/axios';
 import { CHALLENGE_STATUS } from '../../constants/challenge';
+import useConsistencyRankingAccess from '../../hooks/useConsistencyRankingAccess';
 
 vi.mock('../../contexts/ToastContext', () => ({ useToast: vi.fn() }));
 vi.mock('../../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
+vi.mock('../../hooks/useConsistencyRankingAccess', () => ({ default: vi.fn(() => true) }));
 vi.mock('../../components/CreateChampionshipModal', () => ({
   default: ({ isOpen, onCreated, onClose }) => (isOpen ? (
     <div role="dialog" aria-label="Criar Campeonato">
@@ -95,7 +97,54 @@ describe('Challenges', () => {
     mockShowToast.mockReset();
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     vi.mocked(useAuth).mockReturnValue({ hasRole: () => false });
+    vi.mocked(useConsistencyRankingAccess).mockReturnValue(true);
     api.get.mockReset();
+  });
+
+  it('CPD-60 opens on Todos with a count on every tab', async () => {
+    const user = userEvent.setup();
+    const secondActive = { ...activeChallenge, id: 'ch-5', name: 'Primavera 2026' };
+    api.get.mockResolvedValue({ data: [activeChallenge, secondActive, scheduledChallenge, completedChallenge] });
+    renderWithRouter(<Challenges />);
+
+    expect(await screen.findByText('Verao 2026')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Campeonatos' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Novo campeonato' })).toHaveClass('btn--primary');
+    expect(screen.queryByRole('button', { name: /Criar campeonato/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent))
+      .toEqual(['Todos 4', 'Ativos 2', 'Agendados 1', 'Encerrados 1', 'Cancelados 0']);
+    expect(screen.getByRole('tab', { name: 'Todos 4' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('article').map((card) => within(card).getByRole('heading').textContent))
+      .toEqual(['Verao 2026', 'Primavera 2026', 'Desafio Futuro', 'Campeonato Passado']);
+
+    await user.click(screen.getByRole('tab', { name: 'Ativos 2' }));
+
+    expect(screen.getByRole('tab', { name: 'Ativos 2' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+    expect(screen.queryByText('Desafio Futuro')).not.toBeInTheDocument();
+  });
+
+  it('CPD-64 drops the template sentence from the empty state for a weekly-format trainer', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [] });
+    const { unmount } = renderWithRouter(<Challenges />);
+
+    expect(await screen.findByRole('heading', { name: 'Nenhum campeonato ainda' })).toBeInTheDocument();
+    expect(screen.getByText('Seus campeonatos ativos aparecerão aqui.')).toBeInTheDocument();
+    expect(screen.queryByText(/Crie a partir de um modelo pronto\./)).not.toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    const createButtons = screen.getAllByRole('button', { name: 'Novo campeonato' });
+    expect(createButtons).toHaveLength(2);
+
+    await user.click(createButtons[1]);
+
+    expect(screen.getByRole('dialog', { name: 'Criar Campeonato' })).toBeInTheDocument();
+    unmount();
+
+    vi.mocked(useConsistencyRankingAccess).mockReturnValue(false);
+    renderWithRouter(<Challenges />);
+
+    expect(await screen.findByText('Seus campeonatos ativos aparecerão aqui. Crie a partir de um modelo pronto.')).toBeInTheDocument();
   });
 
   it('makes a single unfiltered API call on mount', async () => {
@@ -130,7 +179,7 @@ describe('Challenges', () => {
     api.get.mockResolvedValue({ data: [activeChallenge] });
     renderWithRouter(<Challenges />);
     await screen.findByText('Verao 2026');
-    expect(screen.getByText('Ver ranking →')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver ranking' })).toHaveTextContent('Ver ranking →');
   });
 
   it('shows alert banner for active challenge with zero participants', async () => {
@@ -139,7 +188,7 @@ describe('Challenges', () => {
     renderWithRouter(<Challenges />);
     await screen.findByText('Verao 2026');
     expect(screen.getByText('Nenhum participante — campeonato inativo')).toBeInTheDocument();
-    expect(screen.getByText('Adicionar alunos →')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Adicionar alunos' })).toHaveTextContent('Adicionar alunos →');
   });
 
   it('shows empty state when no challenges match current filter', async () => {
@@ -171,9 +220,9 @@ describe('Challenges', () => {
 
   it('shows empty state subtitle for scheduled filter', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue({ data: [activeChallenge] });
     renderWithRouter(<Challenges />);
-    await screen.findByText(/Nenhum campeonato/i);
+    await screen.findByText('Verao 2026');
 
     const scheduledTab = screen.getByRole('tab', { name: /Agendados/i });
     await user.click(scheduledTab);
@@ -182,9 +231,9 @@ describe('Challenges', () => {
 
   it('shows empty state subtitle for completed filter', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue({ data: [activeChallenge] });
     renderWithRouter(<Challenges />);
-    await screen.findByText(/Nenhum campeonato/i);
+    await screen.findByText('Verao 2026');
 
     const completedTab = screen.getByRole('tab', { name: /Encerrados/i });
     await user.click(completedTab);
@@ -193,28 +242,29 @@ describe('Challenges', () => {
 
   it('shows empty state subtitle for cancelled filter', async () => {
     const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue({ data: [activeChallenge] });
     renderWithRouter(<Challenges />);
-    await screen.findByText(/Nenhum campeonato/i);
+    await screen.findByText('Verao 2026');
 
     const cancelledTab = screen.getByRole('tab', { name: /Cancelados/i });
     await user.click(cancelledTab);
     expect(await screen.findByText(/Campeonatos que foram cancelados/i)).toBeInTheDocument();
   });
 
-  it('defaults to active status tab selected', async () => {
-    api.get.mockResolvedValue({ data: [] });
+  it('defaults to the Todos tab selected', async () => {
+    api.get.mockResolvedValue({ data: [activeChallenge] });
     renderWithRouter(<Challenges />);
     await waitFor(() => {
-      const activeTab = screen.getByRole('tab', { name: /Ativos/i });
-      expect(activeTab).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: /Todos/i })).toHaveAttribute('aria-selected', 'true');
     });
+    expect(screen.getByRole('tab', { name: /Ativos/i })).toHaveAttribute('aria-selected', 'false');
   });
 
   it('renders tab buttons for all statuses', async () => {
-    api.get.mockResolvedValue({ data: [] });
+    api.get.mockResolvedValue({ data: [activeChallenge] });
     renderWithRouter(<Challenges />);
     await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /Todos/i })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /Ativos/i })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /Agendados/i })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /Encerrados/i })).toBeInTheDocument();
@@ -255,7 +305,7 @@ describe('Challenges', () => {
     });
   });
 
-  it('shows temporal info for scheduled challenge', async () => {
+  it('shows the Agendado tag for a scheduled challenge', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: [scheduledChallenge] });
     renderWithRouter(<Challenges />);
@@ -266,11 +316,11 @@ describe('Challenges', () => {
     const scheduledTab = screen.getByRole('tab', { name: /Agendados/i });
     await user.click(scheduledTab);
 
-    await screen.findByText('Desafio Futuro');
-    expect(screen.getByText(/Começa em \d+ dias/)).toBeInTheDocument();
+    const card = (await screen.findByText('Desafio Futuro')).closest('article');
+    expect(within(card).getByText('Agendado')).toHaveClass('badge--tag');
   });
 
-  it('shows date range and total days for scheduled challenge', async () => {
+  it('shows the date range for scheduled challenge', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: [scheduledChallenge] });
     renderWithRouter(<Challenges />);
@@ -280,11 +330,10 @@ describe('Challenges', () => {
     await user.click(scheduledTab);
 
     await screen.findByText('Desafio Futuro');
-    expect(screen.getByText(/01\/01/)).toBeInTheDocument();
-    expect(screen.getByText(/31\/01\/2030 · 31 dias/)).toBeInTheDocument();
+    expect(screen.getByText('01/01 – 31/01/2030')).toBeInTheDocument();
   });
 
-  it('renders completed challenge with badge-blue and "Ver ranking →"', async () => {
+  it('renders completed challenge with the Encerrado tag and "Ver ranking →"', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: [completedChallenge] });
     renderWithRouter(<Challenges />);
@@ -294,10 +343,24 @@ describe('Challenges', () => {
     await user.click(completedTab);
 
     await screen.findByText('Campeonato Passado');
-    expect(screen.getByText('Ver ranking →')).toBeInTheDocument();
+    expect(screen.getByText('Encerrado')).toHaveClass('badge--success');
+    expect(screen.getByRole('button', { name: 'Ver ranking' })).toBeInTheDocument();
   });
 
-  it('renders cancelled challenge with strikethrough name', async () => {
+  it('renders cancelled challenge with the Cancelado tag', async () => {
+    const user = userEvent.setup();
+    api.get.mockResolvedValue({ data: [cancelledChallenge] });
+    renderWithRouter(<Challenges />);
+    await waitFor(() => { expect(api.get).toHaveBeenCalled(); });
+
+    const cancelledTab = screen.getByRole('tab', { name: /Cancelados/i });
+    await user.click(cancelledTab);
+
+    const card = (await screen.findByText('Old Challenge')).closest('article');
+    expect(within(card).getByText('Cancelado')).toHaveClass('badge--error');
+  });
+
+  it('shows the dates of a cancelled challenge without progress', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: [cancelledChallenge] });
     renderWithRouter(<Challenges />);
@@ -307,21 +370,8 @@ describe('Challenges', () => {
     await user.click(cancelledTab);
 
     await screen.findByText('Old Challenge');
-    const title = screen.getByText('Old Challenge');
-    expect(title).toHaveStyle({ textDecoration: 'line-through' });
-  });
-
-  it('shows cancellation date for cancelled challenge', async () => {
-    const user = userEvent.setup();
-    api.get.mockResolvedValue({ data: [cancelledChallenge] });
-    renderWithRouter(<Challenges />);
-    await waitFor(() => { expect(api.get).toHaveBeenCalled(); });
-
-    const cancelledTab = screen.getByRole('tab', { name: /Cancelados/i });
-    await user.click(cancelledTab);
-
-    await screen.findByText('Old Challenge');
-    expect(screen.getByText(/Cancelado em 15\/01\/2025/)).toBeInTheDocument();
+    expect(screen.getByText('01/01 – 31/01/2025')).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
   it('CAMP-49 shows Semana X de Y and Começa DD/MM', async () => {
@@ -332,20 +382,20 @@ describe('Challenges', () => {
     api.get.mockResolvedValue({ data: [weeklyActive, weeklyScheduled, datesActive] });
     renderWithRouter(<Challenges />);
 
-    const weeklyCard = (await screen.findByText('Verão Semanal')).closest('button');
+    const weeklyCard = (await screen.findByText('Verão Semanal')).closest('article');
     expect(within(weeklyCard).getByText('Semana 3 de 8')).toBeInTheDocument();
     expect(within(weeklyCard).getByText('Progresso')).toBeInTheDocument();
-    const datesCard = screen.getByText('Verao 2026').closest('button');
+    const datesCard = screen.getByText('Verao 2026').closest('article');
     expect(within(datesCard).queryByText(/Semana \d+ de \d+/)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: /Agendados/ }));
 
-    const scheduledCard = (await screen.findByText('Inverno Semanal')).closest('button');
+    const scheduledCard = (await screen.findByText('Inverno Semanal')).closest('article');
     expect(within(scheduledCard).getByText('Começa 07/01')).toBeInTheDocument();
     expect(within(scheduledCard).getByText('5 participantes')).toBeInTheDocument();
   });
 
-  it('CAMP-01 opens the create form from Criar campeonato and CAMP-04 opens the new championship', async () => {
+  it('CAMP-01 opens the create form from Novo campeonato and CAMP-04 opens the new championship', async () => {
     const user = userEvent.setup();
     api.get.mockResolvedValue({ data: [] });
     render(
@@ -358,7 +408,7 @@ describe('Challenges', () => {
     );
     await screen.findByText(/Nenhum campeonato/);
 
-    await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
+    await user.click(screen.getAllByRole('button', { name: 'Novo campeonato' })[0]);
     expect(screen.getByRole('dialog', { name: 'Criar Campeonato' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Confirmar criação' }));
 
@@ -370,6 +420,7 @@ describe('Challenges', () => {
 describe('getTemporalInfo logic (via rendered output)', () => {
   beforeEach(() => {
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
+    vi.mocked(useConsistencyRankingAccess).mockReturnValue(true);
     api.get.mockReset();
   });
 
@@ -383,8 +434,8 @@ describe('getTemporalInfo logic (via rendered output)', () => {
     api.get.mockResolvedValue({ data: [challenge] });
     renderWithRouter(<Challenges />);
     await screen.findByText('Verao 2026');
-    // Progress bar shows elapsed days = total days (no remaining)
-    expect(screen.getByText('Progresso')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Progresso' })).toHaveAttribute('aria-valuenow', '100');
+    expect(screen.getByText('Último dia')).toBeInTheDocument();
   });
 
   it('shows "Começa amanhã" when scheduled challenge starts tomorrow', async () => {
@@ -434,7 +485,7 @@ describe('getTemporalInfo logic (via rendered output)', () => {
     expect(screen.queryByText(/dias restantes|Começa/i)).not.toBeInTheDocument();
   });
 
-  it('shows progress labels for active challenge', async () => {
+  it('shows the elapsed share of the days on the progress bar of an active challenge', async () => {
     const challenge = {
       ...activeChallenge,
       startDate: '2026-01-01',
@@ -444,9 +495,8 @@ describe('getTemporalInfo logic (via rendered output)', () => {
     api.get.mockResolvedValue({ data: [challenge] });
     renderWithRouter(<Challenges />);
     await screen.findByText('Verao 2026');
-    // Progress bar is always shown for active challenges
+    const elapsedDays = Math.min(Math.round((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(2026, 0, 1)) / 86400000) + 1, 365);
     expect(screen.getByText('Progresso')).toBeInTheDocument();
-    // Shows elapsed/total days label
-    expect(screen.getByText(/de 365 dias/)).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Progresso' })).toHaveAttribute('aria-valuenow', String(Math.round((elapsedDays / 365) * 100)));
   });
 });
