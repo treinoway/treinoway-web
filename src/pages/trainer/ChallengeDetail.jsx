@@ -47,6 +47,9 @@ const requestedTabOf = (searchParams) => {
   return LEGACY_TABS[asked] ?? asked;
 };
 
+// Statuses of a read that mean the championship is not the trainer's to see: unknown (404) or another trainer's (403)
+const NOT_FOUND_STATUSES = Object.freeze([403, 404]);
+
 // Championship of the page: loading, ready or not found (any failed first read); reload reads it again
 const useChallengeResource = (id) => {
   const { showToast } = useToast();
@@ -58,7 +61,7 @@ const useChallengeResource = (id) => {
       .then(({ data }) => { if (active) setState({ status: 'ready', challenge: data }); })
       .catch((error) => {
         if (!active) return;
-        if (error.response?.status !== 404) showToast(error.userMessage || translateError(error), 'error');
+        if (!NOT_FOUND_STATUSES.includes(error.response?.status)) showToast(error.userMessage || translateError(error), 'error');
         setState((current) => (current.challenge ? current : { status: 'notFound', challenge: null }));
       });
     return () => { active = false; };

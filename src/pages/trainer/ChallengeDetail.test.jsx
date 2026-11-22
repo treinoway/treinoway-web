@@ -259,6 +259,16 @@ describe('ChallengeDetail', () => {
     await user.click(screen.getByRole('button', { name: 'Voltar para campeonatos' }));
     expect(screen.queryByRole('heading', { name: 'Campeonato não encontrado.' })).not.toBeInTheDocument();
   });
+
+  it("CPD-50 shows the not-found block without an error toast for another trainer's championship (403)", async () => {
+    api.get.mockRejectedValue({ response: { status: 403 }, userMessage: 'Você não tem permissão para acessar este recurso.' });
+    renderDates();
+
+    expect(await screen.findByRole('heading', { name: 'Campeonato não encontrado.' })).toBeInTheDocument();
+    expect(screen.getByText('Ele pode ter sido excluído ou o link está incorreto.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Voltar para campeonatos' })).toBeInTheDocument();
+    expect(mockShowToast).not.toHaveBeenCalled();
+  });
 });
 
 const ORIGINAL_URL = window.location.href;
