@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { CalendarDays, Lock, Search, Users } from 'lucide-react';
+import { Calendar, Lock, Search, Users } from 'lucide-react';
 import Avatar from '../ds/Avatar';
 import Badge from '../ds/Badge';
 import Banner from '../ds/Banner';
@@ -235,7 +235,7 @@ ClassificationBlock.propTypes = {
 const ScheduledBlock = ({ challenge, onAdjustRules, onDelete }) => (
   <section className="section-card">
     <div className="empty-block">
-      <span className="empty-block__icon" aria-hidden="true"><CalendarDays size={32} strokeWidth={2} /></span>
+      <span className="empty-block__icon" aria-hidden="true"><Calendar size={32} strokeWidth={2} /></span>
       <h2 className="empty-block__title type-h4">{`O campeonato começa em ${dayMonthOf(challenge.startDate)}`}</h2>
       <p className="empty-block__description type-body">O ranking aparece quando os participantes pontuarem pela primeira vez. Até lá, as regras de pontuação ainda podem ser ajustadas.</p>
       <div className="ds-actions championship-state__actions">

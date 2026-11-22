@@ -25,6 +25,12 @@ describe('index.css: championship screens against the captures', () => {
     expect(body).toContain('text-align: left');
   });
 
+  it('CPD-45 draws the icons of the championship empty blocks blue in a light-blue circle', () => {
+    const body = ruleBody('.championship-tab .empty-block__icon');
+    expect(body).toContain('background: var(--background-brand-subtle)');
+    expect(body).toContain('color: var(--icon-brand)');
+  });
+
   it('CPD-33 draws the 1st place avatar as a white circle on the blue leader card', () => {
     expect(css).toContain('.championship-podium__place--leader { background: var(--background-brand-subtle); }');
     expect(ruleBody('.championship-podium__place--leader .avatar')).toContain('background: var(--background-surface)');

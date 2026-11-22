@@ -198,6 +198,7 @@ describe('ConsistencyRankingTab', () => {
     });
 
     expect(screen.getByRole('heading', { name: 'O campeonato começa em 23/11' })).toBeInTheDocument();
+    expect(document.querySelector('.championship-tab .empty-block__icon .lucide-calendar')).not.toBeNull();
     expect(screen.getByText('O ranking aparece quando os participantes pontuarem pela primeira vez. Até lá, as regras de pontuação ainda podem ser ajustadas.')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Classificação do campeonato' })).not.toBeInTheDocument();
 
