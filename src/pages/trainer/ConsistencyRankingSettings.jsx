@@ -12,14 +12,13 @@ import Segmented from '../../components/ds/Segmented';
 import SkeletonRows from '../../components/ds/SkeletonRows';
 import PreviousSeasonsList from '../../components/consistency/PreviousSeasonsList';
 import RulesSection from '../../components/consistency/RulesSection';
-import WeightRow from '../../components/consistency/WeightRow';
+import PillarWeightsEditor from '../../components/consistency/PillarWeightsEditor';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useHistoryBackGuard from '../../hooks/useHistoryBackGuard';
 import useInternalLinkGuard from '../../hooks/useInternalLinkGuard';
 import useConsistencyConfig from '../../hooks/useConsistencyConfig';
 import { dayMonthOf, formatCloseDateLabel, formatCloseLabel, seasonEndDateOf } from '../../utils/consistencyFormat';
-import { effectivePercents, effectiveWeightsPhrase } from '../../utils/consistencyWeights';
-import { CONFIG_DEFAULTS, PILLAR_ORDER, SEASON_WEEK_OPTIONS, WEIGHT_TOTAL } from '../../constants/consistencyRanking';
+import { CONFIG_DEFAULTS, PILLAR_ORDER, SEASON_WEEK_OPTIONS } from '../../constants/consistencyRanking';
 
 const BASE_URL = '/trainer/consistency-ranking';
 const RANKING_PATH = '/trainer/consistency-ranking';
@@ -131,37 +130,11 @@ SeasonBlock.propTypes = {
   onEndSeason: PropTypes.func.isRequired,
 };
 
-// Sum of the weights as a bar, highlighted when it is not 100
-const WeightsSummary = ({ config, weightSum, onRestoreWeights }) => {
-  const isValid = weightSum === WEIGHT_TOTAL;
-  return (
-    <div className="weights-summary">
-      <div className="weights-summary__head type-body-strong">
-        <span>Soma dos pesos</span>
-        <span className={isValid ? '' : 'weights-summary__total--invalid'}>{`${weightSum} de ${WEIGHT_TOTAL}`}</span>
-      </div>
-      <span className="score-bar__track" role="progressbar" aria-label="Soma dos pesos" aria-valuemin={0} aria-valuemax={WEIGHT_TOTAL} aria-valuenow={weightSum}>
-        <span className="score-bar__fill" style={{ width: `${Math.min(weightSum, WEIGHT_TOTAL)}%` }} />
-      </span>
-      <div className="weights-summary__foot type-caption">
-        <span>{effectiveWeightsPhrase(config.weights, config.activePillars)}</span>
-        <button type="button" className="btn btn--ghost" onClick={onRestoreWeights}>{`Restaurar ${DEFAULT_WEIGHTS_TEXT}`}</button>
-      </div>
-    </div>
-  );
-};
-
-WeightsSummary.propTypes = {
-  config: PropTypes.object.isRequired,
-  weightSum: PropTypes.number.isRequired,
-  onRestoreWeights: PropTypes.func.isRequired,
-};
-
 // Weights of the five pillars with the sum, the effective shares and the notice of when new weights apply
 const WeightsBlock = ({ settings, notice }) => {
   const { config } = settings;
-  const percents = effectivePercents(config.weights, config.activePillars);
   const handleRestoreWeights = () => PILLAR_ORDER.forEach((pillar) => settings.setWeight(pillar, CONFIG_DEFAULTS.weights[pillar]));
+  const restoreButton = <button type="button" className="btn btn--ghost" onClick={handleRestoreWeights}>{`Restaurar ${DEFAULT_WEIGHTS_TEXT}`}</button>;
   return (
     <div className="section-card settings-card">
       {notice && (
@@ -171,20 +144,13 @@ const WeightsBlock = ({ settings, notice }) => {
         </div>
       )}
       <p className="type-caption settings-card__help">{WEIGHTS_HELP}</p>
-      <div className="settings-weights">
-        {PILLAR_ORDER.map((pillar) => (
-          <WeightRow
-            key={pillar}
-            pillar={pillar}
-            weight={config.weights[pillar]}
-            active={config.activePillars.includes(pillar)}
-            effectivePercent={percents[pillar]}
-            onWeightChange={settings.setWeight}
-            onActiveChange={settings.setPillarActive}
-          />
-        ))}
-      </div>
-      <WeightsSummary config={config} weightSum={settings.weightSum} onRestoreWeights={handleRestoreWeights} />
+      <PillarWeightsEditor
+        weights={config.weights}
+        activePillars={config.activePillars}
+        onWeightChange={settings.setWeight}
+        onActiveChange={settings.setPillarActive}
+        summaryAction={restoreButton}
+      />
       <p className="student-panel__note type-caption">
         <Info size={16} strokeWidth={2} aria-hidden="true" />
         {COMMUNITY_NOTE}

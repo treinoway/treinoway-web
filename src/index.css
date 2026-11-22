@@ -20489,6 +20489,7 @@ select.input { cursor: pointer; }
   color: var(--feedback-warning-text);
 }
 .settings-weights { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.pillar-weights-editor { display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; margin: 0; padding: 0; border: 0; }
 .weights-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .weights-summary__head { display: flex; justify-content: space-between; color: var(--text-primary); }
 .weights-summary__total--invalid { color: var(--feedback-error-text); }
