@@ -20161,6 +20161,7 @@ select.input { cursor: pointer; }
 @media (min-width: 768px) {
   .consistency-toolbar__head { flex-direction: row; align-items: center; justify-content: space-between; }
   .consistency-toolbar__search { flex: 0 1 calc(var(--spacing-5xl) * 5); }
+  .consistency-toolbar__head .ds-tabs { flex: 1 1 auto; }
 }
 
 .consistency-table__scroll { overflow-x: auto; }
