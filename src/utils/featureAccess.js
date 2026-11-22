@@ -17,3 +17,10 @@ export const isConsistencyRankingVisible = ({ hostname, isDev, isAdmin }) => {
   if (isPreReleaseHostname(hostname)) return true;
   return isAdmin === true;
 };
+
+// Whether the student feedback is visible: everyone in dev/local/staging, only admins elsewhere (fails closed).
+export const isStudentFeedbackVisible = ({ hostname, isDev, isAdmin }) => {
+  if (isDev === true) return true;
+  if (isPreReleaseHostname(hostname)) return true;
+  return isAdmin === true;
+};
