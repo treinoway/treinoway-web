@@ -244,7 +244,7 @@ const mockWeeklySources = () => {
 };
 
 // Types a championship name, which the weekly form now opens empty (CPD-23)
-const typeName = (user, name = 'Verão 2027') => user.type(screen.getByLabelText('Nome do campeonato'), name);
+const typeName = (user, name = 'Verão 2027') => user.type(screen.getByLabelText('Nome'), name);
 
 // Page stand-in that closes the modal through onClose, as the list page does
 const ClosingHost = () => {
@@ -275,7 +275,7 @@ describe('CreateChampionshipModal', () => {
     const user = userEvent.setup();
     renderModal();
 
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('');
+    expect(screen.getByLabelText('Nome')).toHaveValue('');
     expect(screen.getByLabelText('Descrição')).toBeInTheDocument();
     expect(screen.getByLabelText('Segunda de início')).toHaveValue('2026-11-16');
     expect(screen.getByLabelText('Semanas')).toHaveValue('4');
@@ -364,13 +364,13 @@ describe('CreateChampionshipModal', () => {
     const user = userEvent.setup();
     renderModal();
 
-    await user.clear(screen.getByLabelText('Nome do campeonato'));
+    await user.clear(screen.getByLabelText('Nome'));
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveClass('input--error');
+    expect(screen.getByLabelText('Nome')).toHaveClass('input--error');
     expect(screen.getByRole('alert')).toHaveTextContent('Informe o nome do campeonato.');
     expect(api.post).not.toHaveBeenCalledWith('/trainer/challenges', expect.anything());
 
-    await user.type(screen.getByLabelText('Nome do campeonato'), 'Verão');
+    await user.type(screen.getByLabelText('Nome'), 'Verão');
     fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'x'.repeat(281) } });
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
     expect(screen.getByLabelText('Descrição')).toHaveClass('input--error');
@@ -503,7 +503,7 @@ describe('CreateChampionshipModal', () => {
 
     await user.click(within(confirm).getByRole('button', { name: 'Cancelar' }));
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('Verão 2027');
+    expect(screen.getByLabelText('Nome')).toHaveValue('Verão 2027');
 
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Descartar' }));
@@ -529,11 +529,11 @@ describe('CreateChampionshipModal', () => {
     await user.click(modal.parentElement);
     await keepEditing();
 
-    await user.click(screen.getByLabelText('Nome do campeonato'));
+    await user.click(screen.getByLabelText('Nome'));
     await user.keyboard('{Escape}');
     await keepEditing();
 
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('Verão 2027');
+    expect(screen.getByLabelText('Nome')).toHaveValue('Verão 2027');
     await user.click(within(modal).getByRole('button', { name: 'Fechar' }));
     await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Descartar' }));
     await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledTimes(1));

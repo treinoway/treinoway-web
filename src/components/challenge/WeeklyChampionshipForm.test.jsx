@@ -75,7 +75,7 @@ describe('WeeklyChampionshipForm', () => {
   it('CPD-06 sends the weights and active pillars of the Pontuação section', async () => {
     const user = userEvent.setup();
     const { onCreate } = await renderForm();
-    await user.type(screen.getByLabelText('Nome do campeonato'), 'Verão 2027');
+    await user.type(screen.getByLabelText('Nome'), 'Verão 2027');
     await user.click(screen.getByRole('button', { name: 'Personalizar' }));
     fireEvent.change(screen.getByRole('spinbutton', { name: 'Valor do peso de Treinos' }), { target: { value: '100' } });
     fireEvent.change(screen.getByRole('spinbutton', { name: 'Valor do peso de Cardio' }), { target: { value: '0' } });
@@ -104,7 +104,7 @@ describe('WeeklyChampionshipForm', () => {
     const user = userEvent.setup();
     const { onCancel } = await renderForm();
     const ordered = [
-      screen.getByLabelText('Nome do campeonato'),
+      screen.getByLabelText('Nome'),
       screen.getByLabelText('Descrição'),
       screen.getByLabelText('Segunda de início'),
       screen.getByLabelText('Semanas'),
@@ -140,7 +140,7 @@ describe('WeeklyChampionshipForm', () => {
     mockSources({ minPodiumWeeks: 3 });
     await renderForm();
     await waitFor(() => expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('3'));
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('');
+    expect(screen.getByLabelText('Nome')).toHaveValue('');
     expect(screen.getByLabelText('Segunda de início')).toHaveValue('2026-11-16');
     expect(within(screen.getByLabelText('Segunda de início')).getAllByRole('option')[0]).toHaveValue('2026-11-16');
     expect(screen.getByLabelText('Semanas')).toHaveValue('4');

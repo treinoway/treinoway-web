@@ -20461,6 +20461,36 @@ select.input { cursor: pointer; }
   .scoring-section__summary { flex-direction: row; align-items: center; justify-content: space-between; }
   .scoring-section__actions { flex-shrink: 0; }
 }
+/* Pill choices of the company design system (Participantes in ds-novo-campeonato.png): the chosen one filled blue, the others outlined */
+.choice-pills { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+.choice-pill {
+  min-height: var(--size-control-touch);
+  padding: var(--spacing-xs) var(--spacing-lg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: var(--background-surface);
+  color: var(--text-secondary);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+.choice-pill:hover:not(:disabled) { background: var(--background-surface-elevated); }
+.choice-pill:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.choice-pill:disabled { color: var(--text-disabled); cursor: not-allowed; }
+.choice-pill.choice-pill--selected,
+.choice-pill.choice-pill--selected:hover:not(:disabled) {
+  border-color: var(--action-primary-default);
+  background: var(--action-primary-default);
+  color: var(--text-inverse);
+  font-weight: 600;
+}
+@media (min-width: 768px) {
+  .choice-pill { min-height: var(--size-control); }
+}
 /* Championship detail header: back link, page title without card, status tag with dates, description and "Dar bônus" */
 .challenge-header { display: flex; flex-direction: column; gap: var(--spacing-lg); margin-bottom: var(--spacing-lg); }
 .challenge-header__back {

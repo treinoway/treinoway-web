@@ -80,7 +80,7 @@ Field.propTypes = {
 // Name and description inputs
 const IdentityFields = ({ draft, setField, errors, disabled }) => (
   <>
-    <Field id="weekly-name" label="Nome do campeonato" error={errors.name}>
+    <Field id="weekly-name" label="Nome" error={errors.name}>
       <input id="weekly-name" type="text" className={`input${errors.name ? ' input--error' : ''}`} value={draft.name} maxLength={CHALLENGE_NAME_MAX_LENGTH} disabled={disabled} onChange={(event) => setField('name', event.target.value)} />
     </Field>
     <Field id="weekly-description" label="Descrição" error={errors.description} hint={`${draft.description.length}/${CHALLENGE_DESCRIPTION_MAX_LENGTH} · Conta o prêmio, se tiver.`}>

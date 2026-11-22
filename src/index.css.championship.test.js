@@ -31,6 +31,17 @@ describe('index.css: championship screens against the captures', () => {
     expect(body).toContain('color: var(--icon-brand)');
   });
 
+  it('CPD-25 draws the participant modes as pills, the chosen one filled blue and the others outlined', () => {
+    const pillStart = css.indexOf('.choice-pill {');
+    const pill = css.slice(pillStart, css.indexOf('}', pillStart));
+    expect(pill).toContain('border: 1px solid var(--border-default)');
+    expect(pill).toContain('border-radius: var(--radius-full)');
+    expect(pill).toContain('background: var(--background-surface)');
+    const selected = ruleBody('.choice-pill.choice-pill--selected,\n.choice-pill.choice-pill--selected:hover:not(:disabled)');
+    expect(selected).toContain('background: var(--action-primary-default)');
+    expect(selected).toContain('color: var(--text-inverse)');
+  });
+
   it('CPD-33 draws the 1st place avatar as a white circle on the blue leader card', () => {
     expect(css).toContain('.championship-podium__place--leader { background: var(--background-brand-subtle); }');
     expect(ruleBody('.championship-podium__place--leader .avatar')).toContain('background: var(--background-surface)');

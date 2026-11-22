@@ -22,10 +22,15 @@ describe('ChallengeParticipantsField', () => {
 
     expect(within(modes).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Todos os alunos', 'Por filtro', 'Selecionar alunos']);
     expect(within(modes).getByRole('tab', { name: 'Todos os alunos' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByText('Todos os alunos ativos, inclusive quem entrar no time depois.')).toBeInTheDocument();
+    expect(screen.queryByText('Todos os alunos ativos, inclusive quem entrar no time depois.')).not.toBeInTheDocument();
+    expect(within(modes).getByRole('tab', { name: 'Todos os alunos' })).toHaveClass('choice-pill', 'choice-pill--selected');
+    expect(within(modes).getByRole('tab', { name: 'Por filtro' })).toHaveClass('choice-pill');
+    expect(within(modes).getByRole('tab', { name: 'Por filtro' })).not.toHaveClass('choice-pill--selected');
+    expect(modes).not.toHaveClass('segmented');
 
     await user.click(within(modes).getByRole('tab', { name: 'Por filtro' }));
     expect(within(modes).getByRole('tab', { name: 'Por filtro' })).toHaveAttribute('aria-selected', 'true');
+    expect(within(modes).getByRole('tab', { name: 'Por filtro' })).toHaveClass('choice-pill--selected');
     expect(screen.getByLabelText('Gênero')).toBeInTheDocument();
     expect(screen.getByLabelText('Cidade')).toBeInTheDocument();
 
