@@ -21,6 +21,12 @@ describe('FaixaBadge', () => {
     expect(screen.getByText('Constante')).not.toHaveClass('badge--solid');
   });
 
+  it('CPD-34 shows the 100% band as the light DS tag in a championship', () => {
+    render(<FaixaBadge faixa="full" variant="tag" />);
+    expect(screen.getByText('100%')).toHaveClass('badge--tag', 'badge--brand');
+    expect(screen.getByText('100%')).not.toHaveClass('badge--solid');
+  });
+
   it('renders nothing for an unknown band', () => {
     const { container } = render(<FaixaBadge faixa="unknown" />);
     expect(container).toBeEmptyDOMElement();

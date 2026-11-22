@@ -157,7 +157,7 @@ const StandingsRow = ({ row, actions }) => (
   <tr className="consistency-row">
     <td className="consistency-row__number type-body-strong">{positionOf(row)}</td>
     <td><StudentCell row={row} onOpenStudent={actions.onOpenStudent} /></td>
-    <td><FaixaBadge faixa={row.faixa} /></td>
+    <td><FaixaBadge faixa={row.faixa} variant="tag" /></td>
     <td><ScoreBar score={row.average} label="Média no campeonato" /></td>
     <td className="consistency-row__number type-body-strong">{formatScore(row.currentWeekScore)}</td>
     <td className="consistency-row__number type-body-strong">{row.weeks100}</td>

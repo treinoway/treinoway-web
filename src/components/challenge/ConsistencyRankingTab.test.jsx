@@ -138,6 +138,14 @@ describe('ConsistencyRankingTab', () => {
     expect(within(rows[4]).getByText('Entrando · 1 de 2 semanas')).toBeInTheDocument();
   });
 
+  it('CPD-34 shows the 100% band as a light DS tag, not a solid pill', () => {
+    renderTab({ data: payload({ rows: [row({ faixa: 'full', average: 100 })], entering: [] }) });
+
+    const band = within(bodyRows()[0]).getByText('100%', { selector: '.badge' });
+    expect(band).toHaveClass('badge--tag', 'badge--brand');
+    expect(band).not.toHaveClass('badge--solid');
+  });
+
   it('CPD-35 updates "Mostrando N de M participantes" as the trainer searches', async () => {
     const user = userEvent.setup();
     renderTab({ data: payload({ rows: [...ROWS, row({ studentId: 's5', name: 'Álvaro Dias', displayName: 'Álvaro D.', position: 5 })] }) });

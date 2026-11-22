@@ -10,15 +10,17 @@ const FAIXA_TONES = Object.freeze({
   [FAIXA.ENTERING]: 'neutral',
 });
 
-// Badge of the season band (100%, Constante, Em ritmo, Retomando, Entrando)
-const FaixaBadge = ({ faixa }) => {
+// Badge of the season band (100%, Constante, Em ritmo, Retomando, Entrando); the team ranking paints 100% solid (PAN-10), the championship uses the plain DS tag
+const FaixaBadge = ({ faixa, variant = 'status' }) => {
   const label = FAIXA_LABELS[faixa];
   if (!label) return null;
-  return <Badge tone={FAIXA_TONES[faixa]} className={faixa === FAIXA.FULL ? 'badge--solid' : ''}>{label}</Badge>;
+  const solid = variant === 'status' && faixa === FAIXA.FULL;
+  return <Badge tone={FAIXA_TONES[faixa]} variant={variant} className={solid ? 'badge--solid' : ''}>{label}</Badge>;
 };
 
 FaixaBadge.propTypes = {
   faixa: PropTypes.string,
+  variant: PropTypes.oneOf(['status', 'tag']),
 };
 
 export default FaixaBadge;
