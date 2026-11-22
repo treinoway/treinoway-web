@@ -510,6 +510,35 @@ describe('CreateChampionshipModal', () => {
     await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledTimes(1));
   });
 
+  it('CPD-27 asks before discarding unsaved changes when the modal closes by the X, the overlay or Escape', async () => {
+    const user = userEvent.setup();
+    renderModal();
+    await typeName(user);
+    const modal = screen.getByRole('dialog', { name: 'Novo campeonato' });
+    const keepEditing = async () => {
+      const confirm = screen.getByRole('alertdialog');
+      expect(confirm).toHaveTextContent('Há mudanças não salvas. Descartar e sair?');
+      expect(defaultProps.onClose).not.toHaveBeenCalled();
+      await user.click(within(confirm).getByRole('button', { name: 'Cancelar' }));
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    };
+
+    await user.click(within(modal).getByRole('button', { name: 'Fechar' }));
+    await keepEditing();
+
+    await user.click(modal.parentElement);
+    await keepEditing();
+
+    await user.click(screen.getByLabelText('Nome do campeonato'));
+    await user.keyboard('{Escape}');
+    await keepEditing();
+
+    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('Verão 2027');
+    await user.click(within(modal).getByRole('button', { name: 'Fechar' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Descartar' }));
+    await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledTimes(1));
+  });
+
   it('CPD-28 closes, shows "Campeonato criado!" and opens the new championship', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ClosingHost /></MemoryRouter>);
