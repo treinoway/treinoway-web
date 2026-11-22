@@ -20621,6 +20621,12 @@ select.input { cursor: pointer; }
 .scoring-rule-row__text { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
 .scoring-rule-row__helper { color: var(--text-secondary); }
 .scoring-rule-row__input { flex-shrink: 0; width: calc(var(--spacing-5xl) + var(--spacing-xl)); }
+/* Settings tab: "Dados do campeonato" and "Regras de pontuação" side by side from 1024px, "Zona de perigo" full width below */
+.challenge-settings__columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-lg); align-items: start; }
+.challenge-settings__columns h2 { margin: 0; color: var(--text-primary); }
+@media (min-width: 1024px) {
+  .challenge-settings__columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .weights-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .weights-summary__head { display: flex; justify-content: space-between; color: var(--text-primary); }
 .weights-summary__total--invalid { color: var(--feedback-error-text); }
