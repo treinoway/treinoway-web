@@ -20503,6 +20503,34 @@ select.input { cursor: pointer; }
   .scoring-section__summary { flex-direction: row; align-items: center; justify-content: space-between; }
   .scoring-section__actions { flex-shrink: 0; }
 }
+/* Championship detail header: back link, page title without card, status tag with dates, description and "Dar bônus" */
+.challenge-header { display: flex; flex-direction: column; gap: var(--spacing-lg); margin-bottom: var(--spacing-lg); }
+.challenge-header__back {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: var(--size-control-touch);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-link);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  cursor: pointer;
+}
+.challenge-header__back:hover { color: var(--action-primary-hover); }
+.challenge-header__back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.challenge-header__main { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.challenge-header__identity { display: flex; flex-direction: column; gap: var(--spacing-sm); min-width: 0; }
+.challenge-header__title { color: var(--text-primary); overflow-wrap: anywhere; }
+.challenge-header__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); color: var(--text-secondary); }
+.challenge-header__description { margin: 0; color: var(--text-secondary); }
+@media (min-width: 768px) {
+  .challenge-header__main { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+  .challenge-header__main > .btn { flex-shrink: 0; }
+}
 .weights-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .weights-summary__head { display: flex; justify-content: space-between; color: var(--text-primary); }
 .weights-summary__total--invalid { color: var(--feedback-error-text); }
