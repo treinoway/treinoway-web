@@ -36,6 +36,12 @@ const OpenedDetail = () => {
   return <p>{`Detalhe ${id}${search}`}</p>;
 };
 
+// Detail route stand-in that shows the championship the card handed over
+const HandedDetail = () => {
+  const { state } = useLocation();
+  return <p>{`Recebido ${state?.challenge?.name} ${state?.challenge?.startDate}`}</p>;
+};
+
 // Renders the cards on the list route with the detail route behind them
 const renderCards = (challenges) => render(
   <MemoryRouter initialEntries={['/trainer/challenges']}>
@@ -80,6 +86,22 @@ describe('ChallengeCard', () => {
     await user.click(within(running).getByRole('button', { name: 'Ver ranking' }));
 
     expect(screen.getByText('Detalhe c1?tab=ranking')).toBeInTheDocument();
+  });
+
+  it('CPD-49 hands the championship to the detail it opens, so the loading header shows its name and dates', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/trainer/challenges']}>
+        <Routes>
+          <Route path="/trainer/challenges" element={<ChallengeCard challenge={challengeOf()} today={TODAY} />} />
+          <Route path="/trainer/challenges/:id" element={<HandedDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Ver ranking' }));
+
+    expect(screen.getByText('Recebido Verão 2027 2026-11-02')).toBeInTheDocument();
   });
 
   it('CPD-63 shows "Nenhum participante — campeonato inativo" with Adicionar alunos', async () => {

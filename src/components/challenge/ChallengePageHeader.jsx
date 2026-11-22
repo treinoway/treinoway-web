@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { ArrowLeft, Star } from 'lucide-react';
 import Badge from '../ds/Badge';
+import SkeletonText from '../ds/SkeletonText';
 import { challengeTagOf } from '../../utils/challengeDisplay';
 import { dayMonthOf } from '../../utils/consistencyFormat';
 import { formatDateForDisplay } from '../../utils/dateFormat';
@@ -22,6 +23,34 @@ export const BackToChallenges = ({ onBack }) => (
 );
 
 BackToChallenges.propTypes = {
+  onBack: PropTypes.func.isRequired,
+};
+
+// Header while the championship loads: back link, then the name and dates already known (from the list) or a skeleton title
+export const ChallengeLoadingHeader = ({ challenge = null, onBack }) => (
+  <header className="challenge-header">
+    <BackToChallenges onBack={onBack} />
+    {challenge ? (
+      <div className="challenge-header__identity">
+        <h1 className="challenge-header__title type-h1">{challenge.name}</h1>
+        <span className="challenge-header__meta type-body">{challengeDatesLineOf(challenge)}</span>
+      </div>
+    ) : (
+      <div className="challenge-header__identity">
+        <SkeletonText typeClass="type-h1" width="medium" />
+        <SkeletonText typeClass="type-body" width="short" />
+      </div>
+    )}
+  </header>
+);
+
+ChallengeLoadingHeader.propTypes = {
+  challenge: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    startDate: PropTypes.string.isRequired,
+    endDate: PropTypes.string.isRequired,
+    participantCount: PropTypes.number,
+  }),
   onBack: PropTypes.func.isRequired,
 };
 

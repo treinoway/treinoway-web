@@ -55,6 +55,10 @@ describe('index.css: championship screens against the captures', () => {
     expect(locked).toContain('color: var(--text-primary)');
   });
 
+  it('CPD-49 draws the loading skeleton a step darker than the page background', () => {
+    expect(ruleBody('.challenge-loading .row-skeleton,\n.challenge-loading .skeleton-text-line')).toContain('background: var(--border-default)');
+  });
+
   it('CPD-33 draws the 1st place avatar as a white circle on the blue leader card', () => {
     expect(css).toContain('.championship-podium__place--leader { background: var(--background-brand-subtle); }');
     expect(ruleBody('.championship-podium__place--leader .avatar')).toContain('background: var(--background-surface)');

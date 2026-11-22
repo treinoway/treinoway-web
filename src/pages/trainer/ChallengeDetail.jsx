@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Ban, Lock, Trophy } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
@@ -10,7 +10,7 @@ import EmptyBlock from '../../components/ds/EmptyBlock';
 import SkeletonRows from '../../components/ds/SkeletonRows';
 import Tabs from '../../components/ds/Tabs';
 import StudentBonusSheet from '../../components/StudentBonusSheet';
-import ChallengePageHeader, { BackToChallenges } from '../../components/challenge/ChallengePageHeader';
+import ChallengePageHeader, { BackToChallenges, ChallengeLoadingHeader } from '../../components/challenge/ChallengePageHeader';
 import ChallengeSettingsTab from '../../components/challenge/ChallengeSettingsTab';
 import ConsistencyRankingTab from '../../components/challenge/ConsistencyRankingTab';
 import ParticipantsTab from '../../components/challenge/ParticipantsTab';
@@ -305,18 +305,34 @@ BonusSheet.propTypes = {
   onClose: PropTypes.func.isRequired,
 };
 
-// Loading and not-found states: the back link with skeleton rows, or the not-found block
-const ResourceState = ({ status, onBack }) => (
-  <div className="championship-tab">
-    <BackToChallenges onBack={onBack} />
-    {status === 'loading'
-      ? <SkeletonRows label="Carregando campeonato" count={LOADING_ROWS} />
-      : <section className="section-card"><EmptyBlock icon={Trophy} title="Campeonato não encontrado." description="Ele pode ter sido excluído ou o link está incorreto." actionLabel="Voltar para campeonatos" onAction={onBack} /></section>}
-  </div>
-);
+// Championship the list handed over when it opened this page, if it is this one
+const useKnownChallenge = (id) => {
+  const { state } = useLocation();
+  const known = state?.challenge;
+  return known?.id === id ? known : null;
+};
+
+// Loading and not-found states: the header with what is known and skeleton rows, or the back link with the not-found block
+const ResourceState = ({ status, known = null, onBack }) => {
+  if (status === 'loading') {
+    return (
+      <div className="championship-tab challenge-loading">
+        <ChallengeLoadingHeader challenge={known} onBack={onBack} />
+        <SkeletonRows label="Carregando campeonato" count={LOADING_ROWS} />
+      </div>
+    );
+  }
+  return (
+    <div className="championship-tab">
+      <BackToChallenges onBack={onBack} />
+      <section className="section-card"><EmptyBlock icon={Trophy} title="Campeonato não encontrado." description="Ele pode ter sido excluído ou o link está incorreto." actionLabel="Voltar para campeonatos" onAction={onBack} /></section>
+    </div>
+  );
+};
 
 ResourceState.propTypes = {
   status: PropTypes.oneOf(['loading', 'notFound']).isRequired,
+  known: PropTypes.object,
   onBack: PropTypes.func.isRequired,
 };
 
@@ -324,11 +340,12 @@ ResourceState.propTypes = {
 const ChallengeDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const known = useKnownChallenge(id);
   const data = useChallengeDetailData(id, useConsistencyRankingAccess());
   const writes = useChallengeWrites(id, data);
   const actions = usePageActions(data, writes, navigate);
   const { resource, challenge, consistency } = data;
-  if (resource.status !== 'ready') return <ResourceState status={resource.status} onBack={() => navigate(LIST_PATH)} />;
+  if (resource.status !== 'ready') return <ResourceState status={resource.status} known={known} onBack={() => navigate(LIST_PATH)} />;
   const view = { challenge, data, writes, readOnly: READ_ONLY_STATUSES.includes(challenge.status), actions };
   const closeLabel = consistency.data?.closesAt ? formatCloseLabel(consistency.data.closesAt, data.timeZone) : undefined;
   return (

@@ -20557,6 +20557,10 @@ select.input { cursor: pointer; }
 .championship-block__count { margin: 0; color: var(--text-secondary); }
 .championship-block__empty { margin: 0; padding: var(--spacing-xl) var(--spacing-lg); border-radius: var(--radius-lg); background: var(--background-surface); color: var(--text-secondary); text-align: center; }
 .championship-state__actions { justify-content: center; margin-top: var(--spacing-md); }
+/* Loading detail: skeleton bars a step darker than the page background, as ds-campeonato-carregando.png */
+.challenge-loading .row-skeleton,
+.challenge-loading .skeleton-text-line { background: var(--border-default); }
+.challenge-loading .challenge-header { margin-bottom: 0; }
 .championship-tab .empty-block__icon { background: var(--background-brand-subtle); color: var(--icon-brand); }
 .challenge-table { border-collapse: separate; border-spacing: 0 var(--spacing-sm); }
 .challenge-table th { border-bottom: 0; padding-top: 0; padding-bottom: 0; font-weight: 400; }

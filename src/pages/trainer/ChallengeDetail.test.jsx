@@ -245,6 +245,25 @@ describe('ChallengeDetail', () => {
     expect(screen.getByRole('button', { name: 'Campeonatos' })).toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Carregando campeonato' })).toBeInTheDocument();
     expect(screen.queryByText('Campeonato não encontrado.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+  });
+
+  it('CPD-49 shows the name and dates the list handed over while the championship loads', () => {
+    api.get.mockImplementation(() => new Promise(() => {}));
+    const fromList = { id: 'ch-1', name: 'Campeonato do Mês', startDate: '2026-09-01', endDate: '2026-09-30', participantCount: 18 };
+    renderDates({ pathname: '/trainer/challenges/ch-1', search: '?tab=ranking', state: { challenge: fromList } });
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Campeonato do Mês' })).toBeInTheDocument();
+    expect(screen.getByText('01/09 – 30/09/2026 · 18 participantes')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Carregando campeonato' })).toBeInTheDocument();
+  });
+
+  it('CPD-49 ignores a championship handed over for another id while loading', () => {
+    api.get.mockImplementation(() => new Promise(() => {}));
+    const other = { id: 'ch-9', name: 'Outro campeonato', startDate: '2026-09-01', endDate: '2026-09-30', participantCount: 3 };
+    renderDates({ pathname: '/trainer/challenges/ch-1', state: { challenge: other } });
+
+    expect(screen.queryByRole('heading', { name: 'Outro campeonato' })).not.toBeInTheDocument();
   });
 
   it('CPD-50 shows "Campeonato não encontrado." with Voltar para campeonatos', async () => {

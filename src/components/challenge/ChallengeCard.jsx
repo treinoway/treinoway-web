@@ -80,7 +80,7 @@ const ChallengeCard = ({ challenge, today }) => {
   const weekLabel = challengeWeekLabel(challenge);
   const showProgress = PROGRESS_STATUSES.includes(challenge.status);
   const isInactive = (challenge.participantCount ?? 0) === 0 && OPEN_STATUSES.includes(challenge.status);
-  const openTab = (tab) => navigate(`/trainer/challenges/${challenge.id}?tab=${tab}`);
+  const openTab = (tab) => navigate(`/trainer/challenges/${challenge.id}?tab=${tab}`, { state: { challenge } });
 
   return (
     <article className="challenge-card" aria-labelledby={titleId}>
