@@ -401,7 +401,7 @@ describe('Challenges', () => {
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
-  it('CAMP-49 shows Semana X de Y and Começa DD/MM', async () => {
+  it('CAMP-49 shows Semana X de Y and only the dates on a scheduled card', async () => {
     const user = userEvent.setup();
     const weeklyActive = { ...activeChallenge, id: 'w-1', name: 'Verão Semanal', format: 'weeks', weeks: 8, currentWeek: 3 };
     const weeklyScheduled = { ...scheduledChallenge, id: 'w-2', name: 'Inverno Semanal', format: 'weeks', weeks: 4, currentWeek: null, startDate: '2030-01-07', endDate: '2030-02-03' };
@@ -418,7 +418,8 @@ describe('Challenges', () => {
     await user.click(screen.getByRole('tab', { name: /Agendados/ }));
 
     const scheduledCard = (await screen.findByText('Inverno Semanal')).closest('article');
-    expect(within(scheduledCard).getByText('Começa 07/01')).toBeInTheDocument();
+    expect(within(scheduledCard).getByText('07/01 – 03/02/2030')).toBeInTheDocument();
+    expect(within(scheduledCard).queryByText(/Começa/)).not.toBeInTheDocument();
     expect(within(scheduledCard).getByText('5 participantes')).toBeInTheDocument();
   });
 

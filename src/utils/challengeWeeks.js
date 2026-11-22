@@ -35,14 +35,10 @@ export const WEEK_COUNT_OPTIONS = Object.freeze(
   Array.from({ length: CHALLENGE_MAX_WEEKS - CHALLENGE_MIN_WEEKS + 1 }, (_, index) => CHALLENGE_MIN_WEEKS + index),
 );
 
-// "Começa DD/MM" of a scheduled championship
-export const startsOnLabel = (startDate) => `Começa ${dayMonthOf(startDate)}`;
-
-// Week label of a weekly championship: "Semana X de Y" while active, "Começa DD/MM" while scheduled, null otherwise
+// Week label of a weekly championship: "Semana X de Y" while active, null otherwise (the scheduled card shows only its dates, as ds-campeonatos.png)
 export const challengeWeekLabel = (challenge) => {
   if (challenge?.format !== CHALLENGE_FORMAT.WEEKS) return null;
   if (challenge.status === CHALLENGE_STATUS.ACTIVE && challenge.currentWeek) return weekLabel(challenge.currentWeek, challenge.weeks);
-  if (challenge.status === CHALLENGE_STATUS.SCHEDULED && challenge.startDate) return startsOnLabel(challenge.startDate);
   return null;
 };
 

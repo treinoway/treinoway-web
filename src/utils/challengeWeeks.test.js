@@ -26,9 +26,9 @@ describe('challengeWeeks', () => {
     expect(startMondayOptions(mondayMidnightInSaoPaulo, SAO_PAULO)[0].value).toBe('2026-11-23');
   });
 
-  it('CAMP-49 labels an active weekly championship Semana X de Y and a scheduled one Começa DD/MM', () => {
+  it('CAMP-49 labels an active weekly championship Semana X de Y and a scheduled one with no extra line', () => {
     expect(challengeWeekLabel({ format: 'weeks', status: 'active', currentWeek: 3, weeks: 8, startDate: '2026-11-02' })).toBe('Semana 3 de 8');
-    expect(challengeWeekLabel({ format: 'weeks', status: 'scheduled', currentWeek: 0, weeks: 4, startDate: '2026-11-23' })).toBe('Começa 23/11');
+    expect(challengeWeekLabel({ format: 'weeks', status: 'scheduled', currentWeek: 0, weeks: 4, startDate: '2026-11-23' })).toBeNull();
   });
 
   it('CAMP-49 has no week label for dates championships or ended weekly ones', () => {
