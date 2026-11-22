@@ -56,6 +56,11 @@ import Financeiro from './pages/trainer/Financeiro';
 import SubscriptionHistory from './pages/trainer/SubscriptionHistory';
 import ConsistencyRanking from './pages/trainer/ConsistencyRanking';
 import ConsistencyRankingSettings from './pages/trainer/ConsistencyRankingSettings';
+import StudentFeedbacks from './pages/trainer/StudentFeedbacks';
+import StudentFeedbackHistory from './pages/trainer/StudentFeedbackHistory';
+import StudentFeedbackSettings from './pages/trainer/StudentFeedbackSettings';
+import StudentFeedbackTemplates from './pages/trainer/StudentFeedbackTemplates';
+import StudentFeedbackTemplateBuilder from './pages/trainer/StudentFeedbackTemplateBuilder';
 
 // Nutritionist pages
 import Patients from './pages/nutritionist/Patients';
@@ -67,6 +72,7 @@ import MyFoods from './pages/nutritionist/MyFoods';
 import NutritionistRoute from './components/NutritionistRoute';
 import RequireRole from './components/RequireRole';
 import useConsistencyRankingAccess from './hooks/useConsistencyRankingAccess';
+import useStudentFeedbackAccess from './hooks/useStudentFeedbackAccess';
 import { t } from './i18n';
 
 // Admin pages
@@ -103,6 +109,17 @@ const ConsistencyRankingRoute = ({ children }) => {
 };
 
 ConsistencyRankingRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+// Renders a student feedback route only when the rollout gate allows it, otherwise sends the user home.
+const StudentFeedbackRoute = ({ children }) => {
+  const canSeeStudentFeedback = useStudentFeedbackAccess();
+  if (!canSeeStudentFeedback) return <Navigate to="/" replace />;
+  return children;
+};
+
+StudentFeedbackRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
@@ -572,6 +589,66 @@ function App() {
                     <ConsistencyRankingSettings />
                   </Layout>
                 </ConsistencyRankingRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/student-feedbacks"
+            element={
+              <ProtectedRoute>
+                <StudentFeedbackRoute>
+                  <Layout>
+                    <StudentFeedbacks />
+                  </Layout>
+                </StudentFeedbackRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/student-feedbacks/settings"
+            element={
+              <ProtectedRoute>
+                <StudentFeedbackRoute>
+                  <Layout>
+                    <StudentFeedbackSettings />
+                  </Layout>
+                </StudentFeedbackRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/student-feedbacks/templates"
+            element={
+              <ProtectedRoute>
+                <StudentFeedbackRoute>
+                  <Layout>
+                    <StudentFeedbackTemplates />
+                  </Layout>
+                </StudentFeedbackRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/student-feedbacks/templates/:id"
+            element={
+              <ProtectedRoute>
+                <StudentFeedbackRoute>
+                  <Layout>
+                    <StudentFeedbackTemplateBuilder />
+                  </Layout>
+                </StudentFeedbackRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/students/:id/feedbacks"
+            element={
+              <ProtectedRoute>
+                <StudentFeedbackRoute>
+                  <Layout>
+                    <StudentFeedbackHistory />
+                  </Layout>
+                </StudentFeedbackRoute>
               </ProtectedRoute>
             }
           />
