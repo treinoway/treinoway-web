@@ -45,7 +45,7 @@ const ChallengePageHeader = ({ challenge, today, showDescription = false, onBack
           {description && <p className="challenge-header__description type-body">{description}</p>}
         </div>
         {canGiveBonus && (
-          <button type="button" className="btn btn--secondary" onClick={onBonus}>
+          <button type="button" className="btn btn--neutral" onClick={onBonus}>
             <Star size={16} strokeWidth={2} aria-hidden="true" />
             Dar bônus
           </button>

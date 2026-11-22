@@ -219,7 +219,7 @@ const WeeklyChampionshipForm = ({ onCreate, onCancel, onDirtyChange }) => {
       <ScoringSection value={values.scoring} base={scoringBase} onChange={(scoring) => setField('scoring', scoring)} disabled={creating} />
       {errors.form && <span className="field-error type-caption" role="alert">{errors.form}</span>}
       <div className="ds-actions weekly-form__actions">
-        <button type="button" className="btn btn--secondary" disabled={creating} onClick={onCancel}>Cancelar</button>
+        <button type="button" className="btn btn--neutral" disabled={creating} onClick={onCancel}>Cancelar</button>
         <button type="submit" className="btn btn--primary" disabled={!canCreate}>{creating ? 'Criando...' : 'Criar campeonato'}</button>
       </div>
     </form>

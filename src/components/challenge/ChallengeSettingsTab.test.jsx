@@ -145,7 +145,7 @@ describe('ChallengeSettingsTab', () => {
     const { onDelete } = renderSettings();
 
     expect(screen.getByText('Cancelar congela o ranking. Excluir só é possível antes do início.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Cancelar campeonato' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancelar campeonato' })).toHaveClass('btn', 'btn--neutral');
     expect(screen.queryByRole('button', { name: 'Encerrar campeonato' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Excluir campeonato' }));
     expect(dialog()).toHaveTextContent('Excluir o campeonato "Verão 2027"? Esta ação não pode ser desfeita.');
@@ -157,7 +157,7 @@ describe('ChallengeSettingsTab', () => {
     const user = userEvent.setup();
     const { onCancel } = renderSettings(challengeOf({ status: 'active', startDate: '2026-11-02', endDate: '2026-11-29' }));
 
-    expect(screen.getByRole('button', { name: 'Encerrar campeonato' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Encerrar campeonato' })).toHaveClass('btn', 'btn--neutral');
     expect(screen.queryByRole('button', { name: 'Excluir campeonato' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cancelar campeonato' }));
     expect(dialog()).toHaveTextContent('Cancelar o campeonato "Verão 2027"? Ele fica sem classificação final. Esta ação não pode ser desfeita.');

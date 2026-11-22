@@ -15808,7 +15808,7 @@ button.auth-forgot-link:disabled {
 .section-card.section-card--compact { padding: var(--spacing-sm); }
 
 /* ── Button (§4.2) ─────────────────────────────────────────── */
-.btn:is(.btn--primary, .btn--secondary, .btn--ghost, .btn--conversion, .btn--danger) {
+.btn:is(.btn--primary, .btn--secondary, .btn--neutral, .btn--ghost, .btn--conversion, .btn--danger) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -15831,12 +15831,12 @@ button.auth-forgot-link:disabled {
 }
 
 @media (min-width: 768px) {
-  .btn:is(.btn--primary, .btn--secondary, .btn--ghost, .btn--conversion, .btn--danger) {
+  .btn:is(.btn--primary, .btn--secondary, .btn--neutral, .btn--ghost, .btn--conversion, .btn--danger) {
     min-height: var(--size-control);
   }
 }
 
-.btn:is(.btn--primary, .btn--secondary, .btn--ghost, .btn--conversion, .btn--danger):focus-visible {
+.btn:is(.btn--primary, .btn--secondary, .btn--neutral, .btn--ghost, .btn--conversion, .btn--danger):focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
@@ -15854,6 +15854,25 @@ button.auth-forgot-link:disabled {
 .btn--secondary:active:not(:disabled) {
   background: var(--background-brand-subtle);
   border-color: var(--action-primary-default);
+}
+
+/* Neutral button of the company design system ("Neutro" in ds-componentes.png): white, visible border, dark text.
+   deviation: not in the web skill's button list; the binding championship captures draw it for supporting actions. */
+.btn.btn--neutral {
+  background: var(--background-surface);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+.btn.btn--neutral:hover:not(:disabled) { background: var(--background-surface-elevated); }
+.btn.btn--neutral:active:not(:disabled) {
+  background: var(--background-surface-elevated);
+  border-color: var(--border-strong);
+}
+.btn.btn--neutral:disabled {
+  background: var(--action-primary-disabled);
+  border-color: transparent;
+  color: var(--text-disabled);
+  cursor: not-allowed;
 }
 
 .btn--ghost { background: transparent; color: var(--text-brand); }

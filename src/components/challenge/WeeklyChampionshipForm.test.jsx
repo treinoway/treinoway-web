@@ -121,6 +121,7 @@ describe('WeeklyChampionshipForm', () => {
     expect(startField.parentElement).toBe(weeksField.parentElement);
     expect(startField.parentElement).not.toContainElement(screen.getByLabelText('Mínimo para o pódio'));
 
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toHaveClass('btn', 'btn--neutral');
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });

@@ -254,8 +254,8 @@ const DangerZone = ({ status, canCloseEarly, onCloseEarly, onCancel, onDelete })
       <h2 className="type-h4" id="danger-zone-title">Zona de perigo</h2>
       <p className="settings-card__help type-body">Cancelar congela o ranking. Excluir só é possível antes do início.</p>
       <div className="ds-actions">
-        {canCloseEarly && <button type="button" className="btn btn--secondary" onClick={onCloseEarly}>Encerrar campeonato</button>}
-        <button type="button" className="btn btn--secondary" onClick={onCancel}>Cancelar campeonato</button>
+        {canCloseEarly && <button type="button" className="btn btn--neutral" onClick={onCloseEarly}>Encerrar campeonato</button>}
+        <button type="button" className="btn btn--neutral" onClick={onCancel}>Cancelar campeonato</button>
         {isScheduled && <button type="button" className="btn btn--danger" onClick={onDelete}>Excluir campeonato</button>}
       </div>
     </section>

@@ -43,6 +43,7 @@ describe('ChallengePageHeader', () => {
 
     await user.click(screen.getByRole('button', { name: 'Campeonatos' }));
     expect(onBack).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Dar bônus' })).toHaveClass('btn', 'btn--neutral');
     await user.click(screen.getByRole('button', { name: 'Dar bônus' }));
     expect(onBonus).toHaveBeenCalledTimes(1);
   });

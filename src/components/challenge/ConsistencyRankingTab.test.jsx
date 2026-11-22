@@ -200,6 +200,7 @@ describe('ConsistencyRankingTab', () => {
     expect(screen.getByText('O ranking aparece quando os participantes pontuarem pela primeira vez. Até lá, as regras de pontuação ainda podem ser ajustadas.')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Classificação do campeonato' })).not.toBeInTheDocument();
 
+    expect(screen.getByRole('button', { name: 'Ajustar regras' })).toHaveClass('btn', 'btn--neutral');
     await user.click(screen.getByRole('button', { name: 'Ajustar regras' }));
     expect(onAdjustRules).toHaveBeenCalledTimes(1);
 

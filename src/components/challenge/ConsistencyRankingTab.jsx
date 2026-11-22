@@ -237,7 +237,7 @@ const ScheduledBlock = ({ challenge, onAdjustRules, onDelete }) => (
       <h2 className="empty-block__title type-h4">{`O campeonato começa em ${dayMonthOf(challenge.startDate)}`}</h2>
       <p className="empty-block__description type-body">O ranking aparece quando os participantes pontuarem pela primeira vez. Até lá, as regras de pontuação ainda podem ser ajustadas.</p>
       <div className="ds-actions championship-state__actions">
-        <button type="button" className="btn btn--secondary" onClick={onAdjustRules}>Ajustar regras</button>
+        <button type="button" className="btn btn--neutral" onClick={onAdjustRules}>Ajustar regras</button>
         <button type="button" className="btn btn--danger" onClick={onDelete}>Excluir campeonato</button>
       </div>
     </div>
