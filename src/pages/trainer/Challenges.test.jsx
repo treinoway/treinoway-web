@@ -147,7 +147,9 @@ describe('Challenges', () => {
     vi.mocked(useConsistencyRankingAccess).mockReturnValue(false);
     renderWithRouter(<Challenges />);
 
-    expect(await screen.findByText('Seus campeonatos ativos aparecerão aqui. Crie a partir de um modelo pronto.')).toBeInTheDocument();
+    expect(await screen.findByText('Seus campeonatos ativos aparecerão aqui.')).toBeInTheDocument();
+    expect(screen.queryByText(/Crie a partir de um modelo pronto\./)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Novo campeonato' })).not.toBeInTheDocument();
   });
 
   it('makes a single unfiltered API call on mount', async () => {

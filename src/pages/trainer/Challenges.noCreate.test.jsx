@@ -61,6 +61,6 @@ describe('Challenges - no championship creation entry points for a non-admin in 
 
     expect(screen.queryByRole('button', { name: /criar/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /novo campeonato/i })).not.toBeInTheDocument();
-    expect(screen.queryByText(/crie campeonatos|crie um campeonato/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/crie campeonatos|crie um campeonato|crie a partir de um modelo/i)).not.toBeInTheDocument();
   });
 });

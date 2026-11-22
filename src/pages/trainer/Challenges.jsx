@@ -34,7 +34,6 @@ const EMPTY_FILTER_DESCRIPTION = Object.freeze({
 });
 
 const EMPTY_LIST_DESCRIPTION = 'Seus campeonatos ativos aparecerão aqui.';
-const TEMPLATE_SENTENCE = 'Crie a partir de um modelo pronto.';
 
 // Championships of a filter tab: every one on "Todos", the ones in that status otherwise
 const challengesOfTab = (challenges, tab) => (tab === ALL_TAB ? challenges : challenges.filter((c) => c.status === tab));
@@ -80,22 +79,19 @@ NewChallengeButton.propTypes = {
   onClick: PropTypes.func.isRequired,
 };
 
-// Empty list card; the template sentence only for trainers who create in the dates format
-const EmptyChallenges = ({ canCreateWeekly, onCreate }) => {
-  const description = canCreateWeekly ? EMPTY_LIST_DESCRIPTION : `${EMPTY_LIST_DESCRIPTION} ${TEMPLATE_SENTENCE}`;
-  return (
-    <section className="challenges-empty">
-      <EmptyBlock
-        icon={Trophy}
-        title="Nenhum campeonato ainda"
-        description={description}
-        actionLabel={canCreateWeekly ? 'Novo campeonato' : undefined}
-        actionIcon={Plus}
-        onAction={onCreate}
-      />
-    </section>
-  );
-};
+// Empty list card; no template sentence, since no trainer creates in the dates format from this page (CPD-64, CAMP-69)
+const EmptyChallenges = ({ canCreateWeekly, onCreate }) => (
+  <section className="challenges-empty">
+    <EmptyBlock
+      icon={Trophy}
+      title="Nenhum campeonato ainda"
+      description={EMPTY_LIST_DESCRIPTION}
+      actionLabel={canCreateWeekly ? 'Novo campeonato' : undefined}
+      actionIcon={Plus}
+      onAction={onCreate}
+    />
+  </section>
+);
 
 EmptyChallenges.propTypes = {
   canCreateWeekly: PropTypes.bool.isRequired,
