@@ -20606,6 +20606,12 @@ select.input { cursor: pointer; }
 }
 .challenge-bulk-bar__button:disabled { color: var(--text-disabled); cursor: not-allowed; }
 .challenge-bulk-bar__button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+/* Participants tab: white rounded rows with avatar, name, entry line and "Remover" */
+.challenge-participants { display: flex; flex-direction: column; gap: var(--spacing-sm); margin: 0; padding: 0; list-style: none; }
+.challenge-participant { display: flex; align-items: center; gap: var(--spacing-lg); padding: var(--spacing-lg); border-radius: var(--radius-lg); background: var(--background-surface); }
+.challenge-participant__identity { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
+.challenge-participant__meta { color: var(--text-secondary); }
+.challenge-participants__footer { justify-content: flex-end; }
 .weights-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .weights-summary__head { display: flex; justify-content: space-between; color: var(--text-primary); }
 .weights-summary__total--invalid { color: var(--feedback-error-text); }
