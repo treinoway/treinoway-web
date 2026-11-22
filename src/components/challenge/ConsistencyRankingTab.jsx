@@ -29,14 +29,8 @@ const weeksOf = (count) => `${count} ${count === 1 ? 'semana' : 'semanas'}`;
 // Name shown for a standings row
 const nameOf = (row) => row.displayName || row.name;
 
-// "DD/MM" of an instant in a time zone
-const dayMonthInZone = (instant, timeZone) => new Intl.DateTimeFormat('pt-BR', { timeZone, day: '2-digit', month: '2-digit' }).format(new Date(instant));
-
-// Closed notice: the close instant in the trainer time zone, or the last Sunday when the instant is missing
-const closedNoticeOf = (challenge, timeZone) => {
-  const day = challenge.closedAt ? dayMonthInZone(challenge.closedAt, timeZone) : dayMonthOf(challenge.endDate);
-  return `Campeonato encerrado em ${day}. O ranking é final e não pode ser editado.`;
-};
+// Closed notice dated with the championship end date (its last Sunday), not the day the standings froze
+const closedNoticeOf = (challenge) => `Campeonato encerrado em ${dayMonthOf(challenge.endDate)}. O ranking é final e não pode ser editado.`;
 
 // Locked notice of a closed championship, with the lock icon of the design system
 const LockedNotice = ({ children }) => (
@@ -306,7 +300,7 @@ const ConsistencyRankingTab = ({ data, loading, error, onRetry, timeZone, now = 
   const showScheduled = data.status === CHALLENGE_STATUS.SCHEDULED && (data.challenge.participantCount ?? 0) > 0;
   return (
     <div className="championship-tab">
-      {data.status === CHALLENGE_STATUS.COMPLETED && <LockedNotice>{closedNoticeOf(data.challenge, timeZone)}</LockedNotice>}
+      {data.status === CHALLENGE_STATUS.COMPLETED && <LockedNotice>{closedNoticeOf(data.challenge)}</LockedNotice>}
       {showScheduled
         ? <ScheduledBlock challenge={data.challenge} onAdjustRules={onAdjustRules} onDelete={handleDelete} />
         : <StandingsBody data={data} timeZone={timeZone} now={now} actions={actions} onAddParticipants={onAddParticipants} />}

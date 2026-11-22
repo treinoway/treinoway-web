@@ -233,6 +233,22 @@ describe('ConsistencyRankingTab', () => {
     expect(screen.queryByRole('button', { name: 'Ações para Ana L.' })).not.toBeInTheDocument();
   });
 
+  it('CPD-46 dates the closed notice with the championship end date, not the day it froze', () => {
+    renderTab({
+      data: payload({
+        status: 'completed',
+        currentWeek: 4,
+        closesAt: null,
+        challenge: { ...payload().challenge, endDate: '2026-11-08', closedAt: '2026-11-22T15:00:00Z' },
+        rows: [row({ currentWeekScore: null })],
+        entering: [],
+        summary: { classified: 1, entering: 0, leaderAverage: 95, leaderLead: null, championshipAverage: 95 },
+      }),
+    });
+
+    expect(screen.getByRole('note')).toHaveTextContent('Campeonato encerrado em 08/11. O ranking é final e não pode ser editado.');
+  });
+
   it('CPD-47 shows the empty block with Adicionar participantes', async () => {
     const user = userEvent.setup();
     const { onAddParticipants } = renderTab({
