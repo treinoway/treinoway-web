@@ -334,7 +334,7 @@ describe('ChallengeDetail', () => {
     expect(await screen.findByRole('button', { name: 'Ana L.' })).toBeInTheDocument();
     expect(tabLabels()).toEqual(['Classificação', 'Pontos', 'Participantes', 'Configuração']);
     expect(screen.getByRole('button', { name: 'Classificação' })).toHaveClass('segmented-toggle-btn--active');
-    expect(screen.getByText('Semana 3 de 4')).toBeInTheDocument();
+    expect(screen.getByText('3 de 4')).toBeInTheDocument();
     expect(requested('/trainer/challenges/w-1/consistency')).toBe(true);
     expect(requested('/trainer/challenges/w-1/ranking')).toBe(false);
   });

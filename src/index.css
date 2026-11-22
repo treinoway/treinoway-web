@@ -20553,6 +20553,29 @@ select.input { cursor: pointer; }
   .championship-podium { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: var(--spacing-lg); }
   .championship-podium__place--leader { padding-bottom: var(--spacing-3xl); }
 }
+/* Championship tabs: KPI cards on the page background, titled blocks, search and the table drawn as white rounded rows */
+.championship-tab { display: flex; flex-direction: column; gap: var(--spacing-xl); }
+.championship-tab .metric-grid { margin-bottom: 0; }
+.championship-kpis .metric-card { background: var(--background-surface); }
+.championship-kpis .metric-card-label { font-weight: 400; color: var(--text-secondary); }
+.challenge-locked-notice { margin-bottom: 0; }
+.championship-block { display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0; }
+.championship-block__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--spacing-sm); }
+.championship-block__titles { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; }
+.championship-block__eyebrow { color: var(--text-secondary); }
+.championship-block__title { margin: 0; color: var(--text-primary); }
+.championship-block__note,
+.championship-block__count { margin: 0; color: var(--text-secondary); }
+.championship-block__empty { margin: 0; padding: var(--spacing-xl) var(--spacing-lg); border-radius: var(--radius-lg); background: var(--background-surface); color: var(--text-secondary); text-align: center; }
+.championship-state__actions { justify-content: center; margin-top: var(--spacing-md); }
+.challenge-table { border-collapse: separate; border-spacing: 0 var(--spacing-sm); }
+.challenge-table th { border-bottom: 0; padding-top: 0; padding-bottom: 0; font-weight: 400; }
+.challenge-table td { border-bottom: 0; background: var(--background-surface); }
+.challenge-table td:first-child { border-radius: var(--radius-lg) 0 0 var(--radius-lg); }
+.challenge-table td:last-child { border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
+.challenge-table .consistency-row:hover { background: transparent; }
+.challenge-table .consistency-row:hover td { background: var(--background-surface-elevated); }
+.challenge-search.section-card--compact { padding: var(--spacing-sm); }
 .weights-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .weights-summary__head { display: flex; justify-content: space-between; color: var(--text-primary); }
 .weights-summary__total--invalid { color: var(--feedback-error-text); }

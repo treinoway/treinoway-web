@@ -11,7 +11,7 @@ import BonusChipGrid from '../../components/BonusChipGrid';
 import DateInput from '../../components/DateInput';
 import PointsSummaryCard from '../../components/PointsSummaryCard';
 import PointsBottomSheet from '../../components/PointsBottomSheet';
-import ChallengeConsistencyTab from '../../components/challenge/ChallengeConsistencyTab';
+import ConsistencyRankingTab from '../../components/challenge/ConsistencyRankingTab';
 import ChallengeWeeksSettings from '../../components/challenge/ChallengeWeeksSettings';
 import StudentPanel from '../../components/consistency/StudentPanel';
 import useChallengeConsistency from '../../hooks/useChallengeConsistency';
@@ -488,12 +488,18 @@ const ChallengeDetail = () => {
       </div>
 
       {tab === STANDINGS_TAB && isWeekly && (
-        <ChallengeConsistencyTab
+        <ConsistencyRankingTab
           data={consistency.data}
           loading={consistency.loading}
           error={consistency.error}
           onRetry={consistency.reload}
           onOpenStudent={setOpenStudent}
+          onBonus={(row) => setBonusStudent({ studentId: row.studentId, firstName: row.name })}
+          onViewPoints={() => handleTabChange('ranking')}
+          onRemove={(row) => handleRemoveParticipant({ studentId: row.studentId, firstName: row.name })}
+          onAdjustRules={() => handleTabChange('config')}
+          onDelete={handleDeleteWeekly}
+          onAddParticipants={() => handleTabChange('participants')}
           timeZone={timeZone}
         />
       )}
