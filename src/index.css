@@ -16165,6 +16165,68 @@ textarea.input {
   justify-content: center;
 }
 
+/* ── Underline tabs (ds/Tabs) ──────────────────────────────── */
+.ds-tabs {
+  display: flex;
+  max-width: 100%;
+  gap: var(--spacing-xl);
+  border-bottom: 1px solid var(--border-default);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ds-tabs::-webkit-scrollbar { display: none; }
+
+.ds-tabs__item {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: var(--size-control-touch);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-body);
+  font-weight: 400;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.ds-tabs__item:hover { color: var(--text-primary); }
+.ds-tabs__item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ds-tabs__item--active { color: var(--text-brand); font-weight: 600; }
+
+.ds-tabs__item--active::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: var(--spacing-2xs);
+  background: var(--action-primary-default);
+}
+
+.ds-tabs__count {
+  padding: 0 var(--spacing-xs);
+  border-radius: var(--radius-full);
+  background: var(--badge-neutral-bg);
+  color: var(--text-secondary);
+  font-size: var(--font-size-12);
+  line-height: var(--line-height-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-tabs__item--active .ds-tabs__count {
+  background: var(--background-brand-subtle);
+  color: var(--text-brand);
+}
+
 /* ── Toggle (§4.7) ─────────────────────────────────────────── */
 .toggle {
   position: relative;
