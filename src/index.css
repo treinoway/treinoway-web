@@ -20531,6 +20531,28 @@ select.input { cursor: pointer; }
   .challenge-header__main { flex-direction: row; align-items: flex-start; justify-content: space-between; }
   .challenge-header__main > .btn { flex-shrink: 0; }
 }
+/* Championship podium: 2nd, 1st, 3rd as white cards, the leader raised on the brand-subtle surface; stacked under 768px */
+.championship-podium { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-md); margin: 0; padding: 0; list-style: none; }
+.championship-podium__place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  border-radius: var(--radius-xl);
+  background: var(--background-surface);
+  text-align: center;
+}
+.championship-podium__place--leader { background: var(--background-brand-subtle); }
+.championship-podium__medal { display: inline-flex; align-items: center; gap: var(--spacing-xs); color: var(--text-secondary); }
+.championship-podium__place--leader .championship-podium__medal { color: var(--text-brand); }
+.championship-podium__name { color: var(--text-primary); }
+.championship-podium__score { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.championship-podium__support { color: var(--text-secondary); }
+@media (min-width: 768px) {
+  .championship-podium { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: var(--spacing-lg); }
+  .championship-podium__place--leader { padding-bottom: var(--spacing-3xl); }
+}
 .weights-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .weights-summary__head { display: flex; justify-content: space-between; color: var(--text-primary); }
 .weights-summary__total--invalid { color: var(--feedback-error-text); }
