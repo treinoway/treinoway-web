@@ -129,8 +129,9 @@ describe('ConsistencyRankingTab', () => {
     expect(cells.slice(0, 7)).toEqual(['1º', expect.stringContaining('Ana L.'), 'Constante', '95%', '84%', '1', '3 semanas']);
     expect(within(rows[3]).getAllByRole('cell')[6]).toHaveTextContent('—');
     expect(within(rows[3]).getByText('4º')).toBeInTheDocument();
-    expect(container.querySelectorAll('.consistency-medal--gold')).toHaveLength(1);
-    expect(container.querySelectorAll('.consistency-medal--silver')).toHaveLength(2);
+    expect(container.querySelectorAll('.consistency-medal')).toHaveLength(0);
+    expect(within(rows[0]).getAllByRole('cell')[0].childElementCount).toBe(0);
+    expect(within(rows[1]).getAllByRole('cell')[0].childElementCount).toBe(0);
 
     expect(within(rows[4]).getByText('Zeca P.')).toBeInTheDocument();
     expect(within(rows[4]).getAllByRole('cell')[0]).toHaveTextContent('—');

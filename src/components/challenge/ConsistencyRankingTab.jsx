@@ -10,7 +10,6 @@ import MetricCard from '../ds/MetricCard';
 import SkeletonRows from '../ds/SkeletonRows';
 import RowMenu from '../RowMenu';
 import FaixaBadge from '../consistency/FaixaBadge';
-import PositionMark from '../consistency/PositionMark';
 import ScoreBar from '../consistency/ScoreBar';
 import ChampionshipPodium from './ChampionshipPodium';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
@@ -25,6 +24,9 @@ const TIE_BREAK_NOTE = 'Desempate: maior média, depois mais semanas a 100% e ma
 
 // "1 semana" / "N semanas"
 const weeksOf = (count) => `${count} ${count === 1 ? 'semana' : 'semanas'}`;
+
+// Position as plain text ("1º"), a dash while entering, as ds-campeonato-ranking.png draws it
+const positionOf = (row) => (row.position == null ? NO_VALUE : `${row.position}º`);
 
 // Name shown for a standings row
 const nameOf = (row) => row.displayName || row.name;
@@ -153,7 +155,7 @@ RowActions.propTypes = {
 // One standings row: position, student, band, average, current week, weeks at 100%, streak and the menu
 const StandingsRow = ({ row, actions }) => (
   <tr className="consistency-row">
-    <td><PositionMark position={row.position} /></td>
+    <td className="consistency-row__number type-body-strong">{positionOf(row)}</td>
     <td><StudentCell row={row} onOpenStudent={actions.onOpenStudent} /></td>
     <td><FaixaBadge faixa={row.faixa} /></td>
     <td><ScoreBar score={row.average} label="Média no campeonato" /></td>
