@@ -20612,6 +20612,15 @@ select.input { cursor: pointer; }
 .challenge-participant__identity { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
 .challenge-participant__meta { color: var(--text-secondary); }
 .challenge-participants__footer { justify-content: flex-end; }
+/* "Regras de pontuação" card: pillar editor, then each XP rule with its field on the right */
+.scoring-rules-card h2,
+.scoring-rules-card h3 { margin: 0; color: var(--text-primary); }
+.scoring-rules-card__pillars { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.scoring-rules-card__xp { display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0; margin: 0; padding: 0; border: 0; }
+.scoring-rule-row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); }
+.scoring-rule-row__text { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
+.scoring-rule-row__helper { color: var(--text-secondary); }
+.scoring-rule-row__input { flex-shrink: 0; width: calc(var(--spacing-5xl) + var(--spacing-xl)); }
 .weights-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .weights-summary__head { display: flex; justify-content: space-between; color: var(--text-primary); }
 .weights-summary__total--invalid { color: var(--feedback-error-text); }
