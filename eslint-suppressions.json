@@ -2243,14 +2243,6 @@
       "count": 1
     }
   },
-  "src/pages/trainer/ChallengeDetail.jsx": {
-    "local/function-header-comment": {
-      "count": 4
-    },
-    "local/no-comments-in-function": {
-      "count": 13
-    }
-  },
   "src/pages/trainer/Challenges.jsx": {
     "local/function-header-comment": {
       "count": 6
