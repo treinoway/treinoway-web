@@ -73,15 +73,6 @@ describe('useGoogleAuth', () => {
     expect(result.current.isExchanging).toBe(false);
   });
 
-  it('passes loginHint only when provided', async () => {
-    const loginWithGoogle = vi.fn().mockResolvedValue({ success: false, error: null });
-    const { result } = setup(loginWithGoogle, { loginHint: 'a@b.com' });
-
-    await act(async () => { await result.current.startGoogleAuth(); });
-
-    expect(loginWithGoogle).toHaveBeenCalledWith(expect.objectContaining({ loginHint: 'a@b.com' }));
-  });
-
   it('ignores a stale attempt result and keeps the newer one pending', async () => {
     const first = deferred();
     const loginWithGoogle = vi.fn()

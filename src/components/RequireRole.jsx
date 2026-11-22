@@ -1,18 +1,12 @@
 import PropTypes from 'prop-types';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import useBetaGate from '../hooks/useBetaGate';
 
 const RequireRole = ({ roles, children }) => {
   const { isAuthenticated, hasRole } = useAuth();
-  const blocked = useBetaGate();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
-  }
-
-  if (blocked) {
-    return <Navigate to="/invite" replace />;
   }
 
   const hasAnyRequiredRole = roles.some((role) => hasRole(role));

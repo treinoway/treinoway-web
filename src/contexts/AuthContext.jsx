@@ -195,6 +195,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const signupDirect = async ({ email, password, firstName, lastName }) => {
+    try {
+      const body = { email, password, firstName, ...(lastName ? { lastName } : {}) };
+      const response = await api.post('/auth/signup/direct', body);
+      return await establishSession(response.data);
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || translateError(error),
+        errorCode: error.errorInfo?.errorCode ?? null,
+      };
+    }
+  };
+
   const resendSignupCode = async (email) => {
     try {
       await api.post('/auth/signup/resend', { email });
@@ -328,6 +342,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     verifySignup,
     signupWithInvite,
+    signupDirect,
     resendSignupCode,
     forgotPassword,
     resetPassword,

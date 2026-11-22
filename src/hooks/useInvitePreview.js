@@ -25,8 +25,8 @@ const classifyPreviewError = (error) => {
   };
 };
 
-// Public, unauthenticated lookup of an invite so auth screens can keep the
-// closed-beta framing. Results are keyed by code: a response for a stale code
+// Public, unauthenticated lookup of an old invite link so /invite can send the
+// visitor to login or signup. Results are keyed by code: a response for a stale code
 // is never surfaced, and the in-flight request is aborted on change/unmount.
 export const useInvitePreview = (code) => {
   const [result, setResult] = useState({ code: null, state: IDLE });

@@ -3,6 +3,11 @@ import { getErrorMessage } from '../utils/errorMessages';
 import { extractErrorInfo } from '../i18n';
 import { getDeviceTimezone } from '../utils/timezone';
 import { reportApiError } from '../lib/sentry';
+import {
+  announceEmailVerificationRequired,
+  getEmailVerificationReason,
+  isEmailVerificationRequired,
+} from '../lib/emailVerificationGate';
 import API_BASE_URL from './baseUrl';
 
 const BASE_URL = API_BASE_URL;
@@ -175,6 +180,10 @@ api.interceptors.response.use(
     // Expected 4xx business/validation errors are skipped to avoid noise.
     // No-op when VITE_SENTRY_DSN is unset.
     reportApiError(error);
+
+    if (isEmailVerificationRequired(error)) {
+      announceEmailVerificationRequired(getEmailVerificationReason(originalRequest.url));
+    }
 
     // For network errors (no response), emit event for toast.
     // Skip cancelled requests (AbortController / axios cancel) — those are intentional.

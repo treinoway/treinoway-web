@@ -13,6 +13,13 @@ describe('Banner', () => {
     expect(screen.getByRole('note')).toHaveClass('ds-banner--warning');
   });
 
+  it('announces the success tone as a status', () => {
+    render(<Banner tone="success">E-mail confirmado.</Banner>);
+    const status = screen.getByRole('status');
+    expect(status).toHaveClass('ds-banner', 'ds-banner--success');
+    expect(status).toHaveTextContent('E-mail confirmado.');
+  });
+
   it('announces the error tone as an alert and renders its action', () => {
     render(<Banner tone="error" action={<button type="button">Tentar novamente</button>}>Falhou</Banner>);
     const alert = screen.getByRole('alert');

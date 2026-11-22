@@ -13,7 +13,7 @@ const toDisplayMessage = (error) => (
 // is locked or relabelled (the popup is the feedback): Firebase can take a long time (or
 // forever) to report a closed popup. Only once the popup returned a credential
 // (`isExchanging`) is the backend exchange in flight and the page busy.
-const useGoogleAuth = ({ loginWithGoogle, loginHint, onSuccess, onError }) => {
+const useGoogleAuth = ({ loginWithGoogle, onSuccess, onError }) => {
   const [isExchanging, setIsExchanging] = useState(false);
   const latestRequestRef = useRef(0);
 
@@ -35,7 +35,6 @@ const useGoogleAuth = ({ loginWithGoogle, loginHint, onSuccess, onError }) => {
           setIsExchanging(true);
         },
       };
-      if (loginHint) options.loginHint = loginHint;
       const result = await loginWithGoogle(options);
       if (isStale()) return;
 
@@ -50,7 +49,7 @@ const useGoogleAuth = ({ loginWithGoogle, loginHint, onSuccess, onError }) => {
       setIsExchanging(false);
       onError(GOOGLE_UNEXPECTED_ERROR_MESSAGE);
     }
-  }, [loginWithGoogle, loginHint, onSuccess, onError]);
+  }, [loginWithGoogle, onSuccess, onError]);
 
   return { startGoogleAuth, isExchanging };
 };

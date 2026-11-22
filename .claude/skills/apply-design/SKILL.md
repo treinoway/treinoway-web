@@ -386,6 +386,8 @@ Iniciais (first + last name initial, UPPERCASE) ou foto. `.avatar`: circle `--ra
 - Hover border `--border-strong`; focus border `--border-focus` + `--focus-ring`; error border `--border-error` + message in `--feedback-error-text`; disabled bg `--background-surface-elevated`, text `--text-disabled`.
 - Search variant `.input--search`: leading `Search` icon 16px `--icon-default`; may sit on `--background-surface-elevated` with no border inside a section card.
 - Select and textarea share the same tokens (`.input` applied to `<select>`/`<textarea>`).
+- Password: `PasswordField` (`src/components/PasswordField.jsx`: `id`, `label`, `value`, `onChange`, `error`, `hint`) — `.input` inside `.input-reveal` with a trailing show/hide IconButton (`Eye`/`EyeOff`, "Mostrar senha"/"Ocultar senha"). Don't hand-roll password toggles.
+- Link inside a sentence (e.g. "Entrar" after an error message): `.text-link` (`--text-link`, 600, underline on hover, `--focus-ring`).
 
 ### 4.7 Toggle
 
@@ -516,6 +518,34 @@ Tooltip: bg `--background-inverse`, text `--text-inverse` Caption, `--radius-md`
 - **Empty state**: icon 32px `--icon-default` in a 64px `--radius-full` `--background-surface-elevated` circle; title H4; description Body/Default `--text-secondary`; one Primary button. Copy: "Sem [entidade] ainda" / "[Verbo] o primeiro [entidade]…".
 - **Loading**: `.loading-screen` with "Carregando..." for whole-resource fetches; skeletons (`--background-surface-elevated` pulse, matching radius) for lists. Never show "não encontrado" before the GET completes.
 - **Toast**: `useToast()` → `showToast(msg, 'success' | 'error')`. Visual uses the `feedback/*-bg` + `-text` pair. Never a custom toast element.
+
+### 4.20b Banner
+
+Inline message that explains a rule or a pending step where it applies. Use `ds/Banner` (`src/components/ds/Banner.jsx`: `tone`, `children`, `action`, `onDismiss`); never a hand-rolled coloured box.
+
+| Tone | bg | text + icon | Role | Icon |
+|---|---|---|---|---|
+| `info` (default) | `--feedback-info-bg` | `--feedback-info-text` (icon `--feedback-info`) | `note` | `Info` |
+| `warning` | `--feedback-warning-bg` | `--feedback-warning-text` | `note` | `TriangleAlert` |
+| `error` | `--feedback-error-bg` | `--feedback-error-text` | `alert` | `CircleAlert` |
+| `success` | `--feedback-success-bg` | `--feedback-success-text` | `status` | `CircleCheck` |
+
+- Shape: `.ds-banner` — `--radius-lg`, padding `--spacing-md`, gap `--spacing-md`, icon 20px, text Body/Default. No border, no shadow, no side stripe.
+- `action` (optional): one button, or a `.ds-banner__actions` group of at most two (`btn--secondary` + `btn--ghost`; never `btn--primary`, the page keeps its own primary).
+- `onDismiss` (optional): renders a trailing IconButton (`X`, `aria-label`/`title` "Fechar aviso") and adds `.ds-banner--dismissible`; below 768px the `.ds-banner__actions` group drops to its own row under the text. The banner does not remember the dismissal — the caller decides how long it lasts (e.g. `sessionStorage` for the session).
+- `success` confirms the step the banner asked for and then goes away; do not leave it on screen.
+
+```jsx
+<Banner tone="warning" onDismiss={handleDismiss} action={(
+  <div className="ds-banner__actions">
+    <button type="button" className="btn btn--secondary">Inserir código</button>
+    <button type="button" className="btn btn--ghost">Reenviar</button>
+  </div>
+)}>
+  <strong className="type-body-strong">Confirme seu e-mail</strong>
+  <span>Use o código enviado para ana@exemplo.com.</span>
+</Banner>
+```
 
 ### 4.21 Charts
 
