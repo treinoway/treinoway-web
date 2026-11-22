@@ -20635,8 +20635,6 @@ select.input { cursor: pointer; }
 /* ── Consistency ranking: capture fidelity (fix pass) ───────────────── */
 .consistency-summary .metric-card-label {
   font-size: var(--font-size-12);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   color: var(--text-secondary);
 }
 .metric-card-line { display: flex; align-items: baseline; gap: var(--spacing-xs); }
@@ -20648,8 +20646,6 @@ select.input { cursor: pointer; }
 
 .consistency-table th {
   padding-inline: var(--spacing-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .consistency-table td { padding-inline: var(--spacing-sm); }
 .consistency-table .score-bar { min-width: calc(var(--spacing-5xl) * 1.25); }
@@ -20674,6 +20670,13 @@ select.input { cursor: pointer; }
 .ds-drawer-overlay--wide .ds-drawer__header .icon-button { border: 1px solid var(--border-default); }
 .student-panel__actions .btn--secondary,
 .ready-message__actions .btn--secondary { border-color: var(--border-strong); }
+
+/* Ranking de Constância, Configuração do ranking, student panel and championship screens: tags, overlines, KPI labels,
+   table headers and legacy buttons in sentence case (CPD-71, CPD-72). The global .type-overline keeps its uppercase. */
+:is(.consistency-page, .ds-drawer-overlay--wide, .challenge-detail, .challenges-page) :is(.badge, .type-overline, .metric-card-label, .kpi-label, th, .btn-primary, .btn-secondary) {
+  text-transform: none;
+  letter-spacing: normal;
+}
 
 /* ============================================================
    Nutritionist area — patients, plan summary, prescription steps
