@@ -272,7 +272,7 @@ describe('CreateChampionshipModal', () => {
     expect(screen.getByLabelText('Semanas')).toHaveValue('1');
     expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('1');
     const participants = screen.getByRole('tablist', { name: 'Participantes' });
-    expect(within(participants).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Todos', 'Filtro', 'Escolhidos']);
+    expect(within(participants).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Todos os alunos', 'Por filtro', 'Selecionar alunos']);
     expect(screen.getByRole('switch', { name: 'Ranking anônimo' })).toHaveAttribute('aria-checked', 'false');
     expect(await pointsRules().findByText('50')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Editar pontuações' })).toBeInTheDocument();
@@ -285,7 +285,7 @@ describe('CreateChampionshipModal', () => {
     await user.selectOptions(screen.getByLabelText('Segunda de início'), '2026-11-23');
     await user.selectOptions(screen.getByLabelText('Semanas'), '8');
     await user.selectOptions(screen.getByLabelText('Mínimo para o pódio'), '3');
-    await user.click(within(participants).getByRole('tab', { name: 'Escolhidos' }));
+    await user.click(within(participants).getByRole('tab', { name: 'Selecionar alunos' }));
     await user.click(await screen.findByRole('checkbox', { name: 'Ana Lima' }));
     await user.click(screen.getByRole('checkbox', { name: 'Caio Reis' }));
     await user.click(screen.getByRole('switch', { name: 'Ranking anônimo' }));
@@ -307,11 +307,11 @@ describe('CreateChampionshipModal', () => {
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  it('CAMP-01 sends the filter of the Filtro mode', async () => {
+  it('CAMP-01 sends the filter of the Por filtro mode', async () => {
     const user = userEvent.setup();
     renderModal();
 
-    await user.click(screen.getByRole('tab', { name: 'Filtro' }));
+    await user.click(screen.getByRole('tab', { name: 'Por filtro' }));
     await user.selectOptions(screen.getByLabelText('Gênero'), 'female');
     await user.type(screen.getByLabelText('Idade mínima'), '18');
     await user.type(screen.getByLabelText('Cidade'), 'Porto Alegre');
@@ -410,11 +410,11 @@ describe('CreateChampionshipModal', () => {
     });
     renderModal();
 
-    await user.click(screen.getByRole('tab', { name: 'Filtro' }));
+    await user.click(screen.getByRole('tab', { name: 'Por filtro' }));
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Nenhum aluno atende aos critérios do filtro.');
-    expect(screen.getByRole('tab', { name: 'Filtro' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Por filtro' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('CAMP-10 shows the plan error when the plan has no championships and keeps the create button', async () => {
