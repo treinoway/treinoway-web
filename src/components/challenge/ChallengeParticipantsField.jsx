@@ -1,19 +1,35 @@
 import PropTypes from 'prop-types';
-import Segmented from '../ds/Segmented';
 import { GENDER_OPTIONS } from '../../constants/genderOrdination';
-import { PARTICIPANT_MODE } from '../../constants/challenge';
+import { PARTICIPANT_MODE, PARTICIPANT_MODE_LABEL } from '../../constants/challenge';
 
-const MODE_ITEMS = Object.freeze([
-  { id: PARTICIPANT_MODE.ALL, label: 'Todos' },
-  { id: PARTICIPANT_MODE.FILTER, label: 'Filtro' },
-  { id: PARTICIPANT_MODE.EXPLICIT, label: 'Escolhidos' },
-]);
+const MODE_ITEMS = Object.freeze(
+  [PARTICIPANT_MODE.ALL, PARTICIPANT_MODE.FILTER, PARTICIPANT_MODE.EXPLICIT].map((mode) => ({ id: mode, label: PARTICIPANT_MODE_LABEL[mode] })),
+);
 
 const MODE_HINTS = Object.freeze({
-  [PARTICIPANT_MODE.ALL]: 'Todos os alunos ativos, inclusive quem entrar no time depois.',
   [PARTICIPANT_MODE.FILTER]: 'Os alunos que atendem ao filtro agora; depois tu adicionas e removes à mão.',
   [PARTICIPANT_MODE.EXPLICIT]: 'Só os alunos que escolheres.',
 });
+
+// Participant modes as pills, as ds-novo-campeonato.png draws them: the chosen one filled blue, the others outlined
+const ModePills = ({ value, onChange, disabled }) => (
+  <div className="choice-pills" role="tablist" aria-label="Participantes">
+    {MODE_ITEMS.map((item) => {
+      const selected = item.id === value;
+      return (
+        <button key={item.id} type="button" role="tab" aria-selected={selected} disabled={disabled} className={`choice-pill${selected ? ' choice-pill--selected' : ''}`} onClick={() => onChange(item.id)}>
+          {item.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
+ModePills.propTypes = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  disabled: PropTypes.bool,
+};
 
 // Full name of a student, falling back to the e-mail
 const studentNameOf = (student) => `${student.firstName || ''} ${student.lastName || ''}`.trim() || student.email;
@@ -21,7 +37,7 @@ const studentNameOf = (student) => `${student.firstName || ''} ${student.lastNam
 // Number from a numeric input, or undefined when empty
 const numberOrUndefined = (value) => (value === '' ? undefined : Number(value));
 
-// Gender, age range and city of the Filtro mode
+// Gender, age range and city of the Por filtro mode
 const FilterFields = ({ filter, onChange, disabled }) => {
   const setFilterField = (field, value) => onChange({ ...filter, [field]: value });
   return (
@@ -55,7 +71,7 @@ FilterFields.propTypes = {
   disabled: PropTypes.bool,
 };
 
-// Checkbox list of the trainer's students for the Escolhidos mode
+// Checkbox list of the trainer's students for the Selecionar alunos mode
 const ChosenStudents = ({ students, studentIds, onChange, disabled }) => {
   const toggle = (id) => onChange(studentIds.includes(id) ? studentIds.filter((item) => item !== id) : [...studentIds, id]);
   if (students.length === 0) return <p className="type-caption field-hint">Nenhum aluno para escolher.</p>;
@@ -78,12 +94,12 @@ ChosenStudents.propTypes = {
   disabled: PropTypes.bool,
 };
 
-// Participants of a new championship: Todos, Filtro (gender, age, city) or Escolhidos (checked students)
+// Participants of a new championship: Todos os alunos, Por filtro (gender, age, city) or Selecionar alunos (checked students)
 const ChallengeParticipantsField = ({ value, onChange, students, error, disabled = false }) => (
   <div className="field">
     <span className="field-label type-caption-strong">Participantes</span>
-    <Segmented ariaLabel="Participantes" items={MODE_ITEMS} value={value.mode} disabled={disabled} onChange={(mode) => onChange({ ...value, mode })} />
-    <span className="field-hint type-caption">{MODE_HINTS[value.mode]}</span>
+    <ModePills value={value.mode} disabled={disabled} onChange={(mode) => onChange({ ...value, mode })} />
+    {MODE_HINTS[value.mode] && <span className="field-hint type-caption">{MODE_HINTS[value.mode]}</span>}
     {value.mode === PARTICIPANT_MODE.FILTER && <FilterFields filter={value.filter} disabled={disabled} onChange={(filter) => onChange({ ...value, filter })} />}
     {value.mode === PARTICIPANT_MODE.EXPLICIT && <ChosenStudents students={students} studentIds={value.studentIds} disabled={disabled} onChange={(studentIds) => onChange({ ...value, studentIds })} />}
     {error && <span className="field-error type-caption" role="alert">{error}</span>}

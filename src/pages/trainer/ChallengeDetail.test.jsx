@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRoute } from '../../test/test-utils';
 import ChallengeDetail from './ChallengeDetail';
@@ -26,9 +26,10 @@ const mockShowToast = vi.fn();
 const mockChallenge = {
   id: 'ch-1',
   name: 'Verao 2026',
-  startDate: '2026-06-01',
-  endDate: '2026-06-30',
+  startDate: '2099-06-01',
+  endDate: '2099-06-30',
   status: 'scheduled',
+  format: 'dates',
   participantMode: 'all',
   filterCriteria: null,
   cancelledAt: null,
@@ -44,20 +45,32 @@ const mockChallenge = {
   updatedAt: null,
 };
 
-const mockConfig = {
-  ptsWorkoutCompleted: 10,
-  ptsStreak7Days: 50,
-  ptsStreak30Days: 250,
-  ptsDailyCheckin: 2,
-  ptsEvolutionRecord: 15,
-  ptsWorkoutFeedback: 5,
-  dailyPointsCap: null,
+const mockRanking = [
+  { position: 1, studentId: 's1', firstName: 'Ana', lastName: 'X', avatarUrl: null, points: 80, workouts: 8, bonusPoints: 0, pointsThisWeek: 10, streakDays: 3 },
+  { position: 2, studentId: 's2', firstName: 'Bob', lastName: 'Y', avatarUrl: null, points: 50, workouts: 5, bonusPoints: 0, pointsThisWeek: 0, streakDays: 0 },
+];
+
+const mockParticipants = [{ id: 'p1', studentId: 's1', firstName: 'Ana', lastName: 'X', avatarUrl: null, addedAt: '2026-05-02T12:00:00Z' }];
+
+// GET responses of a dates championship page
+const mockDatesApi = (challenge = mockChallenge, { participants = [] } = {}) => {
+  api.get.mockImplementation((url) => {
+    if (url === '/trainer/challenges/ch-1') return Promise.resolve({ data: challenge });
+    if (url === '/trainer/challenges/ch-1/ranking') return Promise.resolve({ data: mockRanking });
+    if (url === '/trainer/challenges/ch-1/participants') return Promise.resolve({ data: participants });
+    if (url === '/trainer/students') return Promise.resolve({ data: [] });
+    return Promise.reject(new Error(`unexpected ${url}`));
+  });
 };
 
-const mockRanking = [
-  { position: 1, studentId: 's1', firstName: 'Ana', lastName: 'X', avatarUrl: null, points: 80 },
-  { position: 2, studentId: 's2', firstName: 'Bob', lastName: 'Y', avatarUrl: null, points: 50 },
-];
+// Renders the detail page of the dates championship
+const renderDates = (route = '/trainer/challenges/ch-1') => renderWithRoute(<ChallengeDetail />, { route, path: '/trainer/challenges/:id' });
+
+// Labels of the detail tabs in order
+const tabLabels = () => screen.getAllByRole('tab').map((tab) => tab.textContent);
+
+// XP table of the ranking
+const pointsTable = () => screen.getByRole('region', { name: 'Classificação por pontos' });
 
 describe('ChallengeDetail', () => {
   beforeEach(() => {
@@ -65,199 +78,215 @@ describe('ChallengeDetail', () => {
     vi.mocked(useToast).mockReturnValue({ showToast: mockShowToast });
     vi.mocked(useAuth).mockReturnValue({ hasRole: () => false });
     api.get.mockReset();
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/challenges/ch-1') return Promise.resolve({ data: mockChallenge });
-      if (url === '/trainer/challenges/ch-1/ranking') return Promise.resolve({ data: mockRanking });
-      if (url === '/trainer/challenges/ch-1/participants') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students') return Promise.resolve({ data: [] });
-      if (url === '/trainer/gamification/config') return Promise.resolve({ data: mockConfig });
-      return Promise.reject(new Error('unexpected'));
-    });
+    api.delete.mockReset();
+    mockDatesApi();
   });
 
   it('renders challenge details and 3 tabs', async () => {
-    renderWithRoute(<ChallengeDetail />, {
-      route: '/trainer/challenges/ch-1',
-      path: '/trainer/challenges/:id',
-    });
-    expect(await screen.findByText('Verao 2026')).toBeInTheDocument();
+    renderDates();
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Verao 2026' })).toBeInTheDocument();
     expect(screen.getByText('Agendado')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ranking' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Participantes' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Configurações' })).toBeInTheDocument();
+    expect(tabLabels()).toEqual(['Ranking', 'Participantes', 'Configurações']);
+    expect(screen.getByRole('tab', { name: 'Ranking' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('renders ranking entries on ranking tab', async () => {
-    renderWithRoute(<ChallengeDetail />, {
-      route: '/trainer/challenges/ch-1',
-      path: '/trainer/challenges/:id',
-    });
-    expect(await screen.findByText('Ana X')).toBeInTheDocument();
-    expect(screen.getByText('Bob Y')).toBeInTheDocument();
+    renderDates();
+
+    await screen.findByRole('region', { name: 'Classificação por pontos' });
+    expect(within(pointsTable()).getByText('Ana X')).toBeInTheDocument();
+    expect(within(pointsTable()).getByText('Bob Y')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Pódio' })).toBeInTheDocument();
   });
 
-  it('shows danger zone with Excluir campeonato and points summary when challenge is scheduled', async () => {
-    renderWithRoute(<ChallengeDetail />, {
-      route: '/trainer/challenges/ch-1',
-      path: '/trainer/challenges/:id',
-    });
+  it('shows danger zone with Excluir campeonato and the scoring rules when challenge is scheduled', async () => {
     const user = userEvent.setup();
-    await screen.findByText('Verao 2026');
-    await user.click(screen.getByRole('button', { name: 'Configurações' }));
-    expect(await screen.findByText('Zona de perigo')).toBeInTheDocument();
+    renderDates();
+    await screen.findByRole('heading', { level: 1, name: 'Verao 2026' });
+
+    await user.click(screen.getByRole('tab', { name: 'Configurações' }));
+
+    expect(await screen.findByRole('heading', { name: 'Zona de perigo' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Excluir campeonato' })).toBeInTheDocument();
-    expect(screen.getByText('Pontuação')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Regras de pontuação' })).toBeInTheDocument();
   });
 
-  it('disables save button when no config changes have been made', async () => {
-    renderWithRoute(<ChallengeDetail />, {
-      route: '/trainer/challenges/ch-1',
-      path: '/trainer/challenges/:id',
-    });
+  it('CPD-42 keeps the save button enabled before any config change, as the design system draws it', async () => {
     const user = userEvent.setup();
-    await screen.findByText('Verao 2026');
-    await user.click(screen.getByRole('button', { name: 'Configurações' }));
-    const saveBtn = await screen.findByRole('button', { name: 'Salvar configuração' });
-    expect(saveBtn).toBeDisabled();
+    renderDates();
+    await screen.findByRole('heading', { level: 1, name: 'Verao 2026' });
+
+    await user.click(screen.getByRole('tab', { name: 'Configurações' }));
+
+    expect(await screen.findByRole('button', { name: 'Salvar configuração' })).toBeEnabled();
   });
 
   it('enables save button when name is changed', async () => {
-    renderWithRoute(<ChallengeDetail />, {
-      route: '/trainer/challenges/ch-1',
-      path: '/trainer/challenges/:id',
-    });
     const user = userEvent.setup();
-    await screen.findByText('Verao 2026');
-    await user.click(screen.getByRole('button', { name: 'Configurações' }));
+    renderDates();
+    await screen.findByRole('heading', { level: 1, name: 'Verao 2026' });
+    await user.click(screen.getByRole('tab', { name: 'Configurações' }));
+
     const nameInput = await screen.findByLabelText('Nome');
     await user.clear(nameInput);
     await user.type(nameInput, 'Novo nome');
-    const saveBtn = screen.getByRole('button', { name: 'Salvar configuração' });
-    expect(saveBtn).not.toBeDisabled();
+
+    expect(screen.getByRole('button', { name: 'Salvar configuração' })).toBeEnabled();
   });
 
-  it('shows points summary without chevron for active challenge (not editable)', async () => {
-    const activeChallenge = { ...mockChallenge, status: 'active' };
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/challenges/ch-1') return Promise.resolve({ data: activeChallenge });
-      if (url === '/trainer/challenges/ch-1/ranking') return Promise.resolve({ data: mockRanking });
-      if (url === '/trainer/challenges/ch-1/participants') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students') return Promise.resolve({ data: [] });
-      if (url === '/trainer/gamification/config') return Promise.resolve({ data: mockConfig });
-      return Promise.reject(new Error('unexpected'));
-    });
+  it('CPD-43 locks the scoring rules of an active challenge', async () => {
     const user = userEvent.setup();
-    renderWithRoute(<ChallengeDetail />, {
-      route: '/trainer/challenges/ch-1',
-      path: '/trainer/challenges/:id',
-    });
-    await screen.findByText('Verao 2026');
-    await user.click(screen.getByRole('button', { name: 'Configurações' }));
-    expect(await screen.findByText('Pontuação')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /pontuação/i })).not.toBeInTheDocument();
+    mockDatesApi({ ...mockChallenge, status: 'active' });
+    renderDates();
+    await screen.findByRole('heading', { level: 1, name: 'Verao 2026' });
+
+    await user.click(screen.getByRole('tab', { name: 'Configurações' }));
+
+    expect(await screen.findByText('Não é possível alterar as regras com o campeonato em andamento.')).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Treino concluído' })).toBeDisabled();
   });
 
   it('does not show danger zone for completed challenge', async () => {
-    const completedChallenge = { ...mockChallenge, status: 'completed' };
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/challenges/ch-1') return Promise.resolve({ data: completedChallenge });
-      if (url === '/trainer/challenges/ch-1/ranking') return Promise.resolve({ data: [] });
-      if (url === '/trainer/challenges/ch-1/participants') return Promise.resolve({ data: [] });
-      if (url === '/trainer/students') return Promise.resolve({ data: [] });
-      if (url === '/trainer/gamification/config') return Promise.resolve({ data: mockConfig });
-      return Promise.reject(new Error('unexpected'));
-    });
     const user = userEvent.setup();
-    renderWithRoute(<ChallengeDetail />, {
-      route: '/trainer/challenges/ch-1',
-      path: '/trainer/challenges/:id',
-    });
-    await screen.findByText('Verao 2026');
-    await user.click(screen.getByRole('button', { name: 'Configurações' }));
-    await screen.findByRole('button', { name: 'Salvar configuração' });
-    expect(screen.queryByText('Zona de perigo')).not.toBeInTheDocument();
+    mockDatesApi({ ...mockChallenge, status: 'completed' });
+    renderDates();
+    await screen.findByRole('heading', { level: 1, name: 'Verao 2026' });
+
+    await user.click(screen.getByRole('tab', { name: 'Configurações' }));
+
+    expect(await screen.findByLabelText('Nome')).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Salvar configuração' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Zona de perigo' })).not.toBeInTheDocument();
   });
 
-  it('opens StudentBonusSheet when tapping a ranking row', async () => {
-    renderWithRoute(<ChallengeDetail />, {
-      route: '/trainer/challenges/ch-1',
-      path: '/trainer/challenges/:id',
-    });
-    const user = userEvent.setup();
-    const anaRow = await screen.findByText('Ana X');
-    await user.click(anaRow.closest('.ranking-row'));
-    expect(await screen.findByText('Conceder bônus')).toBeInTheDocument();
+  it('CPD-46 shows the closed notice and the final ranking of a completed dates challenge', async () => {
+    mockDatesApi({ ...mockChallenge, status: 'completed' });
+    renderDates();
+
+    expect(await screen.findByRole('note')).toHaveTextContent('Campeonato encerrado em 30/06. O ranking é final e não pode ser editado.');
+    expect(screen.getByText('Concluído')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Dar bônus' })).not.toBeInTheDocument();
+    expect(await screen.findByText('Classificação final')).toBeInTheDocument();
   });
 
-  it('shows participants tab with add and select buttons', async () => {
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/challenges/ch-1') return Promise.resolve({ data: mockChallenge });
-      if (url === '/trainer/challenges/ch-1/ranking') return Promise.resolve({ data: mockRanking });
-      if (url === '/trainer/challenges/ch-1/participants') return Promise.resolve({
-        data: [{ id: 'p1', studentId: 's1', firstName: 'Ana', lastName: 'X', points: 80 }],
-      });
-      if (url === '/trainer/students') return Promise.resolve({ data: [] });
-      if (url === '/trainer/gamification/config') return Promise.resolve({ data: mockConfig });
-      return Promise.reject(new Error('unexpected'));
-    });
+  it('opens StudentBonusSheet from the ranking row menu and gives the bonus', async () => {
     const user = userEvent.setup();
-    renderWithRoute(<ChallengeDetail />, {
-      route: '/trainer/challenges/ch-1',
-      path: '/trainer/challenges/:id',
-    });
-    await screen.findByText('Verao 2026');
-    await user.click(screen.getByRole('button', { name: 'Participantes' }));
-    expect(await screen.findByText('Ana X')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Selecionar' })).toBeInTheDocument();
-  });
+    api.post.mockResolvedValue({ data: {} });
+    renderDates();
+    await screen.findByRole('region', { name: 'Classificação por pontos' });
 
-  it('shows row menu for each participant', async () => {
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/challenges/ch-1') return Promise.resolve({ data: mockChallenge });
-      if (url === '/trainer/challenges/ch-1/ranking') return Promise.resolve({ data: mockRanking });
-      if (url === '/trainer/challenges/ch-1/participants') return Promise.resolve({
-        data: [{ id: 'p1', studentId: 's1', firstName: 'Ana', lastName: 'X', points: 80 }],
-      });
-      if (url === '/trainer/students') return Promise.resolve({ data: [] });
-      if (url === '/trainer/gamification/config') return Promise.resolve({ data: mockConfig });
-      return Promise.reject(new Error('unexpected'));
-    });
-    const user = userEvent.setup();
-    renderWithRoute(<ChallengeDetail />, {
-      route: '/trainer/challenges/ch-1',
-      path: '/trainer/challenges/:id',
-    });
-    await screen.findByText('Verao 2026');
-    await user.click(screen.getByRole('button', { name: 'Participantes' }));
-    await screen.findByText('Ana X');
     const menuTrigger = screen.getByRole('button', { name: 'Ações para Ana X' });
-    expect(menuTrigger).toBeInTheDocument();
     await user.click(menuTrigger);
-    expect(screen.getByRole('button', { name: 'Remover do campeonato' })).toBeInTheDocument();
+    await user.click(within(menuTrigger.parentElement).getByRole('button', { name: 'Dar bônus' }));
+    expect(await screen.findByText('Conceder bônus')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Conceder 25 pontos' }));
+
+    expect(api.post).toHaveBeenCalledWith('/trainer/challenges/ch-1/students/s1/bonus', { points: 25 });
+    await waitFor(() => expect(screen.queryByText('Conceder bônus')).not.toBeInTheDocument());
+    expect(mockShowToast).toHaveBeenCalledWith('Bônus de +25 pts enviado.', 'success');
   });
 
-  it('shows remove confirm dialog when remove action is selected', async () => {
-    api.get.mockImplementation((url) => {
-      if (url === '/trainer/challenges/ch-1') return Promise.resolve({ data: mockChallenge });
-      if (url === '/trainer/challenges/ch-1/ranking') return Promise.resolve({ data: mockRanking });
-      if (url === '/trainer/challenges/ch-1/participants') return Promise.resolve({
-        data: [{ id: 'p1', studentId: 's1', firstName: 'Ana', lastName: 'X', points: 80 }],
-      });
-      if (url === '/trainer/students') return Promise.resolve({ data: [] });
-      if (url === '/trainer/gamification/config') return Promise.resolve({ data: mockConfig });
-      return Promise.reject(new Error('unexpected'));
-    });
+  it('CPD-39 opens the bulk selection from the header Dar bônus', async () => {
     const user = userEvent.setup();
-    renderWithRoute(<ChallengeDetail />, {
-      route: '/trainer/challenges/ch-1',
-      path: '/trainer/challenges/:id',
-    });
-    await screen.findByText('Verao 2026');
-    await user.click(screen.getByRole('button', { name: 'Participantes' }));
-    await screen.findByText('Ana X');
-    await user.click(screen.getByRole('button', { name: 'Ações para Ana X' }));
-    await user.click(screen.getByRole('button', { name: 'Remover do campeonato' }));
+    mockDatesApi({ ...mockChallenge, status: 'active' });
+    renderDates('/trainer/challenges/ch-1?tab=participants');
+    await screen.findByRole('heading', { level: 1, name: 'Verao 2026' });
+
+    await user.click(screen.getByRole('button', { name: 'Dar bônus' }));
+
+    expect(screen.getByRole('tab', { name: 'Ranking' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('heading', { name: 'Selecione quem recebe o bônus' })).toBeInTheDocument();
+  });
+
+  it('shows participants tab with the add button', async () => {
+    const user = userEvent.setup();
+    mockDatesApi(mockChallenge, { participants: mockParticipants });
+    renderDates();
+    await screen.findByRole('heading', { level: 1, name: 'Verao 2026' });
+
+    await user.click(screen.getByRole('tab', { name: 'Participantes' }));
+
+    expect(await screen.findByText('Entrou em 02/05/2026 · 80 pts')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Adicionar participantes' })).toBeInTheDocument();
+  });
+
+  it('shows the remove button for each participant', async () => {
+    const user = userEvent.setup();
+    mockDatesApi(mockChallenge, { participants: mockParticipants });
+    renderDates();
+    await screen.findByRole('heading', { level: 1, name: 'Verao 2026' });
+
+    await user.click(screen.getByRole('tab', { name: 'Participantes' }));
+
+    expect(await screen.findByRole('button', { name: 'Remover Ana X' })).toBeInTheDocument();
+  });
+
+  it('shows remove confirm dialog when remove action is selected and removes the participant', async () => {
+    const user = userEvent.setup();
+    api.delete.mockResolvedValue({});
+    mockDatesApi(mockChallenge, { participants: mockParticipants });
+    renderDates();
+    await screen.findByRole('heading', { level: 1, name: 'Verao 2026' });
+    await user.click(screen.getByRole('tab', { name: 'Participantes' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Remover Ana X' }));
     expect(await screen.findByText('Remover Ana X do campeonato?')).toBeInTheDocument();
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Remover' }));
+
+    expect(api.delete).toHaveBeenCalledWith('/trainer/challenges/ch-1/participants/s1');
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Participante removido.', 'success'));
+  });
+
+  it('CPD-49 shows the back link and skeleton rows while the championship loads', async () => {
+    api.get.mockImplementation(() => new Promise(() => {}));
+    renderDates();
+
+    expect(screen.getByRole('button', { name: 'Campeonatos' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Carregando campeonato' })).toBeInTheDocument();
+    expect(screen.queryByText('Campeonato não encontrado.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+  });
+
+  it('CPD-49 shows the name and dates the list handed over while the championship loads', () => {
+    api.get.mockImplementation(() => new Promise(() => {}));
+    const fromList = { id: 'ch-1', name: 'Campeonato do Mês', startDate: '2026-09-01', endDate: '2026-09-30', participantCount: 18 };
+    renderDates({ pathname: '/trainer/challenges/ch-1', search: '?tab=ranking', state: { challenge: fromList } });
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Campeonato do Mês' })).toBeInTheDocument();
+    expect(screen.getByText('01/09 – 30/09/2026 · 18 participantes')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Carregando campeonato' })).toBeInTheDocument();
+  });
+
+  it('CPD-49 ignores a championship handed over for another id while loading', () => {
+    api.get.mockImplementation(() => new Promise(() => {}));
+    const other = { id: 'ch-9', name: 'Outro campeonato', startDate: '2026-09-01', endDate: '2026-09-30', participantCount: 3 };
+    renderDates({ pathname: '/trainer/challenges/ch-1', state: { challenge: other } });
+
+    expect(screen.queryByRole('heading', { name: 'Outro campeonato' })).not.toBeInTheDocument();
+  });
+
+  it('CPD-50 shows "Campeonato não encontrado." with Voltar para campeonatos', async () => {
+    const user = userEvent.setup();
+    api.get.mockRejectedValue({ response: { status: 404 }, userMessage: 'Recurso não encontrado.' });
+    renderDates();
+
+    expect(await screen.findByRole('heading', { name: 'Campeonato não encontrado.' })).toBeInTheDocument();
+    expect(screen.getByText('Ele pode ter sido excluído ou o link está incorreto.')).toBeInTheDocument();
+    expect(mockShowToast).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Voltar para campeonatos' }));
+    expect(screen.queryByRole('heading', { name: 'Campeonato não encontrado.' })).not.toBeInTheDocument();
+  });
+
+  it("CPD-50 shows the not-found block without an error toast for another trainer's championship (403)", async () => {
+    api.get.mockRejectedValue({ response: { status: 403 }, userMessage: 'Você não tem permissão para acessar este recurso.' });
+    renderDates();
+
+    expect(await screen.findByRole('heading', { name: 'Campeonato não encontrado.' })).toBeInTheDocument();
+    expect(screen.getByText('Ele pode ter sido excluído ou o link está incorreto.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Voltar para campeonatos' })).toBeInTheDocument();
+    expect(mockShowToast).not.toHaveBeenCalled();
   });
 });
 
@@ -279,6 +308,8 @@ const weeklyChallenge = {
   ownerType: 'trainer',
   closeRequestedAt: null,
   closedAt: null,
+  weights: { workouts: 30, diet: 30, cardio: 15, feedback: 15, hydration: 10 },
+  activePillars: ['workouts', 'cardio', 'feedback', 'hydration'],
 };
 
 const weeklyConsistency = {
@@ -290,6 +321,7 @@ const weeklyConsistency = {
     { studentId: 's1', name: 'Ana Lima', displayName: 'Ana L.', initials: 'AL', position: 1, eligible: true, faixa: 'constant', average: 95, validWeeks: 2, weeks100: 1, streak: 3, currentWeekScore: 80, weekStatus: 'valid', entering: null, weeksMissing: 0 },
   ],
   entering: [],
+  summary: { classified: 1, entering: 0, leaderAverage: 95, leaderLead: null, championshipAverage: 95 },
 };
 
 // GET responses of a weekly championship page
@@ -301,16 +333,12 @@ const mockWeeklyApi = (challenge = weeklyChallenge) => {
     if (url === '/trainer/challenges/w-1/participants') return Promise.resolve({ data: [] });
     if (url === '/trainer/consistency-ranking/config') return Promise.resolve({ data: { timeZone: 'America/Sao_Paulo', minPodiumWeeks: 2 } });
     if (url === '/trainer/students') return Promise.resolve({ data: [] });
-    if (url === '/trainer/gamification/config') return Promise.resolve({ data: mockConfig });
     return Promise.reject(new Error(`unexpected ${url}`));
   });
 };
 
 // Renders the detail page of the weekly championship
-const renderWeekly = () => renderWithRoute(<ChallengeDetail />, { route: '/trainer/challenges/w-1', path: '/trainer/challenges/:id' });
-
-// Labels of the detail tabs in order
-const tabLabels = () => screen.getAllByRole('button').filter((button) => button.className.includes('segmented-toggle-btn')).map((button) => button.textContent);
+const renderWeekly = (route = '/trainer/challenges/w-1') => renderWithRoute(<ChallengeDetail />, { route, path: '/trainer/challenges/:id' });
 
 // Whether the API was asked for the given URL
 const requested = (url) => api.get.mock.calls.some(([calledUrl]) => calledUrl === url);
@@ -328,15 +356,23 @@ describe('ChallengeDetail', () => {
     globalThis.jsdom.reconfigure({ url: ORIGINAL_URL });
   });
 
-  it('CAMP-50 opens a weekly championship on Classificação with four tabs', async () => {
-    renderWeekly();
+  it('CPD-31 shows Ranking, Pontos, Participantes and Configurações for a weekly championship and no Pontos for a dates one', async () => {
+    const { unmount } = renderWeekly();
 
     expect(await screen.findByRole('button', { name: 'Ana L.' })).toBeInTheDocument();
-    expect(tabLabels()).toEqual(['Classificação', 'Pontos', 'Participantes', 'Configuração']);
-    expect(screen.getByRole('button', { name: 'Classificação' })).toHaveClass('segmented-toggle-btn--active');
-    expect(screen.getByText('Semana 3 de 4')).toBeInTheDocument();
+    expect(tabLabels()).toEqual(['Ranking', 'Pontos', 'Participantes', 'Configurações']);
+    expect(screen.getByRole('tab', { name: 'Ranking' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Ranking' })).toHaveClass('ds-tabs__item--active');
+    expect(screen.getByText('3 de 4')).toBeInTheDocument();
+    expect(screen.getByText('Prêmio: camiseta')).toBeInTheDocument();
     expect(requested('/trainer/challenges/w-1/consistency')).toBe(true);
     expect(requested('/trainer/challenges/w-1/ranking')).toBe(false);
+    unmount();
+
+    mockWeeklyApi({ ...weeklyChallenge, format: 'dates', weeks: null, currentWeek: null, minPodiumWeeks: null });
+    renderWeekly();
+    await screen.findByRole('region', { name: 'Classificação por pontos' });
+    expect(tabLabels()).toEqual(['Ranking', 'Participantes', 'Configurações']);
   });
 
   it('CAMP-53 opens the student panel from a row', async () => {
@@ -352,49 +388,72 @@ describe('ChallengeDetail', () => {
     expect(screen.queryByRole('dialog', { name: 'Painel do aluno' })).not.toBeInTheDocument();
   });
 
-  it('CAMP-54 shows the points ranking without podium medals', async () => {
+  it('CPD-38 shows the points ranking of a weekly championship without the podium', async () => {
     const user = userEvent.setup();
     renderWeekly();
     await screen.findByRole('button', { name: 'Ana L.' });
 
-    await user.click(screen.getByRole('button', { name: 'Pontos' }));
+    await user.click(screen.getByRole('tab', { name: 'Pontos' }));
 
-    expect(await screen.findByText('Ana X')).toBeInTheDocument();
-    expect(screen.getByText('80 pts')).toBeInTheDocument();
-    expect(screen.getByText('Bob Y')).toBeInTheDocument();
-    const rows = within(screen.getByRole('list', { name: 'Ranking' })).getAllByRole('button');
-    expect(rows).toHaveLength(2);
-    rows.forEach((row) => expect(row.querySelector('.ranking-position svg')).toBeNull());
+    await screen.findByRole('region', { name: 'Classificação por pontos' });
+    expect(within(pointsTable()).getByText('Ana X')).toBeInTheDocument();
+    expect(within(pointsTable()).getByText('Bob Y')).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Pódio' })).not.toBeInTheDocument();
     expect(requested('/trainer/challenges/w-1/ranking')).toBe(true);
   });
 
-  it('CAMP-58 keeps the dates championship without Classificação', async () => {
+  it('CAMP-58 keeps the dates championship without the consistency standings', async () => {
     mockWeeklyApi({ ...weeklyChallenge, format: 'dates', weeks: null, currentWeek: null, minPodiumWeeks: null });
     renderWeekly();
 
-    expect(await screen.findByText('Ana X')).toBeInTheDocument();
+    await screen.findByRole('region', { name: 'Classificação por pontos' });
     expect(tabLabels()).toEqual(['Ranking', 'Participantes', 'Configurações']);
-    expect(screen.queryByRole('button', { name: 'Classificação' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Pontos' })).not.toBeInTheDocument();
     expect(requested('/trainer/challenges/w-1/consistency')).toBe(false);
   });
 
-  it('CAMP-69 shows a weekly championship without Classificação to a non-admin in production', async () => {
+  it('CAMP-69 shows a weekly championship without the consistency standings to a non-admin in production', async () => {
     vi.stubEnv('DEV', false);
     globalThis.jsdom.reconfigure({ url: 'https://app.teufit.com.br/' });
     renderWeekly();
 
-    expect(await screen.findByText('Ana X')).toBeInTheDocument();
+    await screen.findByRole('region', { name: 'Classificação por pontos' });
     expect(tabLabels()).toEqual(['Ranking', 'Participantes', 'Configurações']);
     expect(requested('/trainer/challenges/w-1/consistency')).toBe(false);
   });
 
-  it('CAMP-42 ends a running weekly championship early from Configuração', async () => {
+  it('CPD-51 shows the Cancelado tag and the cancelled notice with read-only tabs', async () => {
+    const user = userEvent.setup();
+    mockWeeklyApi({ ...weeklyChallenge, status: 'cancelled', cancelledAt: '2026-11-10T12:00:00Z' });
+    renderWeekly();
+
+    expect(await screen.findByRole('heading', { name: 'Campeonato cancelado, sem classificação.' })).toBeInTheDocument();
+    expect(screen.getByText('Cancelado')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Dar bônus' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Pódio' })).not.toBeInTheDocument();
+    expect(requested('/trainer/challenges/w-1/consistency')).toBe(false);
+
+    await user.click(screen.getByRole('tab', { name: 'Pontos' }));
+    await screen.findByRole('region', { name: 'Classificação por pontos' });
+    expect(screen.queryByRole('button', { name: 'Seleção em massa' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Ações para/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Participantes' }));
+    await screen.findByRole('heading', { name: '0 alunos no campeonato' });
+    expect(screen.queryByRole('button', { name: 'Adicionar participantes' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Configurações' }));
+    expect(await screen.findByLabelText('Nome')).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Salvar configuração' })).not.toBeInTheDocument();
+  });
+
+  it('CAMP-42 ends a running weekly championship early from Configurações', async () => {
     const user = userEvent.setup();
     api.post.mockResolvedValue({ data: { ...weeklyChallenge, closeRequestedAt: '2026-11-18T12:00:00Z', endDate: '2026-11-22', weeks: 3, closesAt: '2026-11-23T00:00:00Z' } });
     renderWeekly();
     await screen.findByRole('button', { name: 'Ana L.' });
 
-    await user.click(screen.getByRole('button', { name: 'Configuração' }));
+    await user.click(screen.getByRole('tab', { name: 'Configurações' }));
     await user.click(screen.getByRole('button', { name: 'Encerrar campeonato' }));
     await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Encerrar campeonato' }));
 
@@ -403,31 +462,45 @@ describe('ChallengeDetail', () => {
     expect(screen.queryByRole('button', { name: 'Encerrar campeonato' })).not.toBeInTheDocument();
   });
 
-  it('CAMP-42 shows the hour of the close when the detail opens on Configuração after an early close', async () => {
+  it('CAMP-42 shows the hour of the close when the detail opens on Configurações after an early close', async () => {
     mockWeeklyApi({ ...weeklyChallenge, closeRequestedAt: '2026-11-18T12:00:00Z', endDate: '2026-11-22', weeks: 3 });
-    renderWithRoute(<ChallengeDetail />, { route: '/trainer/challenges/w-1?tab=config', path: '/trainer/challenges/:id' });
+    renderWeekly('/trainer/challenges/w-1?tab=config');
 
     expect(await screen.findByText('Encerra no fechamento de 22/11, às 21h.')).toBeInTheDocument();
     expect(screen.queryByText('Encerra no fechamento de 22/11.')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Encerrar campeonato' })).not.toBeInTheDocument();
   });
 
-  it('CAMP-59 asks before leaving Configuração with unsaved changes', async () => {
+  it('CPD-42 saves the settings of a weekly championship and shows "Configuração salva."', async () => {
+    const user = userEvent.setup();
+    api.patch.mockResolvedValue({ data: { ...weeklyChallenge, name: 'Verão Semanal 2' } });
+    renderWeekly('/trainer/challenges/w-1?tab=settings');
+
+    await user.type(await screen.findByLabelText('Nome'), ' 2');
+    await user.click(screen.getByRole('button', { name: 'Salvar configuração' }));
+
+    expect(api.patch).toHaveBeenCalledWith('/trainer/challenges/w-1', { name: 'Verão Semanal 2' });
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Configuração salva.', 'success'));
+    expect(screen.getByRole('heading', { level: 1, name: 'Verão Semanal 2' })).toBeInTheDocument();
+  });
+
+  it('CAMP-59 asks before leaving Configurações with unsaved changes', async () => {
     const user = userEvent.setup();
     renderWeekly();
     await screen.findByRole('button', { name: 'Ana L.' });
-    await user.click(screen.getByRole('button', { name: 'Configuração' }));
+    await user.click(screen.getByRole('tab', { name: 'Configurações' }));
 
     await user.type(screen.getByLabelText('Nome'), ' editado');
-    await user.click(screen.getByRole('button', { name: 'Pontos' }));
+    await user.click(screen.getByRole('tab', { name: 'Pontos' }));
 
     expect(screen.getByText('Há mudanças não salvas. Descartar e sair?')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancelar' }));
     expect(screen.getByLabelText('Nome')).toHaveValue('Verão Semanal editado');
 
-    await user.click(screen.getByRole('button', { name: 'Pontos' }));
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
-    expect(await screen.findByText('Ana X')).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Pontos' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Descartar' }));
+    await screen.findByRole('region', { name: 'Classificação por pontos' });
+    expect(within(pointsTable()).getByText('Ana X')).toBeInTheDocument();
     expect(api.patch).not.toHaveBeenCalled();
   });
 });

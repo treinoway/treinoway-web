@@ -18,4 +18,11 @@ describe('EmptyBlock', () => {
     await user.click(screen.getByRole('button', { name: 'Vincular aluno' }));
     expect(onAction).toHaveBeenCalledTimes(1);
   });
+
+  it('draws the action icon before the label', () => {
+    render(<EmptyBlock icon={Users} title="Sem alunos ainda" actionLabel="Vincular aluno" actionIcon={Users} />);
+    const button = screen.getByRole('button', { name: 'Vincular aluno' });
+    expect(button.firstElementChild?.tagName.toLowerCase()).toBe('svg');
+    expect(button.firstElementChild).toHaveAttribute('aria-hidden', 'true');
+  });
 });

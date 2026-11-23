@@ -1,798 +1,361 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Check, Calendar } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Ban, Lock, Trophy } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
-import RowMenu from '../../components/RowMenu';
-import RankingList from '../../components/RankingList';
+import ConfirmDialog from '../../components/ds/ConfirmDialog';
+import EmptyBlock from '../../components/ds/EmptyBlock';
+import SkeletonRows from '../../components/ds/SkeletonRows';
+import Tabs from '../../components/ds/Tabs';
 import StudentBonusSheet from '../../components/StudentBonusSheet';
-import BonusChipGrid from '../../components/BonusChipGrid';
-import DateInput from '../../components/DateInput';
-import PointsSummaryCard from '../../components/PointsSummaryCard';
-import PointsBottomSheet from '../../components/PointsBottomSheet';
-import ChallengeConsistencyTab from '../../components/challenge/ChallengeConsistencyTab';
-import ChallengeWeeksSettings from '../../components/challenge/ChallengeWeeksSettings';
+import ChallengePageHeader, { BackToChallenges, ChallengeLoadingHeader } from '../../components/challenge/ChallengePageHeader';
+import ChallengeSettingsTab from '../../components/challenge/ChallengeSettingsTab';
+import ConsistencyRankingTab from '../../components/challenge/ConsistencyRankingTab';
+import ParticipantsTab from '../../components/challenge/ParticipantsTab';
+import PointsRankingTab from '../../components/challenge/PointsRankingTab';
 import StudentPanel from '../../components/consistency/StudentPanel';
 import useChallengeConsistency from '../../hooks/useChallengeConsistency';
+import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useConsistencyRankingAccess from '../../hooks/useConsistencyRankingAccess';
 import useWeeklyChampionshipSources from '../../hooks/useWeeklyChampionshipSources';
-import { formatCloseLabel } from '../../utils/consistencyFormat';
-import { formatDateForDisplay } from '../../utils/dateFormat';
-import {
-  CHALLENGE_STATUS,
-  CHALLENGE_STATUS_LABEL,
-  CHALLENGE_STATUS_BADGE,
-  CHALLENGE_NAME_MAX_LENGTH,
-  CHALLENGE_FORMAT,
-} from '../../constants/challenge';
-import { DEFAULT_CONFIG } from '../../constants/gamification';
-import { POINTS_FIELD_KEYS } from '../../constants/points-fields';
+import { todayIn } from '../../utils/challengeDisplay';
+import { dayMonthOf, formatCloseLabel } from '../../utils/consistencyFormat';
+import { CHALLENGE_FORMAT, CHALLENGE_STATUS } from '../../constants/challenge';
 
-const TABS = [
-  { key: 'ranking', label: 'Ranking' },
-  { key: 'participants', label: 'Participantes' },
-  { key: 'config', label: 'Configurações' },
-];
-
-const STANDINGS_TAB = 'standings';
-const WEEKLY_TABS = [
-  { key: STANDINGS_TAB, label: 'Classificação' },
-  { key: 'ranking', label: 'Pontos' },
-  { key: 'participants', label: 'Participantes' },
-  { key: 'config', label: 'Configuração' },
-];
+const LIST_PATH = '/trainer/challenges';
 const DISCARD_MESSAGE = 'Há mudanças não salvas. Descartar e sair?';
+const LOADING_ROWS = 6;
+const TAB = Object.freeze({ RANKING: 'ranking', POINTS: 'points', PARTICIPANTS: 'participants', SETTINGS: 'settings' });
+const LEGACY_TABS = Object.freeze({ config: TAB.SETTINGS, standings: TAB.RANKING });
+const WEEKLY_TABS = Object.freeze([
+  { id: TAB.RANKING, label: 'Ranking' },
+  { id: TAB.POINTS, label: 'Pontos' },
+  { id: TAB.PARTICIPANTS, label: 'Participantes' },
+  { id: TAB.SETTINGS, label: 'Configurações' },
+]);
+const DATES_TABS = Object.freeze(WEEKLY_TABS.filter((tab) => tab.id !== TAB.POINTS));
+const READ_ONLY_STATUSES = Object.freeze([CHALLENGE_STATUS.COMPLETED, CHALLENGE_STATUS.CANCELLED]);
 
-const getStudentFullName = (s) => {
-  const full = `${s.firstName || ''} ${s.lastName || ''}`.trim();
-  return full || s.email || 'Aluno';
+// Full name of a participant, ranking entry or standings row
+const fullNameOf = (person) => `${person.firstName || ''} ${person.lastName || ''}`.trim() || person.name || 'Aluno';
+
+// Tab asked by ?tab=, mapping the F2.5 names
+const requestedTabOf = (searchParams) => {
+  const asked = searchParams.get('tab');
+  return LEGACY_TABS[asked] ?? asked;
 };
 
-const SkeletonRows = () => (
-  <div>
-    {[1, 2, 3, 4].map((i) => (
-      <div key={i} className="skeleton skeleton-text" style={{ marginBottom: 'var(--spacing-xs)' }} />
-    ))}
+// Statuses of a read that mean the championship is not the trainer's to see: unknown (404) or another trainer's (403)
+const NOT_FOUND_STATUSES = Object.freeze([403, 404]);
+
+// Championship of the page: loading, ready or not found (any failed first read); reload reads it again
+const useChallengeResource = (id) => {
+  const { showToast } = useToast();
+  const [state, setState] = useState({ status: 'loading', challenge: null });
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    let active = true;
+    api.get(`/trainer/challenges/${id}`)
+      .then(({ data }) => { if (active) setState({ status: 'ready', challenge: data }); })
+      .catch((error) => {
+        if (!active) return;
+        if (!NOT_FOUND_STATUSES.includes(error.response?.status)) showToast(error.userMessage || translateError(error), 'error');
+        setState((current) => (current.challenge ? current : { status: 'notFound', challenge: null }));
+      });
+    return () => { active = false; };
+  }, [id, version, showToast]);
+  const reload = useCallback(() => setVersion((current) => current + 1), []);
+  const setChallenge = useCallback((challenge) => setState({ status: 'ready', challenge }), []);
+  return { ...state, reload, setChallenge };
+};
+
+// List read from the API while enabled and again on reload; loading until its first read lands, a failure becomes a toast unless quiet
+const useListResource = (url, enabled, { quiet = false } = {}) => {
+  const { showToast } = useToast();
+  const [state, setState] = useState({ items: [], loadedUrl: null });
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    if (!enabled) return undefined;
+    let active = true;
+    api.get(url)
+      .then(({ data }) => { if (active) setState({ items: data || [], loadedUrl: url }); })
+      .catch((error) => {
+        if (!active) return;
+        if (!quiet) showToast(error.userMessage || translateError(error), 'error');
+        setState((current) => ({ ...current, loadedUrl: url }));
+      });
+    return () => { active = false; };
+  }, [url, enabled, version, quiet, showToast]);
+  const reload = useCallback(() => setVersion((current) => current + 1), []);
+  return { items: state.items, loading: enabled && state.loadedUrl !== url, reload };
+};
+
+// Tab shown, kept in ?tab=, falling back to Ranking when the format has no such tab
+const useDetailTab = (tabs) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const asked = requestedTabOf(searchParams);
+  const tab = tabs.some((item) => item.id === asked) ? asked : TAB.RANKING;
+  const setTab = useCallback((next) => setSearchParams({ tab: next }, { replace: true }), [setSearchParams]);
+  return [tab, setTab];
+};
+
+// Everything the tabs read: the championship, its consistency standings, XP ranking, participants and students
+const useChallengeDetailData = (id, weeklyAccess) => {
+  const resource = useChallengeResource(id);
+  const { challenge } = resource;
+  const isWeekly = weeklyAccess && challenge?.format === CHALLENGE_FORMAT.WEEKS;
+  const [tab, setTab] = useDetailTab(isWeekly ? WEEKLY_TABS : DATES_TABS);
+  const ready = resource.status === 'ready';
+  const cancelled = challenge?.status === CHALLENGE_STATUS.CANCELLED;
+  const needsCloseInstant = tab === TAB.SETTINGS && !!challenge?.closeRequestedAt;
+  const consistency = useChallengeConsistency(id, { enabled: isWeekly && !cancelled && (tab === TAB.RANKING || needsCloseInstant) });
+  const needsRanking = ready && (tab === TAB.PARTICIPANTS || tab === (isWeekly ? TAB.POINTS : TAB.RANKING));
+  const ranking = useListResource(`/trainer/challenges/${id}/ranking`, needsRanking);
+  const participants = useListResource(`/trainer/challenges/${id}/participants`, ready && tab === TAB.PARTICIPANTS);
+  const students = useListResource('/trainer/students', ready && tab === TAB.PARTICIPANTS, { quiet: true });
+  const { timeZone } = useWeeklyChampionshipSources(isWeekly, { withStudents: false });
+  return { resource, challenge, isWeekly, tab, setTab, consistency, ranking, participants, students, timeZone };
+};
+
+// Runs a write that reports success: true once done, false after showing the error
+const attempt = async (write, fail) => {
+  try {
+    await write();
+    return true;
+  } catch (error) {
+    fail(error);
+    return false;
+  }
+};
+
+// Writes of the page: bonuses, participants, settings and the lifecycle, each refreshing what it changes
+const useChallengeWrites = (id, data) => {
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { resource, ranking, participants, consistency } = data;
+  const fail = (error) => showToast(error.userMessage || translateError(error), 'error');
+  const giveBonus = (studentId, points, reason) => api.post(`/trainer/challenges/${id}/students/${studentId}/bonus`, reason ? { points, reason } : { points });
+  const refreshPeople = () => Promise.all([resource.reload(), ranking.reload(), participants.reload(), data.isWeekly ? consistency.reload() : null]);
+  const leaveWith = (message) => { showToast(message, 'success'); navigate(LIST_PATH); };
+  return {
+    giveSingleBonus: (student, points, reason) => attempt(async () => {
+      await giveBonus(student.studentId, points, reason);
+      showToast(`Bônus de +${points} pts enviado.`, 'success');
+      await ranking.reload();
+    }, fail),
+    awardBulk: (studentIds, points, reason) => attempt(async () => {
+      await Promise.all(studentIds.map((studentId) => giveBonus(studentId, points, reason)));
+      showToast(`Bônus de +${points} aplicado a ${studentIds.length} aluno(s).`, 'success');
+      await ranking.reload();
+    }, fail),
+    addParticipants: (studentIds) => attempt(async () => {
+      await api.post(`/trainer/challenges/${id}/participants`, { studentIds });
+      showToast('Participantes adicionados.', 'success');
+      await refreshPeople();
+    }, fail),
+    removeParticipant: async (person) => {
+      await api.delete(`/trainer/challenges/${id}/participants/${person.studentId}`);
+      showToast('Participante removido.', 'success');
+      await refreshPeople();
+    },
+    save: async (changes) => resource.setChallenge((await api.patch(`/trainer/challenges/${id}`, changes)).data),
+    closeEarly: async () => {
+      const { data: { closesAt, ...updated } } = await api.post(`/trainer/challenges/${id}/close`);
+      resource.setChallenge(updated);
+      showToast('Campeonato vai encerrar no fechamento desta semana.', 'success');
+      return { closesAt };
+    },
+    cancel: async () => { await api.post(`/trainer/challenges/${id}/cancel`); leaveWith('Campeonato cancelado.'); },
+    remove: async () => { await api.delete(`/trainer/challenges/${id}`); leaveWith('Campeonato excluído.'); },
+  };
+};
+
+// Page-level interactions: tab changes guarded by unsaved settings, bonus sheet, student panel, removal from a row and the bulk selection
+const usePageActions = (data, writes, navigate) => {
+  const { dialogProps, requestConfirm } = useConfirmDialog();
+  const [settingsDirty, setSettingsDirty] = useState(false);
+  const [selecting, setSelecting] = useState(false);
+  const [bonusStudent, setBonusStudent] = useState(null);
+  const [openStudent, setOpenStudent] = useState(null);
+  const guard = (proceed) => {
+    if (!(data.tab === TAB.SETTINGS && settingsDirty)) { proceed(); return; }
+    requestConfirm({ message: DISCARD_MESSAGE, confirmLabel: 'Descartar', busyLabel: 'Saindo...', onConfirm: () => { setSettingsDirty(false); proceed(); } });
+  };
+  const changeTab = (next) => guard(() => { setSelecting(false); data.setTab(next); });
+  return {
+    dialogProps, selecting, setSelecting, bonusStudent, openStudent, setOpenStudent, setSettingsDirty, changeTab,
+    goBack: () => guard(() => navigate(LIST_PATH)),
+    openBonus: setBonusStudent,
+    closeBonus: () => setBonusStudent(null),
+    startBulkBonus: () => guard(() => { data.setTab(data.isWeekly ? TAB.POINTS : TAB.RANKING); setSelecting(true); }),
+    askRemove: (person) => requestConfirm({ message: `Remover ${fullNameOf(person)} do campeonato?`, confirmLabel: 'Remover', busyLabel: 'Removendo...', onConfirm: () => writes.removeParticipant(person) }),
+  };
+};
+
+// Notice of a closed dates championship, above its final ranking
+const ClosedNotice = ({ endDate }) => (
+  <div className="ds-banner ds-banner--inline challenge-locked-notice" role="note">
+    <span className="ds-banner__icon" aria-hidden="true"><Lock size={20} strokeWidth={2} /></span>
+    <p className="ds-banner__text type-body">{`Campeonato encerrado em ${dayMonthOf(endDate)}. O ranking é final e não pode ser editado.`}</p>
   </div>
 );
 
-const extractPtsValues = (obj) => {
-  const result = {};
-  POINTS_FIELD_KEYS.forEach((key) => {
-    result[key] = obj[key] ?? DEFAULT_CONFIG[key] ?? null;
-  });
-  return result;
+ClosedNotice.propTypes = {
+  endDate: PropTypes.string.isRequired,
 };
 
+// Cancelled notice of F2.5, in place of the podium and the classification
+const CancelledNotice = () => (
+  <section className="section-card">
+    <EmptyBlock icon={Ban} title="Campeonato cancelado, sem classificação." />
+  </section>
+);
+
+// XP ranking of either format: Pontos in a weekly championship, Ranking (with podium and the closed notice) in a dates one
+const PointsPanel = ({ view }) => {
+  const { challenge, data, writes, readOnly, actions } = view;
+  const closed = challenge.status === CHALLENGE_STATUS.COMPLETED;
+  return (
+    <div className="championship-tab">
+      {!data.isWeekly && closed && <ClosedNotice endDate={challenge.endDate} />}
+      <PointsRankingTab
+        entries={data.ranking.items}
+        loading={data.ranking.loading}
+        startDate={challenge.startDate}
+        showPodium={!data.isWeekly}
+        readOnly={readOnly}
+        closed={closed}
+        selecting={actions.selecting}
+        onSelectingChange={actions.setSelecting}
+        onBonus={actions.openBonus}
+        onRemove={actions.askRemove}
+        onAwardBulk={writes.awardBulk}
+        onAddParticipants={() => actions.changeTab(TAB.PARTICIPANTS)}
+      />
+    </div>
+  );
+};
+
+PointsPanel.propTypes = {
+  view: PropTypes.object.isRequired,
+};
+
+// Ranking tab of a weekly championship: the consistency standings, or the cancelled notice
+const ConsistencyPanel = ({ view }) => {
+  const { challenge, data, writes, actions } = view;
+  if (challenge.status === CHALLENGE_STATUS.CANCELLED) return <CancelledNotice />;
+  return (
+    <ConsistencyRankingTab
+      data={data.consistency.data}
+      loading={data.consistency.loading}
+      error={data.consistency.error}
+      onRetry={data.consistency.reload}
+      timeZone={data.timeZone}
+      onOpenStudent={actions.setOpenStudent}
+      onBonus={(row) => actions.openBonus({ studentId: row.studentId, firstName: row.name })}
+      onViewPoints={() => actions.changeTab(TAB.POINTS)}
+      onRemove={actions.askRemove}
+      onAdjustRules={() => actions.changeTab(TAB.SETTINGS)}
+      onDelete={writes.remove}
+      onAddParticipants={() => actions.changeTab(TAB.PARTICIPANTS)}
+    />
+  );
+};
+
+ConsistencyPanel.propTypes = {
+  view: PropTypes.object.isRequired,
+};
+
+// Panel of the selected tab
+const TabPanel = ({ view }) => {
+  const { challenge, data, writes, readOnly, actions } = view;
+  if (data.tab === TAB.PARTICIPANTS) {
+    const pointsByStudent = Object.fromEntries(data.ranking.items.map((entry) => [entry.studentId, entry.points]));
+    return <ParticipantsTab participants={data.participants.items} pointsByStudent={pointsByStudent} loading={data.participants.loading} readOnly={readOnly} students={data.students.items} onAdd={writes.addParticipants} onRemove={writes.removeParticipant} />;
+  }
+  if (data.tab === TAB.SETTINGS) {
+    return <ChallengeSettingsTab challenge={challenge} isWeekly={data.isWeekly} timeZone={data.timeZone} closesAt={data.consistency.data?.closesAt ?? null} onSave={writes.save} onCloseEarly={writes.closeEarly} onCancel={writes.cancel} onDelete={writes.remove} onDirtyChange={actions.setSettingsDirty} />;
+  }
+  if (data.tab === TAB.RANKING && data.isWeekly) return <ConsistencyPanel view={view} />;
+  if (data.tab === TAB.RANKING && challenge.status === CHALLENGE_STATUS.CANCELLED) return <CancelledNotice />;
+  return <PointsPanel view={view} />;
+};
+
+TabPanel.propTypes = {
+  view: PropTypes.object.isRequired,
+};
+
+// Single bonus from a row: the sheet with the chips, closing once the bonus is given
+const BonusSheet = ({ student, onGive, onClose }) => {
+  const [submitting, setSubmitting] = useState(false);
+  const handleAward = async (points, reason) => {
+    setSubmitting(true);
+    const given = await onGive(student, points, reason);
+    setSubmitting(false);
+    if (given) onClose();
+  };
+  return <StudentBonusSheet student={student} onAward={handleAward} onClose={onClose} disabled={submitting} />;
+};
+
+BonusSheet.propTypes = {
+  student: PropTypes.object.isRequired,
+  onGive: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+};
+
+// Championship the list handed over when it opened this page, if it is this one
+const useKnownChallenge = (id) => {
+  const { state } = useLocation();
+  const known = state?.challenge;
+  return known?.id === id ? known : null;
+};
+
+// Loading and not-found states: the header with what is known and skeleton rows, or the back link with the not-found block
+const ResourceState = ({ status, known = null, onBack }) => {
+  if (status === 'loading') {
+    return (
+      <div className="championship-tab challenge-loading">
+        <ChallengeLoadingHeader challenge={known} onBack={onBack} />
+        <SkeletonRows label="Carregando campeonato" count={LOADING_ROWS} />
+      </div>
+    );
+  }
+  return (
+    <div className="championship-tab">
+      <BackToChallenges onBack={onBack} />
+      <section className="section-card"><EmptyBlock icon={Trophy} title="Campeonato não encontrado." description="Ele pode ter sido excluído ou o link está incorreto." actionLabel="Voltar para campeonatos" onAction={onBack} /></section>
+    </div>
+  );
+};
+
+ResourceState.propTypes = {
+  status: PropTypes.oneOf(['loading', 'notFound']).isRequired,
+  known: PropTypes.object,
+  onBack: PropTypes.func.isRequired,
+};
+
+// Championship page: header, underline tabs (Ranking, Pontos, Participantes, Configurações; no Pontos in the dates format) and one component per tab, plus the loading and not-found states
 const ChallengeDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { showToast } = useToast();
-  const [searchParams] = useSearchParams();
-
-  const [challenge, setChallenge] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [chosenTab, setTab] = useState(searchParams.get('tab'));
-  const weeklyAccess = useConsistencyRankingAccess();
-  const isWeekly = weeklyAccess && challenge?.format === CHALLENGE_FORMAT.WEEKS;
-  const tab = chosenTab ?? (isWeekly ? STANDINGS_TAB : 'ranking');
-  const needsCloseInstant = tab === 'config' && !!challenge?.closeRequestedAt;
-  const consistency = useChallengeConsistency(id, { enabled: isWeekly && (tab === STANDINGS_TAB || needsCloseInstant) });
-  const { timeZone } = useWeeklyChampionshipSources(isWeekly, { withStudents: false });
-  const [openStudent, setOpenStudent] = useState(null);
-  const [settingsDirty, setSettingsDirty] = useState(false);
-  const [closesAt, setClosesAt] = useState(null);
-
-  // Ranking tab state
-  const [ranking, setRanking] = useState([]);
-  const [rankingLoading, setRankingLoading] = useState(false);
-  const [bonusStudent, setBonusStudent] = useState(null);
-  const [bonusSubmitting, setBonusSubmitting] = useState(false);
-
-  // Participants tab state
-  const [participants, setParticipants] = useState([]);
-  const [participantsLoading, setParticipantsLoading] = useState(false);
-  const [students, setStudents] = useState([]);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addSelected, setAddSelected] = useState([]);
-  const [addingParticipants, setAddingParticipants] = useState(false);
-
-  // Bulk selection
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [showBulkSheet, setShowBulkSheet] = useState(false);
-  const [bulkSubmitting, setBulkSubmitting] = useState(false);
-
-  // Config tab state
-  const [editName, setEditName] = useState('');
-  const [editEndDate, setEditEndDate] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  // Points state
-  const [trainerTemplate, setTrainerTemplate] = useState(null);
-  const [showPointsSheet, setShowPointsSheet] = useState(false);
-  const [pointsSaving, setPointsSaving] = useState(false);
-
-  const [confirmDialog, setConfirmDialog] = useState(null);
-
-  const loadChallenge = useCallback(async () => {
-    try {
-      const response = await api.get(`/trainer/challenges/${id}`);
-      setChallenge(response.data);
-      setEditName(response.data.name);
-      setEditEndDate(response.data.endDate);
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [id, showToast]);
-
-  useEffect(() => { loadChallenge(); }, [loadChallenge]);
-
-  useEffect(() => {
-    let mounted = true;
-    api.get('/trainer/gamification/config')
-      .then((r) => {
-        if (!mounted) return;
-        const config = r.data || DEFAULT_CONFIG;
-        setTrainerTemplate({ ...extractPtsValues(config), anonymousRanking: !!config.anonymousRanking });
-      })
-      .catch(() => {
-        if (mounted) setTrainerTemplate({ ...extractPtsValues(DEFAULT_CONFIG), anonymousRanking: false });
-      });
-    return () => { mounted = false; };
-  }, []);
-
-  const loadRanking = useCallback(async () => {
-    setRankingLoading(true);
-    try {
-      const response = await api.get(`/trainer/challenges/${id}/ranking`);
-      setRanking(response.data || []);
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setRankingLoading(false);
-    }
-  }, [id, showToast]);
-
-  const loadParticipants = useCallback(async () => {
-    setParticipantsLoading(true);
-    try {
-      const response = await api.get(`/trainer/challenges/${id}/participants`);
-      setParticipants(response.data || []);
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setParticipantsLoading(false);
-    }
-  }, [id, showToast]);
-
-  const challengeLoaded = Boolean(challenge);
-
-  useEffect(() => {
-    if (!challengeLoaded) return;
-    if (tab === 'ranking') loadRanking();
-    if (tab === 'participants') {
-      loadParticipants();
-      if (students.length === 0) {
-        api.get('/trainer/students').then((r) => setStudents(r.data || [])).catch(() => {});
-      }
-    }
-  }, [challengeLoaded, tab, loadRanking, loadParticipants, students.length]);
-
-  const handleRankingRowTap = (entry) => {
-    setBonusStudent(entry);
-  };
-
-  const handleAwardBonus = async (points, reason) => {
-    if (!bonusStudent) return;
-    setBonusSubmitting(true);
-    try {
-      const body = { points };
-      if (reason) body.reason = reason;
-      await api.post(`/trainer/challenges/${id}/students/${bonusStudent.studentId}/bonus`, body);
-      setBonusStudent(null);
-      setBonusSubmitting(false);
-      showToast(`Bônus de +${points} pts enviado.`, 'success');
-      await loadRanking();
-    } catch (error) {
-      setBonusSubmitting(false);
-      showToast(error.userMessage || translateError(error), 'error');
-    }
-  };
-
-  const handleStartSelection = () => {
-    setSelectionMode(true);
-    setSelectedIds([]);
-  };
-
-  const handleExitSelection = () => {
-    setSelectionMode(false);
-    setSelectedIds([]);
-  };
-
-  const handleToggleParticipant = (studentId) => {
-    setSelectedIds((prev) =>
-      prev.includes(studentId) ? prev.filter((x) => x !== studentId) : [...prev, studentId]
-    );
-  };
-
-  const handleAwardBulkBonus = async (points, reason) => {
-    if (selectedIds.length === 0) return;
-    setBulkSubmitting(true);
-    try {
-      await Promise.all(
-        selectedIds.map((studentId) => {
-          const body = { points };
-          if (reason) body.reason = reason;
-          return api.post(`/trainer/challenges/${id}/students/${studentId}/bonus`, body);
-        })
-      );
-      showToast(`Bônus de +${points} aplicado a ${selectedIds.length} aluno(s).`, 'success');
-      setShowBulkSheet(false);
-      handleExitSelection();
-      await loadRanking();
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setBulkSubmitting(false);
-    }
-  };
-
-  const handleCancelChallenge = () => {
-    setConfirmDialog({
-      message: `Cancelar o campeonato "${challenge.name}"? Esta ação não pode ser desfeita.`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await api.post(`/trainer/challenges/${id}/cancel`);
-          showToast('Campeonato cancelado.', 'success');
-          navigate('/trainer/challenges');
-        } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
-        }
-      },
-    });
-  };
-
-  const handleDeleteChallenge = () => {
-    setConfirmDialog({
-      message: `Excluir o campeonato "${challenge.name}"? Esta ação não pode ser desfeita.`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await api.delete(`/trainer/challenges/${id}`);
-          showToast('Campeonato excluído.', 'success');
-          navigate('/trainer/challenges');
-        } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
-        }
-      },
-    });
-  };
-
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const payload = {};
-      if (editName !== challenge.name) payload.name = editName.trim();
-      if (editEndDate !== challenge.endDate) payload.endDate = editEndDate;
-      const response = await api.patch(`/trainer/challenges/${id}`, payload);
-      setChallenge(response.data);
-      showToast('Campeonato atualizado!', 'success');
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveWeekly = async (changes) => {
-    const response = await api.patch(`/trainer/challenges/${id}`, changes);
-    setChallenge(response.data);
-    showToast('Campeonato atualizado!', 'success');
-  };
-
-  const handleCloseEarly = async () => {
-    const { data } = await api.post(`/trainer/challenges/${id}/close`);
-    const { closesAt: closeInstant, ...updated } = data;
-    setChallenge(updated);
-    setClosesAt(closeInstant);
-    showToast('Campeonato vai encerrar no fechamento desta semana.', 'success');
-    return { closesAt: closeInstant };
-  };
-
-  const handleCancelWeekly = async () => {
-    await api.post(`/trainer/challenges/${id}/cancel`);
-    showToast('Campeonato cancelado.', 'success');
-    navigate('/trainer/challenges');
-  };
-
-  const handleDeleteWeekly = async () => {
-    await api.delete(`/trainer/challenges/${id}`);
-    showToast('Campeonato excluído.', 'success');
-    navigate('/trainer/challenges');
-  };
-
-  const handleTabChange = (next) => {
-    const leave = () => {
-      if (selectionMode) handleExitSelection();
-      setTab(next);
-    };
-    if (!(tab === 'config' && settingsDirty && next !== 'config')) {
-      leave();
-      return;
-    }
-    setConfirmDialog({ message: DISCARD_MESSAGE, onConfirm: () => { setConfirmDialog(null); setSettingsDirty(false); leave(); } });
-  };
-
-  const handleBack = () => {
-    if (!(tab === 'config' && settingsDirty)) {
-      navigate('/trainer/challenges');
-      return;
-    }
-    setConfirmDialog({ message: DISCARD_MESSAGE, onConfirm: () => { setConfirmDialog(null); navigate('/trainer/challenges'); } });
-  };
-
-  const handleSavePoints = async (newValues) => {
-    setPointsSaving(true);
-    try {
-      const { anonymousRanking: anon, ...pts } = newValues;
-      const payload = { ...pts, anonymousRanking: !!anon };
-      const response = await api.patch(`/trainer/challenges/${id}`, payload);
-      setChallenge(response.data);
-      setShowPointsSheet(false);
-      showToast('Pontuação atualizada!', 'success');
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setPointsSaving(false);
-    }
-  };
-
-  const handleRemoveParticipant = (participant) => {
-    const name = getStudentFullName(participant);
-    setConfirmDialog({
-      message: `Remover ${name} do campeonato?`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await api.delete(`/trainer/challenges/${id}/participants/${participant.studentId}`);
-          await Promise.all([loadParticipants(), loadChallenge()]);
-          showToast('Participante removido.', 'success');
-        } catch (error) {
-          showToast(error.userMessage || translateError(error), 'error');
-        }
-      },
-    });
-  };
-
-  const toggleAddStudent = (studentId) => {
-    setAddSelected((prev) =>
-      prev.includes(studentId) ? prev.filter((x) => x !== studentId) : [...prev, studentId]
-    );
-  };
-
-  const handleAddParticipants = async () => {
-    if (addSelected.length === 0) return;
-    setAddingParticipants(true);
-    try {
-      await api.post(`/trainer/challenges/${id}/participants`, { studentIds: addSelected });
-      setAddSelected([]);
-      setShowAddModal(false);
-      await Promise.all([loadParticipants(), loadChallenge()]);
-      showToast('Participantes adicionados.', 'success');
-    } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
-    } finally {
-      setAddingParticipants(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div>
-        <div className="skeleton skeleton-title" />
-        <div className="skeleton skeleton-card" />
-      </div>
-    );
-  }
-
-  if (!challenge) {
-    return (
-      <div>
-        <p className="text-muted">Campeonato não encontrado.</p>
-      </div>
-    );
-  }
-
-  const participantIdSet = new Set(participants.map((p) => p.studentId));
-  const selectableStudents = students.filter((s) => !participantIdSet.has(s.id));
-  const canDelete = challenge.status === CHALLENGE_STATUS.SCHEDULED;
-  const canCancel = challenge.status === CHALLENGE_STATUS.SCHEDULED || challenge.status === CHALLENGE_STATUS.ACTIVE;
-  const canEditEndDate = challenge.status === CHALLENGE_STATUS.SCHEDULED || challenge.status === CHALLENGE_STATUS.ACTIVE;
-  const canEditPoints = challenge.status === CHALLENGE_STATUS.SCHEDULED;
-  const badgeClass = CHALLENGE_STATUS_BADGE[challenge.status] || 'badge-gray';
-
-  const challengePtsValues = { ...extractPtsValues(challenge), anonymousRanking: !!challenge.anonymousRanking };
-  const hasConfigChanges = editName !== challenge.name || editEndDate !== challenge.endDate;
-
-  const getReadOnlyBanner = () => {
-    if (challenge.status === CHALLENGE_STATUS.ACTIVE) {
-      return 'Não é possível alterar as regras com o campeonato em andamento.';
-    }
-    if (challenge.status === CHALLENGE_STATUS.COMPLETED || challenge.status === CHALLENGE_STATUS.CANCELLED) {
-      return 'Campeonato encerrado.';
-    }
-    return null;
-  };
-
+  const known = useKnownChallenge(id);
+  const data = useChallengeDetailData(id, useConsistencyRankingAccess());
+  const writes = useChallengeWrites(id, data);
+  const actions = usePageActions(data, writes, navigate);
+  const { resource, challenge, consistency } = data;
+  if (resource.status !== 'ready') return <ResourceState status={resource.status} known={known} onBack={() => navigate(LIST_PATH)} />;
+  const view = { challenge, data, writes, readOnly: READ_ONLY_STATUSES.includes(challenge.status), actions };
+  const closeLabel = consistency.data?.closesAt ? formatCloseLabel(consistency.data.closesAt, data.timeZone) : undefined;
   return (
-    <div>
-      {selectionMode ? (
-        <div className="bulk-bar" role="toolbar" aria-label="Seleção em massa">
-          <button type="button" className="bulk-bar__btn" onClick={handleExitSelection}>Cancelar</button>
-          <span className="bulk-bar__count">{selectedIds.length} selecionado(s)</span>
-          <button
-            type="button"
-            className="bulk-bar__btn"
-            onClick={() => setShowBulkSheet(true)}
-            disabled={selectedIds.length === 0}
-          >
-            Dar bônus
-          </button>
-        </div>
-      ) : (
-        <div className="page-header" style={{ marginBottom: 'var(--spacing-lg)' }}>
-          <button
-            type="button"
-            onClick={handleBack}
-            className="btn-back"
-            aria-label="Voltar para campeonatos"
-          >
-            <ArrowLeft size={16} strokeWidth={1.6} /> Campeonatos
-          </button>
-        </div>
-      )}
-
-      {!selectionMode && (
-        <div className="card card--mb">
-          <div className="card-header">
-            <h1 className="card-title" style={{ marginBottom: 0 }}>{challenge.name}</h1>
-            <span className={`badge ${badgeClass}`}>{CHALLENGE_STATUS_LABEL[challenge.status]}</span>
-          </div>
-          <div className="date-display text-sm text-muted">
-            <Calendar size={14} strokeWidth={2} aria-hidden="true" />
-            {formatDateForDisplay(challenge.startDate)}
-            <span className="date-display__divider">—</span>
-            {formatDateForDisplay(challenge.endDate)}
-          </div>
-          <p className="text-sm text-light">{challenge.participantCount} participantes</p>
-        </div>
-      )}
-
-      <div className="segmented-toggle">
-        {(isWeekly ? WEEKLY_TABS : TABS).map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            className={`segmented-toggle-btn${tab === t.key ? ' segmented-toggle-btn--active' : ''}`}
-            onClick={() => handleTabChange(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {tab === STANDINGS_TAB && isWeekly && (
-        <ChallengeConsistencyTab
-          data={consistency.data}
-          loading={consistency.loading}
-          error={consistency.error}
-          onRetry={consistency.reload}
-          onOpenStudent={setOpenStudent}
-          timeZone={timeZone}
-        />
-      )}
-
-      {/* Ranking Tab */}
-      {tab === 'ranking' && (
-        rankingLoading
-          ? <SkeletonRows />
-          : <RankingList entries={ranking} onRowTap={handleRankingRowTap} showPodium={!isWeekly} />
-      )}
-
-      {/* Participants Tab */}
-      {tab === 'participants' && (
-        <>
-          <div className="btn-group" style={{ marginBottom: 'var(--spacing-lg)' }}>
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => setShowAddModal(true)}
-            >
-              <Plus size={16} strokeWidth={1.6} /> Adicionar
-            </button>
-            {!selectionMode && participants.length > 0 && (
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={handleStartSelection}
-              >
-                Selecionar
-              </button>
-            )}
-          </div>
-
-          {participantsLoading && <SkeletonRows />}
-
-          {!participantsLoading && participants.length === 0 && (
-            <div className="empty-state"><p className="empty-state-title">Nenhum participante.</p></div>
-          )}
-
-          {!participantsLoading && participants.length > 0 && (
-            <ul className="participant-list">
-              {participants.map((p) => {
-                const isSelected = selectedIds.includes(p.studentId);
-                return (
-                  <li
-                    key={p.id}
-                    className={`participant-row${selectionMode ? ' participant-row--selectable' : ''}${isSelected ? ' participant-row--selected' : ''}`}
-                    onClick={selectionMode ? () => handleToggleParticipant(p.studentId) : undefined}
-                  >
-                    {selectionMode && (
-                      <span
-                        className={`ranking-row__check${isSelected ? ' ranking-row__check--on' : ''}`}
-                        aria-hidden="true"
-                      >
-                        {isSelected && <Check size={14} strokeWidth={2.5} />}
-                      </span>
-                    )}
-                    <div style={{ flex: 1 }}>
-                      <span>{getStudentFullName(p)}</span>
-                      {p.points != null && (
-                        <span className="text-sm text-muted" style={{ display: 'block' }}>{p.points} pts</span>
-                      )}
-                    </div>
-                    {!selectionMode && (
-                      <RowMenu
-                        ariaLabel={`Ações para ${getStudentFullName(p)}`}
-                        onDelete={() => handleRemoveParticipant(p)}
-                        deleteLabel="Remover do campeonato"
-                      />
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </>
-      )}
-
-      {tab === 'config' && isWeekly && (
-        <ChallengeWeeksSettings
-          challenge={challenge}
-          timeZone={timeZone}
-          closesAt={closesAt ?? consistency.data?.closesAt ?? null}
-          onSave={handleSaveWeekly}
-          onCloseEarly={handleCloseEarly}
-          onCancel={handleCancelWeekly}
-          onDelete={handleDeleteWeekly}
-          onDirtyChange={setSettingsDirty}
-        >
-          <PointsSummaryCard
-            values={challengePtsValues}
-            showDiff={false}
-            editable={canEditPoints}
-            onAction={() => setShowPointsSheet(true)}
-          />
-        </ChallengeWeeksSettings>
-      )}
-
-      {/* Config Tab */}
-      {tab === 'config' && !isWeekly && (
-        <form onSubmit={handleSaveEdit} className="form">
-          <div className="card card--mb">
-            <div className="form-group">
-              <label className="form-label" htmlFor="edit-name">Nome</label>
-              <input
-                id="edit-name"
-                type="text"
-                className="form-input"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value.slice(0, CHALLENGE_NAME_MAX_LENGTH))}
-                maxLength={CHALLENGE_NAME_MAX_LENGTH}
-                disabled={saving}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="edit-startDate">Data de início</label>
-              <input
-                id="edit-startDate"
-                type="text"
-                className="form-input"
-                value={formatDateForDisplay(challenge.startDate)}
-                disabled
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="edit-endDate">Data de término</label>
-              <DateInput
-                id="edit-endDate"
-                value={editEndDate}
-                onChange={(e) => setEditEndDate(e.target.value)}
-                className="form-input"
-                disabled={saving || !canEditEndDate}
-              />
-              {!canEditEndDate && (
-                <span className="text-sm text-muted">Campeonato encerrado. Não é possível editar.</span>
-              )}
-            </div>
-          </div>
-
-          <PointsSummaryCard
-            values={challengePtsValues}
-            showDiff={false}
-            editable={canEditPoints}
-            onAction={() => setShowPointsSheet(true)}
-          />
-
-          <div className="btn-group mt-lg">
-            <button type="submit" className="btn-primary" disabled={saving || !canEditEndDate || !hasConfigChanges}>
-              {saving ? 'Salvando...' : 'Salvar configuração'}
-            </button>
-          </div>
-
-          {(canCancel || canDelete) && (
-            <>
-              <hr className="separator" />
-              <div>
-                <h3 className="text-sm font-medium danger-zone-title">Zona de perigo</h3>
-                <div className="btn-group">
-                  {canCancel && (
-                    <button type="button" className="btn-danger" onClick={handleCancelChallenge}>
-                      Cancelar campeonato
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button type="button" className="btn-danger" onClick={handleDeleteChallenge}>
-                      Excluir campeonato
-                    </button>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </form>
-      )}
-
-      {/* Points BottomSheet */}
-      {showPointsSheet && (
-        <PointsBottomSheet
-          mode={canEditPoints ? 'editable' : 'readOnly'}
-          values={challengePtsValues}
-          template={trainerTemplate}
-          onSave={handleSavePoints}
-          onClose={() => setShowPointsSheet(false)}
-          saving={pointsSaving}
-          bannerText={!canEditPoints ? getReadOnlyBanner() : undefined}
-        />
-      )}
-
-      {openStudent && (
-        <StudentPanel
-          studentId={openStudent.studentId}
-          studentName={openStudent.name}
-          closeLabel={consistency.data?.closesAt ? formatCloseLabel(consistency.data.closesAt, timeZone) : undefined}
-          onClose={() => setOpenStudent(null)}
-          onChanged={consistency.reload}
-        />
-      )}
-
-      {/* StudentBonusSheet */}
-      {bonusStudent && (
-        <StudentBonusSheet
-          student={bonusStudent}
-          onAward={handleAwardBonus}
-          onClose={() => setBonusStudent(null)}
-          disabled={bonusSubmitting}
-        />
-      )}
-
-      {/* Bulk Bonus Sheet */}
-      {showBulkSheet && (
-        <div className="overlay">
-          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="bottom-sheet-header">
-              <h3 className="bottom-sheet-title">
-                Dar bônus para {selectedIds.length} aluno(s)
-              </h3>
-              <button
-                type="button"
-                className="bottom-sheet-close"
-                onClick={() => !bulkSubmitting && setShowBulkSheet(false)}
-                aria-label="Fechar"
-              >&times;</button>
-            </div>
-            <div className="bottom-sheet-body">
-              <BonusChipGrid onAward={handleAwardBulkBonus} disabled={bulkSubmitting} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add participants modal */}
-      {showAddModal && (
-        <div className="overlay">
-          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="bottom-sheet-header">
-              <h3 className="bottom-sheet-title">Adicionar participantes</h3>
-              <button
-                type="button"
-                className="bottom-sheet-close"
-                onClick={() => setShowAddModal(false)}
-                aria-label="Fechar"
-              >&times;</button>
-            </div>
-            <div className="bottom-sheet-body">
-              {selectableStudents.length === 0 ? (
-                <p className="text-muted">Todos os seus alunos já estão neste campeonato.</p>
-              ) : (
-                <div className="checkbox-list">
-                  {selectableStudents.map((s) => (
-                    <label key={s.id} className="checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={addSelected.includes(s.id)}
-                        onChange={() => toggleAddStudent(s.id)}
-                        disabled={addingParticipants}
-                      />
-                      {' '}{`${s.firstName || ''} ${s.lastName || ''}`.trim() || s.email}
-                    </label>
-                  ))}
-                </div>
-              )}
-              <div className="btn-group" style={{ marginTop: 'var(--spacing-lg)' }}>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={handleAddParticipants}
-                  disabled={addingParticipants || addSelected.length === 0}
-                >
-                  {addingParticipants ? 'Adicionando...' : 'Adicionar'}
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setShowAddModal(false)}
-                  disabled={addingParticipants}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirm Dialog */}
-      {confirmDialog && (
-        <div className="overlay">
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-dialog-message">{confirmDialog.message}</p>
-            <div className="btn-group">
-              <button type="button" onClick={confirmDialog.onConfirm} className="btn-danger" style={{ flex: 1 }}>Confirmar</button>
-              <button type="button" onClick={() => setConfirmDialog(null)} className="btn-secondary" style={{ flex: 1 }}>Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="challenge-detail">
+      <ChallengePageHeader challenge={challenge} today={todayIn(data.timeZone)} showDescription={data.isWeekly} onBack={actions.goBack} onBonus={actions.startBulkBonus} />
+      <Tabs ariaLabel="Seções do campeonato" tabs={data.isWeekly ? WEEKLY_TABS : DATES_TABS} value={data.tab} onChange={actions.changeTab} />
+      <div className="challenge-detail__panel"><TabPanel view={view} /></div>
+      {actions.openStudent && <StudentPanel studentId={actions.openStudent.studentId} studentName={actions.openStudent.name} closeLabel={closeLabel} onClose={() => actions.setOpenStudent(null)} onChanged={consistency.reload} />}
+      {actions.bonusStudent && <BonusSheet student={actions.bonusStudent} onGive={writes.giveSingleBonus} onClose={actions.closeBonus} />}
+      {actions.dialogProps && <ConfirmDialog {...actions.dialogProps} />}
     </div>
   );
 };

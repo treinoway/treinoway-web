@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, waitFor, fireEvent, within } from '../test/test-utils';
 import { render } from '@testing-library/react';
@@ -231,17 +232,25 @@ const STUDENTS = [
   { id: '33333333-3333-3333-3333-333333333333', firstName: 'Caio', lastName: 'Reis', email: 'caio@x.com' },
 ];
 
+const RANKING_RULE = { weights: { workouts: 60, cardio: 40, feedback: 0, hydration: 0, diet: 0 }, activePillars: ['workouts', 'cardio'] };
+
 // GET responses of the weekly form: XP rules, ranking configuration and the trainer's students
 const mockWeeklySources = () => {
   api.get.mockImplementation((url) => {
-    if (url === '/trainer/consistency-ranking/config') return Promise.resolve({ data: { timeZone: 'America/Sao_Paulo', minPodiumWeeks: 2 } });
+    if (url === '/trainer/consistency-ranking/config') return Promise.resolve({ data: { timeZone: 'America/Sao_Paulo', minPodiumWeeks: 2, ...RANKING_RULE } });
     if (url === '/trainer/students') return Promise.resolve({ data: STUDENTS });
     return Promise.resolve({ data: TRAINER_POINTS });
   });
 };
 
-// Values shown on the XP rule cards of the weekly form
-const pointsRules = () => within(screen.getByRole('group', { name: 'Regras de pontos (XP)' }));
+// Types a championship name, which the weekly form now opens empty (CPD-23)
+const typeName = (user, name = 'Verão 2027') => user.type(screen.getByLabelText('Nome'), name);
+
+// Page stand-in that closes the modal through onClose, as the list page does
+const ClosingHost = () => {
+  const [open, setOpen] = useState(true);
+  return <CreateChampionshipModal isOpen={open} onClose={() => setOpen(false)} onCreated={defaultProps.onCreated} />;
+};
 
 // Body of the create request
 const createBody = () => api.post.mock.calls.find(([url]) => url === '/trainer/challenges')[1];
@@ -266,32 +275,30 @@ describe('CreateChampionshipModal', () => {
     const user = userEvent.setup();
     renderModal();
 
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('Sprint Semanal');
+    expect(screen.getByLabelText('Nome')).toHaveValue('');
     expect(screen.getByLabelText('Descrição')).toBeInTheDocument();
     expect(screen.getByLabelText('Segunda de início')).toHaveValue('2026-11-16');
-    expect(screen.getByLabelText('Semanas')).toHaveValue('1');
-    expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('1');
+    expect(screen.getByLabelText('Semanas')).toHaveValue('4');
+    expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('2');
     const participants = screen.getByRole('tablist', { name: 'Participantes' });
-    expect(within(participants).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Todos', 'Filtro', 'Escolhidos']);
+    expect(within(participants).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Todos os alunos', 'Por filtro', 'Selecionar alunos']);
     expect(screen.getByRole('switch', { name: 'Ranking anônimo' })).toHaveAttribute('aria-checked', 'false');
-    expect(await pointsRules().findByText('50')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Editar pontuações' })).toBeInTheDocument();
+    expect(await screen.findByText('Igual ao ranking geral')).toBeInTheDocument();
+    expect(screen.queryByText('Regras de pontos (XP)')).not.toBeInTheDocument();
     expect(screen.queryByText('Sprint de 7 dias')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('tab', { name: 'Campeonato de 4 semanas' }));
-    await user.clear(screen.getByLabelText('Nome do campeonato'));
-    await user.type(screen.getByLabelText('Nome do campeonato'), 'Verão 2027');
+    await typeName(user);
     await user.type(screen.getByLabelText('Descrição'), 'Prêmio: camiseta');
     await user.selectOptions(screen.getByLabelText('Segunda de início'), '2026-11-23');
     await user.selectOptions(screen.getByLabelText('Semanas'), '8');
     await user.selectOptions(screen.getByLabelText('Mínimo para o pódio'), '3');
-    await user.click(within(participants).getByRole('tab', { name: 'Escolhidos' }));
+    await user.click(within(participants).getByRole('tab', { name: 'Selecionar alunos' }));
     await user.click(await screen.findByRole('checkbox', { name: 'Ana Lima' }));
     await user.click(screen.getByRole('checkbox', { name: 'Caio Reis' }));
     await user.click(screen.getByRole('switch', { name: 'Ranking anônimo' }));
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
 
-    await waitFor(() => expect(defaultProps.onCreated).toHaveBeenCalledWith('weekly-1'));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/trainer/challenges/weekly-1'));
     expect(createBody()).toEqual({
       name: 'Verão 2027',
       description: 'Prêmio: camiseta',
@@ -301,17 +308,18 @@ describe('CreateChampionshipModal', () => {
       minPodiumWeeks: 3,
       participantMode: 'explicit',
       studentIds: [STUDENTS[0].id, STUDENTS[2].id],
-      ...TRAINER_POINTS,
       anonymousRanking: true,
+      ...RANKING_RULE,
     });
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  it('CAMP-01 sends the filter of the Filtro mode', async () => {
+  it('CAMP-01 sends the filter of the Por filtro mode', async () => {
     const user = userEvent.setup();
     renderModal();
 
-    await user.click(screen.getByRole('tab', { name: 'Filtro' }));
+    await typeName(user);
+    await user.click(screen.getByRole('tab', { name: 'Por filtro' }));
     await user.selectOptions(screen.getByLabelText('Gênero'), 'female');
     await user.type(screen.getByLabelText('Idade mínima'), '18');
     await user.type(screen.getByLabelText('Cidade'), 'Porto Alegre');
@@ -320,43 +328,28 @@ describe('CreateChampionshipModal', () => {
     await waitFor(() => expect(createBody()).toMatchObject({ participantMode: 'filter', filter: { gender: 'female', minAge: 18, city: 'Porto Alegre' } }));
   });
 
-  it('CAMP-02 fills weeks and point rules from the 1, 2 and 4 week templates', async () => {
+  it('CAMP-02 sets the weeks directly and sends no XP rules, which the service copies from the trainer (CPD-22, CPD-26)', async () => {
     const user = userEvent.setup();
     renderModal();
-    const tabs = within(screen.getByRole('tablist', { name: 'Modelo' })).getAllByRole('tab').map((tab) => tab.textContent);
-    expect(tabs).toEqual(['Sprint de 1 semana', 'Desafio de 2 semanas', 'Campeonato de 4 semanas']);
-    expect(await pointsRules().findByText('10')).toBeInTheDocument();
+    await screen.findByText('Igual ao ranking geral');
 
-    await user.click(screen.getByRole('tab', { name: 'Desafio de 2 semanas' }));
-    expect(screen.getByLabelText('Semanas')).toHaveValue('2');
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('Desafio 2 Semanas');
-    expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('2');
-
-    await user.click(screen.getByRole('button', { name: 'Editar pontuações' }));
-    await user.click(screen.getByRole('button', { name: 'Salvar' }));
-    expect(pointsRules().getByText('20')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('tab', { name: 'Campeonato de 4 semanas' }));
-    expect(screen.getByLabelText('Semanas')).toHaveValue('4');
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveValue('Campeonato de 4 Semanas');
-    expect(pointsRules().queryByText('20')).not.toBeInTheDocument();
-    expect(pointsRules().getByText('10')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('tab', { name: 'Sprint de 1 semana' }));
-    expect(screen.getByLabelText('Semanas')).toHaveValue('1');
+    await typeName(user);
+    await user.selectOptions(screen.getByLabelText('Semanas'), '1');
     expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('1');
-
-    await user.click(screen.getByRole('tab', { name: 'Campeonato de 4 semanas' }));
+    await user.selectOptions(screen.getByLabelText('Semanas'), '6');
+    expect(screen.getByLabelText('Mínimo para o pódio')).toHaveValue('2');
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
-    await waitFor(() => expect(createBody()).toMatchObject({ format: 'weeks', weeks: 4, minPodiumWeeks: 2, participantMode: 'all', ...TRAINER_POINTS }));
+
+    await waitFor(() => expect(createBody()).toMatchObject({ format: 'weeks', weeks: 6, minPodiumWeeks: 2, participantMode: 'all', ...RANKING_RULE }));
+    Object.keys(TRAINER_POINTS).forEach((field) => expect(createBody()).not.toHaveProperty(field));
   });
 
-  it('CAMP-02 wraps the three template options so none is cut at the modal width', () => {
+  it('CAMP-02 shows no template options in the weekly form (CPD-22)', () => {
     renderModal();
 
-    const templates = screen.getByRole('tablist', { name: 'Modelo' });
-    expect(templates).toHaveClass('segmented', 'segmented--wrap');
-    expect(within(templates).getAllByRole('tab')).toHaveLength(3);
+    expect(screen.queryByRole('tablist', { name: 'Modelo' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Sprint de 1 semana')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Editar pontuações' })).not.toBeInTheDocument();
   });
 
   it('CAMP-03 offers the current Monday and the next ones, and 1 to 12 weeks, in the form', () => {
@@ -371,13 +364,13 @@ describe('CreateChampionshipModal', () => {
     const user = userEvent.setup();
     renderModal();
 
-    await user.clear(screen.getByLabelText('Nome do campeonato'));
+    await user.clear(screen.getByLabelText('Nome'));
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
-    expect(screen.getByLabelText('Nome do campeonato')).toHaveClass('input--error');
+    expect(screen.getByLabelText('Nome')).toHaveClass('input--error');
     expect(screen.getByRole('alert')).toHaveTextContent('Informe o nome do campeonato.');
     expect(api.post).not.toHaveBeenCalledWith('/trainer/challenges', expect.anything());
 
-    await user.type(screen.getByLabelText('Nome do campeonato'), 'Verão');
+    await user.type(screen.getByLabelText('Nome'), 'Verão');
     fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'x'.repeat(281) } });
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
     expect(screen.getByLabelText('Descrição')).toHaveClass('input--error');
@@ -393,13 +386,14 @@ describe('CreateChampionshipModal', () => {
     });
     renderModal();
 
+    await typeName(user);
     await user.type(screen.getByLabelText('Descrição'), 'Prêmio');
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Descrição muito longa.');
     expect(screen.getByLabelText('Descrição')).toHaveClass('input--error');
     expect(screen.getByLabelText('Descrição')).toHaveValue('Prêmio');
-    expect(defaultProps.onCreated).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('CAMP-08 shows an empty filter in the participants field', async () => {
@@ -410,11 +404,12 @@ describe('CreateChampionshipModal', () => {
     });
     renderModal();
 
-    await user.click(screen.getByRole('tab', { name: 'Filtro' }));
+    await typeName(user);
+    await user.click(screen.getByRole('tab', { name: 'Por filtro' }));
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Nenhum aluno atende aos critérios do filtro.');
-    expect(screen.getByRole('tab', { name: 'Filtro' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Por filtro' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('CAMP-10 shows the plan error when the plan has no championships and keeps the create button', async () => {
@@ -424,19 +419,20 @@ describe('CreateChampionshipModal', () => {
     });
     renderModal();
 
+    await typeName(user);
     await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Campeonatos não estão disponíveis no seu plano.');
     expect(screen.queryByText('Você não tem permissão para esta ação.')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Criar campeonato' })).toBeEnabled();
-    expect(defaultProps.onCreated).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('CAMP-59 asks before discarding the weekly form with changes on Escape, the close button or the overlay', async () => {
     const user = userEvent.setup();
     const nativeConfirm = vi.spyOn(window, 'confirm');
     renderModal();
-    const overlay = screen.getByText('Criar Campeonato').closest('.bottom-sheet').parentElement;
+    const overlay = screen.getByRole('dialog', { name: 'Novo campeonato' }).parentElement;
 
     await user.type(screen.getByLabelText('Descrição'), 'Prêmio');
 
@@ -485,5 +481,93 @@ describe('CreateChampionshipModal', () => {
 
     await waitFor(() => expect(createBody()).toMatchObject({ name: 'Sprint Semanal', startDate: '2026-11-18', endDate: '2026-11-24', participantMode: 'all' }));
     expect(createBody()).not.toHaveProperty('format');
+  });
+
+  it('CPD-27 asks before discarding unsaved changes on Cancelar and closes directly without changes', async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderModal();
+    expect(screen.getByRole('dialog', { name: 'Novo campeonato' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    unmount();
+    defaultProps.onClose.mockClear();
+
+    renderModal();
+    await typeName(user);
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    const confirm = screen.getByRole('alertdialog');
+    expect(confirm).toHaveTextContent('Há mudanças não salvas. Descartar e sair?');
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+
+    await user.click(within(confirm).getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Nome')).toHaveValue('Verão 2027');
+
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Descartar' }));
+    await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledTimes(1));
+  });
+
+  it('CPD-27 asks before discarding unsaved changes when the modal closes by the X, the overlay or Escape', async () => {
+    const user = userEvent.setup();
+    renderModal();
+    await typeName(user);
+    const modal = screen.getByRole('dialog', { name: 'Novo campeonato' });
+    const keepEditing = async () => {
+      const confirm = screen.getByRole('alertdialog');
+      expect(confirm).toHaveTextContent('Há mudanças não salvas. Descartar e sair?');
+      expect(defaultProps.onClose).not.toHaveBeenCalled();
+      await user.click(within(confirm).getByRole('button', { name: 'Cancelar' }));
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    };
+
+    await user.click(within(modal).getByRole('button', { name: 'Fechar' }));
+    await keepEditing();
+
+    await user.click(modal.parentElement);
+    await keepEditing();
+
+    await user.click(screen.getByLabelText('Nome'));
+    await user.keyboard('{Escape}');
+    await keepEditing();
+
+    expect(screen.getByLabelText('Nome')).toHaveValue('Verão 2027');
+    await user.click(within(modal).getByRole('button', { name: 'Fechar' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Descartar' }));
+    await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledTimes(1));
+  });
+
+  it('CPD-28 closes, shows "Campeonato criado!" and opens the new championship', async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><ClosingHost /></MemoryRouter>);
+    await screen.findByText('Igual ao ranking geral');
+
+    await typeName(user);
+    await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Novo campeonato' })).not.toBeInTheDocument());
+    expect(mockShowToast).toHaveBeenCalledWith('Campeonato criado!', 'success');
+    expect(mockNavigate).toHaveBeenCalledWith('/trainer/challenges/weekly-1');
+  });
+
+  it('CPD-83 keeps the dates form for a trainer without the weekly format', async () => {
+    const user = userEvent.setup();
+    signInOnProduction(['TRAINER']);
+    renderModal();
+
+    expect(screen.queryByRole('dialog', { name: 'Novo campeonato' })).not.toBeInTheDocument();
+    expect(screen.getByText('Criar Campeonato')).toBeInTheDocument();
+    expect(screen.getByText('Sprint de 7 dias')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Personalizar do zero/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Segunda de início')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Pontuação' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
+
+    await waitFor(() => expect(createBody()).toMatchObject({ name: 'Sprint Semanal', startDate: '2026-11-18', endDate: '2026-11-24', participantMode: 'all' }));
+    expect(createBody()).not.toHaveProperty('weights');
+    await waitFor(() => expect(defaultProps.onCreated).toHaveBeenCalledWith('weekly-1'));
   });
 });

@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import { AlertTriangle, Pause, Search, Zap } from 'lucide-react';
-import Segmented from '../ds/Segmented';
+import Tabs from '../ds/Tabs';
 import { STANDINGS_FILTER, STANDINGS_FILTER_OPTIONS, STANDINGS_TAB, STANDINGS_TAB_OPTIONS } from '../../constants/consistencyRanking';
 
-// Tab options in the shape of the segmented control
+// Tab options in the shape of the underline tabs
 const TAB_ITEMS = STANDINGS_TAB_OPTIONS.map((option) => ({ id: option.value, label: option.label }));
 
 const FILTER_ICONS = Object.freeze({
@@ -55,7 +55,7 @@ const StandingsToolbar = ({ tab, onTabChange, filter, onFilterChange, query, onQ
   return (
     <div className="consistency-toolbar">
       <div className="consistency-toolbar__head">
-        <Segmented ariaLabel="Visão do ranking" items={TAB_ITEMS} value={tab} onChange={onTabChange} />
+        <Tabs ariaLabel="Visão do ranking" tabs={TAB_ITEMS} value={tab} onChange={onTabChange} />
         {isCurrentTab && (
           <div className="input--search-wrap consistency-toolbar__search">
             <Search size={16} strokeWidth={2} aria-hidden="true" />

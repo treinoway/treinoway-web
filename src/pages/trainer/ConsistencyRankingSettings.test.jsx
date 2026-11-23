@@ -95,6 +95,15 @@ describe('ConsistencyRankingSettings', () => {
     mockApi();
   });
 
+  it('CPD-71 draws "Restaurar padrões" in the header as the DS neutral button, with a border (AD-062)', async () => {
+    renderPage();
+    await waitForPage();
+
+    const restore = screen.getByRole('button', { name: 'Restaurar padrões' });
+    expect(restore).toHaveClass('btn', 'btn--neutral');
+    expect(restore).not.toHaveClass('btn--secondary');
+  });
+
   it('PAN-37 shows the current season with the end action, the durations and the close note', async () => {
     renderPage();
     await waitForPage();

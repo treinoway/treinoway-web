@@ -1,4 +1,4 @@
-import { PILLAR, PILLAR_LABELS, PILLAR_ORDER } from '../constants/consistencyRanking';
+import { PILLAR, PILLAR_LABELS, PILLAR_ORDER, WEIGHT_TOTAL } from '../constants/consistencyRanking';
 
 const PERCENT = 100;
 const DECIMAL_FACTOR = 10;
@@ -37,3 +37,9 @@ export const effectiveWeightsPhrase = (weights, activePillars) => {
   const shares = PILLAR_ORDER.filter((pillar) => activePillars.includes(pillar)).map((pillar) => `${PILLAR_LABELS[pillar]} ${percentText(percents[pillar])}`);
   return `Peso efetivo com ${offPillarsText(offPillars)}: ${shares.join(' · ')}`;
 };
+
+// Sum of the five pillar weights
+export const weightSumOf = (weights) => PILLAR_ORDER.reduce((total, pillar) => total + (weights[pillar] || 0), 0);
+
+// Whether a scoring rule can be saved: weights summing 100 and at least one active pillar
+export const isScoringRuleValid = (weights, activePillars) => weightSumOf(weights) === WEIGHT_TOTAL && activePillars.length > 0;

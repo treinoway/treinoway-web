@@ -254,6 +254,40 @@ describe('StudentPanel', () => {
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
   });
 
+  it('CPD-71 draws the week actions, the message edit and the modal cancels as DS neutral buttons (AD-062)', async () => {
+    const user = userEvent.setup();
+    await renderPanel();
+
+    ['Pausar semana', 'Ajustar meta', 'Editar'].forEach((name) => {
+      expect(screen.getByRole('button', { name })).toHaveClass('btn', 'btn--neutral');
+      expect(screen.getByRole('button', { name })).not.toHaveClass('btn--secondary');
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Pausar semana' }));
+    const pauseDialog = await screen.findByRole('dialog', { name: 'Pausar semana' });
+    expect(within(pauseDialog).getByRole('button', { name: 'Cancelar' })).toHaveClass('btn', 'btn--neutral');
+    await user.click(within(pauseDialog).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Pausar semana' })).not.toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'Ajustar meta' }));
+    const adjustDialog = await screen.findByRole('dialog', { name: 'Ajustar meta' });
+    expect(within(adjustDialog).getByRole('button', { name: 'Cancelar' })).toHaveClass('btn', 'btn--neutral');
+  });
+
+  it('CPD-71 draws "Desfazer pausa" as the DS neutral button (AD-062)', async () => {
+    api.get.mockResolvedValue({ data: buildPanel({ pause: { weekStart: '2026-11-02', reason: 'viagem' } }) });
+    await renderPanel();
+    expect(screen.getByRole('button', { name: 'Desfazer pausa' })).toHaveClass('btn', 'btn--neutral');
+  });
+
+  it('CPD-71 draws the retry of a failed panel load as the DS neutral button (AD-062)', async () => {
+    api.get.mockRejectedValueOnce(Object.assign(new Error('falha'), { userMessage: 'Não foi possível carregar o aluno.' }));
+    render(<StudentPanel studentId={STUDENT_ID} studentName="João V." seasonNumber={3} onClose={vi.fn()} />);
+
+    await screen.findByRole('alert');
+    expect(screen.getByRole('button', { name: 'Tentar de novo' })).toHaveClass('btn', 'btn--neutral');
+  });
+
   it('PAN-27 closes with the close button and with Esc', async () => {
     const user = userEvent.setup();
     const { onClose } = await renderPanel();

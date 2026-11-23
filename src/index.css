@@ -9030,73 +9030,6 @@ button.auth-forgot-link:disabled {
 }
 
 /* ============================================
-   Championship Cards
-   ============================================ */
-.championship-progress {
-  margin-top: var(--spacing-sm);
-}
-
-.championship-progress-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--font-caption-size);
-  color: var(--color-on-surface-variant);
-}
-
-.championship-progress-bar {
-  height: 4px;
-  margin-top: var(--spacing-xs);
-  border-radius: var(--radius-full);
-  background: var(--color-surface-container-high);
-  overflow: hidden;
-}
-
-.championship-progress-fill {
-  height: 100%;
-  border-radius: var(--radius-full);
-  background: var(--color-primary);
-  transition: width 0.3s ease;
-}
-
-.championship-alert {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  background: var(--color-error-container);
-}
-
-.championship-alert-text {
-  font-size: var(--font-caption-size);
-  color: var(--color-error);
-}
-
-.championship-alert-action {
-  font-size: var(--font-caption-size);
-  font-weight: 600;
-  color: var(--color-error);
-  background: none;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-  padding: 0;
-}
-
-.championship-alert-action:hover {
-  text-decoration: underline;
-}
-
-.championship-card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: var(--spacing-sm);
-}
-
-/* ============================================
    Protocol Template Wizard
    ============================================ */
 .wizard-shell {
@@ -15875,7 +15808,7 @@ button.auth-forgot-link:disabled {
 .section-card.section-card--compact { padding: var(--spacing-sm); }
 
 /* ── Button (§4.2) ─────────────────────────────────────────── */
-.btn:is(.btn--primary, .btn--secondary, .btn--ghost, .btn--conversion, .btn--danger) {
+.btn:is(.btn--primary, .btn--secondary, .btn--neutral, .btn--ghost, .btn--conversion, .btn--danger) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -15898,12 +15831,12 @@ button.auth-forgot-link:disabled {
 }
 
 @media (min-width: 768px) {
-  .btn:is(.btn--primary, .btn--secondary, .btn--ghost, .btn--conversion, .btn--danger) {
+  .btn:is(.btn--primary, .btn--secondary, .btn--neutral, .btn--ghost, .btn--conversion, .btn--danger) {
     min-height: var(--size-control);
   }
 }
 
-.btn:is(.btn--primary, .btn--secondary, .btn--ghost, .btn--conversion, .btn--danger):focus-visible {
+.btn:is(.btn--primary, .btn--secondary, .btn--neutral, .btn--ghost, .btn--conversion, .btn--danger):focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
@@ -15921,6 +15854,25 @@ button.auth-forgot-link:disabled {
 .btn--secondary:active:not(:disabled) {
   background: var(--background-brand-subtle);
   border-color: var(--action-primary-default);
+}
+
+/* Neutral button of the company design system ("Neutro" in ds-componentes.png): white, visible border, dark text.
+   deviation: not in the web skill's button list; the binding championship captures draw it for supporting actions. */
+.btn.btn--neutral {
+  background: var(--background-surface);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+.btn.btn--neutral:hover:not(:disabled) { background: var(--background-surface-elevated); }
+.btn.btn--neutral:active:not(:disabled) {
+  background: var(--background-surface-elevated);
+  border-color: var(--border-strong);
+}
+.btn.btn--neutral:disabled {
+  background: var(--action-primary-disabled);
+  border-color: transparent;
+  color: var(--text-disabled);
+  cursor: not-allowed;
 }
 
 .btn--ghost { background: transparent; color: var(--text-brand); }
@@ -16163,6 +16115,73 @@ textarea.input {
 .segmented--wrap .segmented-item {
   flex: 1 1 auto;
   justify-content: center;
+}
+
+/* ── Underline tabs (ds/Tabs) ──────────────────────────────── */
+.ds-tabs {
+  display: flex;
+  max-width: 100%;
+  gap: var(--spacing-xl);
+  border-bottom: 1px solid var(--border-default);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ds-tabs::-webkit-scrollbar { display: none; }
+
+.ds-tabs__item {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: var(--size-control-touch);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-body);
+  font-weight: 400;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.ds-tabs__item:hover { color: var(--text-primary); }
+.ds-tabs__item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ds-tabs__item--active { color: var(--text-brand); font-weight: 600; }
+
+.ds-tabs__item--active::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: var(--spacing-2xs);
+  background: var(--action-primary-default);
+}
+
+.ds-tabs__count {
+  display: inline-flex;
+  justify-content: center;
+  min-width: calc(var(--spacing-lg) + var(--spacing-xs));
+  padding: 0 var(--spacing-xs);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: var(--background-surface);
+  color: var(--text-secondary);
+  font-size: var(--font-size-12);
+  line-height: var(--line-height-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-tabs__item--active .ds-tabs__count {
+  border-color: transparent;
+  background: var(--background-brand-subtle);
+  color: var(--text-brand);
 }
 
 /* ── Toggle (§4.7) ─────────────────────────────────────────── */
@@ -20166,6 +20185,7 @@ select.input { cursor: pointer; }
 @media (min-width: 768px) {
   .consistency-toolbar__head { flex-direction: row; align-items: center; justify-content: space-between; }
   .consistency-toolbar__search { flex: 0 1 calc(var(--spacing-5xl) * 5); }
+  .consistency-toolbar__head .ds-tabs { flex: 1 1 auto; }
 }
 
 .consistency-table__scroll { overflow-x: auto; }
@@ -20432,6 +20452,247 @@ select.input { cursor: pointer; }
   color: var(--feedback-warning-text);
 }
 .settings-weights { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.pillar-weights-editor { display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; margin: 0; padding: 0; border: 0; }
+/* Weekly championship form: start Monday and weeks side by side, actions on the right */
+.weekly-form__pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-md); }
+.weekly-form__actions { justify-content: flex-end; padding-bottom: var(--spacing-md); }
+/* Championship scoring section: summary against the general ranking and the pillar editor */
+.scoring-section { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.scoring-section__summary { display: flex; flex-direction: column; gap: var(--spacing-sm); padding: var(--spacing-md); border-radius: var(--radius-lg); background: var(--background-surface-elevated); }
+.scoring-section__text { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
+.scoring-section__shares { color: var(--text-secondary); }
+.scoring-section__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+@media (min-width: 768px) {
+  .scoring-section__summary { flex-direction: row; align-items: center; justify-content: space-between; }
+  .scoring-section__actions { flex-shrink: 0; }
+}
+/* Pill choices of the company design system (Participantes in ds-novo-campeonato.png): the chosen one filled blue, the others outlined */
+.choice-pills { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+.choice-pill {
+  min-height: var(--size-control-touch);
+  padding: var(--spacing-xs) var(--spacing-lg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: var(--background-surface);
+  color: var(--text-secondary);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+.choice-pill:hover:not(:disabled) { background: var(--background-surface-elevated); }
+.choice-pill:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.choice-pill:disabled { color: var(--text-disabled); cursor: not-allowed; }
+.choice-pill.choice-pill--selected,
+.choice-pill.choice-pill--selected:hover:not(:disabled) {
+  border-color: var(--action-primary-default);
+  background: var(--action-primary-default);
+  color: var(--text-inverse);
+  font-weight: 600;
+}
+@media (min-width: 768px) {
+  .choice-pill { min-height: var(--size-control); }
+}
+/* Championship detail header: back link, page title without card, status tag with dates, description and "Dar bônus" */
+.challenge-header { display: flex; flex-direction: column; gap: var(--spacing-lg); margin-bottom: var(--spacing-lg); }
+.challenge-header__back {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: var(--size-control-touch);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-link);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  cursor: pointer;
+}
+.challenge-header__back:hover { color: var(--action-primary-hover); }
+.challenge-header__back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.challenge-header__main { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.challenge-header__identity { display: flex; flex-direction: column; gap: var(--spacing-sm); min-width: 0; }
+.challenge-header__title { color: var(--text-primary); overflow-wrap: anywhere; }
+.challenge-header__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); color: var(--text-secondary); }
+.challenge-header__description { margin: 0; color: var(--text-secondary); }
+@media (min-width: 768px) {
+  .challenge-header__main { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+  .challenge-header__main > .btn { flex-shrink: 0; }
+}
+/* Championship podium: 2nd, 1st, 3rd as white cards, the leader raised on the brand-subtle surface; stacked under 768px */
+.championship-podium { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-md); margin: 0; padding: 0; list-style: none; }
+.championship-podium__place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  border-radius: var(--radius-xl);
+  background: var(--background-surface);
+  text-align: center;
+}
+.championship-podium__place--leader { background: var(--background-brand-subtle); }
+.championship-podium__medal { display: inline-flex; align-items: center; gap: var(--spacing-xs); color: var(--text-secondary); }
+.championship-podium__place--leader .championship-podium__medal { color: var(--text-brand); }
+.championship-podium__place--leader .avatar { background: var(--background-surface); }
+.championship-podium__name { color: var(--text-primary); }
+.championship-podium__score { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.championship-podium__support { color: var(--text-secondary); }
+@media (min-width: 768px) {
+  .championship-podium { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: var(--spacing-lg); }
+  .championship-podium__place--leader { padding-bottom: var(--spacing-3xl); }
+}
+/* Championship tabs: KPI cards on the page background, titled blocks, search and the table drawn as white rounded rows */
+.championship-tab { display: flex; flex-direction: column; gap: var(--spacing-xl); }
+.championship-tab .metric-grid { margin-bottom: 0; }
+.championship-kpis .metric-card { background: var(--background-surface); }
+.championship-kpis .metric-card-label { font-weight: 400; color: var(--text-secondary); }
+.challenge-locked-notice { margin-bottom: 0; }
+.championship-block { display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0; }
+.championship-block__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--spacing-sm); }
+.championship-block__titles { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; }
+.championship-block__eyebrow { color: var(--text-secondary); }
+.championship-block__title { margin: 0; color: var(--text-primary); }
+.championship-block__note,
+.championship-block__count { margin: 0; color: var(--text-secondary); }
+.championship-block__empty { margin: 0; padding: var(--spacing-xl) var(--spacing-lg); border-radius: var(--radius-lg); background: var(--background-surface); color: var(--text-secondary); text-align: center; }
+.championship-state__actions { justify-content: center; margin-top: var(--spacing-md); }
+/* Loading detail: skeleton bars a step darker than the page background, as ds-campeonato-carregando.png */
+.challenge-loading .row-skeleton,
+.challenge-loading .skeleton-text-line { background: var(--border-default); }
+.challenge-loading .challenge-header { margin-bottom: 0; }
+.championship-tab .empty-block__icon { background: var(--background-brand-subtle); color: var(--icon-brand); }
+.challenge-table { border-collapse: separate; border-spacing: 0 var(--spacing-sm); }
+.challenge-table th { border-bottom: 0; padding-top: 0; padding-bottom: 0; font-weight: 400; }
+.challenge-table thead th:last-child { background: transparent; text-align: left; }
+.challenge-table td { border-bottom: 0; background: var(--background-surface); }
+.challenge-table td:first-child { border-radius: var(--radius-lg) 0 0 var(--radius-lg); }
+.challenge-table td:last-child { border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
+.challenge-table .consistency-row:hover { background: transparent; }
+.challenge-table .consistency-row:hover td { background: var(--background-surface-elevated); }
+.challenge-search.section-card--compact { padding: var(--spacing-sm); }
+/* XP bulk selection: row checkbox and the floating "N selecionados · Dar bônus · Cancelar" bar */
+.challenge-table__check { width: var(--spacing-lg); height: var(--spacing-lg); accent-color: var(--action-primary-default); cursor: pointer; }
+.challenge-bulk-bar {
+  position: sticky;
+  bottom: var(--spacing-lg);
+  z-index: var(--z-sticky);
+  display: flex;
+  align-self: center;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: var(--background-inverse);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-overlay);
+}
+.challenge-bulk-bar__button {
+  min-height: var(--size-control-touch);
+  padding: 0 var(--spacing-sm);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-inverse);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  cursor: pointer;
+}
+.challenge-bulk-bar__button:disabled { color: var(--text-disabled); cursor: not-allowed; }
+.challenge-bulk-bar__button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+/* Participants tab: white rounded rows with avatar, name, entry line and "Remover" */
+.challenge-participants { display: flex; flex-direction: column; gap: var(--spacing-sm); margin: 0; padding: 0; list-style: none; }
+.challenge-participant { display: flex; align-items: center; gap: var(--spacing-lg); padding: var(--spacing-lg); border-radius: var(--radius-lg); background: var(--background-surface); }
+.challenge-participant__identity { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
+.challenge-participant__meta { color: var(--text-secondary); }
+.challenge-participants__footer { justify-content: flex-end; }
+/* Championship list card: white rounded card, tag opposite the name, dates, progress bar, avatar stack and the stretched "Ver ranking →" */
+.challenge-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-xl);
+  background: var(--background-surface);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.challenge-card:hover { background: var(--background-surface-elevated); }
+.challenge-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--spacing-md); }
+.challenge-card__title { margin: 0; color: var(--text-primary); font-weight: 400; overflow-wrap: anywhere; }
+.challenge-card__dates { display: flex; align-items: center; gap: var(--spacing-xs); margin: 0; color: var(--text-secondary); }
+.challenge-card__dates svg { color: var(--icon-default); }
+.challenge-card__caption { margin: 0; color: var(--text-secondary); }
+.challenge-card__progress { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+.challenge-card__track { height: var(--spacing-xs); border-radius: var(--radius-full); background: var(--chart-track); overflow: hidden; }
+.challenge-card__fill { display: block; height: 100%; border-radius: var(--radius-full); background: var(--action-primary-default); }
+.challenge-card__footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-sm) var(--spacing-md); margin-top: auto; }
+.challenge-card__participants { display: inline-flex; align-items: center; gap: var(--spacing-sm); }
+.challenge-card__avatars { display: inline-flex; }
+.challenge-card__avatars .avatar { width: var(--spacing-xl); height: var(--spacing-xl); outline: var(--spacing-2xs) solid var(--background-surface); }
+.challenge-card__avatars .avatar + .avatar { margin-left: calc(var(--spacing-2xs) * -1); }
+.challenge-card__inactive { color: var(--feedback-warning-text); }
+.challenge-card__action {
+  min-height: var(--size-control-touch);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-link);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-16);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.challenge-card__action:hover { color: var(--action-primary-hover); }
+.challenge-card__action::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-xl); }
+.challenge-card__action:focus-visible { outline: none; }
+.challenge-card__action:focus-visible::after { box-shadow: var(--focus-ring); }
+/* Championships list page: status tabs over a two-column grid of cards; empty states on a white rounded card */
+.challenges-list { margin-top: var(--spacing-xl); }
+.challenges-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-lg); }
+.challenges-empty { border-radius: var(--radius-xl); background: var(--background-surface); }
+.challenges-empty .empty-block__icon { background: var(--background-brand-subtle); color: var(--icon-brand); }
+@media (min-width: 768px) {
+  .challenges-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 768px) {
+  .challenge-card { padding: var(--spacing-xl); }
+}
+/* "Regras de pontuação" card: pillar editor, then each XP rule with its field on the right */
+.scoring-rules-card h2,
+.scoring-rules-card h3 { margin: 0; color: var(--text-primary); }
+.scoring-rules-card__pillars { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.scoring-rules-card__xp { display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0; margin: 0; padding: 0; border: 0; }
+.scoring-rule-row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); }
+.scoring-rule-row__text { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
+.scoring-rule-row__helper { color: var(--text-secondary); }
+.scoring-rule-row__input { flex-shrink: 0; width: calc(var(--spacing-5xl) + var(--spacing-xl)); }
+/* In the card the XP rules are plain rows with a white bordered field, as ds-campeonato-config.png draws them, even while locked */
+.scoring-rules-card .scoring-rule-row { padding: 0; border-radius: 0; background: transparent; }
+.scoring-rules-card .scoring-rule-row__input { text-align: left; }
+.scoring-rules-card .scoring-rule-row__input:disabled { background: var(--background-surface); color: var(--text-primary); }
+/* Pillar rows inside the half-width card: name and switch on top, slider, weight and share below, so the description never breaks word by word */
+.scoring-rules-card .weight-row { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+.scoring-rules-card .weight-row__icon { grid-column: 1; grid-row: 1; }
+.scoring-rules-card .weight-row__identity { grid-column: 2 / span 2; grid-row: 1; }
+.scoring-rules-card .weight-row > .toggle { grid-column: 4; grid-row: 1; justify-self: end; }
+.scoring-rules-card .weight-row__slider { grid-column: 1 / span 2; grid-row: 2; }
+.scoring-rules-card .weight-row__number { grid-column: 3; grid-row: 2; }
+.scoring-rules-card .weight-row__effective { grid-column: 4; grid-row: 2; }
+/* Championship page: header, underline tabs and the panel of the selected tab */
+.challenge-detail__panel { margin-top: var(--spacing-xl); }
+/* Settings tab: "Dados do campeonato" and "Regras de pontuação" side by side from 1024px, "Zona de perigo" full width below */
+.challenge-settings__columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-lg); align-items: start; }
+.challenge-settings__columns h2 { margin: 0; color: var(--text-primary); }
+@media (min-width: 1024px) {
+  .challenge-settings__columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .weights-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .weights-summary__head { display: flex; justify-content: space-between; color: var(--text-primary); }
 .weights-summary__total--invalid { color: var(--feedback-error-text); }
@@ -20447,8 +20708,6 @@ select.input { cursor: pointer; }
 /* ── Consistency ranking: capture fidelity (fix pass) ───────────────── */
 .consistency-summary .metric-card-label {
   font-size: var(--font-size-12);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   color: var(--text-secondary);
 }
 .metric-card-line { display: flex; align-items: baseline; gap: var(--spacing-xs); }
@@ -20460,8 +20719,6 @@ select.input { cursor: pointer; }
 
 .consistency-table th {
   padding-inline: var(--spacing-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .consistency-table td { padding-inline: var(--spacing-sm); }
 .consistency-table .score-bar { min-width: calc(var(--spacing-5xl) * 1.25); }
@@ -20476,8 +20733,6 @@ select.input { cursor: pointer; }
 .consistency-row--risk td,
 .consistency-row--risk td:last-child { background: color-mix(in srgb, var(--feedback-error-bg) 45%, var(--background-surface)); }
 
-.badge.badge--solid { background: var(--action-primary-default); color: var(--text-inverse); }
-
 .pillar-progress__body .score-bar__track,
 .weights-summary .score-bar__track { flex: none; }
 
@@ -20486,6 +20741,13 @@ select.input { cursor: pointer; }
 .ds-drawer-overlay--wide .ds-drawer__header .icon-button { border: 1px solid var(--border-default); }
 .student-panel__actions .btn--secondary,
 .ready-message__actions .btn--secondary { border-color: var(--border-strong); }
+
+/* Ranking de Constância, Configuração do ranking, student panel and championship screens: tags, overlines, KPI labels,
+   table headers and legacy buttons in sentence case (CPD-71, CPD-72). The global .type-overline keeps its uppercase. */
+:is(.consistency-page, .ds-drawer-overlay--wide, .challenge-detail, .challenges-page) :is(.badge, .type-overline, .metric-card-label, .kpi-label, th, .btn-primary, .btn-secondary) {
+  text-transform: none;
+  letter-spacing: normal;
+}
 
 /* ============================================================
    Nutritionist area — patients, plan summary, prescription steps
