@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Calendar, Lock, Search, Users } from 'lucide-react';
+import { Calendar, Lock, Search, Smartphone, Users } from 'lucide-react';
 import Avatar from '../ds/Avatar';
 import Badge from '../ds/Badge';
 import Banner from '../ds/Banner';
@@ -15,7 +15,7 @@ import ChampionshipPodium from './ChampionshipPodium';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
 import { filterParticipantsByName } from '../../utils/challengeDisplay';
 import { dayMonthOf, formatCloseDateLabel, formatCountdown, formatScore } from '../../utils/consistencyFormat';
-import { CHALLENGE_STATUS } from '../../constants/challenge';
+import { CHALLENGE_STATUS, CHALLENGE_VISIBILITY, CHALLENGE_VISIBILITY_OPTIONS } from '../../constants/challenge';
 
 const COLUMN_HEADERS = Object.freeze(['Posição', 'Aluno', 'Faixa', 'Média', 'Semana atual', 'Semanas a 100%', 'Sequência']);
 const NO_VALUE = '—';
@@ -33,6 +33,24 @@ const nameOf = (row) => row.displayName || row.name;
 
 // Closed notice dated with the championship end date (its last Sunday), not the day the standings froze
 const closedNoticeOf = (challenge) => `Campeonato encerrado em ${dayMonthOf(challenge.endDate)}. O ranking é final e não pode ser editado.`;
+
+// Title of the championship visibility in the app, Ranking completo ao vivo when the API sends none
+const visibilityTitleOf = (visibility) => {
+  const chosen = CHALLENGE_VISIBILITY_OPTIONS.find((option) => option.value === visibility);
+  return (chosen ?? CHALLENGE_VISIBILITY_OPTIONS.find((option) => option.value === CHALLENGE_VISIBILITY.FULL)).title;
+};
+
+// "visível no app:" followed by what the students see of this championship in the app (APP-38)
+const AppVisibility = ({ visibility }) => (
+  <p className="championship-visibility type-caption">
+    <Smartphone size={16} strokeWidth={2} aria-hidden="true" />
+    <span>visível no app: <span className="championship-visibility__value type-caption-strong">{visibilityTitleOf(visibility)}</span></span>
+  </p>
+);
+
+AppVisibility.propTypes = {
+  visibility: PropTypes.oneOf(Object.values(CHALLENGE_VISIBILITY)),
+};
 
 // Locked notice of a closed championship, with the lock icon of the design system
 const LockedNotice = ({ children }) => (
@@ -292,7 +310,7 @@ StandingsBody.propTypes = {
   onAddParticipants: PropTypes.func,
 };
 
-// Ranking tab of a weekly championship: consistency cards, podium and classification with search, plus the loading, error, scheduled, empty and closed states (no participants wins over scheduled, CPD-47)
+// Ranking tab of a weekly championship: what the app shows of it, consistency cards, podium and classification with search, plus the loading, error, scheduled, empty and closed states (no participants wins over scheduled, CPD-47)
 const ConsistencyRankingTab = ({ data, loading, error, onRetry, timeZone, now = new Date(), onAdjustRules, onDelete, onAddParticipants, ...actions }) => {
   const { dialogProps, requestConfirm } = useConfirmDialog();
   if (error) return <Banner tone="error" action={<button type="button" className="btn btn--secondary" onClick={onRetry}>Tentar de novo</button>}>{error}</Banner>;
@@ -302,6 +320,7 @@ const ConsistencyRankingTab = ({ data, loading, error, onRetry, timeZone, now = 
   const showScheduled = data.status === CHALLENGE_STATUS.SCHEDULED && (data.challenge.participantCount ?? 0) > 0;
   return (
     <div className="championship-tab">
+      <AppVisibility visibility={data.challenge.visibility} />
       {data.status === CHALLENGE_STATUS.COMPLETED && <LockedNotice>{closedNoticeOf(data.challenge)}</LockedNotice>}
       {showScheduled
         ? <ScheduledBlock challenge={data.challenge} onAdjustRules={onAdjustRules} onDelete={handleDelete} />

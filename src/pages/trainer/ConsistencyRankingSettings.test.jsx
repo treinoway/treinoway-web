@@ -132,6 +132,17 @@ describe('ConsistencyRankingSettings', () => {
     expect(screen.queryByText(/Coringa/)).not.toBeInTheDocument();
   });
 
+  it('APP-59 has no Visibilidade e privacidade block', async () => {
+    renderPage();
+    await waitForPage();
+
+    expect(screen.getByRole('heading', { name: 'Pilares e pesos' })).toBeInTheDocument();
+    expect(screen.queryByText('Visibilidade e privacidade')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Visibilidade no app' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /Desligado|Só a posição do aluno|Ranking completo ao vivo/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/como Aluno do time/)).not.toBeInTheDocument();
+  });
+
   it('PAN-38 updates the effective weights and the sum when a weight changes', async () => {
     const user = userEvent.setup();
     renderPage();
