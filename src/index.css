@@ -20733,6 +20733,24 @@ select.input { cursor: pointer; }
 .my-ranking-row__support { color: var(--text-secondary); }
 .my-ranking-row__value { color: var(--text-primary); font-variant-numeric: tabular-nums; text-align: right; }
 .my-ranking-row--me :is(.my-ranking-row__name, .my-ranking-row__value) { color: var(--text-brand); }
+/* Student "Meus Pontos" (F3, ds-aluno-campeonato-pontos.png): "Resumo" and "Histórico" cards side by side from 1024px */
+.my-points { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-lg); align-items: start; }
+.my-points-card { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.my-points-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); margin: 0; }
+.my-points-summary__row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); }
+.my-points-summary__label { margin: 0; color: var(--text-secondary); }
+.my-points-summary__value { margin: 0; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.my-points-history { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.my-points-history__row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); padding: var(--spacing-md) 0; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); }
+.my-points-history__row:last-child { border-bottom: 0; }
+.my-points-history__identity { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; }
+.my-points-history__date { color: var(--text-secondary); }
+.my-points-history__points { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.my-points-history__points--gain { color: var(--feedback-success-text); }
+.my-points-pager { display: flex; justify-content: center; gap: var(--spacing-md); }
+@media (min-width: 1024px) {
+  .my-points { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+}
 /* "Regras de pontuação" card: pillar editor, then each XP rule with its field on the right */
 .scoring-rules-card h2,
 .scoring-rules-card h3 { margin: 0; color: var(--text-primary); }
