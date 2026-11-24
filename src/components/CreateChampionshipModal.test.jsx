@@ -309,6 +309,7 @@ describe('CreateChampionshipModal', () => {
       participantMode: 'explicit',
       studentIds: [STUDENTS[0].id, STUDENTS[2].id],
       anonymousRanking: true,
+      visibility: 'full',
       ...RANKING_RULE,
     });
     expect(defaultProps.onClose).toHaveBeenCalled();

@@ -3,11 +3,12 @@ import PropTypes from 'prop-types';
 import Toggle from '../ds/Toggle';
 import ChallengeParticipantsField from './ChallengeParticipantsField';
 import ScoringSection from './ScoringSection';
+import VisibilityField from './VisibilityField';
 import useWeeklyChampionshipSources from '../../hooks/useWeeklyChampionshipSources';
 import { extractErrorInfo, translateError } from '../../i18n';
 import { WEEK_COUNT_OPTIONS, startMondayOptions } from '../../utils/challengeWeeks';
 import { isScoringRuleValid } from '../../utils/consistencyWeights';
-import { CHALLENGE_DESCRIPTION_MAX_LENGTH, CHALLENGE_FORMAT, CHALLENGE_NAME_MAX_LENGTH, PARTICIPANT_MODE } from '../../constants/challenge';
+import { CHALLENGE_DESCRIPTION_MAX_LENGTH, CHALLENGE_FORMAT, CHALLENGE_NAME_MAX_LENGTH, CHALLENGE_VISIBILITY, PARTICIPANT_MODE } from '../../constants/challenge';
 import { CONFIG_LIMITS } from '../../constants/consistencyRanking';
 
 const FORM_FIELDS = Object.freeze(['name', 'description', 'startWeek', 'weeks', 'minPodiumWeeks', 'participants']);
@@ -19,7 +20,7 @@ const PARTICIPANT_MESSAGE_CODES = Object.freeze(['challenge.filter.empty', 'chal
 const DEFAULT_WEEKS = 4;
 const PODIUM_MINIMUM_HELP = 'Semanas válidas (com meta e sem pausa) que o aluno precisa somar no campeonato para disputar o pódio. Até lá, ele aparece como entrando no campeonato.';
 
-// Initial draft: empty name and 4 weeks; start Monday, podium minimum and scoring follow the sources until changed
+// Initial draft: empty name, 4 weeks and the full live ranking in the app; start Monday, podium minimum and scoring follow the sources until changed
 const initialDraft = () => ({
   name: '',
   description: '',
@@ -27,6 +28,7 @@ const initialDraft = () => ({
   weeks: DEFAULT_WEEKS,
   minPodiumWeeks: null,
   anonymousRanking: false,
+  visibility: CHALLENGE_VISIBILITY.FULL,
   participants: { mode: PARTICIPANT_MODE.ALL, filter: {}, studentIds: [] },
   scoring: null,
 });
@@ -165,6 +167,7 @@ const bodyOf = (draft, values) => ({
   minPodiumWeeks: values.minPodiumWeeks,
   ...participantsBodyOf(draft.participants),
   anonymousRanking: draft.anonymousRanking,
+  visibility: draft.visibility,
   weights: values.scoring.weights,
   activePillars: values.scoring.activePillars,
 });
@@ -198,7 +201,7 @@ const effectiveValuesOf = (draft, sources, mondays) => ({
   scoring: draft.scoring ?? { weights: sources.weights, activePillars: sources.activePillars },
 });
 
-// Weekly championship form: name, description, start Monday and weeks, podium minimum, participants, anonymous ranking and scoring
+// Weekly championship form: name, description, start Monday and weeks, podium minimum, participants, anonymous ranking, visibility in the app and scoring
 const WeeklyChampionshipForm = ({ onCreate, onCancel, onDirtyChange }) => {
   const sources = useWeeklyChampionshipSources(true);
   const { draft, setField } = useWeeklyDraft();
@@ -216,6 +219,7 @@ const WeeklyChampionshipForm = ({ onCreate, onCancel, onDirtyChange }) => {
       <ScheduleFields values={values} mondays={mondays} setField={setField} errors={errors} disabled={creating} />
       <ChallengeParticipantsField value={draft.participants} onChange={(participants) => setField('participants', participants)} students={sources.students} error={errors.participants} disabled={creating} />
       <AnonymousRow checked={draft.anonymousRanking} onChange={(next) => setField('anonymousRanking', next)} disabled={creating} />
+      <VisibilityField value={draft.visibility} onChange={(next) => setField('visibility', next)} disabled={creating} name="weekly-visibility" />
       <ScoringSection value={values.scoring} base={scoringBase} onChange={(scoring) => setField('scoring', scoring)} disabled={creating} />
       {errors.form && <span className="field-error type-caption" role="alert">{errors.form}</span>}
       <div className="ds-actions weekly-form__actions">
