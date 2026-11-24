@@ -12,23 +12,42 @@ vi.mock('../../api/axios', () => ({
 
 const mockShowToast = vi.fn();
 
-const TRAINER_ID = '6f1c1f5e-2222-4a5b-9c1d-000000000002';
+// The trainer's User.id (what /my/protocols returns as trainer.id) and Trainer.id (what a championship carries as trainerId)
+const TRAINER_USER_ID = '6f1c1f5e-2222-4a5b-9c1d-000000000002';
+const TRAINER_PROFILE_ID = '6f1c1f5e-2222-4a5b-9c1d-000000000009';
+const STUDENT_ID = '6f1c1f5e-3333-4a5b-9c1d-000000000004';
 
-const protocols = [{ id: 'p1', trainer: { userId: TRAINER_ID, firstName: 'Gabriel', lastName: 'Araújo' } }];
+// GET /my/protocols item as the service returns it (getMyProtocolsSchema)
+const protocols = [{
+  id: '6f1c1f5e-4444-4a5b-9c1d-000000000005', assigneeId: STUDENT_ID, trainerId: TRAINER_PROFILE_ID, name: 'Hipertrofia',
+  status: 'active', statusLabel: 'Ativo', startDate: '2026-10-01', expirationDate: null,
+  genderOrdination: null, genderOrdinationLabel: null, trainingLevel: null, trainingLevelLabel: null, type: null, typeLabel: null,
+  trainer: { id: TRAINER_USER_ID, firstName: 'Gabriel', lastName: 'Araújo', avatarUrl: null },
+  trainings: [],
+}];
 
-const weeklyRunning = {
-  id: '6f1c1f5e-1111-4a5b-9c1d-000000000001', trainerId: TRAINER_ID, name: 'Verão 2027',
+// GET /my/challenges item as the service returns it (myChallengeListItemSchema)
+const challengeItem = (overrides) => ({
+  trainerId: TRAINER_PROFILE_ID, participantMode: 'all', participantModeLabel: 'Todos', filterCriteria: null, cancelledAt: null,
+  ptsWorkoutCompleted: 10, ptsStreak7Days: 20, ptsStreak30Days: 50, ptsDailyCheckin: 2, ptsEvolutionRecord: 15, ptsWorkoutFeedback: 5,
+  dailyPointsCap: null, anonymousRanking: false, minPodiumWeeks: null, description: null, visibility: 'full', ownerType: 'trainer',
+  closeRequestedAt: null, closedAt: null, createdAt: '2026-07-20T12:00:00.000Z', updatedAt: null,
+  ...overrides,
+});
+
+const weeklyRunning = challengeItem({
+  id: '6f1c1f5e-1111-4a5b-9c1d-000000000001', name: 'Verão 2027',
   startDate: '2026-11-02', endDate: '2026-12-20', status: 'active', statusLabel: 'Ativo',
-  participantMode: 'all', participantCount: 18, format: 'weeks', weeks: 7, currentWeek: 4,
-  visibility: 'full', anonymousRanking: false,
+  participantCount: 18, format: 'weeks', weeks: 7, currentWeek: 4, minPodiumWeeks: 4,
+  weights: { workouts: 60, cardio: 40 }, activePillars: ['workouts', 'cardio'],
   consistency: { visibility: 'full', position: 3, total: 18, faixa: 'constant', average: 92.6 },
-};
+});
 
-const datesClosed = {
-  id: '6f1c1f5e-1111-4a5b-9c1d-000000000003', trainerId: TRAINER_ID, name: 'Campeonato do Mês — Agosto',
+const datesClosed = challengeItem({
+  id: '6f1c1f5e-1111-4a5b-9c1d-000000000003', name: 'Campeonato do Mês — Agosto',
   startDate: '2026-08-01', endDate: '2026-08-31', status: 'completed', statusLabel: 'Concluído',
-  participantMode: 'all', participantCount: 6, format: 'dates', weeks: null, currentWeek: null, consistency: null,
-};
+  participantCount: 6, format: 'dates', weeks: null, currentWeek: null, weights: null, activePillars: [], consistency: null,
+});
 
 const xpRanking = {
   [weeklyRunning.id]: { entries: [], myPosition: 5, myPoints: 355 },

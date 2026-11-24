@@ -137,7 +137,7 @@ ChallengeTabs.propTypes = {
 const MyChallenges = () => {
   const { trainers } = useTrainerContext();
   const { challenges, xpById, loading } = useMyChallenges();
-  const trainerNames = Object.fromEntries(trainers.map((trainer) => [trainer.id, trainer.name]));
+  const trainerNames = Object.fromEntries(trainers.map((trainer) => [trainer.profileId, trainer.name]));
   const isEmpty = !loading && challenges.length === 0;
 
   return (
