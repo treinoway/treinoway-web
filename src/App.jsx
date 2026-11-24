@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { AuthProvider } from './contexts/AuthContext';
 import { AiChatProvider } from './contexts/AiChatContext';
@@ -56,6 +56,11 @@ import Financeiro from './pages/trainer/Financeiro';
 import SubscriptionHistory from './pages/trainer/SubscriptionHistory';
 import ConsistencyRanking from './pages/trainer/ConsistencyRanking';
 import ConsistencyRankingSettings from './pages/trainer/ConsistencyRankingSettings';
+import StudentFeedbacks from './pages/trainer/StudentFeedbacks';
+import StudentFeedbackHistory from './pages/trainer/StudentFeedbackHistory';
+import StudentFeedbackSettings from './pages/trainer/StudentFeedbackSettings';
+import StudentFeedbackTemplates from './pages/trainer/StudentFeedbackTemplates';
+import StudentFeedbackTemplateBuilder from './pages/trainer/StudentFeedbackTemplateBuilder';
 
 // Nutritionist pages
 import Patients from './pages/nutritionist/Patients';
@@ -66,6 +71,8 @@ import PrescriptionGuidance from './pages/nutritionist/PrescriptionGuidance';
 import MyFoods from './pages/nutritionist/MyFoods';
 import NutritionistRoute from './components/NutritionistRoute';
 import RequireRole from './components/RequireRole';
+import useConsistencyRankingAccess from './hooks/useConsistencyRankingAccess';
+import useStudentFeedbackAccess from './hooks/useStudentFeedbackAccess';
 import { t } from './i18n';
 
 // Admin pages
@@ -92,6 +99,40 @@ const RedirectWithId = ({ to }) => {
 
 RedirectWithId.propTypes = {
   to: PropTypes.string.isRequired,
+};
+
+// Renders the Ranking de Constância route only when the rollout gate allows it, otherwise sends the user home.
+const ConsistencyRankingRoute = ({ children }) => {
+  const canSeeConsistencyRanking = useConsistencyRankingAccess();
+  if (!canSeeConsistencyRanking) return <Navigate to="/" replace />;
+  return children;
+};
+
+ConsistencyRankingRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+// Renders a student feedback route only when the rollout gate allows it, otherwise sends the user home.
+const StudentFeedbackRoute = ({ children }) => {
+  const canSeeStudentFeedback = useStudentFeedbackAccess();
+  if (!canSeeStudentFeedback) return <Navigate to="/" replace />;
+  return children;
+};
+
+StudentFeedbackRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+// Old /trainer/financeiro URL: keeps the query string (?status=overdue from the dashboard link).
+const RedirectFinanceiro = () => {
+  const { search } = useLocation();
+  return <Navigate to={`/financeiro${search}`} replace />;
+};
+
+// Old trainer-only person history URL.
+const RedirectFinanceHistory = () => {
+  const { studentId } = useParams();
+  return <Navigate to={`/financeiro/alunos/${studentId}`} replace />;
 };
 
 // Backoffice route subtree, split into its own chunk.
@@ -471,24 +512,31 @@ function App() {
           {/* why: branding and championship creation are hidden for all trainers during the beta */}
           <Route path="/trainer/branding" element={<Navigate to="/" replace />} />
 
+          <Route path="/trainer/financeiro" element={<RedirectFinanceiro />} />
+          <Route path="/trainer/students/:studentId/subscription-history" element={<RedirectFinanceHistory />} />
+
           <Route
-            path="/trainer/financeiro"
+            path="/financeiro"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <Financeiro />
-                </Layout>
+                <RequireRole roles={['TRAINER', 'NUTRITIONIST']}>
+                  <Layout>
+                    <Financeiro />
+                  </Layout>
+                </RequireRole>
               </ProtectedRoute>
             }
           />
 
           <Route
-            path="/trainer/students/:studentId/subscription-history"
+            path="/financeiro/alunos/:studentId"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <SubscriptionHistory />
-                </Layout>
+                <RequireRole roles={['TRAINER', 'NUTRITIONIST']}>
+                  <Layout>
+                    <SubscriptionHistory />
+                  </Layout>
+                </RequireRole>
               </ProtectedRoute>
             }
           />
@@ -524,9 +572,11 @@ function App() {
             path="/trainer/consistency-ranking"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <ConsistencyRanking />
-                </Layout>
+                <ConsistencyRankingRoute>
+                  <Layout>
+                    <ConsistencyRanking />
+                  </Layout>
+                </ConsistencyRankingRoute>
               </ProtectedRoute>
             }
           />
@@ -534,9 +584,71 @@ function App() {
             path="/trainer/consistency-ranking/settings"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <ConsistencyRankingSettings />
-                </Layout>
+                <ConsistencyRankingRoute>
+                  <Layout>
+                    <ConsistencyRankingSettings />
+                  </Layout>
+                </ConsistencyRankingRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/student-feedbacks"
+            element={
+              <ProtectedRoute>
+                <StudentFeedbackRoute>
+                  <Layout>
+                    <StudentFeedbacks />
+                  </Layout>
+                </StudentFeedbackRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/student-feedbacks/settings"
+            element={
+              <ProtectedRoute>
+                <StudentFeedbackRoute>
+                  <Layout>
+                    <StudentFeedbackSettings />
+                  </Layout>
+                </StudentFeedbackRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/student-feedbacks/templates"
+            element={
+              <ProtectedRoute>
+                <StudentFeedbackRoute>
+                  <Layout>
+                    <StudentFeedbackTemplates />
+                  </Layout>
+                </StudentFeedbackRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/student-feedbacks/templates/:id"
+            element={
+              <ProtectedRoute>
+                <StudentFeedbackRoute>
+                  <Layout>
+                    <StudentFeedbackTemplateBuilder />
+                  </Layout>
+                </StudentFeedbackRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer/students/:id/feedbacks"
+            element={
+              <ProtectedRoute>
+                <StudentFeedbackRoute>
+                  <Layout>
+                    <StudentFeedbackHistory />
+                  </Layout>
+                </StudentFeedbackRoute>
               </ProtectedRoute>
             }
           />

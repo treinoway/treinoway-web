@@ -4,6 +4,7 @@ import { CircleAlert, Wallet } from 'lucide-react';
 import EmptyBlock from '../ds/EmptyBlock';
 import PlanCard from './PlanCard';
 import { t, tf } from '../../i18n';
+import useFinanceCopy from '../../hooks/useFinanceCopy';
 
 const PlansSkeleton = () => (
   <div className="plan-grid" aria-busy="true">
@@ -27,15 +28,18 @@ PlanGrid.propTypes = {
   onArchiveToggle: PropTypes.func.isRequired,
 };
 
-const PlansEmpty = ({ onCreate }) => (
+const PlansEmpty = ({ onCreate }) => {
+  const { ft } = useFinanceCopy();
+  return (
   <EmptyBlock
     icon={Wallet}
     title={t('finance.plans.emptyTitle')}
-    description={t('finance.plans.emptyText')}
+    description={ft('finance.plans.emptyText')}
     actionLabel={t('finance.plans.createPlan')}
     onAction={onCreate}
   />
-);
+  );
+};
 
 PlansEmpty.propTypes = { onCreate: PropTypes.func.isRequired };
 
@@ -43,7 +47,7 @@ PlansEmpty.propTypes = { onCreate: PropTypes.func.isRequired };
  * Planos tab: active plans grid; archived plans hidden behind
  * "Ver arquivados (n)" in a second section.
  */
-const PlansPanel = ({ plans, loading, error, onRetry, onCreate, onEdit, onArchiveToggle }) => {
+const PlansPanel = ({ plans, hasPlansOfOtherTypes = false, loading, error, onRetry, onCreate, onEdit, onArchiveToggle }) => {
   const [showArchived, setShowArchived] = useState(false);
 
   if (loading) return <PlansSkeleton />;
@@ -59,6 +63,7 @@ const PlansPanel = ({ plans, loading, error, onRetry, onCreate, onEdit, onArchiv
       />
     );
   }
+  if (plans.length === 0 && hasPlansOfOtherTypes) return <p className="finance-notice type-body">{t('finance.plans.noType')}</p>;
   if (plans.length === 0) return <PlansEmpty onCreate={onCreate} />;
 
   const activePlans = plans.filter((plan) => !plan.isArchived);
@@ -87,6 +92,7 @@ const PlansPanel = ({ plans, loading, error, onRetry, onCreate, onEdit, onArchiv
 
 PlansPanel.propTypes = {
   plans: PropTypes.array.isRequired,
+  hasPlansOfOtherTypes: PropTypes.bool,
   loading: PropTypes.bool.isRequired,
   error: PropTypes.string,
   onRetry: PropTypes.func.isRequired,

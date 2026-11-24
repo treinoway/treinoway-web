@@ -1,4 +1,5 @@
 import { extractErrorInfo, t, translateError } from '../i18n';
+import { FINANCE_AUDIENCE, ftf } from '../i18n/financeCopy';
 import { FINANCE_ERROR } from '../constants/finance';
 
 /** User-facing message for any API error (never reads response.data.message). */
@@ -44,11 +45,11 @@ const ASSIGN_INLINE = {
 };
 
 /** Spec §6.3 mapping for POST /students/:id/subscriptions. Always inline. */
-export const classifyAssignError = (err) => {
+export const classifyAssignError = (err, audience = FINANCE_AUDIENCE.TRAINER) => {
   const code = getErrorCode(err);
   const rule = ASSIGN_INLINE[code];
   if (!rule) return { code, field: 'form', message: getErrorMessage(err) };
-  return { code, field: rule.field, message: rule.copyKey ? t(rule.copyKey) : getErrorMessage(err) };
+  return { code, field: rule.field, message: rule.copyKey ? ftf(audience, rule.copyKey) : getErrorMessage(err) };
 };
 
 const MONEY_ERROR_KEY = {

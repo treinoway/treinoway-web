@@ -45,7 +45,7 @@ const PageHeader = ({ canPause, onPauseTeam, onConfigure }) => (
       <p className="type-body consistency-page__subtitle">Quem está cumprindo o combinado, semana a semana. Treino extra não pontua.</p>
     </div>
     <div className="ds-page-header__actions">
-      <button type="button" className="btn btn--secondary" disabled={!canPause} onClick={onPauseTeam}>
+      <button type="button" className="btn btn--neutral" disabled={!canPause} onClick={onPauseTeam}>
         <Pause size={16} strokeWidth={2} aria-hidden="true" />
         Pausar semana do time
       </button>
@@ -159,7 +159,7 @@ const RankingContent = ({ standings, config, actions }) => {
   const isNotStarted = showOverview && !data.season;
   const isEmptyTeam = showOverview && (isNotStarted || data.counts?.all === 0);
   const emptyMessage = formatNotStartedMessage(isNotStarted ? data.notStarted : null);
-  const retry = <button type="button" className="btn btn--secondary" onClick={reload}>Tentar de novo</button>;
+  const retry = <button type="button" className="btn btn--neutral" onClick={reload}>Tentar de novo</button>;
 
   return (
     <>

@@ -48,7 +48,7 @@ const ReadyMessageCard = ({ firstName, pillar, whatsapp, onContact }) => {
           <MessageCircle size={16} strokeWidth={2} aria-hidden="true" />
           Abrir no WhatsApp
         </button>
-        <button type="button" className="btn btn--secondary" onClick={() => setEditing((current) => !current)}>
+        <button type="button" className="btn btn--neutral" onClick={() => setEditing((current) => !current)}>
           {editing ? 'Concluir edição' : 'Editar'}
         </button>
       </div>

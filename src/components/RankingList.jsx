@@ -62,7 +62,8 @@ RankingRow.propTypes = {
   onRowTap: PropTypes.func,
 };
 
-const RankingList = ({ entries, ownStudentId = null, anonymous = false, onRowTap = null }) => {
+// Points ranking rows; `showPodium` false drops the top-3 medals (the weekly championship's Pontos view has no podium)
+const RankingList = ({ entries, ownStudentId = null, anonymous = false, onRowTap = null, showPodium = true }) => {
   if (!entries || entries.length === 0) {
     return (
       <div className="empty-state">
@@ -79,7 +80,7 @@ const RankingList = ({ entries, ownStudentId = null, anonymous = false, onRowTap
       <ul className="ranking-list" aria-label="Ranking">
         {entries.map((entry) => {
           const isMe = ownStudentId && entry.studentId === ownStudentId;
-          const isTopThree = entry.position <= TOP_3_LIMIT;
+          const isTopThree = showPodium && entry.position <= TOP_3_LIMIT;
           return (
             <RankingRow
               key={entry.studentId}
@@ -124,6 +125,7 @@ RankingList.propTypes = {
   ownStudentId: PropTypes.string,
   anonymous: PropTypes.bool,
   onRowTap: PropTypes.func,
+  showPodium: PropTypes.bool,
 };
 
 export default RankingList;

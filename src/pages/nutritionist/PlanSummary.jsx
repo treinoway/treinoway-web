@@ -19,6 +19,8 @@ import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useLoadResource from '../../hooks/useLoadResource';
 import usePlanAutosave, { AUTOSAVE_STATUS } from '../../hooks/usePlanAutosave';
 import usePlanMutation from '../../hooks/usePlanMutation';
+import useStudentSubscriptionManager from '../../hooks/useStudentSubscriptionManager';
+import { SERVICE_TYPE } from '../../constants/finance';
 import { useQuantityDrafts } from '../../hooks/useMenuEditor';
 import ConfirmDialog from '../../components/ds/ConfirmDialog';
 import AddMealModal from '../../components/nutrition/AddMealModal';
@@ -30,6 +32,7 @@ import LoadState from '../../components/nutrition/LoadState';
 import PatientTabs from '../../components/nutrition/PatientTabs';
 import PlanBreadcrumb from '../../components/nutrition/PlanBreadcrumb';
 import PlanHero from '../../components/nutrition/PlanHero';
+import StudentSubscriptionSection from '../../components/finance/StudentSubscriptionSection';
 import SegmentedChoice from '../../components/nutrition/SegmentedChoice';
 import SummaryMeal from '../../components/nutrition/SummaryMeal';
 import TrainerCard from '../../components/nutrition/TrainerCard';
@@ -44,6 +47,7 @@ const TABS = [
   { id: 'anamnesis', label: 'Anamnese' },
   { id: 'followup', label: 'Acompanhamento' },
   { id: 'evolution', label: 'Evolução' },
+  { id: 'finance', label: 'Financeiro' },
 ];
 const VIEWS = [
   { id: 'simple', label: 'Prescrição simples' },
@@ -151,6 +155,35 @@ const ComingSoon = ({ label }) => (
 
 ComingSoon.propTypes = { label: PropTypes.string.isRequired };
 
+// Financeiro tab: the same subscription block a student has on StudentDetail, scoped to nutrition plans.
+const PatientFinance = ({ patientId, patient }) => {
+  const navigate = useNavigate();
+  const name = personName(patient);
+  const manager = useStudentSubscriptionManager(patientId, name, SERVICE_TYPE.NUTRITION);
+  const handleViewHistory = () => navigate(`/financeiro/alunos/${patientId}`, { state: { studentName: name } });
+
+  return <StudentSubscriptionSection manager={manager} onViewHistory={handleViewHistory} />;
+};
+
+PatientFinance.propTypes = {
+  patientId: PropTypes.string.isRequired,
+  patient: PropTypes.object.isRequired,
+};
+
+// Body under the hero for the selected tab.
+const TabBody = ({ tab, patientId, patient, children }) => {
+  if (tab === 'plan') return children;
+  if (tab === 'finance') return <PatientFinance patientId={patientId} patient={patient} />;
+  return <ComingSoon label={TABS.find((item) => item.id === tab).label} />;
+};
+
+TabBody.propTypes = {
+  tab: PropTypes.string.isRequired,
+  patientId: PropTypes.string.isRequired,
+  patient: PropTypes.object.isRequired,
+  children: PropTypes.node,
+};
+
 // Mutations of the summary (swaps, foods, meals) bound to the plan state.
 const useSummaryActions = ({ plan, setPlan, requestConfirm }) => {
   const runMutation = usePlanMutation(setPlan);
@@ -244,9 +277,7 @@ const SummaryContent = ({ patientId, initialPlan, overview }) => {
         </div>
         <PatientTabs ariaLabel="Seções do paciente" tabs={TABS} value={tab} onChange={setTab} />
       </PlanHero>
-      {tab !== 'plan' ? (
-        <ComingSoon label={TABS.find((item) => item.id === tab).label} />
-      ) : (
+      <TabBody tab={tab} patientId={patientId} patient={patient}>
         <div className="nutri-columns">
           <MealsColumn meals={meals} totalKcal={totals.kcal} patientId={patientId} handlers={handlers} quantityTexts={quantities.drafts} quantityAutosave={quantities.autosave} onAddMeal={() => setAddingMeal(true)} />
           <aside className="nutri-aside" aria-label="Resumo do plano">
@@ -256,7 +287,7 @@ const SummaryContent = ({ patientId, initialPlan, overview }) => {
             <PatientMessage firstName={patient.firstName} value={message} onChange={setMessage} autosave={autosave} />
           </aside>
         </div>
-      )}
+      </TabBody>
       {addingMeal && <AddMealModal submitting={savingMeal} onClose={() => setAddingMeal(false)} onSubmit={handleAddMeal} />}
       {dialogProps && <ConfirmDialog {...dialogProps} />}
     </div>

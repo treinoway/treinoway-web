@@ -179,6 +179,7 @@ TemplatesTab.propTypes = { userId: PropTypes.string.isRequired };
 
 // Sessões tab: workout sessions, newest first.
 export const SessionsTab = ({ userId }) => {
+  const navigate = useNavigate();
   const fetchPage = useCallback((params) => listUserSessions(userId, params), [userId]);
   const columns = [
     { key: 'training', label: t('manager.colTraining') },
@@ -187,8 +188,13 @@ export const SessionsTab = ({ userId }) => {
     { key: 'duration', label: t('manager.colDuration'), className: DESKTOP_ONLY },
   ];
   const renderRow = (session) => (
-    <tr key={session.id}>
-      <td className="type-body-strong">{formatValue(session.trainingName)}</td>
+    <tr key={session.id} className="manager-row--link" onClick={() => navigate(`/manager/sessions/${session.id}`)}>
+      <td>
+        <button type="button" className="manager-row-link type-body-strong">
+          {formatValue(session.trainingName)}
+        </button>
+        {session.deletedAt && <Badge tone="error">{t('manager.deleted')}</Badge>}
+      </td>
       <td className="admin-table__number">{formatDateTimeForDisplay(session.startedAt)}</td>
       <td className={`${DESKTOP_ONLY} admin-table__number`}>{session.finishedAt ? formatDateTimeForDisplay(session.finishedAt) : '—'}</td>
       <td className={`${DESKTOP_ONLY} admin-table__number`}>{formatDuration(session.durationSec)}</td>

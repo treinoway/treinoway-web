@@ -6,9 +6,12 @@ import ChoiceGroup from './ChoiceGroup';
 import BillingDayField from './BillingDayField';
 import FieldError from './FieldError';
 import PlanPreview from './PlanPreview';
+import { buildKindCount } from '../../utils/financeKindCount';
+import useFinanceCopy from '../../hooks/useFinanceCopy';
 import SheetFooter from './SheetFooter';
-import { t, tCount, tf, extractErrorInfo } from '../../i18n';
+import { t, tf, extractErrorInfo } from '../../i18n';
 import { getErrorMessage } from '../../utils/financeErrors';
+import { SERVICE_TYPE } from '../../constants/finance';
 import { DISCOUNT_MODE, parseBillingDay, parseDiscountInput, parsePositiveMoney } from '../../utils/financeForm';
 import {
   RECURRENCE_LABEL,
@@ -31,6 +34,19 @@ const DISCOUNT_CHOICES = [
   { value: DISCOUNT_MODE.AMOUNT, label: t('finance.planForm.discountAmount') },
 ];
 
+const SERVICE_TYPE_CHOICES = [
+  { value: SERVICE_TYPE.TRAINING, label: t('finance.serviceType.training') },
+  { value: SERVICE_TYPE.NUTRITION, label: t('finance.serviceType.nutrition') },
+  { value: SERVICE_TYPE.BOTH, label: t('finance.serviceType.both') },
+];
+
+/** Editing may only move between Treino and Ambos (same owner row); Nutrição stays Nutrição. */
+const buildServiceTypeChoices = (plan) => {
+  if (!plan) return SERVICE_TYPE_CHOICES;
+  const isNutrition = plan.serviceType === SERVICE_TYPE.NUTRITION;
+  return SERVICE_TYPE_CHOICES.map((choice) => ({ ...choice, disabled: (choice.value === SERVICE_TYPE.NUTRITION) !== isNutrition }));
+};
+
 const API_FIELD_TO_FORM = { name: 'name', price: 'price', discountPercent: 'discount', discountAmount: 'discount', billingDay: 'billingDay' };
 
 const inputClass = (error) => `input${error ? ' input--error' : ''}`;
@@ -49,6 +65,7 @@ const buildInitialForm = (plan) => ({
   priceText: plan ? formatCentsForInput(toCents(plan.price)) : '',
   billingDayText: plan?.billingDay ? String(plan.billingDay) : '',
   billingDayBad: false,
+  serviceType: plan?.serviceType || SERVICE_TYPE.TRAINING,
   ...buildInitialDiscount(plan),
 });
 
@@ -65,8 +82,9 @@ const validatePlanForm = (form) => {
 };
 
 /** Both discount fields are always sent: the chosen one with its value, the other null. */
-const buildPayload = (form, price, discount, billingDay) => ({
+const buildPayload = (form, price, discount, billingDay, withServiceType) => ({
   name: form.name.trim(),
+  ...(withServiceType && { serviceType: form.serviceType }),
   recurrence: form.recurrence,
   price: centsToApiNumber(price.cents),
   discountPercent: hundredthsToApiNumber(discount.percentHundredths),
@@ -79,11 +97,16 @@ const mapSubmitError = (err) => {
   return { [field || 'form']: getErrorMessage(err) };
 };
 
-const buildPriceChangeBanner = (plan) => {
-  const count = plan.activeSubscriptionCount;
-  if (!count) return t('finance.planForm.priceChangeBannerGeneric');
+// Subscribers named by kind for dual-role users, else by the role's noun.
+const buildSubscriberText = (plan, isDualRole, ftCount) => {
+  if (isDualRole && plan.activeSubscriptionCountByKind) return buildKindCount(plan.activeSubscriptionCountByKind);
+  return ftCount('finance.count.student', plan.activeSubscriptionCount);
+};
+
+const buildPriceChangeBanner = (plan, { isDualRole, ftCount }) => {
+  if (!plan.activeSubscriptionCount) return t('finance.planForm.priceChangeBannerGeneric');
   return tf('finance.planForm.priceChangeBanner', {
-    students: tCount('finance.count.student', count),
+    students: buildSubscriberText(plan, isDualRole, ftCount),
     amount: formatCentsBRL(computeNetFromApi(plan)),
   });
 };
@@ -138,6 +161,7 @@ const PlanFormSheet = ({ plan = null, onClose, onSubmit }) => {
   const fieldId = useId();
   const formId = `${fieldId}-form`;
   const isEdit = Boolean(plan);
+  const { isDualRole, ft, ftCount } = useFinanceCopy();
 
   const live = validatePlanForm(form);
   const previewDiscount = live.discount.error ? {} : live.discount;
@@ -158,7 +182,7 @@ const PlanFormSheet = ({ plan = null, onClose, onSubmit }) => {
     if (Object.keys(nextErrors).length > 0) return;
     setSubmitting(true);
     try {
-      await onSubmit(buildPayload(form, price, discount, billingDay));
+      await onSubmit(buildPayload(form, price, discount, billingDay, isDualRole));
     } catch (err) {
       setErrors(mapSubmitError(err));
       setSubmitting(false);
@@ -196,6 +220,19 @@ const PlanFormSheet = ({ plan = null, onClose, onSubmit }) => {
           />
           <FieldError message={errors.name} />
         </div>
+
+        {isDualRole && (
+          <div className="field">
+            <span className="field-label type-caption-strong" id={`${fieldId}-service-type`}>{t('finance.serviceType.label')}</span>
+            <ChoiceGroup
+              labelId={`${fieldId}-service-type`}
+              options={buildServiceTypeChoices(plan)}
+              value={form.serviceType}
+              onChange={(value) => setField('serviceType', value)}
+              disabled={submitting}
+            />
+          </div>
+        )}
 
         <div className="field">
           <span className="field-label type-caption-strong" id={`${fieldId}-recurrence`}>{t('finance.planForm.recurrenceLabel')}</span>
@@ -264,8 +301,8 @@ const PlanFormSheet = ({ plan = null, onClose, onSubmit }) => {
           recurrence={form.recurrence}
         />
 
-        {showPriceBanner && <Banner>{buildPriceChangeBanner(plan)}</Banner>}
-        {showBillingDayBanner && <Banner>{t('finance.planForm.billingDayChangeBanner')}</Banner>}
+        {showPriceBanner && <Banner>{buildPriceChangeBanner(plan, { isDualRole, ftCount })}</Banner>}
+        {showBillingDayBanner && <Banner>{ft('finance.planForm.billingDayChangeBanner')}</Banner>}
         <FieldError message={errors.form} />
       </form>
     </Modal>
@@ -283,6 +320,8 @@ PlanFormSheet.propTypes = {
     discountAmount: money,
     billingDay: PropTypes.number,
     activeSubscriptionCount: PropTypes.number,
+    activeSubscriptionCountByKind: PropTypes.shape({ students: PropTypes.number, patients: PropTypes.number }),
+    serviceType: PropTypes.string,
   }),
   onClose: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,

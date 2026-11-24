@@ -70,8 +70,8 @@ describe('StandingsTable', () => {
     expect(within(row).getByText('Constante')).toBeInTheDocument();
     expect(within(row).getByText('98%')).toBeInTheDocument();
     expect(within(row).getByRole('progressbar', { name: 'Constância' })).toHaveAttribute('aria-valuenow', '98');
-    expect(within(row).getByText('TRE')).toBeInTheDocument();
-    expect(within(row).getByText('CAR')).toBeInTheDocument();
+    expect(within(row).getByText('Tre')).toBeInTheDocument();
+    expect(within(row).getByText('Car')).toBeInTheDocument();
     expect(within(row).getByText('85%')).toBeInTheDocument();
     expect(within(row).getByText('1 sem.')).toBeInTheDocument();
     expect(within(row).getByRole('button', { name: 'Mensagem no WhatsApp para Paula G.' })).toBeInTheDocument();
@@ -166,8 +166,8 @@ describe('StandingsTable', () => {
     expect(onOpenStudent).not.toHaveBeenCalled();
   });
 
-  it('explains the pillar abbreviations and the warning color in the legend', () => {
+  it('CPD-72 explains the pillar abbreviations, first letter uppercase only, and the warning color in the legend', () => {
     renderTable();
-    expect(screen.getByText('TRE treinos · CAR cardio. Barra em alerta = abaixo de 70%.')).toBeInTheDocument();
+    expect(screen.getByText('Tre treinos · Car cardio. Barra em alerta = abaixo de 70%.')).toBeInTheDocument();
   });
 });

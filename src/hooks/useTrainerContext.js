@@ -28,7 +28,8 @@ const trainerFullName = (t) => {
 /**
  * Resolves the list of trainers a student has from their protocols,
  * and persists the selected trainer across pages via localStorage.
- * Returns the trainer's userId (what backend gamification routes expect).
+ * Returns the trainer's userId (what backend gamification routes expect)
+ * and profileId, the Trainer.id that championships carry as trainerId.
  */
 const useTrainerContext = () => {
   const [trainers, setTrainers] = useState([]);
@@ -51,7 +52,7 @@ const useTrainerContext = () => {
           const id = t.userId || t.id;
           if (!id || seen.has(id)) return;
           seen.add(id);
-          list.push({ id, name: trainerFullName(t) });
+          list.push({ id, profileId: p.trainerId ?? null, name: trainerFullName(t) });
         });
         setTrainers(list);
         setTrainerIdState((current) => {

@@ -5,8 +5,12 @@ import { render, screen, waitFor, within } from '../../test/test-utils';
 import SubscriptionHistory from './SubscriptionHistory';
 import api from '../../api/axios';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import {
+  NUTRITIONIST_ONLY,
+  TRAINER_ONLY,
   apiError,
+  authAs,
   makePayment,
   overduePayment,
   paidPayment,
@@ -21,6 +25,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../../contexts/ToastContext', () => ({ useToast: vi.fn() }));
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
 
 vi.mock('../../api/axios', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -28,7 +33,7 @@ vi.mock('../../api/axios', () => ({
 }));
 
 const mockShowToast = vi.fn();
-const PATH = '/trainer/students/:studentId/subscription-history';
+const PATH = '/financeiro/alunos/:studentId';
 
 const buildHistory = (overrides = {}) => ({
   student: { id: 'student-1', name: 'Maria Silva', avatarUrl: null },
@@ -40,7 +45,7 @@ const buildHistory = (overrides = {}) => ({
   ...overrides,
 });
 
-const renderPage = (entry = '/trainer/students/student-1/subscription-history') => render(
+const renderPage = (entry = '/financeiro/alunos/student-1') => render(
   <MemoryRouter initialEntries={[entry]}>
     <Routes>
       <Route path={PATH} element={<SubscriptionHistory />} />
@@ -53,6 +58,7 @@ describe('SubscriptionHistory', () => {
     pinFinanceClock();
     vi.clearAllMocks();
     useToast.mockReturnValue({ showToast: mockShowToast });
+    useAuth.mockReturnValue(authAs(TRAINER_ONLY));
     api.get.mockResolvedValue({ data: buildHistory() });
   });
 
@@ -62,12 +68,12 @@ describe('SubscriptionHistory', () => {
     renderPage();
     await screen.findByRole('heading', { level: 1, name: 'Maria Silva' });
     expect(api.get).toHaveBeenCalledTimes(1);
-    expect(api.get).toHaveBeenCalledWith('/trainer/students/student-1/payments');
+    expect(api.get).toHaveBeenCalledWith('/professional/students/student-1/payments');
   });
 
   it('shows the name from router state while loading, and skeletons instead of empty states', () => {
     api.get.mockReturnValue(new Promise(() => {}));
-    renderPage({ pathname: '/trainer/students/student-1/subscription-history', state: { studentName: 'Maria S.' } });
+    renderPage({ pathname: '/financeiro/alunos/student-1', state: { studentName: 'Maria S.' } });
     expect(screen.getByRole('heading', { level: 1, name: 'Maria S.' })).toBeInTheDocument();
     expect(screen.getByText('Histórico financeiro')).toBeInTheDocument();
     expect(screen.queryByText('Sem cobranças ainda')).not.toBeInTheDocument();
@@ -140,7 +146,7 @@ describe('SubscriptionHistory', () => {
     api.post.mockResolvedValue({ data: {} });
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Marcar pago: cobrança de 01/10' }));
-    expect(api.post).toHaveBeenCalledWith('/trainer/payments/pay-overdue/mark-paid', {});
+    expect(api.post).toHaveBeenCalledWith('/professional/payments/pay-overdue/mark-paid', {});
     await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
   });
 
@@ -163,7 +169,7 @@ describe('SubscriptionHistory', () => {
     expect(screen.getByLabelText('Valor (R$)')).toBeDisabled();
     await user.type(screen.getByLabelText('Observação'), 'ok');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
-    expect(api.patch).toHaveBeenCalledWith('/trainer/payments/pay-paid', { notes: 'ok' });
+    expect(api.patch).toHaveBeenCalledWith('/professional/payments/pay-paid', { notes: 'ok' });
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Cobrança salva.', 'success'));
   });
 
@@ -182,11 +188,57 @@ describe('SubscriptionHistory', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Maria Silva' })).toBeInTheDocument();
   });
 
-  it('goes back to the student when opened by deep link', async () => {
+  it('falls back to /financeiro when opened by deep link', async () => {
     const user = userEvent.setup();
     renderPage();
     await user.click(screen.getByRole('button', { name: 'Voltar' }));
-    expect(mockNavigate).toHaveBeenCalledWith('/trainer/students/student-1');
+    expect(mockNavigate).toHaveBeenCalledWith('/financeiro');
+  });
+
+  it('goes back in history when there is a previous entry', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/financeiro', '/financeiro/alunos/student-1']} initialIndex={1}>
+        <Routes>
+          <Route path={PATH} element={<SubscriptionHistory />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByRole('heading', { level: 1, name: 'Maria Silva' });
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
+    expect(mockNavigate).toHaveBeenCalledWith(-1);
+  });
+
+  describe('nutritionist-only user', () => {
+    beforeEach(() => useAuth.mockReturnValue(authAs(NUTRITIONIST_ONLY)));
+
+    it('reads "Paciente desde" and never "aluno" or "cliente"', async () => {
+      renderPage();
+      const hero = await screen.findByRole('region', { name: 'Resumo do histórico' });
+      expect(within(hero).getByText('Paciente desde')).toBeInTheDocument();
+      expect(document.body.textContent).not.toMatch(/aluno/i);
+      expect(document.body.textContent).not.toMatch(/cliente/i);
+    });
+
+    it('uses "Paciente sem nome" when the API name is empty', async () => {
+      api.get.mockResolvedValue({ data: buildHistory({ student: { id: 'student-1', name: '', avatarUrl: null } }) });
+      renderPage();
+      expect(await screen.findByRole('heading', { level: 1, name: 'Paciente sem nome' })).toBeInTheDocument();
+    });
+
+    it('says "Paciente não encontrado" for student: null', async () => {
+      api.get.mockResolvedValue({ data: { student: null, summary: null, payments: [] } });
+      renderPage();
+      expect(await screen.findByText('Paciente não encontrado')).toBeInTheDocument();
+    });
+
+    it('falls back to /financeiro on a deep link', async () => {
+      const user = userEvent.setup();
+      renderPage();
+      await screen.findByRole('heading', { level: 1, name: 'Maria Silva' });
+      await user.click(screen.getByRole('button', { name: 'Voltar' }));
+      expect(mockNavigate).toHaveBeenCalledWith('/financeiro');
+    });
   });
 
   it('keeps unrelated pending rows: a makePayment fixture renders', async () => {

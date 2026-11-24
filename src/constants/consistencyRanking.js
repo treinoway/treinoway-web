@@ -23,11 +23,11 @@ export const PILLAR_LABELS = Object.freeze({
 });
 
 export const PILLAR_ABBREVIATIONS = Object.freeze({
-  [PILLAR.WORKOUTS]: 'TRE',
-  [PILLAR.CARDIO]: 'CAR',
-  [PILLAR.FEEDBACK]: 'FEE',
-  [PILLAR.HYDRATION]: 'HID',
-  [PILLAR.DIET]: 'DIE',
+  [PILLAR.WORKOUTS]: 'Tre',
+  [PILLAR.CARDIO]: 'Car',
+  [PILLAR.FEEDBACK]: 'Fee',
+  [PILLAR.HYDRATION]: 'Hid',
+  [PILLAR.DIET]: 'Die',
 });
 
 export const FAIXA = Object.freeze({
