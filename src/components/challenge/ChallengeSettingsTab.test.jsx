@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Link, Route, Routes } from 'react-router-dom';
-import { render, screen, within, waitFor } from '../../test/test-utils';
+import { cleanup, render, screen, within, waitFor } from '../../test/test-utils';
 import ChallengeSettingsTab from './ChallengeSettingsTab';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -23,6 +23,7 @@ const challengeOf = (overrides = {}) => ({
   weeks: 4,
   minPodiumWeeks: 2,
   anonymousRanking: false,
+  visibility: 'full',
   closeRequestedAt: null,
   weights: { workouts: 30, diet: 30, cardio: 15, feedback: 15, hydration: 10 },
   activePillars: ['workouts', 'cardio', 'feedback', 'hydration'],
@@ -78,6 +79,8 @@ const podiumSelect = () => screen.getByLabelText('Mínimo para o pódio');
 const anonymousSwitch = () => screen.getByRole('switch', { name: 'Ranking anônimo' });
 // Save button of both cards
 const saveButton = () => screen.getByRole('button', { name: 'Salvar configuração' });
+// "Visibilidade no app" group inside the "Dados do campeonato" card
+const visibilityGroup = () => within(screen.getByRole('form', { name: 'Dados do campeonato' })).getByRole('group', { name: 'Visibilidade no app' });
 // Open confirm dialog
 const dialog = () => screen.getByRole('alertdialog');
 
@@ -362,6 +365,65 @@ describe('ChallengeSettingsTab', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Informe o nome do campeonato.');
     expect(nameInput()).toHaveClass('input--error');
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('APP-35 edits the visibility in Dados do campeonato', async () => {
+    const user = userEvent.setup();
+    const { onSave } = renderSettings(challengeOf({ status: 'active', startDate: '2026-11-02', endDate: '2026-11-29' }));
+
+    const group = visibilityGroup();
+    const full = within(group).getByRole('radio', { name: /Ranking completo ao vivo/ });
+    const position = within(group).getByRole('radio', { name: /Só a posição do aluno/ });
+    expect(full).toBeChecked();
+    expect(position).toBeEnabled();
+
+    await user.click(position);
+
+    expect(position).toBeChecked();
+    expect(full).not.toBeChecked();
+    await user.click(saveButton());
+
+    expect(onSave).toHaveBeenCalledWith({ visibility: 'position' });
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Configuração salva.', 'success'));
+    cleanup();
+
+    renderSettings(challengeOf({ status: 'completed', visibility: 'off' }));
+
+    const closedRadios = within(visibilityGroup()).getAllByRole('radio');
+    closedRadios.forEach((radio) => expect(radio).toBeDisabled());
+    expect(within(visibilityGroup()).getByRole('radio', { name: /Desligado/ })).toBeChecked();
+  });
+
+  it('APP-36 shows how many appear by name, as Aluno do time and still pending', () => {
+    const { unmount } = render(
+      <MemoryRouter>
+        <ChallengeSettingsTab challenge={challengeOf({ status: 'active', startDate: '2026-11-02', endDate: '2026-11-29' })} isWeekly timeZone={TIME_ZONE} privacyCounts={{ name: 15, anonymous: 3, pending: 1 }} onSave={vi.fn()} onCloseEarly={vi.fn()} onCancel={vi.fn()} onDelete={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    expect(within(visibilityGroup()).getByRole('note')).toHaveTextContent('Hoje: 15 escolheram aparecer com nome, 3 como Aluno do time, 1 ainda não respondeu.');
+    expect(within(visibilityGroup()).getByRole('note')).not.toHaveTextContent('escondidos para todos');
+    unmount();
+
+    render(
+      <MemoryRouter>
+        <ChallengeSettingsTab challenge={challengeOf()} isWeekly timeZone={TIME_ZONE} privacyCounts={{ name: 4, anonymous: 0, pending: 2 }} onSave={vi.fn()} onCloseEarly={vi.fn()} onCancel={vi.fn()} onDelete={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    expect(within(visibilityGroup()).getByRole('note')).toHaveTextContent('Hoje: 4 escolheram aparecer com nome, 0 como Aluno do time, 2 ainda não responderam.');
+  });
+
+  it('APP-36 says the names are hidden for everyone when the championship ranking is anonymous', async () => {
+    const user = userEvent.setup();
+    renderSettings(challengeOf({ anonymousRanking: true }), { privacyCounts: { name: 15, anonymous: 0, pending: 0 } });
+
+    const note = within(visibilityGroup()).getByRole('note');
+    expect(note).toHaveTextContent('Hoje: 15 escolheram aparecer com nome, 0 como Aluno do time, 0 ainda não responderam.');
+    expect(note).toHaveTextContent('Com o ranking anônimo ligado, os nomes ficam escondidos para todos: cada colega aparece como Aluno do time.');
+
+    await user.click(anonymousSwitch());
+    expect(within(visibilityGroup()).getByRole('note')).not.toHaveTextContent('escondidos para todos');
   });
 
   it('CPD-41 shows the start and end dates and the XP rules of a dates championship', async () => {

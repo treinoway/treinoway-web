@@ -72,3 +72,17 @@ export const CHALLENGE_MIN_WEEKS = 1;
 export const CHALLENGE_MAX_WEEKS = 12;
 export const CHALLENGE_START_MONDAY_COUNT = 12;
 export const CHALLENGE_DESCRIPTION_MAX_LENGTH = 280;
+
+// How much of a weekly championship the student app shows (APP-35, AD-033); full is the default
+export const CHALLENGE_VISIBILITY = Object.freeze({
+  OFF: 'off',
+  POSITION: 'position',
+  FULL: 'full',
+});
+
+// Title and description of each visibility option, in the order the form offers them
+export const CHALLENGE_VISIBILITY_OPTIONS = Object.freeze([
+  { value: CHALLENGE_VISIBILITY.OFF, title: 'Desligado', description: 'O aluno vê só a própria semana.' },
+  { value: CHALLENGE_VISIBILITY.POSITION, title: 'Só a posição do aluno', description: 'Vê a própria posição e a faixa, sem a lista.' },
+  { value: CHALLENGE_VISIBILITY.FULL, title: 'Ranking completo ao vivo', description: 'Vê o pódio, os vizinhos e a lista do campeonato.' },
+]);

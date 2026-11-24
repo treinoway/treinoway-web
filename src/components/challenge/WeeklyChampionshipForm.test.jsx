@@ -157,4 +157,22 @@ describe('WeeklyChampionshipForm', () => {
     expect(isBefore(podium, help)).toBe(true);
     expect(help).toHaveClass('type-caption');
   });
+
+  it('APP-35 sends the chosen visibility on creation', async () => {
+    const user = userEvent.setup();
+    const { onCreate } = await renderForm();
+    const group = screen.getByRole('group', { name: 'Visibilidade no app' });
+    expect(within(group).getByRole('radio', { name: /Ranking completo ao vivo/ })).toBeChecked();
+    expect(isBefore(screen.getByRole('switch', { name: 'Ranking anônimo' }), group)).toBe(true);
+    expect(isBefore(group, screen.getByRole('button', { name: 'Criar campeonato' }))).toBe(true);
+
+    await user.type(screen.getByLabelText('Nome'), 'Verão 2027');
+    await user.click(within(group).getByRole('radio', { name: /Só a posição do aluno/ }));
+    expect(within(group).getByRole('radio', { name: /Só a posição do aluno/ })).toBeChecked();
+    expect(within(group).getByRole('radio', { name: /Ranking completo ao vivo/ })).not.toBeChecked();
+    await user.click(screen.getByRole('button', { name: 'Criar campeonato' }));
+
+    await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
+    expect(onCreate.mock.calls[0][0]).toMatchObject({ name: 'Verão 2027', format: 'weeks', visibility: 'position' });
+  });
 });

@@ -44,6 +44,9 @@ export const challengeTagOf = (challenge, today, { detail = false } = {}) => {
   return scheduledTagOf(challenge, today);
 };
 
+// "3º", or a dash when the position is hidden or not reached yet
+export const ordinalOf = (position) => (position == null ? '—' : `${position}º`);
+
 // Every name a standings or ranking row carries: the full name, the short display name and first plus last name
 const rowNamesOf = (row) => [row.name, row.displayName, [row.firstName, row.lastName].filter(Boolean).join(' ')].filter(Boolean);
 

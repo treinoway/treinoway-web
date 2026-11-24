@@ -2114,19 +2114,6 @@
       "count": 2
     }
   },
-  "src/pages/my/MyChallengeDetail.jsx": {
-    "local/function-header-comment": {
-      "count": 4
-    },
-    "local/no-comments-in-function": {
-      "count": 2
-    }
-  },
-  "src/pages/my/MyChallenges.jsx": {
-    "local/function-header-comment": {
-      "count": 3
-    }
-  },
   "src/pages/my/MyProtocolDetail.jsx": {
     "local/disable-requires-reason": {
       "count": 1

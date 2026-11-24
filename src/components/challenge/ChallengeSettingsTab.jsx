@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
-import { CalendarClock } from 'lucide-react';
+import { CalendarClock, Lock } from 'lucide-react';
 import ConfirmDialog from '../ds/ConfirmDialog';
 import Toggle from '../ds/Toggle';
 import DateInput from '../DateInput';
 import ScoringRulesCard from './ScoringRulesCard';
+import VisibilityField from './VisibilityField';
 import { useToast } from '../../contexts/ToastContext';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useHistoryBackGuard from '../../hooks/useHistoryBackGuard';
@@ -15,7 +16,7 @@ import { WEEK_COUNT_OPTIONS, closeNoticeOf, startMondayOptions } from '../../uti
 import { dayMonthOf } from '../../utils/consistencyFormat';
 import { isScoringRuleValid } from '../../utils/consistencyWeights';
 import { formatDateForDisplay } from '../../utils/dateFormat';
-import { CHALLENGE_DESCRIPTION_MAX_LENGTH, CHALLENGE_NAME_MAX_LENGTH, CHALLENGE_STATUS } from '../../constants/challenge';
+import { CHALLENGE_DESCRIPTION_MAX_LENGTH, CHALLENGE_NAME_MAX_LENGTH, CHALLENGE_STATUS, CHALLENGE_VISIBILITY } from '../../constants/challenge';
 import { CONFIG_DEFAULTS, CONFIG_LIMITS } from '../../constants/consistencyRanking';
 
 const DISCARD_MESSAGE = 'Há mudanças não salvas. Descartar e sair?';
@@ -25,8 +26,8 @@ const XP_RULE_KEYS = Object.freeze(['ptsWorkoutCompleted', 'ptsStreak7Days', 'pt
 const TEXT_FIELDS = Object.freeze(['name', 'description']);
 const EDITABLE_FIELDS = Object.freeze({
   weeks: {
-    [CHALLENGE_STATUS.SCHEDULED]: ['name', 'description', 'startWeek', 'weeks', 'minPodiumWeeks', 'anonymousRanking', 'rule', 'points'],
-    [CHALLENGE_STATUS.ACTIVE]: ['name', 'description', 'anonymousRanking'],
+    [CHALLENGE_STATUS.SCHEDULED]: ['name', 'description', 'startWeek', 'weeks', 'minPodiumWeeks', 'anonymousRanking', 'visibility', 'rule', 'points'],
+    [CHALLENGE_STATUS.ACTIVE]: ['name', 'description', 'anonymousRanking', 'visibility'],
   },
   dates: {
     [CHALLENGE_STATUS.SCHEDULED]: ['name', 'endDate', 'anonymousRanking', 'points'],
@@ -43,6 +44,7 @@ const draftOf = (challenge) => ({
   weeks: challenge.weeks,
   minPodiumWeeks: challenge.minPodiumWeeks,
   anonymousRanking: !!challenge.anonymousRanking,
+  visibility: challenge.visibility ?? CHALLENGE_VISIBILITY.FULL,
   rule: { weights: challenge.weights ?? { ...CONFIG_DEFAULTS.weights }, activePillars: challenge.activePillars ?? [...CONFIG_DEFAULTS.activePillars] },
   points: Object.fromEntries(XP_RULE_KEYS.map((key) => [key, challenge[key] ?? null])),
 });
@@ -220,8 +222,35 @@ AnonymousRow.propTypes = {
   disabled: PropTypes.bool.isRequired,
 };
 
-// "Dados do campeonato" card: the fields the status allows and the one "Salvar configuração" of both cards
-const DataCard = ({ form, isWeekly, timeZone }) => {
+// "1 ainda não respondeu" / "N ainda não responderam"
+const pendingOf = (count) => `${count} ainda não ${count === 1 ? 'respondeu' : 'responderam'}`;
+
+// "N escolheu/escolheram aparecer com nome"
+const byNameOf = (count) => `${count} ${count === 1 ? 'escolheu' : 'escolheram'} aparecer com nome`;
+
+// Today's choices of the participants, not how they appear: minors and an anonymous ranking still hide the name (APP-36)
+const choicesSentenceOf = (counts) => ` Hoje: ${byNameOf(counts.name)}, ${counts.anonymous} como Aluno do time, ${pendingOf(counts.pending)}.`;
+
+// How the participants appear in the app, as web-configuracao.png words it, with today's choices once known (APP-36)
+const PrivacyNote = ({ counts, anonymousRanking }) => (
+  <div className="visibility-field__note" role="note">
+    <Lock size={16} strokeWidth={2} aria-hidden="true" />
+    <p className="type-caption">
+      Cada aluno escolhe se aparece com o nome ou como Aluno do time.
+      {counts && choicesSentenceOf(counts)}
+      {anonymousRanking && ' Com o ranking anônimo ligado, os nomes ficam escondidos para todos: cada colega aparece como Aluno do time.'}
+      {' Menores de 18 anos aparecem como Aluno do time. E-mail, telefone, peso, medidas, fotos e a % por pilar nunca aparecem para colegas.'}
+    </p>
+  </div>
+);
+
+PrivacyNote.propTypes = {
+  counts: PropTypes.shape({ name: PropTypes.number.isRequired, anonymous: PropTypes.number.isRequired, pending: PropTypes.number.isRequired }),
+  anonymousRanking: PropTypes.bool.isRequired,
+};
+
+// "Dados do campeonato" card: the fields the status allows, the visibility in the app (weekly) and the one "Salvar configuração" of both cards
+const DataCard = ({ form, isWeekly, timeZone, privacyCounts }) => {
   const { draft, setField, editable, isScheduled, saving, canSave, saveError, nameError, handleSubmit } = form;
   const disabled = saving || !editable;
   return (
@@ -235,6 +264,11 @@ const DataCard = ({ form, isWeekly, timeZone }) => {
         ? <WeeklyFields draft={draft} setField={setField} disabled={disabled} scheduleDisabled={saving || !isScheduled} timeZone={timeZone} />
         : <DatesFields draft={draft} setField={setField} disabled={disabled} />}
       <AnonymousRow checked={draft.anonymousRanking} onChange={(next) => setField('anonymousRanking', next)} disabled={disabled} />
+      {isWeekly && (
+        <VisibilityField value={draft.visibility} onChange={(next) => setField('visibility', next)} disabled={disabled} name="settings-visibility">
+          <PrivacyNote counts={privacyCounts} anonymousRanking={draft.anonymousRanking} />
+        </VisibilityField>
+      )}
       {editable && (
         <div className="ds-actions">
           <button type="submit" className="btn btn--primary" disabled={!canSave}>{saving ? 'Carregando...' : 'Salvar configuração'}</button>
@@ -248,6 +282,7 @@ DataCard.propTypes = {
   form: PropTypes.object.isRequired,
   isWeekly: PropTypes.bool.isRequired,
   timeZone: PropTypes.string,
+  privacyCounts: PropTypes.object,
 };
 
 // "Zona de perigo": end early (weekly, running), cancel (scheduled or running) and delete (scheduled)
@@ -306,8 +341,8 @@ const useSettingsForm = (challenge, isWeekly, onSave) => {
   return { ...save, draft, setField, editable, isScheduled, isDirty, canSave: ruleValid && !save.saving };
 };
 
-// Settings tab: "Dados do campeonato" and "Regras de pontuação" side by side, saved together, then the "Zona de perigo"; asks before leaving with unsaved changes
-const ChallengeSettingsTab = ({ challenge, isWeekly = false, timeZone, closesAt: knownClosesAt = null, onSave, onCloseEarly, onCancel, onDelete, onDirtyChange }) => {
+// Settings tab: "Dados do campeonato" (with the visibility in the app and the privacy counts) and "Regras de pontuação" side by side, saved together, then the "Zona de perigo"; asks before leaving with unsaved changes
+const ChallengeSettingsTab = ({ challenge, isWeekly = false, timeZone, closesAt: knownClosesAt = null, privacyCounts = null, onSave, onCloseEarly, onCancel, onDelete, onDirtyChange }) => {
   const form = useSettingsForm(challenge, isWeekly, onSave);
   const { dialogProps, requestConfirm } = useConfirmDialog();
   const [requestedClosesAt, setClosesAt] = useState(null);
@@ -326,7 +361,7 @@ const ChallengeSettingsTab = ({ challenge, isWeekly = false, timeZone, closesAt:
         </div>
       )}
       <div className="challenge-settings__columns">
-        <DataCard form={form} isWeekly={isWeekly} timeZone={timeZone} />
+        <DataCard form={form} isWeekly={isWeekly} timeZone={timeZone} privacyCounts={privacyCounts} />
         <ScoringRulesCard status={challenge.status} showPillars={isWeekly} rule={form.draft.rule} points={form.draft.points} onRuleChange={(rule) => form.setField('rule', rule)} onPointsChange={(key, value) => form.setField('points', { ...form.draft.points, [key]: value })} />
       </div>
       <DangerZone status={challenge.status} canCloseEarly={isWeekly && isActive && !closeRequested} onCloseEarly={requests.handleCloseEarly} onCancel={requests.handleCancel} onDelete={requests.handleDelete} />
@@ -345,6 +380,7 @@ ChallengeSettingsTab.propTypes = {
     weeks: PropTypes.number,
     minPodiumWeeks: PropTypes.number,
     anonymousRanking: PropTypes.bool,
+    visibility: PropTypes.oneOf(Object.values(CHALLENGE_VISIBILITY)),
     closeRequestedAt: PropTypes.string,
     weights: PropTypes.object,
     activePillars: PropTypes.arrayOf(PropTypes.string),
@@ -352,6 +388,7 @@ ChallengeSettingsTab.propTypes = {
   isWeekly: PropTypes.bool,
   timeZone: PropTypes.string,
   closesAt: PropTypes.string,
+  privacyCounts: PropTypes.shape({ name: PropTypes.number, anonymous: PropTypes.number, pending: PropTypes.number }),
   onSave: PropTypes.func.isRequired,
   onCloseEarly: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,

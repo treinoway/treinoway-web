@@ -50,6 +50,7 @@ const payload = (overrides = {}) => ({
     weeks: 4,
     minPodiumWeeks: 2,
     participantCount: 5,
+    visibility: 'full',
     closedAt: null,
   },
   status: 'active',
@@ -293,6 +294,21 @@ describe('ConsistencyRankingTab', () => {
     expect(screen.getByRole('heading', { name: 'Nenhum participante com semana válida ainda.' })).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Classificação do campeonato' })).not.toBeInTheDocument();
+  });
+
+  it('APP-38 shows visível no app: with the current visibility', () => {
+    const { rerender, onRetry, onOpenStudent, onBonus, onViewPoints, onRemove, onAdjustRules, onDelete, onAddParticipants } = renderTab();
+    const handlers = { onRetry, onOpenStudent, onBonus, onViewPoints, onRemove, onAdjustRules, onDelete, onAddParticipants };
+    const withVisibility = (visibility, overrides = {}) => payload({ ...overrides, challenge: { ...payload().challenge, visibility } });
+    const lineOf = () => screen.getByText('visível no app:', { exact: false });
+
+    expect(lineOf()).toHaveTextContent('visível no app: Ranking completo ao vivo');
+
+    rerender(<ConsistencyRankingTab data={withVisibility('position')} loading={false} error={null} timeZone={TIME_ZONE} now={NOW} {...handlers} />);
+    expect(lineOf()).toHaveTextContent('visível no app: Só a posição do aluno');
+
+    rerender(<ConsistencyRankingTab data={withVisibility('off', { status: 'scheduled' })} loading={false} error={null} timeZone={TIME_ZONE} now={NOW} {...handlers} />);
+    expect(lineOf()).toHaveTextContent('visível no app: Desligado');
   });
 
   it('CAMP-63 shows the skeleton while loading', () => {
