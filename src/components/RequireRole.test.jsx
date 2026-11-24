@@ -6,12 +6,8 @@ import RequireRole from './RequireRole';
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
-vi.mock('../hooks/useBetaGate', () => ({
-  default: vi.fn(),
-}));
 
 import { useAuth } from '../contexts/AuthContext';
-import useBetaGate from '../hooks/useBetaGate';
 
 const ProtectedContent = () => <div>Protected Admin Content</div>;
 const LoginPage = () => <div>Login Page</div>;
@@ -40,20 +36,6 @@ const renderWithRoutes = (initialPath = '/admin/invites', requiredRoles = ['admi
 describe('RequireRole', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useBetaGate).mockReturnValue(false);
-  });
-
-  it('redirects to /invite when the beta gate blocks the user, before the role check', () => {
-    useAuth.mockReturnValue({
-      isAuthenticated: true,
-      hasRole: () => true,
-    });
-    vi.mocked(useBetaGate).mockReturnValue(true);
-
-    renderWithRoutes();
-
-    expect(screen.getByText('Invite Page')).toBeInTheDocument();
-    expect(screen.queryByText('Protected Admin Content')).not.toBeInTheDocument();
   });
 
   it('redirects to /login when user is not authenticated', () => {

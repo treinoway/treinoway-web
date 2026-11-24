@@ -5,9 +5,12 @@ import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut,
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
+import EmailVerificationBanner from './EmailVerificationBanner';
+import EmailVerificationModal from './EmailVerificationModal';
 import FeedbackWidget from './FeedbackWidget';
 import FinanceSidebarLink from './FinanceSidebarLink';
 import useAiAccess from '../hooks/useAiAccess';
+import useEmailVerificationPrompt from '../hooks/useEmailVerificationPrompt';
 import useConsistencyRankingAccess from '../hooks/useConsistencyRankingAccess';
 import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
 import useStudentFeedbackAccess from '../hooks/useStudentFeedbackAccess';
@@ -72,6 +75,7 @@ const Layout = ({ children, noPadding = false }) => {
   const popoverRef = useRef(null);
   const profilePopoverRef = useRef(null);
   const financeOverdueCount = useFinanceOverdueCount();
+  const { prompt: verificationPrompt, closePrompt: closeVerificationPrompt } = useEmailVerificationPrompt();
   const financeBadge = financeOverdueCount > SIDEBAR_BADGE_MAX ? `${SIDEBAR_BADGE_MAX}+` : String(financeOverdueCount);
   const financeAriaLabel = financeOverdueCount > 0
     ? tf('finance.sidebar.overdueAria', { count: tCount('finance.count.overdueCharge', financeOverdueCount) })
@@ -391,10 +395,19 @@ const Layout = ({ children, noPadding = false }) => {
       </aside>
 
       <main className={`main-content${noPadding ? ' main-content--fullscreen' : ''}`}>
-        {noPadding ? children : <div className="main-content-inner">{children}</div>}
+        {noPadding ? children : (
+          <div className="main-content-inner">
+            <EmailVerificationBanner />
+            {children}
+          </div>
+        )}
       </main>
 
       <FeedbackWidget />
+
+      {verificationPrompt && (
+        <EmailVerificationModal reason={verificationPrompt.reason} onClose={closeVerificationPrompt} />
+      )}
 
       {/* Bottom Navigation — visible only on mobile */}
       <nav className="bottom-nav" aria-label="Navegação principal">

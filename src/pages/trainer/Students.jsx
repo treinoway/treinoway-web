@@ -4,6 +4,7 @@ import { Plus, CloudUpload, ArrowRight, Search, SearchX, ArrowUp, CircleAlert, U
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { t, translateError, extractErrorInfo } from '../../i18n';
+import { isEmailVerificationRequired } from '../../lib/emailVerificationGate';
 import api from '../../api/axios';
 import { inviteStudent } from '../../api/studentInvites';
 import { STUDENTS_PAGE_SIZE } from '../../constants/student';
@@ -382,6 +383,8 @@ const Students = () => {
   };
 
   const handleLinkError = (error) => {
+    // why: the app shell opens the e-mail confirmation modal for this refusal, so a toast would repeat it
+    if (isEmailVerificationRequired(error)) return;
     showToast(getLinkErrorMessage(error), 'error');
     if (extractErrorInfo(error).messageCode !== StudentInviteMessageCode.ALREADY_PENDING) return;
     setShowLinkModal(false);

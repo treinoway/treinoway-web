@@ -227,7 +227,8 @@ useEffect(() => {
 
     const payload = buildPatchPayload();
     if (Object.keys(payload).length === 0) {
-      showToast('Preencha ao menos um campo para salvar.', 'error');
+      setEditing(false);
+      dropEditParams();
       return;
     }
 

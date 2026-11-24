@@ -34,8 +34,8 @@ describe('Dashboard — after "Seja nutricionista" (fix round)', () => {
     mockRefreshUser.mockResolvedValue(null);
     vi.mocked(useToast).mockReturnValue({ showToast });
     vi.mocked(useAuth).mockReturnValue({
-      user: { id: 1, firstName: 'João', status: 'active', roles: [], betaAccess: true },
-      hasRole: () => false,
+      user: { id: 1, firstName: 'João', status: 'active', roles: ['TRAINER'], betaAccess: true },
+      hasRole: (role) => role === 'TRAINER',
       refreshUser: mockRefreshUser,
       updateTokens: mockUpdateTokens,
     });

@@ -7,6 +7,7 @@ import { UserPlus, Sparkles, Salad, Users } from 'lucide-react';
 import api from '../api/axios';
 import { becomeNutritionist } from '../api/nutrition';
 import NoStudentsModal from '../components/NoStudentsModal';
+import ProfessionChoiceCard from '../components/ProfessionChoiceCard';
 import { OnboardingChecklistView } from '../components/OnboardingChecklistCard';
 import WelcomeHero from '../components/WelcomeHero';
 import ControlTower from '../components/ControlTower';
@@ -28,8 +29,9 @@ const Dashboard = () => {
   const canUseAi = useAiAccess();
   const showTrainerCards = hasRole('TRAINER');
   const isNutritionist = hasRole('NUTRITIONIST');
-  const showBecomeTrainer = !hasRole('TRAINER');
-  const showBecomeNutritionist = Boolean(user?.betaAccess) && !isNutritionist;
+  const showProfessionChoice = !showTrainerCards && !isNutritionist;
+  const showBecomeTrainer = isNutritionist && !showTrainerCards;
+  const showBecomeNutritionist = showTrainerCards && !isNutritionist;
 
   const [becomingTrainer, setBecomingTrainer] = useState(false);
   const [checkingStudents, setCheckingStudents] = useState(false);
@@ -143,6 +145,8 @@ const Dashboard = () => {
         cta={heroCta}
         greeting={greeting}
       />
+
+      {showProfessionChoice && <ProfessionChoiceCard />}
 
       {showTrainerCards && <OnboardingChecklistView checklist={onboardingChecklist} placement="top" />}
 

@@ -6,12 +6,8 @@ import ProtectedRoute from './ProtectedRoute';
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
-vi.mock('../hooks/useBetaGate', () => ({
-  default: vi.fn(),
-}));
 
 import { useAuth } from '../contexts/AuthContext';
-import useBetaGate from '../hooks/useBetaGate';
 
 const renderAt = (path = '/') =>
   render(
@@ -34,7 +30,6 @@ const renderAt = (path = '/') =>
 describe('ProtectedRoute', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useBetaGate).mockReturnValue(false);
   });
 
   it('redirects to /login when not authenticated', () => {
@@ -43,15 +38,7 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText('Login Page')).toBeInTheDocument();
   });
 
-  it('redirects to /invite when the beta gate blocks the user', () => {
-    useAuth.mockReturnValue({ isAuthenticated: true });
-    vi.mocked(useBetaGate).mockReturnValue(true);
-    renderAt();
-    expect(screen.getByText('Invite Page')).toBeInTheDocument();
-    expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
-  });
-
-  it('renders children when authenticated and not blocked', () => {
+  it('renders children when authenticated', () => {
     useAuth.mockReturnValue({ isAuthenticated: true });
     renderAt();
     expect(screen.getByText('Protected Content')).toBeInTheDocument();

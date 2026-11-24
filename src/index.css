@@ -538,13 +538,17 @@ html:has(.auth-page) {
   }
 }
 
-.auth-heading {
-  font-size: var(--font-h2-size);
-  font-weight: var(--font-h2-weight);
-  color: var(--color-on-surface);
+/* Visible title + lead text of an auth card (signup, /invite) */
+.auth-intro {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
   text-align: center;
-  margin: 0;
 }
+
+.auth-intro__title { margin: 0; color: var(--text-primary); }
+.auth-intro__text { margin: 0; color: var(--text-secondary); }
 
 .auth-subtitle {
   font-size: var(--font-body-size);
@@ -628,25 +632,6 @@ button.auth-forgot-link:disabled {
   width: 100%;
 }
 
-/* Neutral confirmation after a resend (signup code step) */
-.auth-status {
-  font-size: var(--font-body-small-size);
-  color: var(--md-success);
-  text-align: center;
-  width: 100%;
-  margin: 0;
-}
-
-/* 6-digit one-time code field (signup code step) */
-.auth-code-input {
-  text-align: center;
-  font-family: var(--font-family-stat);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--font-body-large-size);
-  font-weight: 700;
-  letter-spacing: var(--tracking-wider);
-}
-
 .auth-footer {
   font-size: var(--font-body-small-size);
   color: var(--color-on-surface-variant);
@@ -721,76 +706,12 @@ button.auth-forgot-link:disabled {
   box-shadow: var(--shadow-focus);
 }
 
-/* Password hint */
-.auth-password-hint {
-  font-size: var(--font-caption-size);
-  color: var(--color-on-surface-variant);
-  margin-top: var(--spacing-xs);
-}
-
-/* Password field with toggle */
-.password-input-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.password-input-wrapper .form-input {
-  padding-right: 44px;
-}
-
-.password-toggle {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  min-width: 44px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-on-surface-variant);
-  padding: 0;
-}
-
-.password-toggle:hover {
-  color: var(--color-on-surface);
-}
-
-.password-toggle:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: var(--radius-xs);
-}
-
 /* ============================================================
-   Invite redemption (/invite) — beta gate screen.
+   Invite redemption (/invite) — old invite links.
    Shares the .auth-page, .auth-card, .form-, .auth-error shell;
    the pieces below are invite-specific layout + motion only.
    Canonical --brand-* tokens only.
    ============================================================ */
-
-/* Beta badge — exclusivity signal. Accent lives here only
-   (tinted container + slate text = AA-safe), never on the CTA. */
-.invite-beta {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  background: var(--brand-accent-container);
-  color: var(--brand-slate);
-  font-size: var(--font-overline-size);
-  font-weight: 700;
-  letter-spacing: var(--tracking-wider);
-  text-transform: uppercase;
-}
-
-.invite-beta svg {
-  color: var(--brand-accent);
-}
 
 .invite-title {
   font-family: var(--font-family-display);
@@ -909,34 +830,6 @@ button.auth-forgot-link:disabled {
   box-shadow: var(--shadow-focus);
 }
 
-.invite-code--valid {
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 1px var(--brand-primary);
-}
-
-/* Prefill confirmation line (conscious-confirm, not auto-submit) */
-.invite-prefill {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  margin-top: var(--spacing-xs);
-  font-size: var(--font-caption-size);
-  color: var(--brand-primary);
-  font-weight: 600;
-}
-
-.invite-prefill svg {
-  flex: none;
-}
-
-.invite-hint {
-  display: block;
-  margin-top: var(--spacing-xs);
-  font-size: var(--font-caption-size);
-  color: var(--brand-steel);
-  line-height: var(--line-height-normal);
-}
-
 /* Footer help block */
 .invite-help {
   width: 100%;
@@ -945,16 +838,6 @@ button.auth-forgot-link:disabled {
   color: var(--brand-steel);
   line-height: var(--line-height-normal);
   margin: 0;
-}
-
-.invite-help a {
-  color: var(--brand-primary);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.invite-help a:hover {
-  text-decoration: underline;
 }
 
 /* Motion-only nudge on the shared .auth-error at server rejection —
@@ -1012,273 +895,6 @@ button.auth-forgot-link:disabled {
     animation: none;
   }
 }
-
-/* ------------------------------------------------------------
-   Invite-aware Signup/Login (/signup?code=, /login?code=).
-   Keeps the closed-beta framing from the invite e-mail.
-   ------------------------------------------------------------ */
-.invite-context {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-/* 2-step progress: "1 Criar conta / Entrar" → "2 Acesso liberado" */
-.invite-steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  font-size: var(--font-caption-size);
-  color: var(--brand-steel);
-}
-
-.invite-steps__item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  font-weight: 600;
-}
-
-.invite-steps__item + .invite-steps__item::before {
-  content: '';
-  width: var(--spacing-xl);
-  height: 1px;
-  margin-right: var(--spacing-xs);
-  background: var(--brand-divider);
-}
-
-.invite-steps__item--active {
-  color: var(--brand-ink);
-  font-weight: 700;
-}
-
-.invite-steps__index {
-  width: var(--spacing-xl);
-  height: var(--spacing-xl);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-full);
-  box-shadow: inset 0 0 0 1px var(--md-outline-variant);
-  font-family: var(--font-family-stat);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
-
-.invite-steps__item--active .invite-steps__index {
-  background: var(--brand-primary);
-  box-shadow: none;
-  color: var(--md-surface);
-}
-
-/* Read-only invite code chip */
-.invite-code-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  max-width: 100%;
-  margin: 0;
-  padding: var(--spacing-xs) var(--spacing-lg);
-  border-radius: var(--radius-full);
-  background: var(--brand-mist);
-}
-
-.invite-code-chip__label {
-  font-size: var(--font-overline-size);
-  font-weight: 700;
-  letter-spacing: var(--tracking-wider);
-  text-transform: uppercase;
-  color: var(--brand-steel);
-}
-
-.invite-code-chip__value {
-  font-family: var(--font-family-stat);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--font-body-small-size);
-  font-weight: 700;
-  letter-spacing: var(--tracking-wider);
-  color: var(--brand-ink);
-  overflow-wrap: anywhere;
-}
-
-/* Locked (read-only) input — e.g. e-mail bound to the invite */
-.input-locked {
-  position: relative;
-  width: 100%;
-}
-
-.input-locked__field {
-  padding-right: var(--spacing-4xl);
-  background: var(--brand-mist);
-  color: var(--brand-slate);
-  cursor: default;
-}
-
-.input-locked__icon {
-  position: absolute;
-  right: var(--spacing-lg);
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--brand-steel);
-  pointer-events: none;
-}
-
-/* Link rendered as a full-width primary CTA (pairs with .btn-primary-full) */
-.invite-cta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  box-sizing: border-box;
-  text-align: center;
-  text-decoration: none;
-}
-
-/* Inline link inside .auth-info (e.g. "Ainda não tem conta? Criar conta") */
-.auth-info-link {
-  color: var(--brand-primary);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.auth-info-link:hover {
-  text-decoration: underline;
-}
-
-.auth-info-link:focus-visible {
-  outline: none;
-  border-radius: var(--radius-stat);
-  box-shadow: var(--shadow-focus);
-}
-
-/* Dead-invite state card (expired / revoked / alreadyAccepted / notFound) */
-.invite-status {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xl) var(--spacing-lg);
-  border-radius: var(--radius-brand);
-  background: var(--brand-mist);
-  text-align: center;
-}
-
-.invite-status__icon {
-  width: var(--spacing-4xl);
-  height: var(--spacing-4xl);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-full);
-  background: var(--md-surface);
-  color: var(--brand-slate);
-}
-
-.invite-status__title {
-  font-family: var(--font-family-display);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: var(--line-height-tight);
-  letter-spacing: var(--tracking-tight);
-  color: var(--brand-ink);
-  margin: 0;
-}
-
-.invite-status__body {
-  font-size: var(--font-body-small-size);
-  line-height: var(--line-height-normal);
-  color: var(--brand-slate);
-  margin: 0;
-}
-
-.invite-status__link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 var(--spacing-sm);
-  border-radius: var(--radius-brand);
-  font-size: var(--font-body-small-size);
-  font-weight: 600;
-  color: var(--brand-primary);
-  text-decoration: none;
-}
-
-.invite-status__link:hover {
-  text-decoration: underline;
-}
-
-.invite-status__link:focus-visible,
-.invite-cta:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-}
-
-/* Form placeholder while the invite preview loads */
-.invite-skeleton {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-}
-
-.invite-skeleton__field {
-  display: block;
-  width: 100%;
-  height: var(--spacing-4xl);
-  border-radius: var(--radius-brand);
-}
-
-/* Google button */
-.btn-google {
-  width: 100%;
-  min-height: 44px;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-outline);
-  background: var(--color-surface);
-  color: var(--color-on-surface);
-  font-family: inherit;
-  font-weight: var(--font-button-label-weight);
-  font-size: var(--font-button-label-size);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
-}
-
-.btn-google:hover {
-  background: var(--color-surface-container);
-  border-color: var(--color-outline);
-}
-
-.btn-google:active {
-  background: var(--color-surface-container-high);
-}
-
-.btn-google:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.btn-google:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-google svg {
-  flex-shrink: 0;
-}
-
 
 /* ============================================
    App Layout
@@ -16010,6 +15626,16 @@ textarea.input {
   border-color: transparent;
 }
 
+/* Input with a trailing icon button (password show/hide) */
+.input-reveal { position: relative; width: 100%; }
+.input-reveal__input { padding-right: var(--size-control-touch); }
+.input-reveal__toggle { position: absolute; top: 0; right: 0; }
+
+/* Inline text link inside a sentence */
+.text-link { color: var(--text-link); font-weight: 600; border-radius: var(--radius-sm); }
+.text-link:hover { text-decoration: underline; }
+.text-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
 /* ── Segmented (§4.8) ──────────────────────────────────────── */
 .segmented {
   display: inline-flex;
@@ -17006,6 +16632,62 @@ select.input { cursor: pointer; }
 .ds-banner--warning .ds-banner__icon { color: var(--feedback-warning-text); }
 .ds-banner--error { background: var(--feedback-error-bg); color: var(--feedback-error-text); }
 .ds-banner--error .ds-banner__icon { color: var(--feedback-error-text); }
+.ds-banner--success { background: var(--feedback-success-bg); color: var(--feedback-success-text); }
+.ds-banner--success .ds-banner__icon { color: var(--feedback-success-text); }
+
+/* Banner with a dismiss button: below 768px the actions drop to their own row under the text */
+.ds-banner__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); }
+.ds-banner__dismiss { margin-left: auto; color: inherit; }
+.ds-banner--dismissible .ds-banner__actions { order: 1; flex-basis: 100%; }
+
+@media (min-width: 768px) {
+  .ds-banner--dismissible .ds-banner__actions { order: 0; flex-basis: auto; }
+}
+
+/* ── E-mail confirmation (banner in the app shell + code modal) ── */
+.email-verification-banner { margin-bottom: var(--spacing-lg); }
+.email-verification-form { display: flex; flex-direction: column; gap: var(--spacing-md); }
+
+/* ── Profession choice (dashboard, first access) ───────────── */
+.profession-choice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.profession-choice__heading { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+.profession-choice__title { color: var(--text-primary); }
+.profession-choice__helper,
+.profession-choice__description { color: var(--text-secondary); }
+.profession-choice__options { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+
+.profession-choice__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  min-height: var(--size-control-touch);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface-elevated);
+  cursor: pointer;
+}
+
+.profession-choice__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xs);
+  min-width: 0;
+  color: var(--text-primary);
+}
+
+.profession-choice__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+
+@media (min-width: 768px) {
+  .profession-choice__options { flex-direction: row; }
+  .profession-choice__option { flex: 1; }
+}
 
 @media (min-width: 768px) {
   .metric-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }

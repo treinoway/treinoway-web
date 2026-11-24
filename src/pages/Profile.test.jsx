@@ -226,7 +226,7 @@ describe('Profile', () => {
     });
   });
 
-  it('shows error toast when submitting empty form', async () => {
+  it('leaves edit mode without error toast or PATCH when submitting an unchanged empty form', async () => {
     const user = userEvent.setup();
     vi.mocked(useAuth).mockReturnValue({
       user: mockEmptyUser,
@@ -241,12 +241,15 @@ describe('Profile', () => {
     await user.click(screen.getByRole('button', { name: /^salvar$/i }));
 
     await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith(
-        'Preencha ao menos um campo para salvar.',
-        'error'
-      );
-      expect(api.patch).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: /editar/i })).toBeInTheDocument();
     });
+    expect(screen.queryByRole('button', { name: /^salvar$/i })).not.toBeInTheDocument();
+    expect(mockShowToast).not.toHaveBeenCalledWith(expect.anything(), 'error');
+    expect(mockShowToast).not.toHaveBeenCalledWith(
+      'Preencha ao menos um campo para salvar.',
+      expect.anything()
+    );
+    expect(api.patch).not.toHaveBeenCalled();
   });
 
   it('trims string values before submitting', async () => {

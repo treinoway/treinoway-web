@@ -1,357 +1,194 @@
 import { useRef, useState } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { isBetaGateEnabled } from '../hooks/useBetaGate';
 import useGoogleAuth from '../hooks/useGoogleAuth';
-import useInviteAuthFlow from '../hooks/useInviteAuthFlow';
 import GoogleIcon from '../components/GoogleIcon';
 import AuthEmailField from '../components/AuthEmailField';
-import InviteContext from '../components/InviteContext';
-import InviteStatusCard from '../components/InviteStatusCard';
-import InviteFormSkeleton from '../components/InviteFormSkeleton';
-import SignupCodeStep from '../components/SignupCodeStep';
-import { t } from '../i18n';
+import AuthLegalFooter from '../components/AuthLegalFooter';
+import PasswordField from '../components/PasswordField';
+import { getTranslations, t } from '../i18n';
+import { splitFullName } from '../utils/splitFullName';
 
 const MIN_PASSWORD_LENGTH = 8;
-const INVITE_EMAIL_HINT = 'Use o e-mail em que você recebeu o convite.';
-const PASSWORD_TOO_SHORT = 'A senha deve ter pelo menos 8 caracteres.';
-const ACCOUNT_EXISTS_CODE = 'trainerInvite.accountExists';
-const VALIDATION_FAILED_CODE = 'validation.failed';
-// Invite errors from POST /auth/signup/invite that make the code unusable:
-// rendered as the same terminal card as a dead preview.
-const TERMINAL_INVITE_CODES = new Set([
-  'invite.notFound',
-  'invite.revoked',
-  'invite.expired',
-  'invite.alreadyAccepted',
-]);
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_IN_USE = 'EMAIL_IN_USE';
+const HOME_PATH = '/';
+const LOGIN_PATH = '/login';
+const NAME_ERROR_ID = 'signup-name-error';
 
-const getSubmitLabel = ({ loading, usesInviteSignup, isValidInvite }) => {
-  if (loading) return usesInviteSignup ? t('inviteSignup.submitting') : 'Enviando código...';
-  return isValidInvite ? t('inviteSignup.submit') : 'Criar conta';
+// Returns the inline error of each invalid field, keyed by field name.
+const validateSignup = ({ name, email, password }) => {
+  const { validation } = getTranslations();
+  const errors = {};
+  if (!name.trim()) errors.name = t('profile.firstName.required');
+  if (!EMAIL_PATTERN.test(email.trim())) errors.email = validation['validation.email.format'];
+  if (password.length < MIN_PASSWORD_LENGTH) errors.password = validation['validation.password.minLength'];
+  return errors;
 };
 
-const isPasswordValidationError = (result) => result.messageCode === VALIDATION_FAILED_CODE
-  && Array.isArray(result.details)
-  && result.details.some((detail) => detail?.field === 'password');
-
+// Open signup: Google or name + e-mail + password, straight into the app with no code step.
 const Signup = () => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  // The password stays only in memory until the code is verified: the backend
-  // does not keep it on the pending signup, so verify must resend it.
-  const [pendingEmail, setPendingEmail] = useState(null);
-  // messageCode of an invite signup failure that replaces the form
-  // (terminal invite error or an account created after the preview).
-  const [inviteOutcome, setInviteOutcome] = useState(null);
-  // Synchronous guard: the disabled button covers clicks, this covers a
-  // second submit dispatched before React re-renders.
   const submittingRef = useRef(false);
-  const {
-    signup, verifySignup, signupWithInvite, resendSignupCode, loginWithGoogle, isAuthenticated, user,
-  } = useAuth();
+  const { signupDirect, loginWithGoogle, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
-  const inviteCode = searchParams.get('code') || '';
-  // Skip the preview request when we're about to redirect an authenticated user.
-  const invite = useInviteAuthFlow(isAuthenticated ? '' : inviteCode);
-  const loginLink = inviteCode ? `/login?code=${encodeURIComponent(inviteCode)}` : '/login';
-  // A previewed invite for a new email signs up in one step via the invite
-  // endpoint; without a usable preview the regular code-verified signup runs.
-  const usesInviteSignup = Boolean(invite.lockedEmail) && !invite.accountExists;
-
-  // Route the freshly-authenticated user straight to their destination so a
-  // gated user never bounces through `/` → beta-gate redirect (white flash).
-  // An invite signup already grants access, so only a still-gated user
-  // detours through /invite to redeem.
-  const resolveDestination = (user) => {
-    if (inviteCode && user?.betaAccess !== true) {
-      return `/invite?code=${encodeURIComponent(inviteCode)}`;
-    }
-    if (isBetaGateEnabled() && user?.betaAccess === false) {
-      return '/invite';
-    }
-    return '/';
-  };
+  const goHome = () => navigate(HOME_PATH, { replace: true });
+  const showFailure = (message, errorCode = null) => setFailure({ message, errorCode });
 
   const { startGoogleAuth, isExchanging } = useGoogleAuth({
     loginWithGoogle,
-    loginHint: invite.lockedEmail,
-    onSuccess: (authenticatedUser) => navigate(resolveDestination(authenticatedUser), { replace: true }),
-    onError: setError,
+    onSuccess: goHome,
+    onError: showFailure,
   });
 
-  // Route through resolveDestination (not a hardcoded "/") so this guard
-  // agrees with the explicit navigate(resolveDestination(...)) call in
-  // handleSubmit below. Both can independently be triggered by the same
-  // establishSession() state update (isAuthenticated flips as soon as
-  // setAccessToken commits, before handleSubmit's own navigate() runs) —
-  // whichever one "wins" the render race must land on the same place, or
-  // the invite code gets silently dropped and the user is bounced to a
-  // bare /invite with no code to auto-redeem.
   if (isAuthenticated) {
-    return <Navigate to={resolveDestination(user)} replace />;
+    return <Navigate to={HOME_PATH} replace />;
   }
 
-  const validateFields = () => {
-    const errors = {};
+  const clearFieldError = (field) => setFieldErrors((current) => ({ ...current, [field]: undefined }));
 
-    if (password.length > 0 && password.length < MIN_PASSWORD_LENGTH) {
-      errors.password = PASSWORD_TOO_SHORT;
-    }
+  const handleNameChange = (value) => {
+    setName(value);
+    clearFieldError('name');
+  };
 
-    return errors;
+  const handleEmailChange = (value) => {
+    setEmail(value);
+    clearFieldError('email');
   };
 
   const handlePasswordChange = (value) => {
     setPassword(value);
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      delete next.password;
-      return next;
-    });
+    clearFieldError('password');
   };
 
   const handlePasswordBlur = () => {
-    if (password.length > 0 && password.length < MIN_PASSWORD_LENGTH) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        password: PASSWORD_TOO_SHORT,
-      }));
-    }
+    if (password.length === 0 || password.length >= MIN_PASSWORD_LENGTH) return;
+    setFieldErrors((current) => ({ ...current, password: getTranslations().validation['validation.password.minLength'] }));
   };
 
-  const applyInviteSignupError = (result) => {
-    if (result.messageCode === ACCOUNT_EXISTS_CODE || TERMINAL_INVITE_CODES.has(result.messageCode)) {
-      setInviteOutcome(result.messageCode);
-      return;
-    }
-    if (isPasswordValidationError(result)) {
-      setFieldErrors({ password: result.error });
-      return;
-    }
-    setError(result.error);
-  };
-
-  // One step: the invite carries the (verified) email, so no code screen.
-  // Loading stays on after success — the page is about to unmount.
-  const submitInviteSignup = async () => {
-    const result = await signupWithInvite(invite.code, password);
-    if (result.success) {
-      navigate(resolveDestination(result.user), { replace: true });
-      return;
+  const submitSignup = async () => {
+    try {
+      const result = await signupDirect({ email: email.trim(), password, ...splitFullName(name) });
+      if (result.success) {
+        goHome();
+        return;
+      }
+      showFailure(result.error, result.errorCode);
+    } catch {
+      showFailure(t('signupDirect.unexpectedError'));
     }
     submittingRef.current = false;
     setLoading(false);
-    applyInviteSignupError(result);
   };
 
-  const submitPendingSignup = async () => {
-    const signupEmail = invite.lockedEmail ?? email;
-
-    try {
-      const result = await signup(signupEmail, password);
-
-      if (result.success) {
-        setPendingEmail(signupEmail);
-      } else {
-        setError(result.error);
-      }
-    } catch {
-      setError('Ocorreu um erro inesperado.');
-    } finally {
-      submittingRef.current = false;
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (submittingRef.current) return;
-    setError('');
-    setFieldErrors({});
+    setFailure(null);
 
-    const errors = validateFields();
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      return;
-    }
-
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setFieldErrors({ password: PASSWORD_TOO_SHORT });
-      return;
-    }
+    const errors = validateSignup({ name, email, password });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     submittingRef.current = true;
     setLoading(true);
-    if (usesInviteSignup) {
-      await submitInviteSignup();
-      return;
-    }
-    await submitPendingSignup();
-  };
-
-  const handleVerifyCode = async (code) => {
-    const result = await verifySignup(pendingEmail, code, password);
-    if (result.success) {
-      navigate(resolveDestination(result.user), { replace: true });
-    }
-    return result;
-  };
-
-  const handleResendCode = () => resendSignupCode(pendingEmail);
-
-  const handleChangeEmail = () => {
-    setError('');
-    setPendingEmail(null);
+    await submitSignup();
   };
 
   const handleGoogleSignup = () => {
-    setError('');
+    setFailure(null);
     startGoogleAuth();
   };
 
   const isBusy = loading || isExchanging;
-  const emailHint = invite.isInviteFlow ? INVITE_EMAIL_HINT : '';
-  const accountExists = invite.accountExists || inviteOutcome === ACCOUNT_EXISTS_CODE;
-  const terminalInviteCode = TERMINAL_INVITE_CODES.has(inviteOutcome) ? inviteOutcome : null;
-  const isInviteDead = invite.isInvalid || Boolean(terminalInviteCode);
-  const showFooter = !isInviteDead && !accountExists;
-
-  const header = invite.isInviteFlow ? (
-    <InviteContext
-      code={invite.code}
-      firstStepLabel="Criar conta"
-      showSteps={!isInviteDead}
-    />
-  ) : (
-    <p className="auth-subtitle">Alunos, treinos e resultados.</p>
-  );
-
-  const signupForm = (
-    <>
-      {error && <p className="auth-error">{error}</p>}
-
-      <button
-        type="button"
-        onClick={handleGoogleSignup}
-        disabled={isBusy}
-        className="btn-google"
-      >
-        <GoogleIcon />
-        {isExchanging ? 'Cadastrando...' : 'Cadastrar com Google'}
-      </button>
-
-      <div className="auth-divider"><span>ou</span></div>
-
-      <form onSubmit={handleSubmit} className="auth-form">
-        <AuthEmailField
-          value={email}
-          onChange={setEmail}
-          disabled={isBusy}
-          lockedEmail={invite.lockedEmail}
-          hint={emailHint}
-        />
-
-        <div className="form-group">
-          <label htmlFor="password" className="form-label">Senha</label>
-          <div className="password-input-wrapper">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              value={password}
-              onChange={(e) => handlePasswordChange(e.target.value)}
-              onBlur={handlePasswordBlur}
-              required
-              className={`form-input${fieldErrors.password ? ' form-input--error' : ''}`}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              disabled={isBusy}
-            />
-            <button
-              type="button"
-              className="password-toggle"
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-          {fieldErrors.password && (
-            <span className="form-error">{fieldErrors.password}</span>
-          )}
-          <span className="auth-password-hint">Mínimo 8 caracteres</span>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isBusy}
-          className="btn-primary-full"
-        >
-          {getSubmitLabel({ loading, usesInviteSignup, isValidInvite: invite.isValid })}
-        </button>
-      </form>
-    </>
-  );
-
-  const accountExistsNotice = (
-    <>
-      <p className="auth-info">
-        Você já tem uma conta com <strong>{invite.lockedEmail}</strong>. Entre para ativar seu convite.
-      </p>
-      <Link to={loginLink} className="btn-primary-full invite-cta">Entrar e ativar convite</Link>
-    </>
-  );
-
-  const codeStep = pendingEmail && (
-    <SignupCodeStep
-      email={pendingEmail}
-      onVerify={handleVerifyCode}
-      onResend={handleResendCode}
-      onChangeEmail={handleChangeEmail}
-      changeEmailLabel={invite.lockedEmail ? t('signupVerification.backToForm') : t('signupVerification.changeEmail')}
-    />
-  );
-
-  let body = codeStep || signupForm;
-  if (invite.isLoading) {
-    body = <InviteFormSkeleton />;
-  } else if (isInviteDead) {
-    body = <InviteStatusCard messageCode={terminalInviteCode ?? invite.errorCode} />;
-  } else if (accountExists) {
-    body = accountExistsNotice;
-  }
+  const showLoginShortcut = failure?.errorCode === EMAIL_IN_USE;
 
   return (
     <div className="auth-page">
       <div className="auth-card">
         <img src="/img/teufit-lockup.png" alt="TeuFit" className="auth-logo" />
-        <h1 className="visually-hidden">Criar conta</h1>
-        {header}
+        <div className="auth-intro">
+          <h1 className="auth-intro__title type-h3">{t('signupDirect.title')}</h1>
+          <p className="auth-intro__text type-body">{t('signupDirect.subtitle')}</p>
+        </div>
 
-        {body}
-
-        {showFooter && (
-          <p className="auth-footer">
-            Já tem uma conta?{' '}
-            <Link to={loginLink} className="link">Entrar</Link>
+        {failure?.message && (
+          <p className="auth-error" role="alert">
+            {failure.message}
+            {showLoginShortcut && (
+              <>
+                {' '}
+                <Link to={LOGIN_PATH} className="text-link">{t('signupDirect.login')}</Link>
+              </>
+            )}
           </p>
         )}
+
+        <button
+          type="button"
+          onClick={handleGoogleSignup}
+          disabled={isBusy}
+          className="btn btn--secondary btn--block"
+        >
+          <GoogleIcon />
+          {isExchanging ? t('signupDirect.googleBusy') : t('signupDirect.google')}
+        </button>
+
+        <div className="auth-divider"><span>{t('signupDirect.divider')}</span></div>
+
+        <form onSubmit={handleSubmit} className="auth-form" noValidate>
+          <div className="field">
+            <label htmlFor="name" className="field-label type-caption-strong">{t('signupDirect.nameLabel')}</label>
+            <input
+              type="text"
+              id="name"
+              value={name}
+              onChange={(event) => handleNameChange(event.target.value)}
+              required
+              aria-invalid={fieldErrors.name ? 'true' : undefined}
+              aria-describedby={fieldErrors.name ? NAME_ERROR_ID : undefined}
+              className={`input${fieldErrors.name ? ' input--error' : ''}`}
+              placeholder={t('signupDirect.namePlaceholder')}
+              autoComplete="name"
+              disabled={isBusy}
+            />
+            {fieldErrors.name && <span id={NAME_ERROR_ID} className="field-error type-caption" role="alert">{fieldErrors.name}</span>}
+          </div>
+
+          <AuthEmailField value={email} onChange={handleEmailChange} disabled={isBusy} error={fieldErrors.email} />
+
+          <PasswordField
+            id="password"
+            label={t('signupDirect.passwordLabel')}
+            value={password}
+            onChange={handlePasswordChange}
+            onBlur={handlePasswordBlur}
+            autoComplete="new-password"
+            disabled={isBusy}
+            required
+            error={fieldErrors.password}
+            hint={t('signupDirect.passwordHint')}
+          />
+
+          <button type="submit" disabled={isBusy} className="btn btn--primary btn--lg btn--block">
+            {loading ? t('signupDirect.loading') : t('signupDirect.submit')}
+          </button>
+        </form>
+
+        <p className="auth-footer">
+          {t('signupDirect.footerPrompt')}{' '}
+          <Link to={LOGIN_PATH} className="link">{t('signupDirect.login')}</Link>
+        </p>
       </div>
 
-      <footer className="auth-legal">
-        <Link to="/terms" className="auth-legal-link">Termos e Condições</Link>
-        <span className="auth-legal-group">
-          <span className="auth-legal-sep" aria-hidden="true">·</span>
-          <Link to="/privacy-policy" className="auth-legal-link">Política de Privacidade</Link>
-        </span>
-      </footer>
+      <AuthLegalFooter />
     </div>
   );
 };

@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { AuthProvider } from './contexts/AuthContext';
 import { AiChatProvider } from './contexts/AiChatContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { ResendCooldownProvider } from './contexts/ResendCooldownContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
@@ -143,6 +144,7 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <ToastProvider>
+        <ResendCooldownProvider>
         <ErrorBoundary>
           <AuthProvider>
             <AiChatProvider>
@@ -882,6 +884,7 @@ function App() {
             </AiChatProvider>
           </AuthProvider>
         </ErrorBoundary>
+        </ResendCooldownProvider>
       </ToastProvider>
     </BrowserRouter>
   );

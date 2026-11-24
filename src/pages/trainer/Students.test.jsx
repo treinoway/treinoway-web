@@ -564,7 +564,7 @@ describe('Students', () => {
     resendAvailableAt: '2026-09-29T13:00:00.000Z',
   };
 
-  it('explains in the link modal that unregistered students get a TeuFit invite by e-mail', async () => {
+  it('explains in the link modal that the invite goes by e-mail and is accepted in the TeuFit app', async () => {
     const user = userEvent.setup();
     renderWithRouter(<Students />);
 
@@ -572,7 +572,7 @@ describe('Students', () => {
     await user.click(screen.getByRole('button', { name: /^vincular aluno$/i }));
 
     const dialog = screen.getByRole('dialog', { name: /vincular aluno/i });
-    expect(within(dialog).getByText(/convite por e-mail com os links para baixar o app TeuFit/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Enviamos o convite por e-mail\. Quem já tem conta aceita no app TeuFit/i)).toBeInTheDocument();
   });
 
   it('posts to /trainer/student-invites and appends the student when outcome is linked', async () => {

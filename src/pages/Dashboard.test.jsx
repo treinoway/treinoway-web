@@ -261,9 +261,9 @@ describe('Dashboard', () => {
     });
   });
 
-  describe('Activation mode (no TRAINER role)', () => {
+  describe('Activation mode (nutritionist without the TRAINER role)', () => {
     beforeEach(() => {
-      mockHasRole.mockReturnValue(false);
+      mockHasRole.mockImplementation((role) => role === 'NUTRITIONIST');
     });
 
     it('shows the "Comece a atender" activation zone', () => {
@@ -290,8 +290,8 @@ describe('Dashboard', () => {
       expect(screen.getByText('Seja um Treinador')).toBeInTheDocument();
     });
 
-    it('hides the activation zone entirely once the user is a trainer', () => {
-      mockHasRole.mockImplementation((role) => role === 'TRAINER');
+    it('hides the activation zone entirely once the user has both roles', () => {
+      mockHasRole.mockImplementation((role) => role === 'TRAINER' || role === 'NUTRITIONIST');
       mockApiGet();
       renderWithRouter(<Dashboard />);
       expect(screen.queryByRole('heading', { name: 'Comece a atender' })).not.toBeInTheDocument();
@@ -711,9 +711,10 @@ describe('Dashboard', () => {
       expect(screen.queryByRole('heading', { name: 'Tua semana em foco' })).not.toBeInTheDocument();
     });
 
-    it('shows the activation zone like any other non-trainer user', () => {
+    it('shows the profession choice instead of the activation zone to a user with no role', () => {
       renderWithRouter(<Dashboard />);
-      expect(screen.getByRole('heading', { name: 'Comece a atender' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Como você atende?' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Comece a atender' })).not.toBeInTheDocument();
     });
 
     it('does not show trainer quick actions', () => {

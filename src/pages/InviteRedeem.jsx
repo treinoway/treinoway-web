@@ -1,25 +1,42 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { Sparkles, LogOut, Check, Loader2 } from 'lucide-react';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { LogOut, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { translateError } from '../i18n';
+import { t, translateError } from '../i18n';
 import api from '../api/axios';
 import { normalizeInviteCode } from '../utils/inviteCode';
 import useInvitePreview from '../hooks/useInvitePreview';
 
-const SUPPORT_EMAIL = 'suporte@teufit.com.br';
 const SUCCESS_REDIRECT_MS = 900;
 const ACCOUNT_MISMATCH = 'invite.emailMismatch';
 const ALREADY_ACCEPTED = 'invite.alreadyAccepted';
-// Auto-redeem is effect-driven and can resolve in well under 200ms against a
-// fast/local API. Without a floor, the loading card flashes and reads as a
-// glitch rather than a state. This is a minimum *display* time, not an
-// artificial request delay — it only pads the gap between a fast response
-// and the next card, never adds to a genuinely slow one.
+// why: a fast auto-redeem would flash the loading card; this pads only the gap between a fast response and the next card
 const MIN_AUTO_REDEEM_LOADING_MS = 600;
 
+// Resolves after the given milliseconds.
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Title and text telling the visitor that TeuFit no longer needs an invite.
+const OpenAccessIntro = () => (
+  <div className="auth-intro">
+    <h1 className="auth-intro__title type-h3">{t('inviteRedeem.openTitle')}</h1>
+    <p className="auth-intro__text type-body">{t('inviteRedeem.openText')}</p>
+  </div>
+);
+
+// Card for a logged-out visitor who opened /invite without a usable code.
+const OpenAccessVisitorCard = () => (
+  <div className="auth-page">
+    <div className="auth-card">
+      <img src="/img/teufit-lockup.png" alt="TeuFit" className="auth-logo" />
+      <OpenAccessIntro />
+      <Link to="/login" className="btn btn--primary btn--lg btn--block">{t('inviteRedeem.login')}</Link>
+      <Link to="/signup" className="btn btn--secondary btn--lg btn--block">{t('inviteRedeem.signup')}</Link>
+    </div>
+  </div>
+);
+
+// Redeems old invite links for a logged-in user; a logged-out visitor without a code is told that no invite is needed.
 const InviteRedeem = () => {
   const { user, isAuthenticated, updateTokens, refreshUser, updateUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -34,6 +51,7 @@ const InviteRedeem = () => {
   const [fieldError, setFieldError] = useState('');
   const [serverError, setServerError] = useState('');
   const [errorCode, setErrorCode] = useState(null);
+  const [redeemFailed, setRedeemFailed] = useState(false);
   const [loading, setLoading] = useState(shouldAutoRedeem);
   const [succeeded, setSucceeded] = useState(false);
   const [autoRedeeming, setAutoRedeeming] = useState(shouldAutoRedeem);
@@ -47,7 +65,7 @@ const InviteRedeem = () => {
         updateTokens(newAccessToken, response.data.refreshToken);
 
         const refreshedUser = await refreshUser();
-        // why: /me can lag behind the redeem, so betaAccess is forced or the success card would bounce to the empty form
+        // why: /me can lag behind the redeem, so betaAccess is forced or the success card would bounce back
         updateUser({ ...(refreshedUser || user), betaAccess: true });
 
         const elapsed = Date.now() - startedAt;
@@ -60,6 +78,7 @@ const InviteRedeem = () => {
       })
       .catch((error) => {
         setAutoRedeeming(false);
+        setRedeemFailed(true);
         setErrorCode(error.errorInfo?.messageCode || null);
         setServerError(error.userMessage || translateError(error));
         setLoading(false);
@@ -80,7 +99,7 @@ const InviteRedeem = () => {
   }, [succeeded, navigate]);
 
   if (!isAuthenticated) {
-    if (!prefilledCode) return <Navigate to="/login" replace />;
+    if (!prefilledCode) return <OpenAccessVisitorCard />;
     const encodedCode = encodeURIComponent(searchParams.get('code'));
     if (preview.status === 'idle' || preview.status === 'loading') {
       return (
@@ -96,8 +115,9 @@ const InviteRedeem = () => {
     return <Navigate to={`/${accountExists ? 'login' : 'signup'}?code=${encodedCode}`} replace />;
   }
 
-  // why: betaAccess flips mid-redeem, so the guard waits for !succeeded && !autoRedeeming; only an already-accepted invite is sent home silently
-  if (user?.betaAccess === true && !succeeded && !autoRedeeming && (!serverError || errorCode === ALREADY_ACCEPTED)) {
+  // why: with no failed redeem there is nothing to show here; an already-accepted invite of a user with access is also sent home silently
+  const nothingToShow = !redeemFailed || (user?.betaAccess === true && errorCode === ALREADY_ACCEPTED);
+  if (!succeeded && !autoRedeeming && nothingToShow) {
     return <Navigate to="/" replace />;
   }
 
@@ -124,7 +144,7 @@ const InviteRedeem = () => {
           </div>
           <h1 className="invite-title">Acesso liberado!</h1>
           <p className="auth-subtitle" role="status">Estamos entrando na sua conta…</p>
-          <button type="button" className="btn-primary-full" disabled>
+          <button type="button" className="btn btn--primary btn--lg btn--block" disabled>
             <Loader2 size={16} strokeWidth={2} className="invite-spin" aria-hidden="true" />
             Abrindo seu painel…
           </button>
@@ -137,7 +157,6 @@ const InviteRedeem = () => {
     setCode(normalizeInviteCode(value));
     setFieldError('');
     setServerError('');
-    setErrorCode(null);
   };
 
   const handleSignOut = () => {
@@ -167,31 +186,6 @@ const InviteRedeem = () => {
 
   const avatarInitial = (user?.firstName || user?.email || '?').charAt(0).toUpperCase();
   const isFormMode = errorCode !== ALREADY_ACCEPTED && errorCode !== ACCOUNT_MISMATCH;
-  const hasPrefill = prefilledCode.length > 0;
-  const showPrefill = hasPrefill && code === prefilledCode && !serverError && !loading && isFormMode;
-
-  let title = 'O TeuFit está em beta fechado';
-  let subtitle = 'O acesso é só por convite no momento. Se você recebeu um código, insira abaixo para liberar sua conta de treinador.';
-  if (loading) {
-    title = 'Ativando seu convite…';
-    subtitle = 'Só um instante enquanto liberamos seu acesso.';
-  } else if (errorCode === ALREADY_ACCEPTED) {
-    title = 'Este convite já foi utilizado';
-    subtitle = '';
-  } else if (errorCode === ACCOUNT_MISMATCH) {
-    title = 'Este convite é de outro e-mail';
-    subtitle = '';
-  } else if (showPrefill) {
-    title = 'Seu convite está pronto';
-    subtitle = 'Confirmamos o código do seu link. Confira a conta abaixo e desbloqueie para começar.';
-  }
-
-  let submitLabel = 'Desbloquear acesso';
-  if (loading) {
-    submitLabel = 'Verificando…';
-  } else if (serverError) {
-    submitLabel = 'Tentar novamente';
-  }
 
   const accountChip = (withSwitch) => (
     <div className="invite-account">
@@ -219,33 +213,25 @@ const InviteRedeem = () => {
       <div className="auth-card">
         <img src="/img/teufit-lockup.png" alt="TeuFit" className="auth-logo" />
 
-        <span className="invite-beta">
-          <Sparkles size={13} strokeWidth={2} aria-hidden="true" />
-          Beta fechado
-        </span>
-
-        <h1 className="invite-title">{title}</h1>
-        {subtitle && <p className="auth-subtitle">{subtitle}</p>}
+        {errorCode === ALREADY_ACCEPTED && <h1 className="invite-title">Este convite já foi utilizado</h1>}
+        {errorCode === ACCOUNT_MISMATCH && <h1 className="invite-title">Este convite é de outro e-mail</h1>}
+        {isFormMode && <OpenAccessIntro />}
 
         {serverError && <p className="auth-error is-shake" role="alert">{serverError}</p>}
 
         {errorCode === ALREADY_ACCEPTED && (
           <>
             {accountChip(false)}
-            <button type="button" className="btn-primary-full" onClick={handleGoHome}>
+            <button type="button" className="btn btn--primary btn--lg btn--block" onClick={handleGoHome}>
               Ir para o início
             </button>
-            <p className="invite-help">
-              Ainda não deveria estar bloqueado?{' '}
-              <a href={`mailto:${SUPPORT_EMAIL}`}>Falar com o suporte</a>
-            </p>
           </>
         )}
 
         {errorCode === ACCOUNT_MISMATCH && (
           <>
             {accountChip(true)}
-            <button type="button" className="btn-primary-full" onClick={handleSignOut}>
+            <button type="button" className="btn btn--primary btn--lg btn--block" onClick={handleSignOut}>
               Entrar com outra conta
             </button>
             <p className="invite-help">O convite é vinculado ao e-mail para onde foi enviado.</p>
@@ -257,14 +243,14 @@ const InviteRedeem = () => {
             {accountChip(true)}
 
             <form onSubmit={handleSubmit} className="auth-form">
-              <div className="form-group">
-                <label htmlFor="inviteCode" className="form-label">Código do convite</label>
+              <div className="field">
+                <label htmlFor="inviteCode" className="field-label type-caption-strong">Código do convite</label>
                 <input
                   id="inviteCode"
                   type="text"
                   value={code}
                   onChange={(event) => handleCodeChange(event.target.value)}
-                  className={`form-input invite-code${fieldError || serverError ? ' form-input--error' : ''}${showPrefill ? ' invite-code--valid' : ''}`}
+                  className={`input invite-code${fieldError || serverError ? ' input--error' : ''}`}
                   placeholder="TF-XXXX-XXXX-XX"
                   maxLength={15}
                   inputMode="text"
@@ -274,36 +260,18 @@ const InviteRedeem = () => {
                   autoCorrect="off"
                   disabled={loading}
                 />
-                {fieldError && <span className="form-error" role="alert">{fieldError}</span>}
-                {!fieldError && showPrefill && (
-                  <span className="invite-prefill">
-                    <Check size={14} strokeWidth={2} aria-hidden="true" />
-                    Código preenchido pelo seu convite
-                  </span>
-                )}
-                {!fieldError && !showPrefill && (
-                  <span className="invite-hint">
-                    Formato: TF-XXXX-XXXX-XX · não diferencia maiúsculas de minúsculas
-                  </span>
-                )}
+                {fieldError && <span className="field-error type-caption" role="alert">{fieldError}</span>}
               </div>
 
-              <button type="submit" className="btn-primary-full" disabled={loading}>
+              <button type="submit" className="btn btn--primary btn--lg btn--block" disabled={loading}>
                 {loading && <Loader2 size={16} strokeWidth={2} className="invite-spin" aria-hidden="true" />}
-                {submitLabel}
+                {loading ? 'Verificando…' : 'Tentar novamente'}
               </button>
             </form>
 
-            {showPrefill ? (
-              <p className="invite-help">
-                Não é a sua conta? Use <strong>Sair</strong> acima — o convite é vinculado a um e-mail específico.
-              </p>
-            ) : (
-              <p className="invite-help">
-                Não tem um convite? Fale com quem te indicou ou escreva para{' '}
-                <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
-              </p>
-            )}
+            <button type="button" className="btn btn--secondary btn--lg btn--block" onClick={handleGoHome} disabled={loading}>
+              {t('inviteRedeem.goToDashboard')}
+            </button>
           </>
         )}
       </div>

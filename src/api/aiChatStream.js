@@ -2,6 +2,8 @@ import API_BASE_URL from './baseUrl';
 import { clearAuthAndRedirect, refreshAccessToken } from './axios';
 import { createSseParser } from '../utils/sseParser';
 import { getLocale } from '../i18n';
+import { EMAIL_VERIFICATION_REASON_AI } from '../constants/emailVerification';
+import { announceEmailVerificationRequired, isEmailVerificationRequired } from '../lib/emailVerificationGate';
 
 const STREAM_URL = `${API_BASE_URL}/trainer/ai/chat/stream`;
 
@@ -49,6 +51,7 @@ export const openChatStream = async ({ payload, token, signal }) => {
   if (response.ok) return response;
   const error = new Error(`AI chat stream failed with HTTP ${response.status}`);
   error.response = { status: response.status, data: await readErrorBody(response) };
+  if (isEmailVerificationRequired(error)) announceEmailVerificationRequired(EMAIL_VERIFICATION_REASON_AI);
   throw error;
 };
 

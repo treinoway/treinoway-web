@@ -4,6 +4,8 @@ import { useAuth } from './AuthContext';
 import api from '../api/axios';
 import { openChatStream, readChatEvents } from '../api/aiChatStream';
 import { t, translateError } from '../i18n';
+import { EMAIL_VERIFICATION_REQUIRED_CODE } from '../constants/emailVerification';
+import { isEmailVerificationRequired } from '../lib/emailVerificationGate';
 
 const AiChatContext = createContext(null);
 
@@ -46,12 +48,17 @@ const toUiMessages = (storedMessages) => {
   return uiMessages;
 };
 
-// Builds the error state shown by the single error surface.
-const buildChatError = (error, retryText) => ({
-  message: error.userMessage || translateError(error),
-  code: error.response?.data?.messageCode ?? null,
-  retryText,
-});
+// Builds the error state of the single error surface; an e-mail confirmation refusal keeps the retry but carries no message (the app shell opens the modal).
+const buildChatError = (error, retryText) => {
+  if (isEmailVerificationRequired(error)) {
+    return retryText ? { message: null, code: EMAIL_VERIFICATION_REQUIRED_CODE, retryText } : null;
+  }
+  return {
+    message: error.userMessage || translateError(error),
+    code: error.response?.data?.messageCode ?? null,
+    retryText,
+  };
+};
 
 // Creates the handlers of one chat turn; every handler is a no-op once the turn is no longer current.
 const createTurnHandlers = ({ text, isCurrent, finish, setters }) => {

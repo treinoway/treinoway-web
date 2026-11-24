@@ -15,7 +15,6 @@ vi.mock('./contexts/ToastContext', () => ({
   ToastProvider: ({ children }) => children,
   useToast: () => ({ showToast: vi.fn() }),
 }));
-vi.mock('./hooks/useBetaGate', () => ({ default: () => false }));
 vi.mock('./components/ProtectedRoute', () => ({ default: ({ children }) => children }));
 vi.mock('./components/Layout', () => ({ default: ({ children }) => children }));
 vi.mock('./pages/Dashboard', () => ({ default: () => <div>Dashboard Page</div> }));

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import InviteRedeem from './InviteRedeem';
 import { useAuth } from '../contexts/AuthContext';
@@ -91,12 +91,13 @@ describe('InviteRedeem - logged out with an empty normalized code', () => {
     setAuth({ authenticated: false });
   });
 
-  it.each(['-', '%20'])('redirects to /login for ?code=%s without previewing', async (value) => {
+  it.each(['-', '%20'])('says no invite is needed for ?code=%s, without redirecting or previewing', (value) => {
     renderInvite(`/invite?code=${value}`);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('login')).toHaveTextContent('/login');
-    });
+    expect(screen.getByRole('heading', { name: 'Você não precisa mais de convite' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Entrar' })).toHaveAttribute('href', '/login');
+    expect(screen.getByRole('link', { name: 'Criar conta' })).toHaveAttribute('href', '/signup');
+    expect(screen.queryByTestId('login')).not.toBeInTheDocument();
     expect(api.get).not.toHaveBeenCalled();
   });
 });

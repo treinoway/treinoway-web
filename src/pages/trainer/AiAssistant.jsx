@@ -3,6 +3,7 @@ import { History, Plus, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAiChat } from '../../contexts/AiChatContext';
 import { t } from '../../i18n';
+import { EMAIL_VERIFICATION_REQUIRED_CODE } from '../../constants/emailVerification';
 import { findPlaceholders, hasPlaceholders } from '../../utils/promptPlaceholders';
 import useTrainerBriefing from '../../hooks/useTrainerBriefing';
 import useStickToBottom from '../../hooks/useStickToBottom';
@@ -75,6 +76,7 @@ const AiAssistant = () => {
     statusMessage,
     hasNewResponse,
     errorRetry,
+    errorCode,
     errorMessage,
     sendMessage,
     startNewConversation,
@@ -147,7 +149,10 @@ const AiAssistant = () => {
   }, [input]);
 
   const hasMessages = messages.length > 0;
-  const showError = !loading && Boolean(errorMessage || errorRetry);
+  // why: this refusal is explained by the e-mail confirmation modal, so only the retry stays here, with no error text
+  const isSilentRetry = errorCode === EMAIL_VERIFICATION_REQUIRED_CODE && !errorMessage;
+  const showError = !loading && !isSilentRetry && Boolean(errorMessage || errorRetry);
+  const showSilentRetry = !loading && isSilentRetry && Boolean(errorRetry);
   const retryButton = errorRetry ? (
     <button type="button" className="btn btn--secondary" onClick={handleRetry}>
       {t('iArnold.chat.retry')}
@@ -186,6 +191,8 @@ const AiAssistant = () => {
           <CreateCards onSelect={handlePromptSelect} />
         </>
       )}
+
+      {showSilentRetry && <div className="ai-chat__error">{retryButton}</div>}
 
       {showError && (
         <div className="ai-chat__error">
