@@ -8453,36 +8453,6 @@ button.auth-forgot-link:disabled {
   }
 }
 
-/* ─── Aggregate summary card (student challenge list) ────────────────────── */
-.aggregate-summary-card {
-  display: flex;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-lg);
-  background: var(--md-primary-container, #eef2ff);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--spacing-lg);
-}
-
-.aggregate-summary-card__item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  color: var(--md-on-surface);
-}
-
-.aggregate-summary-card__value {
-  display: block;
-  font-size: var(--font-h2-size);
-  font-weight: var(--font-h2-weight);
-  line-height: 1.2;
-}
-
-.aggregate-summary-card__label {
-  display: block;
-  font-size: var(--font-caption-size);
-  color: var(--md-on-surface-variant, #666);
-}
-
 /* ─── Ranking list: top-3 highlight ──────────────────────────────────────── */
 .ranking-list-container {
   position: relative;
@@ -20730,6 +20700,12 @@ select.input { cursor: pointer; }
 .my-challenge-card__label { margin: 0; color: var(--text-secondary); }
 .my-challenge-card__value { margin: 0; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .my-challenges-list { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+/* Student championships page: "Pontos totais" and "Melhor posição" side by side over the full width, values in the page-title size */
+.my-challenges-kpis .metric-card { padding: var(--spacing-xl); }
+.my-challenges-kpis .metric-card-value { font-size: var(--font-size-32); }
+@media (min-width: 768px) {
+  .my-challenges-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 /* "Regras de pontuação" card: pillar editor, then each XP rule with its field on the right */
 .scoring-rules-card h2,
 .scoring-rules-card h3 { margin: 0; color: var(--text-primary); }
