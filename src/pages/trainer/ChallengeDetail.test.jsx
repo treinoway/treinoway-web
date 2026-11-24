@@ -322,6 +322,7 @@ const weeklyConsistency = {
   ],
   entering: [],
   summary: { classified: 1, entering: 0, leaderAverage: 95, leaderLead: null, championshipAverage: 95 },
+  privacyCounts: { name: 1, anonymous: 0, pending: 1 },
 };
 
 // GET responses of a weekly championship page
@@ -482,6 +483,14 @@ describe('ChallengeDetail', () => {
     expect(api.patch).toHaveBeenCalledWith('/trainer/challenges/w-1', { name: 'Verão Semanal 2' });
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Configuração salva.', 'success'));
     expect(screen.getByRole('heading', { level: 1, name: 'Verão Semanal 2' })).toBeInTheDocument();
+  });
+
+  it('APP-36 shows the privacy counts of the championship on Configurações', async () => {
+    renderWeekly('/trainer/challenges/w-1?tab=settings');
+
+    const group = await screen.findByRole('group', { name: 'Visibilidade no app' });
+    await waitFor(() => expect(within(group).getByRole('note')).toHaveTextContent('Hoje: 1 com nome, 0 como Aluno do time, 1 ainda não respondeu.'));
+    expect(requested('/trainer/challenges/w-1/consistency')).toBe(true);
   });
 
   it('CAMP-59 asks before leaving Configurações with unsaved changes', async () => {

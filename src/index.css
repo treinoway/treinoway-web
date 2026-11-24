@@ -20501,6 +20501,14 @@ select.input { cursor: pointer; }
 @media (min-width: 768px) {
   .visibility-field__options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+/* Privacy note under the visibility options: how the students appear and today's counts (APP-36) */
+.visibility-field__note { display: flex; align-items: flex-start; gap: var(--spacing-sm); padding: var(--spacing-md); border-radius: var(--radius-lg); background: var(--background-surface-elevated); color: var(--text-secondary); }
+.visibility-field__note svg { flex-shrink: 0; color: var(--icon-default); }
+.visibility-field__note p { margin: 0; }
+/* In the half-width "Dados do campeonato" card the options stay stacked */
+@media (min-width: 1024px) {
+  .challenge-settings__columns .visibility-field__options { grid-template-columns: minmax(0, 1fr); }
+}
 /* Championship scoring section: summary against the general ranking and the pillar editor */
 .scoring-section { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .scoring-section__summary { display: flex; flex-direction: column; gap: var(--spacing-sm); padding: var(--spacing-md); border-radius: var(--radius-lg); background: var(--background-surface-elevated); }

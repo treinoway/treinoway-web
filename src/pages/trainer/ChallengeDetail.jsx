@@ -109,8 +109,7 @@ const useChallengeDetailData = (id, weeklyAccess) => {
   const [tab, setTab] = useDetailTab(isWeekly ? WEEKLY_TABS : DATES_TABS);
   const ready = resource.status === 'ready';
   const cancelled = challenge?.status === CHALLENGE_STATUS.CANCELLED;
-  const needsCloseInstant = tab === TAB.SETTINGS && !!challenge?.closeRequestedAt;
-  const consistency = useChallengeConsistency(id, { enabled: isWeekly && !cancelled && (tab === TAB.RANKING || needsCloseInstant) });
+  const consistency = useChallengeConsistency(id, { enabled: isWeekly && !cancelled && (tab === TAB.RANKING || tab === TAB.SETTINGS) });
   const needsRanking = ready && (tab === TAB.PARTICIPANTS || tab === (isWeekly ? TAB.POINTS : TAB.RANKING));
   const ranking = useListResource(`/trainer/challenges/${id}/ranking`, needsRanking);
   const participants = useListResource(`/trainer/challenges/${id}/participants`, ready && tab === TAB.PARTICIPANTS);
@@ -160,7 +159,10 @@ const useChallengeWrites = (id, data) => {
       showToast('Participante removido.', 'success');
       await refreshPeople();
     },
-    save: async (changes) => resource.setChallenge((await api.patch(`/trainer/challenges/${id}`, changes)).data),
+    save: async (changes) => {
+      resource.setChallenge((await api.patch(`/trainer/challenges/${id}`, changes)).data);
+      if (data.isWeekly) consistency.reload();
+    },
     closeEarly: async () => {
       const { data: { closesAt, ...updated } } = await api.post(`/trainer/challenges/${id}/close`);
       resource.setChallenge(updated);
@@ -276,7 +278,7 @@ const TabPanel = ({ view }) => {
     return <ParticipantsTab participants={data.participants.items} pointsByStudent={pointsByStudent} loading={data.participants.loading} readOnly={readOnly} students={data.students.items} onAdd={writes.addParticipants} onRemove={writes.removeParticipant} />;
   }
   if (data.tab === TAB.SETTINGS) {
-    return <ChallengeSettingsTab challenge={challenge} isWeekly={data.isWeekly} timeZone={data.timeZone} closesAt={data.consistency.data?.closesAt ?? null} onSave={writes.save} onCloseEarly={writes.closeEarly} onCancel={writes.cancel} onDelete={writes.remove} onDirtyChange={actions.setSettingsDirty} />;
+    return <ChallengeSettingsTab challenge={challenge} isWeekly={data.isWeekly} timeZone={data.timeZone} closesAt={data.consistency.data?.closesAt ?? null} privacyCounts={data.consistency.data?.privacyCounts ?? null} onSave={writes.save} onCloseEarly={writes.closeEarly} onCancel={writes.cancel} onDelete={writes.remove} onDirtyChange={actions.setSettingsDirty} />;
   }
   if (data.tab === TAB.RANKING && data.isWeekly) return <ConsistencyPanel view={view} />;
   if (data.tab === TAB.RANKING && challenge.status === CHALLENGE_STATUS.CANCELLED) return <CancelledNotice />;
