@@ -30,13 +30,27 @@ const EMPTY_TAB_TITLE = Object.freeze({
 // Civil date of today in the browser time zone
 const localToday = () => todayIn(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
+// XP position of the student in a dates championship; a weekly one shows the consistency position, so it reads no XP ranking (APP-74)
+const loadXpPosition = async (challenge) => {
+  if (challenge.format === CHALLENGE_FORMAT.WEEKS) return null;
+  const response = await api.get(`/my/challenges/${challenge.id}/ranking`);
+  return response.data.myPosition ?? null;
+};
+
+// Points of the student's own summary and the XP position of one championship
+const loadXpOf = async (challenge) => {
+  const [summary, position] = await Promise.all([
+    api.get(`/my/points/summary?challengeId=${challenge.id}`),
+    loadXpPosition(challenge),
+  ]);
+  return { position, points: summary.data.totalPoints ?? 0 };
+};
+
 // XP position and points of the student in each championship, by id; a failed read leaves the championship out
 const loadXpById = async (challenges) => {
-  const results = await Promise.allSettled(challenges.map((challenge) => api.get(`/my/challenges/${challenge.id}/ranking`)));
+  const results = await Promise.allSettled(challenges.map(loadXpOf));
   return Object.fromEntries(results.flatMap((result, index) => (
-    result.status === 'fulfilled'
-      ? [[challenges[index].id, { position: result.value.data.myPosition, points: result.value.data.myPoints ?? 0 }]]
-      : []
+    result.status === 'fulfilled' ? [[challenges[index].id, result.value]] : []
   )));
 };
 

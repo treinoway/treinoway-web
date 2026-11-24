@@ -49,18 +49,30 @@ const datesClosed = challengeItem({
   participantCount: 6, format: 'dates', weeks: null, currentWeek: null, weights: null, activePillars: [], consistency: null,
 });
 
-const xpRanking = {
-  [weeklyRunning.id]: { entries: [], myPosition: 5, myPoints: 355 },
-  [datesClosed.id]: { entries: [], myPosition: 2, myPoints: 498 },
+// GET /my/points/summary?challengeId= of the student in each championship (pointSummarySchema)
+const pointSummaries = {
+  [weeklyRunning.id]: { totalPoints: 355, breakdown: { workout_completed: 300, daily_checkin: 55 } },
+  [datesClosed.id]: { totalPoints: 498, breakdown: { workout_completed: 450, trainer_bonus: 48 } },
 };
 
-// API mock: protocols for the trainer names, the list, and the XP ranking of each championship
+// GET /my/challenges/:id/ranking of the dates championship: the points inside its window differ from the summary
+const datesRanking = {
+  entries: [
+    { position: 1, studentId: '6f1c1f5e-3333-4a5b-9c1d-000000000007', firstName: 'Aluno #1', lastName: null, avatarUrl: null, points: 520 },
+    { position: 2, studentId: STUDENT_ID, firstName: 'Ana', lastName: 'Souza', avatarUrl: null, points: 470 },
+  ],
+  myPosition: 2,
+  myPoints: 470,
+};
+
+// API mock: protocols for the trainer names, the list, the own points summary of each championship and the XP ranking of the dates one
 const mockApi = (challenges) => {
   api.get.mockImplementation((url) => {
     if (url === '/my/protocols') return Promise.resolve({ data: protocols });
     if (url === '/my/challenges') return Promise.resolve({ data: challenges });
-    const ranking = /^\/my\/challenges\/([^/]+)\/ranking$/.exec(url);
-    if (ranking) return Promise.resolve({ data: xpRanking[ranking[1]] });
+    const summary = /^\/my\/points\/summary\?challengeId=(.+)$/.exec(url);
+    if (summary) return Promise.resolve({ data: pointSummaries[summary[1]] });
+    if (url === `/my/challenges/${datesClosed.id}/ranking`) return Promise.resolve({ data: datesRanking });
     return Promise.reject(new Error(`unexpected ${url}`));
   });
 };
@@ -130,6 +142,17 @@ describe('MyChallenges', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Ativos' }));
     expect(screen.getAllByRole('article').map((card) => within(card).getByRole('heading').textContent)).toEqual(['Verão 2027']);
+  });
+
+  it('APP-74 sums Pontos totais from the own points summary without reading the XP ranking of a weekly championship', async () => {
+    mockApi([weeklyRunning, datesClosed]);
+    renderWithRouter(<MyChallenges />);
+
+    const datesCard = await screen.findByRole('article', { name: 'Campeonato do Mês — Agosto' });
+    expect(metricValue('Pontos totais')).toHaveTextContent('853');
+    expect(within(datesCard).getByText('498 pts')).toBeInTheDocument();
+    expect(within(datesCard).getByText('2º')).toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalledWith(`/my/challenges/${weeklyRunning.id}/ranking`);
   });
 
   it('APP-72 shows the empty state without championships', async () => {
