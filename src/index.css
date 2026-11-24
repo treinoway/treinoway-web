@@ -20721,6 +20721,15 @@ select.input { cursor: pointer; }
 @media (min-width: 768px) {
   .challenge-card { padding: var(--spacing-xl); }
 }
+/* Student championship card (F3, ds-aluno-campeonatos.png): name and trainer line opposite the tag, two figures and "Ver ranking →" */
+.my-challenge-card__identity { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; }
+.my-challenge-card__meta { margin: 0; color: var(--text-secondary); }
+.my-challenge-card__footer { align-items: flex-end; }
+.my-challenge-card__figures { display: flex; flex-wrap: wrap; gap: var(--spacing-xl); margin: 0; }
+.my-challenge-card__figure { display: flex; flex-direction: column; gap: var(--spacing-2xs); }
+.my-challenge-card__label { margin: 0; color: var(--text-secondary); }
+.my-challenge-card__value { margin: 0; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.my-challenges-list { display: flex; flex-direction: column; gap: var(--spacing-lg); }
 /* "Regras de pontuação" card: pillar editor, then each XP rule with its field on the right */
 .scoring-rules-card h2,
 .scoring-rules-card h3 { margin: 0; color: var(--text-primary); }
