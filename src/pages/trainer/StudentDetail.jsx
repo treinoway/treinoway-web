@@ -14,6 +14,7 @@ import StudentCockpitHero from '../../components/StudentCockpitHero';
 import StudentRelationshipMetrics from '../../components/students/StudentRelationshipMetrics';
 import StudentRoutinesCard from '../../components/students/StudentRoutinesCard';
 import StudentAnamnesesCard from '../../components/students/StudentAnamnesesCard';
+import StudentFeedbackCard from '../../components/students/StudentFeedbackCard';
 import StudentVolumeCard from '../../components/students/StudentVolumeCard';
 import StudentLatestNoteCard from '../../components/students/StudentLatestNoteCard';
 import RecentSessionsPanel from '../../components/RecentSessionsPanel';
@@ -23,7 +24,9 @@ import IArnoldFAB from '../../components/IArnoldFAB';
 import StudentSubscriptionSection from '../../components/finance/StudentSubscriptionSection';
 import useStudentDashboard from '../../hooks/useStudentDashboard';
 import useStudentSubscriptionManager from '../../hooks/useStudentSubscriptionManager';
+import { SERVICE_TYPE } from '../../constants/finance';
 import useLinkedStudent from '../../hooks/useLinkedStudent';
+import useStudentFeedbackAccess from '../../hooks/useStudentFeedbackAccess';
 import usePeriodPersistence from '../../hooks/usePeriodPersistence';
 import { DASHBOARD_PERIOD_PRESETS, getPeriodPresetLabel } from '../../constants/dashboardPeriod';
 import { pickViz } from '../../constants/dashboardViz';
@@ -32,6 +35,7 @@ import { computeVolumeTimeline, computeHeatmapWeeks } from '../../utils/computeD
 import { getStudentDisplayName } from '../../utils/studentRow';
 import { findLatestNoteSession, sortProtocolsForDisplay, td } from '../../utils/studentCockpit';
 import { ANAMNESIS_FILL_TOAST_DURATION_MS, getAnamnesisFillPath } from '../../constants/anamnesis';
+import { studentFeedbackHistoryPath } from '../../constants/studentFeedback';
 
 const COMPLETION_WARN_THRESHOLD = 0.5;
 const LINK_FORM_ID = 'link-anamnesis-form';
@@ -196,6 +200,7 @@ const StudentDetail = () => {
   const { showToast } = useToast();
   const { user } = useAuth();
   const { startConversation } = useAiChat();
+  const showStudentFeedback = useStudentFeedbackAccess();
 
   const [period, setPeriod] = usePeriodPersistence(user?.id);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -208,7 +213,7 @@ const StudentDetail = () => {
   const { student, notFound: studentNotLinked, loading: studentLoading } = useLinkedStudent(id, location.state?.student ?? null, showToast);
   const studentName = student ? getStudentDisplayName(student) : null;
   const dashboard = useStudentDashboard(id, period);
-  const subscription = useStudentSubscriptionManager(id, studentName);
+  const subscription = useStudentSubscriptionManager(id, studentName, SERVICE_TYPE.TRAINING);
   const records = useStudentRecords(id, showToast);
 
   const summary = dashboard.summary.data;
@@ -279,7 +284,7 @@ const StudentDetail = () => {
   };
 
   const handleViewSubscriptionHistory = () => {
-    navigate(`/trainer/students/${id}/subscription-history`, { state: { studentName } });
+    navigate(`/financeiro/alunos/${id}`, { state: { studentName } });
   };
 
   const activePlanName = subscription.subscription ? subscription.planName : undefined;
@@ -336,6 +341,7 @@ const StudentDetail = () => {
             onFill={(link) => navigate(getAnamnesisFillPath(id, link.anamnesis.id))}
             onViewResponses={(link) => navigate(`/trainer/students/${id}/anamneses/${link.anamnesis.id}/response`)}
           />
+          {showStudentFeedback && <StudentFeedbackCard onViewAll={() => navigate(studentFeedbackHistoryPath(id))} />}
         </div>
       </section>
 

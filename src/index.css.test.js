@@ -48,6 +48,13 @@ describe('index.css: dashboard action card and iArnold focus', () => {
   });
 });
 
+describe('index.css: segmented that wraps', () => {
+  it('breaks the options into lines instead of scrolling them out of view', () => {
+    expect(ruleBody('.segmented--wrap')).toContain('flex-wrap: wrap');
+    expect(ruleBody('.segmented--wrap .segmented-item')).toContain('flex: 1 1 auto');
+  });
+});
+
 describe('index.css: onboarding checklist card', () => {
   const componentDir = resolve(process.cwd(), 'src/components/OnboardingChecklistCard');
   const usedClasses = readdirSync(componentDir)

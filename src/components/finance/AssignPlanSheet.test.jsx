@@ -2,7 +2,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { fireEvent, render, screen, waitFor } from '../../test/test-utils';
 import AssignPlanSheet from './AssignPlanSheet';
-import { apiError, makePlan, pinFinanceClock } from '../../test/financeFixtures';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+  DUAL_ROLE,
+  NUTRITIONIST_ONLY,
+  TRAINER_ONLY,
+  apiError,
+  authAs,
+  bothPlan,
+  makePlan,
+  nutritionPlan,
+  pinFinanceClock,
+} from '../../test/financeFixtures';
+
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
 
 const monthly = makePlan({ discountPercent: '33.33' });
 const annual = makePlan({ id: 'plan-2', name: 'Anual', recurrence: 'annual', recurrenceLabel: 'Anual', price: '990.00' });
@@ -20,7 +33,10 @@ const setup = (props = {}) => {
 };
 
 describe('AssignPlanSheet', () => {
-  beforeEach(pinFinanceClock);
+  beforeEach(() => {
+    pinFinanceClock();
+    vi.mocked(useAuth).mockReturnValue(authAs(TRAINER_ONLY));
+  });
   afterEach(() => vi.useRealTimers());
 
   it('pre-selects the first plan, previews the plan discount and assigns starting today', async () => {
@@ -181,5 +197,41 @@ describe('AssignPlanSheet', () => {
     const { onClose, user } = setup();
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(onClose).toHaveBeenCalled();
+  });
+  describe('plan tags (dual-role only)', () => {
+    const tagOf = (radio) => radio.querySelector('.badge.badge--tag');
+
+    it('dual-role: each plan option shows its tag as a DS Badge with the tag variant', () => {
+      vi.mocked(useAuth).mockReturnValue(authAs(DUAL_ROLE));
+      setup({ plans: [monthly, nutritionPlan(), bothPlan()] });
+      expect(tagOf(screen.getByRole('radio', { name: /Consultoria Mensal/ }))).toHaveTextContent('Treino');
+      expect(tagOf(screen.getByRole('radio', { name: /Acompanhamento Nutricional/ }))).toHaveTextContent('Nutrição');
+      expect(tagOf(screen.getByRole('radio', { name: /Treino e Dieta/ }))).toHaveTextContent('Ambos');
+    });
+
+    it.each([
+      ['trainer-only', TRAINER_ONLY],
+      ['nutritionist-only', NUTRITIONIST_ONLY],
+    ])('%s: plan options carry no tag badge', (_label, roles) => {
+      vi.mocked(useAuth).mockReturnValue(authAs(roles));
+      setup({ plans: [monthly, nutritionPlan()] });
+      screen.getAllByRole('radio').forEach((radio) => expect(tagOf(radio)).toBeNull());
+    });
+  });
+
+  describe('copy by role', () => {
+    it('nutritionist-only: the quick-create intro and the 409 message say "paciente"', async () => {
+      vi.mocked(useAuth).mockReturnValue(authAs(NUTRITIONIST_ONLY));
+      const { unmount } = render(
+        <AssignPlanSheet plans={[]} onClose={vi.fn()} onAssign={vi.fn()} onCreatePlanAndAssign={vi.fn()} />,
+      );
+      expect(screen.getByText('Você ainda não tem planos. Crie um agora e já atribua a este paciente.')).toBeInTheDocument();
+      unmount();
+
+      const onAssign = vi.fn().mockRejectedValue(apiError(409, 'SUBSCRIPTION_ALREADY_ACTIVE', 'subscription.alreadyActive'));
+      const { user } = setup({ onAssign, plans: [nutritionPlan()] });
+      await user.click(screen.getByRole('button', { name: 'Atribuir plano' }));
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Este paciente já possui uma assinatura ativa.'));
+    });
   });
 });

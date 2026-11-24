@@ -327,7 +327,7 @@
       "count": 1
     },
     "local/no-comments-in-function": {
-      "count": 13
+      "count": 12
     }
   },
   "src/components/Layout.test.jsx": {
@@ -1175,7 +1175,7 @@
   },
   "src/components/finance/PlanCard.jsx": {
     "local/function-header-comment": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/finance/PlanFormSheet.jsx": {
@@ -2114,19 +2114,6 @@
       "count": 2
     }
   },
-  "src/pages/my/MyChallengeDetail.jsx": {
-    "local/function-header-comment": {
-      "count": 4
-    },
-    "local/no-comments-in-function": {
-      "count": 2
-    }
-  },
-  "src/pages/my/MyChallenges.jsx": {
-    "local/function-header-comment": {
-      "count": 3
-    }
-  },
   "src/pages/my/MyProtocolDetail.jsx": {
     "local/disable-requires-reason": {
       "count": 1
@@ -2241,14 +2228,6 @@
   "src/pages/trainer/BrandingPreview.jsx": {
     "local/function-header-comment": {
       "count": 1
-    }
-  },
-  "src/pages/trainer/ChallengeDetail.jsx": {
-    "local/function-header-comment": {
-      "count": 4
-    },
-    "local/no-comments-in-function": {
-      "count": 13
     }
   },
   "src/pages/trainer/Challenges.jsx": {

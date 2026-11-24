@@ -1,5 +1,5 @@
-import { screen, waitFor } from '@testing-library/react';
-import { renderWithRouter } from '../../test/test-utils';
+import userEvent from '@testing-library/user-event';
+import { renderWithRouter, screen, waitFor, within } from '../../test/test-utils';
 import MyChallenges from './MyChallenges';
 import { useToast } from '../../contexts/ToastContext';
 import api from '../../api/axios';
@@ -12,14 +12,73 @@ vi.mock('../../api/axios', () => ({
 
 const mockShowToast = vi.fn();
 
-const mockChallenges = [
-  {
-    id: 'ch-1', name: 'Verao', startDate: '2026-06-01', endDate: '2026-06-30',
-    status: 'active', participantMode: 'all', filterCriteria: null,
-    cancelledAt: null, participantCount: 3, myPosition: 2, myPoints: 80,
-    createdAt: '2026-05-01T00:00:00Z', updatedAt: null,
-  },
-];
+// The trainer's User.id (what /my/protocols returns as trainer.id) and Trainer.id (what a championship carries as trainerId)
+const TRAINER_USER_ID = '6f1c1f5e-2222-4a5b-9c1d-000000000002';
+const TRAINER_PROFILE_ID = '6f1c1f5e-2222-4a5b-9c1d-000000000009';
+const STUDENT_ID = '6f1c1f5e-3333-4a5b-9c1d-000000000004';
+
+// GET /my/protocols item as the service returns it (getMyProtocolsSchema)
+const protocols = [{
+  id: '6f1c1f5e-4444-4a5b-9c1d-000000000005', assigneeId: STUDENT_ID, trainerId: TRAINER_PROFILE_ID, name: 'Hipertrofia',
+  status: 'active', statusLabel: 'Ativo', startDate: '2026-10-01', expirationDate: null,
+  genderOrdination: null, genderOrdinationLabel: null, trainingLevel: null, trainingLevelLabel: null, type: null, typeLabel: null,
+  trainer: { id: TRAINER_USER_ID, firstName: 'Gabriel', lastName: 'Araújo', avatarUrl: null },
+  trainings: [],
+}];
+
+// GET /my/challenges item as the service returns it (myChallengeListItemSchema)
+const challengeItem = (overrides) => ({
+  trainerId: TRAINER_PROFILE_ID, participantMode: 'all', participantModeLabel: 'Todos', filterCriteria: null, cancelledAt: null,
+  ptsWorkoutCompleted: 10, ptsStreak7Days: 20, ptsStreak30Days: 50, ptsDailyCheckin: 2, ptsEvolutionRecord: 15, ptsWorkoutFeedback: 5,
+  dailyPointsCap: null, anonymousRanking: false, minPodiumWeeks: null, description: null, visibility: 'full', ownerType: 'trainer',
+  closeRequestedAt: null, closedAt: null, createdAt: '2026-07-20T12:00:00.000Z', updatedAt: null,
+  ...overrides,
+});
+
+const weeklyRunning = challengeItem({
+  id: '6f1c1f5e-1111-4a5b-9c1d-000000000001', name: 'Verão 2027',
+  startDate: '2026-11-02', endDate: '2026-12-20', status: 'active', statusLabel: 'Ativo',
+  participantCount: 18, format: 'weeks', weeks: 7, currentWeek: 4, minPodiumWeeks: 4,
+  weights: { workouts: 60, cardio: 40 }, activePillars: ['workouts', 'cardio'],
+  consistency: { visibility: 'full', position: 3, total: 18, faixa: 'constant', average: 92.6 },
+});
+
+const datesClosed = challengeItem({
+  id: '6f1c1f5e-1111-4a5b-9c1d-000000000003', name: 'Campeonato do Mês — Agosto',
+  startDate: '2026-08-01', endDate: '2026-08-31', status: 'completed', statusLabel: 'Concluído',
+  participantCount: 6, format: 'dates', weeks: null, currentWeek: null, weights: null, activePillars: [], consistency: null,
+});
+
+// GET /my/points/summary?challengeId= of the student in each championship (pointSummarySchema)
+const pointSummaries = {
+  [weeklyRunning.id]: { totalPoints: 355, breakdown: { workout_completed: 300, daily_checkin: 55 } },
+  [datesClosed.id]: { totalPoints: 498, breakdown: { workout_completed: 450, trainer_bonus: 48 } },
+};
+
+// GET /my/challenges/:id/ranking of the dates championship: the points inside its window differ from the summary
+const datesRanking = {
+  entries: [
+    { position: 1, studentId: '6f1c1f5e-3333-4a5b-9c1d-000000000007', firstName: 'Aluno #1', lastName: null, avatarUrl: null, points: 520 },
+    { position: 2, studentId: STUDENT_ID, firstName: 'Ana', lastName: 'Souza', avatarUrl: null, points: 470 },
+  ],
+  myPosition: 2,
+  myPoints: 470,
+};
+
+// API mock: protocols for the trainer names, the list, the own points summary of each championship and the XP ranking of the dates one
+const mockApi = (challenges) => {
+  api.get.mockImplementation((url) => {
+    if (url === '/my/protocols') return Promise.resolve({ data: protocols });
+    if (url === '/my/challenges') return Promise.resolve({ data: challenges });
+    const summary = /^\/my\/points\/summary\?challengeId=(.+)$/.exec(url);
+    if (summary) return Promise.resolve({ data: pointSummaries[summary[1]] });
+    if (url === `/my/challenges/${datesClosed.id}/ranking`) return Promise.resolve({ data: datesRanking });
+    return Promise.reject(new Error(`unexpected ${url}`));
+  });
+};
+
+// Value shown under a metric card label
+const metricValue = (label) => screen.getByText(label).closest('.metric-card').querySelector('.metric-card-value');
 
 describe('MyChallenges', () => {
   beforeEach(() => {
@@ -30,46 +89,81 @@ describe('MyChallenges', () => {
   });
 
   it('shows skeleton while loading then renders challenges', async () => {
-    api.get.mockImplementation((url) => {
-      if (url === '/my/protocols') return Promise.resolve({ data: [{ id: 'p1', trainer: { userId: 'trainer-1', firstName: 'T' } }] });
-      if (url.startsWith('/my/challenges')) return Promise.resolve({ data: mockChallenges });
-      return Promise.reject(new Error('unexpected'));
-    });
+    mockApi([weeklyRunning, datesClosed]);
     renderWithRouter(<MyChallenges />);
-    expect(await screen.findByText('Verao')).toBeInTheDocument();
-    expect(screen.getByText('#2')).toBeTruthy();
+    expect(screen.getByRole('status', { name: 'Carregando campeonatos' })).toBeInTheDocument();
+    const weeklyCard = await screen.findByRole('article', { name: 'Verão 2027' });
+    expect(within(weeklyCard).getByText('3º')).toBeInTheDocument();
+    expect(screen.getByRole('article', { name: 'Campeonato do Mês — Agosto' })).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Carregando campeonatos' })).not.toBeInTheDocument();
   });
 
   it('shows empty state when no challenges', async () => {
-    api.get.mockImplementation((url) => {
-      if (url === '/my/protocols') return Promise.resolve({ data: [{ id: 'p1', trainer: { userId: 'trainer-1', firstName: 'T' } }] });
-      if (url.startsWith('/my/challenges')) return Promise.resolve({ data: [] });
-      return Promise.reject(new Error('unexpected'));
-    });
+    mockApi([]);
     renderWithRouter(<MyChallenges />);
     expect(await screen.findByText(/Nenhum campeonato ativo/i)).toBeInTheDocument();
   });
 
   it('renders filter chips', async () => {
-    api.get.mockImplementation((url) => {
-      if (url === '/my/protocols') return Promise.resolve({ data: [{ id: 'p1', trainer: { userId: 'trainer-1', firstName: 'T' } }] });
-      if (url.startsWith('/my/challenges')) return Promise.resolve({ data: [] });
-      return Promise.reject(new Error('unexpected'));
-    });
+    mockApi([weeklyRunning]);
     renderWithRouter(<MyChallenges />);
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Todos' })).toBeInTheDocument();
-    });
+    const tabs = await screen.findByRole('tablist', { name: 'Filtrar por status' });
+    expect(within(tabs).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Todos', 'Ativos', 'Encerrados']);
   });
 
   it('renders aggregate summary card when challenges have points', async () => {
-    api.get.mockImplementation((url) => {
-      if (url === '/my/protocols') return Promise.resolve({ data: [{ id: 'p1', trainer: { userId: 'trainer-1', firstName: 'T' } }] });
-      if (url.startsWith('/my/challenges')) return Promise.resolve({ data: mockChallenges });
-      return Promise.reject(new Error('unexpected'));
-    });
+    mockApi([weeklyRunning, datesClosed]);
     renderWithRouter(<MyChallenges />);
-    expect(await screen.findByText('80')).toBeInTheDocument();
-    expect(screen.getByText('Pontos totais')).toBeInTheDocument();
+    await screen.findByText('Pontos totais');
+    expect(metricValue('Pontos totais')).toHaveTextContent('853');
+  });
+
+  it('APP-71 shows Pontos totais, Melhor posição and the Todos, Ativos and Encerrados tabs', async () => {
+    const user = userEvent.setup();
+    mockApi([weeklyRunning, datesClosed]);
+    renderWithRouter(<MyChallenges />);
+
+    await screen.findByRole('article', { name: 'Verão 2027' });
+    expect(screen.getByRole('heading', { level: 1, name: 'Campeonatos' })).toBeInTheDocument();
+    expect(metricValue('Pontos totais')).toHaveTextContent('853');
+    expect(metricValue('Melhor posição')).toHaveTextContent('2º');
+    expect(screen.getByRole('tab', { name: 'Todos' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+
+    const weeklyCard = screen.getByRole('article', { name: 'Verão 2027' });
+    expect(within(weeklyCard).getByText('Treinador: Gabriel Araújo · 02/11 – 20/12/2026')).toBeInTheDocument();
+    expect(within(weeklyCard).getByText('Sua média')).toBeInTheDocument();
+    const datesCard = screen.getByRole('article', { name: 'Campeonato do Mês — Agosto' });
+    expect(within(datesCard).getByText('498 pts')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Encerrados' }));
+    expect(screen.getByRole('tab', { name: 'Encerrados' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('article').map((card) => within(card).getByRole('heading').textContent)).toEqual(['Campeonato do Mês — Agosto']);
+
+    await user.click(screen.getByRole('tab', { name: 'Ativos' }));
+    expect(screen.getAllByRole('article').map((card) => within(card).getByRole('heading').textContent)).toEqual(['Verão 2027']);
+  });
+
+  it('APP-74 sums Pontos totais from the own points summary without reading the XP ranking of a weekly championship', async () => {
+    mockApi([weeklyRunning, datesClosed]);
+    renderWithRouter(<MyChallenges />);
+
+    const datesCard = await screen.findByRole('article', { name: 'Campeonato do Mês — Agosto' });
+    expect(metricValue('Pontos totais')).toHaveTextContent('853');
+    expect(within(datesCard).getByText('498 pts')).toBeInTheDocument();
+    expect(within(datesCard).getByText('2º')).toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalledWith(`/my/challenges/${weeklyRunning.id}/ranking`);
+  });
+
+  it('APP-72 shows the empty state without championships', async () => {
+    mockApi([]);
+    const { container } = renderWithRouter(<MyChallenges />);
+
+    expect(await screen.findByRole('heading', { name: 'Nenhum campeonato ativo.' })).toBeInTheDocument();
+    expect(screen.getByText('Quando seu treinador criar um campeonato, ele aparece aqui.')).toBeInTheDocument();
+    expect(container.querySelector('.empty-block')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('tablist')).not.toBeInTheDocument());
+    expect(screen.queryByText('Pontos totais')).not.toBeInTheDocument();
+    expect(screen.queryByRole('article')).not.toBeInTheDocument();
   });
 });

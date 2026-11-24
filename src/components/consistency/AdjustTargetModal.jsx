@@ -40,7 +40,7 @@ const AdjustTargetModal = ({ targets, studentName, onSubmit, onClose }) => {
 
   const footer = (
     <>
-      <button type="button" className="btn btn--secondary" disabled={busy} onClick={handleClose}>Cancelar</button>
+      <button type="button" className="btn btn--neutral" disabled={busy} onClick={handleClose}>Cancelar</button>
       <button type="submit" form={formId} className="btn btn--primary" disabled={busy || value === ''}>{busy ? 'Carregando...' : 'Salvar'}</button>
     </>
   );

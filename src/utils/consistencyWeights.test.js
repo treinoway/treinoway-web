@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { effectivePercents, effectiveWeightsPhrase } from './consistencyWeights';
+import { effectivePercents, effectiveWeightsPhrase, isScoringRuleValid, weightSumOf } from './consistencyWeights';
 
 const WEIGHTS = { workouts: 30, cardio: 15, feedback: 15, hydration: 10, diet: 30 };
 const ACTIVE_WITHOUT_DIET = ['workouts', 'cardio', 'feedback', 'hydration'];
@@ -59,5 +59,18 @@ describe('effectiveWeightsPhrase', () => {
     expect(effectiveWeightsPhrase(WEIGHTS, ['cardio', 'feedback', 'hydration', 'diet'])).toBe(
       'Peso efetivo com Treinos desligado: Cardio 21,4% · Feedback 21,4% · Hidratação 14,3% · Dieta 42,9%',
     );
+  });
+});
+
+describe('consistencyWeights rule checks', () => {
+  it('sums the five pillar weights', () => {
+    expect(weightSumOf(WEIGHTS)).toBe(100);
+    expect(weightSumOf({ ...WEIGHTS, workouts: 45 })).toBe(115);
+  });
+
+  it('accepts a rule only with weights summing 100 and at least one active pillar', () => {
+    expect(isScoringRuleValid(WEIGHTS, ACTIVE_WITHOUT_DIET)).toBe(true);
+    expect(isScoringRuleValid({ ...WEIGHTS, workouts: 45 }, ACTIVE_WITHOUT_DIET)).toBe(false);
+    expect(isScoringRuleValid(WEIGHTS, [])).toBe(false);
   });
 });

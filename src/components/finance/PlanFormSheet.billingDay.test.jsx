@@ -4,6 +4,11 @@ import { fireEvent, render, screen } from '../../test/test-utils';
 import PlanFormSheet from './PlanFormSheet';
 import { makePlan } from '../../test/financeFixtures';
 
+// why: the finance UI reads the professional roles from useAuth; these cases run as a trainer-only user
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 1 }, isAuthenticated: true, hasRole: (role) => role === 'TRAINER' }),
+}));
+
 const BANNER = 'Alunos que já estão no plano mantêm o dia de vencimento atual.';
 
 // Renders the form for an existing plan with the given billing day.

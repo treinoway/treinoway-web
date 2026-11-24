@@ -36,9 +36,9 @@ const SUMMARY = `${STUDENT}/dashboard/summary`;
 const RECENT = `${STUDENT}/dashboard/recent-sessions`;
 const PROGRESSION = `${STUDENT}/dashboard/exercise-progression`;
 const DAILY = `${STUDENT}/dashboard/daily-activity`;
-const ACTIVE = `${STUDENT}/subscriptions/active`;
-const PAYMENTS = `${STUDENT}/payments`;
-const PLANS = '/trainer/subscription-plans';
+const ACTIVE = '/professional/students/student-1/subscriptions/active';
+const PAYMENTS = '/professional/students/student-1/payments';
+const PLANS = '/professional/subscription-plans';
 const PROTOCOLS = '/trainer/protocols';
 const ANAMNESES = `${STUDENT}/anamneses`;
 
@@ -97,7 +97,7 @@ let pending;
 
 const setupMocks = () => {
   vi.mocked(useToast).mockReturnValue({ showToast: vi.fn() });
-  vi.mocked(useAuth).mockReturnValue({ user: { id: 'trainer-1', firstName: 'João', lastName: 'Lucas' } });
+  vi.mocked(useAuth).mockReturnValue({ user: { id: 'trainer-1', firstName: 'João', lastName: 'Lucas' }, hasRole: (role) => role === 'TRAINER' });
   vi.mocked(useAiChat).mockReturnValue({ startConversation: vi.fn() });
   pending = new Map();
   api.get.mockImplementation((url) => {

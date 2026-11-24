@@ -58,3 +58,7 @@ export const PAYMENT_ROW_VARIANT = Object.freeze({ OVERVIEW: 'overview', HISTORY
 /** AssignPlanSheet: when the subscription starts and which discount applies. */
 export const START_MODE = Object.freeze({ TODAY: 'today', NEXT_MONTH: 'nextMonth', CUSTOM: 'custom' });
 export const DISCOUNT_CHOICE = Object.freeze({ PLAN: 'plan', NONE: 'none', CUSTOM: 'custom' });
+
+/** Plan tag (`serviceType` on plans, subscriptions and charge rows). */
+export const SERVICE_TYPE = Object.freeze({ TRAINING: 'training', NUTRITION: 'nutrition', BOTH: 'both' });
+export const SERVICE_TYPE_FILTER_ALL = 'all';

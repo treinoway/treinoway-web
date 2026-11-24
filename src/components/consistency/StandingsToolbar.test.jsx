@@ -25,6 +25,26 @@ ToolbarHarness.propTypes = {
 };
 
 describe('StandingsToolbar', () => {
+  it('CPD-70 shows the three views as underline tabs', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<ToolbarHarness />);
+
+    const tablist = screen.getByRole('tablist', { name: 'Visão do ranking' });
+    expect(tablist).toHaveClass('ds-tabs');
+    expect(container.querySelector('.segmented')).not.toBeInTheDocument();
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Temporada atual', 'Histórico geral', 'Temporadas anteriores']);
+    tabs.forEach((tab) => expect(tab).toHaveClass('ds-tabs__item'));
+    expect(screen.getByRole('tab', { name: 'Temporada atual' })).toHaveClass('ds-tabs__item--active');
+
+    await user.click(screen.getByRole('tab', { name: 'Temporadas anteriores' }));
+
+    expect(screen.getByRole('tab', { name: 'Temporadas anteriores' })).toHaveClass('ds-tabs__item--active');
+    expect(screen.getByRole('tab', { name: 'Temporadas anteriores' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Temporada atual' })).not.toHaveClass('ds-tabs__item--active');
+    expect(screen.queryByRole('searchbox', { name: 'Buscar aluno' })).not.toBeInTheDocument();
+  });
+
   it('switches the tab when a tab is used', async () => {
     const user = userEvent.setup();
     render(<ToolbarHarness />);

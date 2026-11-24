@@ -3,13 +3,20 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { render, screen, within } from '../../test/test-utils';
 import PaymentRow from './PaymentRow';
+import { useAuth } from '../../contexts/AuthContext';
 import {
+  DUAL_ROLE,
+  NUTRITIONIST_ONLY,
+  TRAINER_ONLY,
+  authAs,
   makePayment,
   overduePayment,
   paidPayment,
   pinFinanceClock,
   voidPayment,
 } from '../../test/financeFixtures';
+
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
 
 const handlers = () => ({
   onMarkPaid: vi.fn(),
@@ -42,7 +49,10 @@ const openMenu = async (user) => {
 };
 
 describe('PaymentRow', () => {
-  beforeEach(pinFinanceClock);
+  beforeEach(() => {
+    pinFinanceClock();
+    vi.mocked(useAuth).mockReturnValue(authAs(TRAINER_ONLY));
+  });
   afterEach(() => vi.useRealTimers());
 
   describe('overview variant', () => {
@@ -104,7 +114,7 @@ describe('PaymentRow', () => {
       renderRow(<PaymentRow payment={overduePayment()} {...handlers()} />);
 
       const link = screen.getByRole('link', { name: 'Ver histórico de Maria Silva' });
-      expect(link).toHaveAttribute('href', '/trainer/students/student-1/subscription-history');
+      expect(link).toHaveAttribute('href', '/financeiro/alunos/student-1');
       expect(within(link).getByText('Maria Silva')).toBeInTheDocument();
       expect(within(link).getByText('MS')).toBeInTheDocument();
       expect(within(link).queryByRole('button')).not.toBeInTheDocument();
@@ -122,7 +132,28 @@ describe('PaymentRow', () => {
     it('uses the fallback name in the link label when the API name is empty', () => {
       renderRow(<PaymentRow payment={makePayment({ student: { id: 's', name: '', avatarUrl: null } })} {...handlers()} />);
       expect(screen.getByRole('link', { name: 'Ver histórico de Aluno sem nome' }))
-        .toHaveAttribute('href', '/trainer/students/s/subscription-history');
+        .toHaveAttribute('href', '/financeiro/alunos/s');
+    });
+
+    it('links a nutrition charge of a patient to the same /financeiro/alunos/:studentId history', () => {
+      vi.mocked(useAuth).mockReturnValue(authAs(NUTRITIONIST_ONLY));
+      renderRow(<PaymentRow payment={overduePayment({ serviceType: 'nutrition', student: { id: 'patient-1', name: 'Luiza Andrade', avatarUrl: null } })} {...handlers()} />);
+      expect(screen.getByRole('link', { name: 'Ver histórico de Luiza Andrade' })).toHaveAttribute('href', '/financeiro/alunos/patient-1');
+    });
+
+    it('nutritionist-only: falls back to "Paciente sem nome"', () => {
+      vi.mocked(useAuth).mockReturnValue(authAs(NUTRITIONIST_ONLY));
+      renderRow(<PaymentRow payment={makePayment({ student: { id: 's', name: '', avatarUrl: null } })} {...handlers()} />);
+      expect(screen.getByRole('link', { name: 'Ver histórico de Paciente sem nome' })).toHaveAttribute('href', '/financeiro/alunos/s');
+      expect(screen.getByRole('button', { name: /Marcar pago: Paciente sem nome/ })).toBeInTheDocument();
+    });
+
+    it('dual-role: falls back to "Sem nome" (never "aluno", "paciente" or "cliente")', () => {
+      vi.mocked(useAuth).mockReturnValue(authAs(DUAL_ROLE));
+      renderRow(<PaymentRow payment={makePayment({ student: { id: 's', name: '', avatarUrl: null } })} {...handlers()} />);
+      expect(screen.getByRole('link', { name: 'Ver histórico de Sem nome' })).toBeInTheDocument();
+      expect(screen.getByText('Sem nome')).toBeInTheDocument();
+      expect(screen.queryByText(/aluno|paciente|cliente/i)).not.toBeInTheDocument();
     });
 
     it('renders the identity without a link when the student id is missing', () => {

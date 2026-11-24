@@ -3,7 +3,8 @@ import { Search, SearchX } from 'lucide-react';
 import Segmented from '../ds/Segmented';
 import EmptyBlock from '../ds/EmptyBlock';
 import PaymentRow from './PaymentRow';
-import { t, tf } from '../../i18n';
+import { t } from '../../i18n';
+import useFinanceCopy from '../../hooks/useFinanceCopy';
 import { CHARGE_FILTER, PAYMENT_ROW_VARIANT } from '../../constants/finance';
 import { countChargesByFilter, filterChargesByStudent, groupChargesByStatus } from '../../utils/financeCharges';
 
@@ -26,15 +27,17 @@ const Notice = ({ text }) => <p className="finance-notice type-body">{text}</p>;
 
 Notice.propTypes = { text: PropTypes.string.isRequired };
 
-const ChargesToolbar = ({ searchValue, onSearchChange, filter, onFilterChange, counts }) => (
+const ChargesToolbar = ({ searchValue, onSearchChange, filter, onFilterChange, counts }) => {
+  const { ft } = useFinanceCopy();
+  return (
   <div className="finance-toolbar section-card section-card--compact" role="search">
     <div className="input--search-wrap">
       <Search size={16} strokeWidth={2} aria-hidden="true" />
       <input
         type="text"
         className="input input--search input--on-elevated"
-        placeholder={t('finance.search.placeholder')}
-        aria-label={t('finance.search.aria')}
+        placeholder={ft('finance.search.placeholder')}
+        aria-label={ft('finance.search.aria')}
         value={searchValue}
         onChange={(e) => onSearchChange(e.target.value)}
       />
@@ -46,7 +49,8 @@ const ChargesToolbar = ({ searchValue, onSearchChange, filter, onFilterChange, c
       onChange={onFilterChange}
     />
   </div>
-);
+  );
+};
 
 ChargesToolbar.propTypes = {
   searchValue: PropTypes.string.isRequired,
@@ -119,6 +123,7 @@ const ChargesPanel = ({
   mutatingId,
   rowHandlers,
 }) => {
+  const { ft } = useFinanceCopy();
   const counts = countChargesByFilter(groupChargesByStatus(payments));
   const matching = filterChargesByStudent(payments, searchQuery);
   const rowProps = { mutatingId, handlers: rowHandlers };
@@ -134,7 +139,7 @@ const ChargesPanel = ({
         counts={counts}
       />
       {noSearchResults
-        ? <EmptyBlock icon={SearchX} title={tf('finance.search.noResults', { query: searchQuery.trim() })} />
+        ? <EmptyBlock icon={SearchX} title={ft('finance.search.noResults', { query: searchQuery.trim() })} />
         : <ChargeSections groups={groupChargesByStatus(matching)} filter={filter} rowProps={rowProps} />}
     </>
   );

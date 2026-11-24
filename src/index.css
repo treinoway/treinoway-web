@@ -2789,7 +2789,6 @@ button.auth-forgot-link:disabled {
 }
 
 .form-input,
-.form-select,
 .form-textarea {
   width: 100%;
   padding: 0.5rem 1rem;
@@ -2805,7 +2804,7 @@ button.auth-forgot-link:disabled {
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 
-/* ─── Custom Select ──────────────────────────────────────────────────────── */
+/* ─── Custom Select (src/components/Select.jsx) — DS Input §4.6 + dropdown §4.15 ─── */
 .custom-select {
   position: relative;
   width: 100%;
@@ -2815,57 +2814,71 @@ button.auth-forgot-link:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
-  padding: 0.5rem 0.75rem 0.5rem 1rem;
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius-lg);
-  font-size: 1rem;
-  font-family: inherit;
-  background-color: var(--color-surface);
-  color: var(--color-on-surface);
-  cursor: pointer;
-  text-align: left;
-  outline: none;
-  transition: box-shadow 0.2s, border-color 0.2s;
   gap: var(--spacing-sm);
+  width: 100%;
+  min-height: var(--size-control-touch);
+  padding: 0 var(--spacing-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--background-surface);
+  color: var(--text-primary);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  font-weight: 400;
+  line-height: var(--line-height-body);
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
 }
 
-.custom-select__trigger:focus,
+.custom-select__trigger:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+.custom-select__trigger:focus-visible,
 .custom-select__trigger--open {
-  box-shadow: 0 0 0 2px var(--color-primary);
-  border-color: transparent;
+  border-color: var(--border-focus);
+  box-shadow: var(--focus-ring);
 }
 
 .custom-select__trigger:disabled {
-  opacity: 0.5;
+  background-color: var(--background-surface-elevated);
+  color: var(--text-disabled);
   cursor: not-allowed;
 }
 
-.custom-select--error .custom-select__trigger {
-  border-color: var(--color-error);
-}
-
-.custom-select--error .custom-select__trigger:focus,
-.custom-select--error .custom-select__trigger.custom-select__trigger--open {
-  box-shadow: 0 0 0 2px var(--color-error);
-  border-color: transparent;
+.custom-select--error .custom-select__trigger,
+.custom-select--error .custom-select__trigger:hover:not(:disabled),
+.custom-select--error .custom-select__trigger:focus-visible,
+.custom-select--error .custom-select__trigger--open {
+  border-color: var(--border-error);
 }
 
 .custom-select__value {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .custom-select__value--placeholder {
-  color: var(--color-on-surface-variant);
+  color: var(--text-tertiary);
+}
+
+.custom-select__trigger:disabled .custom-select__value {
+  color: var(--text-disabled);
 }
 
 .custom-select__chevron {
   flex-shrink: 0;
-  color: var(--color-on-surface-variant);
-  transition: transform 0.2s ease;
+  color: var(--icon-default);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.custom-select__trigger:disabled .custom-select__chevron {
+  color: var(--icon-disabled);
 }
 
 .custom-select__chevron--open {
@@ -2873,22 +2886,21 @@ button.auth-forgot-link:disabled {
 }
 
 .custom-select__dropdown {
-  background: var(--color-surface);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  max-height: 260px;
+  max-height: calc(var(--spacing-5xl) * 4);
   overflow-y: auto;
-  list-style: none;
   margin: 0;
-  padding: var(--spacing-xs) 0;
-  animation: custom-select-open 0.15s ease-out;
+  padding: var(--spacing-xs);
+  list-style: none;
+  border-radius: var(--radius-lg);
+  background: var(--background-surface);
+  box-shadow: var(--shadow-overlay);
+  animation: custom-select-open var(--duration-fast) var(--ease-standard);
 }
 
 @keyframes custom-select-open {
   from {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(calc(var(--spacing-xs) * -1));
   }
   to {
     opacity: 1;
@@ -2896,40 +2908,52 @@ button.auth-forgot-link:disabled {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .custom-select__dropdown { animation: none; }
+  .custom-select__chevron { transition: none; }
+}
+
 .custom-select__option {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  font-size: 0.875rem;
-  font-family: inherit;
-  color: var(--color-on-surface);
+  display: flex;
+  align-items: center;
+  min-height: var(--size-control-touch);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  font-weight: 400;
+  line-height: var(--line-height-body);
+  color: var(--text-primary);
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
 }
 
 .custom-select__option:hover {
-  background: var(--color-surface-container);
+  background: var(--background-surface-elevated);
 }
 
-.custom-select__option--selected {
-  background: var(--color-primary-container);
-  color: var(--color-on-primary-container);
-  font-weight: 500;
-}
-
+.custom-select__option--selected,
 .custom-select__option--selected:hover {
-  background: var(--color-primary-container);
+  background: var(--background-brand-subtle);
+  color: var(--text-brand);
+  font-weight: 600;
 }
 
-.custom-select__option--disabled {
-  opacity: 0.4;
+.custom-select__option--disabled,
+.custom-select__option--disabled:hover {
+  background: none;
+  color: var(--text-disabled);
   cursor: not-allowed;
 }
 
-.custom-select__option--disabled:hover {
-  background: none;
+@media (min-width: 768px) {
+  .custom-select__trigger,
+  .custom-select__option {
+    min-height: var(--size-control);
+  }
 }
 
 .form-input:focus,
-.form-select:focus,
 .form-textarea:focus {
   box-shadow: 0 0 0 2px var(--color-primary);
   border-color: transparent;
@@ -2949,16 +2973,11 @@ button.auth-forgot-link:disabled {
    a concern. Base (375px) values are set on each control; this block reverts. ── */
 @media (min-width: 768px) {
   .form-input,
-.form-select,
-.form-textarea {
+  .form-textarea {
     font-size: 0.875rem;
   }
 
   .form-input--sm {
-    font-size: 0.875rem;
-  }
-
-  .custom-select__trigger {
     font-size: 0.875rem;
   }
 
@@ -4416,10 +4435,6 @@ button.auth-forgot-link:disabled {
     max-width: 80px;
     flex-shrink: 0;
   }
-}
-
-.form-select--error {
-  border-color: var(--color-error);
 }
 
 .schedule-template-error {
@@ -7907,23 +7922,6 @@ button.auth-forgot-link:disabled {
   color: var(--md-primary);
 }
 
-/* ─── Summary breakdown ───────────────────────────────────────────────────── */
-.summary-breakdown {
-  list-style: none;
-  padding: 0;
-  margin: var(--spacing-sm) 0 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.summary-breakdown-row {
-  display: flex;
-  justify-content: space-between;
-  padding: var(--spacing-xs) 0;
-  border-bottom: 1px solid var(--md-outline-variant, #eee);
-}
-
 /* ─── Participant list ────────────────────────────────────────────────────── */
 .participant-list {
   list-style: none;
@@ -7961,13 +7959,6 @@ button.auth-forgot-link:disabled {
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) 0;
   cursor: pointer;
-}
-
-/* ─── My challenge detail: position summary ──────────────────────────────── */
-.my-position-summary {
-  margin-top: var(--spacing-sm);
-  padding-top: var(--spacing-sm);
-  border-top: 1px solid var(--md-outline-variant, #eee);
 }
 
 /* ─── Competition hub: podium ─────────────────────────────────────────────── */
@@ -8436,36 +8427,6 @@ button.auth-forgot-link:disabled {
   .fab {
     bottom: var(--spacing-lg);
   }
-}
-
-/* ─── Aggregate summary card (student challenge list) ────────────────────── */
-.aggregate-summary-card {
-  display: flex;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-lg);
-  background: var(--md-primary-container, #eef2ff);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--spacing-lg);
-}
-
-.aggregate-summary-card__item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  color: var(--md-on-surface);
-}
-
-.aggregate-summary-card__value {
-  display: block;
-  font-size: var(--font-h2-size);
-  font-weight: var(--font-h2-weight);
-  line-height: 1.2;
-}
-
-.aggregate-summary-card__label {
-  display: block;
-  font-size: var(--font-caption-size);
-  color: var(--md-on-surface-variant, #666);
 }
 
 /* ─── Ranking list: top-3 highlight ──────────────────────────────────────── */
@@ -9015,73 +8976,6 @@ button.auth-forgot-link:disabled {
 }
 
 /* ============================================
-   Championship Cards
-   ============================================ */
-.championship-progress {
-  margin-top: var(--spacing-sm);
-}
-
-.championship-progress-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--font-caption-size);
-  color: var(--color-on-surface-variant);
-}
-
-.championship-progress-bar {
-  height: 4px;
-  margin-top: var(--spacing-xs);
-  border-radius: var(--radius-full);
-  background: var(--color-surface-container-high);
-  overflow: hidden;
-}
-
-.championship-progress-fill {
-  height: 100%;
-  border-radius: var(--radius-full);
-  background: var(--color-primary);
-  transition: width 0.3s ease;
-}
-
-.championship-alert {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  background: var(--color-error-container);
-}
-
-.championship-alert-text {
-  font-size: var(--font-caption-size);
-  color: var(--color-error);
-}
-
-.championship-alert-action {
-  font-size: var(--font-caption-size);
-  font-weight: 600;
-  color: var(--color-error);
-  background: none;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-  padding: 0;
-}
-
-.championship-alert-action:hover {
-  text-decoration: underline;
-}
-
-.championship-card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: var(--spacing-sm);
-}
-
-/* ============================================
    Protocol Template Wizard
    ============================================ */
 .wizard-shell {
@@ -9503,7 +9397,6 @@ button.auth-forgot-link:disabled {
   margin-top: var(--spacing-sm);
 }
 
-.wizard-ex-picker-row .form-select,
 .wizard-ex-picker-row select {
   flex: 1;
 }
@@ -15861,7 +15754,7 @@ button.auth-forgot-link:disabled {
 .section-card.section-card--compact { padding: var(--spacing-sm); }
 
 /* ── Button (§4.2) ─────────────────────────────────────────── */
-.btn:is(.btn--primary, .btn--secondary, .btn--ghost, .btn--conversion, .btn--danger) {
+.btn:is(.btn--primary, .btn--secondary, .btn--neutral, .btn--ghost, .btn--conversion, .btn--danger) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -15884,12 +15777,12 @@ button.auth-forgot-link:disabled {
 }
 
 @media (min-width: 768px) {
-  .btn:is(.btn--primary, .btn--secondary, .btn--ghost, .btn--conversion, .btn--danger) {
+  .btn:is(.btn--primary, .btn--secondary, .btn--neutral, .btn--ghost, .btn--conversion, .btn--danger) {
     min-height: var(--size-control);
   }
 }
 
-.btn:is(.btn--primary, .btn--secondary, .btn--ghost, .btn--conversion, .btn--danger):focus-visible {
+.btn:is(.btn--primary, .btn--secondary, .btn--neutral, .btn--ghost, .btn--conversion, .btn--danger):focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
@@ -15907,6 +15800,25 @@ button.auth-forgot-link:disabled {
 .btn--secondary:active:not(:disabled) {
   background: var(--background-brand-subtle);
   border-color: var(--action-primary-default);
+}
+
+/* Neutral button of the company design system ("Neutro" in ds-componentes.png): white, visible border, dark text.
+   deviation: not in the web skill's button list; the binding championship captures draw it for supporting actions. */
+.btn.btn--neutral {
+  background: var(--background-surface);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+.btn.btn--neutral:hover:not(:disabled) { background: var(--background-surface-elevated); }
+.btn.btn--neutral:active:not(:disabled) {
+  background: var(--background-surface-elevated);
+  border-color: var(--border-strong);
+}
+.btn.btn--neutral:disabled {
+  background: var(--action-primary-disabled);
+  border-color: transparent;
+  color: var(--text-disabled);
+  cursor: not-allowed;
 }
 
 .btn--ghost { background: transparent; color: var(--text-brand); }
@@ -16140,6 +16052,84 @@ textarea.input {
   font-weight: 600;
 }
 
+/* Wrapping variant: options that do not fit break into lines instead of scrolling out of view */
+.segmented--wrap {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.segmented--wrap .segmented-item {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+/* ── Underline tabs (ds/Tabs) ──────────────────────────────── */
+.ds-tabs {
+  display: flex;
+  max-width: 100%;
+  gap: var(--spacing-xl);
+  border-bottom: 1px solid var(--border-default);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ds-tabs::-webkit-scrollbar { display: none; }
+
+.ds-tabs__item {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: var(--size-control-touch);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-body);
+  font-weight: 400;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.ds-tabs__item:hover { color: var(--text-primary); }
+.ds-tabs__item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ds-tabs__item--active { color: var(--text-brand); font-weight: 600; }
+
+.ds-tabs__item--active::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: var(--spacing-2xs);
+  background: var(--action-primary-default);
+}
+
+.ds-tabs__count {
+  display: inline-flex;
+  justify-content: center;
+  min-width: calc(var(--spacing-lg) + var(--spacing-xs));
+  padding: 0 var(--spacing-xs);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: var(--background-surface);
+  color: var(--text-secondary);
+  font-size: var(--font-size-12);
+  line-height: var(--line-height-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-tabs__item--active .ds-tabs__count {
+  border-color: transparent;
+  background: var(--background-brand-subtle);
+  color: var(--text-brand);
+}
+
 /* ── Toggle (§4.7) ─────────────────────────────────────────── */
 .toggle {
   position: relative;
@@ -16363,6 +16353,8 @@ textarea.input {
 .ds-overlay--center { align-items: center; }
 .ds-dialog__message { color: var(--text-primary); margin-bottom: var(--spacing-xl); }
 .ds-dialog .ds-actions { justify-content: flex-end; }
+.ds-dialog__message--with-body { margin-bottom: var(--spacing-lg); }
+.ds-dialog__body { display: flex; flex-direction: column; gap: var(--spacing-xs); margin-bottom: var(--spacing-xl); }
 
 /* ── Popover: bottom sheet below 768px, card anchored above its positioned parent at >=768px ── */
 .ds-popover {
@@ -16999,6 +16991,9 @@ select.input { cursor: pointer; }
 
 .chip:hover { background: var(--background-surface-elevated); }
 .chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.chip:disabled { color: var(--text-disabled); cursor: not-allowed; }
+.chip:disabled:hover { background: var(--background-surface); }
+.chip--active:disabled:hover { background: var(--background-brand-subtle); }
 
 .chip--active {
   background: var(--background-brand-subtle);
@@ -18829,7 +18824,20 @@ select.input { cursor: pointer; }
   .finance-page__actions .month-selector { width: auto; }
 }
 
-.finance-tabs { margin-bottom: var(--spacing-xl); }
+/* Tabs row: Cobranças/Planos tabs left, "Tipo" select right (dual-role only); the select wraps below on mobile. */
+.finance-tabs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.finance-tabs { min-width: 0; max-width: 100%; }
+
+@media (min-width: 768px) {
+  .finance-tabs-row { flex-wrap: nowrap; justify-content: space-between; }
+}
 
 /* ── Month selector ────────────────────────────────────────── */
 .month-selector {
@@ -20123,6 +20131,7 @@ select.input { cursor: pointer; }
 @media (min-width: 768px) {
   .consistency-toolbar__head { flex-direction: row; align-items: center; justify-content: space-between; }
   .consistency-toolbar__search { flex: 0 1 calc(var(--spacing-5xl) * 5); }
+  .consistency-toolbar__head .ds-tabs { flex: 1 1 auto; }
 }
 
 .consistency-table__scroll { overflow-x: auto; }
@@ -20389,6 +20398,387 @@ select.input { cursor: pointer; }
   color: var(--feedback-warning-text);
 }
 .settings-weights { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.pillar-weights-editor { display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; margin: 0; padding: 0; border: 0; }
+/* Weekly championship form: start Monday and weeks side by side, actions on the right */
+.weekly-form__pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-md); }
+.weekly-form__actions { justify-content: flex-end; padding-bottom: var(--spacing-md); }
+/* Championship "Visibilidade no app": three radio cards as web-configuracao.png draws them, stacked on mobile (APP-35) */
+.visibility-field { display: flex; flex-direction: column; gap: var(--spacing-sm); min-width: 0; margin: 0; padding: 0; border: 0; }
+.visibility-field__legend { padding: 0; margin-bottom: var(--spacing-xs); color: var(--text-primary); }
+.visibility-field__options { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-sm); }
+.visibility-option {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+.visibility-option:hover { background: var(--background-surface-elevated); }
+.visibility-option--selected { border-color: var(--action-primary-default); }
+.visibility-option--selected:hover { background: var(--background-surface); }
+.visibility-option--disabled { cursor: default; }
+.visibility-option--disabled:hover { background: var(--background-surface); }
+.visibility-option__input { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.visibility-option__radio {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--spacing-xl);
+  height: var(--spacing-xl);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--background-surface);
+}
+.visibility-option--selected .visibility-option__radio { border-color: var(--action-primary-default); }
+.visibility-option--selected .visibility-option__radio::after { content: ''; width: var(--spacing-md); height: var(--spacing-md); border-radius: var(--radius-full); background: var(--action-primary-default); }
+.visibility-option__input:focus-visible + .visibility-option__radio { box-shadow: var(--focus-ring); }
+.visibility-option__text { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; }
+.visibility-option__title { color: var(--text-primary); }
+.visibility-option--selected .visibility-option__title { color: var(--text-brand); }
+.visibility-option__description { color: var(--text-secondary); }
+.visibility-option--disabled .visibility-option__title,
+.visibility-option--disabled .visibility-option__description { color: var(--text-disabled); }
+@media (min-width: 768px) {
+  .visibility-field__options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Privacy note under the visibility options: how the students appear and today's counts (APP-36) */
+.visibility-field__note { display: flex; align-items: flex-start; gap: var(--spacing-sm); padding: var(--spacing-md); border-radius: var(--radius-lg); background: var(--background-surface-elevated); color: var(--text-secondary); }
+.visibility-field__note svg { flex-shrink: 0; color: var(--icon-default); }
+.visibility-field__note p { margin: 0; }
+/* In the half-width "Dados do campeonato" card the options stay stacked */
+@media (min-width: 1024px) {
+  .challenge-settings__columns .visibility-field__options { grid-template-columns: minmax(0, 1fr); }
+}
+/* Championship scoring section: summary against the general ranking and the pillar editor */
+.scoring-section { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.scoring-section__summary { display: flex; flex-direction: column; gap: var(--spacing-sm); padding: var(--spacing-md); border-radius: var(--radius-lg); background: var(--background-surface-elevated); }
+.scoring-section__text { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
+.scoring-section__shares { color: var(--text-secondary); }
+.scoring-section__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+@media (min-width: 768px) {
+  .scoring-section__summary { flex-direction: row; align-items: center; justify-content: space-between; }
+  .scoring-section__actions { flex-shrink: 0; }
+}
+/* Pill choices of the company design system (Participantes in ds-novo-campeonato.png): the chosen one filled blue, the others outlined */
+.choice-pills { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+.choice-pill {
+  min-height: var(--size-control-touch);
+  padding: var(--spacing-xs) var(--spacing-lg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: var(--background-surface);
+  color: var(--text-secondary);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+.choice-pill:hover:not(:disabled) { background: var(--background-surface-elevated); }
+.choice-pill:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.choice-pill:disabled { color: var(--text-disabled); cursor: not-allowed; }
+.choice-pill.choice-pill--selected,
+.choice-pill.choice-pill--selected:hover:not(:disabled) {
+  border-color: var(--action-primary-default);
+  background: var(--action-primary-default);
+  color: var(--text-inverse);
+  font-weight: 600;
+}
+@media (min-width: 768px) {
+  .choice-pill { min-height: var(--size-control); }
+}
+/* Championship detail header: back link, page title without card, status tag with dates, description and "Dar bônus" */
+.challenge-header { display: flex; flex-direction: column; gap: var(--spacing-lg); margin-bottom: var(--spacing-lg); }
+.challenge-header__back {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: var(--size-control-touch);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-link);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  cursor: pointer;
+}
+.challenge-header__back:hover { color: var(--action-primary-hover); }
+.challenge-header__back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.challenge-header__main { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.challenge-header__identity { display: flex; flex-direction: column; gap: var(--spacing-sm); min-width: 0; }
+.challenge-header__title { color: var(--text-primary); overflow-wrap: anywhere; }
+.challenge-header__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); color: var(--text-secondary); }
+.challenge-header__description { margin: 0; color: var(--text-secondary); }
+@media (min-width: 768px) {
+  .challenge-header__main { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+  .challenge-header__main > .btn { flex-shrink: 0; }
+}
+/* Championship podium: 2nd, 1st, 3rd as white cards, the leader raised on the brand-subtle surface; stacked under 768px */
+.championship-podium { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-md); margin: 0; padding: 0; list-style: none; }
+.championship-podium__place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  border-radius: var(--radius-xl);
+  background: var(--background-surface);
+  text-align: center;
+}
+.championship-podium__place--leader { background: var(--background-brand-subtle); }
+.championship-podium__medal { display: inline-flex; align-items: center; gap: var(--spacing-xs); color: var(--text-secondary); }
+.championship-podium__place--leader .championship-podium__medal { color: var(--text-brand); }
+.championship-podium__place--leader .avatar { background: var(--background-surface); }
+.championship-podium__name { color: var(--text-primary); }
+.championship-podium__score { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.championship-podium__support { color: var(--text-secondary); }
+@media (min-width: 768px) {
+  .championship-podium { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: var(--spacing-lg); }
+  .championship-podium__place--leader { padding-bottom: var(--spacing-3xl); }
+}
+/* Championship tabs: KPI cards on the page background, titled blocks, search and the table drawn as white rounded rows */
+.championship-tab { display: flex; flex-direction: column; gap: var(--spacing-xl); }
+.championship-tab .metric-grid { margin-bottom: 0; }
+.championship-kpis .metric-card { background: var(--background-surface); }
+.championship-kpis .metric-card-label { font-weight: 400; color: var(--text-secondary); }
+.challenge-locked-notice { margin-bottom: 0; }
+/* "visível no app:" line at the top of the championship Ranking tab (APP-38) */
+.championship-visibility { display: flex; align-items: center; gap: var(--spacing-xs); margin: 0; color: var(--text-secondary); }
+.championship-visibility svg { flex-shrink: 0; color: var(--icon-default); }
+.championship-visibility__value { color: var(--text-primary); }
+.championship-block { display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0; }
+.championship-block__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--spacing-sm); }
+.championship-block__titles { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; }
+.championship-block__eyebrow { color: var(--text-secondary); }
+.championship-block__title { margin: 0; color: var(--text-primary); }
+.championship-block__note,
+.championship-block__count { margin: 0; color: var(--text-secondary); }
+.championship-block__empty { margin: 0; padding: var(--spacing-xl) var(--spacing-lg); border-radius: var(--radius-lg); background: var(--background-surface); color: var(--text-secondary); text-align: center; }
+.championship-state__actions { justify-content: center; margin-top: var(--spacing-md); }
+/* Loading detail: skeleton bars a step darker than the page background, as ds-campeonato-carregando.png */
+.challenge-loading .row-skeleton,
+.challenge-loading .skeleton-text-line { background: var(--border-default); }
+.challenge-loading .challenge-header { margin-bottom: 0; }
+.championship-tab .empty-block__icon { background: var(--background-brand-subtle); color: var(--icon-brand); }
+.challenge-table { border-collapse: separate; border-spacing: 0 var(--spacing-sm); }
+.challenge-table th { border-bottom: 0; padding-top: 0; padding-bottom: 0; font-weight: 400; }
+.challenge-table thead th:last-child { background: transparent; text-align: left; }
+.challenge-table td { border-bottom: 0; background: var(--background-surface); }
+.challenge-table td:first-child { border-radius: var(--radius-lg) 0 0 var(--radius-lg); }
+.challenge-table td:last-child { border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
+.challenge-table .consistency-row:hover { background: transparent; }
+.challenge-table .consistency-row:hover td { background: var(--background-surface-elevated); }
+.challenge-search.section-card--compact { padding: var(--spacing-sm); }
+/* XP bulk selection: row checkbox and the floating "N selecionados · Dar bônus · Cancelar" bar */
+.challenge-table__check { width: var(--spacing-lg); height: var(--spacing-lg); accent-color: var(--action-primary-default); cursor: pointer; }
+.challenge-bulk-bar {
+  position: sticky;
+  bottom: var(--spacing-lg);
+  z-index: var(--z-sticky);
+  display: flex;
+  align-self: center;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: var(--background-inverse);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-overlay);
+}
+.challenge-bulk-bar__button {
+  min-height: var(--size-control-touch);
+  padding: 0 var(--spacing-sm);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-inverse);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  cursor: pointer;
+}
+.challenge-bulk-bar__button:disabled { color: var(--text-disabled); cursor: not-allowed; }
+.challenge-bulk-bar__button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+/* Participants tab: white rounded rows with avatar, name, entry line and "Remover" */
+.challenge-participants { display: flex; flex-direction: column; gap: var(--spacing-sm); margin: 0; padding: 0; list-style: none; }
+.challenge-participant { display: flex; align-items: center; gap: var(--spacing-lg); padding: var(--spacing-lg); border-radius: var(--radius-lg); background: var(--background-surface); }
+.challenge-participant__identity { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
+.challenge-participant__meta { color: var(--text-secondary); }
+.challenge-participants__footer { justify-content: flex-end; }
+/* Championship list card: white rounded card, tag opposite the name, dates, progress bar, avatar stack and the stretched "Ver ranking →" */
+.challenge-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-xl);
+  background: var(--background-surface);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.challenge-card:hover { background: var(--background-surface-elevated); }
+.challenge-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--spacing-md); }
+.challenge-card__title { margin: 0; color: var(--text-primary); font-weight: 400; overflow-wrap: anywhere; }
+.challenge-card__dates { display: flex; align-items: center; gap: var(--spacing-xs); margin: 0; color: var(--text-secondary); }
+.challenge-card__dates svg { color: var(--icon-default); }
+.challenge-card__caption { margin: 0; color: var(--text-secondary); }
+.challenge-card__progress { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+.challenge-card__track { height: var(--spacing-xs); border-radius: var(--radius-full); background: var(--chart-track); overflow: hidden; }
+.challenge-card__fill { display: block; height: 100%; border-radius: var(--radius-full); background: var(--action-primary-default); }
+.challenge-card__footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-sm) var(--spacing-md); margin-top: auto; }
+.challenge-card__participants { display: inline-flex; align-items: center; gap: var(--spacing-sm); }
+.challenge-card__avatars { display: inline-flex; }
+.challenge-card__avatars .avatar { width: var(--spacing-xl); height: var(--spacing-xl); outline: var(--spacing-2xs) solid var(--background-surface); }
+.challenge-card__avatars .avatar + .avatar { margin-left: calc(var(--spacing-2xs) * -1); }
+.challenge-card__inactive { color: var(--feedback-warning-text); }
+.challenge-card__action {
+  min-height: var(--size-control-touch);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-link);
+  font-family: var(--font-family-brand);
+  font-size: var(--font-size-16);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.challenge-card__action:hover { color: var(--action-primary-hover); }
+.challenge-card__action::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-xl); }
+.challenge-card__action:focus-visible { outline: none; }
+.challenge-card__action:focus-visible::after { box-shadow: var(--focus-ring); }
+/* Championships list page: status tabs over a two-column grid of cards; empty states on a white rounded card */
+.challenges-list { margin-top: var(--spacing-xl); }
+.challenges-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-lg); }
+.challenges-empty { border-radius: var(--radius-xl); background: var(--background-surface); }
+.challenges-empty .empty-block__icon { background: var(--background-brand-subtle); color: var(--icon-brand); }
+@media (min-width: 768px) {
+  .challenges-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 768px) {
+  .challenge-card { padding: var(--spacing-xl); }
+}
+/* Student championship card (F3, ds-aluno-campeonatos.png): name and trainer line opposite the tag, two figures and "Ver ranking →" */
+.my-challenge-card__identity { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; }
+.my-challenge-card__meta { margin: 0; color: var(--text-secondary); }
+.my-challenge-card__footer { align-items: flex-end; }
+.my-challenge-card__figures { display: flex; flex-wrap: wrap; gap: var(--spacing-xl); margin: 0; }
+.my-challenge-card__figure { display: flex; flex-direction: column; gap: var(--spacing-2xs); }
+.my-challenge-card__label { margin: 0; color: var(--text-secondary); }
+.my-challenge-card__value { margin: 0; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.my-challenges-list { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+/* Student championships page: "Pontos totais" and "Melhor posição" side by side over the full width, values in the page-title size */
+.my-challenges-kpis .metric-card { padding: var(--spacing-xl); }
+.my-challenges-kpis .metric-card-value { font-size: var(--font-size-32); }
+@media (min-width: 768px) {
+  .my-challenges-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Student championship rankings (F3, ds-aluno-campeonato.png): white "Ranking" card of divided rows, the "Você" row on brand-subtle */
+.my-ranking { display: flex; flex-direction: column; gap: var(--spacing-xl); }
+.my-ranking-podium { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.my-ranking-card { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.my-ranking-card__title { margin: 0; color: var(--text-primary); font-weight: 400; }
+.my-ranking-card__note { margin: 0; color: var(--text-secondary); }
+.my-ranking-card__position { margin: 0; color: var(--text-primary); }
+.my-ranking-card__more { align-self: center; }
+.my-ranking-club { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-md); }
+.my-ranking-club__avatars { display: inline-flex; }
+.my-ranking-club__avatars .avatar { outline: var(--spacing-2xs) solid var(--background-surface); }
+.my-ranking-club__avatars .avatar + .avatar { margin-left: calc(var(--spacing-sm) * -1); }
+.my-ranking-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.my-ranking-row {
+  display: grid;
+  grid-template-columns: var(--spacing-3xl) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-height: var(--spacing-4xl);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.my-ranking-row:last-child { border-bottom: 0; }
+.my-ranking-row--points { grid-template-columns: var(--spacing-3xl) minmax(0, 1fr) auto; }
+.my-ranking-row--me { border-bottom-color: transparent; border-radius: var(--radius-md); background: var(--background-brand-subtle); }
+.my-ranking-row__position { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.my-ranking-row__identity { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; }
+.my-ranking-row__name { color: var(--text-primary); overflow-wrap: anywhere; }
+.my-ranking-row__support { color: var(--text-secondary); }
+.my-ranking-row__value { color: var(--text-primary); font-variant-numeric: tabular-nums; text-align: right; }
+.my-ranking-row--me :is(.my-ranking-row__name, .my-ranking-row__value) { color: var(--text-brand); }
+/* Student "Meus Pontos" (F3, ds-aluno-campeonato-pontos.png): "Resumo" and "Histórico" cards side by side from 1024px */
+.my-points { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-lg); align-items: start; }
+.my-points-card { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.my-points-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); margin: 0; }
+.my-points-summary__row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); }
+.my-points-summary__label { margin: 0; color: var(--text-secondary); }
+.my-points-summary__value { margin: 0; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.my-points-history { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.my-points-history__row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); padding: var(--spacing-md) 0; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); }
+.my-points-history__row:last-child { border-bottom: 0; }
+.my-points-history__identity { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; }
+.my-points-history__date { color: var(--text-secondary); }
+.my-points-history__points { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.my-points-history__points--gain { color: var(--feedback-success-text); }
+.my-points-pager { display: flex; justify-content: center; gap: var(--spacing-md); }
+@media (min-width: 1024px) {
+  .my-points { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+}
+/* Privacy consent on the student web (APP-67, app-aceite-privacidade.png): preview row, two radio cards, "Nunca aparecem" note */
+.privacy-consent { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.privacy-consent__intro { margin: 0; color: var(--text-primary); }
+.privacy-consent__preview {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface-elevated);
+}
+.privacy-consent__position,
+.privacy-consent__score { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.privacy-consent__identity { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
+.privacy-consent__never { display: flex; align-items: flex-start; gap: var(--spacing-sm); margin: 0; color: var(--text-secondary); }
+.privacy-consent__never svg { flex-shrink: 0; color: var(--icon-default); }
+.privacy-consent__footer { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-sm); }
+.privacy-consent__hint { margin: 0; color: var(--text-secondary); text-align: center; }
+/* "Regras de pontuação" card: pillar editor, then each XP rule with its field on the right */
+.scoring-rules-card h2,
+.scoring-rules-card h3 { margin: 0; color: var(--text-primary); }
+.scoring-rules-card__pillars { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.scoring-rules-card__xp { display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0; margin: 0; padding: 0; border: 0; }
+.scoring-rule-row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); }
+.scoring-rule-row__text { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
+.scoring-rule-row__helper { color: var(--text-secondary); }
+.scoring-rule-row__input { flex-shrink: 0; width: calc(var(--spacing-5xl) + var(--spacing-xl)); }
+/* In the card the XP rules are plain rows with a white bordered field, as ds-campeonato-config.png draws them, even while locked */
+.scoring-rules-card .scoring-rule-row { padding: 0; border-radius: 0; background: transparent; }
+.scoring-rules-card .scoring-rule-row__input { text-align: left; }
+.scoring-rules-card .scoring-rule-row__input:disabled { background: var(--background-surface); color: var(--text-primary); }
+/* Pillar rows inside the half-width card: name and switch on top, slider, weight and share below, so the description never breaks word by word */
+.scoring-rules-card .weight-row { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+.scoring-rules-card .weight-row__icon { grid-column: 1; grid-row: 1; }
+.scoring-rules-card .weight-row__identity { grid-column: 2 / span 2; grid-row: 1; }
+.scoring-rules-card .weight-row > .toggle { grid-column: 4; grid-row: 1; justify-self: end; }
+.scoring-rules-card .weight-row__slider { grid-column: 1 / span 2; grid-row: 2; }
+.scoring-rules-card .weight-row__number { grid-column: 3; grid-row: 2; }
+.scoring-rules-card .weight-row__effective { grid-column: 4; grid-row: 2; }
+/* Championship page: header, underline tabs and the panel of the selected tab */
+.challenge-detail__panel { margin-top: var(--spacing-xl); }
+/* Settings tab: "Dados do campeonato" and "Regras de pontuação" side by side from 1024px, "Zona de perigo" full width below */
+.challenge-settings__columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-lg); align-items: start; }
+.challenge-settings__columns h2 { margin: 0; color: var(--text-primary); }
+@media (min-width: 1024px) {
+  .challenge-settings__columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .weights-summary { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .weights-summary__head { display: flex; justify-content: space-between; color: var(--text-primary); }
 .weights-summary__total--invalid { color: var(--feedback-error-text); }
@@ -20404,8 +20794,6 @@ select.input { cursor: pointer; }
 /* ── Consistency ranking: capture fidelity (fix pass) ───────────────── */
 .consistency-summary .metric-card-label {
   font-size: var(--font-size-12);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   color: var(--text-secondary);
 }
 .metric-card-line { display: flex; align-items: baseline; gap: var(--spacing-xs); }
@@ -20417,8 +20805,6 @@ select.input { cursor: pointer; }
 
 .consistency-table th {
   padding-inline: var(--spacing-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .consistency-table td { padding-inline: var(--spacing-sm); }
 .consistency-table .score-bar { min-width: calc(var(--spacing-5xl) * 1.25); }
@@ -20433,8 +20819,6 @@ select.input { cursor: pointer; }
 .consistency-row--risk td,
 .consistency-row--risk td:last-child { background: color-mix(in srgb, var(--feedback-error-bg) 45%, var(--background-surface)); }
 
-.badge.badge--solid { background: var(--action-primary-default); color: var(--text-inverse); }
-
 .pillar-progress__body .score-bar__track,
 .weights-summary .score-bar__track { flex: none; }
 
@@ -20443,6 +20827,13 @@ select.input { cursor: pointer; }
 .ds-drawer-overlay--wide .ds-drawer__header .icon-button { border: 1px solid var(--border-default); }
 .student-panel__actions .btn--secondary,
 .ready-message__actions .btn--secondary { border-color: var(--border-strong); }
+
+/* Ranking de Constância, Configuração do ranking, student panel and championship screens: tags, overlines, KPI labels,
+   table headers and legacy buttons in sentence case (CPD-71, CPD-72). The global .type-overline keeps its uppercase. */
+:is(.consistency-page, .ds-drawer-overlay--wide, .challenge-detail, .challenges-page) :is(.badge, .type-overline, .metric-card-label, .kpi-label, th, .btn-primary, .btn-secondary) {
+  text-transform: none;
+  letter-spacing: normal;
+}
 
 /* ============================================================
    Nutritionist area — patients, plan summary, prescription steps
@@ -21751,4 +22142,243 @@ a.prescription-stepper__pill:focus-visible { outline: none; box-shadow: var(--fo
 @media (min-width: 1024px) {
   .nutri-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .nutri-columns { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--spacing-5xl) * 5); align-items: start; }
+}
+
+/* ── Student feedback: inbox, history, settings ────────────── */
+.student-feedback-page { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.student-feedback-page .ds-page-header,
+.student-feedback-page .metric-grid { margin-bottom: 0; }
+
+.student-feedback-filters { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-md); min-width: 0; }
+
+.student-feedback-table th,
+.student-feedback-table td { padding-inline: var(--spacing-xs); }
+.student-feedback-student { display: flex; align-items: center; gap: var(--spacing-md); min-width: 0; }
+.student-feedback-student .avatar { display: none; flex-shrink: 0; }
+.student-feedback-student__identity { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.student-feedback-student__link {
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.student-feedback-student__link:hover { color: var(--text-link); text-decoration: underline; }
+.student-feedback-student__link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.student-feedback-index { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-xs) var(--spacing-sm); }
+.student-feedback-index__value { font-variant-numeric: tabular-nums; }
+
+.student-feedback-section { display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; }
+.student-feedback-section__title { margin: 0; color: var(--text-primary); }
+.student-feedback-section__note { margin: 0; color: var(--text-secondary); }
+
+.student-feedback-timeline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.student-feedback-timeline__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface-elevated);
+  color: var(--text-primary);
+}
+.student-feedback-timeline__date { color: var(--text-secondary); }
+
+.student-feedback-scroll { overflow-x: auto; }
+.student-feedback-pillars th[scope="row"] { color: var(--text-primary); }
+.student-feedback-pillars tbody tr:last-child th { border-bottom: 0; }
+
+.student-feedback-answers__group { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.student-feedback-answers__group + .student-feedback-answers__group { padding-top: var(--spacing-lg); border-top: 1px solid var(--border-subtle); }
+.student-feedback-answers__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-sm); color: var(--text-primary); }
+.student-feedback-answers__head .type-caption { color: var(--text-secondary); }
+.student-feedback-answer { display: flex; flex-direction: column; gap: var(--spacing-2xs); }
+.student-feedback-answer__question { color: var(--text-secondary); }
+.student-feedback-answer__text { margin: 0; color: var(--text-primary); white-space: pre-line; overflow-wrap: anywhere; }
+
+.student-feedback-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  min-height: var(--size-control-touch);
+}
+.student-feedback-setting__text { display: flex; flex-direction: column; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
+.student-feedback-setting__description { color: var(--text-secondary); }
+.student-feedback-setting .toggle { flex-shrink: 0; }
+.student-feedback-setting--with-select {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'text toggle'
+    'select select';
+  row-gap: var(--spacing-sm);
+}
+.student-feedback-setting--with-select .student-feedback-setting__text { grid-area: text; }
+.student-feedback-setting--with-select .student-feedback-setting__select { grid-area: select; }
+.student-feedback-setting--with-select .toggle { grid-area: toggle; }
+.student-feedback-rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding-left: var(--spacing-lg);
+  color: var(--text-secondary);
+}
+.student-feedback-card__text { margin: 0; color: var(--text-secondary); }
+
+@media (min-width: 768px) {
+  .student-feedback-table th,
+  .student-feedback-table td { padding-inline: var(--spacing-md); }
+  .student-feedback-student .avatar { display: inline-flex; }
+  .student-feedback-setting--with-select {
+    grid-template-columns: minmax(0, 1fr) calc(var(--spacing-5xl) * 3.5) auto;
+    grid-template-areas: 'text select toggle';
+  }
+  .student-feedback-timeline {
+    grid-template-columns: repeat(auto-fill, minmax(calc(var(--spacing-5xl) * 3), 1fr));
+    gap: var(--spacing-md);
+  }
+}
+
+/* ── DS additions: score scale, star rating, phone frame (read-only previews of the student app) ── */
+.score-scale { display: flex; flex-direction: column; gap: var(--spacing-xs); min-width: 0; }
+.score-scale__cells { display: flex; gap: var(--spacing-2xs); margin: 0; padding: 0; list-style: none; }
+.score-scale__cell {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: var(--size-control);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--background-surface);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.score-scale__ends { display: flex; justify-content: space-between; gap: var(--spacing-md); color: var(--text-secondary); }
+.score-scale__ends span { min-width: 0; overflow-wrap: anywhere; }
+.score-scale__end-max { margin-left: auto; text-align: right; }
+
+.star-rating { display: inline-flex; gap: var(--spacing-xs); color: var(--icon-default); }
+
+.phone-frame {
+  width: 100%;
+  max-width: calc(var(--spacing-5xl) * 5);
+  margin-inline: auto;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  background: var(--background-surface-elevated);
+}
+.phone-frame__screen {
+  min-height: calc(var(--spacing-5xl) * 5);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface);
+}
+
+/* ── Student feedback: template list and builder ───────────── */
+.feedback-builder { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--spacing-lg); }
+.feedback-builder__side { display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; }
+.feedback-builder__panel { display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; }
+.feedback-builder__panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-md); }
+.feedback-builder__panel-head h2 { margin: 0; color: var(--text-primary); }
+.feedback-builder__counter { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.feedback-builder__meta { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.feedback-builder__usage { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); color: var(--text-secondary); }
+.feedback-builder__add { align-self: flex-start; }
+.feedback-create-template { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+
+.feedback-question-list { display: flex; flex-direction: column; gap: var(--spacing-sm); margin: 0; padding: 0; list-style: none; }
+.feedback-question-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface-elevated);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.feedback-question-row--selected { background: var(--background-brand-subtle); }
+.feedback-question-row__select {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  min-width: 0;
+  min-height: var(--size-control-touch);
+  padding: var(--spacing-md);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-family-brand);
+  text-align: left;
+  cursor: pointer;
+}
+.feedback-question-row__select:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.feedback-question-row__order {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-index-chip);
+  height: var(--size-index-chip);
+  border-radius: var(--radius-sm);
+  background: var(--background-surface);
+  color: var(--text-brand);
+  font-variant-numeric: tabular-nums;
+}
+.feedback-question-row__body { display: flex; flex-direction: column; gap: var(--spacing-xs); min-width: 0; }
+.feedback-question-row__text { overflow-wrap: anywhere; }
+.feedback-question-row__text--empty { color: var(--text-tertiary); }
+.feedback-question-row__badges { display: flex; flex-wrap: wrap; gap: var(--spacing-xs); }
+.feedback-question-row__moves { display: flex; flex-direction: column; flex-shrink: 0; padding-right: var(--spacing-xs); }
+.feedback-question-row__moves .icon-button:hover:not(:disabled) { background: var(--background-surface); }
+
+.feedback-editor { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.feedback-editor__ends { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-md); }
+.feedback-editor__footer { display: flex; padding-top: var(--spacing-lg); border-top: 1px solid var(--border-subtle); }
+
+.feedback-preview { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.feedback-preview__question { margin: 0; color: var(--text-primary); overflow-wrap: anywhere; }
+.feedback-preview__question--empty { color: var(--text-tertiary); }
+.feedback-preview__help { margin: 0; color: var(--text-secondary); overflow-wrap: anywhere; }
+
+@media (min-width: 768px) {
+  .feedback-editor__ends { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .feedback-builder { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+  .feedback-builder__side { flex-flow: row wrap; align-items: flex-start; }
+  .feedback-builder__side > .feedback-builder__panel { flex: 1 1 calc(var(--spacing-5xl) * 5); }
+}
+
+/* Finance: "Tipo" select (Todos / Treino / Nutrição / Ambos) for dual-role professionals, on .finance-tabs-row.
+   Layout only — the trigger/dropdown styling comes from the shared .custom-select rules. */
+.finance-type-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.finance-type-filter__label { flex-shrink: 0; color: var(--text-secondary); }
+
+.finance-type-filter .custom-select { flex: 1; min-width: 0; }
+
+@media (min-width: 768px) {
+  .finance-type-filter { width: auto; flex-shrink: 0; }
+  .finance-type-filter .custom-select { flex: none; width: calc(var(--spacing-5xl) * 2.5); }
 }

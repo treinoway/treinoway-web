@@ -95,6 +95,15 @@ describe('ConsistencyRankingSettings', () => {
     mockApi();
   });
 
+  it('CPD-71 draws "Restaurar padrões" in the header as the DS neutral button, with a border (AD-062)', async () => {
+    renderPage();
+    await waitForPage();
+
+    const restore = screen.getByRole('button', { name: 'Restaurar padrões' });
+    expect(restore).toHaveClass('btn', 'btn--neutral');
+    expect(restore).not.toHaveClass('btn--secondary');
+  });
+
   it('PAN-37 shows the current season with the end action, the durations and the close note', async () => {
     renderPage();
     await waitForPage();
@@ -121,6 +130,17 @@ describe('ConsistencyRankingSettings', () => {
     expect(screen.queryByText('Visibilidade e privacidade')).not.toBeInTheDocument();
     expect(screen.queryByText('Sequência conta semanas a partir de')).not.toBeInTheDocument();
     expect(screen.queryByText(/Coringa/)).not.toBeInTheDocument();
+  });
+
+  it('APP-59 has no Visibilidade e privacidade block', async () => {
+    renderPage();
+    await waitForPage();
+
+    expect(screen.getByRole('heading', { name: 'Pilares e pesos' })).toBeInTheDocument();
+    expect(screen.queryByText('Visibilidade e privacidade')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Visibilidade no app' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /Desligado|Só a posição do aluno|Ranking completo ao vivo/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/como Aluno do time/)).not.toBeInTheDocument();
   });
 
   it('PAN-38 updates the effective weights and the sum when a weight changes', async () => {

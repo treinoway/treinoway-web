@@ -284,6 +284,39 @@ describe('ConsistencyRanking', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
+  it('CPD-71 draws "Pausar semana do time" and the cancel of its modal as the DS neutral button, with a border (AD-062)', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForRows();
+
+    const pauseTeam = screen.getByRole('button', { name: 'Pausar semana do time' });
+    expect(pauseTeam).toHaveClass('btn', 'btn--neutral');
+    expect(pauseTeam).not.toHaveClass('btn--secondary');
+
+    await user.click(pauseTeam);
+    const modal = await screen.findByRole('dialog');
+    expect(within(modal).getByRole('button', { name: 'Cancelar' })).toHaveClass('btn', 'btn--neutral');
+  });
+
+  it('CPD-71 shows the 100% band of the team ranking as the light green DS tag, not a solid pill (AD-062)', async () => {
+    renderPage();
+    await waitForRows();
+
+    const row = screen.getByRole('button', { name: 'Ana Beatriz S.' }).closest('tr');
+    const band = within(row).getByText('100%', { selector: '.badge' });
+    expect(band).toHaveClass('badge--success');
+    expect(band).not.toHaveClass('badge--solid');
+  });
+
+  it('CPD-72 writes the pillar abbreviations of a row with only the first letter uppercase', async () => {
+    renderPage();
+    await waitForRows();
+
+    const row = screen.getByRole('button', { name: 'Ana Beatriz S.' }).closest('tr');
+    expect(within(row).getByText('Tre')).toBeInTheDocument();
+    expect(within(row).queryByText('TRE')).not.toBeInTheDocument();
+  });
+
   it('PAN-18 clears filter and search from the empty state', async () => {
     mockApi({ standings: (params) => buildStandings(params.filter === 'signal' ? [] : [ANA, MARCOS, JOAO]) });
     const user = userEvent.setup();
@@ -432,6 +465,7 @@ describe('ConsistencyRanking', () => {
 
     expect(await screen.findByText('Não foi possível carregar o ranking.')).toBeInTheDocument();
     failing = false;
+    expect(screen.getByRole('button', { name: 'Tentar de novo' })).toHaveClass('btn', 'btn--neutral');
     await user.click(screen.getByRole('button', { name: 'Tentar de novo' }));
 
     expect(await screen.findByRole('button', { name: 'Ana Beatriz S.' })).toBeInTheDocument();

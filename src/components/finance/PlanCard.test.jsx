@@ -1,10 +1,28 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from '../../test/test-utils';
 import PlanCard from './PlanCard';
-import { makePlan } from '../../test/financeFixtures';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+  DUAL_ROLE,
+  NUTRITIONIST_ONLY,
+  TRAINER_ONLY,
+  authAs,
+  bothPlan,
+  makePlan,
+  nutritionPlan,
+} from '../../test/financeFixtures';
+
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
+
+// Test helper: renders one plan card.
+const renderCard = (plan) => render(<PlanCard plan={plan} onEdit={vi.fn()} onArchiveToggle={vi.fn()} />);
 
 describe('PlanCard', () => {
+  beforeEach(() => {
+    vi.mocked(useAuth).mockReturnValue(authAs(TRAINER_ONLY));
+  });
+
   it('shows name, recurrence, subscriber count and the half-up net price', () => {
     render(<PlanCard plan={makePlan({ discountPercent: '33.33' })} onEdit={vi.fn()} onArchiveToggle={vi.fn()} />);
 
@@ -69,5 +87,58 @@ describe('PlanCard', () => {
     expect(screen.getByText('Mensal · Arquivado')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Ações do plano Consultoria Mensal' }));
     expect(screen.getByRole('button', { name: 'Desarquivar plano' })).toBeInTheDocument();
+  });
+  describe('service type tag (dual-role only)', () => {
+    it.each([
+      [makePlan(), 'Treino'],
+      [nutritionPlan(), 'Nutrição'],
+      [bothPlan(), 'Ambos'],
+    ])('dual-role: shows the plan tag as a DS Badge with the tag variant', (plan, label) => {
+      vi.mocked(useAuth).mockReturnValue(authAs(DUAL_ROLE));
+      const { container } = renderCard(plan);
+      const badge = container.querySelector('.badge.badge--tag');
+      expect(badge).not.toBeNull();
+      expect(badge).toHaveTextContent(label);
+      expect(badge.tagName).toBe('SPAN');
+    });
+
+    it('dual-role: keeps the archived status badge apart from the tag badge', () => {
+      vi.mocked(useAuth).mockReturnValue(authAs(DUAL_ROLE));
+      const { container } = renderCard(nutritionPlan({ isArchived: true }));
+      expect(container.querySelector('.badge.badge--tag')).toHaveTextContent('Nutrição');
+      expect(container.querySelector('.badge.badge--status')).toHaveTextContent('Arquivado');
+    });
+
+    it.each([
+      ['trainer-only', TRAINER_ONLY, makePlan()],
+      ['nutritionist-only', NUTRITIONIST_ONLY, nutritionPlan()],
+    ])('%s: shows no tag badge', (_label, roles, plan) => {
+      vi.mocked(useAuth).mockReturnValue(authAs(roles));
+      const { container } = renderCard(plan);
+      expect(container.querySelector('.badge--tag')).toBeNull();
+      expect(screen.queryByText(/^(Treino|Nutrição|Ambos)$/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('subscriber count by role', () => {
+    it('nutritionist-only: counts "pacientes"', () => {
+      vi.mocked(useAuth).mockReturnValue(authAs(NUTRITIONIST_ONLY));
+      const { rerender } = renderCard(nutritionPlan({ activeSubscriptionCount: 4 }));
+      expect(screen.getByText('Mensal · 4 pacientes')).toBeInTheDocument();
+      rerender(<PlanCard plan={nutritionPlan({ activeSubscriptionCount: 1 })} onEdit={vi.fn()} onArchiveToggle={vi.fn()} />);
+      expect(screen.getByText('Mensal · 1 paciente')).toBeInTheDocument();
+    });
+
+    it('trainer-only: keeps "alunos" even when the API sends the split count', () => {
+      renderCard(makePlan({ activeSubscriptionCount: 4, activeSubscriptionCountByKind: { students: 4, patients: 0 } }));
+      expect(screen.getByText('Mensal · 4 alunos')).toBeInTheDocument();
+    });
+
+    it('dual-role: splits the count by kind from activeSubscriptionCountByKind', () => {
+      vi.mocked(useAuth).mockReturnValue(authAs(DUAL_ROLE));
+      renderCard(bothPlan({ activeSubscriptionCount: 3, activeSubscriptionCountByKind: { students: 2, patients: 1 } }));
+      expect(screen.getByText(/2 alunos · 1 paciente/)).toBeInTheDocument();
+      expect(screen.queryByText(/cliente/i)).not.toBeInTheDocument();
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { X, Dumbbell, MapPin, Flame, Plus } from 'lucide-react';
@@ -6,6 +6,11 @@ import { useToast } from '../contexts/ToastContext';
 import { translateError } from '../i18n';
 import api from '../api/axios';
 import PointsBottomSheet from './PointsBottomSheet';
+import ConfirmDialog from './ds/ConfirmDialog';
+import Modal from './ds/Modal';
+import useConfirmDialog from '../hooks/useConfirmDialog';
+import WeeklyChampionshipForm from './challenge/WeeklyChampionshipForm';
+import useConsistencyRankingAccess from '../hooks/useConsistencyRankingAccess';
 import { PARTICIPANT_MODE } from '../constants/challenge';
 import { DEFAULT_CONFIG } from '../constants/gamification';
 import { POINTS_FIELD_KEYS } from '../constants/points-fields';
@@ -130,6 +135,32 @@ ScoringCards.propTypes = {
   ptsValues: PropTypes.object.isRequired,
 };
 
+const DISCARD_MESSAGE = 'Há mudanças não salvas. Descartar e sair?';
+
+// Closing (close button, overlay, Cancelar and, when `listenEscape`, Escape) that first asks before discarding unsaved changes
+const useDiscardGuard = (listenEscape, hasChanges, onClose) => {
+  const { dialogProps, requestConfirm } = useConfirmDialog();
+  const asking = dialogProps !== null;
+  const handleRequestClose = useCallback(() => {
+    if (!hasChanges) {
+      onClose();
+      return;
+    }
+    requestConfirm({ message: DISCARD_MESSAGE, confirmLabel: 'Descartar', busyLabel: 'Saindo...', onConfirm: onClose });
+  }, [hasChanges, onClose, requestConfirm]);
+
+  useEffect(() => {
+    if (!listenEscape || asking) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') handleRequestClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [listenEscape, asking, handleRequestClose]);
+
+  return { dialogProps, handleRequestClose };
+};
+
 const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -142,15 +173,10 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
   const [trainerTemplate, setTrainerTemplate] = useState(null);
   const [ptsValues, setPtsValues] = useState(null);
   const [showPointsEditor, setShowPointsEditor] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  const weeklyFormat = useConsistencyRankingAccess();
+  const [weeklyDirty, setWeeklyDirty] = useState(false);
+  const hasUnsavedWeekly = weeklyFormat && weeklyDirty;
+  const { dialogProps, handleRequestClose } = useDiscardGuard(isOpen && !weeklyFormat, hasUnsavedWeekly, onClose);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -217,21 +243,39 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
     setShowPointsEditor(true);
   };
 
+  const handleCreateWeekly = async (body) => {
+    const response = await api.post('/trainer/challenges', body);
+    onClose();
+    showToast('Campeonato criado!', 'success');
+    navigate(`/trainer/challenges/${response.data.id}`);
+  };
+
   const handleCustomize = () => {
     onClose();
     navigate('/trainer/championships/create');
   };
 
+  if (weeklyFormat) {
+    return (
+      <>
+        <Modal title="Novo campeonato" onClose={handleRequestClose}>
+          <WeeklyChampionshipForm onCreate={handleCreateWeekly} onCancel={handleRequestClose} onDirtyChange={setWeeklyDirty} />
+        </Modal>
+        {dialogProps && <ConfirmDialog {...dialogProps} />}
+      </>
+    );
+  }
+
   return (
     <>
-      <div className="overlay" onClick={onClose}>
+      <div className="overlay" onClick={handleRequestClose}>
         <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
           <div className="bottom-sheet-header">
             <h2 className="bottom-sheet-title">Criar Campeonato</h2>
             <button
               type="button"
               className="bottom-sheet-close"
-              onClick={onClose}
+              onClick={handleRequestClose}
               aria-label="Fechar"
             >
               <X size={20} />
@@ -349,6 +393,7 @@ const CreateChampionshipModal = ({ isOpen, onClose, onCreated }) => {
           onClose={() => setShowPointsEditor(false)}
         />
       )}
+      {dialogProps && <ConfirmDialog {...dialogProps} />}
     </>
   );
 };
