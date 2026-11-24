@@ -90,6 +90,17 @@ describe('MyPointsTab', () => {
     expect(within(historyCard).getAllByRole('listitem')).toHaveLength(10);
   });
 
+  it('APP-70 keeps Anterior and Próxima visible and disabled when the history fits one page', async () => {
+    api.get.mockImplementation((url) => (url.startsWith('/my/points/summary')
+      ? Promise.resolve({ data: summary })
+      : Promise.resolve({ data: { data: secondPage, total: 1, page: 1, limit: 10 } })));
+    render(<MyPointsTab challengeId={CHALLENGE_ID} />);
+
+    const historyCard = screen.getByRole('region', { name: 'Histórico' });
+    expect(await within(historyCard).findByRole('button', { name: 'Anterior' })).toBeDisabled();
+    expect(within(historyCard).getByRole('button', { name: 'Próxima' })).toBeDisabled();
+  });
+
   it('APP-70 shows that no points were recorded yet', async () => {
     api.get.mockImplementation((url) => (url.startsWith('/my/points/summary')
       ? Promise.resolve({ data: { totalPoints: 0, breakdown: {} } })

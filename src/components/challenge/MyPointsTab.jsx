@@ -118,7 +118,7 @@ const HistoryCard = ({ history, page, onPageChange }) => {
       {!history.loading && history.items.length > 0 && (
         <ul className="my-points-history">{history.items.map((transaction) => <HistoryRow key={transaction.id} transaction={transaction} />)}</ul>
       )}
-      {pageCount > 1 && <Pager page={page} pageCount={pageCount} onPageChange={onPageChange} />}
+      {!history.loading && !empty && <Pager page={page} pageCount={pageCount} onPageChange={onPageChange} />}
     </section>
   );
 };
