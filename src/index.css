@@ -20751,6 +20751,25 @@ select.input { cursor: pointer; }
 @media (min-width: 1024px) {
   .my-points { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
 }
+/* Privacy consent on the student web (APP-67, app-aceite-privacidade.png): preview row, two radio cards, "Nunca aparecem" note */
+.privacy-consent { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.privacy-consent__intro { margin: 0; color: var(--text-primary); }
+.privacy-consent__preview {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: var(--background-surface-elevated);
+}
+.privacy-consent__position,
+.privacy-consent__score { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.privacy-consent__identity { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-2xs); min-width: 0; color: var(--text-primary); }
+.privacy-consent__never { display: flex; align-items: flex-start; gap: var(--spacing-sm); margin: 0; color: var(--text-secondary); }
+.privacy-consent__never svg { flex-shrink: 0; color: var(--icon-default); }
+.privacy-consent__footer { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-sm); }
+.privacy-consent__hint { margin: 0; color: var(--text-secondary); text-align: center; }
 /* "Regras de pontuação" card: pillar editor, then each XP rule with its field on the right */
 .scoring-rules-card h2,
 .scoring-rules-card h3 { margin: 0; color: var(--text-primary); }
