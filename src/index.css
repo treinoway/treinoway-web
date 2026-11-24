@@ -20690,6 +20690,10 @@ select.input { cursor: pointer; }
 .my-ranking-card__note { margin: 0; color: var(--text-secondary); }
 .my-ranking-card__position { margin: 0; color: var(--text-primary); }
 .my-ranking-card__more { align-self: center; }
+.my-ranking-club { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-md); }
+.my-ranking-club__avatars { display: inline-flex; }
+.my-ranking-club__avatars .avatar { outline: var(--spacing-2xs) solid var(--background-surface); }
+.my-ranking-club__avatars .avatar + .avatar { margin-left: calc(var(--spacing-sm) * -1); }
 .my-ranking-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
 .my-ranking-row {
   display: grid;

@@ -83,6 +83,27 @@ describe('MyConsistencyBoard', () => {
     expect(within(enteringRow).getByText('75%')).toBeInTheDocument();
   });
 
+  it('APP-66 shows Clube 100% as stacked avatars and lists its members once in the Ranking', () => {
+    const atFull = [
+      { ...me, position: 1, average: 100, faixa: 'full' },
+      ...['k1', 'k2', 'k3', 'k5', 'k7', 'k8'].map((key) => peer(key, 'Aluno do time', 2, 100, 'full')),
+    ];
+    const board = { ...boardResponse.board, podium: null, club100: { total: atFull.length, members: atFull }, tieSentence: null, items: atFull, neighbors: atFull.slice(0, 3) };
+    const { container } = render(<MyConsistencyBoard data={{ ...boardResponse, board }} />);
+
+    const club = screen.getByRole('region', { name: 'Clube 100%' });
+    expect(within(club).getByText('7 participantes com média 100%')).toBeInTheDocument();
+    expect(within(club).queryAllByRole('listitem')).toHaveLength(0);
+    const stack = club.querySelector('.my-ranking-club__avatars');
+    expect(Array.from(stack.querySelectorAll('.avatar')).map((avatar) => avatar.textContent)).toEqual(['CR', 'AT', 'AT', 'AT', 'AT', '+2']);
+    expect(screen.queryByRole('list', { name: 'Pódio' })).not.toBeInTheDocument();
+
+    const rows = within(screen.getByRole('region', { name: 'Ranking' })).getAllByRole('listitem');
+    expect(rows).toHaveLength(7);
+    expect(rowTexts(rows[0])).toEqual(['1º', 'Você', '100%', '100%']);
+    expect(container.querySelectorAll('.my-ranking-row--me')).toHaveLength(1);
+  });
+
   it('APP-66 keeps the Você row when the student is past the loaded page', () => {
     const items = classified.filter((row) => !row.isMe);
     render(<MyConsistencyBoard data={{ ...boardResponse, board: { ...boardResponse.board, items } }} />);

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import { Calendar, EyeOff } from 'lucide-react';
+import Avatar from '../ds/Avatar';
 import EmptyBlock from '../ds/EmptyBlock';
 import FaixaBadge from '../consistency/FaixaBadge';
 import ChampionshipPodium from './ChampionshipPodium';
@@ -9,6 +10,7 @@ import { CHALLENGE_VISIBILITY } from '../../constants/challenge';
 import { FAIXA_LABELS } from '../../constants/consistencyRanking';
 
 const ME_LABEL = 'Você';
+const CLUB_STACK_AVATARS = 5;
 
 // Name of a row as the student reads it: "Você" on the own row, the anonymized display name otherwise
 const rowNameOf = (row) => (row.isMe ? ME_LABEL : row.displayName);
@@ -66,14 +68,23 @@ RowsCard.propTypes = {
   footer: PropTypes.node,
 };
 
-// "Clube 100%": every participant at 100% stacked in place of the podium
-const Club100 = ({ club }) => (
-  <section className="section-card my-ranking-card" aria-label="Clube 100%">
-    <h2 className="my-ranking-card__title type-h3">Clube 100%</h2>
-    <p className="my-ranking-card__note type-body">{`${club.total} participantes com média 100% no campeonato`}</p>
-    <ol className="my-ranking-list">{club.members.map((row) => <BoardRow key={row.key} row={row} />)}</ol>
-  </section>
-);
+// "Clube 100%" in place of the podium: the stacked avatars of the participants at 100% and how many they are; the Ranking card lists them
+const Club100 = ({ club }) => {
+  const stacked = club.members.slice(0, CLUB_STACK_AVATARS);
+  const hiddenCount = club.total - stacked.length;
+  return (
+    <section className="section-card my-ranking-card" aria-label="Clube 100%">
+      <h2 className="my-ranking-card__title type-h3">Clube 100%</h2>
+      <div className="my-ranking-club">
+        <span className="my-ranking-club__avatars" aria-hidden="true">
+          {stacked.map((row) => <Avatar key={row.key} name={row.displayName} src={row.avatarUrl || undefined} size="sm" />)}
+          {hiddenCount > 0 && <span className="avatar avatar--sm">{`+${hiddenCount}`}</span>}
+        </span>
+        <p className="my-ranking-card__note type-body">{`${club.total} participantes com média 100%`}</p>
+      </div>
+    </section>
+  );
+};
 
 Club100.propTypes = {
   club: PropTypes.shape({ total: PropTypes.number.isRequired, members: PropTypes.array.isRequired }).isRequired,
