@@ -225,13 +225,20 @@ AnonymousRow.propTypes = {
 // "1 ainda não respondeu" / "N ainda não responderam"
 const pendingOf = (count) => `${count} ainda não ${count === 1 ? 'respondeu' : 'responderam'}`;
 
-// How the participants appear in the app, as web-configuracao.png words it, with today's counts once known (APP-36)
-const PrivacyNote = ({ counts }) => (
+// "N escolheu/escolheram aparecer com nome"
+const byNameOf = (count) => `${count} ${count === 1 ? 'escolheu' : 'escolheram'} aparecer com nome`;
+
+// Today's choices of the participants, not how they appear: minors and an anonymous ranking still hide the name (APP-36)
+const choicesSentenceOf = (counts) => ` Hoje: ${byNameOf(counts.name)}, ${counts.anonymous} como Aluno do time, ${pendingOf(counts.pending)}.`;
+
+// How the participants appear in the app, as web-configuracao.png words it, with today's choices once known (APP-36)
+const PrivacyNote = ({ counts, anonymousRanking }) => (
   <div className="visibility-field__note" role="note">
     <Lock size={16} strokeWidth={2} aria-hidden="true" />
     <p className="type-caption">
       Cada aluno escolhe se aparece com o nome ou como Aluno do time.
-      {counts && ` Hoje: ${counts.name} com nome, ${counts.anonymous} como Aluno do time, ${pendingOf(counts.pending)}.`}
+      {counts && choicesSentenceOf(counts)}
+      {anonymousRanking && ' Com o ranking anônimo ligado, os nomes ficam escondidos para todos: cada colega aparece como Aluno do time.'}
       {' Menores de 18 anos aparecem como Aluno do time. E-mail, telefone, peso, medidas, fotos e a % por pilar nunca aparecem para colegas.'}
     </p>
   </div>
@@ -239,6 +246,7 @@ const PrivacyNote = ({ counts }) => (
 
 PrivacyNote.propTypes = {
   counts: PropTypes.shape({ name: PropTypes.number.isRequired, anonymous: PropTypes.number.isRequired, pending: PropTypes.number.isRequired }),
+  anonymousRanking: PropTypes.bool.isRequired,
 };
 
 // "Dados do campeonato" card: the fields the status allows, the visibility in the app (weekly) and the one "Salvar configuração" of both cards
@@ -258,7 +266,7 @@ const DataCard = ({ form, isWeekly, timeZone, privacyCounts }) => {
       <AnonymousRow checked={draft.anonymousRanking} onChange={(next) => setField('anonymousRanking', next)} disabled={disabled} />
       {isWeekly && (
         <VisibilityField value={draft.visibility} onChange={(next) => setField('visibility', next)} disabled={disabled} name="settings-visibility">
-          <PrivacyNote counts={privacyCounts} />
+          <PrivacyNote counts={privacyCounts} anonymousRanking={draft.anonymousRanking} />
         </VisibilityField>
       )}
       {editable && (

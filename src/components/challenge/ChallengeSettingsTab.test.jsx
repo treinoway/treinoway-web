@@ -401,7 +401,8 @@ describe('ChallengeSettingsTab', () => {
       </MemoryRouter>,
     );
 
-    expect(within(visibilityGroup()).getByRole('note')).toHaveTextContent('Hoje: 15 com nome, 3 como Aluno do time, 1 ainda não respondeu.');
+    expect(within(visibilityGroup()).getByRole('note')).toHaveTextContent('Hoje: 15 escolheram aparecer com nome, 3 como Aluno do time, 1 ainda não respondeu.');
+    expect(within(visibilityGroup()).getByRole('note')).not.toHaveTextContent('escondidos para todos');
     unmount();
 
     render(
@@ -410,7 +411,19 @@ describe('ChallengeSettingsTab', () => {
       </MemoryRouter>,
     );
 
-    expect(within(visibilityGroup()).getByRole('note')).toHaveTextContent('Hoje: 4 com nome, 0 como Aluno do time, 2 ainda não responderam.');
+    expect(within(visibilityGroup()).getByRole('note')).toHaveTextContent('Hoje: 4 escolheram aparecer com nome, 0 como Aluno do time, 2 ainda não responderam.');
+  });
+
+  it('APP-36 says the names are hidden for everyone when the championship ranking is anonymous', async () => {
+    const user = userEvent.setup();
+    renderSettings(challengeOf({ anonymousRanking: true }), { privacyCounts: { name: 15, anonymous: 0, pending: 0 } });
+
+    const note = within(visibilityGroup()).getByRole('note');
+    expect(note).toHaveTextContent('Hoje: 15 escolheram aparecer com nome, 0 como Aluno do time, 0 ainda não responderam.');
+    expect(note).toHaveTextContent('Com o ranking anônimo ligado, os nomes ficam escondidos para todos: cada colega aparece como Aluno do time.');
+
+    await user.click(anonymousSwitch());
+    expect(within(visibilityGroup()).getByRole('note')).not.toHaveTextContent('escondidos para todos');
   });
 
   it('CPD-41 shows the start and end dates and the XP rules of a dates championship', async () => {

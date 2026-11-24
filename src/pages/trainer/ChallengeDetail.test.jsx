@@ -489,7 +489,7 @@ describe('ChallengeDetail', () => {
     renderWeekly('/trainer/challenges/w-1?tab=settings');
 
     const group = await screen.findByRole('group', { name: 'Visibilidade no app' });
-    await waitFor(() => expect(within(group).getByRole('note')).toHaveTextContent('Hoje: 1 com nome, 0 como Aluno do time, 1 ainda não respondeu.'));
+    await waitFor(() => expect(within(group).getByRole('note')).toHaveTextContent('Hoje: 1 escolheu aparecer com nome, 0 como Aluno do time, 1 ainda não respondeu.'));
     expect(requested('/trainer/challenges/w-1/consistency')).toBe(true);
   });
 
