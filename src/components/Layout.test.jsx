@@ -957,16 +957,17 @@ describe('Layout', () => {
       });
     };
 
-    it('shows the Administração section with its four links for admins', () => {
+    it('shows the Administração section with the single Manager link for admins', () => {
       setupRoles(['ADMIN']);
       renderWithRouter(<Layout><span>Content</span></Layout>);
 
       const sidebar = document.querySelector('.sidebar');
       expect(within(sidebar).getByText('Administração')).toBeInTheDocument();
-      expect(within(sidebar).getByRole('link', { name: 'Convites do beta' })).toHaveAttribute('href', '/admin/invites');
-      expect(within(sidebar).getByRole('link', { name: 'Trainers e planos' })).toHaveAttribute('href', '/admin/trainers');
-      expect(within(sidebar).getByRole('link', { name: 'Uso do iArnold' })).toHaveAttribute('href', '/admin/ai-usage');
-      expect(within(sidebar).getByRole('link', { name: 'Tutoriais' })).toHaveAttribute('href', '/admin/tutorials');
+      expect(within(sidebar).getByRole('link', { name: /^Manager/ })).toHaveAttribute('href', '/manager');
+      expect(within(sidebar).queryByRole('link', { name: 'Convites do beta' })).not.toBeInTheDocument();
+      expect(within(sidebar).queryByRole('link', { name: 'Trainers e planos' })).not.toBeInTheDocument();
+      expect(within(sidebar).queryByRole('link', { name: 'Uso do iArnold' })).not.toBeInTheDocument();
+      expect(within(sidebar).queryByRole('link', { name: 'Tutoriais' })).not.toBeInTheDocument();
     });
 
     it('renders Administração before Treinador for an admin trainer', () => {
@@ -984,8 +985,7 @@ describe('Layout', () => {
       renderWithRouter(<Layout><span>Content</span></Layout>);
 
       expect(screen.queryByText('Administração')).not.toBeInTheDocument();
-      expect(screen.queryByRole('link', { name: 'Convites do beta' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('link', { name: 'Tutoriais' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^Manager/ })).not.toBeInTheDocument();
     });
   });
 
