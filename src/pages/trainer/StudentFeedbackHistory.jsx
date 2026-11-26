@@ -1,21 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, MessagesSquare, Send } from 'lucide-react';
+import { ArrowLeft, Send } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { getStudentFeedbackHistory, sendAdhocStudentFeedback } from '../../api/studentFeedback';
 import Banner from '../../components/ds/Banner';
 import ConfirmDialog from '../../components/ds/ConfirmDialog';
-import EmptyBlock from '../../components/ds/EmptyBlock';
+import AutoSendStatus from '../../components/studentFeedback/AutoSendStatus';
+import FeedbackComparison from '../../components/studentFeedback/FeedbackComparison';
 import FeedbackTimeline from '../../components/studentFeedback/FeedbackTimeline';
+import HistoryEmptyState from '../../components/studentFeedback/HistoryEmptyState';
+import LatestFeedback from '../../components/studentFeedback/LatestFeedback';
 import OpenAnswers from '../../components/studentFeedback/OpenAnswers';
-import PillarTable from '../../components/studentFeedback/PillarTable';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useLoadResource from '../../hooks/useLoadResource';
+import useStudentFeedbackConfig from '../../hooks/useStudentFeedbackConfig';
 import { useStudentFeedbackTemplateOptions } from '../../hooks/useStudentFeedbackTemplates';
-import { isAnsweredFeedback } from '../../utils/studentFeedback';
+import { formatDayCount, isAnsweredFeedback, latestAnsweredPair, studentCallNameOf, studentTitleNameOf } from '../../utils/studentFeedback';
 import { generalTemplateIdOf } from '../../utils/studentFeedbackTemplate';
 import { t, tf } from '../../i18n';
+
+const MIN_ANSWERED_TO_COMPARE = 2;
 
 // Text of the history under the `studentFeedback.history` namespace
 const th = (key) => t(`studentFeedback.history.${key}`);
@@ -52,32 +57,27 @@ HistoryHeader.propTypes = {
   onSendAdhoc: PropTypes.func.isRequired,
 };
 
-// Pillars of the answered milestones, or the reason there is nothing to compare yet
-const PillarsSection = ({ answered }) => (
-  <section className="section-card student-feedback-section" aria-labelledby="student-feedback-pillars-heading">
-    <h2 id="student-feedback-pillars-heading" className="type-h3 student-feedback-section__title">{th('pillarsTitle')}</h2>
-    {answered.length > 0
-      ? <PillarTable answered={answered} />
-      : <p className="type-body student-feedback-section__note">{th('noAnswered')}</p>}
-  </section>
-);
-
-PillarsSection.propTypes = { answered: PropTypes.array.isRequired };
-
-// Timeline, pillars and open answers of the student, or the empty block before the first send
-const HistoryContent = ({ feedbacks }) => {
+// Timeline, latest result, comparison by send and open answers of the student, or the empty block before the first send
+const HistoryContent = ({ feedbacks, next, autoSendEnabled, callName }) => {
+  if (feedbacks.length === 0) return <HistoryEmptyState next={next} autoSendEnabled={autoSendEnabled} studentName={callName.atStart} studentNameInSentence={callName.inSentence} />;
   const answered = feedbacks.filter(isAnsweredFeedback);
-  if (feedbacks.length === 0) return <EmptyBlock icon={MessagesSquare} title={th('empty')} description={th('emptyDescription')} />;
+  const { latest, previous } = latestAnsweredPair(feedbacks);
   return (
     <>
-      <FeedbackTimeline feedbacks={feedbacks} />
-      <PillarsSection answered={answered} />
+      <FeedbackTimeline feedbacks={feedbacks} next={next} />
+      {latest && <LatestFeedback latest={latest} previous={previous} />}
+      {answered.length >= MIN_ANSWERED_TO_COMPARE && <FeedbackComparison answered={answered} />}
       <OpenAnswers answered={answered} />
     </>
   );
 };
 
-HistoryContent.propTypes = { feedbacks: PropTypes.array.isRequired };
+HistoryContent.propTypes = {
+  feedbacks: PropTypes.array.isRequired,
+  next: PropTypes.object,
+  autoSendEnabled: PropTypes.bool.isRequired,
+  callName: PropTypes.shape({ atStart: PropTypes.string.isRequired, inSentence: PropTypes.string.isRequired }).isRequired,
+};
 
 // Picker of the template the ad-hoc feedback sends, shown inside the confirmation
 const AdhocTemplateField = ({ templates, value, onChange }) => (
@@ -111,21 +111,29 @@ const useAdhocTemplateChoice = () => {
   return { templates, value, pick: setPicked, reset: () => setPicked(null), sentTemplateId: () => sentRef.current };
 };
 
-// Feedback history of one student: milestone timeline, pillars per milestone, open answers and the ad-hoc send with its template
-const StudentFeedbackHistory = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+// Question of the ad-hoc confirmation; it states the response window only when the trainer's configuration is known
+const adhocConfirmMessageOf = (name, responseWindowDays) => {
+  const question = tf('studentFeedback.history.confirmAdhoc', { name });
+  if (responseWindowDays === null) return question;
+  return `${question} ${tf('studentFeedback.history.confirmAdhocWindow', { window: formatDayCount(responseWindowDays) })}`;
+};
+
+// Response window of the trainer, or null while the configuration is loading or when it failed to load
+const useResponseWindowDays = () => {
+  const settings = useStudentFeedbackConfig();
+  return settings.config ? settings.responseWindowDays : null;
+};
+
+// Ad-hoc send of the page: confirmation with the response window and the template picker, the send itself and the refresh of the history either way
+const useAdhocSend = (studentId, reload) => {
   const { showToast } = useToast();
   const { dialogProps, requestConfirm } = useConfirmDialog();
-  const { data, loading, error, reload } = useLoadResource(() => getStudentFeedbackHistory(id), id, {
-    onSilentError: (message) => showToast(message, 'error'),
-  });
-  const adhocTemplate = useAdhocTemplateChoice();
-  const handleBack = () => navigate(`/trainer/students/${id}`);
+  const template = useAdhocTemplateChoice();
+  const responseWindowDays = useResponseWindowDays();
 
-  const sendAdhoc = async () => {
+  const send = async () => {
     try {
-      await sendAdhocStudentFeedback(id, adhocTemplate.sentTemplateId());
+      await sendAdhocStudentFeedback(studentId, template.sentTemplateId());
     } catch (err) {
       // why: a refusal usually means the history on screen is stale (a feedback is already pending), so it is refreshed while the error is shown
       reload({ silent: true });
@@ -135,40 +143,73 @@ const StudentFeedbackHistory = () => {
     await reload({ silent: true });
   };
 
-  if (loading) return <div className="loading-screen"><span className="loading-text">{t('studentFeedback.loading')}</span></div>;
-  if (error) {
-    const retry = <button type="button" className="btn btn--secondary" onClick={() => reload()}>{t('studentFeedback.retry')}</button>;
-    return (
-      <div className="student-feedback-page">
-        <BackButton onBack={handleBack} />
-        <Banner tone="error" action={retry}>{error}</Banner>
-      </div>
-    );
-  }
-
-  const name = data.student.name || t('studentFeedback.unnamedStudent');
-  const handleSendAdhoc = () => {
-    adhocTemplate.reset();
+  const request = (name) => {
+    template.reset();
     requestConfirm({
-      message: tf('studentFeedback.history.confirmAdhoc', { name }),
+      message: adhocConfirmMessageOf(name, responseWindowDays),
       confirmLabel: th('confirmAdhocLabel'),
       confirmTone: 'primary',
       busyLabel: th('sendingAdhoc'),
-      onConfirm: sendAdhoc,
+      onConfirm: send,
     });
   };
-  const hasTemplateChoice = adhocTemplate.templates.length > 0;
+
+  return { dialogProps, template, request };
+};
+
+// Confirmation of the ad-hoc send, with the template picker when the trainer has templates to choose from
+const AdhocConfirmDialog = ({ dialogProps, template }) => (
+  <ConfirmDialog {...dialogProps}>
+    {template.templates.length > 0 && <AdhocTemplateField templates={template.templates} value={template.value} onChange={template.pick} />}
+  </ConfirmDialog>
+);
+
+AdhocConfirmDialog.propTypes = {
+  dialogProps: PropTypes.object.isRequired,
+  template: PropTypes.shape({ templates: PropTypes.array.isRequired, value: PropTypes.string.isRequired, pick: PropTypes.func.isRequired }).isRequired,
+};
+
+// Failed load of the history: the way back and the retry
+const HistoryError = ({ message, onBack, onRetry }) => {
+  const retry = <button type="button" className="btn btn--secondary" onClick={onRetry}>{t('studentFeedback.retry')}</button>;
+  return (
+    <div className="student-feedback-page">
+      <BackButton onBack={onBack} />
+      <Banner tone="error" action={retry}>{message}</Banner>
+    </div>
+  );
+};
+
+HistoryError.propTypes = {
+  message: PropTypes.string.isRequired,
+  onBack: PropTypes.func.isRequired,
+  onRetry: PropTypes.func.isRequired,
+};
+
+// Feedback history of one student: auto-send status, timeline, latest result, comparison by send, open answers and the ad-hoc send with its template
+const StudentFeedbackHistory = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { data, loading, error, reload } = useLoadResource(() => getStudentFeedbackHistory(id), id, {
+    onSilentError: (message) => showToast(message, 'error'),
+  });
+  const adhoc = useAdhocSend(id, reload);
+  const handleBack = () => navigate(`/trainer/students/${id}`);
+
+  if (loading) return <div className="loading-screen"><span className="loading-text">{t('studentFeedback.loading')}</span></div>;
+  if (error) return <HistoryError message={error} onBack={handleBack} onRetry={() => reload()} />;
+
+  const name = studentTitleNameOf(data.student.name);
+  const callName = studentCallNameOf(data.student.name);
 
   return (
     <div className="student-feedback-page">
-      <HistoryHeader name={name} hasPending={data.hasPending} onBack={handleBack} onSendAdhoc={handleSendAdhoc} />
+      <HistoryHeader name={name} hasPending={data.hasPending} onBack={handleBack} onSendAdhoc={() => adhoc.request(name)} />
+      {data.autoSend && <AutoSendStatus autoSend={data.autoSend} studentName={callName.atStart} studentNameInSentence={callName.inSentence} />}
       {data.hasPending && <Banner>{th('pendingNote')}</Banner>}
-      <HistoryContent feedbacks={data.feedbacks} />
-      {dialogProps && (
-        <ConfirmDialog {...dialogProps}>
-          {hasTemplateChoice && <AdhocTemplateField templates={adhocTemplate.templates} value={adhocTemplate.value} onChange={adhocTemplate.pick} />}
-        </ConfirmDialog>
-      )}
+      <HistoryContent feedbacks={data.feedbacks} next={data.autoSend?.next ?? null} autoSendEnabled={data.autoSend?.enabled === true} callName={callName} />
+      {adhoc.dialogProps && <AdhocConfirmDialog dialogProps={adhoc.dialogProps} template={adhoc.template} />}
     </div>
   );
 };

@@ -34,6 +34,7 @@ const DAY_15_TEMPLATE = { name: /^Modelo\b.*\b15 dias$/ };
 const DAY_21_TEMPLATE = { name: /^Modelo\b.*\b21 dias$/ };
 const DAY_30_TEMPLATE = { name: /^Modelo\b(?!.*A cada).*\b30 dias$/ };
 const RECURRING_TEMPLATE = { name: /^Modelo\b.*A cada 30 dias$/ };
+const ANY_TEMPLATE = { name: /^Modelo\b/ };
 
 let milestoneTemplates = {};
 
@@ -113,7 +114,7 @@ describe('StudentFeedbackSettings — template per milestone', () => {
 
     const selects = [DAY_7_TEMPLATE, DAY_15_TEMPLATE, DAY_21_TEMPLATE, DAY_30_TEMPLATE, RECURRING_TEMPLATE].map((query) => screen.getByRole('combobox', query));
     selects.forEach((select) => expect(select).toHaveClass(DS.Input));
-    expect(screen.getAllByRole('combobox')).toHaveLength(5);
+    expect(screen.getAllByRole('combobox', ANY_TEMPLATE)).toHaveLength(5);
     expect(screen.getAllByRole('switch')).toHaveLength(6);
     screen.getAllByRole('switch').forEach((control) => expect(control).toHaveClass(DS.Toggle));
   });

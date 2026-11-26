@@ -181,7 +181,7 @@ describe('StudentFeedbackHistory', () => {
     expect(items).toHaveLength(3);
     expect(within(items[0]).getByText('7 dias')).toBeInTheDocument();
     expect(within(items[1]).getByText('15 dias')).toBeInTheDocument();
-    expect(within(items[1]).getByText('Expirado')).toBeInTheDocument();
+    expect(within(items[1]).getByText('Expirou sem resposta')).toBeInTheDocument();
     expect(within(items[2]).getByText('21 dias')).toBeInTheDocument();
   });
 
@@ -322,7 +322,7 @@ describe('StudentFeedbackHistory', () => {
     await waitFor(() => expect(showToast).toHaveBeenCalledWith('Feedback enviado.', 'success'));
     await waitFor(() => expect(timelineItems()).toHaveLength(4));
     expect(within(timelineItems()[3]).getByText('Envio manual')).toBeInTheDocument();
-    expect(within(timelineItems()[3]).getByText('Pendente')).toBeInTheDocument();
+    expect(within(timelineItems()[3]).getByText('Aguardando resposta')).toBeInTheDocument();
   });
 
   it('shows the API message and adds nothing when the service refuses because one is already pending', async () => {

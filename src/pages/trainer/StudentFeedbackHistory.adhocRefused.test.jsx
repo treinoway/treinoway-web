@@ -129,7 +129,7 @@ describe('StudentFeedbackHistory: refused ad-hoc send', () => {
 
     await waitFor(() => expect(timelineItems()).toHaveLength(2));
     expect(within(timelineItems()[1]).getByText('15 dias')).toBeInTheDocument();
-    expect(within(timelineItems()[1]).getByText('Pendente')).toBeInTheDocument();
+    expect(within(timelineItems()[1]).getByText('Aguardando resposta')).toBeInTheDocument();
     expect(screen.getByText(PENDING_NOTE)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enviar feedback agora' })).toBeDisabled();
   });
