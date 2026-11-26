@@ -20,7 +20,6 @@ import { formatDateForDisplay } from '../../utils/dateFormat';
 
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
-const MAGIC_LINK_BASE = 'https://teufit.com.br/invite?code=';
 
 const STATUS_FILTER_VALUES = ['pending', 'accepted', 'revoked', 'expired'];
 
@@ -32,7 +31,7 @@ const STATUS_BADGE_TONE = {
 };
 
 // Builds the shareable invite link for a code.
-const buildMagicLink = (code) => `${MAGIC_LINK_BASE}${code}`;
+const buildMagicLink = (code) => `${window.location.origin}/invite?code=${code}`;
 
 // Label + value + copy button for the freshly created invite.
 const CopyField = ({ label, value, copyLabel, onCopy, isCode = false }) => (
