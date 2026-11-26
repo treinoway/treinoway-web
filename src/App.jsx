@@ -32,7 +32,6 @@ import TrainingTemplateEditor from './pages/trainer/TrainingTemplateEditor';
 import ExerciseTemplateEditor from './pages/trainer/ExerciseTemplateEditor';
 import AdvancedTechniques from './pages/trainer/AdvancedTechniques';
 import Tutorials from './pages/trainer/Tutorials';
-import TutorialsList from './pages/admin/TutorialsList';
 import AdvancedTechniqueEditor from './pages/trainer/AdvancedTechniqueEditor';
 import ProtocolTemplateView from './pages/trainer/ProtocolTemplateView';
 import ProtocolTemplates from './pages/trainer/ProtocolTemplates';
@@ -76,11 +75,6 @@ import useConsistencyRankingAccess from './hooks/useConsistencyRankingAccess';
 import useStudentFeedbackAccess from './hooks/useStudentFeedbackAccess';
 import { t } from './i18n';
 
-// Admin pages
-import InvitesList from './pages/admin/InvitesList';
-import FeedbackList from './pages/admin/FeedbackList';
-import TrainersList from './pages/admin/TrainersList';
-import AiUsage from './pages/admin/AiUsage';
 
 // Student pages
 
@@ -135,6 +129,9 @@ const RedirectFinanceHistory = () => {
   const { studentId } = useParams();
   return <Navigate to={`/financeiro/alunos/${studentId}`} replace />;
 };
+
+// Former /admin/* screens, now under /manager/*; the old URLs redirect so bookmarks keep working.
+const MOVED_ADMIN_SECTIONS = ['invites', 'feedbacks', 'trainers', 'ai-usage', 'tutorials'];
 
 // Backoffice route subtree, split into its own chunk.
 const ManagerApp = lazy(() => import('./manager/ManagerApp'));
@@ -811,56 +808,13 @@ function App() {
             }
           />
 
-          <Route
-            path="/admin/invites"
-            element={
-              <RequireRole roles={['admin']}>
-                <Layout>
-                  <InvitesList />
-                </Layout>
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/feedbacks"
-            element={
-              <RequireRole roles={['admin']}>
-                <Layout>
-                  <FeedbackList />
-                </Layout>
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/trainers"
-            element={
-              <RequireRole roles={['admin']}>
-                <Layout>
-                  <TrainersList />
-                </Layout>
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/ai-usage"
-            element={
-              <RequireRole roles={['admin']}>
-                <Layout>
-                  <AiUsage />
-                </Layout>
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/tutorials"
-            element={
-              <RequireRole roles={['admin']}>
-                <Layout>
-                  <TutorialsList />
-                </Layout>
-              </RequireRole>
-            }
-          />
+          {MOVED_ADMIN_SECTIONS.map((section) => (
+            <Route
+              key={section}
+              path={`/admin/${section}`}
+              element={<Navigate to={`/manager/${section}`} replace />}
+            />
+          ))}
 
           <Route
             path="/manager/*"

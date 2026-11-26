@@ -90,7 +90,8 @@ const renderDetail = (userId = 'u1') =>
   render(
     <MemoryRouter initialEntries={[`/manager/users/${userId}`]}>
       <Routes>
-        <Route path="/manager" element={<div>Users list route</div>} />
+        <Route path="/manager" element={<div>Overview route</div>} />
+        <Route path="/manager/users" element={<div>Users list route</div>} />
         <Route path="/manager/users/:userId" element={<UserDetail />} />
         <Route path="/manager/protocols/:protocolId" element={<div>Protocol route p</div>} />
       </Routes>
@@ -112,7 +113,7 @@ describe('UserDetail', () => {
     await waitFor(() => expect(requestedUrls()).toContain('/admin/manager/users/u1'));
   });
 
-  it('renders the header with name, email and role badge, plus a ghost back button to /manager', async () => {
+  it('renders the header with name, email and role badge, plus a ghost back button to /manager/users', async () => {
     const user = userEvent.setup();
     const { container } = renderDetail();
 
@@ -125,6 +126,7 @@ describe('UserDetail', () => {
     await user.click(back);
 
     expect(await screen.findByText('Users list route')).toBeInTheDocument();
+    expect(screen.queryByText('Overview route')).not.toBeInTheDocument();
   });
 
   it('shows the counts as MetricCards', async () => {
