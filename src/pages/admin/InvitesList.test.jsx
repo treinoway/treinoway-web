@@ -49,6 +49,8 @@ const mockInvites = [
   },
 ];
 
+const ORIGINAL_URL = window.location.href;
+
 const buildResponse = (items = mockInvites, overrides = {}) => ({
   data: {
     items,
@@ -59,7 +61,34 @@ const buildResponse = (items = mockInvites, overrides = {}) => ({
   },
 });
 
+// Fills the send form, submits it and waits until the created code is shown.
+const createInviteThroughForm = async (user) => {
+  api.post.mockResolvedValue({
+    data: {
+      invite: { id: 'invite-3', email: 'novo@example.com', status: 'pending', statusLabel: 'Pendente' },
+      code: 'TF-8F3K-2Q7M-04',
+    },
+  });
+  renderWithRouter(<InvitesList />);
+  await waitFor(() => screen.getByText('ana@example.com'));
+  await user.type(screen.getByLabelText(/e-mail do treinador/i), 'novo@example.com');
+  await user.click(screen.getByRole('button', { name: /enviar convite/i }));
+  await waitFor(() => screen.getByText('TF-8F3K-2Q7M-04'));
+};
+
+// Replaces navigator.clipboard with the writeText mock; call after userEvent.setup().
+const installClipboardMock = () => {
+  Object.defineProperty(navigator, 'clipboard', {
+    value: { writeText: mockWriteText },
+    configurable: true,
+  });
+};
+
 describe('InvitesList', () => {
+  afterEach(() => {
+    globalThis.jsdom.reconfigure({ url: ORIGINAL_URL });
+  });
+
   beforeEach(() => {
     mockShowToast.mockReset();
     mockWriteText.mockReset().mockResolvedValue(undefined);
@@ -134,7 +163,10 @@ describe('InvitesList', () => {
     });
 
     expect(screen.getByText('TF-8F3K-2Q7M-04')).toBeInTheDocument();
-    expect(screen.getByText('https://teufit.com.br/invite?code=TF-8F3K-2Q7M-04')).toBeInTheDocument();
+    expect(
+      screen.getByText(`${window.location.origin}/invite?code=TF-8F3K-2Q7M-04`)
+    ).toBeInTheDocument();
+    expect(screen.queryByText('https://teufit.com.br/invite?code=TF-8F3K-2Q7M-04')).not.toBeInTheDocument();
     expect(mockShowToast).toHaveBeenCalledWith('Convite enviado com sucesso!', 'success');
   });
 
@@ -166,6 +198,37 @@ describe('InvitesList', () => {
     await waitFor(() => {
       expect(mockWriteText).toHaveBeenCalledWith('TF-8F3K-2Q7M-04');
       expect(mockShowToast).toHaveBeenCalledWith('Copiado!', 'success');
+    });
+  });
+
+  it('copies the magic link built from the current origin, not the code', async () => {
+    const user = userEvent.setup();
+    installClipboardMock();
+
+    await createInviteThroughForm(user);
+
+    await user.click(screen.getByRole('button', { name: /copiar link/i }));
+
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledWith(`${window.location.origin}/invite?code=TF-8F3K-2Q7M-04`);
+      expect(mockShowToast).toHaveBeenCalledWith('Copiado!', 'success');
+    });
+    expect(mockWriteText).not.toHaveBeenCalledWith('TF-8F3K-2Q7M-04');
+  });
+
+  it('builds the magic link on the app subdomain when served from app.teufit.com.br', async () => {
+    globalThis.jsdom.reconfigure({ url: 'https://app.teufit.com.br/admin/invites' });
+    const user = userEvent.setup();
+    installClipboardMock();
+
+    await createInviteThroughForm(user);
+
+    expect(screen.getByText('https://app.teufit.com.br/invite?code=TF-8F3K-2Q7M-04')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /copiar link/i }));
+
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledWith('https://app.teufit.com.br/invite?code=TF-8F3K-2Q7M-04');
     });
   });
 
