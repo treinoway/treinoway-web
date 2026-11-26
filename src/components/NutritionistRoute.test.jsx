@@ -12,12 +12,8 @@ vi.mock('../contexts/AuthContext', () => ({
 vi.mock('../contexts/ToastContext', () => ({
   useToast: () => ({ showToast: mockShowToast }),
 }));
-vi.mock('../hooks/useBetaGate', () => ({
-  default: vi.fn(),
-}));
 
 import { useAuth } from '../contexts/AuthContext';
-import useBetaGate from '../hooks/useBetaGate';
 
 // Renders the guarded route at the given path inside a memory router.
 const renderAt = (path = '/nutritionist/patients') =>
@@ -42,20 +38,12 @@ const renderAt = (path = '/nutritionist/patients') =>
 describe('NutritionistRoute', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useBetaGate).mockReturnValue(false);
   });
 
   it('redirects to /login when not authenticated', () => {
     useAuth.mockReturnValue({ isAuthenticated: false, hasRole: () => false });
     renderAt();
     expect(screen.getByText('Login Page')).toBeInTheDocument();
-  });
-
-  it('redirects to /invite when the beta gate blocks the user (before the role check)', () => {
-    useAuth.mockReturnValue({ isAuthenticated: true, hasRole: () => false });
-    vi.mocked(useBetaGate).mockReturnValue(true);
-    renderAt();
-    expect(screen.getByText('Invite Page')).toBeInTheDocument();
   });
 
   it('redirects to / when authenticated and not a nutritionist', () => {
@@ -70,7 +58,7 @@ describe('NutritionistRoute', () => {
     expect(mockShowToast).toHaveBeenCalledWith('Este perfil não está ativo.', 'error');
   });
 
-  it('renders children for a nutritionist that is not blocked', () => {
+  it('renders children for a nutritionist', () => {
     useAuth.mockReturnValue({ isAuthenticated: true, hasRole: (r) => r === 'NUTRITIONIST' });
     renderAt();
     expect(screen.getByText('Nutritionist Content')).toBeInTheDocument();

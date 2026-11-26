@@ -3,8 +3,9 @@ import api from './axios';
 // All student-invite endpoints live here so contract changes stay in one file.
 
 /**
- * Adds a student by email: links an existing account or emails an invite.
- * POST /trainer/student-invites → { outcome: 'linked', student } | { outcome: 'invited', invite }
+ * Adds a student by email: always emails an invite, accepted or declined in the TeuFit app.
+ * POST /trainer/student-invites → { outcome: 'invited', invite }
+ * Service versions still in rollout may answer { outcome: 'linked', student }.
  */
 export const inviteStudent = async (email) => {
   const response = await api.post('/trainer/student-invites', { email });

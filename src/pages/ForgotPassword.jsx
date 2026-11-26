@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import AuthLegalFooter from '../components/AuthLegalFooter';
+import PasswordField from '../components/PasswordField';
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const CODE_PATTERN = /^[0-9]{6}$/;
@@ -15,8 +16,6 @@ const ForgotPassword = () => {
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -178,15 +177,15 @@ const ForgotPassword = () => {
             {error && <p className="auth-error" role="alert">{error}</p>}
 
             <form onSubmit={handleEmailSubmit} className="auth-form">
-              <div className="form-group">
-                <label htmlFor="email" className="form-label">E-mail</label>
+              <div className="field">
+                <label htmlFor="email" className="field-label type-caption-strong">E-mail</label>
                 <input
                   type="email"
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="form-input"
+                  className="input"
                   placeholder="voce@exemplo.com"
                   autoComplete="email"
                   disabled={loading}
@@ -196,7 +195,7 @@ const ForgotPassword = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn-primary-full"
+                className="btn btn--primary btn--lg btn--block"
               >
                 {loading ? 'Enviando...' : 'Enviar código'}
               </button>
@@ -231,27 +230,27 @@ const ForgotPassword = () => {
 
             <form onSubmit={handleResetSubmit} className="auth-form">
               {showResetEmailField && (
-                <div className="form-group">
-                  <label htmlFor="resetEmail" className="form-label">E-mail</label>
+                <div className="field">
+                  <label htmlFor="resetEmail" className="field-label type-caption-strong">E-mail</label>
                   <input
                     type="email"
                     id="resetEmail"
                     value={email}
                     onChange={(e) => handleResetEmailChange(e.target.value)}
                     required
-                    className={`form-input${fieldErrors.email ? ' form-input--error' : ''}`}
+                    className={`input${fieldErrors.email ? ' input--error' : ''}`}
                     placeholder="voce@exemplo.com"
                     autoComplete="email"
                     disabled={resetLoading}
                   />
                   {fieldErrors.email && (
-                    <span className="form-error" role="alert">{fieldErrors.email}</span>
+                    <span className="field-error type-caption" role="alert">{fieldErrors.email}</span>
                   )}
                 </div>
               )}
 
-              <div className="form-group">
-                <label htmlFor="code" className="form-label">Código</label>
+              <div className="field">
+                <label htmlFor="code" className="field-label type-caption-strong">Código</label>
                 <input
                   type="text"
                   id="code"
@@ -260,77 +259,45 @@ const ForgotPassword = () => {
                   value={code}
                   onChange={(e) => handleCodeChange(e.target.value)}
                   required
-                  className={`form-input${fieldErrors.code ? ' form-input--error' : ''}`}
+                  className={`input${fieldErrors.code ? ' input--error' : ''}`}
                   placeholder="000000"
                   autoComplete="one-time-code"
                   disabled={resetLoading}
                 />
                 {fieldErrors.code && (
-                  <span className="form-error" role="alert">{fieldErrors.code}</span>
+                  <span className="field-error type-caption" role="alert">{fieldErrors.code}</span>
                 )}
               </div>
 
-              <div className="form-group">
-                <label htmlFor="newPassword" className="form-label">Nova senha</label>
-                <div className="password-input-wrapper">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    id="newPassword"
-                    value={password}
-                    onChange={(e) => handlePasswordChange(e.target.value)}
-                    required
-                    className={`form-input${fieldErrors.password ? ' form-input--error' : ''}`}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    disabled={resetLoading}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  >
-                    {showPassword ? <EyeOff size={20} strokeWidth={2} /> : <Eye size={20} strokeWidth={2} />}
-                  </button>
-                </div>
-                {fieldErrors.password && (
-                  <span className="form-error" role="alert">{fieldErrors.password}</span>
-                )}
-                <span className="auth-password-hint">Mínimo 8 caracteres</span>
-              </div>
+              <PasswordField
+                id="newPassword"
+                label="Nova senha"
+                value={password}
+                onChange={handlePasswordChange}
+                autoComplete="new-password"
+                disabled={resetLoading}
+                required
+                error={fieldErrors.password}
+                hint="Mínimo 8 caracteres"
+              />
 
-              <div className="form-group">
-                <label htmlFor="confirmPassword" className="form-label">Confirmar nova senha</label>
-                <div className="password-input-wrapper">
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    id="confirmPassword"
-                    value={confirmPassword}
-                    onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-                    required
-                    className={`form-input${fieldErrors.confirmPassword ? ' form-input--error' : ''}`}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    disabled={resetLoading}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    aria-label={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
-                  >
-                    {showConfirmPassword ? <EyeOff size={20} strokeWidth={2} /> : <Eye size={20} strokeWidth={2} />}
-                  </button>
-                </div>
-                {fieldErrors.confirmPassword && (
-                  <span className="form-error" role="alert">{fieldErrors.confirmPassword}</span>
-                )}
-              </div>
+              <PasswordField
+                id="confirmPassword"
+                label="Confirmar nova senha"
+                value={confirmPassword}
+                onChange={handleConfirmPasswordChange}
+                autoComplete="new-password"
+                disabled={resetLoading}
+                required
+                error={fieldErrors.confirmPassword}
+                showLabel="Mostrar confirmação de senha"
+                hideLabel="Ocultar confirmação de senha"
+              />
 
               <button
                 type="submit"
                 disabled={resetLoading}
-                className="btn-primary-full"
+                className="btn btn--primary btn--lg btn--block"
               >
                 {resetLoading ? 'Redefinindo...' : 'Redefinir senha'}
               </button>
@@ -362,13 +329,7 @@ const ForgotPassword = () => {
         )}
       </div>
 
-      <footer className="auth-legal">
-        <Link to="/terms" className="auth-legal-link">Termos e Condições</Link>
-        <span className="auth-legal-group">
-          <span className="auth-legal-sep" aria-hidden="true">·</span>
-          <Link to="/privacy-policy" className="auth-legal-link">Política de Privacidade</Link>
-        </span>
-      </footer>
+      <AuthLegalFooter />
     </div>
   );
 };

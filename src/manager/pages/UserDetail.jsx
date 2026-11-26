@@ -105,7 +105,7 @@ const UserOverview = ({ overview, userId }) => {
 
   return (
     <div className="admin-page">
-      <UserHeader overview={overview} onBack={() => navigate('/manager')} />
+      <UserHeader overview={overview} onBack={() => navigate('/manager/users')} />
       <div className="metric-grid">
         {buildMetrics(overview).map((metric) => (
           <MetricCard key={metric.key} label={metric.label} value={metric.value} />

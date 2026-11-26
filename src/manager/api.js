@@ -40,3 +40,9 @@ export const getProtocol = (protocolId) => get(`${BASE}/protocols/${protocolId}`
 
 // One workout session with its exercise logs, set logs and previous logs.
 export const getSession = (sessionId) => get(`${BASE}/sessions/${sessionId}`);
+
+// Platform dashboard (KPIs, signups, iArnold, plans, pending items) for a 7d/30d/90d period.
+export const getOverview = ({ period }) => get(`${BASE}/overview`, { period });
+
+// Cheap pending counts for navigation badges: { pendingInvites, newFeedbacks }.
+export const getPending = () => get(`${BASE}/pending`);

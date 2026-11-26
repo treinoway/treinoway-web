@@ -1,6 +1,7 @@
 export const StudentInviteStatus = Object.freeze({
   PENDING: 'pending',
   ACCEPTED: 'accepted',
+  DECLINED: 'declined',
   REVOKED: 'revoked',
   EXPIRED: 'expired',
 });
@@ -30,6 +31,7 @@ export const STUDENT_INVITE_STATUS_FILTERS = Object.freeze([
   STUDENT_INVITE_FILTER_ALL,
   StudentInviteStatus.PENDING,
   StudentInviteStatus.ACCEPTED,
+  StudentInviteStatus.DECLINED,
   StudentInviteStatus.EXPIRED,
   StudentInviteStatus.REVOKED,
 ]);
@@ -37,6 +39,7 @@ export const STUDENT_INVITE_STATUS_FILTERS = Object.freeze([
 export const STUDENT_INVITE_BADGE_TONE = Object.freeze({
   [StudentInviteStatus.PENDING]: 'warning',
   [StudentInviteStatus.ACCEPTED]: 'success',
+  [StudentInviteStatus.DECLINED]: 'warning',
   [StudentInviteStatus.EXPIRED]: 'neutral',
   [StudentInviteStatus.REVOKED]: 'error',
 });

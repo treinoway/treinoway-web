@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Mail, Plus, Users } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { translateError } from '../../i18n';
+import { isEmailVerificationRequired } from '../../lib/emailVerificationGate';
 import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useNutritionPatients, { INVITES_TAB, PATIENTS_TAB } from '../../hooks/useNutritionPatients';
 import ConfirmDialog from '../../components/ds/ConfirmDialog';
@@ -100,7 +101,8 @@ const Patients = () => {
       showToast(inviteToast(result, email), 'success');
       setModalOpen(false);
     } catch (error) {
-      showToast(error.userMessage || translateError(error), 'error');
+      // why: the app shell opens the e-mail confirmation modal for this refusal, so a toast would repeat it
+      if (!isEmailVerificationRequired(error)) showToast(error.userMessage || translateError(error), 'error');
     } finally {
       setInviting(false);
     }

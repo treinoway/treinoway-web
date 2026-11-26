@@ -8,6 +8,10 @@ import { useToast } from '../contexts/ToastContext';
 vi.mock('../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../contexts/AiChatContext', () => ({ useAiChat: vi.fn() }));
 vi.mock('../contexts/ToastContext', () => ({ useToast: vi.fn() }));
+vi.mock('../api/axios', () => ({
+  default: { get: vi.fn(() => Promise.resolve({ data: {} })), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+  onNetworkError: vi.fn(() => vi.fn()),
+}));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -54,10 +58,11 @@ describe('Layout feedback widget', () => {
 });
 
 describe('Layout admin nav', () => {
-  it('shows the "Feedbacks" sidebar link to /admin/feedbacks for an admin', () => {
+  it('reaches feedbacks through the single Manager link instead of a sidebar "Feedbacks" link for an admin', () => {
     setupUser({ roles: ['ADMIN'] });
     renderLayout();
-    expect(screen.getByRole('link', { name: 'Feedbacks' })).toHaveAttribute('href', '/admin/feedbacks');
+    expect(screen.queryByRole('link', { name: 'Feedbacks' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^Manager/ })).toHaveAttribute('href', '/manager');
   });
 
   it('hides the "Feedbacks" link from non-admins', () => {

@@ -15,31 +15,28 @@ describe('AuthEmailField', () => {
     expect(handleChange).toHaveBeenCalledWith('a');
   });
 
-  it('shows the optional hint', () => {
-    render(<AuthEmailField value="" onChange={vi.fn()} hint="Use o e-mail em que você recebeu o convite." />);
-
-    expect(screen.getByText('Use o e-mail em que você recebeu o convite.')).toBeInTheDocument();
-  });
-
   it('disables the editable input when disabled', () => {
     render(<AuthEmailField value="" onChange={vi.fn()} disabled />);
 
     expect(screen.getByLabelText('E-mail')).toBeDisabled();
   });
 
-  it('locks the field to the invited email', async () => {
-    const user = userEvent.setup();
-    const handleChange = vi.fn();
-    render(<AuthEmailField value="" onChange={handleChange} lockedEmail="convidado@teufit.com.br" hint="ignored" />);
+  it('renders the field on DS markup', () => {
+    render(<AuthEmailField value="" onChange={vi.fn()} />);
 
     const input = screen.getByLabelText('E-mail');
-    expect(input).toHaveValue('convidado@teufit.com.br');
-    expect(input).toHaveAttribute('readonly');
-    expect(input).toHaveAccessibleDescription('E-mail do convite');
-    expect(screen.queryByText('ignored')).not.toBeInTheDocument();
+    expect(input).toHaveClass('input');
+    expect(input.closest('.field')).not.toBeNull();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 
-    await user.type(input, 'x');
-    expect(handleChange).not.toHaveBeenCalled();
-    expect(input).toHaveValue('convidado@teufit.com.br');
+  it('shows the inline error as an alert and marks the input invalid', () => {
+    render(<AuthEmailField value="ana" onChange={vi.fn()} error="E-mail em formato inválido." />);
+
+    const input = screen.getByLabelText('E-mail');
+    expect(screen.getByRole('alert')).toHaveTextContent('E-mail em formato inválido.');
+    expect(input).toHaveClass('input--error');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAccessibleDescription('E-mail em formato inválido.');
   });
 });

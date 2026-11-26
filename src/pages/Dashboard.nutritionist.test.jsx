@@ -41,10 +41,11 @@ describe('Dashboard — "Seja nutricionista" card', () => {
     api.get.mockResolvedValue({ data: [] });
   });
 
-  it('shows the card to a plain user with beta access', () => {
+  it('shows the profession choice instead of the card to a user with no role', () => {
     setupUser({ roles: [], betaAccess: true });
     renderWithRouter(<Dashboard />);
-    expect(card()).toBeInTheDocument();
+    expect(card()).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Como você atende?' })).toBeInTheDocument();
   });
 
   it('shows the card to a trainer with beta access who is not a nutritionist yet', () => {
@@ -53,10 +54,10 @@ describe('Dashboard — "Seja nutricionista" card', () => {
     expect(card()).toBeInTheDocument();
   });
 
-  it('hides the card without beta access', () => {
-    setupUser({ roles: [], betaAccess: false });
+  it('shows the card to a trainer even without beta access', () => {
+    setupUser({ roles: ['TRAINER'], betaAccess: false });
     renderWithRouter(<Dashboard />);
-    expect(card()).not.toBeInTheDocument();
+    expect(card()).toBeInTheDocument();
   });
 
   it('hides the card when the user already is a nutritionist', () => {
@@ -67,7 +68,7 @@ describe('Dashboard — "Seja nutricionista" card', () => {
 
   it('PATCHes /become-nutritionist, stores the new tokens, toasts and refreshes the user', async () => {
     const user = userEvent.setup();
-    setupUser({ roles: [], betaAccess: true });
+    setupUser({ roles: ['TRAINER'], betaAccess: true });
     api.patch.mockResolvedValue({ data: { accessToken: 'new-access', refreshToken: 'new-refresh' } });
     renderWithRouter(<Dashboard />);
 
@@ -81,7 +82,7 @@ describe('Dashboard — "Seja nutricionista" card', () => {
 
   it('shows "Carregando..." and ignores a second click while activating', async () => {
     const user = userEvent.setup();
-    setupUser({ roles: [], betaAccess: true });
+    setupUser({ roles: ['TRAINER'], betaAccess: true });
     api.patch.mockImplementation(() => new Promise(() => {}));
     renderWithRouter(<Dashboard />);
 
@@ -94,7 +95,7 @@ describe('Dashboard — "Seja nutricionista" card', () => {
 
   it('toasts the API error (INVITE_REQUIRED) and keeps the card when activation fails', async () => {
     const user = userEvent.setup();
-    setupUser({ roles: [], betaAccess: true });
+    setupUser({ roles: ['TRAINER'], betaAccess: true });
     api.patch.mockRejectedValue(Object.assign(new Error('x'), { userMessage: 'Convite necessário.' }));
     renderWithRouter(<Dashboard />);
 

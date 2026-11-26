@@ -110,7 +110,7 @@ describe('StudentInvitesPanel', () => {
     render(<StudentInvitesPanel />);
 
     expect(await screen.findByText('Sem convites ainda')).toBeInTheDocument();
-    expect(screen.getByText(/o convite aparece aqui/i)).toBeInTheDocument();
+    expect(screen.getByText('Os convites que você enviar aparecem aqui.')).toBeInTheDocument();
   });
 
   it('shows the filtered empty state when a status filter has no results', async () => {

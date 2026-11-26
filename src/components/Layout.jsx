@@ -1,29 +1,24 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Mail, UsersRound, BarChart3, Zap, Video, CirclePlay, DatabaseZap, MessageSquare, MessagesSquare, Trophy, Medal, Salad } from 'lucide-react';
+import { Home, User, BookOpen, ClipboardList, Dumbbell, Activity, Users, LogOut, ChevronDown, FileText, Sparkles, PanelLeft, Zap, CirclePlay, DatabaseZap, MessagesSquare, Trophy, Medal, Salad } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../contexts/AiChatContext';
 import Badge from './ds/Badge';
+import EmailVerificationBanner from './EmailVerificationBanner';
+import EmailVerificationModal from './EmailVerificationModal';
 import FeedbackWidget from './FeedbackWidget';
 import FinanceSidebarLink from './FinanceSidebarLink';
 import useAiAccess from '../hooks/useAiAccess';
+import useEmailVerificationPrompt from '../hooks/useEmailVerificationPrompt';
 import useConsistencyRankingAccess from '../hooks/useConsistencyRankingAccess';
 import useFinanceOverdueCount from '../hooks/useFinanceOverdueCount';
 import useStudentFeedbackAccess from '../hooks/useStudentFeedbackAccess';
 import useStudentFeedbackUnreadCount from '../hooks/useStudentFeedbackUnreadCount';
+import useManagerPendingCounts from '../hooks/useManagerPendingCounts';
 import { SIDEBAR_BADGE_MAX } from '../constants/finance';
 import { STUDENT_FEEDBACK_PATH } from '../constants/studentFeedback';
 import { t, tCount, tf } from '../i18n';
-
-const ADMIN_LINKS = [
-  { path: '/admin/invites', labelKey: 'adminNav.invites', Icon: Mail },
-  { path: '/admin/feedbacks', labelKey: 'adminNav.feedbacks', Icon: MessageSquare },
-  { path: '/admin/trainers', labelKey: 'adminNav.trainers', Icon: UsersRound },
-  { path: '/admin/ai-usage', labelKey: 'adminNav.aiUsage', Icon: BarChart3 },
-  { path: '/admin/tutorials', labelKey: 'adminNav.tutorials', Icon: Video },
-  { path: '/manager', labelKey: 'adminNav.manager', Icon: DatabaseZap },
-];
 
 const NUTRITIONIST_LINKS = [
   { path: '/nutritionist/patients', label: 'Meus Pacientes', Icon: Users },
@@ -56,6 +51,30 @@ StudentFeedbackNavLink.propTypes = {
   unreadCount: PropTypes.number.isRequired,
 };
 
+// Sidebar entry of the Manager area with the pending items count (bg + text pair, and a dot while collapsed)
+const ManagerNavLink = ({ active, pendingCount }) => {
+  const hasPending = pendingCount > 0;
+  const badge = pendingCount > SIDEBAR_BADGE_MAX ? `${SIDEBAR_BADGE_MAX}+` : String(pendingCount);
+  const ariaLabel = hasPending
+    ? tf('adminNav.managerPendingAria', { count: tCount('adminNav.managerPending', pendingCount) })
+    : t('adminNav.manager');
+  return (
+    <Link to="/manager" className={`sidebar-link ${active ? 'sidebar-link--active' : ''}`} aria-label={ariaLabel}>
+      <span className="sidebar-link-icon" aria-hidden="true">
+        <DatabaseZap size={20} strokeWidth={2} />
+        {hasPending && <span className="sidebar-link-dot" />}
+      </span>
+      <span className="sidebar-link-label">{t('adminNav.manager')}</span>
+      {hasPending && <span className="sidebar-link-badge sidebar-link-badge--count" aria-hidden="true">{badge}</span>}
+    </Link>
+  );
+};
+
+ManagerNavLink.propTypes = {
+  active: PropTypes.bool.isRequired,
+  pendingCount: PropTypes.number.isRequired,
+};
+
 const Layout = ({ children, noPadding = false }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [bibliotecaOpen, setBibliotecaOpen] = useState(false); // closed by default; auto-opens on active route via useEffect
@@ -67,11 +86,14 @@ const Layout = ({ children, noPadding = false }) => {
   const showConsistencyRanking = useConsistencyRankingAccess();
   const showStudentFeedback = useStudentFeedbackAccess() && hasRole('TRAINER');
   const studentFeedbackUnreadCount = useStudentFeedbackUnreadCount(showStudentFeedback);
+  const isAdmin = hasRole('ADMIN');
+  const { pendingInvites, newFeedbacks } = useManagerPendingCounts(isAdmin);
   const location = useLocation();
   const navigate = useNavigate();
   const popoverRef = useRef(null);
   const profilePopoverRef = useRef(null);
   const financeOverdueCount = useFinanceOverdueCount();
+  const { prompt: verificationPrompt, closePrompt: closeVerificationPrompt } = useEmailVerificationPrompt();
   const financeBadge = financeOverdueCount > SIDEBAR_BADGE_MAX ? `${SIDEBAR_BADGE_MAX}+` : String(financeOverdueCount);
   const financeAriaLabel = financeOverdueCount > 0
     ? tf('finance.sidebar.overdueAria', { count: tCount('finance.count.overdueCharge', financeOverdueCount) })
@@ -208,22 +230,10 @@ const Layout = ({ children, noPadding = false }) => {
             </Link>
           ))}
 
-          {hasRole('ADMIN') && (
+          {isAdmin && (
             <>
               <div className="sidebar-section-label">{t('adminNav.title')}</div>
-              {ADMIN_LINKS.map(({ path, labelKey, Icon }) => (
-                <Link
-                  key={path}
-                  to={path}
-                  className={`sidebar-link ${isActive(path) ? 'sidebar-link--active' : ''}`}
-                  aria-label={t(labelKey)}
-                >
-                  <span className="sidebar-link-icon" aria-hidden="true">
-                    <Icon size={20} strokeWidth={1.6} />
-                  </span>
-                  <span className="sidebar-link-label">{t(labelKey)}</span>
-                </Link>
-              ))}
+              <ManagerNavLink active={isActive('/manager')} pendingCount={pendingInvites + newFeedbacks} />
             </>
           )}
 
@@ -391,10 +401,19 @@ const Layout = ({ children, noPadding = false }) => {
       </aside>
 
       <main className={`main-content${noPadding ? ' main-content--fullscreen' : ''}`}>
-        {noPadding ? children : <div className="main-content-inner">{children}</div>}
+        {noPadding ? children : (
+          <div className="main-content-inner">
+            <EmailVerificationBanner />
+            {children}
+          </div>
+        )}
       </main>
 
       <FeedbackWidget />
+
+      {verificationPrompt && (
+        <EmailVerificationModal reason={verificationPrompt.reason} onClose={closeVerificationPrompt} />
+      )}
 
       {/* Bottom Navigation — visible only on mobile */}
       <nav className="bottom-nav" aria-label="Navegação principal">

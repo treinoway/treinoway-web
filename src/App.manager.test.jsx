@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from './test/test-utils';
 import App from './App';
 import { useAuth } from './contexts/AuthContext';
+import { buildZeroOverview } from './test/managerOverviewFixtures';
 
 vi.mock('./contexts/AuthContext', () => ({
   AuthProvider: ({ children }) => children,
@@ -19,6 +20,8 @@ vi.mock('./components/ProtectedRoute', () => ({ default: ({ children }) => child
 vi.mock('./components/Layout', () => ({ default: ({ children }) => children }));
 vi.mock('./pages/Dashboard', () => ({ default: () => <div>Dashboard Page</div> }));
 vi.mock('./manager/api', () => ({
+  getPending: vi.fn(() => Promise.resolve({ pendingInvites: 0, newFeedbacks: 0 })),
+  getOverview: vi.fn(() => Promise.resolve(buildZeroOverview())),
   listUsers: vi.fn().mockResolvedValue({
     items: [
       {
@@ -50,11 +53,18 @@ const mockRoles = (roles) => {
 };
 
 describe('App routes: /manager', () => {
-  beforeEach(() => {
+  it('lazily renders the manager overview at /manager for an admin', async () => {
     window.history.pushState({}, '', '/manager');
-  });
+    mockRoles(['ADMIN']);
 
-  it('lazily renders the manager users list for an admin', async () => {
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Visão geral' }, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.queryByText('Zeca Manager')).not.toBeInTheDocument();
+  }, 10000);
+
+  it('renders the manager users list at /manager/users for an admin', async () => {
+    window.history.pushState({}, '', '/manager/users');
     mockRoles(['ADMIN']);
 
     render(<App />);
@@ -63,11 +73,12 @@ describe('App routes: /manager', () => {
   });
 
   it('redirects a non-admin to the dashboard', async () => {
+    window.history.pushState({}, '', '/manager');
     mockRoles(['TRAINER']);
 
     render(<App />);
 
     expect(await screen.findByText('Dashboard Page')).toBeInTheDocument();
-    expect(screen.queryByText('Zeca Manager')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Visão geral' })).not.toBeInTheDocument();
   });
 });
