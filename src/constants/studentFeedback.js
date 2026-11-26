@@ -28,6 +28,12 @@ export const FEEDBACK_BAND_TONE = Object.freeze({
   good: 'success',
 });
 
+export const FEEDBACK_BAND_METER_TONE = Object.freeze({
+  attention: 'danger',
+  stable: 'warning',
+  good: 'success',
+});
+
 export const FEEDBACK_PILLAR_ORDER = Object.freeze([
   'training_adherence',
   'diet_adherence',
@@ -40,6 +46,17 @@ export const FEEDBACK_PILLAR_ORDER = Object.freeze([
 ]);
 
 export const FEEDBACK_CONFIG_MILESTONE_FIELDS = Object.freeze(['d7', 'd15', 'd21', 'd30', 'recurring']);
+
+/** days the student has to answer a feedback: the range the trainer picks from and the value of a config saved before the field existed. */
+export const FEEDBACK_RESPONSE_WINDOW_DAYS = Object.freeze({ min: 1, max: 7, default: 3 });
+
+/** shortest response window that still gets the reminder, sent 24h after the feedback while it is open. */
+export const FEEDBACK_REMINDER_MIN_WINDOW_DAYS = 2;
+
+/** every response window the trainer can pick, shortest first. */
+export const FEEDBACK_RESPONSE_WINDOW_OPTIONS = Object.freeze(
+  Array.from({ length: FEEDBACK_RESPONSE_WINDOW_DAYS.max - FEEDBACK_RESPONSE_WINDOW_DAYS.min + 1 }, (_, index) => FEEDBACK_RESPONSE_WINDOW_DAYS.min + index),
+);
 
 /** window event carrying `{ count }` whenever the inbox knows the current unread count. */
 export const STUDENT_FEEDBACK_UNREAD_EVENT = 'treinoway:student-feedback-unread-changed';

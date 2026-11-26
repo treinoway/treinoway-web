@@ -41,6 +41,7 @@ const PAYMENTS = '/professional/students/student-1/payments';
 const PLANS = '/professional/subscription-plans';
 const PROTOCOLS = '/trainer/protocols';
 const ANAMNESES = `${STUDENT}/anamneses`;
+const FEEDBACKS = `${STUDENT}/feedbacks`;
 
 const RESPONSES = {
   [STUDENT]: { id: 'student-1', firstName: 'Aluno', lastName: 'Exemplo', email: 'aluno@example.com', lastWorkoutAt: null },
@@ -55,6 +56,7 @@ const RESPONSES = {
   [PLANS]: [makePlan()],
   [PROTOCOLS]: [{ id: 'proto-1', name: 'Rotina Ativa', status: 'active', startDate: '2026-09-01', expirationDate: '2026-12-31' }],
   [ANAMNESES]: [],
+  [FEEDBACKS]: { student: { id: 'student-1', name: 'Aluno Exemplo', avatarUrl: null }, hasPending: false, feedbacks: [] },
 };
 
 const ALL_URLS = Object.keys(RESPONSES);
@@ -147,14 +149,14 @@ const expectNoEarlyEmptyState = (resolved) => {
   expect(screen.queryByText('Aluno não encontrado')).not.toBeInTheDocument();
 };
 
-// 4 orders × 10 steps of full-page queries: well above the 5s default on a loaded CI box.
-const ORDER_TEST_TIMEOUT_MS = 30000;
+// 4 orders × 11 steps of full-page queries: well above the 5s default on a loaded CI box.
+const ORDER_TEST_TIMEOUT_MS = 60000;
 
 const ORDERS = {
   'declaration order': ALL_URLS,
   'reverse order': [...ALL_URLS].reverse(),
-  'billing first, student profile last': [PAYMENTS, ACTIVE, PLANS, ANAMNESES, SUMMARY, PROTOCOLS, RECENT, DAILY, PROGRESSION, STUDENT],
-  'dashboard last': [STUDENT, PROTOCOLS, ACTIVE, ANAMNESES, PAYMENTS, PLANS, DAILY, RECENT, PROGRESSION, SUMMARY],
+  'billing first, student profile last': [PAYMENTS, ACTIVE, PLANS, FEEDBACKS, ANAMNESES, SUMMARY, PROTOCOLS, RECENT, DAILY, PROGRESSION, STUDENT],
+  'dashboard last': [STUDENT, PROTOCOLS, ACTIVE, ANAMNESES, PAYMENTS, PLANS, FEEDBACKS, DAILY, RECENT, PROGRESSION, SUMMARY],
 };
 
 describe('StudentDetail — page assembly', () => {

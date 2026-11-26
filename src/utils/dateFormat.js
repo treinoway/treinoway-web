@@ -29,6 +29,16 @@ export const formatDateTimeForDisplay = (dateValue) => {
   return parsedDate.toLocaleDateString('pt-BR');
 };
 
+// Formats a DateTime as dd/mm (no year) in the viewer's local timezone; "-" when missing or invalid
+export const formatDayMonthForDisplay = (dateValue) => {
+  if (!dateValue) return '-';
+
+  const parsedDate = new Date(dateValue);
+  if (Number.isNaN(parsedDate.getTime())) return '-';
+
+  return parsedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+};
+
 /**
  * Formats a DateTime as HH:mm in the viewer's local timezone; "-" when missing
  * or invalid.

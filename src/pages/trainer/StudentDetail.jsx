@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAiChat } from '../../contexts/AiChatContext';
 import { translateError } from '../../i18n';
 import api from '../../api/axios';
+import { getStudentFeedbackHistory } from '../../api/studentFeedback';
 import Select from '../../components/Select';
 import Modal from '../../components/ds/Modal';
 import EmptyBlock from '../../components/ds/EmptyBlock';
@@ -26,6 +27,7 @@ import useStudentDashboard from '../../hooks/useStudentDashboard';
 import useStudentSubscriptionManager from '../../hooks/useStudentSubscriptionManager';
 import { SERVICE_TYPE } from '../../constants/finance';
 import useLinkedStudent from '../../hooks/useLinkedStudent';
+import useLoadResource from '../../hooks/useLoadResource';
 import useStudentFeedbackAccess from '../../hooks/useStudentFeedbackAccess';
 import usePeriodPersistence from '../../hooks/usePeriodPersistence';
 import { DASHBOARD_PERIOD_PRESETS, getPeriodPresetLabel } from '../../constants/dashboardPeriod';
@@ -201,6 +203,8 @@ const StudentDetail = () => {
   const { user } = useAuth();
   const { startConversation } = useAiChat();
   const showStudentFeedback = useStudentFeedbackAccess();
+  // why: the card only decorates itself with the history, so a failed load stays silent and the card keeps its static text
+  const { data: feedbackHistory } = useLoadResource(() => getStudentFeedbackHistory(id), id, { enabled: showStudentFeedback });
 
   const [period, setPeriod] = usePeriodPersistence(user?.id);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -341,7 +345,7 @@ const StudentDetail = () => {
             onFill={(link) => navigate(getAnamnesisFillPath(id, link.anamnesis.id))}
             onViewResponses={(link) => navigate(`/trainer/students/${id}/anamneses/${link.anamnesis.id}/response`)}
           />
-          {showStudentFeedback && <StudentFeedbackCard onViewAll={() => navigate(studentFeedbackHistoryPath(id))} />}
+          {showStudentFeedback && <StudentFeedbackCard onViewAll={() => navigate(studentFeedbackHistoryPath(id))} history={feedbackHistory} />}
         </div>
       </section>
 

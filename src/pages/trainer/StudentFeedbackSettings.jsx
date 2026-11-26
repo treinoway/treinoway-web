@@ -10,10 +10,22 @@ import useConfirmDialog from '../../hooks/useConfirmDialog';
 import useStudentFeedbackConfig from '../../hooks/useStudentFeedbackConfig';
 import useStudentFeedbackMilestoneTemplates from '../../hooks/useStudentFeedbackMilestoneTemplates';
 import useUnsavedChangesGuard from '../../hooks/useUnsavedChangesGuard';
-import { FEEDBACK_CONFIG_MILESTONE_FIELDS, STUDENT_FEEDBACK_PATH } from '../../constants/studentFeedback';
+import {
+  FEEDBACK_CONFIG_MILESTONE_FIELDS,
+  FEEDBACK_REMINDER_MIN_WINDOW_DAYS,
+  FEEDBACK_RESPONSE_WINDOW_OPTIONS,
+  STUDENT_FEEDBACK_PATH,
+} from '../../constants/studentFeedback';
+import { formatDayCount } from '../../utils/studentFeedback';
+
+const RESPONSE_WINDOW_ID = 'student-feedback-setting-responseWindowDays';
 
 // Text of the settings under the `studentFeedback.settings` namespace
 const ts = (key) => t(`studentFeedback.settings.${key}`);
+
+// Send rules in display order; a window too short for the 24h reminder says there is none
+const ruleKeysFor = (responseWindowDays) =>
+  ['sendTime', 'responseWindow', responseWindowDays < FEEDBACK_REMINDER_MIN_WINDOW_DAYS ? 'noReminder' : 'reminder', 'channel'];
 
 // Back arrow, title and the save action
 const SettingsHeader = ({ canSave, saving, onBack, onSave }) => (
@@ -73,6 +85,45 @@ MilestoneTemplateSelect.propTypes = {
   disabled: PropTypes.bool.isRequired,
 };
 
+// Picker of how many days the student has to answer the feedbacks sent from now on; `disabled` locks it
+const ResponseWindowField = ({ value, disabled, onChange }) => (
+  <div className="student-feedback-setting student-feedback-setting--with-field">
+    <div className="student-feedback-setting__text">
+      <label className="type-body-strong student-feedback-setting__label" htmlFor={RESPONSE_WINDOW_ID}>{ts('responseWindow')}</label>
+      <span id={`${RESPONSE_WINDOW_ID}-help`} className="type-caption student-feedback-setting__description">{ts('responseWindowHelp')}</span>
+    </div>
+    <select
+      id={RESPONSE_WINDOW_ID}
+      className="input"
+      aria-describedby={`${RESPONSE_WINDOW_ID}-help`}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(Number(event.target.value))}
+    >
+      {FEEDBACK_RESPONSE_WINDOW_OPTIONS.map((days) => <option key={days} value={days}>{formatDayCount(days)}</option>)}
+    </select>
+  </div>
+);
+
+ResponseWindowField.propTypes = {
+  value: PropTypes.number.isRequired,
+  disabled: PropTypes.bool.isRequired,
+  onChange: PropTypes.func.isRequired,
+};
+
+// Send rules as the draft stands: the window and the reminder rules follow the window picked, saved or not
+const SendRules = ({ responseWindowDays }) => (
+  <SettingsSection title={ts('rulesSection')}>
+    <ul className="student-feedback-rules type-body">
+      {ruleKeysFor(responseWindowDays).map((key) => (
+        <li key={key}>{tf(`studentFeedback.settings.rules.${key}`, { window: formatDayCount(responseWindowDays) })}</li>
+      ))}
+    </ul>
+  </SettingsSection>
+);
+
+SendRules.propTypes = { responseWindowDays: PropTypes.number.isRequired };
+
 // One switch per milestone and, once the templates are loaded, the template each milestone sends; `disabled` locks them all
 const MilestonesSection = ({ settings, milestoneTemplates, disabled }) => (
   <SettingsSection title={ts('milestonesSection')}>
@@ -104,7 +155,7 @@ MilestonesSection.propTypes = {
   disabled: PropTypes.bool.isRequired,
 };
 
-// Loaded page under the header: auto-send switch, milestones with their templates and the fixed send rules; `disabled` locks every control
+// Loaded page under the header: auto-send switch and response window, milestones with their templates and the send rules; `disabled` locks every control
 const SettingsContent = ({ settings, milestoneTemplates, disabled }) => (
   <>
     <SettingsSection title={ts('autoSendSection')}>
@@ -116,13 +167,14 @@ const SettingsContent = ({ settings, milestoneTemplates, disabled }) => (
         disabled={disabled}
         onChange={(next) => settings.setField('autoSendEnabled', next)}
       />
+      <ResponseWindowField
+        value={settings.responseWindowDays}
+        disabled={disabled}
+        onChange={(next) => settings.setField('responseWindowDays', next)}
+      />
     </SettingsSection>
     <MilestonesSection settings={settings} milestoneTemplates={milestoneTemplates} disabled={disabled} />
-    <SettingsSection title={ts('rulesSection')}>
-      <ul className="student-feedback-rules type-body">
-        {ts('rules').map((rule) => <li key={rule}>{rule}</li>)}
-      </ul>
-    </SettingsSection>
+    <SendRules responseWindowDays={settings.responseWindowDays} />
   </>
 );
 
@@ -132,7 +184,7 @@ SettingsContent.propTypes = {
   disabled: PropTypes.bool.isRequired,
 };
 
-// Configuration of the automatic student feedback: auto-send, milestones with the template of each, and the send rules
+// Configuration of the automatic student feedback: auto-send, response window, milestones with the template of each, and the send rules
 const StudentFeedbackSettings = () => {
   const { showToast } = useToast();
   const settings = useStudentFeedbackConfig();

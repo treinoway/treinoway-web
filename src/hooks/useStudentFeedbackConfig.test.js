@@ -209,3 +209,146 @@ describe('useStudentFeedbackConfig: saving', () => {
     expect(result.current.canSave).toBe(true);
   });
 });
+
+describe('useStudentFeedbackConfig: response window', () => {
+  it('reports the default of 3 days when the API answers without the field, leaving the configuration as answered', async () => {
+    const { result } = await renderConfig();
+
+    expect(result.current.responseWindowDays).toBe(3);
+    expect(result.current.config).toEqual(SAVED);
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('reports the default of 3 days when the API answers the field as null', async () => {
+    stored = { ...SAVED, responseWindowDays: null };
+    const { result } = await renderConfig();
+
+    expect(result.current.responseWindowDays).toBe(3);
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it.each([[1], [5], [7]])('reports the window of %i days the API answers', async (days) => {
+    stored = { ...SAVED, responseWindowDays: days };
+    const { result } = await renderConfig();
+
+    expect(result.current.responseWindowDays).toBe(days);
+    expect(result.current.config.responseWindowDays).toBe(days);
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('reports the picked window and becomes dirty when it differs from the saved one', async () => {
+    const { result } = await renderConfig();
+
+    act(() => result.current.setField('responseWindowDays', 5));
+
+    expect(result.current.responseWindowDays).toBe(5);
+    expect(result.current.isDirty).toBe(true);
+    expect(result.current.canSave).toBe(true);
+    expect(api.put).not.toHaveBeenCalled();
+  });
+
+  it('stays clean when the default is picked again on a configuration answered without the field', async () => {
+    const { result } = await renderConfig();
+
+    act(() => result.current.setField('responseWindowDays', 3));
+
+    expect(result.current.responseWindowDays).toBe(3);
+    expect(result.current.isDirty).toBe(false);
+    expect(result.current.canSave).toBe(false);
+  });
+
+  it('is clean again when the window goes away from the default and back, without the field saved', async () => {
+    const { result } = await renderConfig();
+
+    act(() => result.current.setField('responseWindowDays', 6));
+    expect(result.current.isDirty).toBe(true);
+    act(() => result.current.setField('responseWindowDays', 3));
+
+    expect(result.current.isDirty).toBe(false);
+    expect(result.current.canSave).toBe(false);
+  });
+
+  it('takes the default as a change when the saved window is another one', async () => {
+    stored = { ...SAVED, responseWindowDays: 5 };
+    const { result } = await renderConfig();
+
+    act(() => result.current.setField('responseWindowDays', 3));
+
+    expect(result.current.isDirty).toBe(true);
+    await act(() => result.current.save());
+    expect(api.put).toHaveBeenCalledWith(CONFIG_URL, { responseWindowDays: 3 });
+  });
+
+  it('stays clean when the saved window is picked again', async () => {
+    stored = { ...SAVED, responseWindowDays: 5 };
+    const { result } = await renderConfig();
+
+    act(() => result.current.setField('responseWindowDays', 5));
+
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('sends only the window, as a number, when it is the only change', async () => {
+    const { result } = await renderConfig();
+    act(() => result.current.setField('responseWindowDays', 5));
+
+    await act(() => result.current.save());
+
+    expect(api.put).toHaveBeenCalledTimes(1);
+    const [url, body] = api.put.mock.calls[0];
+    expect(url).toBe(CONFIG_URL);
+    expect(body).toStrictEqual({ responseWindowDays: 5 });
+    expect(typeof body.responseWindowDays).toBe('number');
+  });
+
+  it('leaves the window out of the save when the default was picked again next to another change', async () => {
+    const { result } = await renderConfig();
+    act(() => result.current.setField('responseWindowDays', 3));
+    act(() => result.current.setField('d7', false));
+
+    await act(() => result.current.save());
+
+    expect(api.put).toHaveBeenCalledWith(CONFIG_URL, { d7: false });
+  });
+
+  it('sends the window together with another changed field in one request', async () => {
+    const { result } = await renderConfig();
+    act(() => result.current.setField('responseWindowDays', 2));
+    act(() => result.current.setField('autoSendEnabled', true));
+
+    await act(() => result.current.save());
+
+    expect(api.put).toHaveBeenCalledTimes(1);
+    expect(api.put).toHaveBeenCalledWith(CONFIG_URL, { responseWindowDays: 2, autoSendEnabled: true });
+  });
+
+  it('adopts the saved window as the new baseline', async () => {
+    const { result } = await renderConfig();
+    act(() => result.current.setField('responseWindowDays', 5));
+    await act(() => result.current.save());
+
+    expect(result.current.responseWindowDays).toBe(5);
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => result.current.setField('responseWindowDays', 3));
+    expect(result.current.isDirty).toBe(true);
+    await act(() => result.current.save());
+
+    expect(api.put).toHaveBeenLastCalledWith(CONFIG_URL, { responseWindowDays: 3 });
+    expect(result.current.responseWindowDays).toBe(3);
+  });
+
+  it('keeps the picked window, still unsaved, when the save fails', async () => {
+    api.put.mockRejectedValue({ userMessage: 'Erro ao salvar a configuração.' });
+    const { result } = await renderConfig();
+    act(() => result.current.setField('responseWindowDays', 5));
+
+    await act(async () => {
+      await result.current.save().catch(() => {});
+    });
+
+    expect(result.current.responseWindowDays).toBe(5);
+    expect(result.current.isDirty).toBe(true);
+    expect(result.current.canSave).toBe(true);
+  });
+});

@@ -31,6 +31,8 @@ const DAY_15_SWITCH = { name: '15 dias' };
 const DAY_30_SWITCH = { name: '30 dias' };
 const DAY_7_TEMPLATE = { name: /^Modelo\b.*\b7 dias$/ };
 const DAY_21_TEMPLATE = { name: /^Modelo\b.*\b21 dias$/ };
+const ANY_TEMPLATE = { name: /^Modelo\b/ };
+const RESPONSE_WINDOW = { name: 'Prazo para responder' };
 
 // Promise settled from outside, standing for a request still in flight
 const deferred = () => {
@@ -72,13 +74,15 @@ const waitForPage = async () => {
   return screen.findByRole('combobox', DAY_7_TEMPLATE);
 };
 
-// The six switches followed by the five "Modelo" selects
+// The six switches, the five "Modelo" selects and the response window select: every control of the page
 const settingControls = () => {
   const switches = screen.getAllByRole('switch');
-  const selects = screen.getAllByRole('combobox');
+  const templateSelects = screen.getAllByRole('combobox', ANY_TEMPLATE);
+  const windowSelect = screen.getByRole('combobox', RESPONSE_WINDOW);
   expect(switches).toHaveLength(6);
-  expect(selects).toHaveLength(5);
-  return [...switches, ...selects];
+  expect(templateSelects).toHaveLength(5);
+  expect(screen.getAllByRole('combobox')).toHaveLength(6);
+  return [...switches, ...templateSelects, windowSelect];
 };
 
 // The option currently chosen in a select
@@ -101,7 +105,7 @@ describe('StudentFeedbackSettings: while the save is in flight', () => {
     saves = mockApi();
   });
 
-  it('disables the six switches and the five selects while the config PUT is pending, and enables them once it succeeds', async () => {
+  it('disables the six switches and the six selects while the config PUT is pending, and enables them once it succeeds', async () => {
     const user = userEvent.setup();
     renderPage();
     await waitForPage();
@@ -118,7 +122,7 @@ describe('StudentFeedbackSettings: while the save is in flight', () => {
     expect(screen.getByRole('switch', DAY_30_SWITCH)).toBeChecked();
   });
 
-  it('disables the six switches and the five selects while the milestone-templates PUT is pending, and enables them once it succeeds', async () => {
+  it('disables the six switches and the six selects while the milestone-templates PUT is pending, and enables them once it succeeds', async () => {
     const user = userEvent.setup();
     renderPage();
     await user.selectOptions(await waitForPage(), 'Avaliação mensal');
